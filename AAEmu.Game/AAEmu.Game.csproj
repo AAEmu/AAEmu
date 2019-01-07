@@ -17,44 +17,12 @@
     <Content Include="ExampleConfig.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Compile Remove="Scripts\Commands\Height.cs" />
-    <None Include="Scripts\Commands\Height.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <Compile Remove="Scripts\Commands\Scripts.cs" />
-    <None Include="Scripts\Commands\Scripts.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Remove="Data\worlds.json" />
-    <Content Include="Data\worlds.json">
+    <None Remove="Data\*" />
+    <Content Include="Data\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Remove="Data\compact.sqlite3" />
-    <Content Include="Data\compact.sqlite3">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <None Remove="Data\CharTemplates.json" />
-    <Content Include="Data\CharTemplates.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Compile Remove="Scripts\Commands\Help.cs" />
-    <None Include="Scripts\Commands\Help.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <Compile Remove="Scripts\Commands\Position.cs" />
-    <None Include="Scripts\Commands\Position.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <Compile Remove="Scripts\Commands\Around.cs" />
-    <None Include="Scripts\Commands\Around.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <Compile Remove="Scripts\Commands\Fly.cs" />
-    <None Include="Scripts\Commands\Fly.cs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <Compile Remove="Scripts\Commands\Appellation.cs" />
-    <None Include="Scripts\Commands\Appellation.cs">
+    <Compile Remove="Scripts\*" />
+    <None Include="Scripts\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
