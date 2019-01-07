@@ -1,0 +1,24 @@
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Stream;
+
+namespace AAEmu.Game.Core.Packets.C2S
+{
+    public class CTRequestCellPacket : StreamPacket
+    {
+        public CTRequestCellPacket() : base(0x02)
+        {
+
+        }
+
+        public override void Read(PacketStream stream)
+        {
+            var i = stream.ReadUInt32();
+            var x = stream.ReadInt32();
+            var y = stream.ReadInt32();
+
+            _log.Warn("CTRequestCellPacket #.{0} ({1},{2})", i, x, y);
+            StreamManager.Instance.RequestCell(Connection, x, y);
+        }
+    }
+}

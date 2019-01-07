@@ -1,0 +1,25 @@
+{
+  "Id": 1,
+  "Network": {
+    "Host": "127.0.0.1",
+    "Port": 1239
+  },
+  "StreamNetwork": {
+    "Host": "127.0.0.1",
+    "Port": 1250
+  },
+  "LoginNetwork": {
+    "Host": "127.0.0.1",
+    "Port": 1234
+  },
+  "Connections": {
+    "MySQLProvider": {
+      "Host": "localhost",
+      "Port": "3306",
+      "User": "root",
+      "Password": "",
+      "Database": "aaemu"
+    }
+  },
+  "CharacterNameRegex": "^[a-zA-Z0-9а-яА-Я]{1,18}$"
+}

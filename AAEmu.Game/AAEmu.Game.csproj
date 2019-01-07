@@ -1,0 +1,75 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="ExampleConfig.xml" />
+    <Content Include="ExampleConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Compile Remove="Scripts\Commands\Height.cs" />
+    <None Include="Scripts\Commands\Height.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Remove="Scripts\Commands\Scripts.cs" />
+    <None Include="Scripts\Commands\Scripts.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Remove="Data\worlds.json" />
+    <Content Include="Data\worlds.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Data\compact.sqlite3" />
+    <Content Include="Data\compact.sqlite3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="Data\CharTemplates.json" />
+    <Content Include="Data\CharTemplates.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Compile Remove="Scripts\Commands\Help.cs" />
+    <None Include="Scripts\Commands\Help.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Remove="Scripts\Commands\Position.cs" />
+    <None Include="Scripts\Commands\Position.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Remove="Scripts\Commands\Around.cs" />
+    <None Include="Scripts\Commands\Around.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Remove="Scripts\Commands\Fly.cs" />
+    <None Include="Scripts\Commands\Fly.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Remove="Scripts\Commands\Appellation.cs" />
+    <None Include="Scripts\Commands\Appellation.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jace" Version="0.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="2.10.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.1.1" />
+    <PackageReference Include="NLog" Version="4.5.10" />
+    <PackageReference Include="Quartz" Version="3.0.7" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,152 @@
+[
+  {
+    "Id": 1,
+    "Name": "main_world",
+    "OffsetX": -14336,
+    "OffsetY": -3072,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 35,
+    "CellY": 38
+  },
+  {
+    "Id": 2,
+    "Name": "arche_mall_world",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 8,
+    "CellY": 8
+  },
+  {
+    "Id": 3,
+    "Name": "instance_burntcastle_armory",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 256,
+    "OceanLevel": 16,
+    "CellX": 2,
+    "CellY": 2
+  },
+  {
+    "Id": 4,
+    "Name": "instance_cradle_of_destruction",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 1,
+    "CellX": 2,
+    "CellY": 2
+  },
+  {
+    "Id": 5,
+    "Name": "instance_cuttingwind_deadmine",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 2,
+    "CellY": 2
+  },
+  {
+    "Id": 6,
+    "Name": "instance_hadir_farm",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 2,
+    "CellY": 2
+  },
+  {
+    "Id": 7,
+    "Name": "instance_howling_abyss",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 2,
+    "CellY": 2
+  },
+  {
+    "Id": 8,
+    "Name": "instance_howling_abyss_2",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 2,
+    "CellY": 2
+  },
+  {
+    "Id": 9,
+    "Name": "instance_immortal_isle",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 0,
+    "CellX": 3,
+    "CellY": 3
+  },
+  {
+    "Id": 10,
+    "Name": "instance_immortal_isle_easy",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 0,
+    "CellX": 3,
+    "CellY": 3
+  },
+  {
+    "Id": 11,
+    "Name": "instance_library",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 8,
+    "CellY": 8
+  },
+  {
+    "Id": 12,
+    "Name": "instance_nachashgar",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 4,
+    "CellY": 4
+  },
+  {
+    "Id": 13,
+    "Name": "instance_nachashgar_easy",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 4,
+    "CellY": 4
+  },
+  {
+    "Id": 14,
+    "Name": "instance_sal_temple",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 2,
+    "CellY": 2
+  },
+  {
+    "Id": 15,
+    "Name": "racing_test_world",
+    "OffsetX": 0,
+    "OffsetY": 0,
+    "MaxHeight": 4096,
+    "OceanLevel": 100,
+    "CellX": 8,
+    "CellY": 8
+  }
+]

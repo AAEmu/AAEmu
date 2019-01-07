@@ -1,0 +1,134 @@
+[
+  {
+    "Id": 1,
+    "UnitId": 320,
+    "Position": {
+      "X": 3531.134,
+      "Y": 4458.337,
+      "Z": 105.96,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 2,
+    "UnitId": 320,
+    "Position": {
+      "X": 3841.816,
+      "Y": 4635.71,
+      "Z": 108.497,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 3,
+    "UnitId": 4895,
+    "Position": {
+      "X": 3466.166,
+      "Y": 4233.639,
+      "Z": 106.978,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 4,
+    "UnitId": 4895,
+    "Position": {
+      "X": 3565.576,
+      "Y": 4335.064,
+      "Z": 106.584,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 5,
+    "UnitId": 4895,
+    "Position": {
+      "X": 3591.65,
+      "Y": 4439.351,
+      "Z": 106.856,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 6,
+    "UnitId": 4895,
+    "Position": {
+      "X": 3657.866,
+      "Y": 4554.168,
+      "Z": 155.882,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 7,
+    "UnitId": 4895,
+    "Position": {
+      "X": 3821.00586,
+      "Y": 4865.631,
+      "Z": 110.265,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 8,
+    "UnitId": 4895,
+    "Position": {
+      "X": 3864.857,
+      "Y": 4654.865,
+      "Z": 110.27,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 9,
+    "UnitId": 4895,
+    "Position": {
+      "X": 3924.68115,
+      "Y": 4714.508,
+      "Z": 110.681,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 10,
+    "UnitId": 4895,
+    "Position": {
+      "X": 3927.11914,
+      "Y": 4646.63574,
+      "Z": 109.032,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  },
+  {
+    "Id": 11,
+    "UnitId": 4895,
+    "Position": {
+      "X": 4921.958,
+      "Y": 4481.929,
+      "Z": 154.822,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    }
+  }
+]

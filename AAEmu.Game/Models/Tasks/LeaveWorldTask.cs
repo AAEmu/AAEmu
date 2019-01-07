@@ -1,0 +1,36 @@
+using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.Proxy;
+
+namespace AAEmu.Game.Models.Tasks
+{
+    public class LeaveWorldTask : Task
+    {
+        private readonly GameConnection _connection;
+        private readonly byte _target;
+
+        public LeaveWorldTask(GameConnection connection, byte target)
+        {
+            _connection = connection;
+            _target = target;
+        }
+
+        public override void Execute()
+        {
+            if (_connection.ActiveChar != null)
+            {
+                _connection.ActiveChar.Delete();
+                ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.BcId);
+                foreach (var subscriber in _connection.ActiveChar.Subscribers)
+                    subscriber.Dispose();
+            }
+
+            _connection.Save();
+            _connection.State = GameState.Lobby;
+            _connection.LeaveTask = null;
+            _connection.SendPacket(new SCLeaveWorldGrantedPacket(_target));
+            _connection.SendPacket(new ChangeStatePacket(0));
+        }
+    }
+}
