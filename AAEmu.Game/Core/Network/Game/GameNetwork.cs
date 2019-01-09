@@ -85,9 +85,7 @@ namespace AAEmu.Game.Core.Network.Game
         public void Start()
         {
             var config = AppConfiguration.Instance.Network;
-            _server = new Server(
-                new IPEndPoint(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port),
-                10);
+            _server = new Server(new IPEndPoint(IPAddress.Any, config.Port), 10);
             _server.SetHandler(_handler);
             _server.Start();
             
