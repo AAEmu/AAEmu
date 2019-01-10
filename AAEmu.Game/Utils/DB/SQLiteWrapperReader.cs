@@ -78,6 +78,14 @@ namespace AAEmu.Game.Utils.DB
             return _reader.GetInt32(GetOrdinal(column));
         }
 
+        public int GetInt32(string column, int defaultValue)
+        {
+            var ordinal = GetOrdinal(column);
+            if (_reader.IsDBNull(ordinal))
+                return defaultValue;
+            return _reader.GetInt32(ordinal);
+        }
+
         public uint GetUInt32(string column) => (uint) GetInt32(column);
 
         public uint GetUInt32(string column, uint defaultValue)

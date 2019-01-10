@@ -1,4 +1,3 @@
-using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
@@ -8,9 +7,9 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCUnitEquipmentsChangedPacket : GamePacket
     {
         private readonly uint _characterId;
-        private readonly Tuple<byte, Item>[] _items;
+        private readonly (byte slot, Item item)[] _items;
 
-        public SCUnitEquipmentsChangedPacket(uint characterId, Tuple<byte, Item>[] items) : base(0x08f, 1)
+        public SCUnitEquipmentsChangedPacket(uint characterId, (byte slot, Item item)[] items) : base(0x08f, 1)
         {
             _characterId = characterId;
             _items = items;
@@ -23,7 +22,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             foreach (var (slot, item) in _items)
             {
                 stream.Write(slot);
-                stream.Write(item);
+                if (item == null)
+                    stream.Write(0);
+                else
+                    stream.Write(item);
             }
 
             return stream;
