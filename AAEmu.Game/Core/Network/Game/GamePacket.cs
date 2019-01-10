@@ -25,8 +25,8 @@ namespace AAEmu.Game.Core.Network.Game
                 _log.Fatal(ex);
                 throw;
             }
-
-            if (!(TypeId == 0x013 && Level == 2))
+            //не выводим Pong и SCUnitMovementsPacket
+            if (!(TypeId == 0x013 && Level == 2) && !(TypeId == 0x066 && Level == 1))
                 _log.Debug("GamePacket: S->C\n{0}", ps);
 
             return ps;
@@ -34,7 +34,8 @@ namespace AAEmu.Game.Core.Network.Game
 
         public override PacketBase<GameConnection> Decode(PacketStream ps)
         {
-            if (!(TypeId == 0x012 && Level == 2))
+            //не выводим Ping и CSMoveUnitPacket
+            if (!(TypeId == 0x012 && Level == 2) && !(TypeId == 0x088 && Level == 1))
                 _log.Debug("GamePacket: C->S\n{0}", ps);
 
             try

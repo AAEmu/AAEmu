@@ -11,3 +11,7 @@ AAEmu.Login/bin/
 AAEmu.Login/obj/
 AAEmu.Game/Data/compact.sqlite3
 AAEmu.Game/Data/Worlds/*/hmap.dat
+/AAEmu.sln.DotSettings.user
+/Release
+/AALauncher
+/readme

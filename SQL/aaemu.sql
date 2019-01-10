@@ -264,6 +264,10 @@ ALTER TABLE `users`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 COMMIT;
 
+INSERT INTO game_servers (id, name, hidden) VALUES (1, 'AAEmu.Game', 0);
+
+INSERT INTO users (id, username, password, email, last_login, last_ip, created_at, updated_at) VALUES (1, 'test', 'n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg=', '', 0, '', 0, 0), (2, 'test2', 'YDA64iuZiGG847KPM+7BvnWKITyGyTwHbb6fVYwRx1I=', '', 0, '', 0, 0);
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
