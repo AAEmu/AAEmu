@@ -23,5 +23,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public uint ConsumeItemId { get; set; }
         public int ConsumeItemCount { get; set; }
         public bool AlwaysHit { get; set; }
+        // TODO 1.2 // public uint ItemSetId { get; set; }
+        // TODO 1.2 // public bool InteractionSuccessHit { get; set; }
     }
 }

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -56,11 +58,15 @@ namespace AAEmu.Game.Core.Network.Connections
 
         public void OnDisconnect()
         {
+            AccountManager.Instance.Remove(AccountId);
+            
             if (ActiveChar != null)
                 foreach (var subscriber in ActiveChar.Subscribers)
                     subscriber.Dispose();
+
             foreach (var subscriber in Subscribers)
                 subscriber.Dispose();
+
             Save();
         }
 
@@ -176,7 +182,13 @@ namespace AAEmu.Game.Core.Network.Connections
 
         public void Save()
         {
-            ActiveChar?.Save();
+            if (ActiveChar == null)
+                return;
+
+            ActiveChar.Delete();
+            ObjectIdManager.Instance.ReleaseId(ActiveChar.BcId);
+
+            ActiveChar.Save();
         }
     }
 }

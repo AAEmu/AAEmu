@@ -1,6 +1,6 @@
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Game.Bonuses.Templates
+namespace AAEmu.Game.Models.Game.Skills.Templates
 {
     public class DynamicBonusTemplate
     {

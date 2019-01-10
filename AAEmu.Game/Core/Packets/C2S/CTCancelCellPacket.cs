@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2S
     {
         public CTCancelCellPacket() : base(0x04)
         {
-            
+
         }
 
         public override void Read(PacketStream stream)
@@ -15,6 +15,8 @@ namespace AAEmu.Game.Core.Packets.C2S
             var i = stream.ReadUInt32();
             var x = stream.ReadInt32();
             var y = stream.ReadInt32();
+
+            _log.Warn("CTCancelCellPacket #.{0} ({1},{2})", i, x, y);
         }
     }
 }

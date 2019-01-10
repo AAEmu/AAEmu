@@ -25,10 +25,16 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void AddAccount(uint accountId, uint connectionId)
         {
-            _accounts.Add(connectionId, accountId);
             var connection = LoginNetwork.Instance.GetConnection();
             var gsId = AppConfiguration.Instance.Id;
-            connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 0));
+
+            if (AccountManager.Instance.Contains(accountId))
+                connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 1));
+            else
+            {
+                _accounts.Add(connectionId, accountId);
+                connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 0));
+            }
         }
 
         public void Login(GameConnection connection, uint accountId, uint token)
@@ -41,6 +47,8 @@ namespace AAEmu.Game.Core.Managers.World
 
                     connection.AccountId = accountId;
                     connection.State = GameState.Lobby;
+
+                    AccountManager.Instance.Add(connection);
                     StreamManager.Instance.AddToken(connection.AccountId, connection.Id);
 
                     var port = AppConfiguration.Instance.StreamNetwork.Port;
