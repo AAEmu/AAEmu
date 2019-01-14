@@ -16,14 +16,9 @@ namespace AAEmu.Login.Core.Packets.C2L
             var pFrom = stream.ReadUInt32();
             var pTo = stream.ReadUInt32();
             var dev = stream.ReadBoolean();
-
-            var macLength = stream.ReadUInt16(); // TODO or nope?
-            var mac = stream.ReadBytes(macLength);
-
-            var id = stream.ReadString(); // length 31
-
-            var tokenLength = stream.ReadUInt16();
-            var token = stream.ReadBytes(tokenLength);
+            var mac = stream.ReadBytes();
+            var id = stream.ReadString();
+            var token = stream.ReadBytes();
 
             LoginController.Login(Connection, id, token);
         }
