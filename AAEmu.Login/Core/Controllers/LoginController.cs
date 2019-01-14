@@ -18,14 +18,56 @@ namespace AAEmu.Login.Core.Controllers
             _tokens = new Dictionary<byte, Dictionary<uint, uint>>();
         }
 
-        public static void Login(LoginConnection connection, string id, IEnumerable<byte> password)
+        /// <summary>
+        /// Kr Method Auth
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="username"></param>
+        public static void Login(LoginConnection connection, string username)
         {
             using (var connect = MySQL.Create())
             {
                 using (var command = connect.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM users where username=@username";
-                    command.Parameters.AddWithValue("@username", id);
+                    command.Parameters.AddWithValue("@username", username);
+                    command.Prepare();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (!reader.Read())
+                        {
+                            connection.SendPacket(new ACLoginDeniedPacket(2));
+                            return;
+                        }
+
+                        // TODO ... validation password
+
+                        connection.AccountId = reader.GetUInt32("id");
+                        connection.AccountName = username;
+                        connection.LastLogin = DateTime.Now;
+                        connection.LastIp = connection.Ip;
+
+                        connection.SendPacket(new ACJoinResponsePacket(0, 6));
+                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Ru Method Auth
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
+        public static void Login(LoginConnection connection, string username, IEnumerable<byte> password)
+        {
+            using (var connect = MySQL.Create())
+            {
+                using (var command = connect.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM users where username=@username";
+                    command.Parameters.AddWithValue("@username", username);
                     command.Prepare();
                     using (var reader = command.ExecuteReader())
                     {
@@ -43,7 +85,7 @@ namespace AAEmu.Login.Core.Controllers
                         }
 
                         connection.AccountId = reader.GetUInt32("id");
-                        connection.AccountName = id;
+                        connection.AccountName = username;
                         connection.LastLogin = DateTime.Now;
                         connection.LastIp = connection.Ip;
 
