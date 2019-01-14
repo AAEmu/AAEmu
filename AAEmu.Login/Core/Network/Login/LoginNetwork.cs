@@ -20,7 +20,7 @@ namespace AAEmu.Login.Core.Network.Login
         {
             _handler = new LoginProtocolHandler();
 
-            RegisterPacket(0x01, typeof(CARequestAuthPacket));
+            RegisterPacket(0x01, typeof(CARequestAuthPacket)); // TODO +---
             RegisterPacket(0x02, typeof(CARequestAuthTencentPacket));
             RegisterPacket(0x03, typeof(CARequestAuthGameOnPacket));
             RegisterPacket(0x04, typeof(CARequestAuthMailRuPacket)); // TODO +
