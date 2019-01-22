@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
 
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Network.Game
                 _log.Fatal(ex);
                 throw;
             }
-            //íå âûâîäèì Pong è SCUnitMovementsPacket
+            //Ð½Ðµ Ð²Ñ‹Ð²Ð¾Ð´Ð¸Ð¼ Pong Ð¸ SCUnitMovementsPacket
             if (!(TypeId == 0x013 && Level == 2) && !(TypeId == 0x066 && Level == 1))
                 _log.Debug("GamePacket: S->C\n{0}", ps);
 
@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Network.Game
 
         public override PacketBase<GameConnection> Decode(PacketStream ps)
         {
-            //íå âûâîäèì Ping è CSMoveUnitPacket
+            //Ð½Ðµ Ð²Ñ‹Ð²Ð¾Ð´Ð¸Ð¼ Ping Ð¸ CSMoveUnitPacket
             if (!(TypeId == 0x012 && Level == 2) && !(TypeId == 0x088 && Level == 1))
                 _log.Debug("GamePacket: C->S\n{0}", ps);
 
