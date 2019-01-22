@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Network.Stream
             RegisterPacket(0x01, typeof(CTJoinPacket));
             RegisterPacket(0x02, typeof(CTRequestCellPacket));
 //            RegisterPacket(0x03, typeof(CTRequestEmblemPacket));
-//            RegisterPacket(0x04, typeof(CTCancelCellPacket));
+            RegisterPacket(0x04, typeof(CTCancelCellPacket));
             RegisterPacket(0x05, typeof(CTContinuePacket));
 //            RegisterPacket(0x06, typeof(CTUccComplexPacket));
 //            RegisterPacket(0x07, typeof(CTUccStringPacket));

@@ -1,6 +1,6 @@
-using AAEmu.Game.Models.Game.Bonuses.Templates;
+using AAEmu.Game.Models.Game.Skills.Templates;
 
-namespace AAEmu.Game.Models.Game.Bonuses
+namespace AAEmu.Game.Models.Game.Skills
 {
     public class Bonus
     {

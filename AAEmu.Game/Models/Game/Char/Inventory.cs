@@ -323,13 +323,13 @@ namespace AAEmu.Game.Models.Game.Char
                 Owner.BroadcastPacket(
                     new SCUnitEquipmentsChangedPacket(Owner.BcId, new[]
                     {
-                        new Tuple<byte, Item>(fromSlot, Equip[fromSlot])
+                        (fromSlot, Equip[fromSlot])
                     }), false);
             if (toType == SlotType.Equipment)
                 Owner.BroadcastPacket(
                     new SCUnitEquipmentsChangedPacket(Owner.BcId, new[]
                     {
-                        new Tuple<byte, Item>(toSlot, Equip[toSlot])
+                        (toSlot, Equip[toSlot])
                     }), false);
         }
 

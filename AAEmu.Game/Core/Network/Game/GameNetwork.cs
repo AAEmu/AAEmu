@@ -88,7 +88,7 @@ namespace AAEmu.Game.Core.Network.Game
             _server = new Server(new IPEndPoint(IPAddress.Any, config.Port), 10);
             _server.SetHandler(_handler);
             _server.Start();
-            
+
             _log.Info("Network started");
         }
 

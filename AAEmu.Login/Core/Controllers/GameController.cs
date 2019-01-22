@@ -107,9 +107,13 @@ namespace AAEmu.Login.Core.Controllers
                     // TODO ...
                 }
             }
+            else if (result == 1)
+            {
+                connection.SendPacket(new ACEnterWorldDeniedPacket(0)); // TODO change reason
+            }
             else
             {
-                // TODO...
+                // TODO ...
             }
         }
     }

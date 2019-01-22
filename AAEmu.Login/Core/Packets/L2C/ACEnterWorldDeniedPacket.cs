@@ -5,15 +5,17 @@ namespace AAEmu.Login.Core.Packets.L2C
 {
     public class ACEnterWorldDeniedPacket : LoginPacket
     {
-        public ACEnterWorldDeniedPacket() : base(0x0B)
+        private readonly byte _reason;
+        
+        public ACEnterWorldDeniedPacket(byte reason) : base(0x0B)
         {
-            
+            _reason = reason;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((byte) 0); // reason
-            
+            stream.Write(_reason);
+
             return stream;
         }
     }

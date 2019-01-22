@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using AAEmu.Game.Models.Game.Bonuses;
+using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Models.Game.Units
 {

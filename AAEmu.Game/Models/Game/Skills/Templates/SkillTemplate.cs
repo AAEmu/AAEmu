@@ -35,10 +35,10 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public int ChannelingTime { get; set; }
         public int ChannelingTick { get; set; }
         public int ChannelingMana { get; set; }
-        public int ChannelingTargetBuffId { get; set; }
+        public uint ChannelingTargetBuffId { get; set; }
         public int TargetAreaAngle { get; set; }
         public int AbilityLevel { get; set; }
-        public int ChannelingDoodadId { get; set; }
+        public uint ChannelingDoodadId { get; set; }
         public int CooldownTagId { get; set; }
         public int SkillControllerId { get; set; }
         public int RepeatCount { get; set; }
@@ -56,14 +56,14 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool StopChannelingOnBigHit { get; set; }
         public bool AutoLearn { get; set; }
         public bool NeedLearn { get; set; }
-        public int MainhandToolId { get; set; }
-        public int OffhandToolId { get; set; }
+        public uint MainhandToolId { get; set; }
+        public uint OffhandToolId { get; set; }
         public int FrontAngle { get; set; }
         public float ManaLevelMd { get; set; }
         public bool Unmount { get; set; }
-        public int DamageTypeId { get; set; }
+        public uint DamageTypeId { get; set; }
         public bool AllowToPrisoner { get; set; }
-        public int MilestoneId { get; set; }
+        public uint MilestoneId { get; set; }
         public uint PlotId { get; set; }
         public int ConsumeLaborPower { get; set; }
         public bool SourceStun { get; set; }
