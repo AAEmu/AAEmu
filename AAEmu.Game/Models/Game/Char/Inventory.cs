@@ -321,16 +321,27 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (fromType == SlotType.Equipment)
                 Owner.BroadcastPacket(
-                    new SCUnitEquipmentsChangedPacket(Owner.BcId, new[]
+                    new SCUnitEquipmentsChangedPacket(Owner.ObjId, new[]
                     {
                         (fromSlot, Equip[fromSlot])
                     }), false);
             if (toType == SlotType.Equipment)
                 Owner.BroadcastPacket(
-                    new SCUnitEquipmentsChangedPacket(Owner.BcId, new[]
+                    new SCUnitEquipmentsChangedPacket(Owner.ObjId, new[]
                     {
                         (toSlot, Equip[toSlot])
                     }), false);
+        }
+
+        public Item GetItem(ulong id)
+        {
+            foreach (var item in Equip)
+                if (item != null && item.Id == id)
+                    return item;
+            foreach (var item in Items)
+                if (item != null && item.Id == id)
+                    return item;
+            return null;
         }
 
         public Item GetItem(SlotType type, byte slot)

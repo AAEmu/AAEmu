@@ -37,10 +37,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             var template = new NpcTemplate();
                             template.Id = reader.GetUInt32("id");
                             template.CharRaceId = reader.GetInt32("char_race_id");
-                            template.NpcGradeId = reader.GetUInt32("npc_grade_id");
-                            template.NpcKindId = reader.GetUInt32("npc_kind_id");
+                            template.NpcGradeId = (NpcGradeType)reader.GetByte("npc_grade_id");
+                            template.NpcKindId = (NpcKindType)reader.GetByte("npc_kind_id");
                             template.Level = reader.GetByte("level");
-                            template.NpcTemplateId = reader.GetUInt32("npc_template_id");
+                            template.NpcTemplateId = (NpcTemplateType)reader.GetByte("npc_template_id");
                             template.ModelId = reader.GetUInt32("model_id");
                             template.FactionId = reader.GetUInt32("faction_id");
                             template.SkillTrainer = reader.GetBoolean("skill_trainer", true);
@@ -51,13 +51,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.ShowNameTag = reader.GetBoolean("show_name_tag", true);
                             template.VisibleToCreatorOnly = reader.GetBoolean("visible_to_creator_only", true);
                             template.NoExp = reader.GetBoolean("no_exp", true);
-                            template.PetItemId = reader.IsDBNull("pet_item_id") ? 0 : reader.GetInt32("pet_item_id");
+                            template.PetItemId = reader.GetInt32("pet_item_id", 0);
                             template.BaseSkillId = reader.GetInt32("base_skill_id");
                             template.TrackFriendship = reader.GetBoolean("track_friendship", true);
                             template.Priest = reader.GetBoolean("priest", true);
-                            template.NpcTedencyId = reader.IsDBNull("npc_tendency_id")
-                                ? 0
-                                : reader.GetInt32("npc_tendency_id");
+                            template.NpcTedencyId = reader.GetInt32("npc_tendency_id", 0);
                             template.Blacksmith = reader.GetBoolean("blacksmith", true);
                             template.Teleporter = reader.GetBoolean("teleporter", true);
                             template.Opacity = reader.GetFloat("opacity");
@@ -65,8 +63,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.Scale = reader.GetFloat("scale");
                             template.SightRangeScale = reader.GetFloat("sight_range_scale");
                             template.SightFovScale = reader.GetFloat("sight_fov_scale");
-                            template.MilestoneId =
-                                reader.IsDBNull("milestone_id") ? 0 : reader.GetInt32("milestone_id");
+                            template.MilestoneId = reader.GetInt32("milestone_id", 0);
                             template.AttackStartRangeScale = reader.GetFloat("attack_start_range_scale");
                             template.Aggression = reader.GetBoolean("aggression", true);
                             template.ExpMultiplier = reader.GetFloat("exp_multiplier");
@@ -93,20 +90,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.Specialty = reader.GetBoolean("specialty", true);
                             template.UseRangeMod = reader.GetBoolean("use_range_mod", true);
                             template.NpcPostureSetId = reader.GetInt32("npc_posture_set_id");
-                            template.MateEquipSlotPackId = reader.IsDBNull("mate_equip_slot_pack_id")
-                                ? 0
-                                : reader.GetInt32("mate_equip_slot_pack_id");
-                            template.MateKindId =
-                                reader.IsDBNull("mate_kind_id") ? 0 : reader.GetInt32("mate_kind_id");
-                            template.EngageCombatGiveQuestId = reader.IsDBNull("engage_combat_give_quest_id")
-                                ? 0
-                                : reader.GetInt32("engage_combat_give_quest_id");
+                            template.MateEquipSlotPackId = reader.GetInt32("mate_equip_slot_pack_id", 0);
+                            template.MateKindId = reader.GetInt32("mate_kind_id", 0);
+                            template.EngageCombatGiveQuestId = reader.GetInt32("engage_combat_give_quest_id", 0);
                             template.NoApplyTotalCustom = reader.GetBoolean("no_apply_total_custom", true);
                             template.BaseSkillStrafe = reader.GetBoolean("base_skill_strafe", true);
                             template.BaseSkillDelay = reader.GetFloat("base_skill_delay");
-                            template.NpcInteractionSetId = reader.IsDBNull("npc_interaction_set_id")
-                                ? 0
-                                : reader.GetInt32("npc_interaction_set_id");
+                            template.NpcInteractionSetId = reader.GetInt32("npc_interaction_set_id", 0);
                             template.UseAbuserList = reader.GetBoolean("use_abuser_list", true);
                             template.ReturnWhenEnterHousingArea =
                                 reader.GetBoolean("return_when_enter_housing_area", true);
@@ -114,16 +104,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.UseDDCMSMountSkill = reader.GetBoolean("use_ddcms_mount_skill", true);
                             template.CrowdEffect = reader.GetBoolean("crowd_effect", true);
 
-                            var bodyPack = reader.IsDBNull("equip_bodies_id") ? 0 : reader.GetInt32("equip_bodies_id");
-                            var clothPack = reader.IsDBNull("equip_cloths_id")
-                                ? 0
-                                : reader.GetInt32("equip_cloths_id");
-                            var weaponPack = reader.IsDBNull("equip_weapons_id")
-                                ? 0
-                                : reader.GetInt32("equip_weapons_id");
-                            var totalCustomId = reader.IsDBNull("total_custom_id")
-                                ? 0
-                                : reader.GetInt32("total_custom_id");
+                            var bodyPack = reader.GetInt32("equip_bodies_id", 0);
+                            var clothPack = reader.GetInt32("equip_cloths_id", 0);
+                            var weaponPack = reader.GetInt32("equip_weapons_id", 0);
+                            var totalCustomId = reader.GetInt32("total_custom_id", 0);
                             if (clothPack > 0)
                             {
                                 using (var command2 = connection.CreateCommand())
@@ -286,7 +270,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 {
                                     while (reader2.Read())
                                     {
-                                        var itemId = !reader2.IsDBNull("item_id") ? reader2.GetUInt32("item_id") : 0;
+                                        var itemId = reader2.GetUInt32("item_id", 0);
                                         var slot = reader2.GetInt32("slot_type_id") - 23;
                                         template.BodyItems[slot] = itemId;
                                     }
@@ -351,7 +335,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var template = _templates[id];
 
             var npc = new Npc();
-            npc.BcId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
+            npc.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
             npc.TemplateId = id;
             npc.Template = template;
             npc.ModelId = template.ModelId;

@@ -315,14 +315,12 @@ namespace AAEmu.Game.Core.Managers
                                 WearableTemplate = _wearables[typeId * 128 + slotTypeId],
                                 KindTemplate = _wearableKinds[typeId],
                                 SlotTemplate = _wearableSlots[slotTypeId],
-                                BaseEnchantable = reader.GetString("base_enchantable") == "t",
-                                ModSetId = reader.IsDBNull("mod_set_id") ? 0 : reader.GetUInt32("mod_set_id"),
-                                Repairable = reader.GetString("repairable") == "t",
+                                BaseEnchantable = reader.GetBoolean("base_enchantable", true),
+                                ModSetId = reader.GetUInt32("mod_set_id", 0),
+                                Repairable = reader.GetBoolean("repairable", true),
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
-                                BaseEquipment = reader.GetString("base_equipment") == "t",
-                                RechargeBuffId = reader.IsDBNull("recharge_buff_id")
-                                    ? 0
-                                    : reader.GetUInt32("recharge_buff_id"),
+                                BaseEquipment = reader.GetBoolean("base_equipment", true),
+                                RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                                 ChargeLifetime = reader.GetInt32("charge_lifetime"),
                                 ChargeCount = reader.GetInt32("charge_count")
                             };
@@ -344,15 +342,13 @@ namespace AAEmu.Game.Core.Managers
                             var template = new WeaponTemplate
                             {
                                 Id = reader.GetUInt32("item_id"),
-                                BaseEnchantable = reader.GetString("base_enchantable") == "t",
+                                BaseEnchantable = reader.GetBoolean("base_enchantable"),
                                 HoldableTemplate = _holdables[holdableId],
-                                ModSetId = reader.IsDBNull("mod_set_id") ? 0 : reader.GetUInt32("mod_set_id"),
-                                Repairable = reader.GetString("repairable") == "t",
+                                ModSetId = reader.GetUInt32("mod_set_id", 0),
+                                Repairable = reader.GetBoolean("repairable", true),
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
-                                BaseEquipment = reader.GetString("base_equipment") == "t",
-                                RechargeBuffId = reader.IsDBNull("recharge_buff_id")
-                                    ? 0
-                                    : reader.GetUInt32("recharge_buff_id"),
+                                BaseEquipment = reader.GetBoolean("base_equipment", true),
+                                RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                                 ChargeLifetime = reader.GetInt32("charge_lifetime"),
                                 ChargeCount = reader.GetInt32("charge_count")
                             };
@@ -379,12 +375,10 @@ namespace AAEmu.Game.Core.Managers
                                 WearableTemplate = _wearables[typeId * 128 + slotTypeId],
                                 KindTemplate = _wearableKinds[typeId],
                                 SlotTemplate = _wearableSlots[slotTypeId],
-                                ModSetId = reader.IsDBNull("mod_set_id") ? 0 : reader.GetUInt32("mod_set_id"),
-                                Repairable = reader.GetString("repairable") == "t",
+                                ModSetId = reader.GetUInt32("mod_set_id", 0),
+                                Repairable = reader.GetBoolean("repairable", true),
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
-                                RechargeBuffId = reader.IsDBNull("recharge_buff_id")
-                                    ? 0
-                                    : reader.GetUInt32("recharge_buff_id"),
+                                RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                                 ChargeLifetime = reader.GetInt32("charge_lifetime"),
                                 ChargeCount = reader.GetInt32("charge_count")
                             };
@@ -427,8 +421,8 @@ namespace AAEmu.Game.Core.Managers
                             {
                                 Id = reader.GetUInt32("item_id"),
                                 ModelId = reader.GetUInt32("model_id"),
-                                NpcOnly = reader.GetString("npc_only") == "t",
-                                BeautyShopOnly = reader.GetString("beautyshop_only") == "t"
+                                NpcOnly = reader.GetBoolean("npc_only", true),
+                                BeautyShopOnly = reader.GetBoolean("beautyshop_only", true)
                             };
                             _templates.Add(template.Id, template);
                         }
@@ -447,13 +441,9 @@ namespace AAEmu.Game.Core.Managers
                             var template = new RuneTemplate
                             {
                                 Id = reader.GetUInt32("item_id"),
-                                EquipSlotGroupId = reader.IsDBNull("equip_slot_group_id")
-                                    ? 0
-                                    : reader.GetUInt32("equip_slot_group_id"),
-                                EquipLevel = reader.IsDBNull("equip_level") ? (byte) 0 : reader.GetByte("equip_level"),
-                                ItemGradeId = reader.IsDBNull("item_grade_id")
-                                    ? (byte) 0
-                                    : reader.GetByte("item_grade_id")
+                                EquipSlotGroupId = reader.GetUInt32("equip_slot_group_id", 0),
+                                EquipLevel = reader.GetByte("equip_level", 0),
+                                ItemGradeId = reader.GetByte("item_grade_id", 0)
                             };
                             _templates.Add(template.Id, template);
                         }
@@ -479,11 +469,11 @@ namespace AAEmu.Game.Core.Managers
                             template.PickupLimit = reader.GetInt32("pickup_limit");
                             template.MaxCount = reader.GetInt32("max_stack_size");
                             template.Capacity = reader.GetInt32("capacity");
-                            template.Sellable = reader.GetString("sellable") == "t";
+                            template.Sellable = reader.GetBoolean("sellable", true);
                             template.UseSkillId = reader.GetUInt32("use_skill_id");
                             template.BuffId = reader.GetUInt32("buff_id");
-                            template.Gradable = reader.GetString("gradable") == "t";
-                            template.LootMulti = reader.GetString("loot_multi") == "t";
+                            template.Gradable = reader.GetBoolean("gradable", true);
+                            template.LootMulti = reader.GetBoolean("loot_multi", true);
                             template.LootQuestId = reader.GetUInt32("loot_quest_id");
                             template.HonorPrice = reader.GetInt32("honor_price");
                             template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");

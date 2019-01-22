@@ -226,7 +226,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var expand = new Expand
                             {
-                                IsBank = reader.GetString("is_bank") == "t",
+                                IsBank = reader.GetBoolean("is_bank", true),
                                 Step = reader.GetInt32("step"),
                                 Price = reader.GetInt32("price"),
                                 ItemId = reader.GetUInt32("item_id", 0),
@@ -387,7 +387,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     slot++;
                 foreach (var skill in SkillManager.Instance.GetStartAbilitySkills(character.Ability1))
                 {
-                    character.Skills.AddSkill(skill, 1);
+                    character.Skills.AddSkill(skill, 1, false);
                     character.SetAction(slot, ActionSlotType.Skill, skill.Id);
                     slot++;
                 }

@@ -54,7 +54,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            Owner.BroadcastPacket(new SCAppellationChangedPacket(Owner.BcId, ActiveAppellation), true);
+            Owner.BroadcastPacket(new SCAppellationChangedPacket(Owner.ObjId, ActiveAppellation), true);
         }
 
         public void Send()

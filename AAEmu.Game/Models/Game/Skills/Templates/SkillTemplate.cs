@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using AAEmu.Game.Models.Game.Skills.Plots;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
 {
@@ -64,7 +65,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public uint DamageTypeId { get; set; }
         public bool AllowToPrisoner { get; set; }
         public uint MilestoneId { get; set; }
-        public uint PlotId { get; set; }
+        public Plot Plot { get; set; }
         public int ConsumeLaborPower { get; set; }
         public bool SourceStun { get; set; }
         public bool TargetAlive { get; set; }

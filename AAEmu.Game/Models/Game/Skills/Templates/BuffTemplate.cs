@@ -1,5 +1,10 @@
+using System;
 using System.Collections.Generic;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
 {
@@ -8,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public uint AnimStartId { get; set; }
         public uint AnimEndId { get; set; }
         public int Duration { get; set; }
-        public int Tick { get; set; }
+        public double Tick { get; set; }
         public bool Silence { get; set; }
         public bool Root { get; set; }
         public bool Sleep { get; set; }
@@ -110,7 +115,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool RemoveOnAttackSpellDot { get; set; }
         public bool RemoveOnAttackEtcDot { get; set; }
         public bool RemoveOnAttackBuffTrigger { get; set; }
-        public bool RemoveOnAttackEtc{ get; set; }
+        public bool RemoveOnAttackEtc { get; set; }
         public bool RemoveOnAttackedSpellDot { get; set; }
         public bool RemoveOnAttackedEtcDot { get; set; }
         public bool RemoveOnAttackedBuffTrigger { get; set; }
@@ -144,7 +149,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool CrowdFriendly { get; set; }
         public bool CrowdHostile { get; set; }
         public override bool OnActionTime => Tick > 0;
-        
+
         public TickEffect TickEffect { get; set; }
         public List<BonusTemplate> Bonuses { get; set; }
         public List<DynamicBonusTemplate> DynamicBonuses { get; set; }
@@ -155,5 +160,65 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             DynamicBonuses = new List<DynamicBonusTemplate>();
         }
 
+        public override void Apply(Unit caster, SkillAction casterObj, BaseUnit target, SkillAction targetObj, CastAction castObj,
+            Skill skill, DateTime time)
+        {
+            if (RequireBuffId > 0 && !target.Effects.CheckBuff(RequireBuffId))
+                return; //TODO send error?
+            if (target.Effects.CheckBuffImmune(Id))
+                return; //TODO  error of immune?
+            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, skill, time));
+        }
+
+        public override void Start(Unit caster, BaseUnit owner, Effect effect)
+        {
+            foreach (var template in Bonuses)
+            {
+                var bonus = new Bonus();
+                bonus.Template = template;
+                bonus.Value = template.Value; // TODO using LinearLevelBonus
+                owner.AddBonus(effect.Index, bonus);
+            }
+
+            owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
+        }
+
+        public override void TimeToTimeApply(Unit caster, BaseUnit owner, Effect effect)
+        {
+            if (TickEffect != null)
+            {
+                if (TickEffect.TargetBuffTagId > 0 &&
+                    !owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetBuffTagId)))
+                    return;
+                if (TickEffect.TargetNoBuffTagId > 0 &&
+                    owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetNoBuffTagId)))
+                    return;
+                var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
+                var targetObj = new SkillActionUnit(owner.ObjId);
+                eff.Apply(caster, effect.CasterAction, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
+            }
+        }
+
+        public override void Dispel(Unit caster, BaseUnit owner, Effect effect)
+        {
+            foreach (var template in Bonuses)
+                owner.RemoveBonus(effect.Index, template.Attribute);
+            owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
+        }
+
+        public override void WriteData(PacketStream stream)
+        {
+            stream.WritePisc(0, Duration / 10, 0, (long) (Tick / 10)); // unk, Duration, unk / 10, Tick
+        }
+
+        public override int GetDuration()
+        {
+            return Duration;
+        }
+
+        public override double GetTick()
+        {
+            return Tick;
+        }
     }
 }

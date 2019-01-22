@@ -1,5 +1,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
+using AAEmu.Login.Core.Packets.L2C;
 
 namespace AAEmu.Login.Core.Packets.C2L
 {
@@ -12,6 +13,8 @@ namespace AAEmu.Login.Core.Packets.C2L
         {
             for (var i = 0; i < 8; i++)
                 stream.ReadUInt32(); // hc
+            
+            Connection.SendPacket(new ACLoginDeniedPacket(2));
         }
     }
 }

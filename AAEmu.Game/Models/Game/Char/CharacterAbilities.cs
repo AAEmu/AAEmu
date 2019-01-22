@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using MySql.Data.MySqlClient;
 
@@ -37,6 +38,47 @@ namespace AAEmu.Game.Models.Game.Char
             if (Owner.Ability3 != AbilityType.None)
                 list.Add(Owner.Ability3);
             return list;
+        }
+
+        public void AddExp(AbilityType type, int exp)
+        {
+            // TODO SCAbilityExpChangedPacket
+            if (type != AbilityType.None)
+                Abilities[type].Exp += exp;
+        }
+
+        public void AddActiveExp(int exp)
+        {
+            // TODO SCExpChangedPacket
+            if (Owner.Ability1 != AbilityType.None)
+                Abilities[Owner.Ability1].Exp += exp;
+            if (Owner.Ability2 != AbilityType.None)
+                Abilities[Owner.Ability2].Exp += exp;
+            if (Owner.Ability3 != AbilityType.None)
+                Abilities[Owner.Ability3].Exp += exp;
+        }
+
+        public void Swap(AbilityType oldAbilityId, AbilityType abilityId)
+        {
+            if (Owner.Ability1 == oldAbilityId)
+            {
+                Owner.Ability1 = abilityId;
+                Abilities[abilityId].Order = 0;
+            }
+            else if (Owner.Ability2 == oldAbilityId)
+            {
+                Owner.Ability2 = abilityId;
+                Abilities[abilityId].Order = 1;
+            }
+            else if (Owner.Ability3 == oldAbilityId)
+            {
+                Owner.Ability3 = abilityId;
+                Abilities[abilityId].Order = 2;
+            }
+
+            if (oldAbilityId != AbilityType.None)
+                Abilities[oldAbilityId].Order = 255;
+            Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, oldAbilityId, abilityId), true);
         }
 
         public void Load(MySqlConnection connection)

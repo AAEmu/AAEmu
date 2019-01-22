@@ -20,8 +20,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             Connection
                 .ActiveChar
                 .BroadcastPacket(
-                    new SCTargetChangedPacket(Connection.ActiveChar.BcId,
-                        Connection.ActiveChar.CurrentTarget?.BcId ?? 0), true);
+                    new SCTargetChangedPacket(Connection.ActiveChar.ObjId,
+                        Connection.ActiveChar.CurrentTarget?.ObjId ?? 0), true);
         }
     }
 }

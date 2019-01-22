@@ -45,28 +45,28 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.OnceOneMan = reader.GetBoolean("once_one_man", true);
                             template.OnceOneInteraction = reader.GetBoolean("once_one_interaction", true);
                             template.MgmtSpawn = reader.GetBoolean("mgmt_spawn", true);
-                            template.Percent = reader.IsDBNull("percent") ? 0 : reader.GetInt32("percent");
-                            template.MinTime = reader.IsDBNull("min_time") ? 0 : reader.GetInt32("min_time");
-                            template.MaxTime = reader.IsDBNull("max_time") ? 0 : reader.GetInt32("max_time");
+                            template.Percent = reader.GetInt32("percent", 0);
+                            template.MinTime = reader.GetInt32("min_time", 0);
+                            template.MaxTime = reader.GetInt32("max_time", 0);
                             template.ModelKindId = reader.GetUInt32("model_kind_id");
                             template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
                             template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
-                            template.MilestoneId = reader.IsDBNull("milestone_id") ? 0 : reader.GetUInt32("milestone_id");
+                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.GroupId = reader.GetUInt32("group_id");
                             template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
                             template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
                             template.UseTargetHighlight = reader.GetBoolean("use_target_highlight", true);
-                            template.TargetDecalSize = reader.IsDBNull("target_decal_size") ? 0 : reader.GetFloat("target_decal_size");
-                            template.SimRadius = reader.IsDBNull("sim_radius") ? 0 : reader.GetInt32("sim_radius");
+                            template.TargetDecalSize = reader.GetFloat("target_decal_size", 0);
+                            template.SimRadius = reader.GetInt32("sim_radius", 0);
                             template.CollideShip = reader.GetBoolean("collide_ship", true);
                             template.CollideVehicle = reader.GetBoolean("collide_vehicle", true);
-                            template.ClimateId = reader.IsDBNull("climate_id") ? 0 : reader.GetUInt32("climate_id");
+                            template.ClimateId = reader.GetUInt32("climate_id", 0);
                             template.SaveIndun = reader.GetBoolean("save_indun", true);
                             template.ForceUpAction = reader.GetBoolean("force_up_action", true);
                             template.Parentable = reader.GetBoolean("parentable", true);
                             template.Childable = reader.GetBoolean("childable", true);
                             template.FactionId = reader.GetUInt32("faction_id");
-                            template.GrowthTime = reader.IsDBNull("growth_time") ? 0 : reader.GetInt32("growth_time");
+                            template.GrowthTime = reader.GetInt32("growth_time", 0);
                             template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
                             template.NoCollision = reader.GetBoolean("no_collision", true);
                             // TODO 1.2 template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
@@ -110,10 +110,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.GroupId = reader.GetUInt32("doodad_func_group_id");
                             func.FuncId = reader.GetUInt32("actual_func_id");
                             func.FuncType = reader.GetString("actual_func_type");
-                            func.NextPhase = reader.IsDBNull("next_phase") ? -1 : reader.GetInt32("next_phase");
-                            func.SkillId = reader.IsDBNull("func_skill_id") ? 0 : reader.GetUInt32("func_skill_id");
+                            func.NextPhase = reader.GetInt32("next_phase", -1); // TODO next_phase = 0?
+                            func.SkillId = reader.GetUInt32("func_skill_id", 0);
                             func.PermId = reader.GetUInt32("perm_id");
-                            func.Count = reader.IsDBNull("act_count") ? 0 : reader.GetInt32("act_count");
+                            func.Count = reader.GetInt32("act_count", 0);
                             List<DoodadFunc> list;
                             if (_funcs.ContainsKey(func.GroupId))
                                 list = _funcs[func.GroupId];
@@ -163,10 +163,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 return null;
             var template = _templates[id];
             var doodad = new Doodad();
-            doodad.BcId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
+            doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
             doodad.TemplateId = template.Id;
             doodad.Template = template;
-            doodad.OwnerBcId = character?.BcId ?? 0;
+            doodad.OwnerBcId = character?.ObjId ?? 0;
             doodad.OwnerId = character?.Id ?? 0;
             doodad.FuncGroupId = doodad.GetGroupId(); // TODO look, using doodadFuncId
             return doodad;

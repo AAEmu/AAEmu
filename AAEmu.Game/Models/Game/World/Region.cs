@@ -107,11 +107,11 @@ namespace AAEmu.Game.Models.Game.World
             {
                 var character = (Character) obj;
 
-                var units = GetList(new List<Unit>(), obj.BcId);
+                var units = GetList(new List<Unit>(), obj.ObjId);
                 for (var i = 0; i < units.Count; i++)
                     character.SendPacket(new SCUnitStatePacket(units[i]));
 
-                var doodads = GetList(new List<Doodad>(), obj.BcId);
+                var doodads = GetList(new List<Doodad>(), obj.ObjId);
                 if (doodads.Count > 0)
                     character.SendPacket(new SCDoodadsCreatedPacket(doodads.ToArray()));
 
@@ -119,7 +119,7 @@ namespace AAEmu.Game.Models.Game.World
             }
 
             // показать обьект всем игрокам в регионе
-            foreach (var character in GetList(new List<Character>(), obj.BcId))
+            foreach (var character in GetList(new List<Character>(), obj.ObjId))
                 obj.AddVisibleObject(character);
         }
 
@@ -133,7 +133,7 @@ namespace AAEmu.Game.Models.Game.World
             {
                 var character = (Character) obj;
 
-                var unitIds = GetListId<Unit>(new List<uint>(), obj.BcId).ToArray();
+                var unitIds = GetListId<Unit>(new List<uint>(), obj.ObjId).ToArray();
                 for (var i = 0; i < unitIds.Length; i += 500)
                 {
                     var offset = i * 500;
@@ -143,7 +143,7 @@ namespace AAEmu.Game.Models.Game.World
                     character.SendPacket(new SCUnitsRemovedPacket(temp));
                 }
 
-                var doodadIds = GetListId<Doodad>(new List<uint>(), obj.BcId).ToArray();
+                var doodadIds = GetListId<Doodad>(new List<uint>(), obj.ObjId).ToArray();
                 for (var i = 0; i < doodadIds.Length; i += 400)
                 {
                     var offset = i * 400;
@@ -158,7 +158,7 @@ namespace AAEmu.Game.Models.Game.World
             }
 
             // убрать обьект у всех игроков в регионе
-            foreach (var character in GetList(new List<Character>(), obj.BcId))
+            foreach (var character in GetList(new List<Character>(), obj.ObjId))
                 obj.RemoveVisibleObject(character);
         }
 
@@ -194,8 +194,8 @@ namespace AAEmu.Game.Models.Game.World
             }
 
             foreach (var obj in temp)
-                if (obj.BcId != exclude)
-                    result.Add(obj.BcId);
+                if (obj.ObjId != exclude)
+                    result.Add(obj.ObjId);
             return result;
         }
 
@@ -211,7 +211,7 @@ namespace AAEmu.Game.Models.Game.World
             }
 
             foreach (var obj in temp)
-                if (obj != null && obj.BcId != exclude)
+                if (obj != null && obj.ObjId != exclude)
                     result.Add(obj);
             return result;
         }
@@ -228,8 +228,8 @@ namespace AAEmu.Game.Models.Game.World
             }
 
             foreach (var obj in temp)
-                if (obj is T && obj.BcId != exclude)
-                    result.Add(obj.BcId);
+                if (obj is T && obj.ObjId != exclude)
+                    result.Add(obj.ObjId);
 
             return result;
         }
@@ -248,7 +248,7 @@ namespace AAEmu.Game.Models.Game.World
             foreach (var obj in temp)
             {
                 var item = obj as T;
-                if (item != null && obj.BcId != exclude)
+                if (item != null && obj.ObjId != exclude)
                     result.Add(item);
             }
 
@@ -269,7 +269,7 @@ namespace AAEmu.Game.Models.Game.World
             foreach (var obj in temp)
             {
                 var item = obj as T;
-                if (item == null || obj.BcId == exclude)
+                if (item == null || obj.ObjId == exclude)
                     continue;
                 var dx = obj.Position.X - x;
                 dx *= dx;

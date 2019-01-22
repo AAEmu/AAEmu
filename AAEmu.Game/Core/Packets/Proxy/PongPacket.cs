@@ -26,7 +26,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
             stream.Write((long) 0); // elapsed
             stream.Write((long) _world * 1000); // world * 1000; remote
             stream.Write(_local);
-            stream.Write((uint) _world); // world // TODO packet sleep 250ms...
+            stream.Write(_world); // TODO packet sleep 250ms...
 
             return stream;
         }

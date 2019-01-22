@@ -34,7 +34,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                         sb.AppendLine("[Around] List");
                         for (var i = 0; i < doodads.Count; i++)
-                            sb.AppendLine($"#.{i + 1} -> BcId: {doodads[i].BcId} DoodadId: {doodads[i].TemplateId}");
+                            sb.AppendLine($"#.{i + 1} -> BcId: {doodads[i].ObjId} DoodadId: {doodads[i].TemplateId}");
 
                         character.SendMessage(sb.ToString());
                         character.SendMessage("[Around] Count: {0}", doodads.Count);
@@ -44,7 +44,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                         sb.AppendLine("[Around] List");
                         for (var i = 0; i < npcs.Count; i++)
-                            sb.AppendLine($"#.{i + 1} -> BcId: {npcs[i].BcId} NpcId: {npcs[i].TemplateId}");
+                            sb.AppendLine($"#.{i + 1} -> BcId: {npcs[i].ObjId} NpcId: {npcs[i].TemplateId}");
 
                         character.SendMessage(sb.ToString());
                         character.SendMessage("[Around] Count: {0}", npcs.Count);
@@ -54,7 +54,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                         sb.AppendLine("[Around] List");
                         for (var i = 0; i < characters.Count; i++)
-                            sb.AppendLine($"#.{i + 1} -> BcId: {characters[i].BcId} CharacterId: {characters[i].Id}");
+                            sb.AppendLine($"#.{i + 1} -> BcId: {characters[i].ObjId} CharacterId: {characters[i].Id}");
 
                         character.SendMessage(sb.ToString());
                         character.SendMessage("[Around] Count: {0}", characters.Count);
