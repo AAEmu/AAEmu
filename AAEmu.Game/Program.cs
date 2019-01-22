@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Threading;
 using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
@@ -23,6 +24,8 @@ namespace AAEmu.Game
         private static Thread _thread = Thread.CurrentThread;
         private static bool _shutdown;
         private static DateTime _startTime;
+        private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
+        private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
         private static AutoResetEvent _signal = new AutoResetEvent(false);
 
         public static int UpTime => (int) (DateTime.Now - _startTime).TotalSeconds;
@@ -31,7 +34,7 @@ namespace AAEmu.Game
         {
             Initialization();
             Configuration(args);
-            _log.Info("AAEmu.Game version 1.0+");
+            _log.Info("{0} version {1}", Name, Version);
 
             Test();
 
@@ -54,11 +57,14 @@ namespace AAEmu.Game
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
+            QuestManager.Instance.Load();
 
             FormulaManager.Instance.Load();
             ExpirienceManager.Instance.Load();
 
+            TlIdManager.Instance.Initialize();
             ItemManager.Instance.Load();
+            PlotManager.Instance.Load();
             SkillManager.Instance.Load();
 
             NameManager.Instance.Load();

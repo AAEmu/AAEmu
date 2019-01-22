@@ -239,18 +239,18 @@ namespace AAEmu.Game.Core.Managers.World
             if (obj == null)
                 return;
 
-            _objects.TryAdd(obj.BcId, obj);
+            _objects.TryAdd(obj.ObjId, obj);
 
             if (obj is BaseUnit baseUnit)
-                _baseUnits.TryAdd(baseUnit.BcId, baseUnit);
+                _baseUnits.TryAdd(baseUnit.ObjId, baseUnit);
             if (obj is Unit unit)
-                _units.TryAdd(unit.BcId, unit);
+                _units.TryAdd(unit.ObjId, unit);
             if (obj is Doodad doodad)
-                _doodads.TryAdd(doodad.BcId, doodad);
+                _doodads.TryAdd(doodad.ObjId, doodad);
             if (obj is Npc npc)
-                _npcs.TryAdd(npc.BcId, npc);
+                _npcs.TryAdd(npc.ObjId, npc);
             if (obj is Character character)
-                _characters.TryAdd(character.BcId, character);
+                _characters.TryAdd(character.ObjId, character);
         }
 
         public void RemoveObject(GameObject obj)
@@ -258,18 +258,18 @@ namespace AAEmu.Game.Core.Managers.World
             if (obj == null)
                 return;
 
-            _objects.TryRemove(obj.BcId, out _);
+            _objects.TryRemove(obj.ObjId, out _);
 
             if (obj is BaseUnit)
-                _baseUnits.TryRemove(obj.BcId, out _);
+                _baseUnits.TryRemove(obj.ObjId, out _);
             if (obj is Unit)
-                _units.TryRemove(obj.BcId, out _);
+                _units.TryRemove(obj.ObjId, out _);
             if (obj is Doodad)
-                _doodads.TryRemove(obj.BcId, out _);
+                _doodads.TryRemove(obj.ObjId, out _);
             if (obj is Npc)
-                _npcs.TryRemove(obj.BcId, out _);
+                _npcs.TryRemove(obj.ObjId, out _);
             if (obj is Character)
-                _characters.TryRemove(obj.BcId, out _);
+                _characters.TryRemove(obj.ObjId, out _);
         }
 
         public void AddVisibleObject(GameObject obj)
@@ -351,7 +351,7 @@ namespace AAEmu.Game.Core.Managers.World
                 return result;
 
             foreach (var neighbor in obj.Region.GetNeighbors())
-                neighbor.GetList(result, obj.BcId);
+                neighbor.GetList(result, obj.ObjId);
 
             return result;
         }
@@ -363,7 +363,7 @@ namespace AAEmu.Game.Core.Managers.World
                 return result;
 
             foreach (var neighbor in obj.Region.GetNeighbors())
-                neighbor.GetList(result, obj.BcId, obj.Position.X, obj.Position.Y, radius * radius);
+                neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius);
 
             return result;
         }

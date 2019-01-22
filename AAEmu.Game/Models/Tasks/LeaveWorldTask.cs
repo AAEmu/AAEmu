@@ -21,7 +21,10 @@ namespace AAEmu.Game.Models.Tasks
             if (_connection.ActiveChar != null)
             {
                 _connection.ActiveChar.Delete();
-                ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.BcId);
+                ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
+
+                _connection.ActiveChar.StopRegen();
+
                 foreach (var subscriber in _connection.ActiveChar.Subscribers)
                     subscriber.Dispose();
             }

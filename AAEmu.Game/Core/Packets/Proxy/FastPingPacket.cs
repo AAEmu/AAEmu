@@ -1,3 +1,4 @@
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy
@@ -6,7 +7,12 @@ namespace AAEmu.Game.Core.Packets.Proxy
     {
         public FastPingPacket() : base(0x015, 2)
         {
-            
+        }
+
+        public override void Read(PacketStream stream)
+        {
+            var sent = stream.ReadUInt32();
+            Connection.SendPacket(new FastPongPacket(sent));
         }
     }
 }

@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((byte) _doodads.Length);
             foreach (var doodad in _doodads)
             {
-                stream.WriteBc(doodad.BcId);
+                stream.WriteBc(doodad.ObjId);
                 stream.Write(doodad.TemplateId);
                 stream.WriteBc(doodad.OwnerBcId);
                 stream.WriteBc(0);

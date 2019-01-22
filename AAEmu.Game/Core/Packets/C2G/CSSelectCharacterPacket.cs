@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -26,7 +27,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 character.Connection = Connection;
 
                 Connection.ActiveChar = character;
-                Connection.ActiveChar.BcId = ObjectIdManager.Instance.GetNextId();
+                Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
 
                 Connection.SendPacket(new SCCharacterStatePacket(character));
                 Connection.SendPacket(new SCCharacterGamePointsPacket());
@@ -35,12 +36,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Connection.ActiveChar.Quests.Send();
                 Connection.ActiveChar.Quests.SendCompleted();
-                
+
                 Connection.SendPacket(new SCActabilityPacket()); // Умения (Крафт, Язык)
                 Connection.ActiveChar.Appellations.Send();
-                
+
                 Connection.SendPacket(new SCFriendsPacket());
-                
+
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {
                     Connection.SendPacket(

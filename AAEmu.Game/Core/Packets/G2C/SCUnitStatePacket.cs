@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -26,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.WriteBc(_unit.BcId);
+            stream.WriteBc(_unit.ObjId);
             stream.Write(_unit.Name);
             stream.Write(_type);
             switch (_type) // UnitOwnerInfo?
@@ -38,7 +40,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case 1: // npc
                     var npc = (Npc) _unit;
-                    stream.WriteBc(npc.BcId);
+                    stream.WriteBc(npc.ObjId);
                     stream.Write(npc.TemplateId); // type(id)
                     stream.Write(0u); // type(id)
                     break;
@@ -153,17 +155,17 @@ namespace AAEmu.Game.Core.Packets.G2C
                 case 1: // npc
                     var npc = (Npc) _unit;
                     stream.Write(npc.Template.AnimActionId > 0 ? (byte) 4 : (byte) 0); // type
-                    stream.Write(false); //isLooted
+                    stream.Write(false); // isLooted
                     if (npc.Template.AnimActionId > 0)
                     {
                         stream.Write(npc.Template.AnimActionId);
-                        stream.Write(true); //active
+                        stream.Write(true); // active
                     }
 
                     break;
             }
 
-            stream.Write((byte) 0); // activeWeapon
+            stream.Write(_unit.ActiveWeapon);
 
             if (_unit is Character)
             {
@@ -189,20 +191,23 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.Position.RotationY);
             stream.Write(_unit.Position.RotationZ);
             stream.Write(_unit.RaceGender);
-            
+
             if (_unit is Character)
-                stream.WritePisc(0, 0, ((Character)_unit).Appellations.ActiveAppellation, 0); // pisc
+                stream.WritePisc(0, 0, ((Character) _unit).Appellations.ActiveAppellation, 0); // pisc
             else
                 stream.WritePisc(0, 0, 0, 0); // pisc
-            
+
             stream.WritePisc(_unit.Faction.Id, 0, 0, 0); // pisc
-            
+
             if (_unit is Character)
             {
                 var character = (Character) _unit;
                 var flags = new BitSet(16);
 
-                if (character.IsOffline)
+                if (character.Invisible)
+                    flags.Set(5);
+
+                if (character.IdleStatus)
                     flags.Set(13);
 
                 stream.WritePisc(0, 0); // очки чести полученные в PvP, кол-во убийств в PvP
@@ -242,15 +247,67 @@ namespace AAEmu.Game.Core.Packets.G2C
 
                 character.VisualOptions.Write(stream, 15);
 
-                stream.Write(1); //premium
+                stream.Write(1); // premium
             }
 
-            stream.Write((byte) 0); // goodBuffCount
-            // TODO ...
-            stream.Write((byte) 0); // badBuffCount
-            // TODO ...
-            stream.Write((byte) 0); // hiddenBuffCount
-            // TODO ...
+            var goodBuffs = new List<Effect>();
+            var badBuffs = new List<Effect>();
+            var hiddenBuffs = new List<Effect>();
+            _unit.Effects.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
+
+            stream.Write((byte) goodBuffs.Count); // TODO max 32
+            foreach (var effect in goodBuffs)
+            {
+                stream.Write(effect.Index);
+                stream.Write(effect.Template.BuffId);
+                stream.Write(effect.CasterAction);
+                stream.Write(0u); // type(id)
+                stream.Write(effect.Caster.Level); // sourceLevel
+                stream.Write((short) 1); // sourceAbLevel
+                stream.Write(effect.Duration); // totalTime
+                stream.Write(effect.GetTimeElapsed()); // elapsedTime
+                stream.Write(effect.Tick); // tickTime
+                stream.Write(0); // tickIndex
+                stream.Write(1); // stack
+                stream.Write(0); // charged
+                stream.Write(0u); // type(id) -> cooldownSkill
+            }
+
+            stream.Write((byte) badBuffs.Count); // TODO max 24
+            foreach (var effect in badBuffs)
+            {
+                stream.Write(effect.Index);
+                stream.Write(effect.Template.BuffId);
+                stream.Write(effect.CasterAction);
+                stream.Write(0u); // type(id)
+                stream.Write(effect.Caster.Level); // sourceLevel
+                stream.Write((short) 1); // sourceAbLevel
+                stream.Write(effect.Duration); // totalTime
+                stream.Write(effect.GetTimeElapsed()); // elapsedTime
+                stream.Write(effect.Tick); // tickTime
+                stream.Write(0); // tickIndex
+                stream.Write(1); // stack
+                stream.Write(0); // charged
+                stream.Write(0u); // type(id) -> cooldownSkill
+            }
+
+            stream.Write((byte) hiddenBuffs.Count); // TODO max 24
+            foreach (var effect in hiddenBuffs)
+            {
+                stream.Write(effect.Index);
+                stream.Write(effect.Template.BuffId);
+                stream.Write(effect.CasterAction);
+                stream.Write(0u); // type(id)
+                stream.Write(effect.Caster.Level); // sourceLevel
+                stream.Write((short) 1); // sourceAbLevel
+                stream.Write(effect.Duration); // totalTime
+                stream.Write(effect.GetTimeElapsed()); // elapsedTime
+                stream.Write(effect.Tick); // tickTime
+                stream.Write(0); // tickIndex
+                stream.Write(1); // stack
+                stream.Write(0); // charged
+                stream.Write(0u); // type(id) -> cooldownSkill
+            }
 
             return stream;
         }

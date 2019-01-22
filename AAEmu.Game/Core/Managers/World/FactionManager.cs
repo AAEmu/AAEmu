@@ -50,9 +50,9 @@ namespace AAEmu.Game.Core.Managers.World
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 PoliticalSystem = reader.GetByte("political_system_id"),
                                 MotherId = reader.GetUInt32("mother_id"),
-                                AggroLink = reader.GetString("aggro_link") == "t",
-                                GuardHelp = reader.GetString("guard_help") == "t",
-                                DiplomacyTarget = reader.GetString("is_diplomacy_tgt") == "t"
+                                AggroLink = reader.GetBoolean("aggro_link", true),
+                                GuardHelp = reader.GetBoolean("guard_help", true),
+                                DiplomacyTarget = reader.GetBoolean("is_diplomacy_tgt", true)
                             };
                             _systemFactions.Add(faction.Id, faction);
                         }

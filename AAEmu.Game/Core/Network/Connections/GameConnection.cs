@@ -186,7 +186,7 @@ namespace AAEmu.Game.Core.Network.Connections
                 return;
 
             ActiveChar.Delete();
-            ObjectIdManager.Instance.ReleaseId(ActiveChar.BcId);
+            ObjectIdManager.Instance.ReleaseId(ActiveChar.ObjId);
 
             ActiveChar.Save();
         }

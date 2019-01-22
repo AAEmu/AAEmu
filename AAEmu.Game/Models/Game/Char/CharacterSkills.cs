@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using MySql.Data.MySqlClient;
@@ -15,6 +16,8 @@ namespace AAEmu.Game.Models.Game.Char
             Buff = 2
         }
 
+        private List<uint> _removed;
+
         public Dictionary<uint, Skill> Skills { get; set; }
         public Dictionary<uint, PassiveBuff> PassiveBuffs { get; set; }
 
@@ -25,9 +28,32 @@ namespace AAEmu.Game.Models.Game.Char
             Owner = owner;
             Skills = new Dictionary<uint, Skill>();
             PassiveBuffs = new Dictionary<uint, PassiveBuff>();
+            _removed = new List<uint>();
         }
 
-        public void AddSkill(SkillTemplate template, byte level)
+        public void AddSkill(uint skillId)
+        {
+            var template = SkillManager.Instance.GetSkillTemplate(skillId);
+            if (template.AbilityId > 0 &&
+                template.AbilityId != (byte) Owner.Ability1 &&
+                template.AbilityId != (byte) Owner.Ability2 &&
+                template.AbilityId != (byte) Owner.Ability3)
+                return;
+            var points = ExpirienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
+            points -= GetUsedSkillPoints();
+            if (template.SkillPoints > points)
+                return;
+
+            if (Skills.ContainsKey(skillId))
+            {
+                Skills[skillId].Level++;
+                Owner.SendPacket(new SCSkillUpgradedPacket(Skills[skillId]));
+            }
+            else
+                AddSkill(template, 1, true);
+        }
+
+        public void AddSkill(SkillTemplate template, byte level, bool packet)
         {
             var skill = new Skill
             {
@@ -36,6 +62,62 @@ namespace AAEmu.Game.Models.Game.Char
                 Level = level
             };
             Skills.Add(skill.Id, skill);
+
+            if (packet)
+                Owner.SendPacket(new SCSkillLearnedPacket(skill));
+        }
+        
+        public void AddBuff(uint buffId)
+        {
+            var template = SkillManager.Instance.GetPassiveBuffTemplate(buffId);
+            if(template.AbilityId > 0 && 
+               template.AbilityId != (byte)Owner.Ability1 && 
+               template.AbilityId != (byte)Owner.Ability2 && 
+               template.AbilityId != (byte)Owner.Ability3)
+                return;
+            var points = ExpirienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
+            points -= GetUsedSkillPoints();
+            if(template.ReqPoints > points)
+                return;
+            if(PassiveBuffs.ContainsKey(buffId))
+                return;
+            var buff = new PassiveBuff();
+            buff.Id = buffId;
+            buff.Template = template;
+            PassiveBuffs.Add(buff.Id, buff);
+            Owner.BroadcastPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id), true);
+            // TODO apply buff effect
+        }
+
+        public void Reset(AbilityType abilityId) // TODO with price...
+        {
+            foreach (var skill in new List<Skill>(Skills.Values))
+            {
+                if (skill.Template.AbilityId != (byte)abilityId)
+                    continue;
+                Skills.Remove(skill.Id);
+                _removed.Add(skill.Id);
+            }
+
+            foreach (var buff in new List<PassiveBuff>(PassiveBuffs.Values))
+            {
+                if (buff.Template.AbilityId != (byte)abilityId)
+                    continue;
+                PassiveBuffs.Remove(buff.Id);
+                _removed.Add(buff.Id);
+            }
+            
+            Owner.BroadcastPacket(new SCSkillsResetPacket(Owner.ObjId, abilityId), true);
+        }
+
+        public int GetUsedSkillPoints()
+        {
+            var points = 0;
+            foreach (var skill in Skills.Values)
+                points += skill.Template.SkillPoints;
+            foreach (var buff in PassiveBuffs.Values)
+                points += buff.Template.ReqPoints;
+            return points;
         }
 
         public void Load(MySqlConnection connection)
@@ -75,6 +157,21 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction)
         {
+            if (_removed.Count > 0)
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+
+                    command.CommandText = "DELETE FROM skills WHERE owner = @owner AND id IN(" + string.Join(",", _removed) + ")";
+                    command.Prepare();
+                    command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.ExecuteNonQuery();
+                    _removed.Clear();
+                }
+            }
+
             foreach (var skill in Skills.Values)
             {
                 using (var command = connection.CreateCommand())

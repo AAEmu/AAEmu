@@ -18,6 +18,13 @@ namespace AAEmu.Game.Models.Game.Units
         public SystemFaction Faction { get; set; }
 
         public virtual float Scale => 1f;
+        
+        public Effects Effects { get; set; }
+
+        public BaseUnit()
+        {
+            Effects = new Effects(this);
+        }
 
         public virtual void AddBonus(uint bonusIndex, Bonus bonus)
         {

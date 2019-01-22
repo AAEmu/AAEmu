@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Threading;
 using AAEmu.Commons.IO;
 using AAEmu.Login.Core.Controllers;
@@ -18,6 +19,8 @@ namespace AAEmu.Login
         private static Thread _thread = Thread.CurrentThread;
         private static bool _shutdown;
         private static DateTime _startTime;
+        private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
+        private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
         private static AutoResetEvent _signal = new AutoResetEvent(false);
 
         public static int UpTime => (int) (DateTime.Now - _startTime).TotalSeconds;
@@ -26,7 +29,7 @@ namespace AAEmu.Login
         {
             Initialization();
             Configuration(args);
-            _log.Info("AAEmu.Login version 1.0+");
+            _log.Info("{0} version {1}", Name, Version);
 
             var connection = MySQL.Create();
             if (connection == null)

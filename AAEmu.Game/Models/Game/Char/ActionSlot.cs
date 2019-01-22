@@ -4,7 +4,10 @@ namespace AAEmu.Game.Models.Game.Char
     {
         None = 0,
         Item = 1,
-        Skill = 2
+        Skill = 2,
+        Unk3 = 3,
+        Unk4 = 4,
+        Unk5 = 5
     }
 
     public class ActionSlot

@@ -1,10 +1,17 @@
+using System;
 using System.Collections.Generic;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Tasks;
+using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Models.Game.Units
 {
     public class Unit : BaseUnit
     {
+        private Task _regenTask;
+        
         public uint ModelId { get; set; }
         public byte Level { get; set; }
         public int Hp { get; set; }
@@ -28,12 +35,63 @@ namespace AAEmu.Game.Models.Game.Units
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
+        public byte ActiveWeapon { get; set; }
+        public bool IdleStatus { get; set; }
+        public bool ForceAttack { get; set; }
+        public bool Invisible { get; set; }
 
+        public SkillTask SkillTask { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
 
         public Unit()
         {
             Bonuses = new Dictionary<uint, List<Bonus>>();
+        }
+
+        public virtual void ReduceCurrentHp(Unit attacker, int value)
+        {
+            if (Hp == 0)
+                return;
+            Hp = Math.Max(Hp - value, 0);
+            if (Hp == 0)
+                DoDie(attacker);
+            else
+                StartRegen();
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        }
+
+        public virtual void DoDie(Unit killer)
+        {
+            Effects.RemoveEffectsOnDeath();
+            BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
+        }
+
+        public void StartRegen()
+        {
+            if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp)
+                return;
+            _regenTask = new UnitPointsRegenTask(this);
+            TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+
+        public async void StopRegen()
+        {
+            if(_regenTask == null)
+                return;
+            await _regenTask.Cancel();
+            _regenTask = null;
+        }
+
+        public void SetInvisible(bool value)
+        {
+            Invisible = value;
+            BroadcastPacket(new SCUnitInvisiblePacket(ObjId, Invisible), true);
+        }
+
+        public void SetForceAttack(bool value)
+        {
+            ForceAttack = value;
+            BroadcastPacket(new SCForceAttackSetPacket(ObjId, ForceAttack), true);
         }
 
         public override void AddBonus(uint bonusIndex, Bonus bonus)

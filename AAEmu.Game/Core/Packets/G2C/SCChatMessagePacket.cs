@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((short) _type);
             stream.Write((short) (_character?.Faction.Id ?? 0)); //chat
             stream.Write(_character?.Faction.Id ?? 0); //chat, factionId?
-            stream.WriteBc(_character?.BcId ?? 0);
+            stream.WriteBc(_character?.ObjId ?? 0);
             stream.Write(_character?.Id ?? 0);
             stream.Write(_character != null ? _languageType : (byte) 0);
             stream.Write(_character != null ? (byte) _character.Race : (byte) 0);

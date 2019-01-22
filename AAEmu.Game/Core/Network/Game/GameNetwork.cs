@@ -37,11 +37,26 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x036, 1, typeof(CSDestroyItemPacket));
             RegisterPacket(0x037, 1, typeof(CSSplitBagItemPacket));
             RegisterPacket(0x038, 1, typeof(CSSwapItemsPacket));
+            RegisterPacket(0x04d, 1, typeof(CSSetForceAttackPacket));
             RegisterPacket(0x050, 1, typeof(CSStartSkillPacket));
+            RegisterPacket(0x052, 1, typeof(CSStopCastingPacket));
+            RegisterPacket(0x053, 1, typeof(CSRemoveBuffPacket));
             RegisterPacket(0x061, 1, typeof(CSSendChatMessagePacket));
             RegisterPacket(0x063, 1, typeof(CSInteractNPCPacket));
             RegisterPacket(0x064, 1, typeof(CSInteractNPCEndPacket));
             RegisterPacket(0x088, 1, typeof(CSMoveUnitPacket));
+            RegisterPacket(0x08a, 1, typeof(CSCreateSkillControllerPacket));
+            RegisterPacket(0x08b, 1, typeof(CSActiveWeaponChangedPacket));
+            RegisterPacket(0x092, 1, typeof(CSLearnSkillPacket));
+            RegisterPacket(0x093, 1, typeof(CSLearnBuffPacket));
+            RegisterPacket(0x094, 1, typeof(CSResetSkillsPacket));
+            RegisterPacket(0x096, 1, typeof(CSSwapAbilityPacket));
+            RegisterPacket(0x0b2, 1, typeof(CSUpdateActionSlotPacket));
+            RegisterPacket(0x0d1, 1, typeof(CSStartQuestContextPacket));
+            RegisterPacket(0x0d2, 1, typeof(CSCompleteQuestContextPacket));
+            RegisterPacket(0x0d3, 1, typeof(CSDropQuestContextPacket));
+            RegisterPacket(0x0d4, 1, typeof(CSResetQuestContextPacket));
+            RegisterPacket(0x0d5, 1, typeof(CSAcceptCheatQuestContextPacket));
             RegisterPacket(0x0f6, 1, typeof(CSChangeAppellationPacket));
             RegisterPacket(0x0fb, 1, typeof(CSSetLpManageCharacterPacket));
             RegisterPacket(0x101, 1, typeof(CSAddFriendPacket));
@@ -54,6 +69,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x115, 1, typeof(CSBroadcastVisualOptionPacket));
             RegisterPacket(0x116, 1, typeof(CSRestrictCheckPacket));
             RegisterPacket(0x12e, 1, typeof(CSIdleStatusPacket));
+            RegisterPacket(0x136, 1, typeof(CSPremiumServieceMsgPacket));
 
             // Proxy
             RegisterPacket(0x000, 2, typeof(ChangeStatePacket));
@@ -76,8 +92,6 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x012, 2, typeof(PingPacket));
             RegisterPacket(0x013, 2, typeof(PongPacket));
             RegisterPacket(0x014, 2, typeof(PacketSeqChange));
-
-            // Proxy Old Version: 0.5
             RegisterPacket(0x015, 2, typeof(FastPingPacket));
             RegisterPacket(0x016, 2, typeof(FastPongPacket));
         }
