@@ -10,4 +10,4 @@
 
 **Help and Support:** [Forum](https://boards.aaemu.pw/) **+** [Discord](https://discord.gg/vn8E8E6)
 
-**Releases:** [Files](https://github.com/NL0bP/AAEmu/releases)
+**Releases:** [Files](https://github.com/atel0/AAEmu/releases)
