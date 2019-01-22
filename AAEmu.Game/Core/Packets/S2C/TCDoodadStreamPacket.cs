@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Packets.S2C
             stream.Write(_doodads.Length);
             foreach (var doodad in _doodads)
             {
-                stream.WriteBc(doodad.BcId);
+                stream.WriteBc(doodad.ObjId);
                 stream.Write(doodad.TemplateId);
                 stream.Write(Helpers.ConvertX(doodad.Position.X));
                 stream.Write(Helpers.ConvertY(doodad.Position.Y));

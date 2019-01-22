@@ -12,10 +12,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            Connection.ActiveChar.IsOffline = stream.ReadBoolean();
-            _log.Debug("IdleStatus: BcId {0}, {1}", Connection.ActiveChar.BcId, Connection.ActiveChar.IsOffline);
+            Connection.ActiveChar.IdleStatus = stream.ReadBoolean();
+            _log.Debug("IdleStatus: BcId {0}, {1}", Connection.ActiveChar.ObjId, Connection.ActiveChar.IdleStatus);
             Connection.ActiveChar.BroadcastPacket(
-                new SCUnitIdleStatusPacket(Connection.ActiveChar.BcId, Connection.ActiveChar.IsOffline), true);
+                new SCUnitIdleStatusPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.IdleStatus), true);
         }
     }
 }

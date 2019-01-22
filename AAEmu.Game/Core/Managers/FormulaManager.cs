@@ -45,7 +45,7 @@ namespace AAEmu.Game.Core.Managers
         public void Load()
         {
             // TODO Funcs: min, max, clamp, if_zero, if_positive, if_negative, floor, log, sqrt
-            CalculationEngine = new CalculationEngine(CultureInfo.InvariantCulture, ExecutionMode.Compiled, true, true);
+            CalculationEngine = new CalculationEngine(CultureInfo.InvariantCulture, ExecutionMode.Compiled, true, true, false);
             CalculationEngine.AddFunction("clamp", (a, b, c) => a < b ? b : (a > c ? c : a));
             CalculationEngine.AddFunction("if_negative", (a, b, c) => a < 0 ? b : c);
             CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);

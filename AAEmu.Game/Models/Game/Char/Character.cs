@@ -90,7 +90,6 @@ namespace AAEmu.Game.Models.Game.Char
         public override byte RaceGender => (byte) (16 * (byte) Gender + (byte) Race);
 
         public CharacterVisualOptions VisualOptions { get; set; }
-        public bool IsOffline { get; set; }
 
         public ActionSlot[] Slots { get; set; }
         public Inventory Inventory { get; set; }
@@ -295,6 +294,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = (int) formula.Evaluate(parameters);
+                res /= 5; // TODO ...
                 foreach(var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
                 {
                     if(bonus.Template.ModifierType == UnitModifierType.Percent)
@@ -374,6 +374,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = (int) formula.Evaluate(parameters);
+                res /= 5; // TODO ...
                 foreach(var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
                 {
                     if(bonus.Template.ModifierType == UnitModifierType.Percent)
@@ -642,6 +643,48 @@ namespace AAEmu.Game.Models.Game.Char
             Subscribers = new List<IDisposable>();
         }
 
+        public void AddExp(int exp, bool shouldAddAbilityExp)
+        {
+            if (exp == 0)
+                return;
+            Expirience += exp;
+            if (shouldAddAbilityExp)
+                Abilities.AddActiveExp(exp); // TODO ... or all?
+            SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));
+            CheckLevelUp();
+        }
+
+        public void CheckLevelUp()
+        {
+            var needExp = ExpirienceManager.Instance.GetExpForLevel((byte) (Level + 1));
+            var change = false;
+            while (Expirience >= needExp)
+            {
+                change = true;
+                Level++;
+                needExp = ExpirienceManager.Instance.GetExpForLevel((byte) (Level + 1));
+            }
+
+            if (change)
+            {
+                BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
+                StartRegen();
+            }
+        }
+
+        public void CheckExp()
+        {
+            var needExp = ExpirienceManager.Instance.GetExpForLevel(Level);
+            if(Expirience < needExp)
+                Expirience = needExp;
+            needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            while(Expirience >= needExp)
+            {
+                Level++;
+                needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            }
+        }
+
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;
@@ -771,6 +814,12 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Updated = reader.GetDateTime("updated_at");
 
                         character.Inventory = new Inventory(character);
+                        
+                        if (character.Hp > character.MaxHp)
+                            character.Hp = character.MaxHp;
+                        if (character.Mp > character.MaxMp)
+                            character.Mp = character.MaxMp;
+                        character.CheckExp();
                     }
                 }
             }
@@ -796,7 +845,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Appellations = new CharacterAppellations(this);
                 Appellations.Load(connection);
                 Quests = new CharacterQuests(this);
-                Quests.Load(connection);                
+                Quests.Load(connection);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -963,7 +1012,7 @@ namespace AAEmu.Game.Models.Game.Char
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
-            character.SendPacket(new SCUnitPointsPacket(BcId, Hp, Mp));
+            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         }
 
         public override void RemoveVisibleObject(Character character)
@@ -971,10 +1020,10 @@ namespace AAEmu.Game.Models.Game.Char
             if (character.CurrentTarget != null && character.CurrentTarget == this)
             {
                 character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.BcId, 0));
+                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {BcId}));
+            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
         }
 
         public PacketStream Write(PacketStream stream)

@@ -7,7 +7,6 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
-using Microsoft.CodeAnalysis;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -31,6 +30,16 @@ namespace AAEmu.Game.Core.Managers
                 return _skills[id];
             return null;
         }
+        
+        public bool IsDefaultSkill(uint id)
+        {
+            return _defaultSkills.ContainsKey(id);
+        }
+
+        public bool IsCommonSkill(uint id)
+        {
+            return _commonSkills.Contains(id);
+        }
 
         public List<SkillTemplate> GetStartAbilitySkills(AbilityType ability)
         {
@@ -40,6 +49,42 @@ namespace AAEmu.Game.Core.Managers
         public List<DefaultSkill> GetDefaultSkills()
         {
             return new List<DefaultSkill>(_defaultSkills.Values);
+        }
+
+        public BuffTemplate GetBuffTemplate(uint id)
+        {
+            if(_effects["Buff"].ContainsKey(id))
+                return (BuffTemplate)_effects["Buff"][id];
+            return null;
+        }
+
+        public EffectTemplate GetEffectTemplate(uint id)
+        {
+            if(_types.ContainsKey(id))
+            {
+                var type = _types[id];
+                return _effects[type.Type][type.ActualId];
+            }
+            return null;
+        }
+
+        public EffectTemplate GetEffectTemplate(uint id, string type)
+        {
+            return _effects[type][id];
+        }
+
+        public List<uint> GetBuffsByTagId(uint tagId)
+        {
+            if(_taggedBuffs.ContainsKey(tagId))
+                return _taggedBuffs[tagId];
+            return null;
+        }
+
+        public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
+        {
+            if(_passiveBuffs.ContainsKey(id))
+                return _passiveBuffs[id];
+            return null;
         }
         
         public void Load()
@@ -82,12 +127,16 @@ namespace AAEmu.Game.Core.Managers
             _effects.Add("SpawnGimmickEffect", new Dictionary<uint, EffectTemplate>());
             _effects.Add("SpecialEffect", new Dictionary<uint, EffectTemplate>());
             _effects.Add("TrainCraftEffect", new Dictionary<uint, EffectTemplate>());
+            _effects.Add("SkillController", new Dictionary<uint, EffectTemplate>());
+            _effects.Add("ResetAoeDiminishingEffect", new Dictionary<uint, EffectTemplate>());
             // TODO 
             /*
                 "CinemaEffect"
                 "NpcControlEffect"
                 "NpcSpawnerDespawnEffect"
                 "NpcSpawnerSpawnEffect"
+                "SpawnFishEffect"
+                "PlayLogEffect"
              */
             
             _taggedBuffs = new Dictionary<uint, List<uint>>();
@@ -140,13 +189,9 @@ namespace AAEmu.Game.Core.Managers
                             template.TargetAreaAngle = reader.GetInt32("target_area_angle");
                             template.AbilityLevel = reader.GetInt32("ability_level");
                             template.ChannelingDoodadId = reader.GetUInt32("channeling_doodad_id", 0);
-                            var value = reader.IsDBNull("cooldown_tag_id")
-                                ? "0"
-                                : reader.GetString("cooldown_tag_id");
+                            var value = reader.GetString("cooldown_tag_id", "0");
                             template.CooldownTagId = value.Contains("null") ? 0 : int.Parse(value);
-                            value = reader.IsDBNull("skill_controller_id")
-                                ? "0"
-                                : reader.GetString("skill_controller_id");
+                            value = reader.GetString("skill_controller_id", "0");
                             template.SkillControllerId = value.Contains("null") ? 0 : int.Parse(value);
                             template.RepeatCount = reader.GetInt32("repeat_count");
                             template.RepeatTick = reader.GetInt32("repeat_tick");
@@ -171,7 +216,7 @@ namespace AAEmu.Game.Core.Managers
                             template.DamageTypeId = reader.GetUInt32("damage_type_id", 0);
                             template.AllowToPrisoner = reader.GetBoolean("allow_to_prisoner", true);
                             template.MilestoneId = reader.GetUInt32("milestone_id", 0);
-                            template.PlotId = reader.GetUInt32("plot_id", 0);
+                            template.Plot = reader.IsDBNull("plot_id") ? null : PlotManager.Instance.GetPlot(reader.GetUInt32("plot_id"));
                             template.ConsumeLaborPower = reader.GetInt32("consume_lp", 0);
                             template.SourceStun = reader.GetBoolean("source_stun", true);
                             template.TargetAlive = reader.GetBoolean("target_alive", true);
@@ -280,7 +325,7 @@ namespace AAEmu.Game.Core.Managers
                             template.AnimStartId = reader.GetUInt32("anim_start_id", 0);
                             template.AnimEndId = reader.GetUInt32("anim_end_id", 0);
                             template.Duration = reader.GetInt32("duration");
-                            template.Tick = reader.GetInt32("tick");
+                            template.Tick = reader.GetDouble("tick");
                             template.Silence = reader.GetBoolean("silence", true);
                             template.Root = reader.GetBoolean("root", true);
                             template.Sleep = reader.GetBoolean("sleep", true);
@@ -312,7 +357,7 @@ namespace AAEmu.Game.Core.Managers
                             template.RangedImmune = reader.GetBoolean("ranged_immune", true);
                             template.SiegeImmune = reader.GetBoolean("siege_immune", true);
                             template.ImmuneDamage = reader.GetInt32("immune_damage");
-                            var value = reader.IsDBNull("skill_controller_id") ? "0" : reader.GetString("skill_controller_id");
+                            var value = reader.GetString("skill_controller_id", "0");
                             template.SkillControllerId = value.Contains("null") ? 0 : uint.Parse(value);
                             template.ResurrectionHealth = reader.GetInt32("resurrection_health");
                             template.ResurrectionMana = reader.GetInt32("resurrection_mana");
@@ -393,13 +438,13 @@ namespace AAEmu.Game.Core.Managers
                             template.RemoveOnStartSkill = reader.GetBoolean("remove_on_start_skill", true);
                             template.SprintMotion = reader.GetBoolean("sprint_motion", true);
                             template.TelescopeRange = reader.GetFloat("telescope_range");
-                            value = reader.IsDBNull("mainhand_tool_id") ? "0" : reader.GetString("mainhand_tool_id");
+                            value = reader.GetString("mainhand_tool_id", "0");
                             template.MainhandToolId = value.Length > 0 ? uint.Parse(value) : 0;
-                            value = reader.IsDBNull("offhand_tool_id") ? "0" : reader.GetString("offhand_tool_id");
+                            value = reader.GetString("offhand_tool_id", "0");
                             template.OffhandToolId = value.Length > 0 ? uint.Parse(value) : 0;
-                            value = reader.IsDBNull("tick_mainhand_tool_id") ? "0" : reader.GetString("tick_mainhand_tool_id");
+                            value = reader.GetString("tick_mainhand_tool_id", "0");
                             template.TickMainhandToolId = value.Length > 0 ? uint.Parse(value) : 0;
-                            value = reader.IsDBNull("tick_offhand_tool_id") ? "0" : reader.GetString("tick_offhand_tool_id");
+                            value = reader.GetString("tick_offhand_tool_id", "0");
                             template.TickOffhandToolId = value.Length > 0 ? uint.Parse(value) : 0;
                             template.TickLevelManaCost = reader.GetFloat("tick_level_mana_cost");
                             template.WalkOnly = reader.GetBoolean("walk_only", true);
@@ -528,6 +573,30 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM skill_controllers";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new SkillControllerTemplate
+                            {
+                                Id = reader.GetUInt32("id"),
+                                KindId = reader.GetUInt32("kind_id"),
+                                ActiveWeaponId = reader.GetByte("active_weapon_id"),
+                                // TODO 1.2 // EndSkillId = reader.GetUInt32("end_skill_id")
+                            };
+                            for (var i = 0; i < 15; i++)
+                                template.Value[i] = reader.GetInt32($"value{i + 1}", 0);
+                            _effects["SkillController"].Add(template.Id, template);
+                        }
+                    }
+                }
+
                 using(var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM accept_quest_effects";

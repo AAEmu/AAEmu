@@ -1,0 +1,25 @@
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Quests;
+
+namespace AAEmu.Game.Core.Packets.G2C
+{
+    public class SCQuestContextStartedPacket : GamePacket
+    {
+        private Quest _quest;
+        private uint _componentId;
+
+        public SCQuestContextStartedPacket(Quest quest, uint componentId) : base(0x140, 1)
+        {
+            _quest = quest;
+            _componentId = componentId;
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            stream.Write(_quest);
+            stream.Write(_componentId);
+            return stream;
+        }
+    }
+}

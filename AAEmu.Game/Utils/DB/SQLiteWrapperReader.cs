@@ -46,6 +46,14 @@ namespace AAEmu.Game.Utils.DB
             return _reader.GetByte(GetOrdinal(column));
         }
 
+        public byte GetByte(string column, byte defaultValue)
+        {
+            var ordinal = GetOrdinal(column);
+            if (_reader.IsDBNull(ordinal))
+                return defaultValue;
+            return _reader.GetByte(ordinal);
+        }
+
         public long GetBytes(string column, long fieldOffset, byte[] buffer, int bufferOffset, int length)
         {
             return _reader.GetBytes(GetOrdinal(column), fieldOffset, buffer, bufferOffset, length);
@@ -108,6 +116,14 @@ namespace AAEmu.Game.Utils.DB
             return _reader.GetFloat(GetOrdinal(column));
         }
 
+        public float GetFloat(string column, float defaultValue)
+        {
+            var ordinal = GetOrdinal(column);
+            if (_reader.IsDBNull(ordinal))
+                return defaultValue;
+            return _reader.GetFloat(ordinal);
+        }
+
         public double GetDouble(string column)
         {
             return _reader.GetDouble(GetOrdinal(column));
@@ -116,6 +132,14 @@ namespace AAEmu.Game.Utils.DB
         public string GetString(string column)
         {
             return _reader.GetString(GetOrdinal(column));
+        }
+
+        public string GetString(string column, string defaultValue)
+        {
+            var ordinal = GetOrdinal(column);
+            if (_reader.IsDBNull(ordinal))
+                return defaultValue;
+            return _reader.GetString(ordinal);
         }
 
         public decimal GetDecimal(string column)

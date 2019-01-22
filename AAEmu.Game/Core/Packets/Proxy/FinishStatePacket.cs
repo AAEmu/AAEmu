@@ -1,3 +1,4 @@
+using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -20,7 +21,8 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new ChangeStatePacket(1));
                     Connection.SendPacket(new SetGameTypePacket("w_hanuimaru_1", 0, 1));
                     Connection.SendPacket(new SCInitialConfigPacket());
-                    // TODO ... some packets, coming soon xD
+                    Connection.SendPacket(new SCAccountInfoPacket(1, 1, DateTime.MinValue, DateTime.Now.AddYears(1)));
+                    Connection.SendPacket(new SCChatSpamDelayPacket());
                     break;
                 case 1:
                     Connection.SendPacket(new ChangeStatePacket(2));

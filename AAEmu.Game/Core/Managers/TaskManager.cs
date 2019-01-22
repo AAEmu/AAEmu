@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using ThreadTask = System.Threading.Tasks.Task;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Models;
 using NLog;
 using Quartz;
 using Quartz.Impl;
@@ -22,7 +23,7 @@ namespace AAEmu.Game.Core.Managers
         public async void Initialize()
         {
             _generalPool = new DefaultThreadPool();
-            _generalPool.MaxConcurency = 2;
+            _generalPool.MaxConcurency = AppConfiguration.Instance.MaxConcurencyThreadPool;
             _generalPool.Initialize();
 
             DirectSchedulerFactory

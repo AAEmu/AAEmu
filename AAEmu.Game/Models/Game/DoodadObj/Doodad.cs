@@ -66,10 +66,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (character.CurrentTarget != null && character.CurrentTarget == this)
             {
                 character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.BcId, 0));
+                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {BcId}));
+            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
         }
     }
 }
