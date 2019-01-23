@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models
@@ -5,6 +6,8 @@ namespace AAEmu.Game.Models
     public class AppConfiguration : Singleton<AppConfiguration>
     {
         public byte Id { get; set; }
+        public byte[] AdditionalesId { get; set; } = new byte[0];
+        public string SecretKey { get; set; }
         public DBConnections Connections { get; set; }
         public NetworkConfig Network { get; set; }
         public NetworkConfig StreamNetwork { get; set; }
@@ -16,7 +19,6 @@ namespace AAEmu.Game.Models
         {
             public string Host { get; set; }
             public ushort Port { get; set; }
-
         }
 
         public class DBConnections

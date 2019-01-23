@@ -25,9 +25,10 @@ namespace AAEmu.Game.Core.Network.Connections
 
         public void OnConnect()
         {
+            var secretKey = AppConfiguration.Instance.SecretKey;
             var gsId = AppConfiguration.Instance.Id;
-            var config = AppConfiguration.Instance.Network;
-            SendPacket(new GLRegisterGameServerPacket(gsId, config.Host, config.Port));
+            var additionalesGsId = AppConfiguration.Instance.AdditionalesId;
+            SendPacket(new GLRegisterGameServerPacket(secretKey, gsId, additionalesGsId));
         }
 
         public void SendPacket(LoginPacket packet)

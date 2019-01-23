@@ -19,7 +19,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- База данных: `aaemu`
+-- База данных: `aaemu_game`
 --
 
 -- --------------------------------------------------------
@@ -121,18 +121,6 @@ CREATE TABLE `characters` (
 -- --------------------------------------------------------
 
 --
--- Структура таблицы `game_servers`
---
-
-CREATE TABLE `game_servers` (
-  `id` tinyint(3) UNSIGNED NOT NULL,
-  `name` text NOT NULL,
-  `hidden` tinyint(1) NOT NULL DEFAULT '1'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
 -- Структура таблицы `items`
 --
 
@@ -176,23 +164,6 @@ CREATE TABLE `skills` (
   `owner` int(11) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `users`
---
-
-CREATE TABLE `users` (
-  `id` int(11) UNSIGNED NOT NULL,
-  `username` varchar(32) NOT NULL,
-  `password` text NOT NULL,
-  `email` varchar(128) NOT NULL,
-  `last_login` bigint(20) UNSIGNED NOT NULL DEFAULT '0',
-  `last_ip` varchar(128) NOT NULL,
-  `created_at` bigint(20) UNSIGNED NOT NULL DEFAULT '0',
-  `updated_at` bigint(20) UNSIGNED NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
-
 --
 -- Индексы сохранённых таблиц
 --
@@ -222,12 +193,6 @@ ALTER TABLE `characters`
   ADD PRIMARY KEY (`id`,`account_id`);
 
 --
--- Индексы таблицы `game_servers`
---
-ALTER TABLE `game_servers`
-  ADD PRIMARY KEY (`id`);
-
---
 -- Индексы таблицы `items`
 --
 ALTER TABLE `items`
@@ -245,24 +210,6 @@ ALTER TABLE `options`
 --
 ALTER TABLE `skills`
   ADD PRIMARY KEY (`id`,`owner`);
-
---
--- Индексы таблицы `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `username` (`username`);
-
---
--- AUTO_INCREMENT для сохранённых таблиц
---
-
---
--- AUTO_INCREMENT для таблицы `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
-COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

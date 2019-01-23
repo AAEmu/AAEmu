@@ -109,8 +109,14 @@ namespace AAEmu.Login.Core.Controllers
         {
             if (!_tokens.ContainsKey(gsId))
             {
-                // TODO ...
-                return;
+                var parentId = GameController.Instance.GetParentId(gsId);
+                if (parentId != null)
+                    gsId = (byte) parentId;
+                else
+                {
+                    // TODO ...
+                    return;
+                }
             }
 
             if (!_tokens[gsId].ContainsKey(token))

@@ -28,7 +28,15 @@ namespace AAEmu.Login
         public static void Main(string[] args)
         {
             Initialization();
-            Configuration(args);
+            
+            if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
+                Configuration(args);
+            else
+            {
+                _log.Error($"{FileManager.AppPath}Config.json doesn't exist!");
+                return;
+            }
+
             _log.Info("{0} version {1}", Name, Version);
 
             var connection = MySQL.Create();
@@ -75,7 +83,7 @@ namespace AAEmu.Login
         private static void Configuration(string[] args)
         {
             var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile(FileManager.AppPath + "ExampleConfig.json")
+                .AddJsonFile(FileManager.AppPath + "Config.json")
                 .AddCommandLine(args)
                 .Build();
 

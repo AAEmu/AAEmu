@@ -5,22 +5,24 @@ namespace AAEmu.Game.Core.Packets.G2L
 {
     public class GLRegisterGameServerPacket : LoginPacket
     {
+        private readonly string _secretKey;
         private readonly byte _gsId;
-        private readonly string _ip;
-        private readonly ushort _port;
+        private readonly byte[] _additionalesGsId;
 
-        public GLRegisterGameServerPacket(byte gsId, string ip, ushort port) : base(0x00)
+        public GLRegisterGameServerPacket(string secretKey, byte gsId, byte[] additionalesGsId) : base(0x00)
         {
+            _secretKey = secretKey;
             _gsId = gsId;
-            _ip = ip;
-            _port = port;
+            _additionalesGsId = additionalesGsId;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
+            stream.Write(_secretKey);
             stream.Write(_gsId);
-            stream.Write(_ip);
-            stream.Write(_port);
+            stream.Write(_additionalesGsId.Length);
+            foreach (var gsId in _additionalesGsId)
+                stream.Write(gsId);
             return stream;
         }
     }

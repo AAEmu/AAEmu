@@ -13,10 +13,20 @@ namespace AAEmu.Login.Core.Controllers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<byte, GameServer> _gameServers;
+        private Dictionary<byte, byte> _mirrorsId;
+
+        public byte? GetParentId(byte gsId)
+        {
+            if (_mirrorsId.ContainsKey(gsId))
+                return _mirrorsId[gsId];
+            return null;
+        }
+
 
         protected GameController()
         {
             _gameServers = new Dictionary<byte, GameServer>();
+            _mirrorsId = new Dictionary<byte, byte>();
         }
 
         public void Load()
@@ -31,7 +41,11 @@ namespace AAEmu.Login.Core.Controllers
                     {
                         while (reader.Read())
                         {
-                            var gameServer = new GameServer(reader.GetByte("id"), reader.GetString("name"));
+                            var gameServer = new GameServer(
+                                reader.GetByte("id"),
+                                reader.GetString("name"),
+                                reader.GetString("host"),
+                                reader.GetUInt16("port"));
                             _gameServers.Add(gameServer.Id, gameServer);
                         }
                     }
@@ -41,7 +55,7 @@ namespace AAEmu.Login.Core.Controllers
             _log.Info("Loaded {0} gs", _gameServers.Count);
         }
 
-        public void Add(byte gsId, string ip, ushort port, InternalConnection connection)
+        public void Add(byte gsId, List<byte> mirrorsId, InternalConnection connection)
         {
             if (!_gameServers.ContainsKey(gsId))
             {
@@ -50,12 +64,18 @@ namespace AAEmu.Login.Core.Controllers
             }
 
             var gameServer = _gameServers[gsId];
-            gameServer.Ip = ip;
-            gameServer.Port = port;
             gameServer.Connection = connection;
+            gameServer.MirrorsId.AddRange(mirrorsId);
             connection.GameServer = gameServer;
             connection.AddAttribute("gsId", gameServer.Id);
             gameServer.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Success));
+
+            foreach (var mirrorId in mirrorsId)
+            {
+                _gameServers[mirrorId].Connection = connection;
+                _mirrorsId.Add(mirrorId, gsId);
+            }
+
             _log.Info("Registered GameServer {0}", gameServer.Id);
         }
 
@@ -65,9 +85,17 @@ namespace AAEmu.Login.Core.Controllers
                 return;
 
             var gameServer = _gameServers[gsId];
-            gameServer.Ip = "";
-            gameServer.Port = 0;
             gameServer.Connection = null;
+
+            foreach (var mirrorId in gameServer.MirrorsId)
+            {
+                if (_gameServers.ContainsKey(mirrorId))
+                    _gameServers[mirrorId].Connection = null;
+
+                _mirrorsId.Remove(mirrorId);
+            }
+
+            gameServer.MirrorsId.Clear();
         }
 
         public void RequestWorldList(LoginConnection connection)

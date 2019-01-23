@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 
@@ -20,16 +21,20 @@ namespace AAEmu.Login.Models
     {
         public byte Id { get; }
         public string Name { get; }
-        public string Ip { get; set; }
+        public string Host { get; set; }
         public ushort Port { get; set; }
         public InternalConnection Connection { get; set; }
         public bool Active => Connection != null;
         public GSLoad Load { get; set; }
+        public List<byte> MirrorsId { get; set; }
 
-        public GameServer(byte id, string name)
+        public GameServer(byte id, string name, string host, ushort port)
         {
             Id = id;
             Name = name;
+            Host = host;
+            Port = port;
+            MirrorsId = new List<byte>();
         }
 
         public void SendPacket(InternalPacket packet)
