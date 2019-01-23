@@ -1,5 +1,7 @@
 {
   "Id": 1,
+  "AdditionalesId": [],
+  "SecretKey": "test",
   "Network": {
     "Host": "127.0.0.1",
     "Port": 1239
