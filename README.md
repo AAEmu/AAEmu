@@ -11,7 +11,7 @@ If you don't find what you're looking for there, [talk to a human](#discussion).
 - [Community Discord](https://discord.gg/vn8E8E6)
 
 ### Can I contribute?
-Yes you can! Fork project, create new branch, develop and send pull request
+Yes you can! Contributions are welcomed provided that they comply with our [Contributing Guidelines](CONTRIBUTING.md). Please ensure you read the relevant sections of the guidelines carefully before making a Pull Request or opening an Issue.
 
 ## Licensing information
 
