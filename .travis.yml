@@ -4,5 +4,5 @@ dist: xenial
 mono: none
 dotnet: 2.2.103
 script:  
-  - dotnet publish ./AAEmu.Login/AAEmu.Login.csproj -c Debug -f netcoreapp2.2
-  - dotnet publish ./AAEmu.Game/AAEmu.Game.csproj -c Debug -f netcoreapp2.2
+  - dotnet restore
+  - dotnet build
