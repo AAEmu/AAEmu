@@ -1,11 +1,8 @@
 language: csharp  
 sudo: required  
-dist: trusty  
+dist: xenial  
 mono: none
 dotnet: 2.2.103
-before_script:
-  - sudo apt-get clean
-  - sudo apt-get update
 script:  
   - dotnet publish ./AAEmu.Login/AAEmu.Login.csproj -c Debug -f netcoreapp2.2
   - dotnet publish ./AAEmu.Game/AAEmu.Game.csproj -c Debug -f netcoreapp2.2
