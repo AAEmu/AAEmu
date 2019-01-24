@@ -20,7 +20,7 @@
       "Port": "3306",
       "User": "root",
       "Password": "",
-      "Database": "aaemu"
+      "Database": "aaemu_game"
     }
   },
   "CharacterNameRegex": "^[a-zA-Z0-9а-яА-Я]{1,18}$",
