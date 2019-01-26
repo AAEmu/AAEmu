@@ -8,18 +8,18 @@ namespace AAEmu.Game.Models.Tasks.Skills
     public class PlotTask : SkillTask
     {
         private Unit _caster;
-        private SkillAction _casterAction;
+        private SkillCaster _casterCaster;
         private BaseUnit _target;
-        private SkillAction _targetAction;
+        private SkillCastTarget _targetCaster;
         private PlotNextEvent _nextEvent;
 
-        public PlotTask(Skill skill, Unit caster, SkillAction casterAction, BaseUnit target, SkillAction targetAction,
+        public PlotTask(Skill skill, Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster,
             PlotNextEvent nextEvent) : base(skill)
         {
             _caster = caster;
-            _casterAction = casterAction;
+            _casterCaster = casterCaster;
             _target = target;
-            _targetAction = targetAction;
+            _targetCaster = targetCaster;
             _nextEvent = nextEvent;
         }
 
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
             step.Flag = 2;
             foreach (var condition in _nextEvent.Event.Conditions)
             {
-                if (condition.Condition.Check(_caster, _casterAction, _target, _targetAction))
+                if (condition.Condition.Check(_caster, _casterCaster, _target, _targetCaster))
                     continue;
                 step.Flag = 0;
                 break;
@@ -42,8 +42,8 @@ namespace AAEmu.Game.Models.Tasks.Skills
             var res = true;
             if (step.Flag != 0)
                 foreach (var evnt in _nextEvent.Event.NextEvents)
-                    res = res && Skill.BuildPlot(_caster, _casterAction, _target, _targetAction, evnt, step);
-            Skill.ParsePlot(_caster, _casterAction, _target, _targetAction, step);
+                    res = res && Skill.BuildPlot(_caster, _casterCaster, _target, _targetCaster, evnt, step);
+            Skill.ParsePlot(_caster, _casterCaster, _target, _targetCaster, step);
             if (!res)
                 return;
             TlIdManager.Instance.ReleaseId(Skill.TlId);

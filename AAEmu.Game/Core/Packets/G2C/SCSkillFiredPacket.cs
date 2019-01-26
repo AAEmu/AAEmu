@@ -8,17 +8,19 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private uint _id;
         private ushort _tl;
-        private SkillAction _caster;
-        private SkillAction _target;
+        private SkillCaster _caster;
+        private SkillCastTarget _target;
+        private byte _flag;
         private Skill _skill;
-        
-        public SCSkillFiredPacket(uint id, ushort tl, SkillAction caster, SkillAction target, Skill skill) : base(0x09b, 1)
+
+        public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill) : base(0x09b, 1)
         {
             _id = id;
             _tl = tl;
             _caster = caster;
             _target = target;
             _skill = skill;
+            _flag = 0;
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -27,7 +29,16 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_tl);
             stream.Write(_caster);
             stream.Write(_target);
-            stream.Write((byte) 0); // flag
+            stream.Write(_flag);
+            if (_flag > 0)
+            {
+                var flagType = _flag & 15;
+                switch (flagType)
+                {
+                    // TODO ...
+                }
+            }
+
             stream.Write((short)(_skill.Template.EffectDelay / 10));
             stream.Write((short)(_skill.Template.ChannelingTime / 10));
             stream.Write((byte)0); // f

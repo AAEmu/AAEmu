@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -154,6 +155,58 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_animates";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var func = new DoodadFuncAnimate();
+                            func.Id = reader.GetUInt32("id");
+                            func.Name = reader.GetString("name");
+                            func.PlayOnce = reader.GetBoolean("play_once", true);
+                            _funcTemplates["DoodadFuncAnimate"].Add(func.Id, func);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_area_triggers";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var func = new DoodadFuncAreaTrigger();
+                            func.Id = reader.GetUInt32("id");
+                            func.NpcId = reader.GetUInt32("npc_id", 0);
+                            func.IsEnter = reader.GetBoolean("is_enter", true);
+                            _funcTemplates["DoodadFuncAreaTrigger"].Add(func.Id, func);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_attachments";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var func = new DoodadFuncAttachment();
+                            func.Id = reader.GetUInt32("id");
+                            func.AttachPointId = reader.GetByte("attach_point_id");
+                            func.Space = reader.GetInt32("space");
+                            func.BondKindId = reader.GetByte("bond_kind_id");
+                            _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);
+                        }
+                    }
+                }
             }
         }
 
@@ -172,11 +225,40 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return doodad;
         }
 
+        public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
+        {
+            if (!_funcs.ContainsKey(funcGroupId))
+                return null;
+            foreach (var func in _funcs[funcGroupId])
+            {
+                if (func.SkillId == skillId)
+                    return func;
+            }
+
+            foreach (var func in _funcs[funcGroupId])
+            {
+                if (func.SkillId == 0)
+                    return func;
+            }
+
+            return null;
+        }
+
         public DoodadFunc[] GetPhaseFunc(uint funcGroupId)
         {
             if (_phaseFuncs.ContainsKey(funcGroupId))
                 return _phaseFuncs[funcGroupId].ToArray();
             return new DoodadFunc[0];
+        }
+
+        public DoodadFuncTemplate GetFuncTemplate(uint funcId, string funcType)
+        {
+            if (!_funcTemplates.ContainsKey(funcType))
+                return null;
+            var funcs = _funcTemplates[funcType];
+            if (funcs.ContainsKey(funcId))
+                return funcs[funcId];
+            return null;
         }
     }
 }

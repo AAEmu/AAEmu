@@ -160,7 +160,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             DynamicBonuses = new List<DynamicBonusTemplate>();
         }
 
-        public override void Apply(Unit caster, SkillAction casterObj, BaseUnit target, SkillAction targetObj, CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             Skill skill, DateTime time)
         {
             if (RequireBuffId > 0 && !target.Effects.CheckBuff(RequireBuffId))
@@ -194,8 +194,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                     owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetNoBuffTagId)))
                     return;
                 var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
-                var targetObj = new SkillActionUnit(owner.ObjId);
-                eff.Apply(caster, effect.CasterAction, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
+                var targetObj = new SkillCastUnitTarget(owner.ObjId);
+                eff.Apply(caster, effect.CasterCaster, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
             }
         }
 

@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
@@ -96,6 +97,7 @@ namespace AAEmu.Game.Models.Game.Char
         public byte NumInventorySlots { get; set; }
         public short NumBankSlots { get; set; }
 
+        public BondDoodad Bonding { get; set; }
         public CharacterQuests Quests { get; set; }
         public CharacterAppellations Appellations { get; set; } 
         public CharacterAbilities Abilities { get; set; }

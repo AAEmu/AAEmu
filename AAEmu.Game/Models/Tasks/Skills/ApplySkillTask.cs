@@ -7,22 +7,22 @@ namespace AAEmu.Game.Models.Tasks.Skills
     {
         private Skill _skill;
         private Unit _caster;
-        private SkillAction _casterAction;
+        private SkillCaster _casterCaster;
         private BaseUnit _target;
-        private SkillAction _targetAction;
+        private SkillCastTarget _targetCaster;
 
-        public ApplySkillTask(Skill skill, Unit caster, SkillAction casterAction, BaseUnit target, SkillAction targetAction)
+        public ApplySkillTask(Skill skill, Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster)
         {
             _skill = skill;
             _caster = caster;
-            _casterAction = casterAction;
+            _casterCaster = casterCaster;
             _target = target;
-            _targetAction = targetAction;
+            _targetCaster = targetCaster;
         }
 
         public override void Execute()
         {
-            _skill.Apply(_caster, _casterAction, _target, _targetAction);
+            _skill.Apply(_caster, _casterCaster, _target, _targetCaster);
         }
     }
 }

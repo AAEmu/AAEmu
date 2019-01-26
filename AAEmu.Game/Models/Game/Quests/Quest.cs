@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -66,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Quests
         {
             var res = false;
             var componentId = 0u;
-            for (Step = Step; Step <= 8; Step++)
+            for (; Step <= 8; Step++)
             {
                 if (Step >= 7)
                     Status = QuestStatus.Completed;
@@ -130,7 +130,7 @@ namespace AAEmu.Game.Models.Game.Quests
         {
             var res = false;
             var componentId = 0u;
-            for (Step = Step; Step <= 8; Step++)
+            for (; Step <= 8; Step++)
             {
                 if (Step >= 7)
                     Status = QuestStatus.Completed;

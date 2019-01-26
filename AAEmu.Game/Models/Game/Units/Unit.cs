@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -68,7 +68,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void StartRegen()
         {
-            if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp)
+            if (_regenTask != null || (Hp >= MaxHp && Mp >= MaxMp))
                 return;
             _regenTask = new UnitPointsRegenTask(this);
             TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));

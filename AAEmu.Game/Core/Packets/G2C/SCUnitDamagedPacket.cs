@@ -7,15 +7,15 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCUnitDamagedPacket : GamePacket
     {
         private readonly CastAction _castAction;
-        private readonly SkillAction _skillAction;
+        private readonly SkillCaster _skillCaster;
         private readonly uint _casterId;
         private readonly uint _targetId;
         private readonly int _damage;
 
-        public SCUnitDamagedPacket(CastAction castAction, SkillAction skillAction, uint casterId, uint targetId, int damage) : base(0x0a0, 1)
+        public SCUnitDamagedPacket(CastAction castAction, SkillCaster skillCaster, uint casterId, uint targetId, int damage) : base(0x0a0, 1)
         {
             _castAction = castAction;
-            _skillAction = skillAction;
+            _skillCaster = skillCaster;
             _casterId = casterId;
             _targetId = targetId;
             _damage = damage;
@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_castAction);
-            stream.Write(_skillAction);
+            stream.Write(_skillCaster);
             stream.WriteBc(_casterId);
             stream.WriteBc(_targetId);
             stream.Write((byte) 0); // crimeState

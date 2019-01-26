@@ -3,18 +3,18 @@ using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
-    public enum SkillActionType : byte
+    public enum SkillCasterType : byte
     {
         Unit = 0,
         Unk1 = 1,
         Item = 2,
-        Unk3 = 3,
+        Unk3 = 3, // TODO mountSkillType
         Doodad = 4
     }
 
-    public abstract class SkillAction : PacketMarshaler
+    public abstract class SkillCaster : PacketMarshaler
     {
-        public SkillActionType Type { get; set; }
+        public SkillCasterType Type { get; set; }
         public uint ObjId { get; set; }
 
         public override void Read(PacketStream stream)
@@ -29,24 +29,24 @@ namespace AAEmu.Game.Models.Game.Skills
             return stream;
         }
 
-        public static SkillAction GetByType(SkillActionType type)
+        public static SkillCaster GetByType(SkillCasterType type)
         {
-            SkillAction obj = null;
+            SkillCaster obj;
             switch (type)
             {
-                case SkillActionType.Unit:
-                    obj = new SkillActionUnit();
+                case SkillCasterType.Unit:
+                    obj = new SkillCasterUnit();
                     break;
-                case SkillActionType.Unk1:
-                    obj = new SkillActionUnk1();
+                case SkillCasterType.Unk1:
+                    obj = new SkillCasterUnk1();
                     break;
-                case SkillActionType.Item:
+                case SkillCasterType.Item:
                     obj = new SkillItem();
                     break;
-                case SkillActionType.Unk3:
-                    obj = new SkillActionUnk3();
+                case SkillCasterType.Unk3:
+                    obj = new SkillCasterUnk3();
                     break;
-                case SkillActionType.Doodad:
+                case SkillCasterType.Doodad:
                     obj = new SkillDoodad();
                     break;
                 default:
@@ -58,33 +58,33 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillActionUnit : SkillAction
+    public class SkillCasterUnit : SkillCaster
     {
-        public SkillActionUnit()
+        public SkillCasterUnit()
         {
         }
 
-        public SkillActionUnit(uint objId)
+        public SkillCasterUnit(uint objId)
         {
-            Type = SkillActionType.Unit;
+            Type = SkillCasterType.Unit;
             ObjId = objId;
         }
     }
 
-    public class SkillActionUnk1 : SkillAction
+    public class SkillCasterUnk1 : SkillCaster
     {
-        public SkillActionUnk1()
+        public SkillCasterUnk1()
         {
         }
 
-        public SkillActionUnk1(uint objId)
+        public SkillCasterUnk1(uint objId)
         {
-            Type = SkillActionType.Unk1;
+            Type = SkillCasterType.Unk1;
             ObjId = objId;
         }
     }
 
-    public class SkillItem : SkillAction
+    public class SkillItem : SkillCaster
     {
         public ulong ItemId { get; set; }
         public uint ItemTemplateId { get; set; }
@@ -97,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public SkillItem(uint objId, ulong itemId, uint itemTemplateId)
         {
-            Type = SkillActionType.Item;
+            Type = SkillCasterType.Item;
             ObjId = objId;
             ItemId = itemId;
             ItemTemplateId = itemTemplateId;
@@ -123,17 +123,17 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillActionUnk3 : SkillAction
+    public class SkillCasterUnk3 : SkillCaster
     {
         public uint MountSkillTemplateId { get; set; }
 
-        public SkillActionUnk3()
+        public SkillCasterUnk3()
         {
         }
 
-        public SkillActionUnk3(uint objId)
+        public SkillCasterUnk3(uint objId)
         {
-            Type = SkillActionType.Unk3;
+            Type = SkillCasterType.Unk3;
             ObjId = objId;
         }
 
@@ -151,7 +151,7 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillDoodad : SkillAction
+    public class SkillDoodad : SkillCaster
     {
         public SkillDoodad()
         {
@@ -159,7 +159,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public SkillDoodad(uint objId)
         {
-            Type = SkillActionType.Doodad;
+            Type = SkillCasterType.Doodad;
             ObjId = objId;
         }
     }

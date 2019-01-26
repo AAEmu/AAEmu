@@ -1,4 +1,5 @@
 using System;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -6,6 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
 {
@@ -25,6 +27,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint OwnerId { get; set; }
 
         public DoodadSpawner Spawner { get; set; }
+        public DoodadFuncTask FuncTask { get; set; }
 
         public uint TimeLeft => 0u; // TODO formula time of phase
 
@@ -42,14 +45,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public uint GetGroupId()
         {
-            foreach(var funcGroup in Template.FuncGroups)
+            foreach (var funcGroup in Template.FuncGroups)
             {
-                if(funcGroup.GroupKindId == 1)
+                if (funcGroup.GroupKindId == 1)
                     return funcGroup.Id;
             }
+
             return 0;
         }
-        
+
         public override void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
