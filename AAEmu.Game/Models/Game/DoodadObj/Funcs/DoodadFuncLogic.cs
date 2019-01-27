@@ -5,6 +5,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncLogic : DoodadFuncTemplate
     {
+        public uint OperationId { get; set; }
+        public uint DelayId { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             _log.Debug("DoodadFuncLogic");

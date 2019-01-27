@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
             {
                 case 0:
                     Connection.SendPacket(new ChangeStatePacket(1));
-                    Connection.SendPacket(new SetGameTypePacket("w_hanuimaru_1", 0, 1));
+                    Connection.SendPacket(new SetGameTypePacket("w_hanuimaru_1", 0, 1)); // TODO arche_mall
                     Connection.SendPacket(new SCInitialConfigPacket());
                     Connection.SendPacket(new SCAccountInfoPacket(1, 1, DateTime.MinValue, DateTime.Now.AddYears(1)));
                     Connection.SendPacket(new SCChatSpamDelayPacket());

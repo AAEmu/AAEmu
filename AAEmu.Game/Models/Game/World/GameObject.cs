@@ -9,6 +9,7 @@ namespace AAEmu.Game.Models.Game.World
     {
         public Guid Guid { get; set; } = Guid.NewGuid();
         public uint ObjId { get; set; }
+        public uint InstanceId { get; set; } = 1;
         public Point Position { get; set; }
         public Region Region { get; set; }
 

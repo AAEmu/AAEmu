@@ -5,6 +5,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncCoffer : DoodadFuncTemplate
     {
+        public int Capacity { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             _log.Debug("DoodadFuncCoffer");

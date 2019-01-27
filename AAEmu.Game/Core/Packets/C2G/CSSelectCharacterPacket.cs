@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.SendPacket(new SCCharacterGamePointsPacket());
                 Connection.ActiveChar.Inventory.Send();
                 Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
-
+                
                 Connection.ActiveChar.Quests.Send();
                 Connection.ActiveChar.Quests.SendCompleted();
 

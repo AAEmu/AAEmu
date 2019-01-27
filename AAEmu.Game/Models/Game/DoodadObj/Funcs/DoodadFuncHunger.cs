@@ -5,6 +5,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncHunger : DoodadFuncTemplate
     {
+        public int HungryTerm { get; set; }
+        public int FullStep { get; set; }
+        public int PhaseChangeLimit { get; set; }
+        public uint NextPhase { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             _log.Debug("DoodadFuncHunger");

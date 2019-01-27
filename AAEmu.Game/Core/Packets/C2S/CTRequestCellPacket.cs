@@ -13,12 +13,12 @@ namespace AAEmu.Game.Core.Packets.C2S
 
         public override void Read(PacketStream stream)
         {
-            var i = stream.ReadUInt32();
+            var instanceId = stream.ReadUInt32();
             var x = stream.ReadInt32();
             var y = stream.ReadInt32();
 
-            _log.Warn("CTRequestCellPacket #.{0} ({1},{2})", i, x, y);
-            StreamManager.Instance.RequestCell(Connection, x, y);
+            _log.Warn("CTRequestCellPacket #.{0} ({1},{2})", instanceId, x, y);
+            StreamManager.Instance.RequestCell(Connection, instanceId, x, y);
         }
     }
 }

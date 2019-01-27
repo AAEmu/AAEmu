@@ -5,6 +5,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncExitIndun : DoodadFuncTemplate
     {
+        public uint ReturnPointId { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             _log.Debug("DoodadFuncExitIndun");

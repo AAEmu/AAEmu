@@ -57,6 +57,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x0d3, 1, typeof(CSDropQuestContextPacket));
             RegisterPacket(0x0d4, 1, typeof(CSResetQuestContextPacket));
             RegisterPacket(0x0d5, 1, typeof(CSAcceptCheatQuestContextPacket));
+            RegisterPacket(0x0dc, 1, typeof(CSInstanceLoadedPacket));
             RegisterPacket(0x0c9, 1, typeof(CSUnbondDoodadPacket));
             RegisterPacket(0x0f6, 1, typeof(CSChangeAppellationPacket));
             RegisterPacket(0x0fb, 1, typeof(CSSetLpManageCharacterPacket));
