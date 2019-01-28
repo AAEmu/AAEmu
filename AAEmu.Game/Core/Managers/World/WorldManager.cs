@@ -180,8 +180,8 @@ namespace AAEmu.Game.Core.Managers.World
         public uint GetZoneId(uint worldId, float x, float y)
         {
             var world = _worlds[worldId];
-            var sx = (int) ((x - world.OffsetX) / REGION_SIZE);
-            var sy = (int) ((y - world.OffsetY) / REGION_SIZE);
+            var sx = (int) (x / REGION_SIZE);
+            var sy = (int) (y / REGION_SIZE);
             return world.ZoneIds[sx, sy];
         }
 
@@ -413,8 +413,8 @@ namespace AAEmu.Game.Core.Managers.World
         private Region GetRegion(uint zoneId, float x, float y)
         {
             var world = GetWorldByZone(zoneId);
-            var sx = (int) ((x - world.OffsetX) / REGION_SIZE);
-            var sy = (int) ((y - world.OffsetY) / REGION_SIZE);
+            var sx = (int) (x / REGION_SIZE);
+            var sy = (int) (y / REGION_SIZE);
             return world.GetRegion(sx, sy);
         }
 

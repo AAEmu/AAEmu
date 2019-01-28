@@ -4,7 +4,6 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.World;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -60,8 +59,8 @@ namespace AAEmu.Game.Core.Managers.World
                             $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json file");
                 }
 
-                _npcSpawners.Add((byte) world.Id, npcSpawners);
-                _doodadSpawners.Add((byte) world.Id, doodadSpawners);
+                _npcSpawners.Add((byte)world.Id, npcSpawners);
+                _doodadSpawners.Add((byte)world.Id, doodadSpawners);
             }
         }
 
