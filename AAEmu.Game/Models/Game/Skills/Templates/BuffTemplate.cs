@@ -195,7 +195,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                     return;
                 var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
                 var targetObj = new SkillCastUnitTarget(owner.ObjId);
-                eff.Apply(caster, effect.CasterCaster, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
+                eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
             }
         }
 

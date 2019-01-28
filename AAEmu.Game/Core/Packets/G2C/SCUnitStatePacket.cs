@@ -263,7 +263,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 stream.Write(effect.Index);
                 stream.Write(effect.Template.BuffId);
-                stream.Write(effect.CasterCaster);
+                stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
                 stream.Write((short)1); // sourceAbLevel
@@ -281,7 +281,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 stream.Write(effect.Index);
                 stream.Write(effect.Template.BuffId);
-                stream.Write(effect.CasterCaster);
+                stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
                 stream.Write((short)1); // sourceAbLevel
@@ -299,7 +299,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 stream.Write(effect.Index);
                 stream.Write(effect.Template.BuffId);
-                stream.Write(effect.CasterCaster);
+                stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
                 stream.Write((short)1); // sourceAbLevel

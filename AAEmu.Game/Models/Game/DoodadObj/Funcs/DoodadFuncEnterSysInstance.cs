@@ -17,7 +17,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             // TODO Debug
             if (caster is Character character)
             {
-                character.SendPacket(new SCLoadInstancePacket(2, 183, 3680.518f - 14336, 4572.221f - 3072, 156, 0, 0, 0));
+                character.SendMessage("Coming soon!");
+                // character.SendPacket(new SCLoadInstancePacket(2, 183, 3680.518f - 14336, 4572.221f - 3072, 156, 0, 0, 0));
             }
         }
     }

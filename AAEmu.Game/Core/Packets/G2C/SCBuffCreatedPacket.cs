@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_effect.CasterCaster);
+            stream.Write(_effect.SkillCaster);
             stream.Write((_effect.Caster is Character character) ? character.Id : 0); // casterId
             stream.WriteBc(_effect.Owner.ObjId); // targetBcId
             stream.Write(_effect.Index);
