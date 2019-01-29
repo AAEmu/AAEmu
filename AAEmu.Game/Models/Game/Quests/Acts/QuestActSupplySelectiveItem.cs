@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public uint ItemId { get; set; }
         public int Count { get; set; }
         public byte GradeId { get; set; }
-        
+
         public override bool Use(Unit unit, int objective)
         {
             return false;

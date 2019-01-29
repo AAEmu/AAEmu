@@ -9,7 +9,6 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         public SCFriendsPacket() : base(0x049, 1)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)

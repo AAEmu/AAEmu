@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public TCUccStringPacket() : base(0x06)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -15,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.S2C
             stream.Write((long) 0); // type
             stream.Write((ushort) 0); // "data" length; old version max length 100
             stream.Write((ulong) 0); // modified
-            
+
             return stream;
         }
     }

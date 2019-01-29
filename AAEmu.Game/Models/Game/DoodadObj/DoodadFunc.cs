@@ -18,9 +18,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             owner.GrowthTime = DateTime.MinValue;
             var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
+
             if (template == null)
                 return;
+
             template.Use(caster, owner, skillId);
+
             if (NextPhase > 0)
             {
                 if (owner.FuncTask != null)

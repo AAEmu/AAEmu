@@ -7,7 +7,6 @@ namespace AAEmu.Login.Core.Packets.C2L
     {
         public CAPcCertNumberPacket() : base(0x09)
         {
-            
         }
 
         public override void Read(PacketStream stream)

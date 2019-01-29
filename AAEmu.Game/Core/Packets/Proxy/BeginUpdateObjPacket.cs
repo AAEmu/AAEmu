@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.Proxy
         // TODO Only command without body...
         public BeginUpdateObjPacket() : base(0x005, 2)
         {
-            
         }
     }
 }

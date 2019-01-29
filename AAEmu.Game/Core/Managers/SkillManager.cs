@@ -86,7 +86,7 @@ namespace AAEmu.Game.Core.Managers
                 return _passiveBuffs[id];
             return null;
         }
-        
+
         public void Load()
         {
             _skills = new Dictionary<uint, SkillTemplate>();
@@ -138,7 +138,7 @@ namespace AAEmu.Game.Core.Managers
                 "SpawnFishEffect"
                 "PlayLogEffect"
              */
-            
+
             _taggedBuffs = new Dictionary<uint, List<uint>>();
 
             using (var connection = SQLite.CreateConnection())
@@ -309,9 +309,9 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
+
                 _log.Info("Loading skill effects/buffs...");
-                
+
                 using(var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM buffs";

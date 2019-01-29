@@ -21,9 +21,9 @@ namespace AAEmu.Login.Core.Packets.C2L
             var mac = stream.ReadBytes();
             var mac2 = stream.ReadBytes();
             var cpu = stream.ReadUInt64();
-            
+
             LoginController.Login(Connection, account);
-            
+
             // Connection.SendPacket(new ACChallengePacket()); // TODO ...
         }
     }

@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models
         public NetworkConfig LoginNetwork { get; set; }
         public string CharacterNameRegex { get; set; }
         public int MaxConcurencyThreadPool { get; set; }
-        
+
         public class NetworkConfig
         {
             public string Host { get; set; }

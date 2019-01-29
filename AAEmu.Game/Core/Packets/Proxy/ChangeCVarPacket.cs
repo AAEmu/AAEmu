@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.Proxy
     {
         public ChangeCVarPacket() : base(0x010, 2)
         {
-            
         }
 
         public override void Read(PacketStream stream)

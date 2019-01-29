@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
     public abstract class EffectTemplate
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger(); 
-        
+
         public uint Id { get; set; }
 
         public virtual uint BuffId => Id;

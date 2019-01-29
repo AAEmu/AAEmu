@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         // TODO 1.2 // public bool PcFactionExclusive { get; set; }
         // TODO 1.2 // public uint NpcFactionId { get; set; }
         // TODO 1.2 // public bool NpcFactionExclusive { get; set; }
-        
+
         public override bool Use(Unit unit, int objective)
         {
             return false;

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
     public class QuestActSupplyCopper : QuestActTemplate
     {
         public int Amount { get; set; }
-        
+
         public override bool Use(Unit unit, int objective)
         {
             return false;

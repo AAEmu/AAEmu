@@ -115,7 +115,7 @@ namespace AAEmu.Game.Core.Network.Game
             
             _log.Info("Network stoped");
         }
-        
+
         private void RegisterPacket(uint type, byte level, Type classType)
         {
             _handler.RegisterPacket(type, level, classType);

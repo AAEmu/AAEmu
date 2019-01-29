@@ -81,11 +81,11 @@ namespace AAEmu.Game
 
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
-            
+
             SpawnManager.Instance.Load();
             SpawnManager.Instance.Spawn();
             ScriptCompiler.Compile();
-            
+
             TimeManager.Instance.Start();
             TaskManager.Instance.Start();
             GameNetwork.Instance.Start();

@@ -20,7 +20,7 @@ namespace AAEmu.Login.Core.Packets.L2C
 
             return stream;
         }
-        
+
         /*
         0 = "login_unknown";
         1 = "bad_account";
