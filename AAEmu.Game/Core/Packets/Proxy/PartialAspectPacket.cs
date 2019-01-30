@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.Proxy
         // TODO Only command without body...
         public PartialAspectPacket() : base(0x00e, 2)
         {
-            
         }
     }
 }

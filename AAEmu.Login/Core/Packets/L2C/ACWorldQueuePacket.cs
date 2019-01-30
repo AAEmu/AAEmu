@@ -7,7 +7,6 @@ namespace AAEmu.Login.Core.Packets.L2C
     {
         public ACWorldQueuePacket() : base(0x09)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -17,7 +16,6 @@ namespace AAEmu.Login.Core.Packets.L2C
             stream.Write((ushort) 0); // myTurn
             stream.Write((ushort) 0); // normalLength
             stream.Write((ushort) 0); // premiumLength
-            
             return stream;
         }
     }

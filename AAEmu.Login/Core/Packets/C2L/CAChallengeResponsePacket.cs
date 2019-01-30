@@ -8,7 +8,8 @@ namespace AAEmu.Login.Core.Packets.C2L
     public class CAChallengeResponsePacket : LoginPacket
     {
         public CAChallengeResponsePacket() : base(0x05)
-        {}
+        {
+        }
 
         public override void Read(PacketStream stream)
         {

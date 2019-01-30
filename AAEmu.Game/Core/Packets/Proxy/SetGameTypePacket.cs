@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
         private string _level;
         private ulong _checksum;
         private byte _immersive;
-        
+
         public SetGameTypePacket(string level, ulong checksum, byte immersive) : base(0x00f, 2)
         {
             _level = level;
@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
             stream.Write(_level);
             stream.Write(_checksum);
             stream.Write(_immersive);
-            
+
             return stream;
         }
     }

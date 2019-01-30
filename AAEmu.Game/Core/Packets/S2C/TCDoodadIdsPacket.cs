@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public TCDoodadIdsPacket() : base(0x03)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)

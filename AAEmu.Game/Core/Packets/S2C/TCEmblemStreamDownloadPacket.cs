@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public TCEmblemStreamDownloadPacket() : base(0x0C)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)

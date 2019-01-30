@@ -18,7 +18,7 @@ namespace AAEmu.Login.Core.Packets.C2L
             var cookie = stream.ReadUInt32();
             var macLength = stream.ReadUInt16();
             var mac = stream.ReadBytes(macLength);
-            
+
             LoginController.Instance.Reconnect(Connection, gsId, accountId, cookie);
         }
     }

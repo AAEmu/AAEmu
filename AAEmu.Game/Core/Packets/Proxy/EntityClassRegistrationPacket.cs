@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.Proxy
     {
         public EntityClassRegistrationPacket() : base(0x011, 2)
         {
-            
         }
 
         public override void Read(PacketStream stream)

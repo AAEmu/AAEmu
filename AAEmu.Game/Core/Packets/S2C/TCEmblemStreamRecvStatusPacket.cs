@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public TCEmblemStreamRecvStatusPacket() : base(0x0A)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -28,7 +27,7 @@ namespace AAEmu.Game.Core.Packets.S2C
                 ++v4;
             }
             */
-            
+
             return stream;
         }
     }

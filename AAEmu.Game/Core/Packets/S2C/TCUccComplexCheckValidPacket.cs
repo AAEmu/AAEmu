@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         private readonly long _type;
         private readonly bool _isValid;
-        
+
         public TCUccComplexCheckValidPacket(long type, bool isValid) : base(0x0F)
         {
             _type = type;

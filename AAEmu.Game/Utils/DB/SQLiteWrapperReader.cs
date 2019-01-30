@@ -21,7 +21,7 @@ namespace AAEmu.Game.Utils.DB
         {
             return _reader.GetValue(GetOrdinal(column));
         }
-        
+
         public bool GetBoolean(string column)
         {
             return _reader.GetBoolean(GetOrdinal(column));

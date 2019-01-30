@@ -7,14 +7,13 @@ namespace AAEmu.Login.Core.Packets.L2C
     {
         public ACAccountWarnedPacket() : base(0x0D)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((byte) 0); // source
             stream.Write(""); // msg
-            
+
             return stream;
         }
     }

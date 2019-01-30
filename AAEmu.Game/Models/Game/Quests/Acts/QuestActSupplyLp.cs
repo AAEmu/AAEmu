@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
     public class QuestActSupplyLp : QuestActTemplate
     {
         public int LaborPower { get; set; }
-        
+
         public override bool Use(Unit unit, int objective)
         {
             return false;

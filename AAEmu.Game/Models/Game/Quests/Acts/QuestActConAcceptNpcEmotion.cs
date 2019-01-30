@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
     {
         public uint NpcId { get; set; }
         public string Emotion { get; set; }
-        
+
         public override bool Use(Unit unit, int objective)
         {
             return false;
