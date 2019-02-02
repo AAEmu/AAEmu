@@ -96,13 +96,6 @@ namespace AAEmu.Game.Models.Game.Char
                         item.CreateTime = reader.GetDateTime("created_at");
                         var details = (PacketStream) (byte[]) reader.GetValue("details");
                         item.ReadDetails(details);
-                        
-                        if (item.SlotType == SlotType.Equipment)
-                            Equip[item.Slot] = item;
-                        else if (item.SlotType == SlotType.Inventory)
-                            Items[item.Slot] = item;
-                        else if (item.SlotType == SlotType.Bank)
-                            Bank[item.Slot] = item;
 
                         if (item.Template.FixedGrade >= 0)
                             item.Grade = (byte)item.Template.FixedGrade; // Overwrite Fixed-grade items, just to make sure
@@ -111,6 +104,13 @@ namespace AAEmu.Game.Models.Game.Char
                         else
                             item.Grade = 0; // Default to BASIC if the item isn't gradable
 
+
+                        if (item.SlotType == SlotType.Equipment)
+                            Equip[item.Slot] = item;
+                        else if (item.SlotType == SlotType.Inventory)
+                            Items[item.Slot] = item;
+                        else if (item.SlotType == SlotType.Bank)
+                            Bank[item.Slot] = item;
 
                     }
                 }
