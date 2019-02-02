@@ -106,6 +106,10 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loaded crafts", _crafts.Count);
         }
 
+        public Craft GetCraftById(uint craftId) {
+            return _crafts[craftId];
+        }
+
         public CraftProduct GetResultForCraftId(uint craftId) {
             return _craftProducts[craftId];
         }
