@@ -101,9 +101,6 @@ namespace AAEmu.Game.Models.Game.Char
                             item.Grade = (byte)item.Template.FixedGrade; // Overwrite Fixed-grade items, just to make sure
                         else if (item.Template.Gradable)
                             item.Grade = reader.GetByte("grade"); // Load from our DB if the item is gradable
-                        else
-                            item.Grade = 0; // Default to BASIC if the item isn't gradable
-
 
                         if (item.SlotType == SlotType.Equipment)
                             Equip[item.Slot] = item;
