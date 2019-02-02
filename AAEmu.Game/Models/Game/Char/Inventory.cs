@@ -96,13 +96,22 @@ namespace AAEmu.Game.Models.Game.Char
                         item.CreateTime = reader.GetDateTime("created_at");
                         var details = (PacketStream) (byte[]) reader.GetValue("details");
                         item.ReadDetails(details);
-
+                        
                         if (item.SlotType == SlotType.Equipment)
                             Equip[item.Slot] = item;
                         else if (item.SlotType == SlotType.Inventory)
                             Items[item.Slot] = item;
                         else if (item.SlotType == SlotType.Bank)
                             Bank[item.Slot] = item;
+
+                        if (item.Template.FixedGrade >= 0)
+                            item.Grade = (byte)item.Template.FixedGrade; // Overwrite Fixed-grade items, just to make sure
+                        else if (item.Template.Gradable)
+                            item.Grade = reader.GetByte("grade"); // Load from our DB if the item is gradable
+                        else
+                            item.Grade = 0; // Default to BASIC if the item isn't gradable
+
+
                     }
                 }
             }
@@ -165,9 +174,9 @@ namespace AAEmu.Game.Models.Game.Char
                     item.WriteDetails(details);
 
                     command.CommandText = "REPLACE INTO " +
-                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`unsecure_time`,`unpack_time`,`owner`,`created_at`)" +
+                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`)" +
                                           " VALUES " +
-                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@unsecure_time,@unpack_time,@owner,@created_at)";
+                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@unsecure_time,@unpack_time,@owner,@created_at,@grade)";
 
                     command.Parameters.AddWithValue("@id", item.Id);
                     command.Parameters.AddWithValue("@type", item.GetType().ToString());
@@ -179,8 +188,9 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
                     command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
                     command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
                     command.Parameters.AddWithValue("@created_at", item.CreateTime);
+                    command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.Parameters.AddWithValue("@grade", item.Grade);
                     command.ExecuteNonQuery();
                     command.Parameters.Clear();
                 }
