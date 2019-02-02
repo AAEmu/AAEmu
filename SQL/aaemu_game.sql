@@ -137,7 +137,7 @@ CREATE TABLE `items` (
   `unpack_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `owner` int(11) UNSIGNED NOT NULL,
   `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `owner` tinyint(1) UNSIGNED NOT NULL DEFAULT '0'
+  `grade` tinyint(1) UNSIGNED NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
