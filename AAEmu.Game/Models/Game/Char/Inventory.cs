@@ -196,10 +196,31 @@ namespace AAEmu.Game.Models.Game.Char
 
         #endregion
 
+        public void SendFragmentedInventory(SlotType slotType, byte numItems, Item[] bag)
+        {
+            var _tempItem = new Item[10];
+
+            if ((numItems % 10) != 0)
+                _log.Warn("SendFragmentedInventory: Inventory Size not a multiple of 10 ({0})",numItems);
+            if (bag.Length != numItems)
+                _log.Warn("SendFragmentedInventory: Inventory Size Mismatch; expected {0} got {1}", numItems, bag.Length);
+
+            for (byte c = 0; c < (numItems / 10); c++)
+            {
+                for (byte i = 0; i < 10; i++)
+                {
+                    _tempItem[i] = bag[(c * 10) + i];
+                }
+                Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 1, c, _tempItem));
+            }
+        }
+
         public void Send()
         {
             Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint) Owner.NumBankSlots));
-            Owner.SendPacket(new SCCharacterInvenContentsPacket(SlotType.Inventory, 5, 0, Items));
+            // Owner.SendPacket(new SCCharacterInvenContentsPacket(SlotType.Inventory, 5, 0, Items));
+            SendFragmentedInventory(SlotType.Inventory, Owner.NumInventorySlots, Items);
+            SendFragmentedInventory(SlotType.Bank, (byte)Owner.NumBankSlots, Bank);
         }
 
         public Item AddItem(Item item)
