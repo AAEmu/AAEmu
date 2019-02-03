@@ -11,13 +11,13 @@ namespace AAEmu.Game.Models.Game.Crafts
     {
         public uint Id {get; set;}
         public int CastDelay {get; set;}
-        public int ToolId {get; set;}
-        public int SkillId {get; set;}
-        public int WiId {get; set;}
-        public int MilestoneId {get; set;}
-        public int ReqDoodadId {get; set;}
+        public uint ToolId {get; set;}
+        public uint SkillId {get; set;}
+        public uint WiId {get; set;}
+        public uint MilestoneId {get; set;}
+        public uint ReqDoodadId {get; set;}
         public bool NeedBind {get; set;}
-        public int AcId {get; set;}
+        public uint AcId {get; set;}
         public int ActabilityLimit {get; set;}
         public bool ShowUpperCraft {get; set;}
         public int RecommendLevel {get; set;}
