@@ -1,0 +1,5 @@
+Powershell as admin 
+
+cd "LOCATION OF THE PUBLISH SCRIPT WITH THE PROJECT"
+
+dotnet publish -c "Debug" -r "win10-x64" --self-contained true

@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Login", "AAEmu.Login\AAEmu.Login.csproj", "{B96F704A-47C7-4FB0-A207-5ECF7A1039CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Login", "AAEmu.Login\AAEmu.Login.csproj", "{B96F704A-47C7-4FB0-A207-5ECF7A1039CC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Commons", "AAEmu.Commons\AAEmu.Commons.csproj", "{BE6EC60B-7C7E-4458-B427-4BC546517A6A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Commons", "AAEmu.Commons\AAEmu.Commons.csproj", "{BE6EC60B-7C7E-4458-B427-4BC546517A6A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Game", "AAEmu.Game\AAEmu.Game.csproj", "{B17DD122-1843-4176-A0CB-8A4A8B434044}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AAEmu.Game", "AAEmu.Game\AAEmu.Game.csproj", "{B17DD122-1843-4176-A0CB-8A4A8B434044}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
