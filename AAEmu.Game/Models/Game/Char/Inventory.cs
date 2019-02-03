@@ -193,7 +193,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint) Owner.NumBankSlots));
             Owner.SendPacket(new SCCharacterInvenContentsPacket(SlotType.Inventory, (byte)(Owner.NumInventorySlots / 10), 0, Items));
-            Owner.SendPacket(new SCCharacterInvenContentsPacket(SlotType.Bank, (byte)(Owner.NumBankSlots / 10), 0, Bank)); 
+            Owner.SendPacket(new SCCharacterInvenContentsPacket(SlotType.Bank, (byte)(Owner.NumBankSlots / 10), 0, Bank));
         }
 
         public Item AddItem(Item item)
