@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.Proxy
         // TODO Only command without body...
         public SetAspectProfilePacket() : base(0x00d, 2)
         {
-            
         }
     }
 }

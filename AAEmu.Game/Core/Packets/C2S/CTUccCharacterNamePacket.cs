@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.C2S
     {
         public CTUccCharacterNamePacket() : base(0x09)
         {
-            
         }
         
         public override void Read(PacketStream stream)

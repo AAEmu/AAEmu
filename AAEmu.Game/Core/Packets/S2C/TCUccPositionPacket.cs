@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public TCUccPositionPacket() : base(0x07)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -17,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.S2C
             stream.Write((long) 0); // y
             stream.Write((float) 0); // z
             stream.Write((ulong) 0); // modified
-            
+
             return stream;
         }
     }

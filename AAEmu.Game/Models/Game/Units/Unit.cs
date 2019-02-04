@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Units
     public class Unit : BaseUnit
     {
         private Task _regenTask;
-        
+
         public uint ModelId { get; set; }
         public byte Level { get; set; }
         public int Hp { get; set; }

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public int Count2 { get; set; }
         public uint ItemId3 { get; set; }
         public int Count3 { get; set; }
-        
+
         public bool UseAlias { get; set; }
         public uint QuestActObjAliasId { get; set; }
 

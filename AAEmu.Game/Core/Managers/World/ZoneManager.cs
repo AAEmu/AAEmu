@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Dictionary<uint, ZoneClimateElem> _climateElem;
 
         public ZoneConflict[] GetConflicts() => _conflicts.Values.ToArray();
-        
+
         public void Load()
         {
             _zones = new Dictionary<uint, Zone>();

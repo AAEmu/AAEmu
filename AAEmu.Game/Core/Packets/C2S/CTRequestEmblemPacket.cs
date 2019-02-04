@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.C2S
     {
         public CTRequestEmblemPacket() : base(0x03)
         {
-            
         }
 
         public override void Read(PacketStream stream)

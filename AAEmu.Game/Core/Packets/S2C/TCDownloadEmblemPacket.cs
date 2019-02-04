@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public TCDownloadEmblemPacket() : base(0x04)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -30,7 +29,7 @@ namespace AAEmu.Game.Core.Packets.S2C
             }
             */
             stream.Write((ulong) 0); // modified
-            
+
             return stream;
         }
     }

@@ -8,7 +8,6 @@ namespace AAEmu.Game.Core.Packets.C2S
     {
         public CTRequestCellPacket() : base(0x02)
         {
-
         }
 
         public override void Read(PacketStream stream)

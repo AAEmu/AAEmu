@@ -97,7 +97,6 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public void Drop()
         {
-            
         }
 
         public void OnQuestComplete(uint questId)
