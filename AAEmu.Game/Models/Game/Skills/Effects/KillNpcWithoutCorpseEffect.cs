@@ -1,4 +1,6 @@
 using System;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -17,6 +19,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             Skill skill, DateTime time)
         {
             _log.Debug("KillNpcWithoutCorpseEffect");
+            var npcs = WorldManager.Instance.GetAround<Npc>(target, Radius);
+            foreach (var npc in npcs)
+            {
+                if (npc.TemplateId != NpcId)
+                    continue;
+                npc.Effects.RemoveAllEffects();
+                npc.Delete();
+            }
         }
     }
 }
