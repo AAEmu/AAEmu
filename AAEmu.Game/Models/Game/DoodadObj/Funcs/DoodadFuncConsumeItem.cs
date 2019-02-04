@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public uint ItemId { get; set; }
         public int Count { get; set; }
-        
+
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             _log.Debug("DoodadFuncConsumeItem");

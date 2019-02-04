@@ -1,7 +1,7 @@
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Game.Models.Tasks
+namespace AAEmu.Game.Models.Tasks.Doodads
 {
     public abstract class DoodadFuncTask : Task
     {
