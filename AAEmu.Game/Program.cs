@@ -74,6 +74,7 @@ namespace AAEmu.Game
             ItemManager.Instance.Load();
             PlotManager.Instance.Load();
             SkillManager.Instance.Load();
+            CraftManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();

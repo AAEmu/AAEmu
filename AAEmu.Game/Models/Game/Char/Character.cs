@@ -102,6 +102,7 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterAppellations Appellations { get; set; } 
         public CharacterAbilities Abilities { get; set; }
         public CharacterSkills Skills { get; set; }
+        public CharacterCraft Craft {get; set;}
 
         #region Attributes
         public int Str
@@ -836,6 +837,8 @@ namespace AAEmu.Game.Models.Game.Char
             Slots = new ActionSlot[85];
             for (var i = 0; i < Slots.Length; i++)
                 Slots[i] = new ActionSlot();
+
+            Craft = new CharacterCraft(this);
 
             using (var connection = MySQL.CreateConnection())
             {
