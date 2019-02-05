@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
@@ -311,6 +312,12 @@ namespace AAEmu.Game.Models.Game.Skills
                     continue;
 
                 effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, DateTime.Now);
+            }
+
+            if (Template.ConsumeLaborPower > 0) {
+                if (caster is Character character) {
+                    character.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
+                }
             }
 
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);

@@ -731,6 +731,19 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        public void ChangeLabor(short change, int actabilityId) {
+            var actabilityChange = 0;
+            byte actabilityStep = 0;
+            if (actabilityId > 0) {
+                actabilityChange = Math.Abs(change);
+                actabilityStep = Actability.Actabilities[(uint)actabilityId].Step;
+                Actability.AddPoint((uint)actabilityId, actabilityChange);
+            }
+
+            LaborPower += change;
+            SendPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep));
+        }
+
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;
