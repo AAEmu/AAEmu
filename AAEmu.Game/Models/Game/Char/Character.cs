@@ -740,7 +740,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             LaborPower += change;
-            BroadcastPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep), true);
+            SendPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep));
         }
 
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
