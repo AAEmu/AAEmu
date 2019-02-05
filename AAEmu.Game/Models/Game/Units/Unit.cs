@@ -53,9 +53,10 @@ namespace AAEmu.Game.Models.Game.Units
             if (Hp == 0)
                 return;
             Hp = Math.Max(Hp - value, 0);
-            if (Hp == 0)
+            if (Hp == 0) {
                 DoDie(attacker);
-            else
+                StopRegen();
+            } else
                 StartRegen();
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
