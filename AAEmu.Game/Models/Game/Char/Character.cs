@@ -103,6 +103,7 @@ namespace AAEmu.Game.Models.Game.Char
         public Item[] BuyBack { get; set; }
         public BondDoodad Bonding { get; set; }
         public CharacterQuests Quests { get; set; }
+        public CharacterMails Mails { get; set; }
         public CharacterAppellations Appellations { get; set; } 
         public CharacterAbilities Abilities { get; set; }
         
@@ -899,6 +900,8 @@ namespace AAEmu.Game.Models.Game.Char
                 Appellations.Load(connection);
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
+                Mails = new CharacterMails(this);
+                Mails.Load(connection);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -1032,6 +1035,7 @@ namespace AAEmu.Game.Models.Game.Char
                         Appellations.Save(connection, transaction);
                         Skills.Save(connection, transaction);
                         Quests.Save(connection, transaction);
+                        Mails.Save(connection, transaction);
 
                         try
                         {

@@ -55,6 +55,16 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x093, 1, typeof(CSLearnBuffPacket));
             RegisterPacket(0x094, 1, typeof(CSResetSkillsPacket));
             RegisterPacket(0x096, 1, typeof(CSSwapAbilityPacket));
+            RegisterPacket(0x098, 1, typeof(CSSendMailPacket));
+            RegisterPacket(0x099, 1, typeof(CSListMailPacket));
+            RegisterPacket(0x09a, 1, typeof(CSListMailContinuePacket));
+            RegisterPacket(0x09b, 1, typeof(CSReadMailPacket));
+            RegisterPacket(0x09c, 1, typeof(CSTakeAttachmentItemPacket));
+            RegisterPacket(0x09d, 1, typeof(CSTakeAttachmentMoneyPacket));
+            RegisterPacket(0x09e, 1, typeof(CSPayChargeMoneyPacket));
+            RegisterPacket(0x09f, 1, typeof(CSDeleteMailPacket));
+            RegisterPacket(0x0a0, 1, typeof(CSReportSpamPacket));
+            RegisterPacket(0x0a1, 1, typeof(CSReturnMailPacket));
             RegisterPacket(0x0aa, 1, typeof(CSBuyItemsPacket));
             RegisterPacket(0x0ab, 1, typeof(CSBuyCoinItemPacket));
             RegisterPacket(0x0ac, 1, typeof(CSSellItemsPacket));
