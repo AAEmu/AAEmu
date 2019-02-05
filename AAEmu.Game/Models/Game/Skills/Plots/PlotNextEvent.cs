@@ -1,5 +1,3 @@
-using AAEmu.Game.Models.Game.Skills.Templates;
-
 namespace AAEmu.Game.Models.Game.Skills.Plots
 {
     public class PlotNextEvent

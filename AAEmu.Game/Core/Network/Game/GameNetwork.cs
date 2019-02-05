@@ -37,10 +37,14 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x036, 1, typeof(CSDestroyItemPacket));
             RegisterPacket(0x037, 1, typeof(CSSplitBagItemPacket));
             RegisterPacket(0x038, 1, typeof(CSSwapItemsPacket));
+            RegisterPacket(0x03f, 1, typeof(CSExpandSlotsPacket));
+            RegisterPacket(0x045, 1, typeof(CSDepositMoneyPacket));
+            RegisterPacket(0x046, 1, typeof(CSWithdrawMoneyPacket));
             RegisterPacket(0x04d, 1, typeof(CSSetForceAttackPacket));
             RegisterPacket(0x050, 1, typeof(CSStartSkillPacket));
             RegisterPacket(0x052, 1, typeof(CSStopCastingPacket));
             RegisterPacket(0x053, 1, typeof(CSRemoveBuffPacket));
+            RegisterPacket(0x054, 1, typeof(CSConstructHouseTaxPacket));
             RegisterPacket(0x061, 1, typeof(CSSendChatMessagePacket));
             RegisterPacket(0x063, 1, typeof(CSInteractNPCPacket));
             RegisterPacket(0x064, 1, typeof(CSInteractNPCEndPacket));
@@ -62,6 +66,9 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x0f5, 1, typeof(CSExecuteCraft));
             RegisterPacket(0x0f6, 1, typeof(CSChangeAppellationPacket));
             RegisterPacket(0x0fb, 1, typeof(CSSetLpManageCharacterPacket));
+            RegisterPacket(0x0fc, 1, typeof(CSUpgradeExpertLimitPacket));
+            RegisterPacket(0x0fd, 1, typeof(CSDowngradeExpertLimitPacket));
+            RegisterPacket(0x0fe, 1, typeof(CSExpandExpertPacket));
             RegisterPacket(0x101, 1, typeof(CSAddFriendPacket));
             RegisterPacket(0x102, 1, typeof(CSDeleteFriendPacket));
             RegisterPacket(0x104, 1, typeof(CSAddBlockedUserPacket));

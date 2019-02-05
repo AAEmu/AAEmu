@@ -2,9 +2,7 @@
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Utils.DB;
 using NLog;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace AAEmu.Game.Core.Managers
 {

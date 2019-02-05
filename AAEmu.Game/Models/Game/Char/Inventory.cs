@@ -4,6 +4,7 @@ using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -75,7 +76,7 @@ namespace AAEmu.Game.Models.Game.Char
                         Item item;
                         try
                         {
-                            item = (Item) Activator.CreateInstance(nClass);
+                            item = (Item)Activator.CreateInstance(nClass);
                         }
                         catch (Exception ex)
                         {
@@ -87,14 +88,14 @@ namespace AAEmu.Game.Models.Game.Char
                         item.Id = reader.GetUInt64("id");
                         item.TemplateId = reader.GetUInt32("template_id");
                         item.Template = ItemManager.Instance.GetTemplate(item.TemplateId);
-                        item.SlotType = (SlotType) Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
+                        item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
                         item.Slot = reader.GetInt32("slot");
                         item.Count = reader.GetInt32("count");
                         item.LifespanMins = reader.GetInt32("lifespan_mins");
                         item.UnsecureTime = reader.GetDateTime("unsecure_time");
                         item.UnpackTime = reader.GetDateTime("unpack_time");
                         item.CreateTime = reader.GetDateTime("created_at");
-                        var details = (PacketStream) (byte[]) reader.GetValue("details");
+                        var details = (PacketStream)(byte[])reader.GetValue("details");
                         item.ReadDetails(details);
 
                         if (item.Template.FixedGrade >= 0)
@@ -178,7 +179,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@id", item.Id);
                     command.Parameters.AddWithValue("@type", item.GetType().ToString());
                     command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                    command.Parameters.AddWithValue("@slot_type", (byte) item.SlotType);
+                    command.Parameters.AddWithValue("@slot_type", (byte)item.SlotType);
                     command.Parameters.AddWithValue("@slot", item.Slot);
                     command.Parameters.AddWithValue("@count", item.Count);
                     command.Parameters.AddWithValue("@details", details.GetBytes());
@@ -198,7 +199,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void Send()
         {
-            Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint) Owner.NumBankSlots));
+            Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint)Owner.NumBankSlots));
             Owner.SendPacket(new SCCharacterInvenContentsPacket(SlotType.Inventory, 5, 0, Items));
         }
 
@@ -221,7 +222,7 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     var fItem = Items[fItemIndex];
                     fItem.Count += item.Count;
-                    ItemIdManager.Instance.ReleaseId((uint) item.Id);
+                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
                     return fItem;
                 }
             }
@@ -260,12 +261,60 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             if (release)
-                ItemIdManager.Instance.ReleaseId((uint) item.Id);
+                ItemIdManager.Instance.ReleaseId((uint)item.Id);
             lock (_removedItems)
             {
                 if (!_removedItems.Contains(item.Id))
                     _removedItems.Add(item.Id);
             }
+        }
+
+        public List<(Item Item, int Count)> RemoveItem(uint templateId, int count)
+        {
+            var res = new List<(Item, int)>();
+            foreach (var item in Items)
+                if (item != null && item.TemplateId == templateId)
+                {
+                    var itemCount = item.Count;
+                    var temp = Math.Min(count, itemCount);
+                    item.Count -= temp;
+                    count -= temp;
+                    if (count < 0)
+                        count = 0;
+                    if (item.Count == 0)
+                    {
+                        Items[item.Slot] = null;
+                        if (_freeSlot == -1 || item.Slot < _freeSlot)
+                            _freeSlot = item.Slot;
+                        ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                        lock (_removedItems)
+                        {
+                            if (!_removedItems.Contains(item.Id))
+                                _removedItems.Add(item.Id);
+                        }
+                    }
+
+                    res.Add((item, itemCount - item.Count));
+                    if (count == 0)
+                        break;
+                }
+
+            return res;
+        }
+
+        public bool CheckItems(uint templateId, int count)
+        {
+            foreach (var item in Items)
+                if (item != null && item.TemplateId == templateId)
+                {
+                    count -= item.Count;
+                    if (count < 0)
+                        count = 0;
+                    if (count == 0)
+                        break;
+                }
+
+            return count == 0;
         }
 
         public void Move(ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
@@ -409,6 +458,63 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             return slot;
+        }
+
+        public void ExpandSlot(SlotType slotType)
+        {
+            var isBank = slotType == SlotType.Bank;
+            var step = ((isBank ? Owner.NumBankSlots : Owner.NumInventorySlots) - 50) / 10;
+            var expands = CharacterManager.Instance.GetExpands(step);
+            if (expands == null)
+                return;
+            var index = expands.FindIndex(e => e.IsBank == isBank);
+            if (index == -1)
+                return;
+            var expand = expands[index];
+            if (expand.Price != 0 && Owner.Money < expand.Price)
+            {
+                _log.Warn("No Money for expand!");
+                return;
+            }
+
+            if (expand.ItemId != 0 && expand.ItemCount != 0 && !CheckItems(expand.ItemId, expand.ItemCount))
+            {
+                _log.Warn("Item or Count not fount.");
+                return;
+            }
+
+            var tasks = new List<ItemTask>();
+            if (expand.Price != 0)
+            {
+                Owner.Money -= expand.Price;
+                tasks.Add(new MoneyChange(-expand.Price));
+            }
+
+            if (expand.ItemId != 0 && expand.ItemCount != 0)
+            {
+                var items = RemoveItem(expand.ItemId, expand.ItemCount);
+
+                foreach (var (item, count) in items)
+                {
+                    if (item.Count == 0)
+                        tasks.Add(new ItemRemove(item));
+                    else
+                        tasks.Add(new ItemCountUpdate(item, -count));
+                }
+            }
+
+            Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SwapItems, tasks, new List<ulong>()));
+            if (isBank)
+                Owner.NumBankSlots = (short)(50 + 10 * (1 + step));
+            else
+                Owner.NumInventorySlots = (byte)(50 + 10 * (1 + step));
+
+            Owner.SendPacket(
+                new SCInvenExpandedPacket(
+                    isBank ? SlotType.Bank : SlotType.Inventory,
+                    isBank ? (byte)Owner.NumBankSlots : Owner.NumInventorySlots
+                )
+            );
         }
     }
 }

@@ -15,8 +15,15 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            Connection.SendPacket(new SCAccountInfoPacket(1, 1, DateTime.MinValue, DateTime.Now.AddYears(1))); // TODO payMethod = 1 - Premium, 5 - None
-            
+            Connection.SendPacket(
+                new SCAccountInfoPacket(
+                    (int)Connection.Payment.Method,
+                    Connection.Payment.Location,
+                    Connection.Payment.StartTime,
+                    Connection.Payment.EndTime
+                )
+            );
+
             Connection.LoadCharacters();
 
             var characters = Connection.Characters.Values.ToArray();
