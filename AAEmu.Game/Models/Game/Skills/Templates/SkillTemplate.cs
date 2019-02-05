@@ -76,6 +76,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool ChannelingCancelable { get; set; }
         public float TargetOffsetAngle { get; set; }
         public float TargetOffsetDistance { get; set; }
+        public int ActabilityGroupId { get; set; }
         public bool PlotOnly { get; set; }
         public bool SkillControllerAtEnd { get; set; }
         public bool EndSkillController { get; set; }

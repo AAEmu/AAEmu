@@ -19,15 +19,18 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Items] /add_item <itemId> <count?>");
+                character.SendMessage("[Items] /add_item <itemId> <count?> <grade?>");
                 return;
             }
 
             var itemId = uint.Parse(args[0]);
             var count = 1;
+            byte grade = 0;
             if (args.Length > 1)
                 count = int.Parse(args[1]);
-            var item = ItemManager.Instance.Create(itemId, count, 0, true);
+            if (args.Length > 2)
+                grade = byte.Parse(args[2]);
+            var item = ItemManager.Instance.Create(itemId, count, grade, true);
             if (item == null)
             {
                 character.SendMessage("Item cannot be created");
