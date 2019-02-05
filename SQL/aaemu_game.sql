@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1:3306
--- Время создания: Янв 07 2019 г., 16:35
+-- Время создания: Фев 05 2019 г., 12:44
 -- Версия сервера: 8.0.12
 -- Версия PHP: 7.2.10
 
@@ -101,6 +101,8 @@ CREATE TABLE `characters` (
   `leave_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `money` bigint(20) NOT NULL,
   `money2` bigint(20) NOT NULL,
+  `honor_point` int(11) NOT NULL,
+  `vocation_point` int(11) NOT NULL,
   `crime_point` int(11) NOT NULL,
   `crime_record` int(11) NOT NULL,
   `delete_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
@@ -113,6 +115,7 @@ CREATE TABLE `characters` (
   `gift` int(11) NOT NULL,
   `num_inv_slot` tinyint(3) UNSIGNED NOT NULL DEFAULT '50',
   `num_bank_slot` smallint(5) UNSIGNED NOT NULL DEFAULT '50',
+  `expanded_expert` tinyint(4) NOT NULL,
   `slots` blob NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00'
@@ -136,8 +139,8 @@ CREATE TABLE `items` (
   `unsecure_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `unpack_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `owner` int(11) UNSIGNED NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `grade` tinyint(1) UNSIGNED NOT NULL
+  `grade` tinyint(1) DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -211,6 +214,7 @@ ALTER TABLE `options`
 --
 ALTER TABLE `skills`
   ADD PRIMARY KEY (`id`,`owner`);
+COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
