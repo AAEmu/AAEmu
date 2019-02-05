@@ -226,6 +226,12 @@ namespace AAEmu.Game.Core.Managers.World
             return ret;
         }
         
+        public Npc GetNpc(uint oId)
+        {
+            _npcs.TryGetValue(oId, out var ret);
+            return ret;
+        }
+        
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)

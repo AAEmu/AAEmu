@@ -1,3 +1,4 @@
+using System;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
@@ -22,8 +23,13 @@ namespace AAEmu.Game.Models.Tasks
             {
                 _connection.ActiveChar.Delete();
                 ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
-
+                
                 _connection.ActiveChar.StopRegen();
+                
+                foreach(var item in _connection.ActiveChar.BuyBack)
+                    if(item != null)
+                        ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                Array.Clear(_connection.ActiveChar.BuyBack, 0, _connection.ActiveChar.BuyBack.Length);
 
                 foreach (var subscriber in _connection.ActiveChar.Subscribers)
                     subscriber.Dispose();
