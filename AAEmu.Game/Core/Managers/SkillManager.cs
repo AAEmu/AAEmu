@@ -227,6 +227,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ChannelingCancelable = reader.GetBoolean("channeling_cancelable", true);
                             template.TargetOffsetAngle = reader.GetFloat("target_offset_angle");
                             template.TargetOffsetDistance = reader.GetFloat("target_offset_distance");
+                            template.ActabilityGroupId = reader.GetInt32("actability_group_id", 0);
                             template.PlotOnly = reader.GetBoolean("plot_only", true);
                             template.SkillControllerAtEnd = reader.GetBoolean("skill_controller_at_end", true);
                             template.EndSkillController = reader.GetBoolean("end_skill_controller", true);
