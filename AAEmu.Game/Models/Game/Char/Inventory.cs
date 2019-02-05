@@ -196,22 +196,6 @@ namespace AAEmu.Game.Models.Game.Char
 
         #endregion
 
-        private void SendFragmentedInventory(SlotType slotType, byte numItems, Item[] bag)
-        {
-            var _tempItem = new Item[10];
-
-            if ((numItems % 10) != 0)
-                _log.Warn("SendFragmentedInventory: Inventory Size not a multiple of 10 ({0})", numItems);
-            if (bag.Length != numItems)
-                _log.Warn("SendFragmentedInventory: Inventory Size Mismatch; expected {0} got {1}", numItems, bag.Length);
-
-            for (byte c = 0; c < (numItems / 10); c++)
-            {
-                Array.Copy(bag, c * 10, _tempItem, 0, 10);
-                Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 1, c, _tempItem));
-            }
-        }
-
         public void Send()
         {
             Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint)Owner.NumBankSlots));
@@ -427,6 +411,22 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             return slot;
+        }
+        
+        private void SendFragmentedInventory(SlotType slotType, byte numItems, Item[] bag)
+        {
+            var _tempItem = new Item[10];
+
+            if ((numItems % 10) != 0)
+                _log.Warn("SendFragmentedInventory: Inventory Size not a multiple of 10 ({0})", numItems);
+            if (bag.Length != numItems)
+                _log.Warn("SendFragmentedInventory: Inventory Size Mismatch; expected {0} got {1}", numItems, bag.Length);
+
+            for (byte c = 0; c < (numItems / 10); c++)
+            {
+                Array.Copy(bag, c * 10, _tempItem, 0, 10);
+                Owner.SendPacket(new SCCharacterInvenContentsPacket(slotType, 1, c, _tempItem));
+            }
         }
     }
 }
