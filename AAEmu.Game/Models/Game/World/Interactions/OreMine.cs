@@ -14,6 +14,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
                 var func = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
                 if (func == null)
                     return;
+                
                 func.Use(caster, doodad, skillId);
             }
         }

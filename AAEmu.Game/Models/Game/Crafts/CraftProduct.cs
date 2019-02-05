@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AAEmu.Game.Models.Game.Crafts
+﻿namespace AAEmu.Game.Models.Game.Crafts
 {
     /*
         Result of a craft

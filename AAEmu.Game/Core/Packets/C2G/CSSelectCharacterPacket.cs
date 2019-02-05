@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -30,14 +29,14 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
 
                 Connection.SendPacket(new SCCharacterStatePacket(character));
-                Connection.SendPacket(new SCCharacterGamePointsPacket());
+                Connection.SendPacket(new SCCharacterGamePointsPacket(character));
                 Connection.ActiveChar.Inventory.Send();
                 Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
                 
                 Connection.ActiveChar.Quests.Send();
                 Connection.ActiveChar.Quests.SendCompleted();
 
-                Connection.SendPacket(new SCActabilityPacket()); // Умения (Крафт, Язык)
+                Connection.ActiveChar.Actability.Send();
                 Connection.ActiveChar.Appellations.Send();
 
                 Connection.SendPacket(new SCFriendsPacket());

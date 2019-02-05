@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Tasks;
@@ -27,7 +28,9 @@ namespace AAEmu.Game.Core.Network.Connections
         public uint AccountId { get; set; }
         public IPAddress Ip => _session.Ip;
         public PacketStream LastPacket { get; set; }
-
+        
+        public AccountPayment Payment { get; set; }
+        
         public List<IDisposable> Subscribers { get; set; }
         public GameState State { get; set; }
         public Character ActiveChar { get; set; }
@@ -40,6 +43,7 @@ namespace AAEmu.Game.Core.Network.Connections
             _session = session;
             Characters = new Dictionary<uint, Character>();
             Subscribers = new List<IDisposable>();
+            Payment = new AccountPayment(this);
         }
 
         public void SendPacket(GamePacket packet)
