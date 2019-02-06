@@ -219,6 +219,12 @@ namespace AAEmu.Game.Core.Managers.World
             _baseUnits.TryGetValue(objId, out var ret);
             return ret;
         }
+        
+        public Doodad GetDoodad(uint objId)
+        {
+            _doodads.TryGetValue(objId, out var ret);
+            return ret;
+        }
 
         public Unit GetUnit(uint objId)
         {
@@ -226,9 +232,9 @@ namespace AAEmu.Game.Core.Managers.World
             return ret;
         }
         
-        public Npc GetNpc(uint oId)
+        public Npc GetNpc(uint objId)
         {
-            _npcs.TryGetValue(oId, out var ret);
+            _npcs.TryGetValue(objId, out var ret);
             return ret;
         }
         

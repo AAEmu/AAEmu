@@ -35,7 +35,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 
                 Connection.ActiveChar.Quests.Send();
                 Connection.ActiveChar.Quests.SendCompleted();
-
+                
                 Connection.ActiveChar.Actability.Send();
                 Connection.ActiveChar.Appellations.Send();
 
