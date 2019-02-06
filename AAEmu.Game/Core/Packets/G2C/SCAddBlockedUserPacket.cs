@@ -1,25 +1,27 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCAddFriendPacket : GamePacket
+    public class SCAddBlockedUserPacket : GamePacket
     {
-        private readonly Friend _friend;
+        private readonly uint _characterId;
+        private readonly string _characterName;
         private readonly bool _success;
         private readonly short _errorMessage;
-
-        public SCAddFriendPacket(Friend friend, bool success, short errorMessage) : base(0x04b, 1)
+        
+        public SCAddBlockedUserPacket(uint characterId, string characterName, bool success, short errorMessage) : base(0x050, 1)
         {
-            _friend = friend;
+            _characterId = characterId;
+            _characterName = characterName;
             _success = success;
             _errorMessage = errorMessage;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_friend);
+            stream.Write(_characterId);
+            stream.Write(_characterName);
             stream.Write(_success);
             stream.Write(_errorMessage);
             return stream;

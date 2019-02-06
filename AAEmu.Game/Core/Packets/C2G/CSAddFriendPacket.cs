@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (character == null)
                 return;
 
-            Connection.SendPacket(new SCAddFriendPacket(character, true, 0));
+            // Connection.SendPacket(new SCAddFriendPacket(character, true, 0));
 
             _log.Debug("AddFriend, name: {0}", name);
         }
