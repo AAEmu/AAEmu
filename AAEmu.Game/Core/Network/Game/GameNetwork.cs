@@ -23,7 +23,6 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x000, 1, typeof(X2EnterWorldPacket));
             RegisterPacket(0x001, 1, typeof(CSLeaveWorldPacket));
             RegisterPacket(0x002, 1, typeof(CSCancelLeaveWorldPacket));
-            RegisterPacket(0x004, 1, typeof(CSCreateExpedition));
             RegisterPacket(0x004, 1, typeof(CSCreateExpeditionPacket));
             RegisterPacket(0x005, 1, typeof(CSChangeExpeditionSponsorPacket));
             RegisterPacket(0x006, 1, typeof(CSChangeExpeditionRolePolicyPacket));
