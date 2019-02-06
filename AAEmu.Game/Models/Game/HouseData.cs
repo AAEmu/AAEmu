@@ -3,7 +3,7 @@ using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game
 {
-    public class LoginHouseData : PacketMarshaler
+    public class HouseData : PacketMarshaler
     {
         public ushort Tl { get; set; }
         public uint DbId { get; set; }

@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var housingId = stream.ReadUInt32(); // type(id)
+            var designId = stream.ReadUInt32(); // type(id)
             var x = Helpers.ConvertLongX(stream.ReadInt64());
             var y = Helpers.ConvertLongY(stream.ReadInt64());
             var z = stream.ReadSingle();

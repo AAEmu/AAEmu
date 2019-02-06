@@ -4,20 +4,17 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCLoginCharInfoHouse : GamePacket
+    public class SCMyHousePacket : GamePacket
     {
-        private readonly uint _id;
         private readonly HouseData _houseData;
-
-        public SCLoginCharInfoHouse(uint id, HouseData houseData) : base(0x052, 1)
+        
+        public SCMyHousePacket(HouseData houseData) : base(0x0b9, 1)
         {
-            _id = id;
             _houseData = houseData;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_id);
             stream.Write(_houseData);
             return stream;
         }
