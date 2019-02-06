@@ -23,6 +23,17 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x000, 1, typeof(X2EnterWorldPacket));
             RegisterPacket(0x001, 1, typeof(CSLeaveWorldPacket));
             RegisterPacket(0x002, 1, typeof(CSCancelLeaveWorldPacket));
+            RegisterPacket(0x004, 1, typeof(CSCreateExpeditionPacket));
+            RegisterPacket(0x005, 1, typeof(CSChangeExpeditionSponsorPacket));
+            RegisterPacket(0x006, 1, typeof(CSChangeExpeditionRolePolicyPacket));
+            RegisterPacket(0x007, 1, typeof(CSChangeExpeditionMemberRolePacket));
+            RegisterPacket(0x008, 1, typeof(CSChangeExpeditionOwnerPacket));
+            RegisterPacket(0x009, 1, typeof(CSRenameExpeditionPacket));
+            RegisterPacket(0x00b, 1, typeof(CSDismissExpeditionPacket));
+            RegisterPacket(0x00c, 1, typeof(CSInviteToExpeditionPacket));
+            RegisterPacket(0x00d, 1, typeof(CSReplyExpeditionInvitationPacket));
+            RegisterPacket(0x00e, 1, typeof(CSLeaveExpeditionPacket));
+            RegisterPacket(0x00f, 1, typeof(CSKickFromExpeditionPacket));
             RegisterPacket(0x01f, 1, typeof(CSListCharacterPacket));
             RegisterPacket(0x020, 1, typeof(CSRefreshInCharacterListPacket));
             RegisterPacket(0x021, 1, typeof(CSCreateCharacterPacket));
