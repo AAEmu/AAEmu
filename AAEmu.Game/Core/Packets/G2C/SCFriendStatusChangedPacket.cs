@@ -4,24 +4,18 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCAddFriendPacket : GamePacket
+    public class SCFriendStatusChangedPacket : GamePacket
     {
         private readonly Friend _friend;
-        private readonly bool _success;
-        private readonly short _errorMessage;
 
-        public SCAddFriendPacket(Friend friend, bool success, short errorMessage) : base(0x04b, 1)
+        public SCFriendStatusChangedPacket(Friend friend) : base(0x04d, 1)
         {
             _friend = friend;
-            _success = success;
-            _errorMessage = errorMessage;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_friend);
-            stream.Write(_success);
-            stream.Write(_errorMessage);
             return stream;
         }
     }

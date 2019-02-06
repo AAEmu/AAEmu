@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -39,7 +40,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Actability.Send();
                 Connection.ActiveChar.Appellations.Send();
 
-                Connection.SendPacket(new SCFriendsPacket());
+                Connection.SendPacket(new SCFriendsPacket(0, new Friend[0]));
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {
