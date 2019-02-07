@@ -20,6 +20,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         private Dictionary<uint, NpcTemplate> _templates;
         private Dictionary<uint, MerchantGoods> _goods;
 
+        public bool Exist(uint templateId)
+        {
+            return _templates.ContainsKey(templateId);
+        }
+
         public MerchantGoods GetGoods(uint id)
         {
             if(_goods.ContainsKey(id))

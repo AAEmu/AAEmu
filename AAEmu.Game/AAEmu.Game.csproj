@@ -25,6 +25,9 @@
     
     <ItemGroup>
         <Compile Remove="Scripts\**\**" />
+        <Content Include="Scripts\Commands\Spawn.cs">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         <None Include="Scripts\Commands\Invisible.cs">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>

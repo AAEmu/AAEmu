@@ -466,6 +466,12 @@ namespace AAEmu.Game.Models.Game.NPChar
             Equip = new Item[28];
         }
 
+        public override void DoDie(Unit killer)
+        {
+            base.DoDie(killer);
+            Spawner?.DecreaseCount(this);
+        }
+
         public override void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
