@@ -21,9 +21,13 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new ChangeStatePacket(1));
 
                     var level = "w_hanuimaru_1";
-                    var zone = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Position.ZoneId);
-                    if (zone != null)
-                        level = zone.Name;
+                    if (Connection.ActiveChar != null)
+                    {
+                        var zone = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Position.ZoneId);
+                        if (zone != null)
+                            level = zone.Name;
+                    }
+
                     Connection.SendPacket(new SetGameTypePacket(level, 0, 1)); // TODO arche_mall
                     
                     Connection.SendPacket(new SCInitialConfigPacket());
