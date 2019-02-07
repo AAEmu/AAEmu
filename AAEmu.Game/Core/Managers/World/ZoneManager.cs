@@ -19,6 +19,11 @@ namespace AAEmu.Game.Core.Managers.World
 
         public ZoneConflict[] GetConflicts() => _conflicts.Values.ToArray();
 
+        public Zone GetZoneByKey(uint zoneKey)
+        {
+            return _zones.Values.First(x => x.ZoneKey == zoneKey);
+        }
+
         public void Load()
         {
             _zones = new Dictionary<uint, Zone>();
