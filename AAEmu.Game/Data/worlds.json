@@ -1,5 +1,6 @@
 [
     {
+        "Type": "world",
         "Id": 1,
         "Name": "main_world",
         "MaxHeight": 4096,
@@ -8,6 +9,7 @@
         "CellY": 38
     },
     {
+        "Type": "sys_instance",
         "Id": 2,
         "Name": "arche_mall_world",
         "MaxHeight": 4096,
@@ -22,6 +24,7 @@
         }
     },
     {
+        "Type": "instance",
         "Id": 3,
         "Name": "instance_burntcastle_armory",
         "MaxHeight": 256,
