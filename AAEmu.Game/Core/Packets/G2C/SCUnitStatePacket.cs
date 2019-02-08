@@ -3,6 +3,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -14,16 +15,34 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Unit _unit;
         private readonly byte _type;
+        private readonly byte _modelPostureType;
 
         public SCUnitStatePacket(Unit unit) : base(0x064, 1)
         {
             _unit = unit;
             if (_unit is Character)
+            {
                 _type = 0;
-            if (_unit is Npc)
+                _modelPostureType = 0;
+            }
+            else if (_unit is Npc)
+            {
                 _type = 1;
-            if (_unit is Slave)
+                if (((Npc)_unit).Template.AnimActionId > 0)
+                    _modelPostureType = 4;
+                else
+                    _modelPostureType = 0;
+            }
+            else if (_unit is Slave)
+            {
                 _type = 2;
+                _modelPostureType = 0;
+            }
+            else if (_unit is House)
+            {
+                _type = 3;
+                _modelPostureType = 0;
+            }
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -52,9 +71,10 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(0u); // type(id)
                     break;
                 case 3:
-                    stream.Write((ushort)0); // tl
-                    stream.Write(0u); // type(id)
-                    stream.Write((short)0); // buildstep
+                    var house = (House)_unit;
+                    stream.Write(house.TlId); // tl
+                    stream.Write(house.TemplateId); // type(id)
+                    stream.Write(house.BuildStep); // buildstep
                     break;
                 case 4:
                     stream.Write((ushort)0); // tl
@@ -101,6 +121,9 @@ namespace AAEmu.Game.Core.Packets.G2C
                     else
                         stream.Write(0);
                 }
+            else
+                for (var i = 0; i < 28; i++)
+                    stream.Write(0);
 
             stream.Write(_unit.ModelParams);
             stream.WriteBc(0);
@@ -123,51 +146,36 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
                 stream.Write((sbyte)-1); // point
 
-//            type = 1 // build
-//            {
-//                for (var i = 0; i < 2; i++)
-//                    stream.Write(false); // door
-//                for (var i = 0; i < 6; i++)
-//                    stream.Write(false); // window
-//            }
-//            type = 4 // npc or mobs?
-//            {
-//                stream.Write(0u); // type(id) -> animActionId
-//                stream.Write(true); // activate
-//            }
-//            type = 7 // grow
-//            {
-//                stream.Write(0u); // type(id)
-//                stream.Write(0f); // growRate
-//                stream.Write(0); // randomSeed
-//                stream.Write(false); // isWithered
-//                stream.Write(false); // isHarvested
-//            }
-//            type = 8 // object?
-//            {
-//                stream.Write(0f); // pitch
-//                stream.Write(0f); // yaw
-//            }
+            // TODO UnitModelPosture
+            stream.Write(_modelPostureType); // type
+            stream.Write(false); // isLooted
 
-            switch (_type) // TODO UnitModelPosture
+            switch (_modelPostureType)
             {
-                case 0: // character
-                    stream.Write((byte)0); // type
-                    stream.Write(false); // isLooted
+                case 1: // build
+                    for (var i = 0; i < 2; i++)
+                        stream.Write(false); // door
+                    for (var i = 0; i < 6; i++)
+                        stream.Write(false); // window
                     break;
-                case 1: // npc
+                case 4: // npc
                     var npc = (Npc)_unit;
-                    stream.Write(npc.Template.AnimActionId > 0 ? (byte)4 : (byte)0); // type
-                    stream.Write(false); // isLooted
-                    if (npc.Template.AnimActionId > 0)
-                    {
-                        stream.Write(npc.Template.AnimActionId);
-                        stream.Write(true); // active
-                    }
-
+                    stream.Write(npc.Template.AnimActionId);
+                    stream.Write(true); // active
+                    break;
+                case 7:
+                    stream.Write(0u); // type(id)
+                    stream.Write(0f); // growRate
+                    stream.Write(0); // randomSeed
+                    stream.Write(false); // isWithered
+                    stream.Write(false); // isHarvested
+                    break;
+                case 8: // object?
+                    stream.Write(0f); // pitch
+                    stream.Write(0f); // yaw
                     break;
             }
-
+            
             stream.Write(_unit.ActiveWeapon);
 
             if (_unit is Character)
@@ -189,7 +197,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((byte)0); // learnedSkillCount
                 stream.Write(0); // learnedBuffCount
             }
-
+            
             stream.Write(_unit.Position.RotationX);
             stream.Write(_unit.Position.RotationY);
             stream.Write(_unit.Position.RotationZ);
@@ -200,7 +208,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
                 stream.WritePisc(0, 0, 0, 0); // pisc
 
-            stream.WritePisc(_unit.Faction.Id, 0, 0, 0); // pisc
+            stream.WritePisc(_unit.Faction?.Id ?? 0, 0, 0, 0); // pisc
 
             if (_unit is Character)
             {
