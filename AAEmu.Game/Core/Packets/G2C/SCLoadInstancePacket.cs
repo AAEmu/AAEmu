@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCLoadInstancePacket : GamePacket
     {
         private readonly uint _instanceId;
-        private readonly int _zoneId;
+        private readonly uint _zoneId;
         private readonly float _x;
         private readonly float _y;
         private readonly float _z;
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _angY;
         private readonly float _angZ;
         
-        public SCLoadInstancePacket(uint instanceId, int zoneId, float x, float y, float z, float angX, float angY, float angZ) 
+        public SCLoadInstancePacket(uint instanceId, uint zoneId, float x, float y, float z, float angX, float angY, float angZ) 
             : base(0x18e, 1)
         {
             _instanceId = instanceId;

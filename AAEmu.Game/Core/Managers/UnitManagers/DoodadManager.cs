@@ -19,6 +19,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         private Dictionary<uint, List<DoodadFunc>> _phaseFuncs;
         private Dictionary<string, Dictionary<uint, DoodadFuncTemplate>> _funcTemplates;
 
+        public bool Exist(uint templateId)
+        {
+            return _templates.ContainsKey(templateId);
+        }
+        
         public void Load()
         {
             _templates = new Dictionary<uint, DoodadTemplate>();

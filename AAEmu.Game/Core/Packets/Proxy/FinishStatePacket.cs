@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -18,7 +19,17 @@ namespace AAEmu.Game.Core.Packets.Proxy
             {
                 case 0:
                     Connection.SendPacket(new ChangeStatePacket(1));
-                    Connection.SendPacket(new SetGameTypePacket("w_hanuimaru_1", 0, 1)); // TODO arche_mall
+
+                    var level = "w_hanuimaru_1";
+                    if (Connection.ActiveChar != null)
+                    {
+                        var zone = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Position.ZoneId);
+                        if (zone != null)
+                            level = zone.Name;
+                    }
+
+                    Connection.SendPacket(new SetGameTypePacket(level, 0, 1)); // TODO arche_mall
+                    
                     Connection.SendPacket(new SCInitialConfigPacket());
                     Connection.SendPacket(
                         new SCAccountInfoPacket(

@@ -76,6 +76,7 @@ namespace AAEmu.Game
             PlotManager.Instance.Load();
             SkillManager.Instance.Load();
             CraftManager.Instance.Load();
+            HousingManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
@@ -86,7 +87,7 @@ namespace AAEmu.Game
             DoodadManager.Instance.Load();
 
             SpawnManager.Instance.Load();
-            SpawnManager.Instance.Spawn();
+            SpawnManager.Instance.SpawnAll();
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();
@@ -97,6 +98,7 @@ namespace AAEmu.Game
 
             _signal.WaitOne();
 
+            SpawnManager.Instance.Stop();
             TaskManager.Instance.Stop();
             GameNetwork.Instance.Stop();
             StreamNetwork.Instance.Stop();

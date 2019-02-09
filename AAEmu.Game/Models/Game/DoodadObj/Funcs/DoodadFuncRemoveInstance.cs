@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            _log.Debug("DoodadFuncRemoveInstance");
+            _log.Debug("DoodadFuncRemoveInstance, ZoneId: {0}", ZoneId);
         }
     }
 }

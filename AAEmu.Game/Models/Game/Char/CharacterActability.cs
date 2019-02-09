@@ -21,6 +21,9 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void AddPoint(uint id, int point)
         {
+            if (!Actabilities.ContainsKey(id))
+                return;
+            
             var actability = Actabilities[id];
             actability.Point += point;
 

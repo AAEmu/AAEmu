@@ -11,6 +11,7 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
+        private Dictionary<uint, uint> _zoneIdToKey;
         private Dictionary<uint, Zone> _zones;
         private Dictionary<ushort, ZoneGroup> _groups;
         private Dictionary<ushort, ZoneConflict> _conflicts;
@@ -19,8 +20,23 @@ namespace AAEmu.Game.Core.Managers.World
 
         public ZoneConflict[] GetConflicts() => _conflicts.Values.ToArray();
 
+        public Zone GetZoneById(uint zoneId)
+        {
+            if (_zoneIdToKey.ContainsKey(zoneId))
+                return _zones[_zoneIdToKey[zoneId]];
+            return null;
+        }
+
+        public Zone GetZoneByKey(uint zoneKey)
+        {
+            if (_zones.ContainsKey(zoneKey))
+                return _zones[zoneKey];
+            return null;
+        }
+
         public void Load()
         {
+            _zoneIdToKey = new Dictionary<uint, uint>();
             _zones = new Dictionary<uint, Zone>();
             _groups = new Dictionary<ushort, ZoneGroup>();
             _conflicts = new Dictionary<ushort, ZoneConflict>();
@@ -39,12 +55,13 @@ namespace AAEmu.Game.Core.Managers.World
                         {
                             var template = new Zone();
                             template.Id = reader.GetUInt32("id");
-                            template.Name = (string) reader.GetValue("name");
+                            template.Name = (string)reader.GetValue("name");
                             template.ZoneKey = reader.GetUInt32("zone_key");
                             template.GroupId = reader.GetUInt32("group_id", 0);
                             template.Closed = reader.GetBoolean("closed", true);
                             template.FactionId = reader.GetUInt32("faction_id", 0);
                             template.ZoneClimateId = reader.GetUInt32("zone_climate_id", 0);
+                            _zoneIdToKey.Add(template.Id, template.ZoneKey);
                             _zones.Add(template.ZoneKey, template);
                         }
                     }
