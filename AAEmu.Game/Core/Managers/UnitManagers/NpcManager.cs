@@ -25,6 +25,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return _templates.ContainsKey(templateId);
         }
 
+        public NpcTemplate GetTemplate(uint templateId)
+        {
+            if (_templates.ContainsKey(templateId))
+                return _templates[templateId];
+            return null;
+        }
+
         public MerchantGoods GetGoods(uint id)
         {
             if(_goods.ContainsKey(id))
@@ -108,6 +115,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var template = new NpcTemplate();
                             template.Id = reader.GetUInt32("id");
+                            template.Name = reader.GetString("name");
                             template.CharRaceId = reader.GetInt32("char_race_id");
                             template.NpcGradeId = (NpcGradeType)reader.GetByte("npc_grade_id");
                             template.NpcKindId = (NpcKindType)reader.GetByte("npc_kind_id");

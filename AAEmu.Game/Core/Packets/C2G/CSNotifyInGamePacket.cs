@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Chat;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,6 +15,12 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             Connection.ActiveChar.Spawn();
             Connection.ActiveChar.StartRegen();
+            
+            Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Region, 0, 148));
+            Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Shout, 6, 0));
+            Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Judge, 0, 148));
+            Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Ally, 0, 148));
+
             _log.Info("NotifyInGame");
         }
     }

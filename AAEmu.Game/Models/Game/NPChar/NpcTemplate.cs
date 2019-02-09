@@ -50,6 +50,7 @@ namespace AAEmu.Game.Models.Game.NPChar
     public class NpcTemplate
     {
         public uint Id { get; set; }
+        public string Name { get; set; }
         public int CharRaceId { get; set; }
         public NpcGradeType NpcGradeId { get; set; }
         public NpcKindType NpcKindId { get; set; }
