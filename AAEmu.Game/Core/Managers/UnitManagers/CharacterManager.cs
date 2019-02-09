@@ -486,6 +486,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 
                 character.Appellations = new CharacterAppellations(character);
                 character.Quests = new CharacterQuests(character);
+                character.Mails = new CharacterMails(character);
                 
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;
