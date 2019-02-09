@@ -41,6 +41,16 @@ namespace AAEmu.Game.Core.Packets.G2C
             else if (_unit is House)
             {
                 _type = 3;
+                _modelPostureType = 1;
+            }
+            else if (_unit is Transfer)
+            {
+                _type = 4;
+                _modelPostureType = 0;
+            }
+            else if (_unit is Mount)
+            {
+                _type = 5;
                 _modelPostureType = 0;
             }
         }
@@ -52,46 +62,57 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_type);
             switch (_type) // UnitOwnerInfo?
             {
-                case 0: // character
+                case 0:
                     var character = (Character)_unit;
                     stream.Write(character.Id); // type(id)
                     stream.Write(0L); // v?
                     break;
-                case 1: // npc
+                case 1:
                     var npc = (Npc)_unit;
                     stream.WriteBc(npc.ObjId);
-                    stream.Write(npc.TemplateId); // type(id)
+                    stream.Write(npc.TemplateId); // npc templateId
                     stream.Write(0u); // type(id)
                     break;
-                case 2: // slave
+                case 2:
                     var slave = (Slave)_unit;
                     stream.Write(0u); // type(id)
-                    stream.Write((ushort)0); // tl
-                    stream.Write(0u); // type(id)
+                    stream.Write(slave.TlId); // tl
+                    stream.Write(slave.TemplateId); // type(id)
                     stream.Write(0u); // type(id)
                     break;
                 case 3:
                     var house = (House)_unit;
                     stream.Write(house.TlId); // tl
-                    stream.Write(house.TemplateId); // type(id)
+                    stream.Write(house.TemplateId); // house templateId
                     stream.Write(house.BuildStep); // buildstep
                     break;
                 case 4:
-                    stream.Write((ushort)0); // tl
-                    stream.Write(0u); // type(id)
+                    var transfer = (Transfer)_unit;
+                    stream.Write(transfer.TlId); // tl
+                    stream.Write(transfer.TemplateId); // transfer templateId
                     break;
                 case 5:
-                    stream.Write((ushort)0); // tl
-                    stream.Write(0u); // type(id)
-                    stream.Write(0u); // type(id)
+                    var mount = (Mount)_unit;
+                    stream.Write(mount.TlId); // tl
+                    stream.Write(mount.TemplateId); // npc teplateId
+
+                    if (mount.Master == null)
+                        stream.Write(0);
+                    else
+                    {
+                        var master = (Character)mount.Master;
+                        stream.Write(master.Id); // characterId (masterId)
+                    }
+
                     break;
-                case 6:
+                case 6: // TODO ?
                     stream.Write(0L); // type(id)
                     stream.Write(0u); // type(id)
                     break;
             }
 
-            stream.Write(""); // master
+            stream.Write(_unit.Master?.Name ?? ""); // master
+            
             stream.Write(Helpers.ConvertX(_unit.Position.X));
             stream.Write(Helpers.ConvertY(_unit.Position.Y));
             stream.Write(Helpers.ConvertZ(_unit.Position.Z));
@@ -100,15 +121,20 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.ModelId); // modelRef
 
             if (_unit is Character)
-                foreach (var item in ((Character)_unit).Inventory.Equip)
+            {
+                var character = (Character)_unit;
+                foreach (var item in character.Inventory.Equip)
                 {
                     if (item == null)
                         stream.Write(0);
                     else
                         stream.Write(item);
                 }
+            }
             else if (_unit is Npc)
-                foreach (var item in ((Npc)_unit).Equip)
+            {
+                var npc = (Npc)_unit;
+                foreach (var item in npc.Equip)
                 {
                     if (item is BodyPart)
                         stream.Write(item.TemplateId);
@@ -121,6 +147,22 @@ namespace AAEmu.Game.Core.Packets.G2C
                     else
                         stream.Write(0);
                 }
+            }
+            else if (_unit is Slave)
+            {
+                for (var i = 0; i < 28; i++)
+                {
+                    stream.Write((ulong)0); // id
+                    stream.Write((byte)0); // grade
+                    stream.Write((byte)0); // flags
+                    stream.Write(0); // stackSize
+                    stream.Write((long)0); // creationTime
+                    stream.Write((uint)0); // lifespanMins
+                    stream.Write((uint)0); // type(id)
+                    stream.Write((byte)1); // worldId
+                    stream.Write((ulong)0); // unsecureDateTime
+                }
+            }
             else
                 for (var i = 0; i < 28; i++)
                     stream.Write(0);
