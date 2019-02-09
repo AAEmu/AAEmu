@@ -362,9 +362,6 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0u); // type(id) -> cooldownSkill
             }
 
-            stream.Write(0u); // TODO 
-            stream.Write(0u); // TODO
-
             return stream;
         }
     }
