@@ -62,6 +62,7 @@ namespace AAEmu.Game
 
             ItemIdManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
+            FamilyIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
@@ -79,6 +80,7 @@ namespace AAEmu.Game
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
             CharacterManager.Instance.Load();
+            FamilyManager.Instance.Load();
 
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();

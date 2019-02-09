@@ -516,5 +516,21 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             inventory.Equip[(int) slot] = item;
         }
+
+        public Character GetCharacterByName(string name) {
+            foreach (GameConnection conn in GameConnectionTable.Instance.GetConnections()) {
+                if (conn.ActiveChar.Name == name) return conn.ActiveChar;
+            }
+
+            return null;
+        }
+
+        public Character GetCharacterById(uint id) {
+            foreach (GameConnection conn in GameConnectionTable.Instance.GetConnections()) {
+                if (conn.ActiveChar != null && conn.ActiveChar.Id == id) return conn.ActiveChar;
+            }
+            
+            return null;
+        }
     }
 }

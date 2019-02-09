@@ -1,4 +1,5 @@
 using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
@@ -21,6 +22,8 @@ namespace AAEmu.Game.Models.Tasks
         {
             if (_connection.ActiveChar != null)
             {
+                if(_connection.ActiveChar.Family > 0)
+                    FamilyManager.Instance.OnCharacterLogout(_connection.ActiveChar);
                 _connection.ActiveChar.Delete();
                 ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
                 

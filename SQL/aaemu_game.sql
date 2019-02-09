@@ -146,6 +146,20 @@ CREATE TABLE `items` (
 -- --------------------------------------------------------
 
 --
+-- Структура таблицы `family_members`
+--
+
+CREATE TABLE `family_members` (
+  `character_id` INT NOT NULL,
+  `family_id` INT NOT NULL,
+  `name` VARCHAR(45) NOT NULL,
+  `role` TINYINT(1) NOT NULL DEFAULT 0,
+  `title` VARCHAR(45) NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Структура таблицы `options`
 --
 
@@ -202,6 +216,12 @@ ALTER TABLE `characters`
 ALTER TABLE `items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `owner` (`owner`);
+
+--
+-- Индексы таблицы `family_members`
+--
+ALTER TABLE `family_members`
+  ADD PRIMARY KEY (`family_id`, `character_id`);
 
 --
 -- Индексы таблицы `options`
