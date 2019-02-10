@@ -252,7 +252,13 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x114, 1, typeof(CSSaveUIDataPacket));
             RegisterPacket(0x115, 1, typeof(CSBroadcastVisualOptionPacket));
             RegisterPacket(0x116, 1, typeof(CSRestrictCheckPacket));
+            RegisterPacket(0x117, 1, typeof(CSICSMenuListPacket));
+            RegisterPacket(0x118, 1, typeof(CSICSGoodsListPacket));
+            RegisterPacket(0x119, 1, typeof(CSICSBuyGoodPacket));
+            RegisterPacket(0x11a, 1, typeof(CSICSMoneyRequestPacket));
             RegisterPacket(0x12e, 1, typeof(CSIdleStatusPacket));
+            RegisterPacket(0x131, 1, typeof(CSPremiumServiceBuyPacket));
+            RegisterPacket(0x132, 1, typeof(CSPremiumServiceListPacket));
             RegisterPacket(0x136, 1, typeof(CSPremiumServieceMsgPacket));
 
             // Proxy
