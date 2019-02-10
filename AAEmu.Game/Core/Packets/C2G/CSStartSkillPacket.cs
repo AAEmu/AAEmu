@@ -25,38 +25,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var flag = stream.ReadByte();
             var flagType = flag & 15;
-            switch (flagType)
-            {
-                case 1:
-                    stream.ReadByte(); // type
-                    stream.ReadInt32(); // id
-                    break;
-                case 2:
-                    stream.ReadInt32(); // id
-                    stream.ReadString(); // name // TODO max 128
-                    break;
-                case 3:
-                    stream.ReadString(); // msg // TODO max 200
-                    break;
-                case 4:
-                    stream.ReadInt64(); // id
-                    stream.ReadInt64(); // y
-                    stream.ReadSingle(); // z
-                    break;
-                case 5:
-                    stream.ReadInt32(); // step
-                    break;
-                case 6:
-                    stream.ReadString(); // name // TODO max 128
-                    break;
-            }
+            var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
 
             _log.Debug("StartSkill: Id {0}, flag {1}", skillId, flag);
 
             if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId))
             {
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
-                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget);
+                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else if (skillCaster is SkillItem)
             {
@@ -65,12 +41,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                     return;
                 // TODO Quest OnItemUse
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget);
+                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
             {
                 var skill = Connection.ActiveChar.Skills.Skills[skillId];
-                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget);
+                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
         }
     }

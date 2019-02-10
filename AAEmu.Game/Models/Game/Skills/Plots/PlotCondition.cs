@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public int Param2 { get; set; }
         public int Param3 { get; set; }
 
-        public bool Check(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster)
+        public bool Check(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
             var res = true;
             switch (Kind)

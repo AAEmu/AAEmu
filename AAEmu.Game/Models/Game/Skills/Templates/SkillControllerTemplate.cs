@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         }
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
-            Skill skill, DateTime time)
+            Skill skill, SkillObject skillObject, DateTime time)
         {
             _log.Debug("SkillControllerTemplate");
         }

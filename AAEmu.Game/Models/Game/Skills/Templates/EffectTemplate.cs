@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public abstract bool OnActionTime { get; }
 
         public abstract void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
-            Skill skill, DateTime time);
+            Skill skill, SkillObject skillObject, DateTime time);
 
         public virtual void Start(Unit caster, BaseUnit owner, Effect effect)
         {

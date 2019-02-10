@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override bool OnActionTime => Buff.Tick > 0;
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
-            Skill skill, DateTime time)
+            Skill skill, SkillObject skillObject, DateTime time)
         {
             if (Buff.RequireBuffId > 0 && !target.Effects.CheckBuff(Buff.RequireBuffId))
                 return; // TODO send error?
@@ -51,7 +51,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             var eff = SkillManager.Instance.GetEffectTemplate(Buff.TickEffect.EffectId);
             var targetObj = new SkillCastUnitTarget(owner.ObjId);
-            eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
+            var skillObj = new SkillObject(); // TODO ?
+            eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, skillObj, DateTime.Now);
         }
 
         public override void Dispel(Unit caster, BaseUnit owner, Effect effect)

@@ -160,7 +160,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         }
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
-            Skill skill, DateTime time)
+            Skill skill, SkillObject skillObject, DateTime time)
         {
             if (RequireBuffId > 0 && !target.Effects.CheckBuff(RequireBuffId))
                 return; //TODO send error?
@@ -194,7 +194,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                     return;
                 var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
                 var targetObj = new SkillCastUnitTarget(owner.ObjId);
-                eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
+                var skillObj = new SkillObject(); // TODO ?
+                eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, skillObj, DateTime.Now);
             }
         }
 
