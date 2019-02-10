@@ -65,7 +65,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public SkillCastUnitTarget(uint objId)
         {
-            ObjId = ObjId;
+            ObjId = objId;
         }
 
         public override void Read(PacketStream stream)
@@ -179,6 +179,7 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             base.Write(stream);
 
+            stream.WriteBc(ObjId);
             stream.Write(Id);
             stream.Write(Type1);
             stream.Write(Type2);
