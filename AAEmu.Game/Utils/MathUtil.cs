@@ -27,10 +27,21 @@ namespace AAEmu.Game.Utils
 
         public static double ConvertDirectionToDegree(sbyte direction)
         {
-            var angle = (direction) * (360f / 128) + 90;
+            var angle = direction * (360f / 128) + 90;
             if(angle < 0)
                 angle += 360;
             return angle;
+        }
+
+        public static sbyte ConvertDegreeToDirection(double degree)
+        {
+            if(degree < 0)
+                degree = 360 + degree;
+            degree -= 90;
+            var res = (sbyte)(degree / (360f / 128));
+            if(res > 85)
+                res = (sbyte)((degree - 360) / (360f / 128));
+            return res;
         }
 
         public static bool IsFront(GameObject obj1, GameObject obj2)

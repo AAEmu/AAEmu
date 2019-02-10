@@ -1,5 +1,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,10 +14,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var teamId = stream.ReadUInt32();
 
-            var lootMethod = stream.ReadByte();
-            var type = stream.ReadByte();
-            var unkId = stream.ReadUInt32(); // type(id)
-            var rollForBop = stream.ReadBoolean();
+            var lootingRule = new LootingRule();
+            lootingRule.Read(stream);
 
             var changeFlags = stream.ReadByte();
 
