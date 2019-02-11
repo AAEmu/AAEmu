@@ -1,0 +1,35 @@
+[
+	{
+		"Id" : 1,
+		"Name" : "Fortress",
+		"X" : 21186,
+		"Y" : 12650,
+		"Z" : 195,
+		"ZoneId" : 139,
+		"ZRot" : 220,
+		"SubZoneId" : 458,
+		"Owner" : 0
+	},
+	{
+		"Id" : 2,
+		"Name" : "Village of Nui's Way",
+		"X" : 20288,
+		"Y" : 12031,
+		"Z" : 123,
+		"ZoneId" : 139,
+		"ZRot" : 64,
+		"SubZoneId" : 460,
+		"Owner" : 0
+	},
+	{
+		"Id" : 3,
+		"Name" : "Caernord",
+		"X" : 20927,
+		"Y" : 13136,
+		"Z" : 114,
+		"ZoneId" : 139,
+		"ZRot" : 45,
+		"SubZoneId" : 468,
+		"Owner" : 0
+	}
+]
