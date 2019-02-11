@@ -1,0 +1,3 @@
+INSERT INTO `` (`id`,`name`,`x`,`y`,`z`,`zone_id`,`z_rot`,`sub_zone_id`,`owner`) VALUES (1,'Fortress',21186,12650,195,139,220,458,0);
+INSERT INTO `` (`id`,`name`,`x`,`y`,`z`,`zone_id`,`z_rot`,`sub_zone_id`,`owner`) VALUES (2,'Village of Nui\'s Way',20288,12031,123,139,64,460,0);
+INSERT INTO `` (`id`,`name`,`x`,`y`,`z`,`zone_id`,`z_rot`,`sub_zone_id`,`owner`) VALUES (3,'Caernord',20927,13136,114,139,45,468,0);

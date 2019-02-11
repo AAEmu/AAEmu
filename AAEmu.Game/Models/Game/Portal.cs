@@ -1,16 +1,19 @@
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game
 {
     public class Portal : PacketMarshaler
     {
-        public int Id { get; set; }
+        public uint Id { get; set; }
         public string Name { get; set; }
-        public int ZoneId { get; set; }
+        public uint ZoneId { get; set; }
         public float X { get; set; }
         public float Y { get; set; }
         public float Z { get; set; }
         public float ZRot { get; set; }
+        public uint SubZoneId { get; set; }
+        public uint Owner { get; set; }
 
         public override PacketStream Write(PacketStream stream)
         {
@@ -23,5 +26,13 @@ namespace AAEmu.Game.Models.Game
             stream.Write(ZRot);
             return stream;
         }
+
+    }
+
+    public class VisitedDistricts
+    {
+        public uint Id { get; set; }
+        public List<uint> VisitedSubZones { get; set; }
+        public uint Owner { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -36,9 +36,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                 
                 Connection.ActiveChar.Quests.Send();
                 Connection.ActiveChar.Quests.SendCompleted();
-                
+
                 Connection.ActiveChar.Actability.Send();
                 Connection.ActiveChar.Appellations.Send();
+                Connection.ActiveChar.Portals.Send();
 
                 Connection.SendPacket(new SCFriendsPacket(0, new Friend[0]));
 

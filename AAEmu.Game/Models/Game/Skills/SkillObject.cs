@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Skills
@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills
             SkillObject obj;
             switch (flag)
             {
-                case SkillObjectType.Unk1:
+                case SkillObjectType.Unk1: // TODO - Skills bound to portals
                     obj = new SkillObjectUnk1();
                     break;
                 case SkillObjectType.Unk2:
@@ -60,12 +60,12 @@ namespace AAEmu.Game.Models.Game.Skills
     public class SkillObjectUnk1 : SkillObject
     {
         public byte Type { get; set; }
-        public int Id { get; set; }
+        public uint Id { get; set; }
 
         public override void Read(PacketStream stream)
         {
             Type = stream.ReadByte();
-            Id = stream.ReadInt32();
+            Id = stream.ReadUInt32();
         }
 
         public override PacketStream Write(PacketStream stream)
