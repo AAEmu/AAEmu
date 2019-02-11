@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 
 namespace AAEmu.Commons.Utils
@@ -161,6 +162,12 @@ namespace AAEmu.Commons.Utils
                 .Where(x => x % 2 == 0)
                 .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
                 .ToArray();
+        }
+
+        public static byte[] ConvertIp(string ip)
+        {
+            var result = IPAddress.Parse(ip);
+            return result.GetAddressBytes().Reverse().ToArray();
         }
     }
 }
