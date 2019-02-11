@@ -15,6 +15,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
+            var size = stream.ReadInt32(); // TODO max size 4096
+            var data = stream.ReadBytes(); // TODO or string?
+            
             Connection.SendPacket(
                 new SCAccountInfoPacket(
                     (int)Connection.Payment.Method,
@@ -28,17 +31,17 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var characters = Connection.Characters.Values.ToArray();
 
-            foreach (var character in characters)
-            {
-                Connection.SendPacket(
-                    new SCResponseUIDataPacket(character.Id, character.Name, "character_option", character.GetOption("character_option"))
-                );
-                Connection.SendPacket(
-                    new SCResponseUIDataPacket(character.Id, character.Name, "key_binding", character.GetOption("key_binding"))
-                );
-            }
+//            foreach (var character in characters)
+//            {
+//                Connection.SendPacket(
+//                    new SCResponseUIDataPacket(character.Id, character.Name, "character_option", character.GetOption("character_option"))
+//                );
+//                Connection.SendPacket(
+//                    new SCResponseUIDataPacket(character.Id, character.Name, "key_binding", character.GetOption("key_binding"))
+//                );
+//            }
 
-            Connection.SendPacket(new SCRaceCongestionPacket());
+//            Connection.SendPacket(new SCRaceCongestionPacket());
 
             if (characters.Length == 0)
                 Connection.SendPacket(new SCCharacterListPacket(true, characters));

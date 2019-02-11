@@ -19,16 +19,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
             {
                 case 0:
                     Connection.SendPacket(new ChangeStatePacket(1));
-
-                    var level = "w_hanuimaru_1";
-                    if (Connection.ActiveChar != null)
-                    {
-                        var zone = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Position.ZoneId);
-                        if (zone != null)
-                            level = zone.Name;
-                    }
-
-                    Connection.SendPacket(new SetGameTypePacket(level, 0, 1)); // TODO arche_mall
+                    Connection.SendPacket(new SetGameTypePacket("w_hanuimaru_1", 0, 1)); // TODO arche_mall
                     
                     Connection.SendPacket(new SCInitialConfigPacket());
                     Connection.SendPacket(
@@ -39,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
                             Connection.Payment.EndTime
                         )
                     );
-                    Connection.SendPacket(new SCChatSpamDelayPacket());
+//                    Connection.SendPacket(new SCChatSpamDelayPacket());
                     break;
                 case 1:
                     Connection.SendPacket(new ChangeStatePacket(2));

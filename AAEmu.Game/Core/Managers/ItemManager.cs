@@ -147,23 +147,20 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new GradeTemplate
-                            {
-                                Grade = reader.GetInt32("id"),
-                                HoldableDps = reader.GetFloat("var_holdable_dps"),
-                                HoldableArmor = reader.GetFloat("var_holdable_armor"),
-                                HoldableMagicDps = reader.GetFloat("var_holdable_magic_dps"),
-                                WearableArmor = reader.GetFloat("var_wearable_armor"),
-                                WearableMagicResistance = reader.GetFloat("var_wearable_magic_resistance"),
-                                Durability = reader.GetFloat("durability_value"),
-                                UpgradeRatio = reader.GetInt32("upgrade_ratio"),
-                                StatMultiplier = reader.GetInt32("stat_multiplier"),
-                                RefundMultiplier = reader.GetInt32("refund_multiplier"),
-                                EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio"),
-                                EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio"),
-                                EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio"),
-                                NumSockets = reader.GetInt32("num_sockets")
-                            };
+                            var template = new GradeTemplate();
+                            template.Grade = reader.GetInt32("id");
+                            template.HoldableDps = reader.GetFloat("var_holdable_dps");
+                            template.HoldableArmor = reader.GetFloat("var_holdable_armor");
+                            template.HoldableMagicDps = reader.GetFloat("var_holdable_magic_dps");
+                            template.WearableArmor = reader.GetFloat("var_wearable_armor");
+                            template.WearableMagicResistance = reader.GetFloat("var_wearable_magic_resistance");
+                            template.Durability = reader.GetFloat("durability_value");
+                            template.UpgradeRatio = reader.GetInt32("upgrade_ratio");
+                            template.StatMultiplier = reader.GetInt32("stat_multiplier");
+                            template.RefundMultiplier = reader.GetInt32("refund_multiplier");
+                            template.EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio");
+                            template.EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio");
+                            template.EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio");
                             _grades.Add(template.Grade, template);
                         }
                     }
@@ -468,7 +465,6 @@ namespace AAEmu.Game.Core.Managers
                             template.BindId = reader.GetUInt32("bind_id");
                             template.PickupLimit = reader.GetInt32("pickup_limit");
                             template.MaxCount = reader.GetInt32("max_stack_size");
-                            template.Capacity = reader.GetInt32("capacity");
                             template.Sellable = reader.GetBoolean("sellable", true);
                             template.UseSkillId = reader.GetUInt32("use_skill_id");
                             template.BuffId = reader.GetUInt32("buff_id");

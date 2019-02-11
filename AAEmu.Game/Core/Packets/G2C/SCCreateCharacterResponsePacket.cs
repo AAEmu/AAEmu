@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Character _character;
 
-        public SCCreateCharacterResponsePacket(Character character) : base(0x033, 1)
+        public SCCreateCharacterResponsePacket(Character character) : base(0x039, 1) // TODO 1.0 opcode: 0x033
         {
             _character = character;
         }

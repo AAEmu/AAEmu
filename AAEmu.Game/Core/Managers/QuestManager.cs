@@ -107,9 +107,12 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while(reader.Read())
                         {
+                            var questId = reader.GetUInt32("quest_context_id");
+                            if (!_templates.ContainsKey(questId))
+                                continue;
+                            
                             var template = new QuestComponent();
                             template.Id = reader.GetUInt32("id");
-                            var questId = reader.GetUInt32("quest_context_id");
                             template.KindId = reader.GetByte("component_kind_id");
                             template.NextComponent = reader.GetUInt32("next_component", 0);
                             template.NpcAiId = reader.GetUInt32("npc_ai_id", 0);
@@ -552,7 +555,7 @@ namespace AAEmu.Game.Core.Managers
                             template.AbilityId = reader.GetByte("ability_id");
                             template.Level = reader.GetByte("level");
                             template.UseAlias = reader.GetBoolean("use_alias", true);
-                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id");
+                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             _actTemplates["QuestActObjAbilityLevel"].Add(template.Id, template);
                         }
                     }
@@ -598,7 +601,7 @@ namespace AAEmu.Game.Core.Managers
                             template.QuestId = reader.GetUInt32("quest_id");
                             template.AcceptWith = reader.GetBoolean("accept_with", true);
                             template.UseAlias = reader.GetBoolean("use_alias", true);
-                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id");
+                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             _actTemplates["QuestActObjCompleteQuest"].Add(template.Id, template);
                         }
                     }

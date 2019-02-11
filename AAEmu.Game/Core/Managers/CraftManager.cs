@@ -11,14 +11,10 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, Craft> _crafts;
-        private Dictionary<uint, CraftProduct> _craftProducts;
-        private Dictionary<uint, List<CraftMaterial>> _craftMaterials;
 
         public void Load()
         {
             _crafts = new Dictionary<uint, Craft>();
-            _craftProducts = new Dictionary<uint, CraftProduct>();
-            _craftMaterials = new Dictionary<uint, List<CraftMaterial>>();
             _log.Info("Loading crafts...");
 
             using (var connection = SQLite.CreateConnection())
@@ -34,13 +30,13 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new Craft();
                             template.Id = reader.GetUInt32("id");
-                            template.CastDelay = reader.GetInt32("cast_delay");   
-                            template.ToolId = reader.GetUInt32("tool_id", 0); 
+                            template.CastDelay = reader.GetInt32("cast_delay");
+                            template.ToolId = reader.GetUInt32("tool_id", 0);
                             template.SkillId = reader.GetUInt32("skill_id", 0);
                             template.WiId = reader.GetUInt32("wi_id");
                             template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.ReqDoodadId = reader.GetUInt32("req_doodad_id", 0);
-                            template.NeedBind = reader.GetBoolean("need_bind"); 
+                            template.NeedBind = reader.GetBoolean("need_bind");
                             template.AcId = reader.GetUInt32("ac_id", 0);
                             template.ActabilityLimit = reader.GetInt32("actability_limit");
                             template.ShowUpperCraft = reader.GetBoolean("show_upper_crafts");
@@ -60,6 +56,10 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
+                            var craftId = reader.GetUInt32("craft_id");
+                            if (!_crafts.ContainsKey(craftId))
+                                continue;
+
                             var template = new CraftProduct();
                             template.Id = reader.GetUInt32("id");
                             template.CraftId = reader.GetUInt32("craft_id");
@@ -69,8 +69,8 @@ namespace AAEmu.Game.Core.Managers
                             template.ShowLowerCrafts = reader.GetBoolean("show_lower_crafts");
                             template.UseGrade = reader.GetBoolean("use_grade");
                             template.ItemGradeId = reader.GetUInt32("item_grade_id");
-                            
-                            _craftProducts.Add(template.CraftId, template); // Using craftID so it's easier to find in the dictionary. Need to make sure results dont have duplicates later on. they do not in my db
+
+                            _crafts[template.CraftId].CraftProducts.Add(template);
                         }
                     }
                 }
@@ -84,18 +84,18 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
+                            var craftId = reader.GetUInt32("craft_id");
+                            if (!_crafts.ContainsKey(craftId))
+                                continue;
+
                             var template = new CraftMaterial();
                             template.Id = reader.GetUInt32("id");
-                            template.CraftId = reader.GetUInt32("craft_id");
+                            template.CraftId = craftId;
                             template.ItemId = reader.GetUInt32("item_id");
                             template.Amount = reader.GetInt32("amount", 1); //We always want to cost at least 1 item ?
-                            template.MainGrade = reader.GetBoolean("main_grade"); 
-                            
-                            if (!_craftMaterials.ContainsKey(template.CraftId)) {
-                                _craftMaterials.Add(template.CraftId, new List<CraftMaterial>());
-                            }
-                            
-                            _craftMaterials[template.CraftId].Add(template); // Using craftID so it's easier to find in the dictionary. Need to make sure results dont have duplicates later on. they do not in my db
+                            template.MainGrade = reader.GetBoolean("main_grade");
+
+                            _crafts[craftId].CraftMaterials.Add(template);
                         }
                     }
                 }
@@ -104,24 +104,9 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loaded crafts", _crafts.Count);
         }
 
-        public Craft GetCraftById(uint craftId) {
+        public Craft GetCraftById(uint craftId)
+        {
             return _crafts[craftId];
         }
-
-        public CraftProduct GetResultForCraftId(uint craftId) {
-            return _craftProducts[craftId];
-        }
-
-        public CraftProduct GetResultForCraft(Craft craft) {
-            return _craftProducts[craft.Id];
-        }
-
-        public List<CraftMaterial> GetMaterialsForCraftId(uint craftId) {
-            return _craftMaterials[craftId];
-        }
-
-        public List<CraftMaterial> GetMaterialsForCraft(Craft craft) {
-            return _craftMaterials[craft.Id];
-        }
-    } 
+    }
 }

@@ -20,8 +20,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("CSExecuteCraft, craftId : {0} , objId : {1}, count : {2}", craftId, objId, count);
         
-            Craft craft = CraftManager.Instance.GetCraftById(craftId);
-            Character character = Connection.ActiveChar;
+            var craft = CraftManager.Instance.GetCraftById(craftId);
+            var character = Connection.ActiveChar;
             character.Craft.Craft(craft, count, objId);
         }
     }

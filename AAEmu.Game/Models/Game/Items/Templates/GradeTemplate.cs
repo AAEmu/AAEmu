@@ -15,6 +15,5 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int EnchantSuccessRatio { get; set; }
         public int EnchantGreatSuccessRatio { get; set; }
         public int EnchantBreakRatio { get; set; }
-        public int NumSockets { get; set; }
     }
 }

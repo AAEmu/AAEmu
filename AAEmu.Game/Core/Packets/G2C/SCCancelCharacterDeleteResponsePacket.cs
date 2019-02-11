@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _characterId;
         private readonly byte _deleteStatus;
 
-        public SCCancelCharacterDeleteResponsePacket(uint characterId, byte deleteStatus) : base(0x37, 1)
+        public SCCancelCharacterDeleteResponsePacket(uint characterId, byte deleteStatus) : base(0x03b, 1) // TODO 1.0 opcode: 0x037, 0x3b is mb?
         {
             _characterId = characterId;
             _deleteStatus = deleteStatus;

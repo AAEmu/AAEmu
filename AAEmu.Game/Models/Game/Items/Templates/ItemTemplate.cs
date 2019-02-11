@@ -13,7 +13,6 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public uint BindId { get; set; }
         public int PickupLimit { get; set; }
         public int MaxCount { get; set; }
-        public int Capacity { get; set; }
         public bool Sellable { get; set; }
         public uint UseSkillId { get; set; }
         public uint BuffId { get; set; }

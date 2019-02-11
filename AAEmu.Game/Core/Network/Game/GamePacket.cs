@@ -18,7 +18,22 @@ namespace AAEmu.Game.Core.Network.Game
             var ps = new PacketStream();
             try
             {
-                ps.Write(new PacketStream().Write((byte) 0xdd).Write(Level).Write(TypeId).Write(this));
+                var packet = new PacketStream()
+                    .Write((byte)0xdd)
+                    .Write(Level);
+
+                if (Level == 1)
+                {
+                    packet
+                        .Write((byte)0)
+                        .Write((byte)0);
+                }
+
+                packet
+                    .Write(TypeId)
+                    .Write(this);
+                
+                ps.Write(packet);
             }
             catch (Exception ex)
             {

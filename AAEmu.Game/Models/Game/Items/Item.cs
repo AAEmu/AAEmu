@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Items
         public DateTime UnsecureTime { get; set; }
         public DateTime UnpackTime { get; set; }
 
-        public virtual byte DetailType => 0;
+        public virtual byte DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
         public Item()
         {
@@ -60,9 +60,12 @@ namespace AAEmu.Game.Models.Game.Items
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(TemplateId);
+            // TODO ...
+            // if (TemplateId == 0)
+            //     return stream;
             stream.Write(Id);
             stream.Write(Grade);
-            stream.Write((byte) 0); // bounded
+            stream.Write((byte) 0); // flags
             stream.Write(Count);
             stream.Write(DetailType);
             WriteDetails(stream);

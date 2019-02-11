@@ -13,13 +13,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            stream.ReadUInt32(); // pFrom
-            stream.ReadUInt32(); // pTo
+            var pFrom = stream.ReadUInt32();
+            var pTo = stream.ReadUInt32();
             var accountId = stream.ReadUInt32();
             var cookie = stream.ReadUInt32();
-            stream.ReadInt32(); // zoneId
-            stream.ReadByte(); // tb
-            stream.ReadUInt64(); // revision
+            var zoneId = stream.ReadInt32();
+            var tb = stream.ReadByte();
+            var revision = stream.ReadUInt64();
 
             EnterWorldManager.Instance.Login(Connection, accountId, cookie);
         }

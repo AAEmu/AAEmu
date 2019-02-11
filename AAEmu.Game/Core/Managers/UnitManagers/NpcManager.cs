@@ -449,11 +449,16 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         while (reader.Read())
                         {
                             var id = reader.GetUInt32("merchant_pack_id");
-                            var template = new MerchantItem();
-                            template.Id = reader.GetUInt32("item_id");
-                            template.Grade = reader.GetByte("grade_id");
                             if (!_goods.ContainsKey(id))
                                 _goods.Add(id, new MerchantGoods(id));
+                            
+                            var itemId = reader.GetUInt32("item_id");
+                            if (!_goods[id].Items.ContainsKey(itemId))
+                                continue;
+                            
+                            var template = new MerchantItem();
+                            template.Id = itemId;
+                            template.Grade = reader.GetByte("grade_id");
                             _goods[id].Items.Add(template.Id, template);
                         }
                     }

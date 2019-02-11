@@ -772,7 +772,7 @@ namespace AAEmu.Game.Models.Game.Char
         
         public void SendOption(string key)
         {
-            Connection.SendPacket(new SCResponseUIDataPacket(Id, Name, key, GetOption(key)));
+//            Connection.SendPacket(new SCResponseUIDataPacket(Id, Name, key, GetOption(key)));
         }
 
         public void SendMessage(string message, params object[] parameters)
@@ -1104,8 +1104,8 @@ namespace AAEmu.Game.Models.Game.Char
         {
             stream.Write(Id);
             stream.Write(Name);
-            stream.Write((byte) Race);
-            stream.Write((byte) Gender);
+            stream.Write((byte)Race);
+            stream.Write((byte)Gender);
             stream.Write(Level);
             stream.Write(Hp);
             stream.Write(Mp);
@@ -1122,9 +1122,9 @@ namespace AAEmu.Game.Models.Game.Char
                     stream.Write(item);
             }
 
-            stream.Write((byte) Ability1);
-            stream.Write((byte) Ability2);
-            stream.Write((byte) Ability3);
+            stream.Write((byte)Ability1);
+            stream.Write((byte)Ability2);
+            stream.Write((byte)Ability3);
 
             stream.Write(Helpers.ConvertLongX(Position.X));
             stream.Write(Helpers.ConvertLongY(Position.Y));
@@ -1143,7 +1143,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(0L); // moneyAmount
             stream.Write(CrimePoint);
             stream.Write(CrimeRecord);
-            stream.Write((short) 0); // crimeScore
+            stream.Write((short)0); // crimeScore
             stream.Write(DeleteRequestTime);
             stream.Write(TransferRequestTime);
             stream.Write(DeleteTime); // deleteDelay
@@ -1156,6 +1156,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Point);
             stream.Write(Gift);
             stream.Write(Updated);
+            stream.Write((byte)0); // forceNameChange
             return stream;
         }
     }

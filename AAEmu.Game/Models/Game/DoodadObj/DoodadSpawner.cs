@@ -17,6 +17,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public override Doodad Spawn(uint objId)
         {
             var doodad = DoodadManager.Instance.Create(objId, UnitId, null); // TODO look
+            if (doodad == null)
+            {
+                _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);
+                return null;
+            }
+            
             doodad.Spawner = this;
             doodad.Position = Position.Clone();
             doodad.OwnerType = DoodadOwnerType.System;
