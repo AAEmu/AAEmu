@@ -12,6 +12,7 @@ namespace AAEmu.Game.Models.Game
         public float Y { get; set; }
         public float Z { get; set; }
         public float ZRot { get; set; }
+
         public uint SubZoneId { get; set; }
         public uint Owner { get; set; }
 
@@ -29,10 +30,10 @@ namespace AAEmu.Game.Models.Game
 
     }
 
-    public class VisitedDistricts
+    public class VisitedDistrict
     {
         public uint Id { get; set; }
-        public List<uint> VisitedSubZones { get; set; }
+        public uint SubZone { get; set; }
         public uint Owner { get; set; }
     }
 }

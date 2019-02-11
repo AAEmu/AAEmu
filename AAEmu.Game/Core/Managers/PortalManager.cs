@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -24,9 +25,9 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
         private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
 
-        public Portal GetPortalBySubZoneId(uint subzone)
+        public Portal GetPortalBySubZoneId(uint subZoneId)
         {
-            return _allDistrictPortals?.FirstOrDefault(x => x.Value.SubZoneId == subzone).Value;
+            return _allDistrictPortals.ContainsKey(subZoneId) ? _allDistrictPortals[subZoneId] : null;
         }
 
         public void Load()
@@ -36,35 +37,25 @@ namespace AAEmu.Game.Core.Managers
             _allDistrictPortals = new Dictionary<uint, Portal>();
             _log.Info("Loading Portals ...");
 
-            using (var connection = MySQL.CreateConnection())
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM portal_book_coords WHERE `owner` = 0";
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new Portal
-                            {
-                                Id = reader.GetUInt32("id"),
-                                Name = reader.GetString("name"),
-                                X = reader.GetFloat("x"),
-                                Y = reader.GetFloat("y"),
-                                Z = reader.GetFloat("z"),
-                                ZoneId = reader.GetUInt32("zone_id"),
-                                ZRot = reader.GetFloat("z_rot"),
-                                SubZoneId = reader.GetUInt32("sub_zone_id"),
-                                Owner = reader.GetUInt32("owner")
-                            };
-                            _allDistrictPortals.Add(template.Id, template);
-                        }
-                    }
-                }
-            }
+            #region FileManager
+
+            var filePath = $"{FileManager.AppPath}Data/Portal/SubZonePortalCoords.json";
+            var contents = FileManager.GetFileContents(filePath);
+
+            if (string.IsNullOrWhiteSpace(contents))
+                throw new IOException($"File {filePath} doesn't exists or is empty.");
+
+            if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
+                foreach (var portal in portals)
+                    _allDistrictPortals.Add(portal.SubZoneId, portal);
+            else
+                throw new Exception($"PortalManager: Parse {filePath} file");
 
             _log.Info("Loaded {0} District Portals", _allDistrictPortals.Count);
+
+            #endregion
+
+            #region Sqlite
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -111,8 +102,10 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
+            _log.Info("Loaded Portal Info");
 
-            _log.Info("Portals Info Loaded");
+            #endregion
+
         }
 
         public bool CheckCanOpenPortal()
@@ -131,7 +124,7 @@ namespace AAEmu.Game.Core.Managers
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
-            
+
             var portalInfo = owner.Portals.GetPortalInfo(portalId);
             var portalLocation = new Point
             {

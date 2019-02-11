@@ -42,7 +42,9 @@ namespace AAEmu.Game.Scripts.Commands
             if (whatBook)
                 character.SendPacket(new SCCharacterPortalsPacket(new Portal[] { portal }));
             else
-                character.SendPacket(new SCCharacterReturnDistrictsPacket(new Portal[] { portal }, 5));
+            {
+                character.SendPacket(new SCCharacterReturnDistrictsPacket(new Portal[] { portal }, 468));
+            }
         }
     }
 }

@@ -63,6 +63,7 @@ namespace AAEmu.Game
             ItemIdManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
             FamilyIdManager.Instance.Initialize();
+            VisitedSubZoneIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
