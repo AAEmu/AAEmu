@@ -19,14 +19,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var portalOwner = (Character)caster;
             _log.Debug("OpenPortalEffect, Owner: {0}, PortalId: {1}", portalOwner.Name, portalInfo.Id);
 
-            if (PortalManager.Instance.CheckCanOpenPortal()) // TODO
-            {
-                PortalManager.Instance.OpenPortal(portalOwner, portalInfo); // TODO - Use Distance
-            }
-            else
-            {
-                // TODO - How to return an error message?
-            }
+            PortalManager.Instance.OpenPortal(portalOwner, portalInfo); // TODO - Use Distance
         }
     }
 }

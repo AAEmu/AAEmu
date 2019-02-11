@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -13,7 +13,8 @@ namespace AAEmu.Game.Core.Managers.World
 
         private Dictionary<uint, uint> _zoneIdToKey;
         private Dictionary<uint, Zone> _zones;
-        private Dictionary<ushort, ZoneGroup> _groups;
+        private Dictionary<uint, SubZone> _subZones;
+        private Dictionary<uint, ZoneGroup> _groups;
         private Dictionary<ushort, ZoneConflict> _conflicts;
         private Dictionary<uint, ZoneGroupBannedTag> _groupBannedTags;
         private Dictionary<uint, ZoneClimateElem> _climateElem;
@@ -22,23 +23,33 @@ namespace AAEmu.Game.Core.Managers.World
 
         public Zone GetZoneById(uint zoneId)
         {
-            if (_zoneIdToKey.ContainsKey(zoneId))
-                return _zones[_zoneIdToKey[zoneId]];
-            return null;
+            return _zoneIdToKey.ContainsKey(zoneId) ? _zones[_zoneIdToKey[zoneId]] : null;
         }
 
         public Zone GetZoneByKey(uint zoneKey)
         {
-            if (_zones.ContainsKey(zoneKey))
-                return _zones[zoneKey];
-            return null;
+            return _zones.ContainsKey(zoneKey) ? _zones[zoneKey] : null;
+        }
+
+        public ZoneGroup GetZoneGroupById(uint zoneId)
+        {
+            return _groups.ContainsKey(zoneId) ? _groups[zoneId] : null;
+        }
+
+        public uint GetTargetIdByZoneId(uint zoneId)
+        {
+            var zone = GetZoneByKey(zoneId);
+            if (zone == null) return 0;
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+            return zoneGroup?.TargetId ?? 0;
         }
 
         public void Load()
         {
             _zoneIdToKey = new Dictionary<uint, uint>();
             _zones = new Dictionary<uint, Zone>();
-            _groups = new Dictionary<ushort, ZoneGroup>();
+            _subZones = new Dictionary<uint, SubZone>();
+            _groups = new Dictionary<uint, ZoneGroup>();
             _conflicts = new Dictionary<ushort, ZoneConflict>();
             _groupBannedTags = new Dictionary<uint, ZoneGroupBannedTag>();
             _climateElem = new Dictionary<uint, ZoneClimateElem>();
@@ -71,6 +82,35 @@ namespace AAEmu.Game.Core.Managers.World
 
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandText = "SELECT * FROM sub_zones";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new SubZone()
+                            {
+                                Id = reader.GetUInt32("id"),
+                                IdX = reader.GetUInt32("idx"),
+                                Name = reader.GetString("name"),
+                                X = reader.GetFloat("x"),
+                                Y = reader.GetFloat("y"),
+                                W = reader.GetFloat("w"),
+                                H = reader.GetFloat("h"),
+                                ImageMap = reader.GetInt32("image_map"),
+                                LinkedZoneGroupId = reader.GetUInt32("linked_zone_group_id"),
+                                ParentSubZoneId = reader.GetUInt32("parent_sub_zone_id"),
+                                CategoryId = reader.GetUInt32("category_id")
+                            };
+                            _subZones.Add(template.Id, template);
+                        }
+                    }
+                }
+
+                _log.Info("Loaded {0} sub zones", _subZones.Count);
+
+                using (var command = connection.CreateCommand())
+                {
                     command.CommandText = "SELECT * FROM zone_groups";
                     command.Prepare();
                     using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -78,7 +118,7 @@ namespace AAEmu.Game.Core.Managers.World
                         while (reader.Read())
                         {
                             var template = new ZoneGroup();
-                            template.Id = reader.GetUInt16("id");
+                            template.Id = reader.GetUInt32("id");
                             template.Name = (string) reader.GetValue("name");
                             template.X = reader.GetFloat("x");
                             template.Y = reader.GetFloat("y");

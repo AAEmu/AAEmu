@@ -8,9 +8,9 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -108,24 +108,51 @@ namespace AAEmu.Game.Core.Managers
 
         }
 
-        public bool CheckCanOpenPortal()
+        private bool CheckItemAndRemove(Character owner, uint itemId, int amount)
         {
-            // TODO
-            return true;
+            if (owner.Inventory.CheckItems(itemId, amount))
+            {
+                var items = owner.Inventory.RemoveItem(itemId, amount);
+                var tasks = new List<ItemTask>();
+                foreach (var (item, count) in items)
+                {
+                    if (item.Count == 0)
+                        tasks.Add(new ItemRemove(item));
+                    else
+                        tasks.Add(new ItemCountUpdate(item, -count));
+                }
+                owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, tasks, new List<ulong>()));
+                return true;
+            }
+            return false;
         }
 
-        public bool RemoveItemFromInventory(Character owner)
+        public bool CheckCanOpenPortal(Character owner, uint targetZoneId)
         {
-            // TODO
-            return true;
+            var targetContinent = ZoneManager.Instance.GetTargetIdByZoneId(targetZoneId);
+            var ownerContinent = ZoneManager.Instance.GetTargetIdByZoneId(owner.Position.ZoneId);
+
+            if (targetContinent == ownerContinent)
+            {
+                foreach (var (_, value) in _openPortalInlandReagents)
+                {
+                    if (CheckItemAndRemove(owner, value.ItemId, value.Amount)) return true;
+                }
+            }
+            else
+            {
+                foreach (var (_, value) in _openPortalOutlandReagents)
+                {
+                    if (CheckItemAndRemove(owner, value.ItemId, value.Amount)) return true;
+                }
+            }
+            return false; // Not enough items
         }
 
-        private void MakePortal(Character owner, bool isExit, uint portalId)
+        private void MakePortal(Character owner, bool isExit, Portal portalInfo)
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
-
-            var portalInfo = owner.Portals.GetPortalInfo(portalId);
             var portalLocation = new Point
             {
                 X = portalInfo.X,
@@ -156,14 +183,12 @@ namespace AAEmu.Game.Core.Managers
 
         public void OpenPortal(Character owner, SkillObjectUnk1 obj)
         {
-            if (!RemoveItemFromInventory(owner))
+            var portalInfo = owner.Portals.GetPortalInfo(obj.Id);
+            if (CheckCanOpenPortal(owner, portalInfo.ZoneId))
             {
-                // TODO - Send error message? Not enough Hereafter Stone
-                return;
+                MakePortal(owner, false, portalInfo);   // Entrance (green)
+                MakePortal(owner, true, portalInfo);    // Exit (yellow)
             }
-
-            MakePortal(owner, false, obj.Id);   // Entrance (green)
-            MakePortal(owner, true, obj.Id);    // Exit (yellow)
         }
 
         public void UsePortal(Character character, uint objId)

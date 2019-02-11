@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         Id = VisitedSubZoneIdManager.Instance.GetNextId(),
                         SubZone = subZoneId,
-                        Owner = Owner.Id
+                        Owner = owner.Id
                     };
                     VisitedDistricts.Add(subZoneId, newVisitedDistrict);
                     Send();

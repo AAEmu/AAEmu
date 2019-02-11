@@ -1,8 +1,8 @@
-namespace AAEmu.Game.Models.Game.World.Zones
+﻿namespace AAEmu.Game.Models.Game.World.Zones
 {
     public class ZoneGroup
     {
-        public ushort Id { get; set; }
+        public uint Id { get; set; }
         public string Name { get; set; }
         public float X { get; set; }
         public float Y { get; set; }

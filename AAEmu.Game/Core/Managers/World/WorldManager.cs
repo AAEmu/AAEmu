@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -9,8 +9,10 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils.DB;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
@@ -22,6 +24,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         private Dictionary<uint, InstanceWorld> _worlds;
         private Dictionary<uint, uint> _worldIdByZoneId;
+        private Dictionary<uint, WorldGroups> _worldGroups;
 
         private readonly ConcurrentDictionary<uint, GameObject> _objects;
         private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits;
@@ -45,15 +48,18 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void Load()
         {
-            _log.Info("Loading world data...");
-
             _worlds = new Dictionary<uint, InstanceWorld>();
             _worldIdByZoneId = new Dictionary<uint, uint>();
+            _worldGroups = new Dictionary<uint, WorldGroups>();
 
-            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/worlds.json");
+            _log.Info("Loading world data...");
+
+            #region FileManager
+
+            var pathFile = $"{FileManager.AppPath}Data/worlds.json";
+            var contents = FileManager.GetFileContents(pathFile);
             if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException(
-                    $"File {FileManager.AppPath}Data/worlds.json doesn't exists or is empty.");
+                throw new IOException($"File {pathFile} doesn't exists or is empty.");
 
             if (JsonHelper.TryDeserializeObject(contents, out List<InstanceWorld> worlds, out _))
             {
@@ -71,14 +77,14 @@ namespace AAEmu.Game.Core.Managers.World
                 }
             }
             else
-                throw new Exception($"WorldManager: Parse {FileManager.AppPath}Data/worlds.json file");
+                throw new Exception($"WorldManager: Parse {pathFile} file");
 
             foreach (var world in _worlds.Values)
             {
-                contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/zones.json");
+                pathFile = $"{FileManager.AppPath}Data/Worlds/{world.Name}/zones.json";
+                contents = FileManager.GetFileContents(pathFile);
                 if (string.IsNullOrWhiteSpace(contents))
-                    throw new IOException(
-                        $"File {FileManager.AppPath}Data/Worlds/{world.Name}/zones.json doesn't exists or is empty.");
+                    throw new IOException($"File {pathFile} doesn't exists or is empty.");
 
                 if (JsonHelper.TryDeserializeObject(contents, out List<ZoneConfig> zones, out _))
                     foreach (var zone in zones)
@@ -99,12 +105,10 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                 else
-                    throw new Exception(
-                        $"WorldManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/zones.json file");
+                    throw new Exception($"WorldManager: Parse {pathFile} file");
             }
 
             var active = false;
-
             if (active) // TODO fastboot if active = false!
             {
                 _log.Info("Loading heightmaps...");
@@ -132,21 +136,21 @@ namespace AAEmu.Game.Core.Managers.World
                             if (hMapCellX == world.CellX && hMapCellY == world.CellY)
                             {
                                 for (var cellX = 0; cellX < world.CellX; cellX++)
-                                for (var cellY = 0; cellY < world.CellY; cellY++)
-                                {
-                                    if (br.ReadBoolean())
-                                        continue;
-                                    for (var i = 0; i < 16; i++)
-                                    for (var j = 0; j < 16; j++)
-                                    for (var x = 0; x < 32; x++)
-                                    for (var y = 0; y < 32; y++)
+                                    for (var cellY = 0; cellY < world.CellY; cellY++)
                                     {
-                                        var sx = cellX * 512 + i * 32 + x;
-                                        var sy = cellY * 512 + j * 32 + y;
+                                        if (br.ReadBoolean())
+                                            continue;
+                                        for (var i = 0; i < 16; i++)
+                                            for (var j = 0; j < 16; j++)
+                                                for (var x = 0; x < 32; x++)
+                                                    for (var y = 0; y < 32; y++)
+                                                    {
+                                                        var sx = cellX * 512 + i * 32 + x;
+                                                        var sy = cellY * 512 + j * 32 + y;
 
-                                        world.HeightMaps[sx, sy] = br.ReadUInt16();
+                                                        world.HeightMaps[sx, sy] = br.ReadUInt16();
+                                                    }
                                     }
-                                }
                             }
                             else
                                 _log.Warn("{0}: Invalid heightmap cells...", world.Name);
@@ -160,13 +164,50 @@ namespace AAEmu.Game.Core.Managers.World
 
                 _log.Info("Heightmaps loaded");
             }
+
+            #endregion
+
+            #region Sqlite
+
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM world_groups";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new WorldGroups()
+                            {
+                                Id = reader.GetUInt32("id"),
+                                Name = reader.GetString("name"),
+                                TargetId = reader.GetUInt32("target_id"),
+                                ImageMap = reader.GetInt32("image_map"),
+                                X = reader.GetFloat("x"),
+                                Y = reader.GetFloat("y"),
+                                W = reader.GetFloat("w"),
+                                H = reader.GetFloat("h"),
+                                ImageX = reader.GetInt32("image_x"),
+                                ImageY = reader.GetInt32("image_y"),
+                                ImageW = reader.GetInt32("image_w"),
+                                ImageH = reader.GetInt32("image_h")
+                            };
+                            _worldGroups.Add(template.Id, template);
+                        }
+                    }
+                }
+            }
+
+            #endregion
         }
 
         public InstanceWorld GetWorld(uint worldId)
         {
             return _worlds.ContainsKey(worldId) ? _worlds[worldId] : null;
         }
-        
+
         public InstanceWorld[] GetWorlds()
         {
             return _worlds.Values.ToArray();
@@ -180,8 +221,8 @@ namespace AAEmu.Game.Core.Managers.World
         public uint GetZoneId(uint worldId, float x, float y)
         {
             var world = _worlds[worldId];
-            var sx = (int) (x / REGION_SIZE);
-            var sy = (int) (y / REGION_SIZE);
+            var sx = (int)(x / REGION_SIZE);
+            var sy = (int)(y / REGION_SIZE);
             return world.ZoneIds[sx, sy];
         }
 
@@ -207,9 +248,9 @@ namespace AAEmu.Game.Core.Managers.World
 
             var result = new List<Region>();
             for (var a = -1; a <= 1; a++)
-            for (var b = -1; b <= 1; b++)
-                if (ValidRegion(world.Id, x + a, y + b) && world.Regions[x + a, y + b] != null)
-                    result.Add(world.Regions[x + a, y + b]);
+                for (var b = -1; b <= 1; b++)
+                    if (ValidRegion(world.Id, x + a, y + b) && world.Regions[x + a, y + b] != null)
+                        result.Add(world.Regions[x + a, y + b]);
 
             return result.ToArray();
         }
@@ -219,7 +260,7 @@ namespace AAEmu.Game.Core.Managers.World
             _baseUnits.TryGetValue(objId, out var ret);
             return ret;
         }
-        
+
         public Doodad GetDoodad(uint objId)
         {
             _doodads.TryGetValue(objId, out var ret);
@@ -231,13 +272,13 @@ namespace AAEmu.Game.Core.Managers.World
             _units.TryGetValue(objId, out var ret);
             return ret;
         }
-        
+
         public Npc GetNpc(uint objId)
         {
             _npcs.TryGetValue(objId, out var ret);
             return ret;
         }
-        
+
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)
@@ -391,11 +432,11 @@ namespace AAEmu.Game.Core.Managers.World
             var result = new List<T>();
             var regions = new List<Region>();
             for (var a = x * CELL_SIZE; a < (x + 1) * CELL_SIZE; a++)
-            for (var b = y * CELL_SIZE; b < (y + 1) * CELL_SIZE; b++)
-            {
-                if (ValidRegion(worldId, a, b) && _worlds[worldId].Regions[a, b] != null)
-                    regions.Add(_worlds[worldId].Regions[a, b]);
-            }
+                for (var b = y * CELL_SIZE; b < (y + 1) * CELL_SIZE; b++)
+                {
+                    if (ValidRegion(worldId, a, b) && _worlds[worldId].Regions[a, b] != null)
+                        regions.Add(_worlds[worldId].Regions[a, b]);
+                }
 
             foreach (var region in regions)
                 region.GetList(result, 0);
@@ -425,8 +466,8 @@ namespace AAEmu.Game.Core.Managers.World
         private Region GetRegion(uint zoneId, float x, float y)
         {
             var world = GetWorldByZone(zoneId);
-            var sx = (int) (x / REGION_SIZE);
-            var sy = (int) (y / REGION_SIZE);
+            var sx = (int)(x / REGION_SIZE);
+            var sy = (int)(y / REGION_SIZE);
             return world.GetRegion(sx, sy);
         }
 
