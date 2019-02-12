@@ -13,7 +13,6 @@ namespace AAEmu.Game.Core.Managers.World
 
         private Dictionary<uint, uint> _zoneIdToKey;
         private Dictionary<uint, Zone> _zones;
-        private Dictionary<uint, SubZone> _subZones;
         private Dictionary<uint, ZoneGroup> _groups;
         private Dictionary<ushort, ZoneConflict> _conflicts;
         private Dictionary<uint, ZoneGroupBannedTag> _groupBannedTags;
@@ -48,7 +47,6 @@ namespace AAEmu.Game.Core.Managers.World
         {
             _zoneIdToKey = new Dictionary<uint, uint>();
             _zones = new Dictionary<uint, Zone>();
-            _subZones = new Dictionary<uint, SubZone>();
             _groups = new Dictionary<uint, ZoneGroup>();
             _conflicts = new Dictionary<ushort, ZoneConflict>();
             _groupBannedTags = new Dictionary<uint, ZoneGroupBannedTag>();
@@ -79,35 +77,6 @@ namespace AAEmu.Game.Core.Managers.World
                 }
 
                 _log.Info("Loaded {0} zones", _zones.Count);
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM sub_zones";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new SubZone()
-                            {
-                                Id = reader.GetUInt32("id"),
-                                IdX = reader.GetUInt32("idx"),
-                                Name = reader.GetString("name"),
-                                X = reader.GetFloat("x"),
-                                Y = reader.GetFloat("y"),
-                                W = reader.GetFloat("w"),
-                                H = reader.GetFloat("h"),
-                                ImageMap = reader.GetInt32("image_map"),
-                                LinkedZoneGroupId = reader.GetUInt32("linked_zone_group_id"),
-                                ParentSubZoneId = reader.GetUInt32("parent_sub_zone_id"),
-                                CategoryId = reader.GetUInt32("category_id")
-                            };
-                            _subZones.Add(template.Id, template);
-                        }
-                    }
-                }
-
-                _log.Info("Loaded {0} sub zones", _subZones.Count);
 
                 using (var command = connection.CreateCommand())
                 {

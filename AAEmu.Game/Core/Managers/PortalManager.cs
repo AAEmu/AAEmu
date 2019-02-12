@@ -137,7 +137,7 @@ namespace AAEmu.Game.Core.Managers
             return false;
         }
 
-        public bool CheckCanOpenPortal(Character owner, uint targetZoneId)
+        private bool CheckCanOpenPortal(Character owner, uint targetZoneId)
         {
             var targetContinent = ZoneManager.Instance.GetTargetIdByZoneId(targetZoneId);
             var ownerContinent = ZoneManager.Instance.GetTargetIdByZoneId(owner.Position.ZoneId);

@@ -24,7 +24,6 @@ namespace AAEmu.Game.Core.Managers.World
 
         private Dictionary<uint, InstanceWorld> _worlds;
         private Dictionary<uint, uint> _worldIdByZoneId;
-        private Dictionary<uint, WorldGroups> _worldGroups;
 
         private readonly ConcurrentDictionary<uint, GameObject> _objects;
         private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits;
@@ -50,7 +49,6 @@ namespace AAEmu.Game.Core.Managers.World
         {
             _worlds = new Dictionary<uint, InstanceWorld>();
             _worldIdByZoneId = new Dictionary<uint, uint>();
-            _worldGroups = new Dictionary<uint, WorldGroups>();
 
             _log.Info("Loading world data...");
 
@@ -163,41 +161,6 @@ namespace AAEmu.Game.Core.Managers.World
                 }
 
                 _log.Info("Heightmaps loaded");
-            }
-
-            #endregion
-
-            #region Sqlite
-
-            using (var connection = SQLite.CreateConnection())
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM world_groups";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new WorldGroups()
-                            {
-                                Id = reader.GetUInt32("id"),
-                                Name = reader.GetString("name"),
-                                TargetId = reader.GetUInt32("target_id"),
-                                ImageMap = reader.GetInt32("image_map"),
-                                X = reader.GetFloat("x"),
-                                Y = reader.GetFloat("y"),
-                                W = reader.GetFloat("w"),
-                                H = reader.GetFloat("h"),
-                                ImageX = reader.GetInt32("image_x"),
-                                ImageY = reader.GetInt32("image_y"),
-                                ImageW = reader.GetInt32("image_w"),
-                                ImageH = reader.GetInt32("image_h")
-                            };
-                            _worldGroups.Add(template.Id, template);
-                        }
-                    }
-                }
             }
 
             #endregion
