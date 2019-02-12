@@ -202,7 +202,7 @@ namespace AAEmu.Game.Models.Game.Items
             Durability = stream.ReadInt16();
             stream.ReadByte();
             RuneId = stream.ReadUInt32();
-            stream.ReadBytes(40);
+            stream.ReadBytes(44);
         }
 
         public override void WriteDetails(PacketStream stream)
@@ -211,7 +211,7 @@ namespace AAEmu.Game.Models.Game.Items
             stream.Write(Durability);
             stream.Write((byte) 0);
             stream.Write(RuneId);
-            stream.Write(new byte[40]);
+            stream.Write(new byte[44]);
         }
     }
 }

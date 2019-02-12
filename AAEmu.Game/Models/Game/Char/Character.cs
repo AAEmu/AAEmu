@@ -1114,6 +1114,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(FactionName);
             stream.Write(0); // type
             stream.Write(Family);
+
             foreach (var item in Inventory.Equip)
             {
                 if (item == null)
