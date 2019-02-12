@@ -17,34 +17,22 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            if (args.Length < 2)
+            if (args.Length == 0)
             {
-                character.SendMessage("[Items] /add_portal <id> <name> <houseBook>* <x>* <y>* <z>*");
-                character.SendMessage("[Items] *optional / houseBook is Boolean");
+                character.SendMessage("[AddPortal] /add_portal <name> <x>* <y>* <z>* <zoneid>*");
+                character.SendMessage("[AddPortal] *optional (will get actual position)");
                 return;
             }
-            var portalId = uint.Parse(args[0]);
-            var portalName = args[1];
+
+            var portalName = args[0];
             var position = character.Position;
-            var whatBook = args.Length > 2 ? bool.Parse(args[2]) : true;
+            var x = args.Length == 5 ? float.Parse(args[1]) : position.X;
+            var y = args.Length == 5 ? float.Parse(args[2]) : position.Y;
+            var z = args.Length == 5 ? float.Parse(args[3]) : position.Z;
+            var zoneId = args.Length == 5 ? uint.Parse(args[4]) : position.ZoneId;
 
-            var portal = new Portal();
-            portal.Id = portalId;
-            portal.Name = portalName;
-            portal.ZoneId = position.ZoneId;
-
-            portal.X = args.Length >= 6 ? float.Parse(args[3]) : position.X;
-            portal.Y = args.Length >= 6 ? float.Parse(args[4]) : position.Y;
-            portal.Z = args.Length >= 6 ? float.Parse(args[5]) : position.Z;
-
-            portal.ZRot = 0;
-
-            if (whatBook)
-                character.SendPacket(new SCCharacterPortalsPacket(new Portal[] { portal }));
-            else
-            {
-                character.SendPacket(new SCCharacterReturnDistrictsPacket(new Portal[] { portal }, 468));
-            }
+            character.Portals.AddPrivatePortal(x, y, z, zoneId, portalName);
+            character.SendMessage("[AddPortal] Success");
         }
     }
 }

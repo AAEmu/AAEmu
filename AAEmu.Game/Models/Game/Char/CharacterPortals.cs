@@ -10,7 +10,9 @@ namespace AAEmu.Game.Models.Game.Char
     public class CharacterPortals
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-        private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; set; }
+        private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; }
+        private readonly List<uint> _removedVisitedDistricts;
+        private readonly List<uint> _removedPrivatePortals;
 
         public Dictionary<uint, Portal> PrivatePortals { get; set; }
         public Dictionary<uint, Portal> DistrictPortals { get; set; }
@@ -22,6 +24,8 @@ namespace AAEmu.Game.Models.Game.Char
             PrivatePortals = new Dictionary<uint, Portal>();
             DistrictPortals = new Dictionary<uint, Portal>();
             VisitedDistricts = new Dictionary<uint, VisitedDistrict>();
+            _removedVisitedDistricts = new List<uint>();
+            _removedPrivatePortals = new List<uint>();
         }
 
         public Portal GetPortalInfo(uint id)
@@ -31,14 +35,33 @@ namespace AAEmu.Game.Models.Game.Char
             return PrivatePortals.ContainsKey(id) ? PrivatePortals[id] : null;
         }
 
-        public void NotifySubZone(Character owner, uint subZoneId)
+        public void RemoveFromBookPortal(Portal portal, bool isPrivate)
+        {
+            if (isPrivate)
+            {
+                if (PrivatePortals.ContainsKey(portal.Id) && PrivatePortals.Remove(portal.Id))
+                {
+                    _removedPrivatePortals.Add(portal.Id);
+                    Owner.SendMessage("Recorded Portal deleted.");
+                }
+            }
+            else
+            {
+                if (VisitedDistricts.ContainsKey(portal.SubZoneId) && VisitedDistricts.Remove(portal.SubZoneId))
+                {
+                    _removedVisitedDistricts.Add(portal.SubZoneId);
+                    Owner.SendMessage("Default Portal deleted.");
+                }
+            }
+        }
+
+        public void NotifySubZone(uint subZoneId)
         {
             if (!VisitedDistricts.ContainsKey(subZoneId))
             {
                 var portal = PortalManager.Instance.GetPortalBySubZoneId(subZoneId);
                 if (portal != null)
                 {
-                    DistrictPortals.Add(portal.Id, portal);
                     var newVisitedDistrict = new VisitedDistrict()
                     {
                         Id = VisitedSubZoneIdManager.Instance.GetNextId(),
@@ -46,10 +69,29 @@ namespace AAEmu.Game.Models.Game.Char
                         Owner = Owner.Id
                     };
                     VisitedDistricts.Add(subZoneId, newVisitedDistrict);
+                    PopulateDistrictPortals();
                     Send();
                     _log.Info("{0}:{1} added to return district list ", portal.Name, subZoneId);
                 }
             }
+        }
+
+        public void AddPrivatePortal(float x, float y, float z, uint zoneId, string name)
+        {
+            // TODO - Only working by command
+            var newPortal = new Portal()
+            {
+                Id = PrivateBookIdManager.Instance.GetNextId(),
+                Name = name,
+                X = x,
+                Y = y,
+                Z = z,
+                ZoneId = zoneId,
+                ZRot = 0f,
+                Owner = Owner.Id
+            };
+            PrivatePortals.Add(newPortal.Id, newPortal);
+            Owner.SendPacket(new SCCharacterPortalsPacket(new[] { newPortal }));
         }
 
         public void Send()
@@ -117,22 +159,42 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            if (VisitedDistricts.Count > 0)
-            {
-                foreach (var subZone in VisitedDistricts)
-                {
-                    var portal = PortalManager.Instance.GetPortalBySubZoneId(subZone.Key);
-                    if (portal != null)
-                    {
-                        DistrictPortals.Add(portal.Id, portal);
-                    }
-                }
-            }
+            PopulateDistrictPortals();
         }
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction)
         {
-            foreach (var portal in PrivatePortals)
+            if (_removedVisitedDistricts.Count > 0)
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+
+                    command.CommandText = "DELETE FROM portal_visited_district WHERE owner = @owner AND subzone IN(" + string.Join(",", _removedVisitedDistricts) + ")";
+                    command.Prepare();
+                    command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.ExecuteNonQuery();
+                    _removedVisitedDistricts.Clear();
+                }
+            }
+
+            if (_removedPrivatePortals.Count > 0)
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+
+                    command.CommandText = "DELETE FROM portal_book_coords WHERE owner = @owner AND id IN(" + string.Join(",", _removedPrivatePortals) + ")";
+                    command.Prepare();
+                    command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.ExecuteNonQuery();
+                    _removedPrivatePortals.Clear();
+                }
+            }
+
+            foreach (var (_, value) in PrivatePortals)
             {
                 using (var command = connection.CreateCommand())
                 {
@@ -140,14 +202,14 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Transaction = transaction;
 
                     command.CommandText = "REPLACE INTO portal_book_coords(`id`,`name`,`x`,`y`,`z`,`zone_id`,`z_rot`,`owner`) VALUES (@id, @name, @x, @y, @z, @zone_id, @z_rot, @owner)";
-                    command.Parameters.AddWithValue("@id", portal.Value.Id);
-                    command.Parameters.AddWithValue("@name", portal.Value.Name);
-                    command.Parameters.AddWithValue("@x", portal.Value.X);
-                    command.Parameters.AddWithValue("@y", portal.Value.Y);
-                    command.Parameters.AddWithValue("@z", portal.Value.Z);
-                    command.Parameters.AddWithValue("@zone_id", portal.Value.ZoneId);
-                    command.Parameters.AddWithValue("@z_rot", portal.Value.ZRot);
-                    command.Parameters.AddWithValue("@owner", portal.Value.Owner);
+                    command.Parameters.AddWithValue("@id", value.Id);
+                    command.Parameters.AddWithValue("@name", value.Name);
+                    command.Parameters.AddWithValue("@x", value.X);
+                    command.Parameters.AddWithValue("@y", value.Y);
+                    command.Parameters.AddWithValue("@z", value.Z);
+                    command.Parameters.AddWithValue("@zone_id", value.ZoneId);
+                    command.Parameters.AddWithValue("@z_rot", value.ZRot);
+                    command.Parameters.AddWithValue("@owner", value.Owner);
                     command.ExecuteNonQuery();
                 }
             }
@@ -164,6 +226,22 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@subzone", value.SubZone);
                     command.Parameters.AddWithValue("@owner", value.Owner);
                     command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private void PopulateDistrictPortals()
+        {
+            DistrictPortals.Clear();
+            if (VisitedDistricts.Count > 0)
+            {
+                foreach (var subZone in VisitedDistricts)
+                {
+                    var portal = PortalManager.Instance.GetPortalBySubZoneId(subZone.Key);
+                    if (portal != null)
+                    {
+                        DistrictPortals.Add(portal.Id, portal);
+                    }
                 }
             }
         }

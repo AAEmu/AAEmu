@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using AAEmu.Commons.IO;
@@ -487,6 +487,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Appellations = new CharacterAppellations(character);
                 character.Quests = new CharacterQuests(character);
                 character.Mails = new CharacterMails(character);
+                character.Portals = new CharacterPortals(character);
                 
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;

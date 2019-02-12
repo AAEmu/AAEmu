@@ -64,6 +64,7 @@ namespace AAEmu.Game
             CharacterIdManager.Instance.Initialize();
             FamilyIdManager.Instance.Initialize();
             VisitedSubZoneIdManager.Instance.Initialize();
+            PrivateBookIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();

@@ -8,9 +8,9 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -21,6 +21,7 @@ namespace AAEmu.Game.Core.Managers
     public class PortalManager : Singleton<PortalManager>
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+        private Dictionary<uint, uint> _allDistrictPortalsKey;
         private Dictionary<uint, Portal> _allDistrictPortals;
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
         private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
@@ -30,11 +31,17 @@ namespace AAEmu.Game.Core.Managers
             return _allDistrictPortals.ContainsKey(subZoneId) ? _allDistrictPortals[subZoneId] : null;
         }
 
+        public Portal GetPortalById(uint Id)
+        {
+            return _allDistrictPortalsKey.ContainsKey(Id) ? (_allDistrictPortals.ContainsKey(_allDistrictPortalsKey[Id]) ? _allDistrictPortals[_allDistrictPortalsKey[Id]] : null) : null;
+        }
+
         public void Load()
         {
             _openPortalInlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _openPortalOutlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _allDistrictPortals = new Dictionary<uint, Portal>();
+            _allDistrictPortalsKey = new Dictionary<uint, uint>();
             _log.Info("Loading Portals ...");
 
             #region FileManager
@@ -47,7 +54,10 @@ namespace AAEmu.Game.Core.Managers
 
             if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
                 foreach (var portal in portals)
+                {
                     _allDistrictPortals.Add(portal.SubZoneId, portal);
+                    _allDistrictPortalsKey.Add(portal.Id, portal.SubZoneId);
+                }
             else
                 throw new Exception($"PortalManager: Parse {filePath} file");
 
@@ -108,26 +118,54 @@ namespace AAEmu.Game.Core.Managers
 
         }
 
-        public bool CheckCanOpenPortal()
+        private bool CheckItemAndRemove(Character owner, uint itemId, int amount)
         {
-            // TODO
-            return true;
+            if (owner.Inventory.CheckItems(itemId, amount))
+            {
+                var items = owner.Inventory.RemoveItem(itemId, amount);
+                var tasks = new List<ItemTask>();
+                foreach (var (item, count) in items)
+                {
+                    if (item.Count == 0)
+                        tasks.Add(new ItemRemove(item));
+                    else
+                        tasks.Add(new ItemCountUpdate(item, -count));
+                }
+                owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, tasks, new List<ulong>()));
+                return true;
+            }
+            return false;
         }
 
-        public bool RemoveItemFromInventory(Character owner)
+        private bool CheckCanOpenPortal(Character owner, uint targetZoneId)
         {
-            // TODO
-            return true;
+            var targetContinent = ZoneManager.Instance.GetTargetIdByZoneId(targetZoneId);
+            var ownerContinent = ZoneManager.Instance.GetTargetIdByZoneId(owner.Position.ZoneId);
+
+            if (targetContinent == ownerContinent)
+            {
+                foreach (var (_, value) in _openPortalInlandReagents)
+                {
+                    if (CheckItemAndRemove(owner, value.ItemId, value.Amount)) return true;
+                }
+            }
+            else
+            {
+                foreach (var (_, value) in _openPortalOutlandReagents)
+                {
+                    if (CheckItemAndRemove(owner, value.ItemId, value.Amount)) return true;
+                }
+            }
+            return false; // Not enough items
         }
 
-        private void MakePortal(Character owner, bool isExit, uint portalId)
+        private void MakePortal(Character owner, bool isExit, Portal portalInfo)
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
-
-            var portalInfo = owner.Portals.GetPortalInfo(portalId);
             var portalLocation = new Point
             {
+                // TODO - Add distance to portal
                 X = portalInfo.X,
                 Y = portalInfo.Y,
                 Z = portalInfo.Z,
@@ -156,14 +194,12 @@ namespace AAEmu.Game.Core.Managers
 
         public void OpenPortal(Character owner, SkillObjectUnk1 obj)
         {
-            if (!RemoveItemFromInventory(owner))
+            var portalInfo = owner.Portals.GetPortalInfo(obj.Id);
+            if (CheckCanOpenPortal(owner, portalInfo.ZoneId))
             {
-                // TODO - Send error message? Not enough Hereafter Stone
-                return;
+                MakePortal(owner, false, portalInfo);   // Entrance (green)
+                MakePortal(owner, true, portalInfo);    // Exit (yellow)
             }
-
-            MakePortal(owner, false, obj.Id);   // Entrance (green)
-            MakePortal(owner, true, obj.Id);    // Exit (yellow)
         }
 
         public void UsePortal(Character character, uint objId)
@@ -176,6 +212,14 @@ namespace AAEmu.Game.Core.Managers
             character.DisabledSetPosition = true;
             character.BroadcastPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.X,
                 portalInfo.TeleportPosition.Y, portalInfo.TeleportPosition.Z, portalInfo.TeleportPosition.RotationZ), true);
+        }
+
+        public void DeletePortal(Character owner, byte type, uint id)
+        {
+            var isPrivate = type != 1;
+            var portalInfo = owner.Portals.GetPortalInfo(id);
+            if (portalInfo == null) return;
+            owner.Portals.RemoveFromBookPortal(portalInfo, isPrivate);
         }
     }
 }
