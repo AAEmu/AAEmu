@@ -40,6 +40,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Actability.Send();
                 Connection.ActiveChar.Appellations.Send();
                 Connection.ActiveChar.Portals.Send();
+                Connection.ActiveChar.Friends.Send();
 
                 Connection.SendPacket(new SCFriendsPacket(0, new Friend[0]));
 

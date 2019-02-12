@@ -488,6 +488,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Quests = new CharacterQuests(character);
                 character.Mails = new CharacterMails(character);
                 character.Portals = new CharacterPortals(character);
+                character.Friends = new CharacterFriends(character);
                 
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;

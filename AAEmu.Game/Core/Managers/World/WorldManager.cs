@@ -250,8 +250,13 @@ namespace AAEmu.Game.Core.Managers.World
             return null;
         }
 
-        public Character GetCharacter(uint id)
+        public Character GetCharacter(uint id, bool fromDb = false)
         {
+            if (fromDb)
+            {
+                foreach (var player in _characters.Values)
+                    if (player.Id.Equals(id)) return player;
+            }
             _characters.TryGetValue(id, out var ret);
             return ret;
         }
