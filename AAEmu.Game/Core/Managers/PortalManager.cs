@@ -21,6 +21,7 @@ namespace AAEmu.Game.Core.Managers
     public class PortalManager : Singleton<PortalManager>
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+        private Dictionary<uint, uint> _allDistrictPortalsKey;
         private Dictionary<uint, Portal> _allDistrictPortals;
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
         private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
@@ -30,11 +31,17 @@ namespace AAEmu.Game.Core.Managers
             return _allDistrictPortals.ContainsKey(subZoneId) ? _allDistrictPortals[subZoneId] : null;
         }
 
+        public Portal GetPortalById(uint Id)
+        {
+            return _allDistrictPortalsKey.ContainsKey(Id) ? (_allDistrictPortals.ContainsKey(_allDistrictPortalsKey[Id]) ? _allDistrictPortals[_allDistrictPortalsKey[Id]] : null) : null;
+        }
+
         public void Load()
         {
             _openPortalInlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _openPortalOutlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _allDistrictPortals = new Dictionary<uint, Portal>();
+            _allDistrictPortalsKey = new Dictionary<uint, uint>();
             _log.Info("Loading Portals ...");
 
             #region FileManager
@@ -47,7 +54,10 @@ namespace AAEmu.Game.Core.Managers
 
             if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
                 foreach (var portal in portals)
+                {
                     _allDistrictPortals.Add(portal.SubZoneId, portal);
+                    _allDistrictPortalsKey.Add(portal.Id, portal.SubZoneId);
+                }
             else
                 throw new Exception($"PortalManager: Parse {filePath} file");
 
@@ -155,6 +165,7 @@ namespace AAEmu.Game.Core.Managers
             // 6949 - Portal Exit
             var portalLocation = new Point
             {
+                // TODO - Add distance to portal
                 X = portalInfo.X,
                 Y = portalInfo.Y,
                 Z = portalInfo.Z,
@@ -201,6 +212,14 @@ namespace AAEmu.Game.Core.Managers
             character.DisabledSetPosition = true;
             character.BroadcastPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.X,
                 portalInfo.TeleportPosition.Y, portalInfo.TeleportPosition.Z, portalInfo.TeleportPosition.RotationZ), true);
+        }
+
+        public void DeletePortal(Character owner, byte type, uint id)
+        {
+            var isPrivate = type != 1;
+            var portalInfo = owner.Portals.GetPortalInfo(id);
+            if (portalInfo == null) return;
+            owner.Portals.RemoveFromBookPortal(portalInfo, isPrivate);
         }
     }
 }

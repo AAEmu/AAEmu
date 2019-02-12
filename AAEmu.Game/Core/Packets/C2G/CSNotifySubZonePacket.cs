@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (subZoneId == 0) return;
 
             _log.Debug("Enter RegionId: {0} ", subZoneId);
-            Connection.ActiveChar.Portals.NotifySubZone(Connection.ActiveChar, subZoneId);
+            Connection.ActiveChar.Portals.NotifySubZone(subZoneId);
         }
     }
 }
