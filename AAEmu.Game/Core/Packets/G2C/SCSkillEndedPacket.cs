@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ushort _tlId;
         
-        public SCSkillEndedPacket(ushort tlId) : base(0x09c, 1)
+        public SCSkillEndedPacket(ushort tlId) : base(0x0a2, 1) // TODO 1.0 opcode: 0x09c
         {
             _tlId = tlId;
         }

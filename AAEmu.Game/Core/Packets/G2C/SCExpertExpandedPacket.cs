@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly byte _next;
 
-        public SCExpertExpandedPacket(byte next) : base(0x1b7, 1)
+        public SCExpertExpandedPacket(byte next) : base(0x1bf, 1) // TODO 1.0 opcode: 0x1b7
         {
             _next = next;
         }

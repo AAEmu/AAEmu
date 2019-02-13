@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCExpeditionShowRenameUIPacket : GamePacket
     {
-        public SCExpeditionShowRenameUIPacket() : base(0x00d, 1)
+        public SCExpeditionShowRenameUIPacket() : base(0x00e, 1) // TODO 1.0 opcode: 0x00d
         {
         }
 

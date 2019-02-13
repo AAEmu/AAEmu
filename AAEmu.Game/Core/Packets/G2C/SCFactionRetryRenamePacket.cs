@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly short _errorMessage;
         private readonly string _name;
         
-        public SCFactionRetryRenamePacket(bool xpdt, short errorMessage, string name) : base(0x00f, 1)
+        public SCFactionRetryRenamePacket(bool xpdt, short errorMessage, string name) : base(0x011, 1) // TODO 1.0 opcode: 0x00f
         {
             _xpdt = xpdt;
             _errorMessage = errorMessage;

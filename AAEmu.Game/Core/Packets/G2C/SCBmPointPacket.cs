@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly long _bmPoint;
 
-        public SCBmPointPacket(long bmPoint) : base(0x041, 1)
+        public SCBmPointPacket(long bmPoint) : base(0x045, 1) // TODO 1.0 opcode: 0x041
         {
             _bmPoint = bmPoint;
         }

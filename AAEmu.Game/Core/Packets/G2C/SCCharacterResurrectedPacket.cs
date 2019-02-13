@@ -12,7 +12,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _z;
         private readonly float _zRot;
         
-        public SCCharacterResurrectedPacket(uint unitId, float x, float y, float z, float zRot) : base(0x03d, 1)
+        public SCCharacterResurrectedPacket(uint unitId, float x, float y, float z, float zRot) 
+            : base(0x041, 1) // TODO 1.0 opcode: 0x03d
         {
             _unitId = unitId;
             _x = x;

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _memberId;
         private readonly string _title;
         
-        public SCFamilyTitleChangedPacket(uint familyId, uint memberId, string title) : base(0x02f, 1)
+        public SCFamilyTitleChangedPacket(uint familyId, uint memberId, string title) : base(0x033, 1) // TODO 1.0 opcode: 0x02f
         {
             _familyId = familyId;
             _memberId = memberId;

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _characterId;
 
-        public SCLpManagedPacket(uint characterId) : base(0x43, 1)
+        public SCLpManagedPacket(uint characterId) : base(0x047, 1) // TODO 1.0 opcode: 0x043
         {
             _characterId = characterId;
         }

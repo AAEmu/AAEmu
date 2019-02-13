@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly (uint memberObjId, uint memberId, string name)[] _members;
 
         public SCFactionCreatedPacket(SystemFaction faction, uint ownerObjId, (uint memberObjId, uint memberId, string name)[] members) :
-            base(0x010, 1)
+            base(0x012, 1) // TODO 1.0 opcode: 0x010
         {
             _faction = faction;
             _ownerObjId = ownerObjId;
@@ -30,6 +30,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_faction.PoliticalSystem);
             stream.Write(_faction.Created);
             stream.Write(_faction.DiplomacyTarget);
+            stream.Write((byte)0); // allowChangeName
 
             stream.WriteBc(_ownerObjId);
             stream.Write((byte)_members.Length); // TODO max length 4

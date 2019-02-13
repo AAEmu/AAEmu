@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _expel;
         
         public SCUnitExpeditionChangedPacket(uint unitId, uint kickerId, string kicker, string unitName, uint id, uint id2, bool expel) 
-            : base(0x019, 1)
+            : base(0x01b, 1) // TODO 1.0 opcode: 0x019
         {
             _unitId = unitId;
             _kickerId = kickerId;

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Member _member;
         private readonly byte _flag;
 
-        public SCExpeditionMemberStatusChangedPacket(Member member, byte flag) : base(0x014, 1)
+        public SCExpeditionMemberStatusChangedPacket(Member member, byte flag) : base(0x016, 1) // TODO 1.0 opcode: 0x014
         {
             _member = member;
             _flag = flag;

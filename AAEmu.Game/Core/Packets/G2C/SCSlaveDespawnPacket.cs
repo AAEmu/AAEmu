@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _id;
 
-        public SCSlaveDespawnPacket(uint id) : base(0x05e, 1)
+        public SCSlaveDespawnPacket(uint id) : base(0x062, 1) // TODO 1.0 opcode: 0x05e
         {
             _id = id;
         }

@@ -234,7 +234,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     if (template is BuffEffect)
                         step.Flag = 6;
                     template.Apply(caster, casterCaster, target, targetCaster,
-                        new CastPlot(step.Event.PlotId, TlId, step.Event.Id),
+                        new CastPlot(step.Event.PlotId, TlId, step.Event.Id, Template.Id),
                         this, skillObject, DateTime.Now);
                 }
             }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly bool _success;
 
-        public SCExpeditionDismissedPacket(uint id, bool success) : base(0x012, 1)
+        public SCExpeditionDismissedPacket(uint id, bool success) : base(0x014, 1) // TODO 1.0 opcode: 0x012
         {
             _id = id;
             _success = success;

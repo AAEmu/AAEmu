@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly byte _reason;
 
-        public SCCharacterCreationFailedPacket(byte reason) : base(0x038, 1)
+        public SCCharacterCreationFailedPacket(byte reason) : base(0x03c, 1) // TODO 1.0 opcode: 0x038
         {
             _reason = reason;
         }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly ushort _tl;
 
-        public SCSlaveRemovedPacket(uint id, ushort tl) : base(0x05d, 1)
+        public SCSlaveRemovedPacket(uint id, ushort tl) : base(0x061, 1) // TODO 1.0 opcode: 0x05d
         {
             _id = id;
             _tl = tl;

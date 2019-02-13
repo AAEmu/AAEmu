@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly SystemFaction _faction;
         private readonly bool _success;
         
-        public SCExpeditionSponsorChangedPacket(SystemFaction faction, bool success) : base(0x011, 1)
+        public SCExpeditionSponsorChangedPacket(SystemFaction faction, bool success) : base(0x013, 1) // TODO 1.0 opcode: 0x011
         {
             _faction = faction;
             _success = success;
@@ -27,6 +27,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_faction.PoliticalSystem);
             stream.Write(_faction.Created);
             stream.Write(_faction.DiplomacyTarget);
+            stream.Write((byte)0); // allowChangeName
 
             stream.Write(_success);
             return stream;

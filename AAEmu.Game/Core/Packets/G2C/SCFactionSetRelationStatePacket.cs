@@ -12,7 +12,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly DateTime _expireTime;
         private readonly byte _nextState;
         
-        public SCFactionSetRelationStatePacket(uint id, uint id2, byte state, DateTime expireTime, byte nextState) : base(0x016, 1)
+        public SCFactionSetRelationStatePacket(uint id, uint id2, byte state, DateTime expireTime, byte nextState) 
+            : base(0x018, 1) // TODO 1.0 opcode: 0x016
         {
             _id = id;
             _id2 = id2;

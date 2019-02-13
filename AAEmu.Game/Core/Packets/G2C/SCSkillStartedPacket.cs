@@ -13,7 +13,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Skill _skill;
         private readonly SkillObject _skillObject;
 
-        public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) : base(0x09a, 1)
+        public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) 
+            : base(0x0a0, 1) // TODO 1.0 opcode: 0x09a
         {
             _id = id;
             _tl = tl;
@@ -37,5 +38,16 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((byte)0); // f
             return stream;
         }
+        
+        // TODO block with f flag
+        /*
+              a2->Reader->ReadByte("f", (unsigned __int8 *)&v5, 0);
+              if ( v5 & 1 )
+                a2->Reader->ReadByte("c", (unsigned __int8 *)v2, 0);
+              if ( v5 & 2 )
+                a2->Reader->ReadUInt16((struc_1 *)a2, "e", v3, 0);
+              if ( v5 & 4 )
+                a2->Reader->ReadUInt32("p", v4, 0);
+         */
     }
 }

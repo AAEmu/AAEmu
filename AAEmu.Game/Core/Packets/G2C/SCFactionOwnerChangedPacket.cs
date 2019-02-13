@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id2;
         private readonly string _newOwnerName;
         
-        public SCFactionOwnerChangedPacket(uint id, uint id2, string newOwnerName) : base(0x015, 1)
+        public SCFactionOwnerChangedPacket(uint id, uint id2, string newOwnerName) : base(0x017, 1) // TODO 1.0 opcode: 0x015
         {
             _id = id;
             _id2 = id2;

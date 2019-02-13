@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _kicked;
         private readonly uint _memberId;
         
-        public SCFamilyMemberRemovedPacket(uint familyId, bool kicked, uint memberId) : base(0x02d, 1)
+        public SCFamilyMemberRemovedPacket(uint familyId, bool kicked, uint memberId) : base(0x031, 1) // TODO 1.0 opcode: 0x02d
         {
             _familyId = familyId;
             _kicked = kicked;

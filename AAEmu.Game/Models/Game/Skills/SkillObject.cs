@@ -11,7 +11,8 @@ namespace AAEmu.Game.Models.Game.Skills
         Unk3 = 3,
         Unk4 = 4,
         Unk5 = 5,
-        Unk6 = 6
+        Unk6 = 6,
+        Unk7 = 7
     }
 
     public class SkillObject : PacketMarshaler
@@ -46,6 +47,9 @@ namespace AAEmu.Game.Models.Game.Skills
                     break;
                 case SkillObjectType.Unk6:
                     obj = new SkillObjectUnk6();
+                    break;
+                case SkillObjectType.Unk7:
+                    obj = new SkillObjectUnk7();
                     break;
                 default:
                     obj = new SkillObject();
@@ -167,6 +171,29 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             base.Write(stream);
             stream.Write(Name);
+            return stream;
+        }
+    }
+
+    public class SkillObjectUnk7 : SkillObject
+    {
+        public uint Id { get; set; }
+        public ulong SupportItemId { get; set; }
+        public bool AutoUseAaPoint { get; set; }
+
+        public override void Read(PacketStream stream)
+        {
+            Id = stream.ReadUInt32();
+            SupportItemId = stream.ReadUInt64();
+            AutoUseAaPoint = stream.ReadBoolean();
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            base.Write(stream);
+            stream.Write(Id);
+            stream.Write(SupportItemId);
+            stream.Write(AutoUseAaPoint);
             return stream;
         }
     }

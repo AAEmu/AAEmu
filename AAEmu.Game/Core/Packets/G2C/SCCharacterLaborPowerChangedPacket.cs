@@ -10,7 +10,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _point;
         private readonly byte _step;
         
-        public SCCharacterLaborPowerChangedPacket(int amount, int action, int point, byte step) : base(0x040, 1)
+        public SCCharacterLaborPowerChangedPacket(int amount, int action, int point, byte step) 
+            : base(0x044, 1) // TODO 1.0 opcode: 0x040
         {
             _amount = amount;
             _action = action;

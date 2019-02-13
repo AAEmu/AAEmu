@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _damage;
 
         public SCUnitDamagedPacket(CastAction castAction, SkillCaster skillCaster, uint casterId, uint targetId, int damage)
-            : base(0x0a0, 1)
+            : base(0x0a6, 1) // TODO 1.0 opcode: 0x0a0
         {
             _castAction = castAction;
             _skillCaster = skillCaster;
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WritePisc(_damage, 0, 0);
             stream.WritePisc(0, 0, 0);
             stream.Write((byte)0); // hol
-            stream.Write((short)289); // de
+            stream.Write((ushort)289); // de
             stream.Write((byte)1); // flag
             stream.Write((byte)1); // result -> to debug info
             // TODO debug info

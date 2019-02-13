@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _killReason;
         private readonly Unit _killer;
 
-        public SCUnitDeathPacket(uint objId, byte killReason, Unit killer = null) : base(0x06c, 1)
+        public SCUnitDeathPacket(uint objId, byte killReason, Unit killer = null) : base(0x070, 1) // TODO 1.0 opcode: 0x06c
         {
             _objId = objId;
             _killReason = killReason;

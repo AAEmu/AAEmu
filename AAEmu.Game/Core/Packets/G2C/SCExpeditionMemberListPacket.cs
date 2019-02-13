@@ -7,11 +7,13 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCExpeditionMemberListPacket : GamePacket
     {
         private readonly uint _total;
+        private readonly uint _id;
         private readonly Member[] _members;
 
-        public SCExpeditionMemberListPacket(uint total, Member[] members) : base(0x013, 1)
+        public SCExpeditionMemberListPacket(uint total, uint id, Member[] members) : base(0x015, 1) // TODO 1.0 opcode: 0x013
         {
             _total = total;
+            _id = id;
             _members = members;
         }
 
@@ -19,6 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_total);
             stream.Write((byte)_members.Length); // TODO max length 20
+            stream.Write(_id);
             foreach (var member in _members)
                 stream.Write(member);
             return stream;
