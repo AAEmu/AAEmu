@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -88,7 +88,7 @@ namespace AAEmu.Game.Core.Managers
             if (!join)
                 return;
 
-            var invitor = WorldManager.Instance.GetCharacter(invitorId);
+            var invitor = WorldManager.Instance.GetCharacterByObjId(invitorId);
             if (invitor == null) return;
 
             if (invitor.Family == 0)
