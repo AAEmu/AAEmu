@@ -65,6 +65,7 @@ namespace AAEmu.Game
             FamilyIdManager.Instance.Initialize();
             VisitedSubZoneIdManager.Instance.Initialize();
             PrivateBookIdManager.Instance.Initialize();
+            FriendIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
@@ -85,6 +86,7 @@ namespace AAEmu.Game
             CharacterManager.Instance.Load();
             FamilyManager.Instance.Load();
             PortalManager.Instance.Load();
+            FriendMananger.Instance.Load();
 
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
