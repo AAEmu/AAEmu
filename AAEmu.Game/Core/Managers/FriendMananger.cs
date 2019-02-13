@@ -61,7 +61,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 if (value.FriendId != owner.Id) continue;
 
-                var friendOwner = WorldManager.Instance.GetCharacter(value.Owner, true);
+                var friendOwner = WorldManager.Instance.GetCharacterById(value.Owner);
                 if (friendOwner != null)
                 {
                     var myInfos = FormatFriend(owner);
@@ -77,7 +77,7 @@ namespace AAEmu.Game.Core.Managers
             var offlineIds = new List<uint>();
             foreach (var id in ids)
             {
-                var friend = WorldManager.Instance.GetCharacter(id, true);
+                var friend = WorldManager.Instance.GetCharacterById(id);
                 if (friend == null)
                 {
                     offlineIds.Add(id);
