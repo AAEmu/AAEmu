@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFamilyLeavePacket : GamePacket
     {
-        public CSFamilyLeavePacket() : base(0x01b, 1)
+        public CSFamilyLeavePacket() : base(0x01c, 1)  //TODO : 1.0 opcode: 0x01b
         {
         }
 

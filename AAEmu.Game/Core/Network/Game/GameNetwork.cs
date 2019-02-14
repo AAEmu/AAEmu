@@ -41,12 +41,12 @@ namespace AAEmu.Game.Core.Network.Game
 //            RegisterPacket(0x016, 1, typeof(CSFactionImmigrateToOriginPacket));
 //            RegisterPacket(0x017, 1, typeof(CSFactionKickToOriginPacket));
 //            RegisterPacket(0x018, 1, typeof(CSFactionDeclareHostilePacket));
-//            RegisterPacket(0x019, 1, typeof(CSFamilyInviteMemberPacket));
-//            RegisterPacket(0x01a, 1, typeof(CSFamilyReplyInvitationPacket));
-//            RegisterPacket(0x01b, 1, typeof(CSFamilyLeavePacket));
-//            RegisterPacket(0x01c, 1, typeof(CSFamilyKickPacket));
-//            RegisterPacket(0x01d, 1, typeof(CSFamilyChangeTitlePacket));
-//            RegisterPacket(0x01e, 1, typeof(CSFamilyChangeOwnerPacket));
+            RegisterPacket(0x01a, 1, typeof(CSFamilyInviteMemberPacket));
+            RegisterPacket(0x01b, 1, typeof(CSFamilyReplyInvitationPacket));
+            RegisterPacket(0x01c, 1, typeof(CSFamilyLeavePacket));
+            RegisterPacket(0x01d, 1, typeof(CSFamilyKickPacket));
+            RegisterPacket(0x01e, 1, typeof(CSFamilyChangeTitlePacket));
+            RegisterPacket(0x01f, 1, typeof(CSFamilyChangeOwnerPacket));
             RegisterPacket(0x020, 1, typeof(CSListCharacterPacket)); // TODO 1.0 opcode: 0x01f
             RegisterPacket(0x021, 1, typeof(CSRefreshInCharacterListPacket));
             RegisterPacket(0x022, 1, typeof(CSCreateCharacterPacket));
@@ -110,7 +110,7 @@ namespace AAEmu.Game.Core.Network.Game
 //            RegisterPacket(0x05e, 1, typeof(CSBuyHousePacket));
 //            RegisterPacket(0x05f, 1, typeof(CSJoinUserChatChannelPacket));
 //            RegisterPacket(0x060, 1, typeof(CSLeaveChatChannelPacket));
-//            RegisterPacket(0x061, 1, typeof(CSSendChatMessagePacket));
+            RegisterPacket(0x063, 1, typeof(CSSendChatMessagePacket));
 //            RegisterPacket(0x062, 1, typeof(CSConsoleCmdUsedPacket));
 //            RegisterPacket(0x063, 1, typeof(CSInteractNPCPacket));
 //            RegisterPacket(0x064, 1, typeof(CSInteractNPCEndPacket));
@@ -242,11 +242,11 @@ namespace AAEmu.Game.Core.Network.Game
 //            RegisterPacket(0x0fd, 1, typeof(CSDowngradeExpertLimitPacket));
 //            RegisterPacket(0x0fe, 1, typeof(CSExpandExpertPacket));
 //            RegisterPacket(0x100, 1, typeof(CSSearchListPacket));
-//            RegisterPacket(0x101, 1, typeof(CSAddFriendPacket));
-//            RegisterPacket(0x102, 1, typeof(CSDeleteFriendPacket));
-//            RegisterPacket(0x103, 1, typeof(CSCharDetailPacket));
-//            RegisterPacket(0x104, 1, typeof(CSAddBlockedUserPacket));
-//            RegisterPacket(0x105, 1, typeof(CSDeleteBlockedUserPacket));
+            RegisterPacket(0x104, 1, typeof(CSAddFriendPacket));
+            RegisterPacket(0x105, 1, typeof(CSDeleteFriendPacket));
+            RegisterPacket(0x106, 1, typeof(CSCharDetailPacket));
+            RegisterPacket(0x107, 1, typeof(CSAddBlockedUserPacket));
+            RegisterPacket(0x108, 1, typeof(CSDeleteBlockedUserPacket));
 //            RegisterPacket(0x10f, 1, typeof(CSNotifySubZonePacket));
 //            RegisterPacket(0x113, 1, typeof(CSRequestUIDataPacket));
 //            RegisterPacket(0x114, 1, typeof(CSSaveUIDataPacket));

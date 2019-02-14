@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAddFriendPacket : GamePacket
     {
-        public CSAddFriendPacket() : base(0x101, 1)
+        public CSAddFriendPacket() : base(0x104, 1) // TODO 1.0 opcode: 0x101
         {
         }
 

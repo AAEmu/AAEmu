@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFamilyKickPacket : GamePacket
     {
-        public CSFamilyKickPacket() : base(0x01c, 1)
+        public CSFamilyKickPacket() : base(0x01d, 1)  //TODO : 1.0 opcode: 0x01c
         {
         }
 
