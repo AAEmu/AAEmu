@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _type;
         private readonly byte _modelPostureType;
 
-        public SCUnitStatePacket(Unit unit) : base(0x064, 1)
+        public SCUnitStatePacket(Unit unit) : base(0x068, 1) // TODO 1.0 opcode: 0x064
         {
             _unit = unit;
             if (_unit is Character)
@@ -72,6 +72,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.WriteBc(npc.ObjId);
                     stream.Write(npc.TemplateId); // npc templateId
                     stream.Write(0u); // type(id)
+                    stream.Write((byte)0); // clientDriven
                     break;
                 case 2:
                     var slave = (Slave)_unit;
@@ -112,7 +113,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
 
             stream.Write(_unit.Master?.Name ?? ""); // master
-            
+
             stream.Write(Helpers.ConvertX(_unit.Position.X));
             stream.Write(Helpers.ConvertY(_unit.Position.Y));
             stream.Write(Helpers.ConvertZ(_unit.Position.Z));
@@ -217,7 +218,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(0f); // yaw
                     break;
             }
-            
+
             stream.Write(_unit.ActiveWeapon);
 
             if (_unit is Character)
@@ -239,7 +240,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((byte)0); // learnedSkillCount
                 stream.Write(0); // learnedBuffCount
             }
-            
+
             stream.Write(_unit.Position.RotationX);
             stream.Write(_unit.Position.RotationY);
             stream.Write(_unit.Position.RotationZ);
@@ -298,9 +299,12 @@ namespace AAEmu.Game.Core.Packets.G2C
 
                 stream.WriteBc(0);
 
-                character.VisualOptions.Write(stream, 15);
+                character.VisualOptions.Write(stream, 31);
 
                 stream.Write(1); // premium
+
+                for (var i = 0; i < 6; i++)
+                    stream.Write(0); // pStat
             }
 
             var goodBuffs = new List<Effect>();
@@ -361,6 +365,9 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0); // charged
                 stream.Write(0u); // type(id) -> cooldownSkill
             }
+
+//            for (var i = 0; i < 255; i++)
+//                stream.Write(0);
 
             return stream;
         }

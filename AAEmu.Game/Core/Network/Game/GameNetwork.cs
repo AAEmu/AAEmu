@@ -52,11 +52,11 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x022, 1, typeof(CSCreateCharacterPacket));
 //            RegisterPacket(0x022, 1, typeof(CSEditCharacterPacket));
 //            RegisterPacket(0x023, 1, typeof(CSDeleteCharacterPacket));
-//            RegisterPacket(0x024, 1, typeof(CSSelectCharacterPacket));
-//            RegisterPacket(0x025, 1, typeof(CSSpawnCharacterPacket));
+            RegisterPacket(0x025, 1, typeof(CSSelectCharacterPacket));
+            RegisterPacket(0x026, 1, typeof(CSSpawnCharacterPacket));
 //            RegisterPacket(0x026, 1, typeof(CSCancelCharacterDeletePacket));
-//            RegisterPacket(0x027, 1, typeof(CSNotifyInGamePacket));
-//            RegisterPacket(0x028, 1, typeof(CSNotifyInGameCompletedPacket));
+            RegisterPacket(0x029, 1, typeof(CSNotifyInGamePacket));
+            RegisterPacket(0x02a, 1, typeof(CSNotifyInGameCompletedPacket));
 //            RegisterPacket(0x029, 1, typeof(CSEditorGameModePacket));
 //            RegisterPacket(0x02a, 1, typeof(CSChangeTargetPacket));
 //            RegisterPacket(0x02b, 1, typeof(CSRequestCharBriefPacket));
@@ -145,7 +145,7 @@ namespace AAEmu.Game.Core.Network.Game
 //            RegisterPacket(0x085, 1, typeof(CSSetOverHeadMarkerPacket));
 //            RegisterPacket(0x086, 1, typeof(CSSetPingPosPacket));
 //            RegisterPacket(0x087, 1, typeof(CSAskRiskyTeamActionPacket));
-//            RegisterPacket(0x088, 1, typeof(CSMoveUnitPacket));
+            RegisterPacket(0x089, 1, typeof(CSMoveUnitPacket));
 //            RegisterPacket(0x089, 1, typeof(CSSkillControllerStatePacket));
 //            RegisterPacket(0x08a, 1, typeof(CSCreateSkillControllerPacket));
 //            RegisterPacket(0x08b, 1, typeof(CSActiveWeaponChangedPacket));
@@ -237,7 +237,7 @@ namespace AAEmu.Game.Core.Network.Game
 //            RegisterPacket(0x0f6, 1, typeof(CSChangeAppellationPacket));
 //            RegisterPacket(0x0f9, 1, typeof(CSCreateShipyardPacket));
 //            RegisterPacket(0x0fa, 1, typeof(CSRestartMainQuestPacket));
-//            RegisterPacket(0x0fb, 1, typeof(CSSetLpManageCharacterPacket));
+            RegisterPacket(0x0fe, 1, typeof(CSSetLpManageCharacterPacket));
 //            RegisterPacket(0x0fc, 1, typeof(CSUpgradeExpertLimitPacket));
 //            RegisterPacket(0x0fd, 1, typeof(CSDowngradeExpertLimitPacket));
 //            RegisterPacket(0x0fe, 1, typeof(CSExpandExpertPacket));
@@ -251,7 +251,7 @@ namespace AAEmu.Game.Core.Network.Game
 //            RegisterPacket(0x113, 1, typeof(CSRequestUIDataPacket));
 //            RegisterPacket(0x114, 1, typeof(CSSaveUIDataPacket));
 //            RegisterPacket(0x115, 1, typeof(CSBroadcastVisualOptionPacket));
-//            RegisterPacket(0x116, 1, typeof(CSRestrictCheckPacket));
+            RegisterPacket(0x11a, 1, typeof(CSRestrictCheckPacket));
 //            RegisterPacket(0x117, 1, typeof(CSICSMenuListPacket));
 //            RegisterPacket(0x118, 1, typeof(CSICSGoodsListPacket));
 //            RegisterPacket(0x119, 1, typeof(CSICSBuyGoodPacket));

@@ -25,6 +25,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDB, 0xFB, 0x17, 0xC0}); //angles
             stream.Write(_character.Expirience);
             stream.Write(_character.RecoverableExp);
+            stream.Write(0u); // penaltiedExp
             stream.Write(0); // returnDistrictId
             stream.Write((uint)0); // returnDistrict -> type(id)
             stream.Write((uint)0); // resurrectionDistrict -> type(id)

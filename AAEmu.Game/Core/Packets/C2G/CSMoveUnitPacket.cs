@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMoveUnitPacket : GamePacket
     {
-        public CSMoveUnitPacket() : base(0x088, 1)
+        public CSMoveUnitPacket() : base(0x089, 1) // TODO 1.0 opcode: 0x088
         {
         }
 

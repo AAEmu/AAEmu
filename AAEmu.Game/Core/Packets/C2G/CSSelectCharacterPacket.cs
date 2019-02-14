@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSelectCharacterPacket : GamePacket
     {
-        public CSSelectCharacterPacket() : base(0x024, 1)
+        public CSSelectCharacterPacket() : base(0x025, 1) // TODO 1.0 opcode: 0x024
         {
         }
 
@@ -19,6 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var characterId = stream.ReadUInt32();
             var gm = stream.ReadBoolean();
+            stream.ReadByte();
 
             if (Connection.Characters.ContainsKey(characterId))
             {
@@ -30,35 +31,35 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
 
                 Connection.SendPacket(new SCCharacterStatePacket(character));
-                Connection.SendPacket(new SCCharacterGamePointsPacket(character));
+                // Connection.SendPacket(new SCCharacterGamePointsPacket(character));
                 Connection.ActiveChar.Inventory.Send();
-                Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
-                
-                Connection.ActiveChar.Quests.Send();
-                Connection.ActiveChar.Quests.SendCompleted();
-                
-                Connection.ActiveChar.Actability.Send();
-                Connection.ActiveChar.Appellations.Send();
+                // Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
 
-                Connection.SendPacket(new SCFriendsPacket(0, new Friend[0]));
+                // Connection.ActiveChar.Quests.Send();
+                // Connection.ActiveChar.Quests.SendCompleted();
 
-                foreach (var conflict in ZoneManager.Instance.GetConflicts())
-                {
-                    Connection.SendPacket(
-                        new SCConflictZoneStatePacket(
-                            conflict.ZoneGroupId,
-                            ZoneConflictType.Trouble0,
-                            conflict.NoKillMin[0] > 0 ? DateTime.Now.AddMinutes(conflict.NoKillMin[0]) : DateTime.MinValue
-                        )
-                    );
-                }
+                // Connection.ActiveChar.Actability.Send();
+                // Connection.ActiveChar.Appellations.Send();
+
+                // Connection.SendPacket(new SCFriendsPacket(0, new Friend[0]));
+
+//                foreach (var conflict in ZoneManager.Instance.GetConflicts())
+//                {
+//                    Connection.SendPacket(
+//                        new SCConflictZoneStatePacket(
+//                            conflict.ZoneGroupId,
+//                            ZoneConflictType.Trouble0,
+//                            conflict.NoKillMin[0] > 0 ? DateTime.Now.AddMinutes(conflict.NoKillMin[0]) : DateTime.MinValue
+//                        )
+//                    );
+//                }
 
                 FactionManager.Instance.SendFactions(Connection.ActiveChar);
                 FactionManager.Instance.SendRelations(Connection.ActiveChar);
 
-                Connection.ActiveChar.SendOption("quest_notifier_list");
-                Connection.ActiveChar.SendOption("roadmap_option");
-                Connection.ActiveChar.SendOption("quest_context_state_values");
+//                Connection.ActiveChar.SendOption("quest_notifier_list");
+//                Connection.ActiveChar.SendOption("roadmap_option");
+//                Connection.ActiveChar.SendOption("quest_context_state_values");
             }
             else
             {

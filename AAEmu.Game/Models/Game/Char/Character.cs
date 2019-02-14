@@ -1086,7 +1086,7 @@ namespace AAEmu.Game.Models.Game.Char
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
-            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            // character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         }
 
         public override void RemoveVisibleObject(Character character)

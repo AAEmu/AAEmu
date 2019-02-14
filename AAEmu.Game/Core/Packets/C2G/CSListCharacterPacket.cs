@@ -41,7 +41,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 //                );
 //            }
 
-//            Connection.SendPacket(new SCRaceCongestionPacket());
+            Connection.SendPacket(new SCRaceCongestionPacket());
 
             if (characters.Length == 0)
                 Connection.SendPacket(new SCCharacterListPacket(true, characters));
