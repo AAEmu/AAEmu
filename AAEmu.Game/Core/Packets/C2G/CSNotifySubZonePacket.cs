@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNotifySubZonePacket : GamePacket
     {
-        public CSNotifySubZonePacket() : base(0x10f, 1)
+        public CSNotifySubZonePacket() : base(0x112, 1) // TODO 1.0 opcode: 0x10f
         {
         }
 

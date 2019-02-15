@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSwapItemsPacket : GamePacket
     {
-        public CSSwapItemsPacket() : base(0x038, 1)
+        public CSSwapItemsPacket() : base(0x03a, 1) // TODO 1.0 opcode: 0x038
         {
         }
 

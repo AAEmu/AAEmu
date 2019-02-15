@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellItemsPacket : GamePacket
     {
-        public CSSellItemsPacket() : base(0x0ac, 1)
+        public CSSellItemsPacket() : base(0x0b0, 1) // TODO 1.0 opcode: 0x0ac
         {
         }
 

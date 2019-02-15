@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -13,7 +13,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var name = stream.ReadString();
 
-            _log.Warn("CSDeleteFriendPacket, {0}", name);
+            _log.Info("CSDeleteFriendPacket, {0}", name);
+            Connection.ActiveChar.Friends.RemoveFriend(name);
         }
     }
 }
