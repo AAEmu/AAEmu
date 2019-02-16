@@ -1,20 +1,27 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Chat;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCLeavedChatChannelPacket : GamePacket
     {
-        private long _chat;
+        private readonly ChatType _type;
+        private readonly short _subType;
+        private readonly uint _factionId;
 
-        public SCLeavedChatChannelPacket(long chat) : base(0x0c5, 1)
+        public SCLeavedChatChannelPacket(ChatType type, short subType, uint factionId) : base(0x0cb, 1) // 0x0c5
         {
-            _chat = chat;
+            _type = type;
+            _subType = subType;
+            _factionId = factionId;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_chat);
+            stream.Write((short) _type);
+            stream.Write(_subType);
+            stream.Write(_factionId);
             return stream;
         }
     }

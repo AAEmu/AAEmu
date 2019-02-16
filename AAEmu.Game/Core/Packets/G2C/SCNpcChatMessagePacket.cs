@@ -4,13 +4,13 @@ using AAEmu.Game.Models.Game.Chat;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCJoinedChatChannelPacket : GamePacket
+    public class SCNpcChatMessagePacket : GamePacket
     {
         private readonly ChatType _type;
         private readonly short _subType;
         private readonly uint _factionId;
 
-        public SCJoinedChatChannelPacket(ChatType type, short subType, uint factionId) : base(0x0ca, 1) // 0x0c4
+        public SCNpcChatMessagePacket(ChatType type, short subType, uint factionId) : base(0x0cd, 1)
         {
             _type = type;
             _subType = subType;
@@ -22,8 +22,13 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((short) _type);
             stream.Write(_subType);
             stream.Write(_factionId);
-            // -------------
-            stream.Write(""); // name
+            stream.WriteBc(0); // bc
+            stream.Write("test"); // name
+            stream.WriteBc(0); // bc
+            stream.Write((byte)0); // kind
+            stream.Write(0); // type
+            stream.Write("test"); // text
+
             return stream;
         }
     }

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly (uint id, bool active)[] _appellations;
 
-        public SCAppellationsPacket((uint id, bool active)[] appellations) : base(0x19a, 1)
+        public SCAppellationsPacket((uint id, bool active)[] appellations) : base(0x1a2, 1) // 0x19a
         {
             _appellations = appellations;
         }

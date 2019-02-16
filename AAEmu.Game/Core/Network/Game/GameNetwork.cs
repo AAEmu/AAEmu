@@ -77,14 +77,14 @@ namespace AAEmu.Game.Core.Network.Game
             //            RegisterPacket(0x03b, 1, typeof(CSRepairAllEquipmentsPacket));
             //            RegisterPacket(0x03d, 1, typeof(CSSplitCofferItemPacket));
             //            RegisterPacket(0x03e, 1, typeof(CSSwapCofferItemsPacket));
-            //            RegisterPacket(0x03f, 1, typeof(CSExpandSlotsPacket));
+            RegisterPacket(0x041, 1, typeof(CSExpandSlotsPacket));
             //            RegisterPacket(0x040, 1, typeof(CSSellBackpackGoodsPacket));
             //            RegisterPacket(0x041, 1, typeof(CSSpecialtyRatioPacket));
             //            RegisterPacket(0x042, 1, typeof(CSListSpecialtyGoodsPacket));
             //            RegisterPacket(0x043, 1, typeof(CSBuySpecialtyItemPacket));
             //            RegisterPacket(0x044, 1, typeof(CSSpecialtyRecordLoadPacket));
-            //            RegisterPacket(0x045, 1, typeof(CSDepositMoneyPacket));
-            //            RegisterPacket(0x046, 1, typeof(CSWithdrawMoneyPacket));
+            RegisterPacket(0x047, 1, typeof(CSDepositMoneyPacket));
+            RegisterPacket(0x048, 1, typeof(CSWithdrawMoneyPacket));
             //            RegisterPacket(0x047, 1, typeof(CSConvertItemLookPacket));
             //            RegisterPacket(0x048, 1, typeof(CSItemSecurePacket));
             //            RegisterPacket(0x049, 1, typeof(CSItemUnsecurePacket));
@@ -97,7 +97,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x052, 1, typeof(CSStartSkillPacket));
             //            RegisterPacket(0x052, 1, typeof(CSStopCastingPacket));
             //            RegisterPacket(0x053, 1, typeof(CSRemoveBuffPacket));
-            //            RegisterPacket(0x054, 1, typeof(CSConstructHouseTaxPacket));
+            RegisterPacket(0x056, 1, typeof(CSConstructHouseTaxPacket));
             //            RegisterPacket(0x055, 1, typeof(CSCreateHousePacket));
             //            RegisterPacket(0x056, 1, typeof(CSDecorateHousePacket));
             //            RegisterPacket(0x057, 1, typeof(CSChangeHouseNamePacket));
@@ -183,7 +183,7 @@ namespace AAEmu.Game.Core.Network.Game
             //            RegisterPacket(0x0ad, 1, typeof(CSListSoldItemPacket));
             //            RegisterPacket(0x0ae, 1, typeof(CSBuyPriestBuffPacket));
             //            RegisterPacket(0x0af, 1, typeof(CSUseTeleportPacket));
-            //            RegisterPacket(0x0b0, 1, typeof(CSTeleportEndedPacket));
+                        RegisterPacket(0x0b4, 1, typeof(CSTeleportEndedPacket));
             //            RegisterPacket(0x0b1, 1, typeof(CSRepairPetItemsPacket));
             //            RegisterPacket(0x0b2, 1, typeof(CSUpdateActionSlotPacket));
             //            RegisterPacket(0x0b3, 1, typeof(CSAuctionPostPacket));
@@ -191,7 +191,7 @@ namespace AAEmu.Game.Core.Network.Game
             //            RegisterPacket(0x0b5, 1, typeof(CSBidAuctionPacket));
             //            RegisterPacket(0x0b6, 1, typeof(CSCancelAuctionPacket));
             //            RegisterPacket(0x0b7, 1, typeof(CSAuctionMyBidListPacket));
-            //            RegisterPacket(0x0b8, 1, typeof(CSAuctionLowestPricePacket));
+            RegisterPacket(0x0bc, 1, typeof(CSAuctionLowestPricePacket));
             //            RegisterPacket(0x0b9, 1, typeof(CSRollDicePacket));
             //            RegisterPacket(0x0c7, 1, typeof(CSHangPacket));
             //            RegisterPacket(0x0c8, 1, typeof(CSUnhangPacket));

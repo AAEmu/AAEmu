@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly float _time;
 
-        public SCTimeOfDayPacket(float time) : base(0x0e9, 1)
+        public SCTimeOfDayPacket(float time) : base(0x0ee, 1) // 0x0e9
         {
             _time = time;
         }

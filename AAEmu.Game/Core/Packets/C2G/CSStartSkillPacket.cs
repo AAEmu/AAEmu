@@ -26,6 +26,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var flag = stream.ReadByte();
             var flagType = flag & 15;
             var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
+            if (flagType > 0) skillObject.Read(stream);
 
             _log.Debug("StartSkill: Id {0}, flag {1}", skillId, flag);
 

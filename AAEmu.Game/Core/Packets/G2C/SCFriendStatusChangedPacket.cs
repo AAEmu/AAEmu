@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Friend _friend;
 
-        public SCFriendStatusChangedPacket(Friend friend) : base(0x04d, 1)
+        public SCFriendStatusChangedPacket(Friend friend) : base(0x050, 1) // 0x04d
         {
             _friend = friend;
         }

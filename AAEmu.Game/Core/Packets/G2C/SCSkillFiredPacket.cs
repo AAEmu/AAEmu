@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private Skill _skill;
 
         public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) 
-            : base(0x0a1, 1) // TODO 1.0 opcode: 0x09b
+            : base(0x0a1, 1) // 0x09b
         {
             _id = id;
             _tl = tl;

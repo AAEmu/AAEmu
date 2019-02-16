@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Doodad[] _doodads;
 
-        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(0x10c, 1)
+        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(0x110, 1) // 0x10c
         {
             _doodads = doodads;
         }

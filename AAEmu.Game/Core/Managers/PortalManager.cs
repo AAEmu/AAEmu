@@ -120,21 +120,23 @@ namespace AAEmu.Game.Core.Managers
 
         private bool CheckItemAndRemove(Character owner, uint itemId, int amount)
         {
-            if (owner.Inventory.CheckItems(itemId, amount))
-            {
-                var items = owner.Inventory.RemoveItem(itemId, amount);
-                var tasks = new List<ItemTask>();
-                foreach (var (item, count) in items)
-                {
-                    if (item.Count == 0)
-                        tasks.Add(new ItemRemove(item));
-                    else
-                        tasks.Add(new ItemCountUpdate(item, -count));
-                }
-                owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, tasks, new List<ulong>()));
-                return true;
-            }
-            return false;
+            // TODO ITEM TASK FIX
+            //if (owner.Inventory.CheckItems(itemId, amount))
+            //{
+            //    var items = owner.Inventory.RemoveItem(itemId, amount);
+            //    var tasks = new List<ItemTask>();
+            //    foreach (var (item, count) in items)
+            //    {
+            //        if (item.Count == 0)
+            //            tasks.Add(new ItemRemove(item));
+            //        else
+            //            tasks.Add(new ItemCountUpdate(item, -count));
+            //    }
+            //    owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, tasks, new List<ulong>()));
+            //    return true;
+            //}
+            //return false;
+            return true;
         }
 
         private bool CheckCanOpenPortal(Character owner, uint targetZoneId)

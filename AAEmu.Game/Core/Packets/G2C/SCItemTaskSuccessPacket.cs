@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly List<ItemTask> _tasks;
         private readonly List<ulong> _forceRemove;
 
-        public SCItemTaskSuccessPacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove) : base(0x08d, 1) // TODO 1.0 opcode: 0x08b
+        public SCItemTaskSuccessPacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove) : base(0x08f, 1) // TODO 1.0 opcode: 0x08b
         {
             _action = action;
             _tasks = tasks;

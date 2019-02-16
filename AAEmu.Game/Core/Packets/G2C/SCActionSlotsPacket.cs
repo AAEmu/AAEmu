@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ActionSlot[] _slots;
 
-        public SCActionSlotsPacket(ActionSlot[] slots) : base(0x127, 1)
+        public SCActionSlotsPacket(ActionSlot[] slots) : base(0x12b, 1) // 0x127
         {
             _slots = slots;
         }
