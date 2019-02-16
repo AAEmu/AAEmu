@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Portal[] _portals;
         private readonly int _returnDistrictId;
         
-        public SCCharacterReturnDistrictsPacket(Portal[] portals, int returnDistrictId) : base(0x057, 1)
+        public SCCharacterReturnDistrictsPacket(Portal[] portals, int returnDistrictId) : base(0x05b, 1) // 0x057
         {
             _portals = portals;
             _returnDistrictId = returnDistrictId;

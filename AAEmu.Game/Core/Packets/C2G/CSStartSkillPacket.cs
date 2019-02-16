@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartSkillPacket : GamePacket
     {
-        public CSStartSkillPacket() : base(0x050, 1)
+        public CSStartSkillPacket() : base(0x052, 1) // TODO 1.0 opcode: 0x050
         {
         }
 
@@ -26,6 +26,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var flag = stream.ReadByte();
             var flagType = flag & 15;
             var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
+            if (flagType > 0) skillObject.Read(stream);
 
             _log.Debug("StartSkill: Id {0}, flag {1}", skillId, flag);
 

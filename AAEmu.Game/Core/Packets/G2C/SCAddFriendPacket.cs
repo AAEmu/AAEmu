@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _success;
         private readonly short _errorMessage;
 
-        public SCAddFriendPacket(Friend friend, bool success, short errorMessage) : base(0x04b, 1)
+        public SCAddFriendPacket(Friend friend, bool success, short errorMessage) : base(0x04f, 1) // 0x04b
         {
             _friend = friend;
             _success = success;

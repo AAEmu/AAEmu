@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
@@ -61,15 +62,21 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillObjectUnk1 : SkillObject
+    public class SkillObjectUnk1 : SkillObject // changed
     {
         public byte Type { get; set; }
         public int Id { get; set; }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Z { get; set; }
 
         public override void Read(PacketStream stream)
         {
             Type = stream.ReadByte();
             Id = stream.ReadInt32();
+            X = Helpers.ConvertLongX(stream.ReadInt64());
+            Y = Helpers.ConvertLongX(stream.ReadInt64());
+            Z = stream.ReadSingle();
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -77,6 +84,9 @@ namespace AAEmu.Game.Models.Game.Skills
             base.Write(stream);
             stream.Write(Type);
             stream.Write(Id);
+            stream.Write(Helpers.ConvertLongX(X));
+            stream.Write(Helpers.ConvertLongX(Y));
+            stream.Write(Z);
             return stream;
         }
     }
@@ -118,15 +128,15 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
     
-    public class SkillObjectUnk4 : SkillObject
+    public class SkillObjectUnk4 : SkillObject // changed
     {
-        public long Id { get; set; }
+        public long X { get; set; }
         public long Y { get; set; }
         public float Z { get; set; }
 
         public override void Read(PacketStream stream)
         {
-            Id = stream.ReadInt64();
+            X = stream.ReadInt64();
             Y = stream.ReadInt64();
             Z = stream.ReadSingle();
         }
@@ -134,14 +144,14 @@ namespace AAEmu.Game.Models.Game.Skills
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(Id);
+            stream.Write(X);
             stream.Write(Y);
             stream.Write(Z);
             return stream;
         }
     }
     
-    public class SkillObjectUnk5 : SkillObject
+    public class SkillObjectUnk5 : SkillObject // changed
     {
         public int Step { get; set; }
 
