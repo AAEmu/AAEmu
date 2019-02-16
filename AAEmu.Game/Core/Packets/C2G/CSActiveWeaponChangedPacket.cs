@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSActiveWeaponChangedPacket : GamePacket
     {
-        public CSActiveWeaponChangedPacket() : base(0x08b, 1)
+        public CSActiveWeaponChangedPacket() : base(0x08c, 1) //TODO 1.0 opcode: 0x08b
         {
         }
 

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _tl;
         private readonly byte _permission;
         
-        public SCHousePermissionChangedPacket(ushort tl, byte permission) : base(0x0b6, 1)
+        public SCHousePermissionChangedPacket(ushort tl, byte permission) : base(0x0bd, 1) //TODO 1.0 opcode: 0x0b6
         {
             _tl = tl;
             _permission = permission;

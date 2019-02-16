@@ -183,7 +183,7 @@ namespace AAEmu.Game.Core.Managers
                 int TotalTax = BaseTax;
 
                 SCConstructHouseTaxPacket houseTaxPacket =
-                    new SCConstructHouseTaxPacket(designId, HouseNum, BaseTax, TotalTax);
+                    new SCConstructHouseTaxPacket(designId, 0, HouseNum, false, BaseTax, TotalTax, 111, 222);
                 builder.SendPacket(houseTaxPacket);
             }
         }

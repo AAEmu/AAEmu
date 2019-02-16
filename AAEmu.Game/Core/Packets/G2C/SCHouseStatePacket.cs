@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly HouseData _houseData;
         
-        public SCHouseStatePacket(HouseData houseData) : base(0x0b4, 1)
+        public SCHouseStatePacket(HouseData houseData) : base(0x0bb, 1) //TODO 1.0 opcode: 0x0b4
         {
             _houseData = houseData;
         }

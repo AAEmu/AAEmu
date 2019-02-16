@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDecorateHousePacket : GamePacket
     {
-        public CSDecorateHousePacket() : base(0x056, 1)
+        public CSDecorateHousePacket() : base(0x058, 1) //TODO 1.0 opcode: 0x056
         {
         }
 

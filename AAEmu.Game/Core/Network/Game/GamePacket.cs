@@ -41,7 +41,7 @@ namespace AAEmu.Game.Core.Network.Game
                 throw;
             }
 
-            if (!(TypeId == 0x013 && Level == 2) && !(TypeId == 0x066 && Level == 1))
+            if (!(TypeId == 0x013 && Level == 2) && !(TypeId == 0x066 && Level == 1) && !(TypeId == 0x068 && Level == 1))
                 _log.Debug("GamePacket: S->C type {0:X}\n{1}", TypeId, ps);
 
             return ps;
@@ -49,7 +49,7 @@ namespace AAEmu.Game.Core.Network.Game
 
         public override PacketBase<GameConnection> Decode(PacketStream ps)
         {
-            if (!(TypeId == 0x012 && Level == 2) && !(TypeId == 0x088 && Level == 1))
+            if (!(TypeId == 0x012 && Level == 2) && !(TypeId == 0x089 && Level == 1))
                 _log.Debug("GamePacket: C->S type {0:X}\n{1}", TypeId, ps);
 
             try

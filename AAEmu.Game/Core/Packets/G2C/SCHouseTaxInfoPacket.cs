@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isAlreadyPaid;
         
         public SCHouseTaxInfoPacket(ushort tl, int dominionTaxRate, int moneyAmount, ulong due, int weeksWithoutPay, bool isAlreadyPaid)
-            : base(0x0bc, 1)
+            : base(0x0c2, 1) //TODO 1.0 opcode: 0x0bc
         {
             _tl = tl;
             _dominionTaxRate = dominionTaxRate;

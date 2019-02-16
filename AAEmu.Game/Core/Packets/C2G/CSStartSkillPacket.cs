@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartSkillPacket : GamePacket
     {
-        public CSStartSkillPacket() : base(0x050, 1)
+        public CSStartSkillPacket() : base(0x052, 1)
         {
         }
 
