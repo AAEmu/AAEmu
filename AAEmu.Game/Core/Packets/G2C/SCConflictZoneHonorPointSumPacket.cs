@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _zoneId;
         private readonly int _sum;
 
-        public SCConflictZoneHonorPointSumPacket(ushort zoneId, int sum) : base(0x0e8, 1)
+        public SCConflictZoneHonorPointSumPacket(ushort zoneId, int sum) : base(0x0ed, 1) // 0x0e8
         {
             _zoneId = zoneId;
             _sum = sum;

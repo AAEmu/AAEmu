@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSConstructHouseTaxPacket : GamePacket
     {
-        public CSConstructHouseTaxPacket() : base(0x056, 1) //TODO 1.0 opcode: 0x054
+        public CSConstructHouseTaxPacket() : base(0x056, 1) // TODO 1.0 opcode: 0x054
         {
         }
 

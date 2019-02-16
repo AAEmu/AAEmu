@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Templates
 {
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Templates
         public int GrowthTime { get; set; }
         public bool DespawnOnCollision { get; set; }
         public bool NoCollision { get; set; }
-        // TODO 1.2 public uint RestrictZoneId { get; set; }
+        public uint RestrictZoneId { get; set; }
 
         public List<DoodadFuncGroups> FuncGroups { get; set; }
 

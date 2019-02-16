@@ -1,6 +1,10 @@
-using System;
+﻿using System;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using Quartz.Impl.AdoJobStore;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -103,7 +107,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         Unk47 = 108,
         Unk48 = 109
     }
-    
+
     public class SpecialEffect : EffectTemplate
     {
         public SpecialType SpecialEffectTypeId { get; set; } // TODO inspect
@@ -117,7 +121,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time)
         {
-            _log.Debug("SpecialEffect");
+            _log.Debug("SpecialEffect, Special: {0}", SpecialEffectTypeId);
         }
     }
 }

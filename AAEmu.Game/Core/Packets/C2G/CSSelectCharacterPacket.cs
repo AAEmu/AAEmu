@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -31,35 +31,36 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
 
                 Connection.SendPacket(new SCCharacterStatePacket(character));
-                // Connection.SendPacket(new SCCharacterGamePointsPacket(character));
+                Connection.SendPacket(new SCCharacterGamePointsPacket(character));
                 Connection.ActiveChar.Inventory.Send();
-                // Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
+                Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
 
                 // Connection.ActiveChar.Quests.Send();
                 // Connection.ActiveChar.Quests.SendCompleted();
 
-                // Connection.ActiveChar.Actability.Send();
-                // Connection.ActiveChar.Appellations.Send();
+                Connection.ActiveChar.Actability.Send();
+                Connection.ActiveChar.Appellations.Send();
 
-                // Connection.SendPacket(new SCFriendsPacket(0, new Friend[0]));
+                Connection.ActiveChar.Portals.Send();
+                Connection.ActiveChar.Friends.Send();
 
-//                foreach (var conflict in ZoneManager.Instance.GetConflicts())
-//                {
-//                    Connection.SendPacket(
-//                        new SCConflictZoneStatePacket(
-//                            conflict.ZoneGroupId,
-//                            ZoneConflictType.Trouble0,
-//                            conflict.NoKillMin[0] > 0 ? DateTime.Now.AddMinutes(conflict.NoKillMin[0]) : DateTime.MinValue
-//                        )
-//                    );
-//                }
+                foreach (var conflict in ZoneManager.Instance.GetConflicts())
+                {
+                    Connection.SendPacket(
+                        new SCConflictZoneStatePacket(
+                            conflict.ZoneGroupId,
+                            ZoneConflictType.Trouble0,
+                            conflict.NoKillMin[0] > 0 ? DateTime.Now.AddMinutes(conflict.NoKillMin[0]) : DateTime.MinValue
+                        )
+                    );
+                }
 
                 FactionManager.Instance.SendFactions(Connection.ActiveChar);
                 FactionManager.Instance.SendRelations(Connection.ActiveChar);
 
-//                Connection.ActiveChar.SendOption("quest_notifier_list");
-//                Connection.ActiveChar.SendOption("roadmap_option");
-//                Connection.ActiveChar.SendOption("quest_context_state_values");
+                //                Connection.ActiveChar.SendOption("quest_notifier_list");
+                //                Connection.ActiveChar.SendOption("roadmap_option");
+                //                Connection.ActiveChar.SendOption("quest_context_state_values");
             }
             else
             {

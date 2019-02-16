@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _portalType;
         private readonly int _portalId;
 
-        public SCPortalDeletedPacket(byte portalType, int portalId) : base(0x059, 1)
+        public SCPortalDeletedPacket(byte portalType, int portalId) : base(0x05d, 1) // 0x059
         {
             _portalType = portalType;
             _portalId = portalId;

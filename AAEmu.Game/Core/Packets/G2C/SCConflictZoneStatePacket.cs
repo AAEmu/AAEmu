@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ZoneConflictType _hpws;
         private readonly DateTime _endTime;
 
-        public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(0x0e7, 1)
+        public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(0x0ec, 1) // 0x0e7
         {
             _zoneId = zoneId;
             _hpws = hpws;
