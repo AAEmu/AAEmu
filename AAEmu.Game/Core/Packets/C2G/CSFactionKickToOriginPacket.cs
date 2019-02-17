@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFactionKickToOriginPacket : GamePacket
     {
-        public CSFactionKickToOriginPacket() : base(0x017, 1)
+        public CSFactionKickToOriginPacket() : base(0x018, 1)
         {
         }
 

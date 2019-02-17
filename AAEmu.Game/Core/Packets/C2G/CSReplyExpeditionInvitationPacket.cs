@@ -11,6 +11,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
+            // TODO: Check what those IDs are.
+            // My guess is that one of them is expedition id, the other is invited character id.
             var unkId = stream.ReadUInt32(); // type(id)
             var unk2Id = stream.ReadUInt32(); // type(id)
             var join = stream.ReadBoolean();
