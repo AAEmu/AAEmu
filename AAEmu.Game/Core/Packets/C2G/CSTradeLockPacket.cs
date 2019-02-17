@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTradeLockPacket : GamePacket
     {
-        public CSTradeLockPacket() : base(0x0f0, 1)
+        public CSTradeLockPacket() : base(0x0f3, 1)
         {
         }
 

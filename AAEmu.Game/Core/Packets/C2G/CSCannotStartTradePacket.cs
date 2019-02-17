@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCannotStartTradePacket : GamePacket
     {
-        public CSCannotStartTradePacket() : base(0x0eb, 1)
+        public CSCannotStartTradePacket() : base(0x0ee, 1)
         {
         }
 

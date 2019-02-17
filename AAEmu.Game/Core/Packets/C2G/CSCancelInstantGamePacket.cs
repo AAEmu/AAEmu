@@ -5,12 +5,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCancelInstantGamePacket : GamePacket
     {
-        public CSCancelInstantGamePacket() : base(0x0de, 1)
+        public CSCancelInstantGamePacket() : base(0x0e2, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            // Empty struct
             _log.Warn("CancelInstantGame");
         }
     }

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeMateUserStatePacket : GamePacket
     {
-        public CSChangeMateUserStatePacket() : base(0x0a8, 1)
+        public CSChangeMateUserStatePacket() : base(0x0aa, 1)
         {
         }
 

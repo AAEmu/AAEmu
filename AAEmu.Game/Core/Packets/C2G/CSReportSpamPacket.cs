@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReportSpamPacket : GamePacket
     {
-        public CSReportSpamPacket() : base(0x0a0, 1)
+        public CSReportSpamPacket() : base(0x0a3, 1)
         {
         }
 

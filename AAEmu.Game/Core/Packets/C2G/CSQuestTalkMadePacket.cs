@@ -5,12 +5,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSQuestTalkMadePacket : GamePacket
     {
-        public CSQuestTalkMadePacket() : base(0x0d6, 1)
+        public CSQuestTalkMadePacket() : base(0x0da, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            // TODO find unk
             var objId = stream.ReadBc();
             var unkId = stream.ReadUInt32();
             var unk2Id = stream.ReadUInt32();

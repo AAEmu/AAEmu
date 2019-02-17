@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDropQuestContextPacket : GamePacket
     {
-        public CSDropQuestContextPacket() : base(0x0d3, 1)
+        public CSDropQuestContextPacket() : base(0x0d7, 1)
         {
         }
 
