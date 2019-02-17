@@ -80,12 +80,12 @@ namespace AAEmu.Game.Core.Managers.World
         public void SpawnAll()
         {
             foreach (var (worldId, worldSpawners) in _npcSpawners)
-                foreach (var spawner in worldSpawners.Values)
-                    spawner.SpawnAll();
+            foreach (var spawner in worldSpawners.Values)
+                spawner.SpawnAll();
 
-            //foreach (var (worldId, worldSpawners) in _doodadSpawners)
-            //    foreach (var spawner in worldSpawners.Values)
-            //        spawner.Spawn(0);
+            foreach (var (worldId, worldSpawners) in _doodadSpawners)
+            foreach (var spawner in worldSpawners.Values)
+                spawner.Spawn(0);
         }
 
         public void Stop()

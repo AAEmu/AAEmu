@@ -45,7 +45,7 @@ namespace AAEmu.Game.Models.Game.Char
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<string, string> _options;
+        private Dictionary<ushort, string> _options;
 
         public GameConnection Connection { get; set; }
         public List<IDisposable> Subscribers { get; set; }
@@ -651,7 +651,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public Character(UnitCustomModelParams modelParams)
         {
-            _options = new Dictionary<string, string>();
+            _options = new Dictionary<ushort, string>();
 
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
@@ -752,7 +752,7 @@ namespace AAEmu.Game.Models.Game.Char
             Slots[slot].ActionId = actionId;
         }
 
-        public void SetOption(string key, string value)
+        public void SetOption(ushort key, string value)
         {
             if (_options.ContainsKey(key))
                 _options[key] = value;
@@ -760,7 +760,7 @@ namespace AAEmu.Game.Models.Game.Char
                 _options.Add(key, value);
         }
 
-        public string GetOption(string key)
+        public string GetOption(ushort key)
         {
             if (_options.ContainsKey(key))
                 return _options[key];
@@ -771,10 +771,10 @@ namespace AAEmu.Game.Models.Game.Char
         {
             Subscribers.Add(disposable);
         }
-        
-        public void SendOption(string key)
+
+        public void SendOption(ushort key)
         {
-//            Connection.SendPacket(new SCResponseUIDataPacket(Id, Name, key, GetOption(key)));
+            Connection.SendPacket(new SCResponseUIDataPacket(Id, key, GetOption(key)));
         }
 
         public void SendMessage(string message, params object[] parameters)
@@ -807,6 +807,7 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
         #region Database
+
         public static Character Load(MySqlConnection connection, uint characterId, uint accountId)
         {
             Character character = null;
@@ -820,7 +821,7 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     if (reader.Read())
                     {
-                        var stream = (PacketStream) (byte[]) reader.GetValue("unit_model_params");
+                        var stream = (PacketStream)(byte[])reader.GetValue("unit_model_params");
                         var modelParams = new UnitCustomModelParams();
                         modelParams.Read(stream);
 
@@ -829,8 +830,8 @@ namespace AAEmu.Game.Models.Game.Char
                         character.AccountId = accountId;
                         character.Id = reader.GetUInt32("id");
                         character.Name = reader.GetString("name");
-                        character.Race = (Race) reader.GetByte("race");
-                        character.Gender = (Gender) reader.GetByte("gender");
+                        character.Race = (Race)reader.GetByte("race");
+                        character.Gender = (Gender)reader.GetByte("gender");
                         character.Level = reader.GetByte("level");
                         character.Expirience = reader.GetInt32("expirience");
                         character.RecoverableExp = reader.GetInt32("recoverable_exp");
@@ -839,9 +840,9 @@ namespace AAEmu.Game.Models.Game.Char
                         character.LaborPower = reader.GetInt16("labor_power");
                         character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
                         character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
-                        character.Ability1 = (AbilityType) reader.GetByte("ability1");
-                        character.Ability2 = (AbilityType) reader.GetByte("ability2");
-                        character.Ability3 = (AbilityType) reader.GetByte("ability3");
+                        character.Ability1 = (AbilityType)reader.GetByte("ability1");
+                        character.Ability2 = (AbilityType)reader.GetByte("ability2");
+                        character.Ability3 = (AbilityType)reader.GetByte("ability3");
                         character.Position.ZoneId = reader.GetUInt32("zone_id");
                         character.Position.X = reader.GetFloat("x");
                         character.Position.Y = reader.GetFloat("y");
@@ -878,12 +879,31 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Updated = reader.GetDateTime("updated_at");
 
                         character.Inventory = new Inventory(character);
-                        
+
                         if (character.Hp > character.MaxHp)
                             character.Hp = character.MaxHp;
                         if (character.Mp > character.MaxMp)
                             character.Mp = character.MaxMp;
                         character.CheckExp();
+                    }
+                }
+            }
+
+            if (character == null)
+                return null;
+
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                command.CommandText = "SELECT * FROM `options` WHERE `owner` = @owner";
+                command.Parameters.AddWithValue("@owner", characterId);
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var key = reader.GetUInt16("key");
+                        var value = reader.GetString("value");
+                        character.SetOption(key, value);
                     }
                 }
             }

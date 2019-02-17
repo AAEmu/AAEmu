@@ -60,7 +60,7 @@ namespace AAEmu.Game.Core.Managers.World
             var count = Math.Min(doodads.Length, 30);
             var res = new Doodad[count];
             Array.Copy(doodads, 0, res, 0, count);
-            // connection.SendPacket(new TCDoodadStreamPacket(requestId, count, res));
+            connection.SendPacket(new TCDoodadStreamPacket(requestId, count, res));
         }
 
         public void ContinueCell(StreamConnection connection, int requestId, int next)
@@ -74,7 +74,7 @@ namespace AAEmu.Game.Core.Managers.World
             var res = new Doodad[count];
             Array.Copy(doodads, next > 0 ? next - 1 : 0, res, 0, count);
             next += count;
-//            connection.SendPacket(new TCDoodadStreamPacket(requestId, next, res));
+            connection.SendPacket(new TCDoodadStreamPacket(requestId, next, res));
         }
     }
 }
