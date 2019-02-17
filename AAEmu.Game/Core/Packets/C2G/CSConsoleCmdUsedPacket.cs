@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSConsoleCmdUsedPacket : GamePacket
     {
-        public CSConsoleCmdUsedPacket() : base(0x062, 1)
+        public CSConsoleCmdUsedPacket() : base(0x064, 1)
         {
         }
 

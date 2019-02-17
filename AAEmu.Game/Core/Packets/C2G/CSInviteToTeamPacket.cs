@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSInviteToTeamPacket : GamePacket
     {
-        public CSInviteToTeamPacket() : base(0x078, 1)
+        public CSInviteToTeamPacket() : base(0x07a, 1)
         {
         }
 

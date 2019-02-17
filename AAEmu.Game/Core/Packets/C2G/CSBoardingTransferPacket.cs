@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBoardingTransferPacket : GamePacket
     {
-        public CSBoardingTransferPacket() : base(0x065, 1)
+        public CSBoardingTransferPacket() : base(0x067, 1)
         {
         }
 
