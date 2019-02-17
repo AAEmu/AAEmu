@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var npcObjId = stream.ReadBc();
-            // TODO ...
+            // TODO struct
 
             _log.Warn("CancelAuction, NpcObjId: {0}", npcObjId);
         }

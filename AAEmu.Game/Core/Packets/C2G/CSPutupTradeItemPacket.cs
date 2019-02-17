@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSPutupTradeItemPacket : GamePacket
     {
-        public CSPutupTradeItemPacket() : base(0x0ed, 1)
+        public CSPutupTradeItemPacket() : base(0x0f0, 1)
         {
         }
 

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUnMountMatePacket : GamePacket
     {
-        public CSUnMountMatePacket() : base(0x0a6, 1)
+        public CSUnMountMatePacket() : base(0x0a8, 1)
         {
         }
 

@@ -5,12 +5,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCompletedCinemaPacket : GamePacket
     {
-        public CSCompletedCinemaPacket() : base(0x0ca, 1)
+        public CSCompletedCinemaPacket() : base(0x0ce, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            // Empty struct
             _log.Warn("CompletedCinema");
         }
     }

@@ -8,12 +8,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSInstanceLoadedPacket : GamePacket
     {
-        public CSInstanceLoadedPacket() : base(0x0dc, 1)
+        public CSInstanceLoadedPacket() : base(0x0e0, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            // Empty struct
             // TODO Debug
             
             Connection.SendPacket(new SCUnitStatePacket(Connection.ActiveChar));

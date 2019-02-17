@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeMateNamePacket : GamePacket
     {
-        public CSChangeMateNamePacket() : base(0x0a4, 1)
+        public CSChangeMateNamePacket() : base(0x0a6, 1)
         {
         }
 
