@@ -248,8 +248,8 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x107, 1, typeof(CSAddBlockedUserPacket));
             RegisterPacket(0x108, 1, typeof(CSDeleteBlockedUserPacket));
             RegisterPacket(0x112, 1, typeof(CSNotifySubZonePacket));
-            //            RegisterPacket(0x113, 1, typeof(CSRequestUIDataPacket));
-            //            RegisterPacket(0x114, 1, typeof(CSSaveUIDataPacket));
+            RegisterPacket(0x117, 1, typeof(CSRequestUIDataPacket));
+            RegisterPacket(0x118, 1, typeof(CSSaveUIDataPacket));
             //            RegisterPacket(0x115, 1, typeof(CSBroadcastVisualOptionPacket));
             RegisterPacket(0x11a, 1, typeof(CSRestrictCheckPacket));
             //            RegisterPacket(0x117, 1, typeof(CSICSMenuListPacket));

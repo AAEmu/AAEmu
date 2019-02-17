@@ -11,11 +11,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var uiDataKey = stream.ReadString();
+            var uiDataType = stream.ReadUInt16();
             var id = stream.ReadUInt32();
-            var name = stream.ReadString();
 
-            _log.Info("RequestUIData: {0}, {1}", uiDataKey, name);
+            _log.Warn("RequestUIData: {0}, {1}", uiDataType, id);
         }
     }
 }

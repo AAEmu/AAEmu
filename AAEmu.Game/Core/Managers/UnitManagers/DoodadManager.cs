@@ -36,72 +36,72 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             using (var connection = SQLite.CreateConnection())
             {
-                //_log.Info("Loading doodad templates...");
-                //using (var command = connection.CreateCommand())
-                //{
-                //    command.CommandText = "SELECT * from doodad_almighties";
-                //    command.Prepare();
-                //    using (var sqliteDataReader = command.ExecuteReader())
-                //    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                //    {
-                //        while (reader.Read())
-                //        {
-                //            var template = new DoodadTemplate();
-                //            template.Id = reader.GetUInt32("id");
-                //            template.OnceOneMan = reader.GetBoolean("once_one_man", true);
-                //            template.OnceOneInteraction = reader.GetBoolean("once_one_interaction", true);
-                //            template.MgmtSpawn = reader.GetBoolean("mgmt_spawn", true);
-                //            template.Percent = reader.GetInt32("percent", 0);
-                //            template.MinTime = reader.GetInt32("min_time", 0);
-                //            template.MaxTime = reader.GetInt32("max_time", 0);
-                //            template.ModelKindId = reader.GetUInt32("model_kind_id");
-                //            template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
-                //            template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
-                //            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
-                //            template.GroupId = reader.GetUInt32("group_id");
-                //            template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
-                //            template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
-                //            template.UseTargetHighlight = reader.GetBoolean("use_target_highlight", true);
-                //            template.TargetDecalSize = reader.GetFloat("target_decal_size", 0);
-                //            template.SimRadius = reader.GetInt32("sim_radius", 0);
-                //            template.CollideShip = reader.GetBoolean("collide_ship", true);
-                //            template.CollideVehicle = reader.GetBoolean("collide_vehicle", true);
-                //            template.ClimateId = reader.GetUInt32("climate_id", 0);
-                //            template.SaveIndun = reader.GetBoolean("save_indun", true);
-                //            template.ForceUpAction = reader.GetBoolean("force_up_action", true);
-                //            template.Parentable = reader.GetBoolean("parentable", true);
-                //            template.Childable = reader.GetBoolean("childable", true);
-                //            template.FactionId = reader.GetUInt32("faction_id");
-                //            template.GrowthTime = reader.GetInt32("growth_time", 0);
-                //            template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
-                //            template.NoCollision = reader.GetBoolean("no_collision", true);
-                //            template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
+                _log.Info("Loading doodad templates...");
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * from doodad_almighties";
+                    command.Prepare();
+                    using (var sqliteDataReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new DoodadTemplate();
+                            template.Id = reader.GetUInt32("id");
+                            template.OnceOneMan = reader.GetBoolean("once_one_man", true);
+                            template.OnceOneInteraction = reader.GetBoolean("once_one_interaction", true);
+                            template.MgmtSpawn = reader.GetBoolean("mgmt_spawn", true);
+                            template.Percent = reader.GetInt32("percent", 0);
+                            template.MinTime = reader.GetInt32("min_time", 0);
+                            template.MaxTime = reader.GetInt32("max_time", 0);
+                            template.ModelKindId = reader.GetUInt32("model_kind_id");
+                            template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
+                            template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
+                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                            template.GroupId = reader.GetUInt32("group_id");
+                            template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
+                            template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
+                            template.UseTargetHighlight = reader.GetBoolean("use_target_highlight", true);
+                            template.TargetDecalSize = reader.GetFloat("target_decal_size", 0);
+                            template.SimRadius = reader.GetInt32("sim_radius", 0);
+                            template.CollideShip = reader.GetBoolean("collide_ship", true);
+                            template.CollideVehicle = reader.GetBoolean("collide_vehicle", true);
+                            template.ClimateId = reader.GetUInt32("climate_id", 0);
+                            template.SaveIndun = reader.GetBoolean("save_indun", true);
+                            template.ForceUpAction = reader.GetBoolean("force_up_action", true);
+                            template.Parentable = reader.GetBoolean("parentable", true);
+                            template.Childable = reader.GetBoolean("childable", true);
+                            template.FactionId = reader.GetUInt32("faction_id");
+                            template.GrowthTime = reader.GetInt32("growth_time", 0);
+                            template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
+                            template.NoCollision = reader.GetBoolean("no_collision", true);
+                            template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
 
-                //            using (var commandChild = connection.CreateCommand())
-                //            {
-                //                commandChild.CommandText =
-                //                    "SELECT * FROM doodad_func_groups WHERE doodad_almighty_id = @doodad_almighty_id";
-                //                commandChild.Prepare();
-                //                commandChild.Parameters.AddWithValue("doodad_almighty_id", template.Id);
-                //                using (var sqliteDataReaderChild = commandChild.ExecuteReader())
-                //                using (var readerChild = new SQLiteWrapperReader(sqliteDataReaderChild))
-                //                {
-                //                    while (readerChild.Read())
-                //                    {
-                //                        var funcGroups = new DoodadFuncGroups();
-                //                        funcGroups.Id = readerChild.GetUInt32("id");
-                //                        funcGroups.GroupKindId = readerChild.GetUInt32("doodad_func_group_kind_id");
-                //                        template.FuncGroups.Add(funcGroups);
-                //                    }
-                //                }
-                //            }
+                            using (var commandChild = connection.CreateCommand())
+                            {
+                                commandChild.CommandText =
+                                    "SELECT * FROM doodad_func_groups WHERE doodad_almighty_id = @doodad_almighty_id";
+                                commandChild.Prepare();
+                                commandChild.Parameters.AddWithValue("doodad_almighty_id", template.Id);
+                                using (var sqliteDataReaderChild = commandChild.ExecuteReader())
+                                using (var readerChild = new SQLiteWrapperReader(sqliteDataReaderChild))
+                                {
+                                    while (readerChild.Read())
+                                    {
+                                        var funcGroups = new DoodadFuncGroups();
+                                        funcGroups.Id = readerChild.GetUInt32("id");
+                                        funcGroups.GroupKindId = readerChild.GetUInt32("doodad_func_group_kind_id");
+                                        template.FuncGroups.Add(funcGroups);
+                                    }
+                                }
+                            }
 
-                //            _templates.Add(template.Id, template);
-                //        }
-                //    }
-                //}
+                            _templates.Add(template.Id, template);
+                        }
+                    }
+                }
 
-                //_log.Info("Loaded {0} doodad templates", _templates.Count);
+                _log.Info("Loaded {0} doodad templates", _templates.Count);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -2041,21 +2041,21 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 // TODO 1.2                
-                //                using (var command = connection.CreateCommand())
-                //                {
-                //                    command.CommandText = "SELECT * FROM doodad_func_store_uis";
-                //                    command.Prepare();
-                //                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                //                    {
-                //                        while (reader.Read())
-                //                        {
-                //                            var func = new DoodadFuncStoreUi();
-                //                            func.Id = reader.GetUInt32("id");
-                //                            func.MerchantPackId = reader.GetUInt32("merchant_pack_id");
-                //                            _funcTemplates["DoodadFuncTimer"].Add(func.Id, func);
-                //                        }
-                //                    }
-                //                }
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_store_uis";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var func = new DoodadFuncStoreUi();
+                            func.Id = reader.GetUInt32("id");
+                            func.MerchantPackId = reader.GetUInt32("merchant_pack_id");
+                            _funcTemplates["DoodadFuncStoreUi"].Add(func.Id, func);
+                        }
+                    }
+                }
 
                 using (var command = connection.CreateCommand())
                 {
@@ -2159,23 +2159,23 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 // TODO 1.2                
-                //                using (var command = connection.CreateCommand())
-                //                {
-                //                    command.CommandText = "SELECT * FROM doodad_func_zone_reacts";
-                //                    command.Prepare();
-                //                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                //                    {
-                //                        while (reader.Read())
-                //                        {
-                //                            var func = new DoodadFuncZoneReact();
-                //                            func.Id = reader.GetUInt32("id");
-                //                            func.ZoneGroupId = reader.GetUInt32("zone_group_id");
-                //                            func.NextPhase = reader.GetUInt32("next_phase");
-                //
-                //                            _funcTemplates["DoodadFuncZoneReact"].Add(func.Id, func);
-                //                        }
-                //                    }
-                //                }
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_zone_reacts";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var func = new DoodadFuncZoneReact();
+                            func.Id = reader.GetUInt32("id");
+                            func.ZoneGroupId = reader.GetUInt32("zone_group_id");
+                            func.NextPhase = reader.GetUInt32("next_phase");
+                
+                            _funcTemplates["DoodadFuncZoneReact"].Add(func.Id, func);
+                        }
+                    }
+                }
             }
         }
 

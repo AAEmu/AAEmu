@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -58,9 +57,9 @@ namespace AAEmu.Game.Core.Packets.C2G
                 FactionManager.Instance.SendFactions(Connection.ActiveChar);
                 FactionManager.Instance.SendRelations(Connection.ActiveChar);
 
-                //                Connection.ActiveChar.SendOption("quest_notifier_list");
-                //                Connection.ActiveChar.SendOption("roadmap_option");
-                //                Connection.ActiveChar.SendOption("quest_context_state_values");
+                Connection.ActiveChar.SendOption(1);
+                Connection.ActiveChar.SendOption(2);
+                Connection.ActiveChar.SendOption(5);
             }
             else
             {

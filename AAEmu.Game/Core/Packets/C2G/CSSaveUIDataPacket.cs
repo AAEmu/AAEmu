@@ -5,17 +5,17 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSaveUIDataPacket : GamePacket
     {
-        public CSSaveUIDataPacket() : base(0x114, 1)
+        public CSSaveUIDataPacket() : base(0x118, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            var uiDataKey = stream.ReadString();
+            var uiDataType = stream.ReadUInt16();
             var id = stream.ReadUInt32();
             var data = stream.ReadString();
 
-            Connection.ActiveChar.SetOption(uiDataKey, data);
+            Connection.ActiveChar.SetOption(uiDataType, data);
         }
     }
 }

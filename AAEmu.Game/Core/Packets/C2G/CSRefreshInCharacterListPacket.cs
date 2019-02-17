@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             _log.Warn("RefreshInCharacterList");
-            // Connection.SendPacket(new SCRefreshInCharacterListPacket());
+            Connection.SendPacket(new SCRefreshInCharacterListPacket());
         }
     }
 }

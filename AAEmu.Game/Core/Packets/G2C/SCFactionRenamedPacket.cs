@@ -7,17 +7,20 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _id;
         private readonly string _name;
+        private readonly bool _byGm;
         
         public SCFactionRenamedPacket(uint id, string name, bool byGm) : base(0x010, 1) // TODO 1.0 opcode: 0x00e
         {
             _id = id;
             _name = name;
+            _byGm = byGm;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_id);
             stream.Write(_name);
+            stream.Write(_byGm);
             return stream;
         }
     }
