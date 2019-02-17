@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSResurrectCharacterPacket : GamePacket
     {
-        public CSResurrectCharacterPacket() : base(0x04c, 1)
+        public CSResurrectCharacterPacket() : base(0x04e, 1)
         {
         }
 

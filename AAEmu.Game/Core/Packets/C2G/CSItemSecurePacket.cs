@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSItemSecurePacket : GamePacket
     {
-        public CSItemSecurePacket() : base(0x048, 1)
+        public CSItemSecurePacket() : base(0x04a, 1)
         {
         }
 

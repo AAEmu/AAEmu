@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRequestCharBriefPacket : GamePacket
     {
-        public CSRequestCharBriefPacket() : base(0x02b, 1)
+        public CSRequestCharBriefPacket() : base(0x02d, 1)
         {
         }
 

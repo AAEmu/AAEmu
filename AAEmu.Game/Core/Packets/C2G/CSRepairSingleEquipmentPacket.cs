@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRepairSingleEquipmentPacket : GamePacket
     {
-        public CSRepairSingleEquipmentPacket() : base(0x03a, 1)
+        public CSRepairSingleEquipmentPacket() : base(0x03c, 1)
         {
         }
 
@@ -16,8 +16,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var slotType = (SlotType)stream.ReadByte();
             stream.ReadByte();
             var slot = stream.ReadByte();
+            var autoUseAAPoint = stream.ReadBoolean();
 
-            _log.Debug("RepairSingleEquipment, SlotType: {0}, Slot: {1}", slotType, slot);
+            _log.Debug("RepairSingleEquipment, SlotType: {0}, Slot: {1}, AutoUseAAPoint: {2}", slotType, slot, autoUseAAPoint);
         }
     }
 }

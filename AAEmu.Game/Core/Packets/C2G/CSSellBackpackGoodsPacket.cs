@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellBackpackGoodsPacket : GamePacket
     {
-        public CSSellBackpackGoodsPacket() : base(0x040, 1)
+        public CSSellBackpackGoodsPacket() : base(0x042, 1)
         {
         }
 
