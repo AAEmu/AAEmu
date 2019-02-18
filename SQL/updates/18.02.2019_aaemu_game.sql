@@ -11,7 +11,7 @@
  Target Server Version : 80015
  File Encoding         : 65001
 
- Date: 17/02/2019 19:43:06
+ Date: 18/02/2019 11:31:10
 */
 
 SET NAMES utf8mb4;
@@ -20,21 +20,21 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 -- Table structure for friends
 -- ----------------------------
-DROP TABLE IF EXISTS `friends`;
-CREATE TABLE `friends`  (
+DROP TABLE IF EXISTS `aaemu_game`.`friends`;
+CREATE TABLE `aaemu_game`.`friends`  (
   `id` int(11) NOT NULL,
   `friend_id` int(11) NOT NULL,
   `owner` int(11) NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for portal_book_coords
 -- ----------------------------
-DROP TABLE IF EXISTS `portal_book_coords`;
-CREATE TABLE `portal_book_coords`  (
+DROP TABLE IF EXISTS `aaemu_game`.`portal_book_coords`;
+CREATE TABLE `aaemu_game`.`portal_book_coords`  (
   `id` int(11) NOT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `x` int(11) NULL DEFAULT 0,
   `y` int(11) NULL DEFAULT 0,
   `z` int(11) NULL DEFAULT 0,
@@ -43,17 +43,17 @@ CREATE TABLE `portal_book_coords`  (
   `sub_zone_id` int(11) NULL DEFAULT 0,
   `owner` int(11) NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for portal_visited_district
 -- ----------------------------
-DROP TABLE IF EXISTS `portal_visited_district`;
-CREATE TABLE `portal_visited_district`  (
+DROP TABLE IF EXISTS `aaemu_game`.`portal_visited_district`;
+CREATE TABLE `aaemu_game`.`portal_visited_district`  (
   `id` int(11) NOT NULL,
   `subzone` int(11) NOT NULL,
   `owner` int(11) NOT NULL,
   PRIMARY KEY (`id`, `subzone`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 SET FOREIGN_KEY_CHECKS = 1;
