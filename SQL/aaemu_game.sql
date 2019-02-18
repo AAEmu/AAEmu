@@ -11,7 +11,7 @@
  Target Server Version : 80015
  File Encoding         : 65001
 
- Date: 18/02/2019 10:42:18
+ Date: 18/02/2019 10:51:53
 */
 
 SET NAMES utf8mb4;
@@ -175,7 +175,7 @@ CREATE TABLE `options`  (
 DROP TABLE IF EXISTS `portal_book_coords`;
 CREATE TABLE `portal_book_coords`  (
   `id` int(11) NOT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `x` int(11) NULL DEFAULT 0,
   `y` int(11) NULL DEFAULT 0,
   `z` int(11) NULL DEFAULT 0,
