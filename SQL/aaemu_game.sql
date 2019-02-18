@@ -11,7 +11,7 @@
  Target Server Version : 80015
  File Encoding         : 65001
 
- Date: 17/02/2019 19:43:49
+ Date: 18/02/2019 10:42:18
 */
 
 SET NAMES utf8mb4;
@@ -134,7 +134,7 @@ CREATE TABLE `friends`  (
   `friend_id` int(11) NOT NULL,
   `owner` int(11) NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for items
@@ -184,7 +184,7 @@ CREATE TABLE `portal_book_coords`  (
   `sub_zone_id` int(11) NULL DEFAULT 0,
   `owner` int(11) NOT NULL,
   PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for portal_visited_district
@@ -195,6 +195,16 @@ CREATE TABLE `portal_visited_district`  (
   `subzone` int(11) NOT NULL,
   `owner` int(11) NOT NULL,
   PRIMARY KEY (`id`, `subzone`, `owner`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for save_tutorial
+-- ----------------------------
+DROP TABLE IF EXISTS `save_tutorial`;
+CREATE TABLE `save_tutorial`  (
+  `id` int(11) NOT NULL,
+  `owner` int(11) NOT NULL,
+  PRIMARY KEY (`id`, `owner`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
