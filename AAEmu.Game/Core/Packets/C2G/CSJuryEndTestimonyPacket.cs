@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSJuryEndTestimonyPacket : GamePacket
     {
-        public CSJuryEndTestimonyPacket() : base(0x071, 1)
+        public CSJuryEndTestimonyPacket() : base(0x073, 1)
         {
         }
 

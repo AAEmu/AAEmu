@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateSkillControllerPacket : GamePacket
     {
-        public CSCreateSkillControllerPacket() : base(0x08a, 1)
+        public CSCreateSkillControllerPacket() : base(0x08b, 1)
         {
         }
 

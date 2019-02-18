@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAuctionMyBidListPacket : GamePacket
     {
-        public CSAuctionMyBidListPacket() : base(0x0b7, 1)
+        public CSAuctionMyBidListPacket() : base(0x0bb, 1)
         {
         }
 

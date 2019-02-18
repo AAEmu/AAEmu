@@ -5,12 +5,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMoveTeamMemberPacket : GamePacket
     {
-        public CSMoveTeamMemberPacket() : base(0x080, 1)
+        public CSMoveTeamMemberPacket() : base(0x081, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            // TODO find unk (id, id2)
             var teamId = stream.ReadUInt32();
             var id = stream.ReadUInt32();
             var id2 = stream.ReadUInt32();

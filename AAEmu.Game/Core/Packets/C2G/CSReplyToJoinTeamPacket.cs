@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReplyToJoinTeamPacket : GamePacket
     {
-        public CSReplyToJoinTeamPacket() : base(0x07a, 1)
+        public CSReplyToJoinTeamPacket() : base(0x07c, 1)
         {
         }
 
@@ -16,6 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var unkId = stream.ReadUInt32(); // TODO Owner?
             var isReject = stream.ReadBoolean();
             var charName = stream.ReadString();
+            var isArea = stream.ReadBoolean();
 
             _log.Warn("ReplyToJoinTeam, TeamId: {0}, Party: {1}, CharName: {2}", teamId, party, charName);
         }

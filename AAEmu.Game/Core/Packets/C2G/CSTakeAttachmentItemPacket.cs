@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTakeAttachmentItemPacket : GamePacket
     {
-        public CSTakeAttachmentItemPacket() : base(0x09c, 1)
+        public CSTakeAttachmentItemPacket() : base(0x09d, 1)
         {
         }
 

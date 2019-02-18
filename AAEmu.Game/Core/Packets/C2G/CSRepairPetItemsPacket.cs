@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRepairPetItemsPacket : GamePacket
     {
-        public CSRepairPetItemsPacket() : base(0x0b1, 1)
+        public CSRepairPetItemsPacket() : base(0x0b5, 1)
         {
         }
 

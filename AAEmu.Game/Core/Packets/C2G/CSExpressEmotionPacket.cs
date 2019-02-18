@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSExpressEmotionPacket : GamePacket
     {
-        public CSExpressEmotionPacket() : base(0x0a9, 1)
+        public CSExpressEmotionPacket() : base(0x0ad, 1)
         {
         }
 

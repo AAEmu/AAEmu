@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSExecuteCraft : GamePacket
     {
-        public CSExecuteCraft() : base(0x0f5, 1)
+        public CSExecuteCraft() : base(0x0f8, 1)
         {
         }
 

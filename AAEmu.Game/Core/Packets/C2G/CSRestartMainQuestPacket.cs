@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRestartMainQuestPacket : GamePacket
     {
-        public CSRestartMainQuestPacket() : base(0x0fa, 1)
+        public CSRestartMainQuestPacket() : base(0x0fd, 1)
         {
         }
 

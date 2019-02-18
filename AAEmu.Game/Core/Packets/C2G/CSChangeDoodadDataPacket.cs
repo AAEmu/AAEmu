@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeDoodadDataPacket : GamePacket
     {
-        public CSChangeDoodadDataPacket() : base(0x0e8, 1)
+        public CSChangeDoodadDataPacket() : base(0x0eb, 1)
         {
         }
 

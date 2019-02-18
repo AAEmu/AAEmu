@@ -5,12 +5,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListMailPacket : GamePacket
     {
-        public CSListMailPacket() : base(0x099, 1)
+        public CSListMailPacket() : base(0x09a, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            // Empty struct
             Connection.ActiveChar.Mails.Send();
         }
     }

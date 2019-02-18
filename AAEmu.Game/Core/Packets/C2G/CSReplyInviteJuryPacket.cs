@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReplyInviteJuryPacket : GamePacket
     {
-        public CSReplyInviteJuryPacket() : base(0x06f, 1)
+        public CSReplyInviteJuryPacket() : base(0x071, 1)
         {
         }
 
