@@ -198,16 +198,6 @@ CREATE TABLE `portal_visited_district`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Table structure for save_tutorial
--- ----------------------------
-DROP TABLE IF EXISTS `save_tutorial`;
-CREATE TABLE `save_tutorial`  (
-  `id` int(11) NOT NULL,
-  `owner` int(11) NOT NULL,
-  PRIMARY KEY (`id`, `owner`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
 -- Table structure for skills
 -- ----------------------------
 DROP TABLE IF EXISTS `skills`;
