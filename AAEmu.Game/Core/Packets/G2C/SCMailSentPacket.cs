@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Mail _mail;
         private readonly (SlotType slotType, byte slot)[] _items;
 
-        public SCMailSentPacket(Mail mail, (SlotType slotType, byte slot)[] items) : base(0x111, 1)
+        public SCMailSentPacket(Mail mail, (SlotType slotType, byte slot)[] items) : base(0x115, 1)
         {
             _mail = mail;
             _items = items;
@@ -21,9 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_mail);
             foreach (var (slotType, slot) in _items) // TODO 10 items
             {
-                stream.Write((byte)0);
                 stream.Write((byte)slotType);
-                stream.Write((byte)0);
                 stream.Write(slot);
             }
 

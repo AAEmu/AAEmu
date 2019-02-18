@@ -20,7 +20,24 @@ namespace AAEmu.Game.Models.Game.Mails
 
         public override PacketStream Write(PacketStream stream)
         {
-            
+            stream.Write(Id);
+            stream.Write(Type);
+            stream.Write(ReceiverName);
+            stream.Write(Text);
+            stream.Write(MoneyAmount1);
+            stream.Write(MoneyAmount2);
+            stream.Write(MoneyAmount3);
+            stream.Write(SendDate);
+            stream.Write(RecvDate);
+            stream.Write(OpenDate);
+            for (var i = 0; i < 10; i++)
+            {
+                if (Items[i] == null)
+                    stream.Write(0);
+                else
+                    stream.Write(Items[i]);
+            }
+
             return stream;
         }
     }

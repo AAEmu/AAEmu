@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly SystemFaction[] _factions;
 
-        public SCFactionListPacket() : base(0x007, 1) // TODO 1.0 opcode 0x006
+        public SCFactionListPacket() : base(0x007, 1)
         {
             _factions = new SystemFaction[] { };
         }

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ExpeditionRolePolicy _rolePolicy;
         private readonly bool _success;
 
-        public SCExpeditionRolePolicyChangedPacket(ExpeditionRolePolicy rolePolicy, bool success) : base(0x00b, 1) // TODO 1.0 opcode: 0x00a
+        public SCExpeditionRolePolicyChangedPacket(ExpeditionRolePolicy rolePolicy, bool success) : base(0x00b, 1)
         {
             _rolePolicy = rolePolicy;
             _success = success;

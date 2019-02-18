@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _role;
         private readonly string _charName;
 
-        public SCExpeditionRoleChangedPacket(uint id, byte role, string charName) : base(0x00c, 1) // TODO 1.0 opcode: 0x00b
+        public SCExpeditionRoleChangedPacket(uint id, byte role, string charName) : base(0x00c, 1)
         {
             _id = id;
             _role = role;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Portal _portal;
         
-        public SCPortalInfoSavedPacket(Portal portal) : base(0x05c, 1) // 0x058
+        public SCPortalInfoSavedPacket(Portal portal) : base(0x05c, 1)
         {
             _portal = portal;
         }

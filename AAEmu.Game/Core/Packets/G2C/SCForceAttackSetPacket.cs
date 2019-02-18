@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly bool _on;
 
-        public SCForceAttackSetPacket(uint objId, bool on) : base(0x042, 1) // TODO 1.0 opcode: 0x03e
+        public SCForceAttackSetPacket(uint objId, bool on) : base(0x042, 1)
         {
             _objId = objId;
             _on = on;

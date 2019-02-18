@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _success;
         private readonly short _errorMessage;
         
-        public SCAddBlockedUserPacket(uint characterId, string characterName, bool success, short errorMessage) : base(0x050, 1)
+        public SCAddBlockedUserPacket(uint characterId, string characterName, bool success, short errorMessage) : base(0x054, 1)
         {
             _characterId = characterId;
             _characterName = characterName;

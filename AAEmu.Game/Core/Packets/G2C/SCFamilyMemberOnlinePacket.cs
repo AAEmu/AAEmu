@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _memberId;
         private readonly bool _online;
 
-        public SCFamilyMemberOnlinePacket(uint familyId, uint memberId, bool online) : base(0x036, 1) // TODO 1.0 opcode: 0x032
+        public SCFamilyMemberOnlinePacket(uint familyId, uint memberId, bool online) : base(0x036, 1)
         {
             _familyId = familyId;
             _memberId = memberId;

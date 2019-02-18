@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _familyId;
         private readonly uint _memberId;
 
-        public SCFamilyOwnerChangedPacket(uint familyId, uint memberId) : base(0x032, 1) // TODO 1.0 opcode: 0x02e
+        public SCFamilyOwnerChangedPacket(uint familyId, uint memberId) : base(0x032, 1)
         {
             _familyId = familyId;
             _memberId = memberId;

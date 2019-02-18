@@ -17,13 +17,12 @@ namespace AAEmu.Game.Models.Game
         public byte Permission { get; set; }
         public int AllStep { get; set; }
         public int CurStep { get; set; }
-        public int MoneyAmount { get; set; } // pay
         public float X { get; set; }
         public float Y { get; set; }
         public float Z { get; set; }
         public string House { get; set; }
         public bool AllowRecover { get; set; }
-        public int MoneyAmount2 { get; set; }
+        public int MoneyAmount { get; set; }
         public uint Unk4Id { get; set; }
         public string SellToName { get; set; }
 
@@ -41,13 +40,12 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Permission);
             stream.Write(AllStep);
             stream.Write(CurStep);
-            stream.Write(MoneyAmount);
             stream.Write(Helpers.ConvertLongX(X));
             stream.Write(Helpers.ConvertLongY(Y));
             stream.Write(Z);
             stream.Write(House);
             stream.Write(AllowRecover);
-            stream.Write(MoneyAmount2);
+            stream.Write(MoneyAmount);
             stream.Write(Unk4Id);
             stream.Write(SellToName);
             return stream;

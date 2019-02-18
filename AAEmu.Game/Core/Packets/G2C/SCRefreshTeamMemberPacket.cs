@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly uint _unitId;
 
-        public SCRefreshTeamMemberPacket(uint teamId, uint id, uint unitId) : base(0x0dc, 1)
+        public SCRefreshTeamMemberPacket(uint teamId, uint id, uint unitId) : base(0x0e1, 1)
         {
             _teamId = teamId;
             _id = id;

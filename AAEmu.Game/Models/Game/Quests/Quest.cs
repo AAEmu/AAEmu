@@ -164,6 +164,9 @@ namespace AAEmu.Game.Models.Game.Quests
             stream.Write(LeftTime);
             stream.Write(0u); // type(id)
             stream.Write(0L); // doodadId
+            stream.Write(DateTime.MinValue); // acceptTime
+            stream.Write((byte)0); // type
+            stream.Write(0u); // acceptorType
             return stream;
         }
     }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly AbilityType _oldAbilityId;
         private readonly AbilityType _abilityId;
 
-        public SCAbilitySwappedPacket(uint objId, AbilityType oldAbilityId, AbilityType abilityId) : base(0x107, 1) // TODO 1.0 opcode: 0x103
+        public SCAbilitySwappedPacket(uint objId, AbilityType oldAbilityId, AbilityType abilityId) : base(0x107, 1)
         {
             _objId = objId;
             _oldAbilityId = oldAbilityId;

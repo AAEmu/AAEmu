@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly FactionRelation[] _relations;
 
-        public SCFactionRelationListPacket() : base(0x008, 1) // TODO opcode 1.0: 0x007
+        public SCFactionRelationListPacket() : base(0x008, 1)
         {
             _relations = new FactionRelation[] { };
         }

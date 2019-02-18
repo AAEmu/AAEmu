@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _ability;
         private readonly int _exp;
 
-        public SCAbilityExpChangedPacket(uint objId, AbilityType ability, int exp) : base(0x0f9, 1)
+        public SCAbilityExpChangedPacket(uint objId, AbilityType ability, int exp) : base(0x0fd, 1)
         {
             _objId = objId;
             _ability = (byte) ability;

@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly DateTime _deleteDelay;
 
         public SCDeleteCharacterResponsePacket(uint characterId, byte status, DateTime? deleteRequestedTime = null, DateTime? deleteDelay = null) 
-            : base(0x038, 1) // TODO 1.0 opcode: 0x034
+            : base(0x038, 1)
         {
             _characterId = characterId;
             _status = status;

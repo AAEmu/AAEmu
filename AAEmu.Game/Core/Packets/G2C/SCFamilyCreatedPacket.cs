@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Family _family;
         
-        public SCFamilyCreatedPacket(Family family) : base(0x02d, 1) // TODO 1.0 opcode: 0x029
+        public SCFamilyCreatedPacket(Family family) : base(0x02d, 1)
         {
             _family = family;
         }

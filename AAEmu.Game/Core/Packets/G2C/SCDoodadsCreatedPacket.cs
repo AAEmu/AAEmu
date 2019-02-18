@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Doodad[] _doodads;
 
-        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(0x110, 1) // 0x10c
+        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(0x110, 1)
         {
             _doodads = doodads;
         }

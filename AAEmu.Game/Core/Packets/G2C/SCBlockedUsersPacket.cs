@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _total;
         private readonly (uint characterId, string characterName)[] _blocked;
 
-        public SCBlockedUsersPacket(int total, (uint characterId, string characterName)[] blocked) : base(0x04f, 1)
+        public SCBlockedUsersPacket(int total, (uint characterId, string characterName)[] blocked) : base(0x053, 1)
         {
             _total = total;
             _blocked = blocked;

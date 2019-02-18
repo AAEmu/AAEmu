@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly Member[] _members;
 
-        public SCExpeditionMemberListPacket(uint total, uint id, Member[] members) : base(0x015, 1) // TODO 1.0 opcode: 0x013
+        public SCExpeditionMemberListPacket(uint total, uint id, Member[] members) : base(0x015, 1)
         {
             _total = total;
             _id = id;

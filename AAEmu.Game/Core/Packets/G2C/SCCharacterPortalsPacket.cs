@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Portal[] _portals;
         
-        public SCCharacterPortalsPacket(Portal[] portals) : base(0x05a, 1) // 0x056
+        public SCCharacterPortalsPacket(Portal[] portals) : base(0x05a, 1)
         {
             _portals = portals;
         }

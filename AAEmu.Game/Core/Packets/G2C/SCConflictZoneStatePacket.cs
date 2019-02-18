@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ZoneConflictType _hpws;
         private readonly DateTime _endTime;
 
-        public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(0x0ec, 1) // 0x0e7
+        public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(0x0ec, 1)
         {
             _zoneId = zoneId;
             _hpws = hpws;

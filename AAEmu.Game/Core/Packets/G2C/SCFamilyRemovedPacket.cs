@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _familyId;
         
-        public SCFamilyRemovedPacket(uint familyId) : base(0x02e, 1) // TODO 1.0 opcode: 0x02a
+        public SCFamilyRemovedPacket(uint familyId) : base(0x02e, 1)
         {
             _familyId = familyId;
         }

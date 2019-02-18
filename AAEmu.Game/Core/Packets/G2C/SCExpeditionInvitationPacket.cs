@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _factionName;
         
         public SCExpeditionInvitationPacket(uint invitorId, string invitorName, uint factionId, string factionName) 
-            : base(0x019, 1) // TODO 1.0 opcode: 0x017
+            : base(0x019, 1)
         {
             _invitorId = invitorId;
             _invitorName = invitorName;

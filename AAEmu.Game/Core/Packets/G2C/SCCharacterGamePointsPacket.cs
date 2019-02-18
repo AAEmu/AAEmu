@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Character _character;
 
-        public SCCharacterGamePointsPacket(Character character) : base(0x186, 1) // 0x180
+        public SCCharacterGamePointsPacket(Character character) : base(0x186, 1)
         {
             _character = character;
         }

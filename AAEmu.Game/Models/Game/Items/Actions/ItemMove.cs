@@ -26,15 +26,11 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         {
             base.Write(stream);
 
-            stream.Write((byte) 0); // v
-            stream.Write((byte) _fromSlotType); // v
-            stream.Write((byte) 0); // v
-            stream.Write(_fromSlot); // v
+            stream.Write((byte) _fromSlotType);
+            stream.Write(_fromSlot);
 
-            stream.Write((byte) 0); // v
-            stream.Write((byte) _toSlotType); // v
-            stream.Write((byte) 0); // v
-            stream.Write(_toSlot); // v
+            stream.Write((byte) _toSlotType);
+            stream.Write(_toSlot);
 
             stream.Write(_fromItemId);
             stream.Write(_toItemId); // i2

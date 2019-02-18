@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _numInvenSlots;
         private readonly uint _numBankSlots;
 
-        public SCCharacterInvenInitPacket(uint numInvenSlots, uint numBankSlots) : base(0x04a, 1) // 1.0 opcode: 0x046
+        public SCCharacterInvenInitPacket(uint numInvenSlots, uint numBankSlots) : base(0x04a, 1)
         {
             _numInvenSlots = numInvenSlots;
             _numBankSlots = numBankSlots;

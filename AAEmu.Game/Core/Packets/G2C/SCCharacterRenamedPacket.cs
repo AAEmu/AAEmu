@@ -3,13 +3,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCCharacterRenamed : GamePacket
+    public class SCCharacterRenamedPacket : GamePacket
     {
         private readonly uint _characterId;
         private readonly string _oldName;
         private readonly string _newName;
         
-        public SCCharacterRenamed(uint characterId, string oldName, string newName) : base(0x055, 1)
+        public SCCharacterRenamedPacket(uint characterId, string oldName, string newName) : base(0x059, 1)
         {
             _characterId = characterId;
             _oldName = oldName;

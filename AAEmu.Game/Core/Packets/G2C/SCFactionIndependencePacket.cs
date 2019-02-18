@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _name;
         private readonly DateTime _cTime; // TODO createTime?
         
-        public SCFactionIndependencePacket(uint id, uint id2, string name, DateTime cTime) : base(0x021, 1)
+        public SCFactionIndependencePacket(uint id, uint id2, string name, DateTime cTime) : base(0x025, 1)
         {
             _id = id;
             _id2 = id2;

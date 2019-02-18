@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ushort _tl;
         
-        public SCHouseDemolishedPacket(ushort tl) : base(0x0be, 1) //TODO 1.0 opcode: 0x0b8
+        public SCHouseDemolishedPacket(ushort tl) : base(0x0be, 1)
         {
             _tl = tl;
         }

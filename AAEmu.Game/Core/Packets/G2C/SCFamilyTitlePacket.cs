@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _owner;
         private readonly string _title;
         
-        public SCFamilyTitlePacket(uint unitId, byte role, string owner, string title) : base(0x035, 1) // TODO 1.0 opcode: 0x031
+        public SCFamilyTitlePacket(uint unitId, byte role, string owner, string title) : base(0x035, 1)
         {
             _unitId = unitId;
             _role = role;

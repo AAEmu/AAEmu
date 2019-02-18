@@ -19,14 +19,14 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((short) _type);
+            stream.Write((short)_type);
             stream.Write(_subType);
             stream.Write(_factionId);
-            stream.WriteBc(0); // bc
+            stream.WriteBc(0); // bc // npcObjId?
             stream.Write("test"); // name
             stream.WriteBc(0); // bc
             stream.Write((byte)0); // kind
-            stream.Write(0); // type
+            // stream.Write(0); // type
             stream.Write("test"); // text
 
             return stream;

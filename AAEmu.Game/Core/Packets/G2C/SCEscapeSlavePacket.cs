@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _z;
         private readonly float _rot;
         
-        public SCEscapeSlavePacket(uint unitId, float x, float y, float z, float rot) : base(0x066, 1) // TODO 1.0 opcode: 0x062
+        public SCEscapeSlavePacket(uint unitId, float x, float y, float z, float rot) : base(0x066, 1)
         {
             _unitId = unitId;
             _x = x;

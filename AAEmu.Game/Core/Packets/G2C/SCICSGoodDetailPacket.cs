@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _pageEnd;
         private readonly CashShopItemDetail _itemDetail;
         
-        public SCICSGoodDetailPacket(bool pageEnd, CashShopItemDetail itemDetail) : base(0x1c7, 1)
+        public SCICSGoodDetailPacket(bool pageEnd, CashShopItemDetail itemDetail) : base(0x1cf, 1)
         {
             _pageEnd = pageEnd;
             _itemDetail = itemDetail;

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _slotType;
         private readonly byte _numSlots;
 
-        public SCInvenExpandedPacket(SlotType slotType, byte numSlots) : base(0x04c, 1) // TODO 1.0 opcode: 0x048
+        public SCInvenExpandedPacket(SlotType slotType, byte numSlots) : base(0x04c, 1)
         {
             _slotType = (byte)slotType;
             _numSlots = numSlots;

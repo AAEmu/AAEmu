@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _charName;
         private readonly uint _id;
         
-        public SCFactionImmigrateToOriginResultPacket(string charName, uint id) : base(0x024, 1)
+        public SCFactionImmigrateToOriginResultPacket(string charName, uint id) : base(0x028, 1)
         {
             _charName = charName;
             _id = id;

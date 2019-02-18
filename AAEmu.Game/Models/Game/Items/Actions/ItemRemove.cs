@@ -15,10 +15,9 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write((byte) 0); // v
-            stream.Write((byte) _item.SlotType); // v
-            stream.Write((byte) 0); // v
-            stream.Write((byte) _item.Slot); // v
+            
+            stream.Write((byte) _item.SlotType);
+            stream.Write((byte) _item.Slot);
             stream.Write(_item.Id);
             stream.Write(_item.TemplateId);
             return stream;

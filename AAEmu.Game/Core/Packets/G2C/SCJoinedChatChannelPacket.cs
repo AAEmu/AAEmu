@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly short _subType;
         private readonly uint _factionId;
 
-        public SCJoinedChatChannelPacket(ChatType type, short subType, uint factionId) : base(0x0ca, 1) // 0x0c4
+        public SCJoinedChatChannelPacket(ChatType type, short subType, uint factionId) : base(0x0ca, 1)
         {
             _type = type;
             _subType = subType;

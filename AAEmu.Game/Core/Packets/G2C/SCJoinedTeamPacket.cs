@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Team _team;
         
-        public SCJoinedTeamPacket(Team team) : base(0x0ce, 1)
+        public SCJoinedTeamPacket(Team team) : base(0x0d4, 1)
         {
             _team = team;
         }

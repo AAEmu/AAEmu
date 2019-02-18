@@ -14,7 +14,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _moneyAmount3; //Unused/Unsure what it does.
         private readonly int _moneyAmount4; //Unused/Unsure what it does.
         
-        public SCConstructHouseTaxPacket(uint designId, int normalTaxHouseCount, int heavyTaxHouseCount, bool isHeavyTaxHouse, int moneyAmount, int moneyAmount2, int moneyAmount3, int moneyAmount4) : base(0x0c3, 1) //TODO 1.0 opcode: 0x0bd
+        public SCConstructHouseTaxPacket(uint designId, int normalTaxHouseCount, int heavyTaxHouseCount, bool isHeavyTaxHouse, 
+            int moneyAmount, int moneyAmount2, int moneyAmount3, int moneyAmount4) : base(0x0c3, 1)
         {
             _designId = designId;
             _normalTaxHouseCount = normalTaxHouseCount;

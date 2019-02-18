@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _charName;
         private readonly bool _answer;
 
-        public SCFactionImmigrateInviteResultPacket(uint id, string charName, bool answer) : base(0x023, 1)
+        public SCFactionImmigrateInviteResultPacket(uint id, string charName, bool answer) : base(0x027, 1)
         {
             _id = id;
             _charName = charName;

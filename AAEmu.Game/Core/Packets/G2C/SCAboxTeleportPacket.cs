@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _x;
         private readonly int _y;
         
-        public SCAboxTeleportPacket(int x, int y) : base(0x198, 1)
+        public SCAboxTeleportPacket(int x, int y) : base(0x1a0, 1)
         {
             _x = x;
             _y = y;

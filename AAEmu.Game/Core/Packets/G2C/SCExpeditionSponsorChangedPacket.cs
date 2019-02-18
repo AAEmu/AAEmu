@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly SystemFaction _faction;
         private readonly bool _success;
         
-        public SCExpeditionSponsorChangedPacket(SystemFaction faction, bool success) : base(0x013, 1) // TODO 1.0 opcode: 0x011
+        public SCExpeditionSponsorChangedPacket(SystemFaction faction, bool success) : base(0x013, 1)
         {
             _faction = faction;
             _success = success;

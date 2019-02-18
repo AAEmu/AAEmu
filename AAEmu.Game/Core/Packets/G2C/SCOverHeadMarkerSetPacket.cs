@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isObjId;
         private readonly uint _id;
         
-        public SCOverHeadMarkerSetPacket(uint teamId, int markerIndex, bool isObjId, uint id) : base(0x0df, 1)
+        public SCOverHeadMarkerSetPacket(uint teamId, int markerIndex, bool isObjId, uint id) : base(0x0e4, 1)
         {
             _teamId = teamId;
             _markerIndex = markerIndex;

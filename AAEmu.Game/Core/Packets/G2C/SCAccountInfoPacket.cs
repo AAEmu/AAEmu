@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly DateTime _payEnd;
 
         public SCAccountInfoPacket(int payMethod, int payLocation, DateTime payStart, DateTime payEnd)
-            : base(0x1c0, 1) // TODO 1.0 opcode: 0x1b8
+            : base(0x1c0, 1)
         {
             _payMethod = payMethod;
             _payLocation = payLocation;

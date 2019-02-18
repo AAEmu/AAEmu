@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _friendName;
         private readonly short _errorMessage;
 
-        public SCDeleteFriendPacket(uint characterId, bool success, string friendName, short errorMessage) : base(0x050, 1) // 0x04c
+        public SCDeleteFriendPacket(uint characterId, bool success, string friendName, short errorMessage) : base(0x050, 1)
         {
             _characterId = characterId;
             _success = success;

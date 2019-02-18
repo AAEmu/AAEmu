@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _last;
         private readonly uint[] _ids;
 
-        public SCDoodadsRemovedPacket(bool last, uint[] ids) : base(0x111, 1) // 0x10d
+        public SCDoodadsRemovedPacket(bool last, uint[] ids) : base(0x111, 1)
         {
             _last = last;
             _ids = ids;

@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         // 0 - honor
         // 1 - vocation(living)
 
-        public SCGamePointChangedPacket(byte kind, int amount) : base(0x181, 1)
+        public SCGamePointChangedPacket(byte kind, int amount) : base(0x187, 1)
         {
             _kind = kind;
             _amount = amount;
