@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Skill _skill;
 
-        public SCSkillLearnedPacket(Skill skill) : base(0x103, 1) // TODO 1.0 opcode: 0x0ff
+        public SCSkillLearnedPacket(Skill skill) : base(0x103, 1)
         {
             _skill = skill;
         }

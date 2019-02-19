@@ -62,7 +62,7 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillObjectUnk1 : SkillObject // changed
+    public class SkillObjectUnk1 : SkillObject
     {
         public byte Type { get; set; }
         public int Id { get; set; }
@@ -128,30 +128,30 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
     
-    public class SkillObjectUnk4 : SkillObject // changed
+    public class SkillObjectUnk4 : SkillObject
     {
-        public long X { get; set; }
-        public long Y { get; set; }
+        public float X { get; set; }
+        public float Y { get; set; }
         public float Z { get; set; }
 
         public override void Read(PacketStream stream)
         {
-            X = stream.ReadInt64();
-            Y = stream.ReadInt64();
+            X = Helpers.ConvertLongX(stream.ReadInt64());
+            Y = Helpers.ConvertLongY(stream.ReadInt64());
             Z = stream.ReadSingle();
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(X);
-            stream.Write(Y);
+            stream.Write(Helpers.ConvertLongX(X));
+            stream.Write(Helpers.ConvertLongY(Y));
             stream.Write(Z);
             return stream;
         }
     }
     
-    public class SkillObjectUnk5 : SkillObject // changed
+    public class SkillObjectUnk5 : SkillObject
     {
         public int Step { get; set; }
 

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly AbilityType _ability;
 
-        public SCSkillsResetPacket(uint objId, AbilityType ability) : base(0x106, 1) // TODO 1.0 opcode: 0x102
+        public SCSkillsResetPacket(uint objId, AbilityType ability) : base(0x106, 1)
         {
             _objId = objId;
             _ability = ability;

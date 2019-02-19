@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _masterId;
         private readonly uint _slaveId;
 
-        public SCSlaveBoundPacket(uint masterId, uint slaveId) : base(0x063, 1) // TODO 1.0 opcode: 0x05f
+        public SCSlaveBoundPacket(uint masterId, uint slaveId) : base(0x063, 1)
         {
             _masterId = masterId;
             _slaveId = slaveId;
@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_masterId);
-            stream.Write(_slaveId);
+            stream.WriteBc(_slaveId);
             return stream;
         }
     }

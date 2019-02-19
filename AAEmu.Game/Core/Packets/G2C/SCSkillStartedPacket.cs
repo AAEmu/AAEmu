@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly SkillObject _skillObject;
 
         public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) 
-            : base(0x0a0, 1) // 0x09a
+            : base(0x0a0, 1)
         {
             _id = id;
             _tl = tl;

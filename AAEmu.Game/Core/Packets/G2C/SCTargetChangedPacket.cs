@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly uint _targetId;
 
-        public SCTargetChangedPacket(uint id, uint targetId) : base(0x083, 1) // TODO 1.0 opcode: 0x07f
+        public SCTargetChangedPacket(uint id, uint targetId) : base(0x083, 1)
         {
             _id = id;
             _targetId = targetId;

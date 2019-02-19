@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _damage;
 
         public SCUnitDamagedPacket(CastAction castAction, SkillCaster skillCaster, uint casterId, uint targetId, int damage)
-            : base(0x0a6, 1) // TODO 1.0 opcode: 0x0a0
+            : base(0x0a6, 1)
         {
             _castAction = castAction;
             _skillCaster = skillCaster;

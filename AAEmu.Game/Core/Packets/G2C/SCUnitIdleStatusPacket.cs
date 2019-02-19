@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly bool _status;
 
-        public SCUnitIdleStatusPacket(uint id, bool status) : base(0x1f3, 1) // TODO 1.0 opcode: 0x1eb
+        public SCUnitIdleStatusPacket(uint id, bool status) : base(0x1f3, 1)
         {
             _id = id;
             _status = status;

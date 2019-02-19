@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint[] _ids;
 
-        public SCUnitsRemovedPacket(uint[] ids) : base(0x069, 1) // TODO 1.0 opcode: 0x065
+        public SCUnitsRemovedPacket(uint[] ids) : base(0x069, 1)
         {
             _ids = ids;
         }

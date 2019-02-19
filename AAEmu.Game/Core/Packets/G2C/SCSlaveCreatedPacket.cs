@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _creatorName;
         
         public SCSlaveCreatedPacket(uint objId, ushort tl, uint obj2Id, bool hideSpawnEffect, long unkId, string creatorName)
-            : base(0x060, 1) // TODO 1.0 opcode: 0x05c
+            : base(0x060, 1)
         {
             _objId = objId;
             _tl = tl;

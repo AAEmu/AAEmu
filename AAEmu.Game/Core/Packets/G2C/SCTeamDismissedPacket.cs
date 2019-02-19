@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _teamId;
         
-        public SCTeamDismissedPacket(uint teamId) : base(0x0d1, 1)
+        public SCTeamDismissedPacket(uint teamId) : base(0x0d7, 1)
         {
             _teamId = teamId;
         }

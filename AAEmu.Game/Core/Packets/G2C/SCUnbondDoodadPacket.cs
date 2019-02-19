@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _characterId;
         private readonly uint _doodadObjId;
 
-        public SCUnbondDoodadPacket(uint characterObjId, uint characterId, uint doodadObjId) : base(0x134, 1)
+        public SCUnbondDoodadPacket(uint characterObjId, uint characterId, uint doodadObjId) : base(0x138, 1)
         {
             _characterObjId = characterObjId;
             _characterId = characterId;

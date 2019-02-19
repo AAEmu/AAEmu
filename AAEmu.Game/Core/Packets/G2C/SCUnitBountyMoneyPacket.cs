@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly long _moneyAmount;
 
-        public SCUnitBountyMoneyPacket(uint objId, long moneyAmount) : base(0x0b3, 1)
+        public SCUnitBountyMoneyPacket(uint objId, long moneyAmount) : base(0x0ba, 1)
         {
             _objId = objId;
             _moneyAmount = moneyAmount;
