@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new SetGameTypePacket("w_hanuimaru_1", 0, 1)); // TODO arche_mall
                     
                     // TODO ...
-                    // Connection.SendPacket(new SCInitialConfigPacket());
+                    Connection.SendPacket(new SCInitialConfigPacket());
                     Connection.SendPacket(
                         new SCAccountInfoPacket(
                             (int)Connection.Payment.Method,
@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
                             Connection.Payment.EndTime
                         )
                     );
-//                    Connection.SendPacket(new SCChatSpamDelayPacket());
+                    Connection.SendPacket(new SCChatSpamDelayPacket());
                     break;
                 case 1:
                     Connection.SendPacket(new ChangeStatePacket(2));

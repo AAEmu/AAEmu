@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSplitBagItemPacket : GamePacket
     {
-        public CSSplitBagItemPacket() : base(0x039, 1) // TODO 1.0 opcode: 0x037
+        public CSSplitBagItemPacket() : base(0x039, 1)
         {
         }
 
@@ -15,14 +15,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             var fromItemId = stream.ReadUInt64();
             var toItemId = stream.ReadUInt64();
 
-            stream.ReadByte();
             var fromSlotType = (SlotType) stream.ReadByte();
-            stream.ReadByte();
             var fromSlot = stream.ReadByte();
 
-            stream.ReadByte();
             var toSlotType = (SlotType) stream.ReadByte();
-            stream.ReadByte();
             var toSlot = stream.ReadByte();
 
             var count = stream.ReadInt32();
