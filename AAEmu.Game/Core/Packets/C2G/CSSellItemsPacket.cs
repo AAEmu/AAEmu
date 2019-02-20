@@ -24,14 +24,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (npc == null || !npc.Template.Merchant)
                 return;
 
+            var unkObjId = stream.ReadBc();
+
             var num = stream.ReadByte();
             var items = new List<Item>();
 
             for (var i = 0; i < num; i++)
             {
-                stream.ReadByte();
                 var slotType = (SlotType)stream.ReadByte();
-                stream.ReadByte();
                 var slot = stream.ReadByte();
 
                 var itemId = stream.ReadUInt64();
@@ -42,8 +42,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                     item = Connection.ActiveChar.Inventory.Equip[slot];
                 else if (slotType == SlotType.Inventory)
                     item = Connection.ActiveChar.Inventory.Items[slot];
-                else if (slotType == SlotType.Bank)
-                    item = Connection.ActiveChar.Inventory.Bank[slot];
+//                else if (slotType == SlotType.Bank)
+//                    item = Connection.ActiveChar.Inventory.Bank[slot];
                 if (item != null && item.Id == itemId)
                     items.Add(item);
             }
