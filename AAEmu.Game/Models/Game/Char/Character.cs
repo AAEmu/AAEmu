@@ -806,6 +806,12 @@ namespace AAEmu.Game.Models.Game.Char
                 return Load(connection, characterId, accountId);
         }
 
+        public static Character Load(uint characterId)
+        {
+            using (var connection = MySQL.CreateConnection())
+                return Load(connection, characterId);
+        }
+
         #region Database
 
         public static Character Load(MySqlConnection connection, uint characterId, uint accountId)
@@ -907,6 +913,92 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
             }
+
+            return character;
+        }
+
+        public static Character Load(MySqlConnection connection, uint characterId)
+        {
+            Character character = null;
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                command.CommandText = "SELECT * FROM characters WHERE `id` = @id";
+                command.Parameters.AddWithValue("@id", characterId);
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        var stream = (PacketStream)(byte[])reader.GetValue("unit_model_params");
+                        var modelParams = new UnitCustomModelParams();
+                        modelParams.Read(stream);
+
+                        character = new Character(modelParams);
+                        character.Position = new Point();
+                        character.Id = reader.GetUInt32("id");
+                        character.AccountId = reader.GetUInt32("account_id");
+                        character.Name = reader.GetString("name");
+                        character.Race = (Race)reader.GetByte("race");
+                        character.Gender = (Gender)reader.GetByte("gender");
+                        character.Level = reader.GetByte("level");
+                        character.Expirience = reader.GetInt32("expirience");
+                        character.RecoverableExp = reader.GetInt32("recoverable_exp");
+                        character.Hp = reader.GetInt32("hp");
+                        character.Mp = reader.GetInt32("mp");
+                        character.LaborPower = reader.GetInt16("labor_power");
+                        character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
+                        character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
+                        character.Ability1 = (AbilityType)reader.GetByte("ability1");
+                        character.Ability2 = (AbilityType)reader.GetByte("ability2");
+                        character.Ability3 = (AbilityType)reader.GetByte("ability3");
+                        character.Position.ZoneId = reader.GetUInt32("zone_id");
+                        character.Position.X = reader.GetFloat("x");
+                        character.Position.Y = reader.GetFloat("y");
+                        character.Position.Z = reader.GetFloat("z");
+                        character.Position.RotationX = reader.GetSByte("rotation_x");
+                        character.Position.RotationY = reader.GetSByte("rotation_y");
+                        character.Position.RotationZ = reader.GetSByte("rotation_z");
+                        character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
+                        character.FactionName = reader.GetString("faction_name");
+                        character.Family = reader.GetUInt32("family");
+                        character.DeadCount = reader.GetInt16("dead_count");
+                        character.DeadTime = reader.GetDateTime("dead_time");
+                        character.RezWaitDuration = reader.GetInt32("rez_wait_duration");
+                        character.RezTime = reader.GetDateTime("rez_time");
+                        character.RezPenaltyDuration = reader.GetInt32("rez_penalty_duration");
+                        character.LeaveTime = reader.GetDateTime("leave_time");
+                        character.Money = reader.GetInt64("money");
+                        character.Money2 = reader.GetInt64("money2");
+                        character.HonorPoint = reader.GetInt32("honor_point");
+                        character.VocationPoint = reader.GetInt32("vocation_point");
+                        character.CrimePoint = reader.GetInt16("crime_point");
+                        character.CrimeRecord = reader.GetInt32("crime_record");
+                        character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
+                        character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
+                        character.DeleteTime = reader.GetDateTime("delete_time");
+                        character.BmPoint = reader.GetInt32("bm_point");
+                        character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
+                        character.PrevPoint = reader.GetInt32("prev_point");
+                        character.Point = reader.GetInt32("point");
+                        character.Gift = reader.GetInt32("gift");
+                        character.NumInventorySlots = reader.GetByte("num_inv_slot");
+                        character.NumBankSlots = reader.GetInt16("num_bank_slot");
+                        character.ExpandedExpert = reader.GetByte("expanded_expert");
+                        character.Updated = reader.GetDateTime("updated_at");
+
+                        character.Inventory = new Inventory(character);
+
+                        if (character.Hp > character.MaxHp)
+                            character.Hp = character.MaxHp;
+                        if (character.Mp > character.MaxMp)
+                            character.Mp = character.MaxMp;
+                        character.CheckExp();
+                    }
+                }
+            }
+
+            if (character == null)
+                return null;
 
             return character;
         }
@@ -1068,15 +1160,15 @@ namespace AAEmu.Game.Models.Game.Char
                             }
                         }
 
-                        Inventory.Save(connection, transaction);
-                        Abilities.Save(connection, transaction);
-                        Actability.Save(connection, transaction);
-                        Appellations.Save(connection, transaction);
-                        Portals.Save(connection, transaction);
-                        Friends.Save(connection, transaction);
-                        Skills.Save(connection, transaction);
-                        Quests.Save(connection, transaction);
-                        Mails.Save(connection, transaction);
+                        Inventory?.Save(connection, transaction);
+                        Abilities?.Save(connection, transaction);
+                        Actability?.Save(connection, transaction);
+                        Appellations?.Save(connection, transaction);
+                        Portals?.Save(connection, transaction);
+                        Friends?.Save(connection, transaction);
+                        Skills?.Save(connection, transaction);
+                        Quests?.Save(connection, transaction);
+                        Mails?.Save(connection, transaction);
 
                         try
                         {

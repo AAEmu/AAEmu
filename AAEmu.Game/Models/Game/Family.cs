@@ -96,7 +96,7 @@ namespace AAEmu.Game.Models.Game
                     command.Connection = connection;
                     command.Transaction = transaction;
 
-                    command.CommandText = $"DELETE FROM family_members WHERE owner = @owner AND character_id IN ({removedMembers})";
+                    command.CommandText = $"DELETE FROM family_members WHERE character_id IN ({removedMembers})";
                     command.Prepare();
                     command.Parameters.AddWithValue("@family_id", Id);
                     command.ExecuteNonQuery();
@@ -107,7 +107,7 @@ namespace AAEmu.Game.Models.Game
                     command.Connection = connection;
                     command.Transaction = transaction;
 
-                    command.CommandText = $"UPDATE characters SET family = 0 WHERE `characters`.`id` IN (${removedMembers})";
+                    command.CommandText = $"UPDATE characters SET family = 0 WHERE `characters`.`id` IN ({removedMembers})";
                     command.Prepare();
                     command.Parameters.AddWithValue("@family_id", Id);
                     command.ExecuteNonQuery();

@@ -41,7 +41,9 @@ namespace AAEmu.Game.Core.Managers
                             family.Id = familyId;
                             _families.Add(family.Id, family);
 
-                            family.Load(connection);
+                            using (var connection2 = MySQL.CreateConnection()) {
+                                family.Load(connection2); // TODO : Maybe find a prettier way
+                            }
 
                             foreach (var member in family.Members)
                                 _familyMembers.Add(member.Id, member);
@@ -88,14 +90,16 @@ namespace AAEmu.Game.Core.Managers
             if (!join)
                 return;
 
-            var invitor = WorldManager.Instance.GetCharacterByObjId(invitorId);
+            var invitor = WorldManager.Instance.GetCharacterById(invitorId);
             if (invitor == null) return;
 
             if (invitor.Family == 0)
             {
                 var newFamily = new Family();
                 newFamily.Id = FamilyIdManager.Instance.GetNextId();
-                newFamily.AddMember(GetMemberForCharacter(invitor, 1, ""));
+                FamilyMember owner = GetMemberForCharacter(invitor, 1, "");
+                newFamily.AddMember(owner);
+                _familyMembers.Add(owner.Id, owner);
 
                 _families.Add(newFamily.Id, newFamily);
                 invitor.Family = newFamily.Id;
@@ -103,7 +107,9 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var family = _families[invitor.Family];
-            family.AddMember(GetMemberForCharacter(invitedChar, 0, title));
+            FamilyMember member = GetMemberForCharacter(invitedChar, 0, title);
+            family.AddMember(member);
+            _familyMembers.Add(member.Id, member);
             invitedChar.Family = invitor.Family;
 
             family.SendPacket(new SCFamilyMemberAddedPacket(family, family.Members.Count - 1));
@@ -179,14 +185,87 @@ namespace AAEmu.Game.Core.Managers
                 _familyMembers.Remove(member.Id);
             }
 
+            SaveFamily(family);
             _families.Remove(family.Id);
         }
 
-        /* TODO : 
-            - Kick
-            - ChangeOwner
-            - ChangeTitle
-        */
+        /// <summary>
+        /// Called when a family member is kicked. Disbands the family if it has 2 members.
+        /// </summary>
+        /// <param name="kicker"></param>
+        /// <param name="kickedId"></param>
+        public void KickMember(Character kicker, uint kickedId) 
+        {
+            if (kicker.Family == 0) return;
+            Family family = _families[kicker.Family];
+
+            FamilyMember kickerMember = family.GetMember(kicker);
+            if (kickerMember.Role != 1) return; // Only the steward can kick
+
+            // Load kicked character
+            Character kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
+            bool isOnline = false;
+            if (kickedCharacter != null) 
+            {
+                isOnline = true;
+            } else {
+                kickedCharacter = Character.Load(kickedId);
+            }
+
+            if (kickedCharacter == null) return;
+
+            // Remove kicked character (if online, packet)
+            kickedCharacter.Family = 0;
+            family.RemoveMember(kickedCharacter);
+            _familyMembers.Remove(kickedCharacter.Id);
+
+            if (isOnline) 
+            {
+                kickedCharacter.SendPacket(new SCFamilyRemovedPacket(family.Id));
+            }
+
+            family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, true, kickedCharacter.Id));
+
+            if (family.Members.Count < 2)
+                DisbandFamily(family);
+            else
+                SaveFamily(family);
+        }
+
+        public void ChangeTitle(Character owner, uint memberId, string newTitle)
+        {
+            if (owner.Family == 0) return;
+            Family family = _families[owner.Family];
+
+            FamilyMember ownerMember = family.GetMember(owner);
+            if (ownerMember.Role != 1) return; // Only the steward can change titles
+
+            FamilyMember member = _familyMembers[memberId];
+            member.Title = newTitle;
+
+            family.SendPacket(new SCFamilyTitleChangedPacket(family.Id, memberId, newTitle));
+        }
+
+        public void ChangeOwner(Character previousOwner, uint memberId)
+        {
+            if (previousOwner.Family == 0) return;
+            Family family = _families[previousOwner.Family];
+
+            FamilyMember previousOwnerMember = family.GetMember(previousOwner);
+            if (previousOwnerMember.Role != 1) return; // Only the steward can change owner
+
+            FamilyMember member = _familyMembers[memberId];
+            member.Role = 1;
+            previousOwnerMember.Role = 0;
+
+            family.SendPacket(new SCFamilyOwnerChangedPacket(family.Id, memberId));
+            family.SendPacket(new SCFamilyDescPacket(family));
+        }
+
+        public Family GetFamily(uint id) 
+        {
+            return _families[id];
+        }
 
         private static FamilyMember GetMemberForCharacter(Character character, byte owner, string title)
         {

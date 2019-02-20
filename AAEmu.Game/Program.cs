@@ -55,6 +55,8 @@ namespace AAEmu.Game
 
             connection.Close();
 
+            DateTime startTime = DateTime.Now;
+
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
@@ -66,7 +68,7 @@ namespace AAEmu.Game
             VisitedSubZoneIdManager.Instance.Initialize();
             PrivateBookIdManager.Instance.Initialize();
             FriendIdManager.Instance.Initialize();
-
+            
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
             QuestManager.Instance.Load();
@@ -87,10 +89,10 @@ namespace AAEmu.Game
             FamilyManager.Instance.Load();
             PortalManager.Instance.Load();
             FriendMananger.Instance.Load();
-
+            
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
-
+            
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();
             ScriptCompiler.Compile();
@@ -101,6 +103,9 @@ namespace AAEmu.Game
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();
 
+            
+            DateTime endTime = DateTime.Now;
+            _log.Info("Server started! Took {0} ms", (endTime - startTime).TotalMilliseconds);
             _signal.WaitOne();
 
             SpawnManager.Instance.Stop();
