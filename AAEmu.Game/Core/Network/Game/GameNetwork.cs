@@ -277,7 +277,7 @@ namespace AAEmu.Game.Core.Network.Game
             // 0x131 unk packet
             RegisterPacket(0x132, 1, typeof(CSIdleStatusPacket));
             // 0x133 CSChangeAutoUseAAPointPacket
-            // 0x134 CSThisTimeUnpackItemPacket
+            RegisterPacket(0x134, 1, typeof(CSThisTimeUnpackItemPacket));
             RegisterPacket(0x135, 1, typeof(CSPremiumServiceBuyPacket));
             RegisterPacket(0x136, 1, typeof(CSPremiumServiceListPacket));
             // 0x137 CSICSBuyAAPointPacket
