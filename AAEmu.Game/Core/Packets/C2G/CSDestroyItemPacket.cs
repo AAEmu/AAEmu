@@ -17,12 +17,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var itemId = stream.ReadUInt64();
 
-            // ----------- v
-            stream.ReadByte();
             var slotType = (SlotType) stream.ReadByte();
-            stream.ReadByte();
             var slot = stream.ReadByte();
-            // -----------
 
             var count = stream.ReadInt32();
 
