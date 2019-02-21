@@ -9,17 +9,15 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDestroyItemPacket : GamePacket 
     {
-        public CSDestroyItemPacket() : base(0x038, 1) // TODO 1.0 opcode: 0x036
+        public CSDestroyItemPacket() : base(0x038, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
             var itemId = stream.ReadUInt64();
-
             var slotType = (SlotType) stream.ReadByte();
             var slot = stream.ReadByte();
-
             var count = stream.ReadInt32();
 
             var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);

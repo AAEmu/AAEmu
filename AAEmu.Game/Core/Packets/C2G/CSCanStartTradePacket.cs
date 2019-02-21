@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -18,11 +19,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var target = WorldManager.Instance.GetCharacterByObjId(objId);
             if (target == null) return;
             var owner = Connection.ActiveChar;
-            // TODO - Another faction
-
-            _log.Warn("{0}({1}) CanStartTrade to {2}({3})", owner.Name, owner.ObjId, target.Name, target.ObjId);
-            target.SendPacket(new SCCanStartTradePacket(owner.ObjId));
-
+            
+            TradeManager.Instance.CanStartTrade(owner, target);
         }
     }
 }

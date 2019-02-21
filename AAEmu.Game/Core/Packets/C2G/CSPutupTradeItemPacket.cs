@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -16,7 +17,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var slot = stream.ReadByte();
             var amount = stream.ReadInt32();
 
-            _log.Warn("PutupTradeItem, SlotType: {0}, Slot: {1}, Amount: {2}", slotType, slot, amount);
+            //_log.Warn("PutupTradeItem, SlotType: {0}, Slot: {1}, Amount: {2}", slotType, slot, amount);
+            TradeManager.Instance.AddItem(Connection.ActiveChar, slotType, slot, amount);
         }
     }
 }
