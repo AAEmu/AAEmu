@@ -38,25 +38,26 @@ namespace AAEmu.Game.Core.Packets.C2G
             var honor = 0;
             var living = 0;
 
-            var itemsBuy = new List<(uint itemId, int itemCount)>();
+            var itemsBuy = new List<(uint itemId, byte itemGrade, int itemCount)>();
             for (var i = 0; i < nBuy; i++)
             {
                 var itemId = stream.ReadUInt32();
-                var itemType = stream.ReadByte(); // TODO grade?
-                var itemCount = stream.ReadInt32();
+                var grade = stream.ReadByte();
+                var count = stream.ReadInt32();
                 var currency = stream.ReadByte();
 
-                if (!pack.Items.ContainsKey(itemId))
+                if (!pack.Items.ContainsKey(itemId) || pack.Items[itemId].IndexOf(grade) < 0)
                     continue;
-                itemsBuy.Add((itemId, itemCount));
+
+                itemsBuy.Add((itemId, grade, count));
                 var template = ItemManager.Instance.GetTemplate(itemId);
 
                 if (currency == 0)
-                    money += template.Price * itemCount;
+                    money += template.Price * count;
                 else if (currency == 1)
-                    honor += template.HonorPrice * itemCount;
+                    honor += template.HonorPrice * count;
                 else if (currency == 2)
-                    living += template.LivingPointPrice * itemCount;
+                    living += template.LivingPointPrice * count;
             }
 
             var itemsBuyBack = new Dictionary<Item, int>();
@@ -82,9 +83,9 @@ namespace AAEmu.Game.Core.Packets.C2G
                 return;
 
             var tasks = new List<ItemTask>();
-            foreach (var (itemId, count) in itemsBuy)
+            foreach (var (itemId, grade, count) in itemsBuy)
             {
-                var item = ItemManager.Instance.Create(itemId, count, pack.Items[itemId].Grade, true);
+                var item = ItemManager.Instance.Create(itemId, count, grade);
                 if (item == null)
                     return;
                 var res = Connection.ActiveChar.Inventory.AddItem(item);

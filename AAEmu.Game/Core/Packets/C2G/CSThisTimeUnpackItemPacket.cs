@@ -4,19 +4,19 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSPutupTradeItemPacket : GamePacket
+    public class CSThisTimeUnpackItemPacket : GamePacket
     {
-        public CSPutupTradeItemPacket() : base(0x0f0, 1)
+        public CSThisTimeUnpackItemPacket() : base(0x134, 1)
         {
+
         }
 
         public override void Read(PacketStream stream)
         {
             var slotType = (SlotType)stream.ReadByte();
             var slot = stream.ReadByte();
-            var amount = stream.ReadInt32();
-
-            _log.Warn("PutupTradeItem, SlotType: {0}, Slot: {1}, Amount: {2}", slotType, slot, amount);
+            var itemId = stream.ReadUInt64();
+            _log.Warn("CSThisTimeUnpackItemPacket, slotType: {0}, slot: {1}, itemId: {2}", slotType, slot, itemId);
         }
     }
 }
