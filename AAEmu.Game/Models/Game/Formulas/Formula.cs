@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Formulas
         public uint Id { get; set; }
         public string TextFormula { get; set; }
 
-        protected Formula()
+        public Formula()
         {
         }
 
