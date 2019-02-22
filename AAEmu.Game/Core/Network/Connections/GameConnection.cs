@@ -31,6 +31,8 @@ namespace AAEmu.Game.Core.Network.Connections
         
         public AccountPayment Payment { get; set; }
         
+        public int PacketCount { get; set; }
+        
         public List<IDisposable> Subscribers { get; set; }
         public GameState State { get; set; }
         public Character ActiveChar { get; set; }
@@ -48,6 +50,7 @@ namespace AAEmu.Game.Core.Network.Connections
 
         public void SendPacket(GamePacket packet)
         {
+            packet.Connection = this;
             SendPacket(packet.Encode());
         }
 

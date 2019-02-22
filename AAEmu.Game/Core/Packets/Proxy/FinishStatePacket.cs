@@ -23,15 +23,15 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     
                     // TODO ...
                     Connection.SendPacket(new SCInitialConfigPacket());
-                    Connection.SendPacket(
-                        new SCAccountInfoPacket(
-                            (int)Connection.Payment.Method,
-                            Connection.Payment.Location,
-                            Connection.Payment.StartTime,
-                            Connection.Payment.EndTime
-                        )
-                    );
-                    Connection.SendPacket(new SCChatSpamDelayPacket());
+//                    Connection.SendPacket(
+//                        new SCAccountInfoPacket(
+//                            (int)Connection.Payment.Method,
+//                            Connection.Payment.Location,
+//                            Connection.Payment.StartTime,
+//                            Connection.Payment.EndTime
+//                        )
+//                    );
+//                    Connection.SendPacket(new SCChatSpamDelayPacket());
                     break;
                 case 1:
                     Connection.SendPacket(new ChangeStatePacket(2));

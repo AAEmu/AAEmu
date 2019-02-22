@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _type;
         private readonly byte _modelPostureType;
 
-        public SCUnitStatePacket(Unit unit) : base(0x068, 1)
+        public SCUnitStatePacket(Unit unit) : base(0x069, 1)
         {
             _unit = unit;
             if (_unit is Character)

@@ -1,5 +1,7 @@
 using System;
+using System.Threading;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Core.Network.Game
@@ -22,16 +24,26 @@ namespace AAEmu.Game.Core.Network.Game
                     .Write((byte)0xdd)
                     .Write(Level);
 
-                if (Level == 1)
-                {
-                    packet
-                        .Write((byte)0)
-                        .Write((byte)0);
-                }
-
-                packet
+                var body = new PacketStream()
                     .Write(TypeId)
                     .Write(this);
+
+                if (Level == 1)
+                {
+                    var connectionPacketCount = Connection.PacketCount;
+
+                    var hash = Helpers.Crc8(body.GetBytes());
+
+                    packet
+                        .Write((byte)hash) // hash
+                        .Write((byte)connectionPacketCount); // count
+
+
+                    Interlocked.Increment(ref connectionPacketCount);
+                    Connection.PacketCount = connectionPacketCount > byte.MaxValue ? 0 : connectionPacketCount;
+                }
+
+                packet.Write(body, false);
                 
                 ps.Write(packet);
             }

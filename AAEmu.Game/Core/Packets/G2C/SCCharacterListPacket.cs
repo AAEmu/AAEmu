@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _last;
         private readonly Character[] _characters;
 
-        public SCCharacterListPacket(bool last, Character[] characters) : base(0x03d, 1)
+        public SCCharacterListPacket(bool last, Character[] characters) : base(0x03e, 1)
         {
             _last = last;
             _characters = characters;

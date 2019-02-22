@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListCharacterPacket : GamePacket
     {
-        public CSListCharacterPacket() : base(0x01f, 1)
+        public CSListCharacterPacket() : base(0x020, 1)
         {
         }
 
@@ -18,14 +18,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             var size = stream.ReadInt32(); // TODO max size 4096
             var data = stream.ReadBytes(); // TODO or string?
             
-            Connection.SendPacket(
-                new SCAccountInfoPacket(
-                    (int)Connection.Payment.Method,
-                    Connection.Payment.Location,
-                    Connection.Payment.StartTime,
-                    Connection.Payment.EndTime
-                )
-            );
+//            Connection.SendPacket(
+//                new SCAccountInfoPacket(
+//                    (int)Connection.Payment.Method,
+//                    Connection.Payment.Location,
+//                    Connection.Payment.StartTime,
+//                    Connection.Payment.EndTime
+//                )
+//            );
 
             Connection.LoadCharacters();
 
@@ -41,18 +41,18 @@ namespace AAEmu.Game.Core.Packets.C2G
 //                );
 //            }
 
-            Connection.SendPacket(new SCRaceCongestionPacket());
+//            Connection.SendPacket(new SCRaceCongestionPacket());
 
-            if (characters.Length == 0)
+//            if (characters.Length == 0)
                 Connection.SendPacket(new SCCharacterListPacket(true, characters));
-            else
-                for (var i = 0; i < characters.Length; i += 2)
-                {
-                    var last = characters.Length - i <= 2;
-                    var temp = new Character[last ? characters.Length - i : 2];
-                    Array.Copy(characters, i, temp, 0, temp.Length);
-                    Connection.SendPacket(new SCCharacterListPacket(last, temp));
-                }
+//            else
+//                for (var i = 0; i < characters.Length; i += 2)
+//                {
+//                    var last = characters.Length - i <= 2;
+//                    var temp = new Character[last ? characters.Length - i : 2];
+//                    Array.Copy(characters, i, temp, 0, temp.Length);
+//                    Connection.SendPacket(new SCCharacterListPacket(last, temp));
+//                }
         }
     }
 }

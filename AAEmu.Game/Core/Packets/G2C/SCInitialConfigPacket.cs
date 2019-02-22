@@ -37,7 +37,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             // auctionPostBuff -> (uint)fset[8] & 0x80000 == 0x80000
             // houseTaxPrepay -> (uint)fset[8] & 0x100000 == 0x100000
             
-            stream.Write(new byte[] {0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a}, true); // fset
+            // 0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a
+            stream.Write(new byte[] {0x00, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00}, true); // fset
 
             /*
                 {
@@ -86,6 +87,8 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.Write((byte)0); // secondPriceType
             stream.Write((byte)0); // secondPasswordMaxFailCount
+
+            stream.Write((ushort)0); // idleKickTime
 
             return stream;
         }

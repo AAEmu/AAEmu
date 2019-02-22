@@ -30,36 +30,36 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
 
                 Connection.SendPacket(new SCCharacterStatePacket(character));
-                Connection.SendPacket(new SCCharacterGamePointsPacket(character));
-                Connection.ActiveChar.Inventory.Send();
-                Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
-
-                // Connection.ActiveChar.Quests.Send();
-                // Connection.ActiveChar.Quests.SendCompleted();
-
-                Connection.ActiveChar.Actability.Send();
-                Connection.ActiveChar.Appellations.Send();
-
-                Connection.ActiveChar.Portals.Send();
-                Connection.ActiveChar.Friends.Send();
-
-                foreach (var conflict in ZoneManager.Instance.GetConflicts())
-                {
-                    Connection.SendPacket(
-                        new SCConflictZoneStatePacket(
-                            conflict.ZoneGroupId,
-                            ZoneConflictType.Trouble0,
-                            conflict.NoKillMin[0] > 0 ? DateTime.Now.AddMinutes(conflict.NoKillMin[0]) : DateTime.MinValue
-                        )
-                    );
-                }
-
-                FactionManager.Instance.SendFactions(Connection.ActiveChar);
-                FactionManager.Instance.SendRelations(Connection.ActiveChar);
-
-                Connection.ActiveChar.SendOption(1);
-                Connection.ActiveChar.SendOption(2);
-                Connection.ActiveChar.SendOption(5);
+//                Connection.SendPacket(new SCCharacterGamePointsPacket(character));
+//                Connection.ActiveChar.Inventory.Send();
+//                Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
+//
+//                // Connection.ActiveChar.Quests.Send();
+//                // Connection.ActiveChar.Quests.SendCompleted();
+//
+//                Connection.ActiveChar.Actability.Send();
+//                Connection.ActiveChar.Appellations.Send();
+//
+//                Connection.ActiveChar.Portals.Send();
+//                Connection.ActiveChar.Friends.Send();
+//
+//                foreach (var conflict in ZoneManager.Instance.GetConflicts())
+//                {
+//                    Connection.SendPacket(
+//                        new SCConflictZoneStatePacket(
+//                            conflict.ZoneGroupId,
+//                            ZoneConflictType.Trouble0,
+//                            conflict.NoKillMin[0] > 0 ? DateTime.Now.AddMinutes(conflict.NoKillMin[0]) : DateTime.MinValue
+//                        )
+//                    );
+//                }
+//
+//                FactionManager.Instance.SendFactions(Connection.ActiveChar);
+//                FactionManager.Instance.SendRelations(Connection.ActiveChar);
+//
+//                Connection.ActiveChar.SendOption(1);
+//                Connection.ActiveChar.SendOption(2);
+//                Connection.ActiveChar.SendOption(5);
             }
             else
             {
