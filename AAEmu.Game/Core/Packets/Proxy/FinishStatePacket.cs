@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new SetGameTypePacket("w_hanuimaru_1", 0, 1)); // TODO arche_mall
                     
                     // TODO ...
+                    // TODO SCTrionConfigPacket
                     Connection.SendPacket(new SCInitialConfigPacket());
 //                    Connection.SendPacket(
 //                        new SCAccountInfoPacket(
