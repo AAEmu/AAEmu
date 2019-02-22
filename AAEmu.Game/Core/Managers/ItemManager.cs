@@ -23,6 +23,11 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, ItemTemplate> _templates;
         private ItemConfig _config;
 
+        // Grade Enchanting
+        private Dictionary<uint, EquipSlotEnchantingCost> _enchantingCosts;
+        private Dictionary<int, GradeTemplate> _gradesOrdered;
+        private Dictionary<uint, ItemGradeEnchantingSupport> _enchantingSupports;
+
         public ItemTemplate GetTemplate(uint id)
         {
             return _templates.ContainsKey(id) ? _templates[id] : null;
@@ -31,6 +36,22 @@ namespace AAEmu.Game.Core.Managers
         public GradeTemplate GetGradeTemplate(int grade)
         {
             return _grades.ContainsKey(grade) ? _grades[grade] : null;
+        }
+
+        public Holdable GetHoldable(uint id) {
+            return _holdables.ContainsKey(id) ? _holdables[id] : null;
+        }
+
+        public EquipSlotEnchantingCost GetEquipSlotEnchantingCost(uint slotTypeId) {
+            return _enchantingCosts.ContainsKey(slotTypeId) ? _enchantingCosts[slotTypeId] : null;
+        }
+
+        public GradeTemplate GetGradeTemplateByOrder(int gradeOrder) {
+            return _gradesOrdered.ContainsKey(gradeOrder) ? _gradesOrdered[gradeOrder] : null;
+        }
+
+        public ItemGradeEnchantingSupport GetItemGradEnchantingSupportByItemId(uint itemId) {
+            return _enchantingSupports.ContainsKey(itemId) ? _enchantingSupports[itemId] : null;
         }
 
         public float GetDurabilityRepairCostFactor()
@@ -113,6 +134,9 @@ namespace AAEmu.Game.Core.Managers
             _wearableSlots = new Dictionary<uint, WearableSlot>();
             _modifiers = new Dictionary<uint, AttributeModifiers>();
             _templates = new Dictionary<uint, ItemTemplate>();
+            _enchantingCosts = new Dictionary<uint, EquipSlotEnchantingCost>();
+            _gradesOrdered = new Dictionary<int, GradeTemplate>();
+            _enchantingSupports = new Dictionary<uint, ItemGradeEnchantingSupport>();
             _config = new ItemConfig();
             using (var connection = SQLite.CreateConnection())
             {
@@ -149,6 +173,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new GradeTemplate();
                             template.Grade = reader.GetInt32("id");
+                            template.GradeOrder = reader.GetInt32("grade_order");
                             template.HoldableDps = reader.GetFloat("var_holdable_dps");
                             template.HoldableArmor = reader.GetFloat("var_holdable_armor");
                             template.HoldableMagicDps = reader.GetFloat("var_holdable_magic_dps");
@@ -161,7 +186,14 @@ namespace AAEmu.Game.Core.Managers
                             template.EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio");
                             template.EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio");
                             template.EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio");
+                            template.EnchantDowngradeRatio = reader.GetInt32("grade_enchant_downgrade_ratio");
+                            template.EnchantCost = reader.GetInt32("grade_enchant_cost");
+                            template.HoldableHealDps = reader.GetFloat("var_holdable_heal_dps");
+                            template.EnchantDowngradeMin = reader.GetInt32("grade_enchant_downgrade_min");
+                            template.EnchantDowngradeMax = reader.GetInt32("grade_enchant_downgrade_max");
+                            template.CurrencyId = reader.GetInt32("currency_id");
                             _grades.Add(template.Grade, template);
+                            _gradesOrdered.Add(template.GradeOrder, template);
                         }
                     }
                 }
@@ -482,6 +514,55 @@ namespace AAEmu.Game.Core.Managers
                             template.CharGender = reader.GetByte("char_gender_id");
                             if (!_templates.ContainsKey(id))
                                 _templates.Add(template.Id, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM equip_slot_enchanting_costs";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new EquipSlotEnchantingCost();
+                            template.Id = reader.GetUInt32("id");
+                            template.SlotTypeId = reader.GetUInt32("slot_type_id");
+                            template.Cost = reader.GetInt32("cost");
+                            if (!_enchantingCosts.ContainsKey(template.SlotTypeId))
+                                _enchantingCosts.Add(template.SlotTypeId, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_grade_enchanting_supports";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new ItemGradeEnchantingSupport();
+                            template.Id = reader.GetUInt32("id");
+                            template.ItemId = reader.GetUInt32("item_id");
+                            template.RequireGradeMin = reader.GetInt32("require_grade_min");
+                            template.RequireGradeMax = reader.GetInt32("require_grade_max");
+                            template.AddSuccessRatio = reader.GetInt32("add_success_ratio");
+                            template.AddSuccessMul = reader.GetInt32("add_success_mul");
+                            template.AddGreatSuccessRatio = reader.GetInt32("add_great_success_ratio");
+                            template.AddGreatSuccessMul = reader.GetInt32("add_great_success_mul");
+                            template.AddBreakRatio = reader.GetInt32("add_break_ratio");
+                            template.AddBreakMul = reader.GetInt32("add_break_mul");
+                            template.AddDowngradeRatio = reader.GetInt32("add_downgrade_ratio");
+                            template.AddDowngradeMul = reader.GetInt32("add_downgrade_mul");
+                            template.AddGreatSuccessGrade = reader.GetInt32("add_great_success_grade");
+
+                            if (!_enchantingSupports.ContainsKey(template.ItemId))
+                                _enchantingSupports.Add(template.ItemId, template);
                         }
                     }
                 }

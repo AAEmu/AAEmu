@@ -49,5 +49,15 @@ namespace AAEmu.Game.Core.Helper
                 return false;
             }
         }
+
+        public static ItemTask GetTaskAndRemoveItem(Character character, Item item, int count) {
+            if (item.Count > count) {
+                item.Count -= count;
+                return new ItemCountUpdate(item, -count);
+            } else  {
+                character.Inventory.RemoveItem(item, true);
+                return new ItemRemove(item);
+            }
+        }
     }
 }

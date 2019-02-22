@@ -430,6 +430,14 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
+        public void BroadcastPacketToServer(GamePacket packet)
+        {
+            foreach (var character in _characters.Values)
+            {
+                character.SendPacket(packet);
+            }
+        }
+
         private Region GetRegion(uint zoneId, float x, float y)
         {
             var world = GetWorldByZone(zoneId);

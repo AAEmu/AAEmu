@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Skills
         Unk4 = 4,
         Unk5 = 5,
         Unk6 = 6,
-        Unk7 = 7
+        ItemGradeEnchantingSupport = 7
     }
 
     public class SkillObject : PacketMarshaler
@@ -49,8 +49,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 case SkillObjectType.Unk6:
                     obj = new SkillObjectUnk6();
                     break;
-                case SkillObjectType.Unk7:
-                    obj = new SkillObjectUnk7();
+                case SkillObjectType.ItemGradeEnchantingSupport:
+                    obj = new SkillObjectItemGradeEnchantingSupport();
                     break;
                 default:
                     obj = new SkillObject();
@@ -185,7 +185,7 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillObjectUnk7 : SkillObject
+    public class SkillObjectItemGradeEnchantingSupport : SkillObject
     {
         public uint Id { get; set; }
         public ulong SupportItemId { get; set; }
