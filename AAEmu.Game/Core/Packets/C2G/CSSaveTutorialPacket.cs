@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var id = stream.ReadUInt32();
 
-            _log.Debug("SaveTutorial, Id: {0}", id);
+            //_log.Debug("SaveTutorial, Id: {0}", id);
         }
     }
 }
