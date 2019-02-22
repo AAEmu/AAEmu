@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Friend[] _friends;
         private readonly bool _success;
         
-        public SCSearchListPacket(int total, Friend[] friends, bool success) : base(0x04e, 1)
+        public SCSearchListPacket(int total, Friend[] friends, bool success) : base(SCOffsets.SCSearchListPacket, 1)
         {
             _total = total;
             _friends = friends;

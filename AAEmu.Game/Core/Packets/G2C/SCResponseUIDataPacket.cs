@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _uiDataType;
         private readonly string _uiData;
 
-        public SCResponseUIDataPacket(uint characterId, ushort uiDataType, string uiData) : base(0x1c8, 1)
+        public SCResponseUIDataPacket(uint characterId, ushort uiDataType, string uiData) : base(SCOffsets.SCResponseUIDataPacket, 1)
         {
             _characterId = characterId;
             _uiDataType = uiDataType;

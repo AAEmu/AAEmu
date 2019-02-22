@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _flag;
 
         public SCPlotEventPacket(ushort tl, uint eventId, uint skillId, uint casterId, uint targetId, uint unkId, ushort castingTime,
-            byte flag) : base(0x0ad, 1)
+            byte flag) : base(SCOffsets.SCPlotEventPacket, 1)
         {
             _tl = tl;
             _eventId = eventId;

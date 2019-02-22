@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly long _mailId;
         
-        public SCChargeMoneyPaidPacket(long mailId) : base(0x11c, 1)
+        public SCChargeMoneyPaidPacket(long mailId) : base(SCOffsets.SCChargeMoneyPaidPacket, 1)
         {
             _mailId = mailId;
         }

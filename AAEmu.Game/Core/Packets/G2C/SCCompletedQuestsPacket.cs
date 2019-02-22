@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly CompletedQuest[] _quests;
 
-        public SCCompletedQuestsPacket(CompletedQuest[] quests) : base(0x0f1, 1)
+        public SCCompletedQuestsPacket(CompletedQuest[] quests) : base(SCOffsets.SCCompletedQuestsPacket, 1)
         {
             _quests = quests;
         }

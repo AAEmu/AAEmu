@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _total;
         private readonly Friend[] _friends;
 
-        public SCFriendsPacket(int total, Friend[] friends) : base(0x04d, 1)
+        public SCFriendsPacket(int total, Friend[] friends) : base(SCOffsets.SCFriendsPacket, 1)
         {
             _total = total;
             _friends = friends;

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCTeamPingPosPacket : GamePacket
     {
-        public SCTeamPingPosPacket(uint hasPing, float x, float y, uint insId) : base(0x0e5, 1)
+        public SCTeamPingPosPacket(uint hasPing, float x, float y, uint insId) : base(SCOffsets.SCTeamPingPosPacket, 1)
         {
             // TODO not done... need client packet
         }

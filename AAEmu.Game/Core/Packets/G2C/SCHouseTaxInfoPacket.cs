@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isHeavyTaxHouse;
 
         public SCHouseTaxInfoPacket(ushort tl, int dominionTaxRate, int moneyAmount, int moneyAmount2, ulong due, bool isAlreadyPaid,
-            byte weeksWithoutPay, byte weeksPrepay, bool isHeavyTaxHouse) : base(0x0c2, 1)
+            byte weeksWithoutPay, byte weeksPrepay, bool isHeavyTaxHouse) : base(SCOffsets.SCHouseTaxInfoPacket, 1)
         {
             _tl = tl;
             _dominionTaxRate = dominionTaxRate;

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _playTime;
 
-        public SCPlaytimePacket(int playTime) : base(0x058, 1)
+        public SCPlaytimePacket(int playTime) : base(SCOffsets.SCPlaytimePacket, 1)
         {
             _playTime = playTime;
         }

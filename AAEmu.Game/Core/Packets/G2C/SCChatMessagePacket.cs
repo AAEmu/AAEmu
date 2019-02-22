@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _ability;
         private readonly byte _languageType;
 
-        public SCChatMessagePacket(ChatType type, string message) : base(0xcc, 1)
+        public SCChatMessagePacket(ChatType type, string message) : base(SCOffsets.SCChatMessagePacket, 1)
         {
             _type = type;
             _message = message;

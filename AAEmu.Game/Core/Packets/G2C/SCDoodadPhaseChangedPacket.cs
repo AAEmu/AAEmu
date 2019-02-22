@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private Doodad _doodad;
 
-        public SCDoodadPhaseChangedPacket(Doodad doodad) : base(0x10d, 1)
+        public SCDoodadPhaseChangedPacket(Doodad doodad) : base(SCOffsets.SCDoodadPhaseChangedPacket, 1)
         {
             _doodad = doodad;
         }

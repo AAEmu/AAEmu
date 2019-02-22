@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _nextState;
         
         public SCFactionSetRelationStatePacket(uint id, uint id2, byte state, DateTime expireTime, byte nextState) 
-            : base(0x018, 1)
+            : base(SCOffsets.SCFactionSetRelationStatePacket, 1)
         {
             _id = id;
             _id2 = id2;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _myOk;
         private readonly bool _otherOk;
 
-        public SCTradeOkUpdatePacket(bool myOk, bool otherOk) : base(0x166, 1)
+        public SCTradeOkUpdatePacket(bool myOk, bool otherOk) : base(SCOffsets.SCTradeOkUpdatePacket, 1)
         {
             _myOk = myOk;
             _otherOk = otherOk;

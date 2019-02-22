@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ExpeditionRolePolicy[] _rolePolicies;
         
-        public SCExpeditionRolePolicyListPacket(ExpeditionRolePolicy[] rolePolicies) : base(0x00A, 1)
+        public SCExpeditionRolePolicyListPacket(ExpeditionRolePolicy[] rolePolicies) : base(SCOffsets.SCExpeditionRolePolicyListPacket, 1)
         {
             _rolePolicies = rolePolicies;
         }

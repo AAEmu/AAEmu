@@ -8,6 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly HouseData _houseData;
         
+        // Is this packet even used ? the offset is 0x0bf 
         public SCMyHousePacket(HouseData houseData) : base(0x0bf, 1)
         {
             _houseData = houseData;

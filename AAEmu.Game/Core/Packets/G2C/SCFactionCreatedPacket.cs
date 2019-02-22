@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly (uint memberObjId, uint memberId, string name)[] _members;
 
         public SCFactionCreatedPacket(SystemFaction faction, uint ownerObjId, (uint memberObjId, uint memberId, string name)[] members) :
-            base(0x012, 1)
+            base(SCOffsets.SCFactionCreatedPacket, 1)
         {
             _faction = faction;
             _ownerObjId = ownerObjId;

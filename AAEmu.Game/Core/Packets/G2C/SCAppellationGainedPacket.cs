@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _appellationId;
 
-        public SCAppellationGainedPacket(uint appellationId) : base(0x1a3, 1)
+        public SCAppellationGainedPacket(uint appellationId) : base(SCOffsets.SCAppellationGainedPacket, 1)
         {
             _appellationId = appellationId;
         }

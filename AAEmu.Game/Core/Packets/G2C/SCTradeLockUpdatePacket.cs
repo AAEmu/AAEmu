@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _myLock;
         private readonly bool _otherLock;
 
-        public SCTradeLockUpdatePacket(bool myLock, bool otherLock) : base(0x167, 1)
+        public SCTradeLockUpdatePacket(bool myLock, bool otherLock) : base(SCOffsets.SCTradeLockUpdatePacket, 1)
         {
             _myLock = myLock;
             _otherLock = otherLock;

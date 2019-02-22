@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly (uint id, bool active)[] _appellations;
 
-        public SCAppellationsPacket((uint id, bool active)[] appellations) : base(0x1a2, 1)
+        public SCAppellationsPacket((uint id, bool active)[] appellations) : base(SCOffsets.SCAppellationsPacket, 1)
         {
             _appellations = appellations;
         }

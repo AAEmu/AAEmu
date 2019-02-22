@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isOpenDateModified;
         private readonly CountUnreadMail _count;
 
-        public SCMailBodyPacket(bool isPrepare, bool isSent, MailBody body, bool isOpenDateModified, CountUnreadMail count) : base(0x119, 1)
+        public SCMailBodyPacket(bool isPrepare, bool isSent, MailBody body, bool isOpenDateModified, CountUnreadMail count) : base(SCOffsets.SCMailBodyPacket, 1)
         {
             _isPrepare = isPrepare;
             _isSent = isSent;

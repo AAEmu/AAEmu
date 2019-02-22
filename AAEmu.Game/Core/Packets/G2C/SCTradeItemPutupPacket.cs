@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _slot;
         private readonly int _amount;
 
-        public SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount) : base(0x160, 1)
+        public SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount) : base(SCOffsets.SCTradeItemPutupPacket, 1)
         {
             _slotType = slotType;
             _slot = slot;

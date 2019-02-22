@@ -4,7 +4,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCExpeditionShowRenameUIPacket : GamePacket
     {
-        public SCExpeditionShowRenameUIPacket() : base(0x00e, 1)
+        public SCExpeditionShowRenameUIPacket() : base(SCOffsets.SCExpeditionShowRenameUIPacket, 1)
         {
         }
     }

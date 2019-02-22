@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _hasBody;
         private readonly MailBody _body;
 
-        public SCGotMailPacket(Mail mail, CountUnreadMail count, MailBody body = null) : base(0x116, 1)
+        public SCGotMailPacket(Mail mail, CountUnreadMail count, MailBody body = null) : base(SCOffsets.SCGotMailPacket, 1)
         {
             _mail = mail;
             _count = count;

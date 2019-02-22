@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Mail _mail;
         private readonly (SlotType slotType, byte slot)[] _items;
 
-        public SCMailSentPacket(Mail mail, (SlotType slotType, byte slot)[] items) : base(0x115, 1)
+        public SCMailSentPacket(Mail mail, (SlotType slotType, byte slot)[] items) : base(SCOffsets.SCMailSentPacket, 1)
         {
             _mail = mail;
             _items = items;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _action;
         private readonly int _value;
 
-        public SCAddActionPointPacket(int action, int value) : base(0x046, 1)
+        public SCAddActionPointPacket(int action, int value) : base(SCOffsets.SCAddActionPointPacket, 1)
         {
             _action = action;
             _value = value;

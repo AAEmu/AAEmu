@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly bool _isFlying;
 
-        public SCUnitFlyingStateChangedPacket(uint objId, bool isFlying) : base(0x079, 1)
+        public SCUnitFlyingStateChangedPacket(uint objId, bool isFlying) : base(SCOffsets.SCUnitFlyingStateChangedPacket, 1)
         {
             _objId = objId;
             _isFlying = isFlying;

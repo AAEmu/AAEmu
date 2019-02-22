@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _objId;
 
-        public SCTradeStartedPacket(uint objId) : base(0x15e, 1)
+        public SCTradeStartedPacket(uint objId) : base(SCOffsets.SCTradeStartedPacket, 1)
         {
             _objId = objId;
         }

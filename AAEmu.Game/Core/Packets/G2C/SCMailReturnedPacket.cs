@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly long _mailId;
         private readonly Mail _mail;
         
-        public SCMailReturnedPacket(long mailId, Mail mail) : base(0x11f, 1)
+        public SCMailReturnedPacket(long mailId, Mail mail) : base(SCOffsets.SCMailReturnedPacket, 1)
         {
             _mailId = mailId;
             _mail = mail;

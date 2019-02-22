@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly HouseData _houseData;
 
-        public SCLoginCharInfoHouse(uint id, HouseData houseData) : base(0x056, 1)
+        public SCLoginCharInfoHouse(uint id, HouseData houseData) : base(SCOffsets.SCLoginCharInfoHousePacket, 1)
         {
             _id = id;
             _houseData = houseData;

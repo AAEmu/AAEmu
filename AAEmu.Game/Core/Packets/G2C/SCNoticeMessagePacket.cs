@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCNoticeMessagePacket : GamePacket
     {
-        public SCNoticeMessagePacket() : base(0x0ce, 1)
+        public SCNoticeMessagePacket() : base(SCOffsets.SCNoticeMessagePacket, 1)
         {
 
         }

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _step;
         
         public SCCharacterLaborPowerChangedPacket(int amount, int action, int point, byte step) 
-            : base(0x044, 1)
+            : base(SCOffsets.SCCharacterLaborPowerChangedPacket, 1)
         {
             _amount = amount;
             _action = action;

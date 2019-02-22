@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _unitObjId;
         private readonly BondDoodad _bond;
 
-        public SCBondDoodadPacket(uint unitObjId, BondDoodad bond) : base(0x137, 1)
+        public SCBondDoodadPacket(uint unitObjId, BondDoodad bond) : base(SCOffsets.SCBondDoodadPacket, 1)
         {
             _unitObjId = unitObjId;
             _bond = bond;

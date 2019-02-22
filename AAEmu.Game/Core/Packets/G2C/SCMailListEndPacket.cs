@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _totalHeaders;
         private readonly int _totalBodies;
 
-        public SCMailListEndPacket(int totalHeaders, int totalBodies) : base(0x118, 1)
+        public SCMailListEndPacket(int totalHeaders, int totalBodies) : base(SCOffsets.SCMailListEndPacket, 1)
         {
             _totalHeaders = totalHeaders;
             _totalBodies = totalBodies;

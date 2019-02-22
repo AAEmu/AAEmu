@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _familyId;
         private readonly uint _memberId;
 
-        public SCFamilyOwnerChangedPacket(uint familyId, uint memberId) : base(0x032, 1)
+        public SCFamilyOwnerChangedPacket(uint familyId, uint memberId) : base(SCOffsets.SCFamilyOwnerChangedPacket, 1)
         {
             _familyId = familyId;
             _memberId = memberId;

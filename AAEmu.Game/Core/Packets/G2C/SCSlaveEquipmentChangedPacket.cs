@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private SlaveEquipment slaveEquipment;
         private bool success;
 
-        public SCSlaveEquipmentChangedPacket(SlaveEquipment slaveEquipment, bool success) : base(0x067, 1)
+        public SCSlaveEquipmentChangedPacket(SlaveEquipment slaveEquipment, bool success) : base(SCOffsets.SCSlaveEquipmentChangedPacket, 1)
         {
 
         }
