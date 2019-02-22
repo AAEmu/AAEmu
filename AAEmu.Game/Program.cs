@@ -28,12 +28,12 @@ namespace AAEmu.Game
         private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
         private static AutoResetEvent _signal = new AutoResetEvent(false);
 
-        public static int UpTime => (int) (DateTime.Now - _startTime).TotalSeconds;
+        public static int UpTime => (int)(DateTime.Now - _startTime).TotalSeconds;
 
         public static void Main(string[] args)
         {
             Initialization();
-            
+
             if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
                 Configuration(args);
             else
@@ -41,7 +41,7 @@ namespace AAEmu.Game
                 _log.Error($"{FileManager.AppPath}Config.json doesn't exist!");
                 return;
             }
-            
+
             _log.Info("{0} version {1}", Name, Version);
 
             Test();
@@ -55,12 +55,13 @@ namespace AAEmu.Game
 
             connection.Close();
 
-            DateTime startTime = DateTime.Now;
+            var startTime = DateTime.Now;
 
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
             ObjectIdManager.Instance.Initialize();
+            TradeIdManager.Instance.Initialize();
 
             ItemIdManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
@@ -68,7 +69,7 @@ namespace AAEmu.Game
             VisitedSubZoneIdManager.Instance.Initialize();
             PrivateBookIdManager.Instance.Initialize();
             FriendIdManager.Instance.Initialize();
-            
+
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
             QuestManager.Instance.Load();
@@ -89,10 +90,10 @@ namespace AAEmu.Game
             FamilyManager.Instance.Load();
             PortalManager.Instance.Load();
             FriendMananger.Instance.Load();
-            
+
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
-            
+
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();
             ScriptCompiler.Compile();
@@ -103,8 +104,8 @@ namespace AAEmu.Game
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();
 
-            
-            DateTime endTime = DateTime.Now;
+
+            var endTime = DateTime.Now;
             _log.Info("Server started! Took {0} ms", (endTime - startTime).TotalMilliseconds);
             _signal.WaitOne();
 
@@ -124,12 +125,12 @@ namespace AAEmu.Game
             {
                 if (e.IsTerminating)
                 {
-                    _log.Fatal((Exception) e.ExceptionObject);
+                    _log.Fatal((Exception)e.ExceptionObject);
                     Shutdown();
                 }
                 else
                 {
-                    _log.Error((Exception) e.ExceptionObject);
+                    _log.Error((Exception)e.ExceptionObject);
                 }
             };
             AppDomain.CurrentDomain.ProcessExit += (sender, e) => Shutdown();

@@ -132,7 +132,7 @@ namespace AAEmu.Game.Core.Managers
                 else
                     tasks.Add(new ItemCountUpdate(item, -count));
             }
-            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, tasks, new List<ulong>()));
+            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Teleport, tasks, new List<ulong>()));
             return true;
         }
 
