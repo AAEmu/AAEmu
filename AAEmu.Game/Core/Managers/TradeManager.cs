@@ -2,10 +2,10 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -299,6 +299,11 @@ namespace AAEmu.Game.Core.Managers
                 // If both ok finish trade
                 if (_trades[tradeId].OkOwner && _trades[tradeId].OkTarget)
                 {
+                    // Check inventory space
+                    if (owner.Inventory.CheckFreeSlot(SlotType.Inventory) < _trades[tradeId].TargetItems.Count) CancelTrade(owner.ObjId, 0, tradeId);
+                    if (target.Inventory.CheckFreeSlot(SlotType.Inventory) < _trades[tradeId].OwnerItems.Count) CancelTrade(target.ObjId, 0, tradeId);
+
+                    // Finish trade
                     FinishTrade(owner, target, tradeId);
                 }
             }
@@ -311,9 +316,57 @@ namespace AAEmu.Game.Core.Managers
         public void FinishTrade(Character owner, Character target, uint tradeId)
         {
             var tradeInfo = _trades[tradeId];
+
+            /*
+             * TODO -
+             * try catch
+             * check if bound
+             * check untradable
+             */
+            var tasksOwner = new List<ItemTask>();
+            var tasksTarget = new List<ItemTask>();
+            // Handle Money
+            if (tradeInfo.OwnerMoneyPutup > 0)
+            {
+                owner.Money -= tradeInfo.OwnerMoneyPutup;
+                tasksOwner.Add(new MoneyChange(-tradeInfo.OwnerMoneyPutup));
+                target.Money += tradeInfo.OwnerMoneyPutup;
+                tasksTarget.Add(new MoneyChange(tradeInfo.OwnerMoneyPutup));
+            }
+            if (tradeInfo.TargetMoneyPutup > 0)
+            {
+                owner.Money += tradeInfo.TargetMoneyPutup;
+                tasksOwner.Add(new MoneyChange(tradeInfo.TargetMoneyPutup));
+                target.Money -= tradeInfo.TargetMoneyPutup;
+                tasksTarget.Add(new MoneyChange(-tradeInfo.TargetMoneyPutup));
+            }
+            // Handle Items
+            if (tradeInfo.OwnerItems.Count > 0)
+            {
+                foreach (var item in tradeInfo.OwnerItems)
+                {
+                    owner.Inventory.RemoveItem(item, false);
+                    tasksOwner.Add(new ItemRemove(item));
+                    item.Slot = -1;
+                    var newItem = target.Inventory.AddItem(item);
+                    tasksTarget.Add(new ItemAdd(newItem));
+                }
+            }
+            if (tradeInfo.TargetItems.Count > 0)
+            {
+                foreach (var item in tradeInfo.TargetItems)
+                {
+                    target.Inventory.RemoveItem(item, false);
+                    tasksTarget.Add(new ItemRemove(item));
+                    item.Slot = -1;
+                    var newItem = owner.Inventory.AddItem(item);
+                    tasksOwner.Add(new ItemAdd(newItem));
+                }
+            }
+
             _trades.Remove(tradeId);
-            //owner.SendPacket(new SCTradeMadePacket());
-            //target.SendPacket(new SCTradeMadePacket());
+            owner.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksOwner, new List<ulong>()));
+            target.SendPacket(new SCTradeMadePacket(ItemTaskType.Trade, tasksTarget, new List<ulong>()));
             _log.Info("Trade Id:{0} finished. Owner Items/Money: {1}/{2}. Target Items/Money: {3}/{4}",
                 tradeId, tradeInfo.OwnerItems.Count, tradeInfo.OwnerMoneyPutup, tradeInfo.TargetItems.Count, tradeInfo.TargetMoneyPutup);
         }
