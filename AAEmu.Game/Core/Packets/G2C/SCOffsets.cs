@@ -108,8 +108,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         public const ushort SCQuestListPacket = 0x63;                                
         public const ushort SCMySlavePacket = 0x65;                              
         public const ushort SCEscapeSlavePacket = 0x66;                              
-        public const ushort SCSlaveEquipmentChangedPacket = 0x67;                                
-        public const ushort SCUnitStatePacket = 0x68;                                
+        public const ushort SCSlaveEquipmentChangedPacket = 0x67;    
+        /////////// UPDATED                            
+        public const ushort SCUnitStatePacket = 0x69;     
+        ///////////////////                          
         public const ushort SCUnitsRemovedPacket = 0x69;                             
         public const ushort SCUnitMovementsPacket = 0x6a;                                
         public const ushort SCOneUnitMovementPacket = 0x6b;                              
@@ -449,9 +451,11 @@ namespace AAEmu.Game.Core.Packets.G2C
         public const ushort SCResponseUIDataPacket = 0x1c8;                              
         public const ushort SCUnitVisualOptionsPacket = 0x1c9;                               
         public const ushort SCNotifyUIMessagePacket = 0x1ca;                             
-        public const ushort SCRefreshInCharacterListPacket = 0x1cb;                              
-        public const ushort SCResultRestrictCheckPacket = 0x1cc;                             
-        public const ushort SCICSMenuListPacket = 0x1cd;                             
+        public const ushort SCRefreshInCharacterListPacket = 0x1cb;
+        ///////////// UPDATED                              
+        public const ushort SCResultRestrictCheckPacket = 0x1ce;                           
+        public const ushort SCICSMenuListPacket = 0x1cf;  
+        /////////////////////                        
         public const ushort SCICSGoodListPacket = 0x1ce;                             
         public const ushort SCICSGoodDetailPacket = 0x1cf;                               
         public const ushort SCICSCheckTimePacket = 0x1d0;                                
