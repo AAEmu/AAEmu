@@ -2,20 +2,20 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class MoneyChangeBank : ItemTask
+    public class ItemUnk18 : ItemTask
     {
-        private readonly int _amount;
+        private readonly byte _change;
 
-        public MoneyChangeBank(int amount)
+        public ItemUnk18(byte change)
         {
-            _type = 2;
-            _amount = amount;
+            _change = change;
+            _type = 0x12; // 18
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(_amount);
+            stream.Write(_change);
             return stream;
         }
     }

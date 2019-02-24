@@ -2,14 +2,14 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class ItemAdd : ItemTask
+    public class ItemAddNew : ItemTask
     {
         private readonly Item _item;
 
-        public ItemAdd(Item item)
+        public ItemAddNew(Item item)
         {
-            _type = 5;
             _item = item;
+            _type = 0xF; // 15
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -22,17 +22,17 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write(_item.TemplateId);
             stream.Write(_item.Id);
             stream.Write(_item.Grade);
-            stream.Write((byte)0); // bounded
-            stream.Write(_item.Count); // stack
+            stream.Write((byte)0);
+            stream.Write(_item.Count);
             var details = new PacketStream();
             details.Write(_item.DetailType);
             _item.WriteDetails(details);
-            stream.Write((short)128); // length details?
+            stream.Write((short)128);
             stream.Write(details, false);
             stream.Write(new byte[128 - details.Count]);
             stream.Write(_item.CreateTime);
             stream.Write(_item.LifespanMins);
-            stream.Write(0); // type(id)
+            stream.Write(0);
             stream.Write(_item.WorldId);
             stream.Write(_item.UnsecureTime);
             stream.Write(_item.UnpackTime);

@@ -2,28 +2,25 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class ItemCountUpdate : ItemTask
+    public class ItemGradeChange : ItemTask
     {
         private readonly Item _item;
-        private readonly int _count;
+        private readonly byte _grade;
 
-        public ItemCountUpdate(Item item, int count)
+        public ItemGradeChange(Item item, byte newGrade)
         {
-            _type = 4;
             _item = item;
-            _count = count;
+            _grade = newGrade;
+            _type = 0xE; // 14
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-
             stream.Write((byte)_item.SlotType);
             stream.Write((byte)_item.Slot);
-
             stream.Write(_item.Id);
-            stream.Write(_count);
-            stream.Write(_item.TemplateId);
+            stream.Write(_grade);
             return stream;
         }
     }
