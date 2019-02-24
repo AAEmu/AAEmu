@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         }
 
         public SCChatMessagePacket(ChatType type, Character character, string message, int ability, byte languageType) :
-            base(0xcc, 1)
+            base(SCOffsets.SCChatMessagePacket, 1)
         {
             _type = type;
             _character = character;
