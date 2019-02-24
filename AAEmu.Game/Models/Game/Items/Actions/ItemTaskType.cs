@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Items.Actions
+﻿namespace AAEmu.Game.Models.Game.Items.Actions
 {
     // TODO at X2::GameClient::ApplyItemTaskToSelf
     public enum ItemTaskType : byte
