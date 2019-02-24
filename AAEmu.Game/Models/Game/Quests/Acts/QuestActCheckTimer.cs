@@ -1,4 +1,3 @@
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -16,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public bool SustainBuff { get; set; }
         public uint TimerNpcId { get; set; }
         public bool IsSkillPlayer { get; set; }
-        
+
         public override bool Use(Unit unit, int objective)
         {
             return false;

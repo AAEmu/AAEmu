@@ -7,19 +7,21 @@ namespace AAEmu.Game.Models.Tasks.Skills
 {
     public class PlotTask : SkillTask
     {
-        private Unit _caster;
-        private SkillAction _casterAction;
-        private BaseUnit _target;
-        private SkillAction _targetAction;
-        private PlotNextEvent _nextEvent;
+        private readonly Unit _caster;
+        private readonly SkillCaster _casterCaster;
+        private readonly BaseUnit _target;
+        private readonly SkillCastTarget _targetCaster;
+        private readonly PlotNextEvent _nextEvent;
+        private readonly SkillObject _skillObject;
 
-        public PlotTask(Skill skill, Unit caster, SkillAction casterAction, BaseUnit target, SkillAction targetAction,
-            PlotNextEvent nextEvent) : base(skill)
+        public PlotTask(Skill skill, Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster,
+            SkillObject skillObject, PlotNextEvent nextEvent) : base(skill)
         {
             _caster = caster;
-            _casterAction = casterAction;
+            _casterCaster = casterCaster;
             _target = target;
-            _targetAction = targetAction;
+            _targetCaster = targetCaster;
+            _skillObject = skillObject;
             _nextEvent = nextEvent;
         }
 
@@ -33,7 +35,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
             step.Flag = 2;
             foreach (var condition in _nextEvent.Event.Conditions)
             {
-                if (condition.Condition.Check(_caster, _casterAction, _target, _targetAction))
+                if (condition.Condition.Check(_caster, _casterCaster, _target, _targetCaster, _skillObject))
                     continue;
                 step.Flag = 0;
                 break;
@@ -42,8 +44,8 @@ namespace AAEmu.Game.Models.Tasks.Skills
             var res = true;
             if (step.Flag != 0)
                 foreach (var evnt in _nextEvent.Event.NextEvents)
-                    res = res && Skill.BuildPlot(_caster, _casterAction, _target, _targetAction, evnt, step);
-            Skill.ParsePlot(_caster, _casterAction, _target, _targetAction, step);
+                    res = res && Skill.BuildPlot(_caster, _casterCaster, _target, _targetCaster, _skillObject, evnt, step);
+            Skill.ParsePlot(_caster, _casterCaster, _target, _targetCaster, _skillObject, step);
             if (!res)
                 return;
             TlIdManager.Instance.ReleaseId(Skill.TlId);

@@ -3,6 +3,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -14,16 +15,44 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Unit _unit;
         private readonly byte _type;
+        private readonly byte _modelPostureType;
 
         public SCUnitStatePacket(Unit unit) : base(0x064, 1)
         {
             _unit = unit;
             if (_unit is Character)
+            {
                 _type = 0;
-            if (_unit is Npc)
+                _modelPostureType = 0;
+            }
+            else if (_unit is Npc)
+            {
                 _type = 1;
-            if (_unit is Slave)
+                if (((Npc)_unit).Template.AnimActionId > 0)
+                    _modelPostureType = 4;
+                else
+                    _modelPostureType = 0;
+            }
+            else if (_unit is Slave)
+            {
                 _type = 2;
+                _modelPostureType = 0;
+            }
+            else if (_unit is House)
+            {
+                _type = 3;
+                _modelPostureType = 1;
+            }
+            else if (_unit is Transfer)
+            {
+                _type = 4;
+                _modelPostureType = 0;
+            }
+            else if (_unit is Mount)
+            {
+                _type = 5;
+                _modelPostureType = 0;
+            }
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -33,45 +62,57 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_type);
             switch (_type) // UnitOwnerInfo?
             {
-                case 0: // character
-                    var character = (Character) _unit;
+                case 0:
+                    var character = (Character)_unit;
                     stream.Write(character.Id); // type(id)
                     stream.Write(0L); // v?
                     break;
-                case 1: // npc
-                    var npc = (Npc) _unit;
+                case 1:
+                    var npc = (Npc)_unit;
                     stream.WriteBc(npc.ObjId);
-                    stream.Write(npc.TemplateId); // type(id)
+                    stream.Write(npc.TemplateId); // npc templateId
                     stream.Write(0u); // type(id)
                     break;
-                case 2: // slave
-                    var slave = (Slave) _unit;
+                case 2:
+                    var slave = (Slave)_unit;
                     stream.Write(0u); // type(id)
-                    stream.Write((ushort) 0); // tl
-                    stream.Write(0u); // type(id)
+                    stream.Write(slave.TlId); // tl
+                    stream.Write(slave.TemplateId); // type(id)
                     stream.Write(0u); // type(id)
                     break;
                 case 3:
-                    stream.Write((ushort) 0); // tl
-                    stream.Write(0u); // type(id)
-                    stream.Write((short) 0); // buildstep
+                    var house = (House)_unit;
+                    stream.Write(house.TlId); // tl
+                    stream.Write(house.TemplateId); // house templateId
+                    stream.Write(house.BuildStep); // buildstep
                     break;
                 case 4:
-                    stream.Write((ushort) 0); // tl
-                    stream.Write(0u); // type(id)
+                    var transfer = (Transfer)_unit;
+                    stream.Write(transfer.TlId); // tl
+                    stream.Write(transfer.TemplateId); // transfer templateId
                     break;
                 case 5:
-                    stream.Write((ushort) 0); // tl
-                    stream.Write(0u); // type(id)
-                    stream.Write(0u); // type(id)
+                    var mount = (Mount)_unit;
+                    stream.Write(mount.TlId); // tl
+                    stream.Write(mount.TemplateId); // npc teplateId
+
+                    if (mount.Master == null)
+                        stream.Write(0);
+                    else
+                    {
+                        var master = (Character)mount.Master;
+                        stream.Write(master.Id); // characterId (masterId)
+                    }
+
                     break;
-                case 6:
+                case 6: // TODO ?
                     stream.Write(0L); // type(id)
                     stream.Write(0u); // type(id)
                     break;
             }
 
-            stream.Write(""); // master
+            stream.Write(_unit.Master?.Name ?? ""); // master
+            
             stream.Write(Helpers.ConvertX(_unit.Position.X));
             stream.Write(Helpers.ConvertY(_unit.Position.Y));
             stream.Write(Helpers.ConvertZ(_unit.Position.Z));
@@ -80,15 +121,20 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.ModelId); // modelRef
 
             if (_unit is Character)
-                foreach (var item in ((Character) _unit).Inventory.Equip)
+            {
+                var character = (Character)_unit;
+                foreach (var item in character.Inventory.Equip)
                 {
                     if (item == null)
                         stream.Write(0);
                     else
                         stream.Write(item);
                 }
+            }
             else if (_unit is Npc)
-                foreach (var item in ((Npc) _unit).Equip)
+            {
+                var npc = (Npc)_unit;
+                foreach (var item in npc.Equip)
                 {
                     if (item is BodyPart)
                         stream.Write(item.TemplateId);
@@ -96,81 +142,88 @@ namespace AAEmu.Game.Core.Packets.G2C
                     {
                         stream.Write(item.TemplateId);
                         stream.Write(0L);
-                        stream.Write((byte) 0);
+                        stream.Write((byte)0);
                     }
                     else
                         stream.Write(0);
                 }
+            }
+            else if (_unit is Slave)
+            {
+                for (var i = 0; i < 28; i++)
+                {
+                    stream.Write((ulong)0); // id
+                    stream.Write((byte)0); // grade
+                    stream.Write((byte)0); // flags
+                    stream.Write(0); // stackSize
+                    stream.Write((long)0); // creationTime
+                    stream.Write((uint)0); // lifespanMins
+                    stream.Write((uint)0); // type(id)
+                    stream.Write((byte)1); // worldId
+                    stream.Write((ulong)0); // unsecureDateTime
+                }
+            }
+            else
+                for (var i = 0; i < 28; i++)
+                    stream.Write(0);
 
             stream.Write(_unit.ModelParams);
             stream.WriteBc(0);
             stream.Write(_unit.Hp * 100); // preciseHealth
             stream.Write(_unit.Mp * 100); // preciseMana
-            stream.Write((byte) 255); // point
+            stream.Write((byte)255); // point // TODO UnitAttached
 //            if (point != 255) // -1
 //            {
 //                stream.WriteBc(0);
 //            }
-            stream.Write((byte) 255); // point
-//            if (point != 255) // -1
-//            {
-//                stream.WriteBc(0);
-//                stream.Write((byte) 0); // kind
-//                stream.Write(0); // space
-//                stream.Write(0); // spot
-//            }
 
-//            type = 1 // build
-//            {
-//                for (var i = 0; i < 2; i++)
-//                    stream.Write(false); // door
-//                for (var i = 0; i < 6; i++)
-//                    stream.Write(false); // window
-//            }
-//            type = 4 // npc or mobs?
-//            {
-//                stream.Write(0u); // type(id) -> animActionId
-//                stream.Write(true); // activate
-//            }
-//            type = 7 // grow
-//            {
-//                stream.Write(0u); // type(id)
-//                stream.Write(0f); // growRate
-//                stream.Write(0); // randomSeed
-//                stream.Write(false); // isWithered
-//                stream.Write(false); // isHarvested
-//            }
-//            type = 8 // object?
-//            {
-//                stream.Write(0f); // pitch
-//                stream.Write(0f); // yaw
-//            }
-
-            switch (_type)
+            if (_unit is Character)
             {
-                case 0: // character
-                    stream.Write((byte) 0); // type
-                    stream.Write(false); // isLooted
-                    break;
-                case 1: // npc
-                    var npc = (Npc) _unit;
-                    stream.Write(npc.Template.AnimActionId > 0 ? (byte) 4 : (byte) 0); // type
-                    stream.Write(false); // isLooted
-                    if (npc.Template.AnimActionId > 0)
-                    {
-                        stream.Write(npc.Template.AnimActionId);
-                        stream.Write(true); // active
-                    }
+                var character = (Character)_unit;
+                if (character.Bonding == null)
+                    stream.Write((sbyte)-1); // point
+                else
+                    stream.Write(character.Bonding);
+            }
+            else
+                stream.Write((sbyte)-1); // point
 
+            // TODO UnitModelPosture
+            stream.Write(_modelPostureType); // type
+            stream.Write(false); // isLooted
+
+            switch (_modelPostureType)
+            {
+                case 1: // build
+                    for (var i = 0; i < 2; i++)
+                        stream.Write(false); // door
+                    for (var i = 0; i < 6; i++)
+                        stream.Write(false); // window
+                    break;
+                case 4: // npc
+                    var npc = (Npc)_unit;
+                    stream.Write(npc.Template.AnimActionId);
+                    stream.Write(true); // active
+                    break;
+                case 7:
+                    stream.Write(0u); // type(id)
+                    stream.Write(0f); // growRate
+                    stream.Write(0); // randomSeed
+                    stream.Write(false); // isWithered
+                    stream.Write(false); // isHarvested
+                    break;
+                case 8: // object?
+                    stream.Write(0f); // pitch
+                    stream.Write(0f); // yaw
                     break;
             }
-
+            
             stream.Write(_unit.ActiveWeapon);
 
             if (_unit is Character)
             {
-                var character = (Character) _unit;
-                stream.Write((byte) character.Skills.Skills.Count);
+                var character = (Character)_unit;
+                stream.Write((byte)character.Skills.Skills.Count);
                 foreach (var skill in character.Skills.Skills.Values)
                 {
                     stream.Write(skill.Id);
@@ -183,25 +236,25 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
             else
             {
-                stream.Write((byte) 0); // learnedSkillCount
+                stream.Write((byte)0); // learnedSkillCount
                 stream.Write(0); // learnedBuffCount
             }
-
+            
             stream.Write(_unit.Position.RotationX);
             stream.Write(_unit.Position.RotationY);
             stream.Write(_unit.Position.RotationZ);
             stream.Write(_unit.RaceGender);
 
             if (_unit is Character)
-                stream.WritePisc(0, 0, ((Character) _unit).Appellations.ActiveAppellation, 0); // pisc
+                stream.WritePisc(0, 0, ((Character)_unit).Appellations.ActiveAppellation, 0); // pisc
             else
                 stream.WritePisc(0, 0, 0, 0); // pisc
 
-            stream.WritePisc(_unit.Faction.Id, 0, 0, 0); // pisc
+            stream.WritePisc(_unit.Faction?.Id ?? 0, 0, 0, 0); // pisc
 
             if (_unit is Character)
             {
-                var character = (Character) _unit;
+                var character = (Character)_unit;
                 var flags = new BitSet(16);
 
                 if (character.Invisible)
@@ -225,12 +278,12 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
             {
                 stream.WritePisc(0, 0); // pisc
-                stream.Write((ushort) 0); // flags
+                stream.Write((ushort)0); // flags
             }
 
             if (_unit is Character)
             {
-                var character = (Character) _unit;
+                var character = (Character)_unit;
 
                 var activeAbilities = character.Abilities.GetActiveAbilities();
                 foreach (var ability in character.Abilities.Values)
@@ -239,9 +292,9 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(ability.Order);
                 }
 
-                stream.Write((byte) activeAbilities.Count);
+                stream.Write((byte)activeAbilities.Count);
                 foreach (var ability in activeAbilities)
-                    stream.Write((byte) ability);
+                    stream.Write((byte)ability);
 
                 stream.WriteBc(0);
 
@@ -255,15 +308,15 @@ namespace AAEmu.Game.Core.Packets.G2C
             var hiddenBuffs = new List<Effect>();
             _unit.Effects.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
 
-            stream.Write((byte) goodBuffs.Count); // TODO max 32
+            stream.Write((byte)goodBuffs.Count); // TODO max 32
             foreach (var effect in goodBuffs)
             {
                 stream.Write(effect.Index);
                 stream.Write(effect.Template.BuffId);
-                stream.Write(effect.CasterAction);
+                stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short) 1); // sourceAbLevel
+                stream.Write((short)1); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
                 stream.Write(effect.Tick); // tickTime
@@ -273,15 +326,15 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0u); // type(id) -> cooldownSkill
             }
 
-            stream.Write((byte) badBuffs.Count); // TODO max 24
+            stream.Write((byte)badBuffs.Count); // TODO max 24
             foreach (var effect in badBuffs)
             {
                 stream.Write(effect.Index);
                 stream.Write(effect.Template.BuffId);
-                stream.Write(effect.CasterAction);
+                stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short) 1); // sourceAbLevel
+                stream.Write((short)1); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
                 stream.Write(effect.Tick); // tickTime
@@ -291,15 +344,15 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0u); // type(id) -> cooldownSkill
             }
 
-            stream.Write((byte) hiddenBuffs.Count); // TODO max 24
+            stream.Write((byte)hiddenBuffs.Count); // TODO max 24
             foreach (var effect in hiddenBuffs)
             {
                 stream.Write(effect.Index);
                 stream.Write(effect.Template.BuffId);
-                stream.Write(effect.CasterAction);
+                stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short) 1); // sourceAbLevel
+                stream.Write((short)1); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
                 stream.Write(effect.Tick); // tickTime

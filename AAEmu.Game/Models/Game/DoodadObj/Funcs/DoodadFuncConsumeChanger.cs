@@ -5,9 +5,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncConsumeChanger : DoodadFuncTemplate
     {
+        public uint SlotId { get; set; }
+        public int Count { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            throw new System.NotImplementedException();
+            _log.Debug("DoodadFuncConsumeChanger");
         }
     }
 }

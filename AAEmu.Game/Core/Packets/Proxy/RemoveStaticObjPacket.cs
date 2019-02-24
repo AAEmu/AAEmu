@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.Proxy
         // TODO Only command without body...
         public RemoveStaticObjPacket() : base(0x00a, 2)
         {
-            
         }
     }
 }

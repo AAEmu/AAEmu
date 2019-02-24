@@ -1,50 +1,50 @@
 [
-  {
-    "Id": 1,
-    "Name": "Nuian",
-    "Pos": {
-      "WorldId": 1,
-      "X": 1242.042,
-      "Y": 12310.122,
-      "Z": 126.484
+    {
+        "Id": 1,
+        "Name": "Nuian",
+        "Pos": {
+            "WorldId": 1,
+            "X": 15578.042,
+            "Y": 15382.122,
+            "Z": 126.484
+        },
+        "NumInventorySlot": 50,
+        "NumBankSlot": 50
     },
-    "NumInventorySlot": 50,
-    "NumBankSlot": 50
-  },
-  {
-    "Id": 4,
-    "Name": "Elf",
-    "Pos": {
-      "WorldId": 1,
-      "X": -3947.424,
-      "Y": 12910.466,
-      "Z": 367.606
+    {
+        "Id": 4,
+        "Name": "Elf",
+        "Pos": {
+            "WorldId": 1,
+            "X": 10388.576,
+            "Y": 15982.466,
+            "Z": 367.606
+        },
+        "NumInventorySlot": 50,
+        "NumBankSlot": 50
     },
-    "NumInventorySlot": 50,
-    "NumBankSlot": 50
-  },
-  {
-    "Id": 5,
-    "Name": "Hariharan",
-    "Pos": {
-      "WorldId": 1,
-      "X": 4968.874,
-      "Y": 4574.06,
-      "Z": 212.704
+    {
+        "Id": 5,
+        "Name": "Hariharan",
+        "Pos": {
+            "WorldId": 1,
+            "X": 19304.874,
+            "Y": 7646.06,
+            "Z": 212.704
+        },
+        "NumInventorySlot": 50,
+        "NumBankSlot": 50
     },
-    "NumInventorySlot": 50,
-    "NumBankSlot": 50
-  },
-  {
-    "Id": 6,
-    "Name": "Ferre",
-    "Pos": {
-      "WorldId": 1,
-      "X": 9545.218,
-      "Y": 7423.782,
-      "Z": 589.7838
-    },
-    "NumInventorySlot": 50,
-    "NumBankSlot": 50
-  }
+    {
+        "Id": 6,
+        "Name": "Ferre",
+        "Pos": {
+            "WorldId": 1,
+            "X": 23881.218,
+            "Y": 10495.782,
+            "Z": 589.7838
+        },
+        "NumInventorySlot": 50,
+        "NumBankSlot": 50
+    }
 ]

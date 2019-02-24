@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -101,11 +101,11 @@ namespace AAEmu.Game.Models.Game.World
         {
             if (_objects == null)
                 return;
-            
+
             // показать игроку все обьекты в регионе
             if (obj is Character)
             {
-                var character = (Character) obj;
+                var character = (Character)obj;
 
                 var units = GetList(new List<Unit>(), obj.ObjId);
                 for (var i = 0; i < units.Count; i++)
@@ -131,7 +131,7 @@ namespace AAEmu.Game.Models.Game.World
             // убрать у игрока все видимые обьекты в регионе
             if (obj is Character)
             {
-                var character = (Character) obj;
+                var character = (Character)obj;
 
                 var unitIds = GetListId<Unit>(new List<uint>(), obj.ObjId).ToArray();
                 for (var i = 0; i < unitIds.Length; i += 500)
@@ -286,8 +286,9 @@ namespace AAEmu.Game.Models.Game.World
 
         public override bool Equals(object obj)
         {
-            
-            if(obj.GetType() != typeof(Region)) 
+            if (obj == null)
+                return false;
+            if (obj.GetType() != typeof(Region))
                 return false;
             var other = (Region)obj;
             return other._worldId == _worldId && other.X == X && other.Y == Y;

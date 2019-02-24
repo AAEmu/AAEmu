@@ -7,14 +7,13 @@ namespace AAEmu.Login.Core.Packets.L2C
     {
         public ACEnterPcCertPacket() : base(0x07)
         {
-            
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((int) 0); // mt
             stream.Write((int) 0); // ct
-            
+
             return stream;
         }
     }

@@ -1,4 +1,5 @@
 .vs/
+.vscode/
 AAEmu.Commons/obj/
 AAEmu.Game/obj/
 AAEmu.Stream/obj/
@@ -11,4 +12,6 @@ AAEmu.Login/bin/
 AAEmu.Login/obj/
 AAEmu.Game/Data/compact.sqlite3
 AAEmu.Game/Data/Worlds/*/hmap.dat
+AAEmu.Game/Config.json
+AAEmu.Login/Config.json
 publish/

@@ -7,7 +7,6 @@ namespace AAEmu.Login.Core.Packets.C2L
     {
         public CAOtpNumberPacket() : base(0x07)
         {
-            
         }
 
         public override void Read(PacketStream stream)

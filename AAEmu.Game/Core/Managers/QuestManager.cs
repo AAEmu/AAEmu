@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Quests;
@@ -54,7 +54,6 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
-            _templates = new Dictionary<uint, QuestTemplate>();
             _templates = new Dictionary<uint, QuestTemplate>();
             _supplies = new Dictionary<byte, QuestSupplies>();
             _acts = new Dictionary<uint, List<QuestAct>>();

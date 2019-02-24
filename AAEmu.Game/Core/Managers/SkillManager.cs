@@ -86,7 +86,7 @@ namespace AAEmu.Game.Core.Managers
                 return _passiveBuffs[id];
             return null;
         }
-        
+
         public void Load()
         {
             _skills = new Dictionary<uint, SkillTemplate>();
@@ -138,7 +138,7 @@ namespace AAEmu.Game.Core.Managers
                 "SpawnFishEffect"
                 "PlayLogEffect"
              */
-            
+
             _taggedBuffs = new Dictionary<uint, List<uint>>();
 
             using (var connection = SQLite.CreateConnection())
@@ -227,6 +227,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ChannelingCancelable = reader.GetBoolean("channeling_cancelable", true);
                             template.TargetOffsetAngle = reader.GetFloat("target_offset_angle");
                             template.TargetOffsetDistance = reader.GetFloat("target_offset_distance");
+                            template.ActabilityGroupId = reader.GetInt32("actability_group_id", 0);
                             template.PlotOnly = reader.GetBoolean("plot_only", true);
                             template.SkillControllerAtEnd = reader.GetBoolean("skill_controller_at_end", true);
                             template.EndSkillController = reader.GetBoolean("end_skill_controller", true);
@@ -309,9 +310,9 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
+
                 _log.Info("Loading skill effects/buffs...");
-                
+
                 using(var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM buffs";
@@ -1156,7 +1157,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SpecialEffect();
                             template.Id = reader.GetUInt32("id");
-                            template.SpecialEffectTypeId = reader.GetInt32("special_effect_type_id");
+                            template.SpecialEffectTypeId = (SpecialType)reader.GetInt32("special_effect_type_id");
                             template.Value1 = reader.GetInt32("value1");
                             template.Value2 = reader.GetInt32("value2");
                             template.Value3 = reader.GetInt32("value3");

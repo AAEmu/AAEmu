@@ -6,13 +6,12 @@ namespace AAEmu.Game.Models.Game.World
     {
         public uint Id { get; set; }
         public string Name { get; set; }
-        public float OffsetX { get; set; }
-        public float OffsetY { get; set; }
         public float MaxHeight { get; set; }
         public double HeightMaxCoefficient { get; set; }
         public float OceanLevel { get; set; }
         public int CellX { get; set; }
         public int CellY { get; set; }
+        public Point SpawnPosition { get; set; }
 
         public Region[,] Regions { get; set; } // TODO ... world - okey, instance - ....
         public uint[,] ZoneIds { get; set; }
@@ -20,8 +19,8 @@ namespace AAEmu.Game.Models.Game.World
 
         public float GetHeight(float x, float y)
         {
-            var sx = (int) ((x - OffsetX) / 2);
-            var sy = (int) ((y - OffsetY) / 2);
+            var sx = (int) (x / 2);
+            var sy = (int) (y / 2);
             var height = (float) (HeightMaps[sx, sy] / HeightMaxCoefficient);
             return height;
         }

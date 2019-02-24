@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ushort _tlId;
         private readonly uint _duration;
-        
+
         public SCCastingStoppedPacket(ushort tlId, uint duration) : base(0x09e, 1)
         {
             _tlId = tlId;

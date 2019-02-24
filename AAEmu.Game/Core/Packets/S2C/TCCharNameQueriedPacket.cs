@@ -7,14 +7,13 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public TCCharNameQueriedPacket() : base(0x09)
         {
-            
         }
-        
+
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((uint) 0); // type
             stream.Write((ushort) 0); // "name" length
-            
+
             return stream;
         }
     }

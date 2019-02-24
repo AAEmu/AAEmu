@@ -32,12 +32,12 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             NextEvents = new LinkedList<PlotNextEvent>();
         }
 
-        public virtual bool СheckСonditions(Unit caster, SkillAction casterAction, BaseUnit target, SkillAction targetAction)
+        public virtual bool СheckСonditions(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
             var result = true;
             foreach (var condition in Conditions)
             {
-                if (condition.Condition.Check(caster, casterAction, target, targetAction))
+                if (condition.Condition.Check(caster, casterCaster, target, targetCaster, skillObject))
                     continue;
                 result = false;
                 break;

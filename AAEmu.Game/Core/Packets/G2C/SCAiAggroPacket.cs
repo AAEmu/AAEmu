@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _npcId;
         private readonly int _count;
-        
+
         public SCAiAggroPacket(uint npcId) : base(0x1ba, 1)
         {
             _npcId = npcId;
@@ -73,7 +73,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                   while ( result < *v5 );
                  */
             }
-            
+
             return stream;
         }
     }

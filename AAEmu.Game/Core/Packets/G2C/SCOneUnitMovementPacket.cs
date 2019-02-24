@@ -1,6 +1,5 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Core.Packets.G2C

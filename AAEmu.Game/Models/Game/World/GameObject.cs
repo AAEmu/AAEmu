@@ -9,19 +9,31 @@ namespace AAEmu.Game.Models.Game.World
     {
         public Guid Guid { get; set; } = Guid.NewGuid();
         public uint ObjId { get; set; }
+        public uint InstanceId { get; set; } = 1;
+        public bool DisabledSetPosition { get; set; }
         public Point Position { get; set; }
+        public Point WorldPosition { get; set; }
         public Region Region { get; set; }
+
+        public DateTime Respawn { get; set; }
+        public DateTime Despawn { get; set; }
 
         public virtual bool IsVisible { get; set; }
 
         public virtual void SetPosition(Point pos)
         {
+            if (DisabledSetPosition)
+                return;
+
             Position = pos.Clone();
             WorldManager.Instance.AddVisibleObject(this);
         }
 
         public virtual void SetPosition(float x, float y, float z)
         {
+            if (DisabledSetPosition)
+                return;
+            
             Position.X = x;
             Position.Y = y;
             Position.Z = z;
@@ -30,6 +42,9 @@ namespace AAEmu.Game.Models.Game.World
 
         public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {
+            if (DisabledSetPosition)
+                return;
+            
             Position.X = x;
             Position.Y = y;
             Position.Z = z;

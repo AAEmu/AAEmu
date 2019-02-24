@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -9,8 +9,10 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -68,6 +70,8 @@ namespace AAEmu.Game.Models.Game.Char
         public DateTime LeaveTime { get; set; }
         public long Money { get; set; }
         public long Money2 { get; set; }
+        public int HonorPoint { get; set; }
+        public int VocationPoint { get; set; }
         public short CrimePoint { get; set; }
         public int CrimeRecord { get; set; }
         public DateTime DeleteRequestTime { get; set; }
@@ -96,10 +100,20 @@ namespace AAEmu.Game.Models.Game.Char
         public byte NumInventorySlots { get; set; }
         public short NumBankSlots { get; set; }
 
+        public Item[] BuyBack { get; set; }
+        public BondDoodad Bonding { get; set; }
         public CharacterQuests Quests { get; set; }
+        public CharacterMails Mails { get; set; }
         public CharacterAppellations Appellations { get; set; } 
         public CharacterAbilities Abilities { get; set; }
+        public CharacterPortals Portals { get; set; }
+        public CharacterFriends Friends { get; set; }
+
+        public byte ExpandedExpert { get; set; }
+        public CharacterActability Actability { get; set; }
+        
         public CharacterSkills Skills { get; set; }
+        public CharacterCraft Craft {get; set;}
 
         #region Attributes
         public int Str
@@ -638,7 +652,7 @@ namespace AAEmu.Game.Models.Game.Char
         public Character(UnitCustomModelParams modelParams)
         {
             _options = new Dictionary<string, string>();
-            
+
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
         }
@@ -683,6 +697,53 @@ namespace AAEmu.Game.Models.Game.Char
                 Level++;
                 needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
             }
+        }
+
+        public void ChangeMoney(SlotType typeTo, int amount)
+        {
+            switch (typeTo)
+            {
+                case SlotType.Bank:
+                    if ((Money - amount) >= 0)
+                    {
+                        Money -= amount;
+                        Money2 += amount;
+                        SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney,
+                            new List<ItemTask> {new MoneyChange(-amount), new MoneyChangeBank(amount)}, new List<ulong>()));
+                    }
+                    else
+                        _log.Warn("Not Money in Inventory.");
+
+                    break;
+                case SlotType.Inventory:
+                    if ((Money2 - amount) >= 0)
+                    {
+                        Money2 -= amount;
+                        Money += amount;
+                        SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.WithdrawMoney,
+                            new List<ItemTask> {new MoneyChange(amount), new MoneyChangeBank(-amount)}, new List<ulong>()));
+                    }
+                    else
+                        _log.Warn("Not Money in Bank.");
+
+                    break;
+                default:
+                    _log.Warn("Change Money!");
+                    break;
+            }
+        }
+
+        public void ChangeLabor(short change, int actabilityId) {
+            var actabilityChange = 0;
+            byte actabilityStep = 0;
+            if (actabilityId > 0) {
+                actabilityChange = Math.Abs(change);
+                actabilityStep = Actability.Actabilities[(uint)actabilityId].Step;
+                Actability.AddPoint((uint)actabilityId, actabilityChange);
+            }
+
+            LaborPower += change;
+            SendPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep));
         }
 
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
@@ -799,6 +860,8 @@ namespace AAEmu.Game.Models.Game.Char
                         character.LeaveTime = reader.GetDateTime("leave_time");
                         character.Money = reader.GetInt64("money");
                         character.Money2 = reader.GetInt64("money2");
+                        character.HonorPoint = reader.GetInt32("honor_point");
+                        character.VocationPoint = reader.GetInt32("vocation_point");
                         character.CrimePoint = reader.GetInt16("crime_point");
                         character.CrimeRecord = reader.GetInt32("crime_record");
                         character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
@@ -811,6 +874,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Gift = reader.GetInt32("gift");
                         character.NumInventorySlots = reader.GetByte("num_inv_slot");
                         character.NumBankSlots = reader.GetInt16("num_bank_slot");
+                        character.ExpandedExpert = reader.GetByte("expanded_expert");
                         character.Updated = reader.GetDateTime("updated_at");
 
                         character.Inventory = new Inventory(character);
@@ -831,21 +895,32 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var template = CharacterManager.Instance.GetTemplate((byte) Race, (byte) Gender);
             ModelId = template.ModelId;
+            BuyBack = new Item[20];
             Slots = new ActionSlot[85];
             for (var i = 0; i < Slots.Length; i++)
                 Slots[i] = new ActionSlot();
+
+            Craft = new CharacterCraft(this);
 
             using (var connection = MySQL.CreateConnection())
             {
                 Inventory.Load(connection);
                 Abilities = new CharacterAbilities(this);
                 Abilities.Load(connection);
+                Actability = new CharacterActability(this);
+                Actability.Load(connection);
                 Skills = new CharacterSkills(this);
                 Skills.Load(connection);
                 Appellations = new CharacterAppellations(this);
                 Appellations.Load(connection);
+                Portals = new CharacterPortals(this);
+                Portals.Load(connection);
+                Friends = new CharacterFriends(this);
+                Friends.Load(connection);
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
+                Mails = new CharacterMails(this);
+                Mails.Load(connection);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -898,8 +973,8 @@ namespace AAEmu.Game.Models.Game.Char
                             // ----
                             command.CommandText =
                                 "REPLACE INTO `characters` " +
-                                "(`id`,`account_id`,`name`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`slots`,`updated_at`) " +
-                                "VALUES(@id,@account_id,@name,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@slots,@updated_at)";
+                                "(`id`,`account_id`,`name`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
+                                "VALUES(@id,@account_id,@name,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
 
                             command.Parameters.AddWithValue("@id", Id);
                             command.Parameters.AddWithValue("@account_id", AccountId);
@@ -918,13 +993,13 @@ namespace AAEmu.Game.Models.Game.Char
                             command.Parameters.AddWithValue("@ability1", (byte) Ability1);
                             command.Parameters.AddWithValue("@ability2", (byte) Ability2);
                             command.Parameters.AddWithValue("@ability3", (byte) Ability3);
-                            command.Parameters.AddWithValue("@zone_id", Position.ZoneId);
-                            command.Parameters.AddWithValue("@x", Position.X);
-                            command.Parameters.AddWithValue("@y", Position.Y);
-                            command.Parameters.AddWithValue("@z", Position.Z);
-                            command.Parameters.AddWithValue("@rotation_x", Position.RotationX);
-                            command.Parameters.AddWithValue("@rotation_y", Position.RotationY);
-                            command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
+                            command.Parameters.AddWithValue("@zone_id", WorldPosition?.ZoneId ?? Position.ZoneId);
+                            command.Parameters.AddWithValue("@x", WorldPosition?.X ?? Position.X);
+                            command.Parameters.AddWithValue("@y", WorldPosition?.Y ?? Position.Y);
+                            command.Parameters.AddWithValue("@z", WorldPosition?.Z ?? Position.Z);
+                            command.Parameters.AddWithValue("@rotation_x", WorldPosition?.RotationX ?? Position.RotationX);
+                            command.Parameters.AddWithValue("@rotation_y", WorldPosition?.RotationY ?? Position.RotationY);
+                            command.Parameters.AddWithValue("@rotation_z", WorldPosition?.RotationZ ?? Position.RotationZ);
                             command.Parameters.AddWithValue("@faction_id", Faction.Id);
                             command.Parameters.AddWithValue("@faction_name", FactionName);
                             command.Parameters.AddWithValue("@family", Family);
@@ -936,6 +1011,8 @@ namespace AAEmu.Game.Models.Game.Char
                             command.Parameters.AddWithValue("@leave_time", LeaveTime);
                             command.Parameters.AddWithValue("@money", Money);
                             command.Parameters.AddWithValue("@money2", Money2);
+                            command.Parameters.AddWithValue("@honor_point", HonorPoint);
+                            command.Parameters.AddWithValue("@vocation_point", VocationPoint);
                             command.Parameters.AddWithValue("@crime_point", CrimePoint);
                             command.Parameters.AddWithValue("@crime_record", CrimeRecord);
                             command.Parameters.AddWithValue("@delete_request_time", DeleteRequestTime);
@@ -948,6 +1025,7 @@ namespace AAEmu.Game.Models.Game.Char
                             command.Parameters.AddWithValue("@gift", Gift);
                             command.Parameters.AddWithValue("@num_inv_slot", NumInventorySlots);
                             command.Parameters.AddWithValue("@num_bank_slot", NumBankSlots);
+                            command.Parameters.AddWithValue("@expanded_expert", ExpandedExpert);
                             command.Parameters.AddWithValue("@slots", slots.GetBytes());
                             command.Parameters.AddWithValue("@updated_at", Updated);
                             command.ExecuteNonQuery();
@@ -972,9 +1050,13 @@ namespace AAEmu.Game.Models.Game.Char
 
                         Inventory.Save(connection, transaction);
                         Abilities.Save(connection, transaction);
+                        Actability.Save(connection, transaction);
                         Appellations.Save(connection, transaction);
+                        Portals.Save(connection, transaction);
+                        Friends.Save(connection, transaction);
                         Skills.Save(connection, transaction);
                         Quests.Save(connection, transaction);
+                        Mails.Save(connection, transaction);
 
                         try
                         {

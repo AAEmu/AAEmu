@@ -62,6 +62,10 @@ namespace AAEmu.Game
 
             ItemIdManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
+            FamilyIdManager.Instance.Initialize();
+            VisitedSubZoneIdManager.Instance.Initialize();
+            PrivateBookIdManager.Instance.Initialize();
+            FriendIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
@@ -74,18 +78,23 @@ namespace AAEmu.Game
             ItemManager.Instance.Load();
             PlotManager.Instance.Load();
             SkillManager.Instance.Load();
+            CraftManager.Instance.Load();
+            HousingManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
             CharacterManager.Instance.Load();
+            FamilyManager.Instance.Load();
+            PortalManager.Instance.Load();
+            FriendMananger.Instance.Load();
 
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
-            
+
             SpawnManager.Instance.Load();
-            SpawnManager.Instance.Spawn();
+            SpawnManager.Instance.SpawnAll();
             ScriptCompiler.Compile();
-            
+
             TimeManager.Instance.Start();
             TaskManager.Instance.Start();
             GameNetwork.Instance.Start();
@@ -94,6 +103,7 @@ namespace AAEmu.Game
 
             _signal.WaitOne();
 
+            SpawnManager.Instance.Stop();
             TaskManager.Instance.Stop();
             GameNetwork.Instance.Stop();
             StreamNetwork.Instance.Stop();

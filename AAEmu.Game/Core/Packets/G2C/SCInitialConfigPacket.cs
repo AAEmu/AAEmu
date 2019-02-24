@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCInitialConfigPacket : GamePacket
     {
-        public SCInitialConfigPacket() : base(0x005, 2)
+        public SCInitialConfigPacket() : base(0x005, 1)
         {
         }
 

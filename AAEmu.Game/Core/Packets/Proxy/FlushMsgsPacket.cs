@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.Proxy
         // TODO Only command without body...
         public FlushMsgsPacket() : base(0x002, 2)
         {
-            
         }
     }
 }

@@ -12,10 +12,20 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillAction casterObj, BaseUnit target, SkillAction targetObj, CastAction castObj,
-            Skill skill, DateTime time)
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+            Skill skill, SkillObject skillObject, DateTime time)
         {
-            _log.Debug("InteractionEffect");
+            _log.Debug("InteractionEffect, {0}", WorldInteraction);
+
+            var classType = Type.GetType("AAEmu.Game.Models.Game.World.Interactions." + WorldInteraction);
+            if (classType == null)
+            {
+                _log.Error("Unknown world interaction: {0}", WorldInteraction);
+                return;
+            }
+
+            var action = (IWorldInteraction)Activator.CreateInstance(classType);
+            action.Execute(caster, casterObj, target, targetObj, skill.Template.Id);
         }
     }
 }

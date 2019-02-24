@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Reflection;
 
 namespace AAEmu.Commons.Utils
@@ -76,37 +75,35 @@ namespace AAEmu.Commons.Utils
 
         public static float ConvertX(byte[] coords)
         {
-            return (float) Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128 - 14336, 4,
-                MidpointRounding.ToEven);
+            return (float) Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
         }
 
         public static byte[] ConvertX(float x)
         {
             var coords = new byte[3];
-            var temp = x + 14336;
-            coords[2] = (byte) (temp / 128f);
+            var temp = x;
+            coords[2] = (byte)(temp / 128f);
             temp -= coords[2] * 128;
-            coords[1] = (byte) (temp / 0.5f);
+            coords[1] = (byte)(temp / 0.5f);
             temp -= coords[1] * 0.5f;
-            coords[0] = (byte) (temp * 512);
+            coords[0] = (byte)(temp * 512);
             return coords;
         }
 
         public static float ConvertY(byte[] coords)
         {
-            return (float) Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128 - 3072, 4,
-                MidpointRounding.ToEven);
+            return (float) Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
         }
 
         public static byte[] ConvertY(float y)
         {
             var coords = new byte[3];
-            var temp = y + 3072;
-            coords[2] = (byte) (temp / 128);
+            var temp = y;
+            coords[2] = (byte)(temp / 128);
             temp -= coords[2] * 128;
-            coords[1] = (byte) (temp / 0.5f);
+            coords[1] = (byte)(temp / 0.5f);
             temp -= coords[1] * 0.5f;
-            coords[0] = (byte) (temp * 512);
+            coords[0] = (byte)(temp * 512);
             return coords;
         }
 
@@ -130,22 +127,22 @@ namespace AAEmu.Commons.Utils
 
         public static float ConvertLongX(long x)
         {
-            return ((x >> 32) / 4096f) - 14336;
+            return (x >> 32) / 4096f;
         }
 
         public static long ConvertLongX(float x)
         {
-            return ((long) ((x + 14336) * 4096)) << 32;
+            return (long) (x * 4096) << 32;
         }
 
         public static float ConvertLongY(long y)
         {
-            return ((y >> 32) / 4096f) - 3072;
+            return (y >> 32) / 4096f;
         }
 
         public static long ConvertLongY(float y)
         {
-            return ((long) ((y + 3072) * 4096)) << 32;
+            return (long) (y * 4096) << 32;
         }
 
         public static short ConvertRotation(sbyte rotation)

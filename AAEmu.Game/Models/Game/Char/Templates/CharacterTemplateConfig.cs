@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Char.Templates
             public float Y { get; set; }
             public float Z { get; set; }
         }
-        
+
         public uint Id { get; set; }
         public string Name { get; set; }
         public Position Pos { get; set; }

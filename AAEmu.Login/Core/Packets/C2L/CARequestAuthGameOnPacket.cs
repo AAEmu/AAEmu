@@ -8,7 +8,7 @@ namespace AAEmu.Login.Core.Packets.C2L
         public CARequestAuthGameOnPacket() : base(0x03)
         {
         }
-        
+
         public override void Read(PacketStream stream)
         {
             var pFrom = stream.ReadUInt32();
@@ -17,7 +17,6 @@ namespace AAEmu.Login.Core.Packets.C2L
             var mac = stream.ReadBytes(8);
             var param = stream.ReadString(); // or length 1023
             var si = stream.ReadString(); // or length 15
-            
         }
     }
 }

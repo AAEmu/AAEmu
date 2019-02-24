@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.C2S
     {
         public CTItemUccPacket() : base(0x10)
         {
-            
         }
 
         public override void Read(PacketStream stream)

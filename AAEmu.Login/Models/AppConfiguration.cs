@@ -8,7 +8,7 @@ namespace AAEmu.Login.Models
         public DBConnections Connections { get; set; }
         public NetworkConfig InternalNetwork { get; set; }
         public NetworkConfig Network { get; set; }
-        
+
         public class NetworkConfig
         {
             public string Host { get; set; }

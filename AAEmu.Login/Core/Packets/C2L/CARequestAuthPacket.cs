@@ -1,7 +1,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Login;
-using AAEmu.Login.Core.Packets.L2C;
 
 namespace AAEmu.Login.Core.Packets.C2L
 {
@@ -21,9 +20,9 @@ namespace AAEmu.Login.Core.Packets.C2L
             var mac = stream.ReadBytes();
             var mac2 = stream.ReadBytes();
             var cpu = stream.ReadUInt64();
-            
+
             LoginController.Login(Connection, account);
-            
+
             // Connection.SendPacket(new ACChallengePacket()); // TODO ...
         }
     }
