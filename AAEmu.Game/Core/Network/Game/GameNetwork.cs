@@ -115,7 +115,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x063, 1, typeof(CSSendChatMessagePacket));
             RegisterPacket(0x064, 1, typeof(CSConsoleCmdUsedPacket));
             RegisterPacket(0x065, 1, typeof(CSInteractNPCPacket));
-
+            RegisterPacket(0x066, 1, typeof(CSInteractNPCEndPacket));
             RegisterPacket(0x067, 1, typeof(CSBoardingTransferPacket));
             RegisterPacket(0x068, 1, typeof(CSStartInteractionPacket));
             RegisterPacket(0x06b, 1, typeof(CSSelectInteractionExPacket));
