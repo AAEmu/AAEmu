@@ -30,17 +30,9 @@ namespace AAEmu.Game.Core.Network.Game
 
                 if (Level == 1)
                 {
-                    var connectionPacketCount = Connection.PacketCount;
-
-                    var hash = Helpers.Crc8(body.GetBytes());
-
                     packet
-                        .Write((byte)hash) // hash
-                        .Write((byte)connectionPacketCount); // count
-
-
-                    Interlocked.Increment(ref connectionPacketCount);
-                    Connection.PacketCount = connectionPacketCount > byte.MaxValue ? 0 : connectionPacketCount;
+                        .Write((byte)0) // hash
+                        .Write((byte)0); // count
                 }
 
                 packet.Write(body, false);

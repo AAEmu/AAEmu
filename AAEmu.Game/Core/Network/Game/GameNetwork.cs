@@ -222,8 +222,8 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x0db, 1, typeof(CSQuestStartWithPacket));
             RegisterPacket(0x0dd, 1, typeof(CSTryQuestCompleteAsLetItDonePacket));
             RegisterPacket(0x0de, 1, typeof(CSUsePortalPacket));
-
-
+            RegisterPacket(0x0df, 1, typeof(CSDeletePortalPacket));
+            RegisterPacket(0x0e0, 1, typeof(CSInstanceLoadedPacket));
             RegisterPacket(0x0e1, 1, typeof(CSApplyToInstantGamePacket));
             RegisterPacket(0x0e2, 1, typeof(CSCancelInstantGamePacket));
             RegisterPacket(0x0e3, 1, typeof(CSJoinInstantGamePacket));
