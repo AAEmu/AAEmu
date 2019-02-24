@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, item, 1));
             } else {
                 // TODO : make sure grade updates with itemupdate
-                tasks.Add(new ItemUpdate(item));
+                tasks.Add(new ItemGradeChange(item, item.Grade));
             }
             
             character.SendPacket(new SCGradeEnchantResultPacket((byte)result, item, initialGrade, item.Grade));
