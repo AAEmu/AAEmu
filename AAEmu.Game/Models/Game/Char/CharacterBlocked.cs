@@ -1,9 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using MySql.Data.MySqlClient;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -13,7 +12,6 @@ namespace AAEmu.Game.Models.Game.Char
         public Dictionary<uint, BlockedTemplate> BlockedIdList { get; set; } // bvId, Template
         private readonly List<uint> _removedBlocked; // blockedId
 
-        private static Logger _log = LogManager.GetCurrentClassLogger();
 
         public CharacterBlocked(Character owner)
         {
@@ -90,12 +88,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void AddBlockedUser(string name)
         {
-            _log.Info(">>>>>>>>>>>>>>>>>>>>>Name: [", name, "]");
-
             var blocked = BlockUserManager.Instance.GetBlockedInfo(name);
-
-            _log.Info(">>>>>>>>>>>>>>>>>>>>>Blocked: [", blocked, "]");
-
             if (blocked == null || BlockedIdList.ContainsKey(blocked.CharacterId)) return; // already blocked
             var template = new BlockedTemplate()
             {
