@@ -137,6 +137,17 @@ CREATE TABLE `friends`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for blocked
+-- ----------------------------
+DROP TABLE IF EXISTS `blocked`;
+CREATE TABLE `blocked`  (
+  `id` int(11) NOT NULL,
+  `blocked_id` int(11) NOT NULL,
+  `owner` int(11) NOT NULL,
+  PRIMARY KEY (`id`, `owner`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for items
 -- ----------------------------
 DROP TABLE IF EXISTS `items`;
