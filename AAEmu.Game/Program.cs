@@ -69,6 +69,7 @@ namespace AAEmu.Game
             VisitedSubZoneIdManager.Instance.Initialize();
             PrivateBookIdManager.Instance.Initialize();
             FriendIdManager.Instance.Initialize();
+            BlockedIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
@@ -90,6 +91,7 @@ namespace AAEmu.Game
             FamilyManager.Instance.Load();
             PortalManager.Instance.Load();
             FriendMananger.Instance.Load();
+            BlockUserManager.Instance.Load();
 
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
