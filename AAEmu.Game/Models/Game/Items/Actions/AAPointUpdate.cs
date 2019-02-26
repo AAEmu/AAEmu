@@ -2,13 +2,13 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class MoneyChangeBank : ItemTask
+    public class AAPointUpdate : ItemTask
     {
         private readonly int _amount;
 
-        public MoneyChangeBank(int amount)
+        public AAPointUpdate(int amount)
         {
-            _type = 2;
+            _type = 0x10; // 16
             _amount = amount;
         }
 
