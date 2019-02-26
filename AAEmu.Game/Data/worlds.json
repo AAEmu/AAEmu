@@ -15,7 +15,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 100.0,
     "CellX": 8,
-    "CellY": 8
+    "CellY": 8,
+	"SpawnPosition": {
+		"ZoneId": 260,
+		"X": 3680.518,
+		"Y": 4572.221,
+		"Z": 156
+	}
   },
   {
     "Id": 3,
@@ -24,7 +30,13 @@
     "HeightMaxCoeff": 1023.984375,
     "OceanLevel": 16.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 236,
+		"X": 169,
+		"Y": 90.62,
+		"Z": 25.13
+	}
   },
   {
     "Id": 4,
@@ -33,7 +45,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 1.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 264,
+		"X": 898.942,
+		"Y": 837.212,
+		"Z": 194.87
+	}
   },
   {
     "Id": 5,
@@ -42,7 +60,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 262,
+		"X": 796.3,
+		"Y": 325.386,
+		"Z": 249.54
+	}
   },
   {
     "Id": 6,
@@ -51,7 +75,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 241,
+		"X": 575.28,
+		"Y": 482.01,
+		"Z": 136.755
+	}
   },
   {
     "Id": 7,
@@ -60,7 +90,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 265,
+		"X": 713.56,
+		"Y": 720.398,
+		"Z": 184.444
+	}
   },
   {
     "Id": 8,
@@ -69,7 +105,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 280,
+		"X": 713.56,
+		"Y": 720.398,
+		"Z": 184.444
+	}
   },
   {
     "Id": 9,
@@ -78,7 +120,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 0.0,
     "CellX": 3,
-    "CellY": 3
+    "CellY": 3,
+	"SpawnPosition": {
+		"ZoneId": 285,
+		"X": 1712.18,
+		"Y": 1324.28,
+		"Z": 167.018
+	}
   },
   {
     "Id": 10,
@@ -87,7 +135,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 0.0,
     "CellX": 3,
-    "CellY": 3
+    "CellY": 3,
+	"SpawnPosition": {
+		"ZoneId": 290,
+		"X": 1712.18,
+		"Y": 1324.28,
+		"Z": 167.018
+	}
   },
   {
     "Id": 11,
@@ -96,7 +150,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 0.0,
     "CellX": 8,
-    "CellY": 8
+    "CellY": 8,
+	"SpawnPosition": {
+		"ZoneId": 296,
+		"X": 621.05,
+		"Y": 643.36,
+		"Z": 134.64
+	}
   },
   {
     "Id": 12,
@@ -105,7 +165,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 100.0,
     "CellX": 4,
-    "CellY": 4
+    "CellY": 4,
+	"SpawnPosition": {
+		"ZoneId": 278,
+		"X": 0,
+		"Y": 0,
+		"Z": 0
+	}
   },
   {
     "Id": 13,
@@ -114,7 +180,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 100.0,
     "CellX": 4,
-    "CellY": 4
+    "CellY": 4,
+	"SpawnPosition": {
+		"ZoneId": 292,
+		"X": 0,
+		"Y": 0,
+		"Z": 0
+	}
   },
   {
     "Id": 14,
@@ -132,7 +204,13 @@
     "HeightMaxCoeff": 63.9990234375,
     "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 240,
+		"X": 431.406,
+		"Y": 300.08,
+		"Z": 154.036
+	}
   },
   {
     "Id": 16,

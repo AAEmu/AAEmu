@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((byte)2); // version
+            stream.Write((byte)0); // version
 
             for (var i = 0; i < 15; i++)
                 stream.Write((byte)0); // chatTypeGroup
