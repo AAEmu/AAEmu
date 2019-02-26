@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using AAEmu.Commons.IO;
@@ -55,8 +56,9 @@ namespace AAEmu.Game
 
             connection.Close();
 
-            var startTime = DateTime.Now;
+            var stopWatch = new Stopwatch();
 
+            stopWatch.Start();
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
@@ -103,10 +105,9 @@ namespace AAEmu.Game
             GameNetwork.Instance.Start();
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();
-
-
-            var endTime = DateTime.Now;
-            _log.Info("Server started! Took {0} ms", (endTime - startTime).TotalMilliseconds);
+            stopWatch.Stop();
+            
+            _log.Info("Server started! Took {0}", stopWatch.Elapsed);
             _signal.WaitOne();
 
             SpawnManager.Instance.Stop();

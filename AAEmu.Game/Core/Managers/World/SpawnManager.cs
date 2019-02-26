@@ -4,6 +4,7 @@ using System.Threading;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
@@ -37,15 +38,22 @@ namespace AAEmu.Game.Core.Managers.World
                 var npcSpawners = new Dictionary<uint, NpcSpawner>();
                 var doodadSpawners = new Dictionary<uint, DoodadSpawner>();
 
-                var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
+                var contents =
+                    FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
                 if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json doesn't exists or is empty.");
+                    _log.Warn(
+                        $"File {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json doesn't exists or is empty.");
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> spawners, out _))
                         foreach (var spawner in spawners)
                         {
-                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            if (!NpcManager.Instance.Exist(spawner.UnitId))
+                                continue; // TODO ... so mb warn here?
+                            spawner.Position.WorldId = world.Id;
+                            spawner.Position.ZoneId = WorldManager
+                                .Instance
+                                .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                             npcSpawners.Add(spawner.Id, spawner);
                         }
                     else
@@ -53,15 +61,22 @@ namespace AAEmu.Game.Core.Managers.World
                             $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json file");
                 }
 
-                contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json");
+                contents = FileManager.GetFileContents(
+                    $"{FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json");
                 if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json doesn't exists or is empty.");
+                    _log.Warn(
+                        $"File {FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json doesn't exists or is empty.");
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
                         foreach (var spawner in spawners)
                         {
-                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            if (!DoodadManager.Instance.Exist(spawner.UnitId))
+                                continue; // TODO ... so mb warn here?
+                            spawner.Position.WorldId = world.Id;
+                            spawner.Position.ZoneId = WorldManager
+                                .Instance
+                                .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                             doodadSpawners.Add(spawner.Id, spawner);
                         }
                     else
@@ -73,7 +88,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _doodadSpawners.Add((byte)world.Id, doodadSpawners);
             }
 
-            var respawnThread = new Thread(CheckRespawns) { Name = "RespawnThread" };
+            var respawnThread = new Thread(CheckRespawns) {Name = "RespawnThread"};
             respawnThread.Start();
         }
 

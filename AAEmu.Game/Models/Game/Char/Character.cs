@@ -849,6 +849,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Ability1 = (AbilityType)reader.GetByte("ability1");
                         character.Ability2 = (AbilityType)reader.GetByte("ability2");
                         character.Ability3 = (AbilityType)reader.GetByte("ability3");
+                        character.Position.WorldId = reader.GetUInt32("world_id");
                         character.Position.ZoneId = reader.GetUInt32("zone_id");
                         character.Position.X = reader.GetFloat("x");
                         character.Position.Y = reader.GetFloat("y");
@@ -951,6 +952,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Ability1 = (AbilityType)reader.GetByte("ability1");
                         character.Ability2 = (AbilityType)reader.GetByte("ability2");
                         character.Ability3 = (AbilityType)reader.GetByte("ability3");
+                        character.Position.WorldId = reader.GetUInt32("world_id");
                         character.Position.ZoneId = reader.GetUInt32("zone_id");
                         character.Position.X = reader.GetFloat("x");
                         character.Position.Y = reader.GetFloat("y");
@@ -1085,8 +1087,8 @@ namespace AAEmu.Game.Models.Game.Char
                             // ----
                             command.CommandText =
                                 "REPLACE INTO `characters` " +
-                                "(`id`,`account_id`,`name`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
-                                "VALUES(@id,@account_id,@name,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
+                                "(`id`,`account_id`,`name`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
+                                "VALUES(@id,@account_id,@name,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
 
                             command.Parameters.AddWithValue("@id", Id);
                             command.Parameters.AddWithValue("@account_id", AccountId);
@@ -1105,6 +1107,7 @@ namespace AAEmu.Game.Models.Game.Char
                             command.Parameters.AddWithValue("@ability1", (byte) Ability1);
                             command.Parameters.AddWithValue("@ability2", (byte) Ability2);
                             command.Parameters.AddWithValue("@ability3", (byte) Ability3);
+                            command.Parameters.AddWithValue("@world_id", WorldPosition?.WorldId ?? Position.WorldId);
                             command.Parameters.AddWithValue("@zone_id", WorldPosition?.ZoneId ?? Position.ZoneId);
                             command.Parameters.AddWithValue("@x", WorldPosition?.X ?? Position.X);
                             command.Parameters.AddWithValue("@y", WorldPosition?.Y ?? Position.Y);

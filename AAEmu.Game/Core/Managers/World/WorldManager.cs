@@ -193,7 +193,8 @@ namespace AAEmu.Game.Core.Managers.World
 
         public Region GetRegion(GameObject obj)
         {
-            return GetRegion(obj.Position.ZoneId, obj.Position.X, obj.Position.Y);
+            var world = GetWorld(obj.Position.WorldId);
+            return GetRegion(world, obj.Position.X, obj.Position.Y);
         }
 
         public Region GetRegion(Point point)
@@ -443,6 +444,13 @@ namespace AAEmu.Game.Core.Managers.World
             var world = GetWorldByZone(zoneId);
             var sx = (int) (x / REGION_SIZE);
             var sy = (int) (y / REGION_SIZE);
+            return world.GetRegion(sx, sy);
+        }
+
+        private Region GetRegion(InstanceWorld world, float x, float y)
+        {
+            var sx = (int)(x / REGION_SIZE);
+            var sy = (int)(y / REGION_SIZE);
             return world.GetRegion(sx, sy);
         }
 

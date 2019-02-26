@@ -50,6 +50,7 @@ namespace AAEmu.Game.Models.Game.World
                 _objects[_objectsSize] = obj;
                 _objectsSize++;
 
+                obj.Position.WorldId = _worldId;
                 var zoneId = WorldManager.Instance.GetZoneId(_worldId, obj.Position.X, obj.Position.Y);
                 if (zoneId > 0)
                     obj.Position.ZoneId = zoneId;

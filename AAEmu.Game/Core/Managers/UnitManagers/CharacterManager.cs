@@ -358,6 +358,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 foreach (var charTemplate in charTemplates)
                 {
                     var point = new Point(charTemplate.Pos.X, charTemplate.Pos.Y, charTemplate.Pos.Z);
+                    point.WorldId = charTemplate.Pos.WorldId;
                     point.ZoneId = WorldManager
                         .Instance
                         .GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y); // TODO ...
