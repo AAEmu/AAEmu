@@ -53,6 +53,9 @@ namespace AAEmu.Game.Models.Game.Char
             _count--;
             IsCrafting = false;
 
+            if (_craft == null)
+                return;
+            
             foreach (var material in _craft.CraftMaterials)
             {
                 var materialItem = Owner.Inventory.GetItemByTemplateId(material.ItemId);
