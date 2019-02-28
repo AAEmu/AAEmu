@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -8,20 +10,27 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _total;
         private readonly uint _id;
-        private readonly Member[] _members;
+        private readonly List<Member> _members;
 
-        public SCExpeditionMemberListPacket(uint total, uint id, Member[] members) : base(SCOffsets.SCExpeditionMemberListPacket, 1)
+        public SCExpeditionMemberListPacket(uint total, uint id, List<Member> members) : base(SCOffsets.SCExpeditionMemberListPacket, 1)
         {
             _total = total;
             _id = id;
             _members = members;
         }
 
+        public SCExpeditionMemberListPacket(Expedition expedition) : base(SCOffsets.SCExpeditionMemberListPacket, 1)
+        {
+            _total = (uint)expedition.Members.Count;
+            _id = expedition.Id;
+            _members = expedition.Members; // TODO max 20
+        }
+
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_total);
-            stream.Write((byte)_members.Length); // TODO max length 20
-            stream.Write(_id);
+            stream.Write((byte)_members.Count); // TODO max length 20
+            stream.Write(0);
             foreach (var member in _members)
                 stream.Write(member);
             return stream;

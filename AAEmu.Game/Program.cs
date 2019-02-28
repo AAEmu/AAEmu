@@ -68,6 +68,7 @@ namespace AAEmu.Game
             ItemIdManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
             FamilyIdManager.Instance.Initialize();
+            ExpeditionIdManager.Instance.Initialize();
             VisitedSubZoneIdManager.Instance.Initialize();
             PrivateBookIdManager.Instance.Initialize();
             FriendIdManager.Instance.Initialize();
@@ -88,6 +89,7 @@ namespace AAEmu.Game
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
+            ExpeditionManager.Instance.Load();
             CharacterManager.Instance.Load();
             FamilyManager.Instance.Load();
             PortalManager.Instance.Load();

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -43,6 +44,7 @@ namespace AAEmu.Game.Models.Game.Units
         public Unit Master { get; set; }
         public SkillTask SkillTask { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
+        public Expedition Expedition { get; set; }
 
         public Unit()
         {

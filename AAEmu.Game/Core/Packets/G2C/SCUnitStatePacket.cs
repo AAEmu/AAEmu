@@ -251,7 +251,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
                 stream.WritePisc(0, 0, 0, 0); // pisc
 
-            stream.WritePisc(_unit.Faction?.Id ?? 0, 0, 0, 0); // pisc
+            stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
 
             if (_unit is Character)
             {

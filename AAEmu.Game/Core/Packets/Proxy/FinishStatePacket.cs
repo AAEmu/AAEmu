@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
                             Connection.Payment.EndTime
                         )
                     );
-                    Connection.SendPacket(new SCChatSpamDelayPacket());
+                    //Connection.SendPacket(new SCChatSpamDelayPacket());
                     break;
                 case 1:
                     Connection.SendPacket(new ChangeStatePacket(2));

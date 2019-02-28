@@ -18,6 +18,11 @@ namespace AAEmu.Game.Core.Packets.G2C
             _factions = factions;
         }
 
+        public SCFactionListPacket(SystemFaction faction) : base(SCOffsets.SCFactionListPacket, 1)
+        {
+            _factions = new SystemFaction[] {faction};
+        }
+
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((byte) _factions.Length);
