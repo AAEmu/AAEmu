@@ -71,10 +71,13 @@ namespace AAEmu.Game
             VisitedSubZoneIdManager.Instance.Initialize();
             PrivateBookIdManager.Instance.Initialize();
             FriendIdManager.Instance.Initialize();
+            MateIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
             QuestManager.Instance.Load();
+
+            ShipyardManager.Instance.Load();
 
             FormulaManager.Instance.Load();
             ExpirienceManager.Instance.Load();
@@ -85,6 +88,7 @@ namespace AAEmu.Game
             SkillManager.Instance.Load();
             CraftManager.Instance.Load();
             HousingManager.Instance.Load();
+            MateManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
