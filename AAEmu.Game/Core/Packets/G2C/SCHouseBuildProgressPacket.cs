@@ -6,14 +6,14 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCHouseBuildProgressPacket : GamePacket
     {
         private readonly ushort _tl;
-        private readonly uint _unkId;
+        private readonly uint _modelId;
         private readonly int _allStep;
         private readonly int _curStep;
         
-        public SCHouseBuildProgressPacket(ushort tl, uint unkId, int allStep, int curStep) : base(SCOffsets.SCHouseBuildProgressPacket, 1)
+        public SCHouseBuildProgressPacket(ushort tl, uint modelId, int allStep, int curStep) : base(SCOffsets.SCHouseBuildProgressPacket, 1)
         {
             _tl = tl;
-            _unkId = unkId;
+            _modelId = modelId;
             _allStep = allStep;
             _curStep = curStep;
         }
@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_tl);
-            stream.Write(_unkId);
+            stream.Write(_modelId);
             stream.Write(_allStep);
             stream.Write(_curStep);
             return stream;
