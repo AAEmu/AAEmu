@@ -43,6 +43,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Connection.ActiveChar.Portals.Send();
                 Connection.ActiveChar.Friends.Send();
+                Connection.ActiveChar.Blocked.Send();
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {

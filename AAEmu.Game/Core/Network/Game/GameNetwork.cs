@@ -149,8 +149,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x088, 1, typeof(CSAskRiskyTeamActionPacket));
             RegisterPacket(0x089, 1, typeof(CSMoveUnitPacket));
             RegisterPacket(0x08a, 1, typeof(CSSkillControllerStatePacket));
-
-
+            RegisterPacket(0x08b, 1, typeof(CSCreateSkillControllerPacket));
 
             //            RegisterPacket(0x08d, 1, typeof(CSChangeItemLookPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x08e, 1, typeof(CSLootOpenBagPacket));
@@ -175,7 +174,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x0a4, 1, typeof(CSRemoveMatePacket));
             RegisterPacket(0x0a5, 1, typeof(CSChangeMateTargetPacket));
             RegisterPacket(0x0a6, 1, typeof(CSChangeMateNamePacket));
-
+            RegisterPacket(0x0a7, 1, typeof(CSMountMatePacket));
             RegisterPacket(0x0a8, 1, typeof(CSUnMountMatePacket));
             RegisterPacket(0x0a9, 1, typeof(CSChangeMateEquipmentPacket));
             RegisterPacket(0x0aa, 1, typeof(CSChangeMateUserStatePacket));

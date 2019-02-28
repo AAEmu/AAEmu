@@ -165,6 +165,17 @@ CREATE TABLE `friends` (
 -- --------------------------------------------------------
 
 --
+-- Структура таблицы `blocked`
+--
+
+CREATE TABLE `blocked` (
+  `owner` int(11) NOT NULL,
+  `blocked_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+-- --------------------------------------------------------
+
+--
 -- Структура таблицы `items`
 --
 
@@ -284,6 +295,12 @@ ALTER TABLE `family_members`
 --
 ALTER TABLE `friends`
   ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
+  
+--
+-- Индексы таблицы `blocked`
+--
+ALTER TABLE `blocked`
+  ADD PRIMARY KEY (`owner`,`blocked_id`) USING BTREE;
 
 --
 -- Индексы таблицы `items`

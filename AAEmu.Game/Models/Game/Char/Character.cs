@@ -110,6 +110,8 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterAbilities Abilities { get; set; }
         public CharacterPortals Portals { get; set; }
         public CharacterFriends Friends { get; set; }
+        public CharacterBlocked Blocked { get; set; }
+        public CharacterMates Mates { get; set; }
         
         public byte ExpandedExpert { get; set; }
         public CharacterActability Actability { get; set; }
@@ -1035,10 +1037,14 @@ namespace AAEmu.Game.Models.Game.Char
                 Portals.Load(connection);
                 Friends = new CharacterFriends(this);
                 Friends.Load(connection);
+                Blocked = new CharacterBlocked(this);
+                Blocked.Load(connection);
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
                 Mails = new CharacterMails(this);
                 Mails.Load(connection);
+                Mates = new CharacterMates(this);
+                Mates.Load(connection);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -1174,9 +1180,11 @@ namespace AAEmu.Game.Models.Game.Char
                         Appellations?.Save(connection, transaction);
                         Portals?.Save(connection, transaction);
                         Friends?.Save(connection, transaction);
+                        Blocked?.Save(connection, transaction);
                         Skills?.Save(connection, transaction);
                         Quests?.Save(connection, transaction);
                         Mails?.Save(connection, transaction);
+                        Mates?.Save(connection, transaction);
 
                         try
                         {
