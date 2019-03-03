@@ -109,6 +109,7 @@ namespace AAEmu.Game.Models.Game.Char
             var quest = Quests[questId];
             quest.Drop();
             Quests.Remove(questId);
+            _removed.Add(questId);
         }
 
         public void OnKill(Npc npc)

@@ -1,0 +1,366 @@
+[
+  {
+    "Id": 1,
+    "UnitId": 7450,
+    "Position": {
+      "X": 640.473,
+      "Y": 632.958,
+      "Z": 133.803,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 2,
+    "UnitId": 7453,
+    "Position": {
+      "X": 127.862,
+      "Y": 118.501,
+      "Z": 133.303,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 3,
+    "UnitId": 7453,
+    "Position": {
+      "X": 128.301,
+      "Y": 1035.04431,
+      "Z": 133.489,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 4,
+    "UnitId": 7453,
+    "Position": {
+      "X": 1024.25867,
+      "Y": 1032.67786,
+      "Z": 133.519,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 5,
+    "UnitId": 7453,
+    "Position": {
+      "X": 1024.76025,
+      "Y": 119.94,
+      "Z": 133.417,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 6,
+    "UnitId": 7458,
+    "Position": {
+      "X": 511.81,
+      "Y": 2560.038,
+      "Z": 128.265,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 7,
+    "UnitId": 7459,
+    "Position": {
+      "X": 128.008,
+      "Y": 2176.013,
+      "Z": 128.026,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 8,
+    "UnitId": 7459,
+    "Position": {
+      "X": 128.073,
+      "Y": 3071.89014,
+      "Z": 128.026,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 9,
+    "UnitId": 7459,
+    "Position": {
+      "X": 1023.86,
+      "Y": 2175.992,
+      "Z": 128.026,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 10,
+    "UnitId": 7459,
+    "Position": {
+      "X": 1023.88,
+      "Y": 3071.87,
+      "Z": 128.026,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 11,
+    "UnitId": 7464,
+    "Position": {
+      "X": 512.296,
+      "Y": 4608.3,
+      "Z": 255.661,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 12,
+    "UnitId": 7465,
+    "Position": {
+      "X": 138.029,
+      "Y": 5109.76,
+      "Z": 257.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 13,
+    "UnitId": 7465,
+    "Position": {
+      "X": 138.029,
+      "Y": 4233.764,
+      "Z": 257.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 14,
+    "UnitId": 7465,
+    "Position": {
+      "X": 1014.08,
+      "Y": 5110.1,
+      "Z": 257.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 15,
+    "UnitId": 7465,
+    "Position": {
+      "X": 1014.18,
+      "Y": 4233.931,
+      "Z": 257.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 16,
+    "UnitId": 7456,
+    "Position": {
+      "X": 2498.416,
+      "Y": 212.824,
+      "Z": 131.087,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 17,
+    "UnitId": 7472,
+    "Position": {
+      "X": 2498.29,
+      "Y": 181.488,
+      "Z": 131.087,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 18,
+    "UnitId": 7476,
+    "Position": {
+      "X": 2239.814,
+      "Y": 172.445,
+      "Z": 150.481,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 19,
+    "UnitId": 7462,
+    "Position": {
+      "X": 2833.995,
+      "Y": 1645.92993,
+      "Z": 136.859,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 20,
+    "UnitId": 7473,
+    "Position": {
+      "X": 2867.995,
+      "Y": 1645.92993,
+      "Z": 136.859,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 21,
+    "UnitId": 7477,
+    "Position": {
+      "X": 2850.0,
+      "Y": 1817.0,
+      "Z": 127.5,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 22,
+    "UnitId": 7468,
+    "Position": {
+      "X": 2624.0,
+      "Y": 2449.0,
+      "Z": 129.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 23,
+    "UnitId": 7474,
+    "Position": {
+      "X": 2624.0,
+      "Y": 2416.0,
+      "Z": 129.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 24,
+    "UnitId": 7478,
+    "Position": {
+      "X": 2628.85,
+      "Y": 2586.442,
+      "Z": 128.0,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 25,
+    "UnitId": 7470,
+    "Position": {
+      "X": 3671.562,
+      "Y": 631.305,
+      "Z": 210.962,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 26,
+    "UnitId": 7475,
+    "Position": {
+      "X": 3704.499,
+      "Y": 631.371,
+      "Z": 210.962,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 27,
+    "UnitId": 7479,
+    "Position": {
+      "X": 3698.154,
+      "Y": 464.822,
+      "Z": 188.358,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Id": 28,
+    "UnitId": 7958,
+    "Position": {
+      "X": 3697.993,
+      "Y": 413.505,
+      "Z": 188.112,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  }
+]

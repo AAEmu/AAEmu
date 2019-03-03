@@ -61,17 +61,29 @@ namespace AAEmu.Game.Core.Managers
 
         // INTERACTION //
 
-        public void CreateExpedition(string name, Character owner) {
+        public void CreateExpedition(string name, Character owner)
+        {
             if (owner.Expedition != null) return;
 
             var expedition = Create(name, owner);
             _expeditions.Add(expedition.Id, expedition);
 
             owner.Expedition = expedition;
-            WorldManager.Instance.BroadcastPacketToServer(new SCFactionListPacket(expedition));
-            owner.BroadcastPacket(new SCUnitExpeditionChangedPacket(owner.ObjId, owner.ObjId, "", owner.Name, 0, expedition.Id, false), true);
+
+            owner.SendPacket(new SCFactionCreatedPacket(expedition, owner.ObjId,
+                new[] {(owner.ObjId, owner.Id, owner.Name)}));
+
+            owner.SendPacket(new SCFactionListPacket(expedition));
+//            owner.SendPacket(
+//                new SCUnitExpeditionChangedPacket(owner.ObjId, 0, "", owner.Name, 0, expedition.Id, false)
+//            );  
+
+            owner.SendPacket(new SCUnitFactionChangedPacket(owner.ObjId, owner.Name, expedition.Id, owner.Faction.Id, false));
+
             owner.SendPacket(new SCExpeditionRolePolicyListPacket(expedition.Policies));
             owner.SendPacket(new SCExpeditionMemberListPacket(expedition));
+
+            // owner.SendPacket(new SCCharacterStatePacket(owner));
         }
 
         public void SendExpeditionInfo(Character character) {
@@ -97,8 +109,29 @@ namespace AAEmu.Game.Core.Managers
 
             expedition.Policies = new List<ExpeditionRolePolicy>();
 
+            var policy = new ExpeditionRolePolicy();
+            policy.Id = expedition.Id;
+            policy.Role = 255; // master
+            policy.Name = owner.Name;
+            policy.DominionDeclare = true;
+            policy.Invite = true;
+            policy.Expel = true;
+            policy.Promote = true;
+            policy.Dismiss = true;
+            policy.Chat = true;
+            policy.ManagerChat = true;
+            policy.SiegeMaster = true;
+            policy.JoinSiege = true;
+            
+            expedition.Policies.Add(policy);
+
             expedition.Members = new List<Member>();
-            expedition.Members.Add(GetMemberFromCharacter(owner, true));
+
+            var member = GetMemberFromCharacter(owner, true);
+            member.Id = expedition.Id;
+            member.Id2 = owner.Id;
+            
+            expedition.Members.Add(member);
 
             return expedition;
         }
@@ -108,7 +141,7 @@ namespace AAEmu.Game.Core.Managers
             member.IsOnline = true;
             member.Name = character.Name;
             member.Level = character.Level;
-            member.Role = 0;
+            member.Role = 255;
             member.Memo = "";
             member.X = character.Position.X;
             member.Y = character.Position.Y;
@@ -130,6 +163,8 @@ namespace AAEmu.Game.Core.Managers
                     character.SendPacket(new SCFactionListPacket(temp));
                 }
             }
+
+            character.SendPacket(new SCExpeditionRolePolicyListPacket(new List<ExpeditionRolePolicy>()));
         }
     }
 }
