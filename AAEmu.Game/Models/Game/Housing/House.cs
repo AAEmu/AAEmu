@@ -25,7 +25,6 @@ namespace AAEmu.Game.Models.Game.Housing
 
         public override void AddVisibleObject(Character character)
         {
-
             var data = new HouseData();
             data.Tl = TlId;
             data.DbId = 146502;
