@@ -46,8 +46,7 @@ namespace AAEmu.Game.Models.Game.Housing
             data.MoneyAmount = 0;
             data.Unk4Id = 1;
             data.SellToName = "";
-
-
+            
             character.SendPacket(new SCMyHousePacket(data));
 
             character.SendPacket(new SCUnitStatePacket(this));
