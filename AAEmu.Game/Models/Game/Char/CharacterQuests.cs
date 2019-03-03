@@ -218,7 +218,7 @@ namespace AAEmu.Game.Models.Game.Char
                         quest.ReadData((byte[])reader.GetValue("data"));
                         quest.Owner = Owner;
                         quest.Template = QuestManager.Instance.GetTemplate(quest.TemplateId);
-                        quest.RecalcObjectives();
+                        quest.RecalcObjectives(false);
                         Quests.Add(quest.TemplateId, quest);
                     }
                 }

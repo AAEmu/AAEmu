@@ -824,7 +824,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void SendPacket(GamePacket packet)
         {
-            Connection.SendPacket(packet);
+            Connection?.SendPacket(packet);
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)

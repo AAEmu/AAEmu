@@ -114,7 +114,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case 6:
                     var shipyard = (Shipyard)_unit;
-                    stream.Write(shipyard.TlId); // type(id)
+                    stream.Write(shipyard.TlId); // type(id) // TODO ReadInt64
                     stream.Write(shipyard.TemplateId); // type(id)
                     break;
             }
@@ -142,19 +142,40 @@ namespace AAEmu.Game.Core.Packets.G2C
             else if (_unit is Npc)
             {
                 var npc = (Npc)_unit;
-                foreach (var item in npc.Equip)
+                for (var i = 0; i < npc.Equip.Length; i++)
                 {
+                    var item = npc.Equip[i];
+
                     if (item is BodyPart)
                         stream.Write(item.TemplateId);
                     else if (item != null)
                     {
-                        stream.Write(item.TemplateId);
-                        stream.Write(0L);
-                        stream.Write((byte)0);
+                        if (i == 27) // Cosplay
+                            stream.Write(item);
+                        else
+                        {
+                            stream.Write(item.TemplateId);
+                            stream.Write(0L);
+                            stream.Write((byte)0);
+                        }
                     }
                     else
                         stream.Write(0);
                 }
+
+//                foreach (var item in npc.Equip)
+//                {
+//                    if (item is BodyPart)
+//                        stream.Write(item.TemplateId);
+//                    else if (item != null)
+//                    {
+//                        stream.Write(item.TemplateId);
+//                        stream.Write(0L);
+//                        stream.Write((byte)0);
+//                    }
+//                    else
+//                        stream.Write(0);
+//                }
             }
             else if (_unit is Slave)
             {
@@ -330,7 +351,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((short)1); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write(effect.Tick); // tickTime
+                stream.Write((uint)effect.Tick); // tickTime
                 stream.Write(0); // tickIndex
                 stream.Write(1); // stack
                 stream.Write(0); // charged
@@ -348,7 +369,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((short)1); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write(effect.Tick); // tickTime
+                stream.Write((uint)effect.Tick); // tickTime
                 stream.Write(0); // tickIndex
                 stream.Write(1); // stack
                 stream.Write(0); // charged
@@ -366,7 +387,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((short)1); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write(effect.Tick); // tickTime
+                stream.Write((uint)effect.Tick); // tickTime
                 stream.Write(0); // tickIndex
                 stream.Write(1); // stack
                 stream.Write(0); // charged

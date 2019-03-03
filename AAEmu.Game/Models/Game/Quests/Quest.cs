@@ -64,7 +64,7 @@ namespace AAEmu.Game.Models.Game.Quests
             return res ? componentId : 0;
         }
 
-        public void Update()
+        public void Update(bool send = true)
         {
             var res = false;
             var componentId = 0u;
@@ -388,7 +388,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 Update();
         }
 
-        public void RecalcObjectives()
+        public void RecalcObjectives(bool send = true)
         {
             var component = Template.GetComponent(Step);
             if (component == null)
@@ -416,7 +416,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
 
-            Update();
+            Update(send);
         }
 
         public override PacketStream Write(PacketStream stream)
