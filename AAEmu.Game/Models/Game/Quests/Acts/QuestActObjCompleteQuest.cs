@@ -12,8 +12,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
 
         public override bool Use(Character character, Quest quest, int objective)
         {
-            _log.Warn("QuestActObjCompleteQuest");
-            return false;
+            _log.Debug("QuestActObjCompleteQuest");
+            return character.Quests.IsQuestComplete(QuestId) == AcceptWith;
         }
     }
 }

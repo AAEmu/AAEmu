@@ -149,6 +149,24 @@ namespace AAEmu.Game.Models.Game.Char
                 quest.OnQuestComplete(questId);
         }
 
+        public void AddCompletedQuest(CompletedQuest quest)
+        {
+            CompletedQuests.Add(quest.Id, quest);
+        }
+
+        public CompletedQuest GetCompletedQuest(ushort id)
+        {
+            return CompletedQuests.ContainsKey(id) ? CompletedQuests[id] : null;
+        }
+
+        public bool IsQuestComplete(uint questId)
+        {
+            var completeId = (ushort)(questId / 64);
+            if (!CompletedQuests.ContainsKey(completeId))
+                return false;
+            return CompletedQuests[completeId].Body[(int)(questId - completeId * 64)];
+        }
+
         public void Send()
         {
             var quests = Quests.Values.ToArray();
