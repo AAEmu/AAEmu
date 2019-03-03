@@ -8,6 +8,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Network.Game;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -18,6 +20,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, HousingTemplate> _housing;
         private Dictionary<uint, HousingAreas> _housingAreas;
         private Dictionary<uint, HouseTaxes> _houseTaxes;
+        private Dictionary<uint, HousingBuildStep> _buildstep;
 
         public House Create(uint id, uint objectId = 0, ushort tlId = 0)
         {
@@ -25,18 +28,17 @@ namespace AAEmu.Game.Core.Managers
                 return null;
 
             var template = _housing[id];
-
             var house = new House();
             house.TlId = tlId > 0 ? tlId : (ushort)TlIdManager.Instance.GetNextId(); // TODO что то придумать...
             house.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
             house.TemplateId = id;
             house.Template = template;
-            house.ModelId = template.MainModelId;
+            house.ModelId = _housing[id].BuildSteps[0].ModelId; //always starts at 0
             house.Faction = FactionManager.Instance.GetFaction(1); // TODO frandly
             house.Name = template.Name;
             house.Level = 1;
             house.MaxHp = house.Hp = template.Hp;
-
+            house.BuildStep =(short) -_housing[id].BuildSteps.Count; //need to count the number of steps according to housing_id
             return house;
         }
 
@@ -45,6 +47,7 @@ namespace AAEmu.Game.Core.Managers
             _housing = new Dictionary<uint, HousingTemplate>();
             _housingAreas = new Dictionary<uint, HousingAreas>();
             _houseTaxes = new Dictionary<uint, HouseTaxes>();
+            _buildstep = new Dictionary<uint, HousingBuildStep>();
             _log.Info("Loading Housing...");
 
             using (var connection = SQLite.CreateConnection())
@@ -130,8 +133,8 @@ namespace AAEmu.Game.Core.Managers
                             template.ModelId = reader.GetUInt32("model_id");
                             template.SkillId = reader.GetUInt32("skill_id");
                             template.NumActions = reader.GetInt32("num_actions");
-
                             _housing[housingId].BuildSteps.Add(template.Step, template);
+
                         }
                     }
                 }
@@ -183,9 +186,16 @@ namespace AAEmu.Game.Core.Managers
                 int TotalTax = BaseTax;
 
                 SCConstructHouseTaxPacket houseTaxPacket =
-                    new SCConstructHouseTaxPacket(designId, 0, HouseNum, false, BaseTax, TotalTax, 111, 222);
+                    new SCConstructHouseTaxPacket(designId, 0, HouseNum, false, BaseTax, TotalTax, 0, 0);
                 builder.SendPacket(houseTaxPacket);
             }
         }
+        //skipping this for now
+        /*
+        public HousingBuildStep GetHousingBuildStep(uint HousingId)
+        {
+            return _housing[HousingId].BuildSteps[0].NumActions;
+        }
+        */
     }
 }

@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Housing
+﻿namespace AAEmu.Game.Models.Game.Housing
 {
     public class HousingBuildStep
     {

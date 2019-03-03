@@ -11,10 +11,11 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, Craft> _crafts;
-
+        private Dictionary<uint, WorldInteractions> _wi;
         public void Load()
         {
             _crafts = new Dictionary<uint, Craft>();
+            _wi = new Dictionary<uint, WorldInteractions>();
             _log.Info("Loading crafts...");
 
             using (var connection = SQLite.CreateConnection())
@@ -99,6 +100,23 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+                /* crafts world interaction*/
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM wi_group_wis";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new WorldInteractions();
+                            template.Id = reader.GetUInt32("id");
+                            template.wiGroupId = reader.GetUInt32("wi_group_id");
+                            template.wiId = reader.GetUInt32("wi_id");
+                            _wi.Add(template.wiId, template);
+                        }
+                    }
+                }
             }
 
             _log.Info("Loaded crafts", _crafts.Count);
@@ -107,6 +125,10 @@ namespace AAEmu.Game.Core.Managers
         public Craft GetCraftById(uint craftId)
         {
             return _crafts[craftId];
+        }
+        public WorldInteractions GetWorldInteractionsByWiId(uint wiId)
+        {
+            return _wi[wiId];
         }
     }
 }

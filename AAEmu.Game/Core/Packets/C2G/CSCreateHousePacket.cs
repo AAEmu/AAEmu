@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var zoneId = WorldManager.Instance.GetZoneId(Connection.ActiveChar.InstanceId, x, y);
             var house = HousingManager.Instance.Create(designId);
             house.Position = new Point(zoneId, x, y, z);
-
+            house.Position.WorldId = 1;
             house.Spawn();
         }
     }

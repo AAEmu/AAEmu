@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game
         public ushort Tl { get; set; }
         public uint DbId { get; set; }
         public uint ObjId { get; set; }
-        public uint UnkId { get; set; }
+        public uint templateId { get; set; }
         public int Ht { get; set; }
         public uint Unk2Id { get; set; }
         public uint Unk3Id { get; set; }
@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Tl);
             stream.Write(DbId);
             stream.WriteBc(ObjId);
-            stream.Write(UnkId);
+            stream.Write(templateId);
             stream.Write(Ht);
             stream.Write(Unk2Id);
             stream.Write(Unk3Id);
