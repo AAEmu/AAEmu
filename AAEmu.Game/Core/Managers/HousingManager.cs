@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Managers
             house.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
             house.TemplateId = id;
             house.Template = template;
-            house.ModelId = _housing[id].BuildSteps[0].ModelId; //always starts at 0
+            house.ModelId = _housing[id].BuildSteps[0].ModelId;
             house.Faction = FactionManager.Instance.GetFaction(1); // TODO frandly
             house.Name = template.Name;
             house.Level = 1;
