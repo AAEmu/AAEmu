@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -72,10 +72,6 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.Write(0); // count
 
-            stream.Write((byte)0); // searchLevel
-            stream.Write((byte)10); // bidLevel
-            stream.Write((byte)0); // postLevel
-
             stream.Write(50); // initLp
             stream.Write(false); // canPlaceHouse
             stream.Write(false); // canPayTax
@@ -85,7 +81,12 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(true); // canUseBank
             stream.Write(true); // canUseCopper
 
-            stream.Write((byte)0); // secondPriceType
+            stream.Write((byte)2); // secondPriceType
+            /*
+             * 0 - kr aapoint
+             * 1 - ru aapoint
+             * 2 - na loyalt token
+             */
             stream.Write((byte)0); // secondPasswordMaxFailCount
 
             stream.Write((ushort)0); // idleKickTime

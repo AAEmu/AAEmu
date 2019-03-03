@@ -9,10 +9,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ShipyardData _shipyardData;
         private readonly int _step;
 
-        public SCShipyardStatePacket(ShipyardData shipyardData, int step) : base(SCOffsets.SCShipyardStatePacket, 1)
+        public SCShipyardStatePacket(ShipyardData shipyardData) : base(SCOffsets.SCShipyardStatePacket, 1)
         {
             _shipyardData = shipyardData;
-            _step = step;
+            _step = shipyardData.Step;
         }
 
         public override PacketStream Write(PacketStream stream)

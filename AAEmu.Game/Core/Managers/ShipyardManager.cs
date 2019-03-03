@@ -1,10 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Shipyard;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -15,24 +21,53 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, ShipyardsTemplate> _shipyards;
-        private Dictionary<uint, ShipyardSteps> _shipyardSteps;
-        private Dictionary<uint, ShipyardRewards> _shipyardRewards;
 
-        public ShipyardSteps GetShipyardSteps(uint shipyardId)
+        public void Create(Character owner, uint id, float x, float y, float z, short zrot, uint type1, uint type2, uint type3, int step)
         {
-            foreach (var value in _shipyardSteps.Values)
+            var pos = owner.Position.Clone();
+            pos.X = x;
+            pos.Y = y;
+            pos.Z = z;
+            pos.RotationZ = Helpers.ConvertRotation(zrot);
+            var objId = ObjectIdManager.Instance.GetNextId();
+            var template = _shipyards[id];
+            var shipId = 7199u;
+            var shipyard = new Shipyard
             {
-                if (value.ShipyardId == shipyardId) return value;
-            }
-
-            return null;
+                ObjId = objId,
+                Position = pos,
+                Faction = owner.Faction,
+                Level = 1,
+                Hp = 10000,
+                MaxHp = 10000,
+                Name = owner.Name,
+                ModelId = template.ShipyardSteps[step].ModelId
+            };
+            shipyard.Template = new ShipyardData
+            {
+                Id = shipId,
+                TemplateId = id,
+                X = pos.X,
+                Y = pos.Y,
+                Z = pos.Z,
+                zRot = pos.RotationZ,
+                MoneyAmount = 0,
+                Actions = 0,
+                Type = type1,
+                OwnerName = owner.Name,
+                Type2 = type2,
+                Type3 = type3,
+                Spawned = DateTime.Now,
+                ObjId = objId,
+                Hp = template.ShipyardSteps[step].MaxHp * 100,
+                Step = step
+            };
+            shipyard.Spawn();
         }
 
         public void Load()
         {
             _shipyards = new Dictionary<uint, ShipyardsTemplate>();
-            _shipyardSteps = new Dictionary<uint, ShipyardSteps>();
-            _shipyardRewards = new Dictionary<uint, ShipyardRewards>();
 
             _log.Info("Loading Shipyards...");
             using (var connection = SQLite.CreateConnection())
@@ -82,34 +117,13 @@ namespace AAEmu.Game.Core.Managers
                                 NumActions = reader.GetInt32("num_actions"),
                                 MaxHp = reader.GetInt32("max_hp")
                             };
-                            _shipyardSteps.Add(template.Id, template);
-                        }
-                    }
-                }
-                _log.Info("Loaded {0} shipyard steps", _shipyardSteps.Count);
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM shipyard_rewards";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new ShipyardRewards()
+                            if (_shipyards.ContainsKey(template.ShipyardId))
                             {
-                                Id = reader.GetUInt32("id"),
-                                ShipyardId = reader.GetUInt32("shipyard_id"),
-                                DoodadId = reader.GetUInt32("doodad_id"),
-                                OnWater = reader.GetBoolean("on_water"),
-                                Radius = reader.GetInt32("radius"),
-                                Count = reader.GetInt32("count")
-                            };
-                            _shipyardRewards.Add(template.Id, template);
+                                _shipyards[template.ShipyardId].ShipyardSteps.Add(template.Step, template);
+                            }
                         }
                     }
                 }
-                _log.Info("Loaded {0} shipyard rewards", _shipyardRewards.Count);
             }
         }
     }

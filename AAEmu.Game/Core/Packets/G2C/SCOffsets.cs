@@ -58,9 +58,9 @@
         public const ushort SCFamilyMemberNameChangedPacket = 0x35;
         public const ushort SCFamilyTitlePacket = 0x36;
         public const ushort SCFamilyMemberOnlinePacket = 0x37;
-        public const ushort SCCreateCharacterResponsePacket = 0x38;                              
+        public const ushort SCCreateCharacterResponsePacket = 0x38;
         public const ushort SCDeleteCharacterResponsePacket = 0x39;
-        public const ushort SCEditCharacterResponsePacket = 0x3a;                               
+        public const ushort SCEditCharacterResponsePacket = 0x3a;
         public const ushort SCCharacterDeletedPacket = 0x3b;
         public const ushort SCCancelCharacterDeleteResponsePacket = 0x3c;
         public const ushort SCCharacterCreationFailedPacket = 0x3d;
@@ -70,7 +70,7 @@
         public const ushort SCNotifyResurrectionPacket = 0x41;
         public const ushort SCCharacterResurrectedPacket = 0x42;
         public const ushort SCForceAttackSetPacket = 0x43;
-        public const ushort SCCharacterLaborPowerChangedPacket = 0x45;                             
+        public const ushort SCCharacterLaborPowerChangedPacket = 0x45;
         public const ushort SCBmPointPacket = 0x46;
         public const ushort SCAddActionPointPacket = 0x47;
         public const ushort SCLpManagedPacket = 0x48;
@@ -379,7 +379,7 @@
         public const ushort SCUnderWaterPacket = 0x187;
         public const ushort SCCharacterGamePointsPacket = 0x188;
         public const ushort SCGamePointChangedPacket = 0x189;
-        public const ushort SCJuryPointChangedPacket = 0x18a; 
+        public const ushort SCJuryPointChangedPacket = 0x18a;
         public const ushort SCAppliedToInstantGamePacket = 0x18b;
         public const ushort SCCancelInstantGamePacket = 0x18c;
         public const ushort SCInstantGameStatePacket = 0x18d;
@@ -439,16 +439,16 @@
         public const ushort SCAiDebugPacket = 0x1c3;
         public const ushort SCAiAggroPacket = 0x1c4;
         public const ushort SCHSRequestPacket = 0x1c5;
-        public const ushort SCHackGuradRetAddrsRequestPacket = 0x1c6;
+        public const ushort SCHackGuardRetAddrsRequestPacket = 0x1c6;
         public const ushort SCUnitLocationPacket = 0x1c7;
         public const ushort SCRestrictInfoPacket = 0x1c8;
         public const ushort SCIsUnitInFarmPacket = 0x1c9;
         public const ushort SCResponseUIDataPacket = 0x1ca;
         public const ushort SCUnitVisualOptionsPacket = 0x1cb;
         public const ushort SCNotifyUIMessagePacket = 0x1cc;
-        public const ushort SCRefreshInCharacterListPacket = 0x1cd;                              
+        public const ushort SCRefreshInCharacterListPacket = 0x1cd;
         public const ushort SCResultRestrictCheckPacket = 0x1ce;
-        public const ushort SCICSMenuListPacket = 0x1cf;                      
+        public const ushort SCICSMenuListPacket = 0x1cf;
         public const ushort SCICSGoodListPacket = 0x1d0;
         public const ushort SCICSGoodDetailPacket = 0x1d1;
         public const ushort SCICSCheckTimePacket = 0x1d2;
@@ -515,8 +515,8 @@
         public const ushort SCUnkPacket25 = 0x212;
         public const ushort SCUnkPacket26 = 0x213;
         public const ushort SCUnkPacket27 = 0x214;
-        public const ushort SCUnkPacket28 = 0x215;
-        public const ushort SCUnkPacket29 = 0x216;
-        public const ushort SCUnkPacket30 = 0x217;
+        public const ushort SCAccountAttributeConfigPacket = 0x215;
+        public const ushort SCIdleKickPacket = 0x216;
+        public const ushort SCLevelRestrictionConfigPacket = 0x217;
     }
 }

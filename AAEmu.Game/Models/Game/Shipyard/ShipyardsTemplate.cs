@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.Shipyard
+﻿using System.Collections.Generic;
+
+namespace AAEmu.Game.Models.Game.Shipyard
 {
     public class ShipyardsTemplate
     {
@@ -12,5 +14,12 @@
         public int TaxDuration { get; set; }
         public uint OriginItemId { get; set; }
         public int TaxationId { get; set; }
+
+        public Dictionary<int, ShipyardSteps> ShipyardSteps { get; set; }
+
+        public ShipyardsTemplate()
+        {
+            ShipyardSteps = new Dictionary<int, ShipyardSteps>();
+        }
     }
 }
