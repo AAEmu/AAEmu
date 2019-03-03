@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Housing
             data.Tl = TlId;
             data.DbId = 146502;
             data.ObjId = ObjId;
-            data.TemplateId = Template.Id; //TemplateId
+            data.TemplateId = Template.Id;
             data.Ht = 0;
             data.Unk2Id = character.Id;
             data.Unk3Id = character.Id;
