@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Shipyard;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -51,6 +52,11 @@ namespace AAEmu.Game.Core.Packets.G2C
             else if (_unit is Mount)
             {
                 _type = 5;
+                _modelPostureType = 0;
+            }
+            else if (_unit is Shipyard)
+            {
+                _type = 6;
                 _modelPostureType = 0;
             }
         }
@@ -106,9 +112,10 @@ namespace AAEmu.Game.Core.Packets.G2C
                     }
 
                     break;
-                case 6: // TODO ?
-                    stream.Write(0L); // type(id)
-                    stream.Write(0u); // type(id)
+                case 6:
+                    var shipyard = (Shipyard)_unit;
+                    stream.Write(shipyard.TlId); // type(id)
+                    stream.Write(shipyard.TemplateId); // type(id)
                     break;
             }
 
@@ -173,10 +180,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.Hp * 100); // preciseHealth
             stream.Write(_unit.Mp * 100); // preciseMana
             stream.Write((byte)255); // point // TODO UnitAttached
-//            if (point != 255) // -1
-//            {
-//                stream.WriteBc(0);
-//            }
+                                     //            if (point != 255) // -1
+                                     //            {
+                                     //                stream.WriteBc(0);
+                                     //            }
 
             if (_unit is Character)
             {
@@ -251,7 +258,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
                 stream.WritePisc(0, 0, 0, 0); // pisc
 
-            stream.WritePisc(_unit.Faction?.Id ?? 0, 0, 0, 0); // pisc
+            stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
 
             if (_unit is Character)
             {
@@ -366,8 +373,8 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0u); // type(id) -> cooldownSkill
             }
 
-//            for (var i = 0; i < 255; i++)
-//                stream.Write(0);
+            //            for (var i = 0; i < 255; i++)
+            //                stream.Write(0);
 
             return stream;
         }

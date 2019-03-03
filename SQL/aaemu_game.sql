@@ -93,6 +93,7 @@ CREATE TABLE `characters` (
   `rotation_z` tinyint(4) NOT NULL,
   `faction_id` int(11) UNSIGNED NOT NULL,
   `faction_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `expedition_id` int(11) NOT NULL,
   `family` int(11) UNSIGNED NOT NULL,
   `dead_count` mediumint(8) UNSIGNED NOT NULL,
   `dead_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
@@ -122,6 +123,19 @@ CREATE TABLE `characters` (
   `updated_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
+-- ----------------------------
+-- Table structure for expeditions
+-- ----------------------------
+
+CREATE TABLE `expeditions`  (
+  `id` int(11) NOT NULL,
+  `owner` int(11) NOT NULL,
+  `owner_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `mother` int(11) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
 -- --------------------------------------------------------
 
 --
@@ -146,6 +160,17 @@ CREATE TABLE `friends` (
   `id` int(11) NOT NULL,
   `friend_id` int(11) NOT NULL,
   `owner` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `blocked`
+--
+
+CREATE TABLE `blocked` (
+  `owner` int(11) NOT NULL,
+  `blocked_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
 -- --------------------------------------------------------
@@ -254,6 +279,12 @@ ALTER TABLE `characters`
   ADD PRIMARY KEY (`id`,`account_id`) USING BTREE;
 
 --
+-- Индексы таблицы `expeditions`
+--
+ALTER TABLE `expeditions`
+  ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
+  
+--
 -- Индексы таблицы `family_members`
 --
 ALTER TABLE `family_members`
@@ -264,6 +295,12 @@ ALTER TABLE `family_members`
 --
 ALTER TABLE `friends`
   ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
+  
+--
+-- Индексы таблицы `blocked`
+--
+ALTER TABLE `blocked`
+  ADD PRIMARY KEY (`owner`,`blocked_id`) USING BTREE;
 
 --
 -- Индексы таблицы `items`

@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -42,6 +43,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Connection.ActiveChar.Portals.Send();
                 Connection.ActiveChar.Friends.Send();
+                Connection.ActiveChar.Blocked.Send();
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {
@@ -56,6 +58,11 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 FactionManager.Instance.SendFactions(Connection.ActiveChar);
                 FactionManager.Instance.SendRelations(Connection.ActiveChar);
+                ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
+
+                if (Connection.ActiveChar.Expedition != null) {
+                    ExpeditionManager.Instance.SendExpeditionInfo(Connection.ActiveChar);
+                }
 
                 Connection.ActiveChar.SendOption(1);
                 Connection.ActiveChar.SendOption(2);

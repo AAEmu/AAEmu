@@ -10,6 +10,8 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -108,6 +110,8 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterAbilities Abilities { get; set; }
         public CharacterPortals Portals { get; set; }
         public CharacterFriends Friends { get; set; }
+        public CharacterBlocked Blocked { get; set; }
+        public CharacterMates Mates { get; set; }
 
         public byte ExpandedExpert { get; set; }
         public CharacterActability Actability { get; set; }
@@ -890,6 +894,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Position.RotationZ = reader.GetSByte("rotation_z");
                         character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
                         character.FactionName = reader.GetString("faction_name");
+                        character.Expedition = ExpeditionManager.Instance.GetExpedition(reader.GetUInt32("expedition_id"));
                         character.Family = reader.GetUInt32("family");
                         character.DeadCount = reader.GetInt16("dead_count");
                         character.DeadTime = reader.GetDateTime("dead_time");
@@ -993,6 +998,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Position.RotationZ = reader.GetSByte("rotation_z");
                         character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
                         character.FactionName = reader.GetString("faction_name");
+                        character.Expedition = ExpeditionManager.Instance.GetExpedition(reader.GetUInt32("expedition_id"));
                         character.Family = reader.GetUInt32("family");
                         character.DeadCount = reader.GetInt16("dead_count");
                         character.DeadTime = reader.GetDateTime("dead_time");
@@ -1062,10 +1068,14 @@ namespace AAEmu.Game.Models.Game.Char
                 Portals.Load(connection);
                 Friends = new CharacterFriends(this);
                 Friends.Load(connection);
+                Blocked = new CharacterBlocked(this);
+                Blocked.Load(connection);
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
                 Mails = new CharacterMails(this);
                 Mails.Load(connection);
+                Mates = new CharacterMates(this);
+                Mates.Load(connection);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -1118,8 +1128,8 @@ namespace AAEmu.Game.Models.Game.Char
                             // ----
                             command.CommandText =
                                 "REPLACE INTO `characters` " +
-                                "(`id`,`account_id`,`name`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
-                                "VALUES(@id,@account_id,@name,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
+                                "(`id`,`account_id`,`name`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
+                                "VALUES(@id,@account_id,@name,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
 
                             command.Parameters.AddWithValue("@id", Id);
                             command.Parameters.AddWithValue("@account_id", AccountId);
@@ -1151,6 +1161,7 @@ namespace AAEmu.Game.Models.Game.Char
                                 WorldPosition?.RotationZ ?? Position.RotationZ);
                             command.Parameters.AddWithValue("@faction_id", Faction.Id);
                             command.Parameters.AddWithValue("@faction_name", FactionName);
+                            command.Parameters.AddWithValue("@expedition_id", Expedition?.Id ?? 0);
                             command.Parameters.AddWithValue("@family", Family);
                             command.Parameters.AddWithValue("@dead_count", DeadCount);
                             command.Parameters.AddWithValue("@dead_time", DeadTime);
@@ -1203,9 +1214,11 @@ namespace AAEmu.Game.Models.Game.Char
                         Appellations?.Save(connection, transaction);
                         Portals?.Save(connection, transaction);
                         Friends?.Save(connection, transaction);
+                        Blocked?.Save(connection, transaction);
                         Skills?.Save(connection, transaction);
                         Quests?.Save(connection, transaction);
                         Mails?.Save(connection, transaction);
+                        Mates?.Save(connection, transaction);
 
                         try
                         {
