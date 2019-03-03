@@ -25,30 +25,33 @@ namespace AAEmu.Game.Models.Game.Housing
 
         public override void AddVisibleObject(Character character)
         {
-			var data = new HouseData();
+            var data = new HouseData();
             data.Tl = TlId;
-            data.ObjId = ObjId;
             data.DbId = 146502;
-            data.UnkId = 6;
-            data.Account = 1;
-            data.Permission = 2;
+            data.ObjId = ObjId;
+            data.TemplateId = Template.Id;
+            data.Ht = 0;
             data.Unk2Id = character.Id;
             data.Unk3Id = character.Id;
-            data.AllStep = 3;
-            data.CurStep = 0;
             data.Owner = character.Name;
-            data.AllowRecover = true;
-            data.House = "Test";
+            data.Account = 1;
+            data.Permission = 2;
+            data.AllStep = 3;
+            data.CurStep = 1;
             data.X = Position.X;
             data.Y = Position.Y;
             data.Z = Position.Z;
+            data.House = Template.Name;
+            data.AllowRecover = true;
+            data.MoneyAmount = 0;
+            data.Unk4Id = 1;
             data.SellToName = "";
 
-			character.SendPacket(new SCMyHousePacket(data));
+            character.SendPacket(new SCMyHousePacket(data));
 
             character.SendPacket(new SCUnitStatePacket(this));
             // character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
-            
+
             character.SendPacket(new SCHouseStatePacket(data));
         }
         

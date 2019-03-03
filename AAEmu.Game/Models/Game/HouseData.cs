@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game
         public ushort Tl { get; set; }
         public uint DbId { get; set; }
         public uint ObjId { get; set; }
-        public uint UnkId { get; set; }
+        public uint TemplateId { get; set; }
         public int Ht { get; set; }
         public uint Unk2Id { get; set; }
         public uint Unk3Id { get; set; }
@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Tl);
             stream.Write(DbId);
             stream.WriteBc(ObjId);
-            stream.Write(UnkId);
+            stream.Write(TemplateId);
             stream.Write(Ht);
             stream.Write(Unk2Id);
             stream.Write(Unk3Id);

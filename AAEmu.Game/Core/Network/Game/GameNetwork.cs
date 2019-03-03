@@ -270,7 +270,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x11c, 1, typeof(CSICSGoodsListPacket));
             RegisterPacket(0x11d, 1, typeof(CSICSBuyGoodPacket));
             RegisterPacket(0x11e, 1, typeof(CSICSMoneyRequestPacket));
-            // 0x12e unk packet
+            // 0x12e CSEnterBeautySalonPacket
             // 0x12f CSRankCharacterPacket
             // 0x130 CSRankSnapshotPacket
             // 0x131 unk packet

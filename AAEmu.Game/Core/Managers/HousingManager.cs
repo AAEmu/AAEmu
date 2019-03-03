@@ -31,11 +31,12 @@ namespace AAEmu.Game.Core.Managers
             house.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
             house.TemplateId = id;
             house.Template = template;
-            house.ModelId = template.MainModelId;
+            house.ModelId = _housing[id].BuildSteps[0].ModelId;
             house.Faction = FactionManager.Instance.GetFaction(1); // TODO frandly
             house.Name = template.Name;
             house.Level = 1;
             house.MaxHp = house.Hp = template.Hp;
+            house.BuildStep = (short)-_housing[id].BuildSteps.Count;
 
             return house;
         }
