@@ -1,71 +1,43 @@
--- phpMyAdmin SQL Dump
--- version 4.8.3
--- https://www.phpmyadmin.net/
---
--- Хост: 127.0.0.1:3306
--- Время создания: Фев 26 2019 г., 21:35
--- Версия сервера: 8.0.12
--- Версия PHP: 7.2.10
-
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
-
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
---
--- База данных: `aaemu_game`
---
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `abilities`
---
-
-CREATE TABLE `abilities` (
+CREATE TABLE IF NOT EXISTS `abilities` (
   `id` tinyint(3) UNSIGNED NOT NULL,
   `exp` int(11) NOT NULL,
-  `owner` int(11) UNSIGNED NOT NULL
+  `owner` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `actabilities`
---
-
-CREATE TABLE `actabilities` (
+CREATE TABLE IF NOT EXISTS `actabilities` (
   `id` int(10) UNSIGNED NOT NULL,
   `point` int(10) UNSIGNED NOT NULL DEFAULT '0',
   `step` tinyint(3) UNSIGNED NOT NULL DEFAULT '0',
-  `owner` int(10) UNSIGNED NOT NULL
+  `owner` int(10) UNSIGNED NOT NULL,
+  PRIMARY KEY (`owner`,`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `appellations`
---
-
-CREATE TABLE `appellations` (
+CREATE TABLE IF NOT EXISTS `appellations` (
   `id` int(10) UNSIGNED NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '0',
-  `owner` int(10) UNSIGNED NOT NULL
+  `owner` int(10) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `blocked` (
+  `owner` int(11) NOT NULL,
+  `blocked_id` int(11) NOT NULL,
+  PRIMARY KEY (`owner`,`blocked_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
---
--- Структура таблицы `characters`
---
-
-CREATE TABLE `characters` (
+CREATE TABLE IF NOT EXISTS `characters` (
   `id` int(11) UNSIGNED NOT NULL,
   `account_id` int(11) UNSIGNED NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
@@ -120,66 +92,44 @@ CREATE TABLE `characters` (
   `expanded_expert` tinyint(4) NOT NULL,
   `slots` blob NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00'
+  `updated_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  PRIMARY KEY (`id`,`account_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- ----------------------------
--- Table structure for expeditions
--- ----------------------------
+CREATE TABLE IF NOT EXISTS `completed_quests` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `data` tinyblob NOT NULL,
+  `owner` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`,`owner`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE `expeditions`  (
+CREATE TABLE IF NOT EXISTS `expeditions` (
   `id` int(11) NOT NULL,
   `owner` int(11) NOT NULL,
   `owner_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `mother` int(11) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`,`owner`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `family_members`
---
-
-CREATE TABLE `family_members` (
+CREATE TABLE IF NOT EXISTS `family_members` (
   `character_id` int(11) NOT NULL,
   `family_id` int(11) NOT NULL,
   `name` varchar(45) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `role` tinyint(1) NOT NULL DEFAULT '0',
-  `title` varchar(45) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL
+  `title` varchar(45) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  PRIMARY KEY (`family_id`,`character_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `friends`
---
-
-CREATE TABLE `friends` (
+CREATE TABLE IF NOT EXISTS `friends` (
   `id` int(11) NOT NULL,
   `friend_id` int(11) NOT NULL,
-  `owner` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
-
--- --------------------------------------------------------
-
---
--- Структура таблицы `blocked`
---
-
-CREATE TABLE `blocked` (
   `owner` int(11) NOT NULL,
-  `blocked_id` int(11) NOT NULL
+  PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `items`
---
-
-CREATE TABLE `items` (
+CREATE TABLE IF NOT EXISTS `items` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `template_id` int(11) UNSIGNED NOT NULL,
@@ -192,28 +142,34 @@ CREATE TABLE `items` (
   `unpack_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `owner` int(11) UNSIGNED NOT NULL,
   `grade` tinyint(1) DEFAULT '0',
-  `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00'
+  `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `owner` (`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mates` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `item_id` bigint(20) UNSIGNED NOT NULL,
+  `name` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `xp` int(11) NOT NULL,
+  `level` tinyint(4) NOT NULL,
+  `mileage` int(11) NOT NULL,
+  `hp` int(11) NOT NULL,
+  `mp` int(11) NOT NULL,
+  `owner` int(11) UNSIGNED NOT NULL,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`,`item_id`,`owner`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
---
--- Структура таблицы `options`
---
-
-CREATE TABLE `options` (
+CREATE TABLE IF NOT EXISTS `options` (
   `key` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `value` text CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `owner` int(11) UNSIGNED NOT NULL
+  `owner` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`key`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `portal_book_coords`
---
-
-CREATE TABLE `portal_book_coords` (
+CREATE TABLE IF NOT EXISTS `portal_book_coords` (
   `id` int(11) NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `x` int(11) DEFAULT '0',
@@ -222,116 +178,33 @@ CREATE TABLE `portal_book_coords` (
   `zone_id` int(11) DEFAULT '0',
   `z_rot` int(11) DEFAULT '0',
   `sub_zone_id` int(11) DEFAULT '0',
-  `owner` int(11) NOT NULL
+  `owner` int(11) NOT NULL,
+  PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
-
---
--- Структура таблицы `portal_visited_district`
---
-
-CREATE TABLE `portal_visited_district` (
+CREATE TABLE IF NOT EXISTS `portal_visited_district` (
   `id` int(11) NOT NULL,
   `subzone` int(11) NOT NULL,
-  `owner` int(11) NOT NULL
+  `owner` int(11) NOT NULL,
+  PRIMARY KEY (`id`,`subzone`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
--- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `quests` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `template_id` int(11) UNSIGNED NOT NULL,
+  `data` tinyblob NOT NULL,
+  `status` tinyint(4) NOT NULL,
+  `owner` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`,`owner`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
---
--- Структура таблицы `skills`
---
-
-CREATE TABLE `skills` (
+CREATE TABLE IF NOT EXISTS `skills` (
   `id` int(11) UNSIGNED NOT NULL,
   `level` tinyint(4) NOT NULL,
   `type` enum('Skill','Buff') CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-  `owner` int(11) UNSIGNED NOT NULL
+  `owner` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
-
---
--- Индексы сохранённых таблиц
---
-
---
--- Индексы таблицы `abilities`
---
-ALTER TABLE `abilities`
-  ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
-
---
--- Индексы таблицы `actabilities`
---
-ALTER TABLE `actabilities`
-  ADD PRIMARY KEY (`owner`,`id`) USING BTREE;
-
---
--- Индексы таблицы `appellations`
---
-ALTER TABLE `appellations`
-  ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
-
---
--- Индексы таблицы `characters`
---
-ALTER TABLE `characters`
-  ADD PRIMARY KEY (`id`,`account_id`) USING BTREE;
-
---
--- Индексы таблицы `expeditions`
---
-ALTER TABLE `expeditions`
-  ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
-  
---
--- Индексы таблицы `family_members`
---
-ALTER TABLE `family_members`
-  ADD PRIMARY KEY (`family_id`,`character_id`) USING BTREE;
-
---
--- Индексы таблицы `friends`
---
-ALTER TABLE `friends`
-  ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
-  
---
--- Индексы таблицы `blocked`
---
-ALTER TABLE `blocked`
-  ADD PRIMARY KEY (`owner`,`blocked_id`) USING BTREE;
-
---
--- Индексы таблицы `items`
---
-ALTER TABLE `items`
-  ADD PRIMARY KEY (`id`) USING BTREE,
-  ADD KEY `owner` (`owner`) USING BTREE;
-
---
--- Индексы таблицы `options`
---
-ALTER TABLE `options`
-  ADD PRIMARY KEY (`key`,`owner`) USING BTREE;
-
---
--- Индексы таблицы `portal_book_coords`
---
-ALTER TABLE `portal_book_coords`
-  ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
-
---
--- Индексы таблицы `portal_visited_district`
---
-ALTER TABLE `portal_visited_district`
-  ADD PRIMARY KEY (`id`,`subzone`,`owner`) USING BTREE;
-
---
--- Индексы таблицы `skills`
---
-ALTER TABLE `skills`
-  ADD PRIMARY KEY (`id`,`owner`) USING BTREE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
