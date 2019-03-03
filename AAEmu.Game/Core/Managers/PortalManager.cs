@@ -168,7 +168,8 @@ namespace AAEmu.Game.Core.Managers
                 Y = portalInfo.Y,
                 Z = portalInfo.Z,
                 ZoneId = portalInfo.ZoneId,
-                RotationZ = Helpers.ConvertRotation(Convert.ToInt16(portalInfo.ZRot))
+                RotationZ = Helpers.ConvertRotation(Convert.ToInt16(portalInfo.ZRot)),
+                WorldId = WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id
             };
             var portalPointLocation = new Point
             {
@@ -176,7 +177,8 @@ namespace AAEmu.Game.Core.Managers
                 Y = portalEffectObj.Y,
                 Z = portalEffectObj.Z,
                 ZoneId = owner.Position.ZoneId,
-                RotationZ = owner.Position.RotationZ
+                RotationZ = owner.Position.RotationZ,
+                WorldId = owner.Position.WorldId
             };
             var templateId = isExit ? 6949u : 3891u; // TODO - better way? maybe not hardcoded
             var template = NpcManager.Instance.GetTemplate(templateId);

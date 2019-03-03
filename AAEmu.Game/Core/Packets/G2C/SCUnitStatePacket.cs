@@ -114,8 +114,8 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case 6:
                     var shipyard = (Shipyard)_unit;
-                    stream.Write(shipyard.TlId); // type(id) // TODO ReadInt64
-                    stream.Write(shipyard.TemplateId); // type(id)
+                    stream.Write(shipyard.Template.Id); // type(id)
+                    stream.Write(shipyard.Template.TemplateId); // type(id)
                     break;
             }
 
@@ -163,19 +163,19 @@ namespace AAEmu.Game.Core.Packets.G2C
                         stream.Write(0);
                 }
 
-//                foreach (var item in npc.Equip)
-//                {
-//                    if (item is BodyPart)
-//                        stream.Write(item.TemplateId);
-//                    else if (item != null)
-//                    {
-//                        stream.Write(item.TemplateId);
-//                        stream.Write(0L);
-//                        stream.Write((byte)0);
-//                    }
-//                    else
-//                        stream.Write(0);
-//                }
+                //foreach (var item in npc.Equip)
+                //{
+                //    if (item is BodyPart)
+                //        stream.Write(item.TemplateId);
+                //    else if (item != null)
+                //    {
+                //        stream.Write(item.TemplateId);
+                //        stream.Write(0L);
+                //        stream.Write((byte)0);
+                //    }
+                //    else
+                //        stream.Write(0);
+                //}
             }
             else if (_unit is Slave)
             {
@@ -201,10 +201,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.Hp * 100); // preciseHealth
             stream.Write(_unit.Mp * 100); // preciseMana
             stream.Write((byte)255); // point // TODO UnitAttached
-                                     //            if (point != 255) // -1
-                                     //            {
-                                     //                stream.WriteBc(0);
-                                     //            }
+            //if (point != 255) // -1
+            //{
+            //    stream.WriteBc(0);
+            //}
 
             if (_unit is Character)
             {

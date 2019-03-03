@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
@@ -18,6 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var size = stream.ReadInt32(); // TODO max size 4096
             var data = stream.ReadBytes(); // TODO or string?
 
+            Connection.SendPacket(new SCGetSlotCountPacket(0));
             Connection.SendPacket(
                 new SCAccountInfoPacket(
                     (int)Connection.Payment.Method,

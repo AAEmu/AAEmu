@@ -10,13 +10,10 @@ namespace AAEmu.Game.Models.Game.Shipyard
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public uint Id { get; set; }
-        public ushort TlId { get; set; }
-        public uint TemplateId { get; set; }
         public ShipyardData Template { get; set; }
-        public int Step { get; set; }
-        public override int MaxHp { get; set; }
         public override UnitCustomModelParams ModelParams { get; set; }
+
+        public override float Scale => 1.0f;
 
         public Shipyard()
         {
@@ -26,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
-            character.SendPacket(new SCShipyardStatePacket(Template, 1));
+            character.SendPacket(new SCShipyardStatePacket(Template));
             //character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         }
 

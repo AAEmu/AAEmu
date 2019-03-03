@@ -24,7 +24,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             switch (Value1)
             {
-                case 4944: // TODO - maybe not hardcoded
+                // TODO - maybe not hardcoded
+                case 4944: // land
+                case 3466: // sea
                     owner.Mates.SpawnMount(skillData);
                     break;
             }
