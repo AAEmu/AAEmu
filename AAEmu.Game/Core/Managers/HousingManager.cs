@@ -39,6 +39,7 @@ namespace AAEmu.Game.Core.Managers
             house.Level = 1;
             house.MaxHp = house.Hp = template.Hp;
             house.BuildStep = (short)-_housing[id].BuildSteps.Count;
+
             return house;
         }
 
