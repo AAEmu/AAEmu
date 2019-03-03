@@ -52,6 +52,21 @@ namespace AAEmu.Game.Core.Managers
             return _actTemplates[type].ContainsKey(id) ? (T) _actTemplates[type][id] : default(T);
         }
 
+        public List<uint> GetGroupItems(uint groupId)
+        {
+            return _groupItems.ContainsKey(groupId) ? (_groupItems[groupId]) : new List<uint>();
+        }
+
+        public bool CheckGroupItem(uint groupId, uint itemId)
+        {
+            return _groupItems.ContainsKey(groupId) && (_groupItems[groupId].Contains(itemId));
+        }
+
+        public bool CheckGroupNpc(uint groupId, uint npcId)
+        {
+            return _groupNpcs.ContainsKey(groupId) && (_groupNpcs[groupId].Contains(npcId));
+        }
+        
         public void Load()
         {
             _templates = new Dictionary<uint, QuestTemplate>();
@@ -641,7 +656,7 @@ namespace AAEmu.Game.Core.Managers
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id");
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             _actTemplates["QuestActObjCraft"].Add(template.Id, template);
                         }
                     }
@@ -743,7 +758,7 @@ namespace AAEmu.Game.Core.Managers
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.TeamShare = reader.GetBoolean("team_share", true);
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             template.Phase = reader.GetUInt32("phase", 0);
                             _actTemplates["QuestActObjInteraction"].Add(template.Id, template);
@@ -764,7 +779,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ItemId = reader.GetUInt32("item_id");
                             template.Count = reader.GetInt32("count");
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             template.Cleanup = reader.GetBoolean("cleanup", true);
@@ -789,7 +804,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Count = reader.GetInt32("count");
                             template.Cleanup = reader.GetBoolean("cleanup", true);
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
@@ -812,7 +827,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ItemGroupId = reader.GetUInt32("item_group_id");
                             template.Count = reader.GetInt32("count");
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
@@ -833,7 +848,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ItemId = reader.GetUInt32("item_id");
                             template.Count = reader.GetInt32("count");
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             template.DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true);
@@ -893,8 +908,8 @@ namespace AAEmu.Game.Core.Managers
                             template.Count = reader.GetInt32("count");
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             _actTemplates["QuestActObjMonsterGroupHunt"].Add(template.Id, template);
                         }
                     }
@@ -913,8 +928,8 @@ namespace AAEmu.Game.Core.Managers
                             template.Count = reader.GetInt32("count");
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             _actTemplates["QuestActObjMonsterHunt"].Add(template.Id, template);
                         }
                     }
@@ -956,7 +971,7 @@ namespace AAEmu.Game.Core.Managers
                             template.SphereId = reader.GetUInt32("sphere_id");
                             template.NpcId = reader.GetUInt32("npc_id", 0);
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
-                            // TODO 1.2 // template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
+                            template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             _actTemplates["QuestActObjSphere"].Add(template.Id, template);
@@ -1021,12 +1036,12 @@ namespace AAEmu.Game.Core.Managers
                             template.LvlMin = reader.GetInt32("lv_min");
                             template.LvlMax = reader.GetInt32("lv_max");
                             template.IsParty = reader.GetBoolean("is_party", true);
-                            // TODO 1.2 // template.LvlMinNpc = reader.GetInt32("lv_min_npc");
-                            // TODO 1.2 // template.LvlMaxNpc = reader.GetInt32("lv_max_npc");
-                            // TODO 1.2 // template.PcFactionId = reader.GetUInt32("pc_faction_id", 0);
-                            // TODO 1.2 // template.PcFactionExclusive = reader.GetBoolean("pc_faction_exclusive", true);
-                            // TODO 1.2 // template.NpcFactionId = reader.GetUInt32("npc_faction_id", 0);
-                            // TODO 1.2 // template.NpcFactionExclusive = reader.GetBoolean("npc_faction_exclusive", true);
+                            template.LvlMinNpc = reader.GetInt32("lv_min_npc");
+                            template.LvlMaxNpc = reader.GetInt32("lv_max_npc");
+                            template.PcFactionId = reader.GetUInt32("pc_faction_id", 0);
+                            template.PcFactionExclusive = reader.GetBoolean("pc_faction_exclusive", true);
+                            template.NpcFactionId = reader.GetUInt32("npc_faction_id", 0);
+                            template.NpcFactionExclusive = reader.GetBoolean("npc_faction_exclusive", true);
                             _actTemplates["QuestActObjZoneKill"].Add(template.Id, template);
                         }
                     }

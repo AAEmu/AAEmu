@@ -469,6 +469,13 @@ namespace AAEmu.Game.Models.Game.NPChar
         public override void DoDie(Unit killer)
         {
             base.DoDie(killer);
+
+            if (killer is Character character)
+            {
+                character.AddExp(KillExp, true);
+                character.Quests.OnKill(this);
+            }
+
             Spawner?.DecreaseCount(this);
         }
 

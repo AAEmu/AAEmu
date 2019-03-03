@@ -1,4 +1,5 @@
 using System;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -12,7 +13,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time)
         {
             _log.Debug("InteractionEffect, {0}", WorldInteraction);
@@ -26,6 +28,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
             action.Execute(caster, casterObj, target, targetObj, skill.Template.Id);
+            
+            if (caster is Character character)
+                character.Quests.OnInteraction(WorldInteraction);
         }
     }
 }

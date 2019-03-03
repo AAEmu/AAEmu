@@ -237,6 +237,9 @@ namespace AAEmu.Game.Models.Game.Char
 
                 _freeSlot = CheckFreeSlot(SlotType.Inventory);
 
+                if (item.Template.LootQuestId > 0)
+                    Owner.Quests.OnItemGather(item, item.Count);
+
                 return item;
             }
 
@@ -315,6 +318,15 @@ namespace AAEmu.Game.Models.Game.Char
                 }
 
             return count == 0;
+        }
+
+        public int GetItemsCount(uint templateId)
+        {
+            var count = 0;
+            foreach (var item in Items)
+                if (item != null && item.TemplateId == templateId)
+                    count += item.Count;
+            return count;
         }
 
         public void Move(ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
