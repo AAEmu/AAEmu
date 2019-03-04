@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
@@ -34,10 +34,10 @@ namespace AAEmu.Game.Models.Game.Housing
             data.Unk2Id = character.Id;
             data.Unk3Id = character.Id;
             data.Owner = character.Name;
-            data.Account = 1;
+            data.Account = character.AccountId;
             data.Permission = 2;
             data.AllStep = 3;
-            data.CurStep = 1;
+            data.CurStep = 0;
             data.X = Position.X;
             data.Y = Position.Y;
             data.Z = Position.Z;
