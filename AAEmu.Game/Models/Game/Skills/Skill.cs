@@ -143,6 +143,21 @@ namespace AAEmu.Game.Models.Game.Skills
                 if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
                     return; //TODO отправлять ошибку?
             }
+            else if (Template.TargetType == SkillTargetType.Building)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    targetCaster.ObjId = target.ObjId;
+                }
+                else
+                {
+                    // TODO ...
+                }
+                
+                if (caster.ObjId == target.ObjId)
+                    return; //TODO отправлять ошибку?
+            }
             else
             {
                 // TODO ...

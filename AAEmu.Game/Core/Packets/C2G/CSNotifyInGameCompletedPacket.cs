@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNotifyInGameCompletedPacket : GamePacket
     {
-        public CSNotifyInGameCompletedPacket() : base(0x02a, 1) // TODO 1.0 opcode: 0x028
+        public CSNotifyInGameCompletedPacket() : base(0x02a, 1)
         {
         }
 

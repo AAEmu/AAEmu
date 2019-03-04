@@ -695,7 +695,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new CraftEffect();
                             template.Id = reader.GetUInt32("id");
-                            template.WorldInteractionId = reader.GetUInt32("wi_id");
+                            template.WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id");
                             _effects["CraftEffect"].Add(template.Id, template);
                         }
                     }

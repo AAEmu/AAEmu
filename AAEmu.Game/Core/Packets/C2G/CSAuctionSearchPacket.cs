@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAuctionSearchPacket : GamePacket
     {
-        public CSAuctionSearchPacket() : base(0x0b8, 1) // TODO 1.0 opcode: 0x0b4
+        public CSAuctionSearchPacket() : base(0x0b8, 1)
         {
         }
 

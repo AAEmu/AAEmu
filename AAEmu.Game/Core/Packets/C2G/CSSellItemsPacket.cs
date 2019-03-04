@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellItemsPacket : GamePacket
     {
-        public CSSellItemsPacket() : base(0x0b0, 1) // TODO 1.0 opcode: 0x0ac
+        public CSSellItemsPacket() : base(0x0b0, 1)
         {
         }
 

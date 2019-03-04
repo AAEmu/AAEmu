@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDepositMoneyPacket : GamePacket
     {
-        public CSDepositMoneyPacket() : base(0x047, 1) // TODO 1.0 opcode: 0x045
+        public CSDepositMoneyPacket() : base(0x047, 1)
         {
         }
 
