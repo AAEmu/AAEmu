@@ -481,6 +481,32 @@ namespace AAEmu.Game.Core.Managers
 
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandText = "SELECT * FROM item_backpacks";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new BackpackTemplate
+                            {
+                                Id = reader.GetUInt32("item_id"),
+                                AssetId = reader.GetUInt32("asset_id"),
+                                BackpackType = (BackpackType)reader.GetUInt32("backpack_type_id"),
+                                DeclareSiegeZoneGroupId = reader.GetUInt32("declare_siege_zone_group_id"),
+                                Heavy = reader.GetBoolean("heavy"),
+                                Asset2Id = reader.GetUInt32("asset2_id"),
+                                NormalSpeciality = reader.GetBoolean("normal_specialty"),
+                                UseAsStat = reader.GetBoolean("use_as_stat"),
+                                SkinKindId = reader.GetUInt32("skin_kind_id")
+                            };
+                            _templates.Add(template.Id, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
                     command.CommandText = "SELECT * FROM items";
                     command.Prepare();
                     using (var sqliteReader = command.ExecuteReader())
