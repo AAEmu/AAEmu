@@ -20,6 +20,7 @@ namespace AAEmu.Game.Models.Game.Skills
         ArtilleryPos = 15,
         Others = 16,
         FriendlyOthers = 17,
-        CursorPos = 18
+        CursorPos = 18,
+        Building = 19
     }
 }

@@ -23,6 +23,7 @@ namespace AAEmu.Game.Models.Game.Crafts
 
         public List<CraftProduct> CraftProducts { get; set; }
         public List<CraftMaterial> CraftMaterials { get; set; }
+        public bool IsPack { get; set; }
         
         public Craft()
         {

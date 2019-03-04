@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCharDetailPacket : GamePacket
     {
-        public CSCharDetailPacket() : base(0x106, 1) // TODO 1.0 opcode: 0x106
+        public CSCharDetailPacket() : base(0x106, 1)
         {
         }
 

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNotifySubZonePacket : GamePacket
     {
-        public CSNotifySubZonePacket() : base(0x112, 1) // TODO 1.0 opcode: 0x10f
+        public CSNotifySubZonePacket() : base(0x112, 1)
         {
         }
 

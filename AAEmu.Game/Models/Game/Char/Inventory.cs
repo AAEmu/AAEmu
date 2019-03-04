@@ -401,6 +401,19 @@ namespace AAEmu.Game.Models.Game.Char
                     }), false);
         }
 
+        public bool TakeoffBackpack()
+        {
+            Item backpack = GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+            if (backpack == null) return true;
+
+            // Move to first available slot
+            var slot = CheckFreeSlot(SlotType.Inventory);
+            if (slot == -1) return false;
+
+            Move(backpack.Id, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack, 0, SlotType.Inventory, (byte)slot, 1);
+            return true;
+        }
+
         public Item GetItem(ulong id)
         {
             foreach (var item in Equip)
@@ -449,6 +462,23 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             return item;
+        }
+
+        public int CountFreeSlots(SlotType type)
+        {
+            var slot = 0;
+            if (type == SlotType.Inventory)
+            {
+                for (int i = 0; i < Owner.NumInventorySlots; i++)
+                    if (Items[i] == null) slot++;
+            }
+            else if (type == SlotType.Bank)
+            {
+                for (int i = 0; i < Owner.NumBankSlots; i++)
+                    if (Bank[i] == null) slot++;
+            }
+
+            return slot;
         }
 
         public int CheckFreeSlot(SlotType type)

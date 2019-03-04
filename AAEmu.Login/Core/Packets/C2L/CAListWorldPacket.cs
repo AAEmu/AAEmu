@@ -6,7 +6,7 @@ namespace AAEmu.Login.Core.Packets.C2L
 {
     public class CAListWorldPacket : LoginPacket
     {
-        public CAListWorldPacket() : base(0x0b) // TODO 1.0 opcode: 0x0a
+        public CAListWorldPacket() : base(0x0b)
         {
         }
 

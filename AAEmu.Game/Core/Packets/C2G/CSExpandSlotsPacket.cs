@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSExpandSlotsPacket : GamePacket
     {
-        public CSExpandSlotsPacket() : base(0x041, 1) // TODO 1.0 opcode: 0x03f
+        public CSExpandSlotsPacket() : base(0x041, 1)
         {
         }
 

@@ -48,7 +48,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x01d, 1, typeof(CSFamilyKickPacket));
             RegisterPacket(0x01e, 1, typeof(CSFamilyChangeTitlePacket));
             RegisterPacket(0x01f, 1, typeof(CSFamilyChangeOwnerPacket));
-            RegisterPacket(0x020, 1, typeof(CSListCharacterPacket)); // TODO 1.0 opcode: 0x01f
+            RegisterPacket(0x020, 1, typeof(CSListCharacterPacket));
             RegisterPacket(0x021, 1, typeof(CSRefreshInCharacterListPacket));
             RegisterPacket(0x022, 1, typeof(CSCreateCharacterPacket));
             RegisterPacket(0x023, 1, typeof(CSEditCharacterPacket));

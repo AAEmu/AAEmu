@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEditCharacterPacket : GamePacket
     {
-        public CSEditCharacterPacket() : base(0x023, 1) // TODO 1.0 opcode 0x022
+        public CSEditCharacterPacket() : base(0x023, 1)
         {
         }
 

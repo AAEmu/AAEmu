@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSPremiumServieceMsgPacket : GamePacket
     {
-        public CSPremiumServieceMsgPacket() : base(0x13c, 1) // TODO 1.0 opcode: 0x136
+        public CSPremiumServieceMsgPacket() : base(0x13c, 1)
         {
         }
 

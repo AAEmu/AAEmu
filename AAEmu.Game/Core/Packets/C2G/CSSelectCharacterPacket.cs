@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSelectCharacterPacket : GamePacket
     {
-        public CSSelectCharacterPacket() : base(0x025, 1) // TODO 1.0 opcode: 0x024
+        public CSSelectCharacterPacket() : base(0x025, 1)
         {
         }
 

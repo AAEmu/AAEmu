@@ -99,6 +99,22 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM craft_pack_crafts";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var craftId = reader.GetUInt32("craft_id");
+                            if (!_crafts.ContainsKey(craftId))
+                                continue;
+                            _crafts[craftId].IsPack = true;
+                        }
+                    }
+                }
             }
 
             _log.Info("Loaded crafts", _crafts.Count);
