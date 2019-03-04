@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (_craft == null)
                 return;
             
-            if (Owner.Inventory.CheckFreeSlot(SlotType.Inventory) < _craft.CraftProducts.Count)
+            if (Owner.Inventory.CountFreeSlots(SlotType.Inventory) < _craft.CraftProducts.Count)
                 return;
 
             foreach (var material in _craft.CraftMaterials)

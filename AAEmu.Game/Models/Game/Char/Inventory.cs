@@ -407,10 +407,10 @@ namespace AAEmu.Game.Models.Game.Char
             if (backpack == null) return true;
 
             // Move to first available slot
-            var slot = GetFirstFreeSlot(SlotType.Inventory);
-            if (slot == 255) return false;
+            var slot = CheckFreeSlot(SlotType.Inventory);
+            if (slot == -1) return false;
 
-            Move(backpack.Id, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack, 0, SlotType.Inventory, slot, 1);
+            Move(backpack.Id, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack, 0, SlotType.Inventory, (byte)slot, 1);
             return true;
         }
 
@@ -464,22 +464,18 @@ namespace AAEmu.Game.Models.Game.Char
             return item;
         }
 
-        public byte GetFirstFreeSlot(SlotType type)
+        public int CountFreeSlots(SlotType type)
         {
-            byte slot = 0;
+            var slot = 0;
             if (type == SlotType.Inventory)
             {
-                while (Items[slot] != null)
-                    slot++;
-                if (slot > Items.Length)
-                    slot = 255;
+                for (int i = 0; i < Owner.NumInventorySlots; i++)
+                    if (Items[i] == null) slot++;
             }
             else if (type == SlotType.Bank)
             {
-                while (Bank[slot] != null)
-                    slot++;
-                if (slot > Bank.Length)
-                    slot = 255;
+                for (int i = 0; i < Owner.NumBankSlots; i++)
+                    if (Bank[i] == null) slot++;
             }
 
             return slot;
