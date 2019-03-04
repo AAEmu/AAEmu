@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_total);
             stream.Write((byte)_members.Count); // TODO max length 20
-            stream.Write(0);
+            stream.Write(_id); // expedition id
             foreach (var member in _members)
                 stream.Write(member);
             return stream;

@@ -74,16 +74,12 @@ namespace AAEmu.Game.Core.Managers
                 new[] {(owner.ObjId, owner.Id, owner.Name)}));
 
             owner.SendPacket(new SCFactionListPacket(expedition));
-//            owner.SendPacket(
-//                new SCUnitExpeditionChangedPacket(owner.ObjId, 0, "", owner.Name, 0, expedition.Id, false)
-//            );  
-
-            owner.SendPacket(new SCUnitFactionChangedPacket(owner.ObjId, owner.Name, expedition.Id, owner.Faction.Id, false));
+            owner.SendPacket(
+                new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false)
+            );
 
             owner.SendPacket(new SCExpeditionRolePolicyListPacket(expedition.Policies));
             owner.SendPacket(new SCExpeditionMemberListPacket(expedition));
-
-            // owner.SendPacket(new SCCharacterStatePacket(owner));
         }
 
         public void SendExpeditionInfo(Character character) {

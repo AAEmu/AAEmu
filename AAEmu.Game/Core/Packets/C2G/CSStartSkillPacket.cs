@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartSkillPacket : GamePacket
     {
-        public CSStartSkillPacket() : base(0x052, 1) // TODO 1.0 opcode: 0x050
+        public CSStartSkillPacket() : base(0x052, 1)
         {
         }
 

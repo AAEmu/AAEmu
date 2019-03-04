@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSIdleStatusPacket : GamePacket
     {
-        public CSIdleStatusPacket() : base(0x132, 1) // TODO 1.0 opcode: 0x12e
+        public CSIdleStatusPacket() : base(0x132, 1)
         {
         }
 
