@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -27,11 +28,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("CreateHouse, Id: {0}, X: {1}, Y: {2}, Z: {3}, ZRot: {4}", designId, x, y, z, zRot);
 
-            var zoneId = WorldManager.Instance.GetZoneId(Connection.ActiveChar.InstanceId, x, y);
-            var house = HousingManager.Instance.Create(designId);
-            house.Position = new Point(1, zoneId, x, y, z, 0, 0, 0);
-
-            house.Spawn();
+            var position = new Point(x, y, z);
+            HousingManager.Instance.Build(
+                Connection,
+                designId, position, zRot,
+                itemId, moneyAmount, ht, autoUseAaPoint
+            );
         }
     }
 }

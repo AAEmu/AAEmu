@@ -35,20 +35,15 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            if (_craft.IsPack) 
+            if (_craft.IsPack)
             {
-                Item item = Owner.Inventory.GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
-                if (item != null) 
+                var item = Owner.Inventory.GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+                var backpackTemplate = (BackpackTemplate)item?.Template;
+                if (backpackTemplate != null && backpackTemplate.BackpackType != BackpackType.Glider)
                 {
-                    BackpackTemplate backpackTemplate = (BackpackTemplate)item.Template;
-                    if (backpackTemplate != null)
-                    {
-                        if (backpackTemplate.BackpackType != BackpackType.Glider) 
-                        {
-                            CancelCraft();
-                            return;
-                        }
-                    }
+                    // TODO mb check to drop glider to inventory
+                    CancelCraft();
+                    return;
                 }
             }
 
@@ -74,7 +69,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (_craft == null)
                 return;
-            
+
             if (Owner.Inventory.CountFreeSlots(SlotType.Inventory) < _craft.CraftProducts.Count)
                 return;
 
@@ -86,16 +81,20 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var product in _craft.CraftProducts)
             {
-                if (!_craft.IsPack) {
+                if (!_craft.IsPack)
+                {
                     var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
                     InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
-                } else {
+                }
+                else
+                {
                     // Remove player backpack
                     Owner.Inventory.TakeoffBackpack();
                     // Put tradepack in their backpack slot
                     var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
                     InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
-                    Owner.Inventory.Move(resultItem.Id, resultItem.SlotType, (byte)resultItem.Slot, 0, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+                    Owner.Inventory.Move(resultItem.Id, resultItem.SlotType, (byte)resultItem.Slot, 0,
+                        SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
                 }
             }
 

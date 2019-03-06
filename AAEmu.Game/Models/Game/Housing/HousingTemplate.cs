@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.Housing
         public uint RepairCost { get; set; }
         public float GardenRadius { get; set; }
         public string Family { get; set; }
-        public uint TaxationId { get; set; }
+        public HouseTax Taxation { get; set; }
         public uint GuardTowerSettingId { get; set; }
         public float CinemaRadius { get; set; }
         public float AutoZOffsetX { get; set; }
@@ -32,12 +32,12 @@ namespace AAEmu.Game.Models.Game.Housing
         public uint HousingDecoLimitId { get; set; }
         public bool IsSellable { get; set; }
 
-        public Dictionary<short, HousingBuildStep> BuildSteps { get; set; }
+        public Dictionary<int, HousingBuildStep> BuildSteps { get; set; }
         public HousingBindingDoodad[] HousingBindingDoodad { get; set; }
 
         public HousingTemplate()
         {
-            BuildSteps = new Dictionary<short, HousingBuildStep>();
+            BuildSteps = new Dictionary<int, HousingBuildStep>();
         }
     }
 }

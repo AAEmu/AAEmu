@@ -10,8 +10,8 @@ namespace AAEmu.Game.Models.Game
         public uint ObjId { get; set; }
         public uint TemplateId { get; set; }
         public int Ht { get; set; }
-        public uint Unk2Id { get; set; }
-        public uint Unk3Id { get; set; }
+        public uint Unk2Id { get; set; } // TODO OwnerId
+        public uint Unk3Id { get; set; } // TODO OwnerId
         public string Owner { get; set; }
         public uint Account { get; set; }
         public byte Permission { get; set; }

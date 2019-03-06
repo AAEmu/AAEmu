@@ -8,17 +8,28 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 {
     public class CraftEffect : EffectTemplate
     {
-        public WorldInteractionType WorldInteractionId { get; set; }
+        public WorldInteractionType WorldInteraction { get; set; }
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time)
-        {   
-            Character character = (Character)caster;
-            character.Craft.EndCraft();
+        {
+            _log.Debug("CraftEffect, {0}", WorldInteraction);
 
-            _log.Debug("CraftEffect");
+            var classType = Type.GetType("AAEmu.Game.Models.Game.World.Interactions." + WorldInteraction);
+            if (classType == null)
+            {
+                _log.Error("CraftEffect, Unknown world interaction: {0}", WorldInteraction);
+                return;
+            }
+
+            var action = (IWorldInteraction)Activator.CreateInstance(classType);
+            action.Execute(caster, casterObj, target, targetObj, skill.Template.Id);
+
+            if (caster is Character character)
+                character.Quests.OnInteraction(WorldInteraction);
         }
     }
 }

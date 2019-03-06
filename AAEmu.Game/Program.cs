@@ -1,19 +1,13 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.IO;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Network.Login;
-using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models;
 using AAEmu.Game.Utils.DB;
-using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
 
@@ -31,7 +25,7 @@ namespace AAEmu.Game
 
         public static int UpTime => (int)(DateTime.Now - _startTime).TotalSeconds;
 
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             Initialization();
 
@@ -45,8 +39,6 @@ namespace AAEmu.Game
 
             _log.Info("{0} version {1}", Name, Version);
 
-            Test();
-
             var connection = MySQL.CreateConnection();
             if (connection == null)
             {
@@ -56,92 +48,29 @@ namespace AAEmu.Game
 
             connection.Close();
 
-            var stopWatch = new Stopwatch();
+            var builder = new HostBuilder()
+                .ConfigureAppConfiguration((hostingContext, config) =>
+                {
+                    config.AddEnvironmentVariables();
 
-            stopWatch.Start();
-            TaskIdManager.Instance.Initialize();
-            TaskManager.Instance.Initialize();
+                    if (args != null)
+                    {
+                        config.AddCommandLine(args);
+                    }
+                })
+                .ConfigureServices((hostContext, services) =>
+                {
+                    services.AddOptions();
+                    services.AddSingleton<IHostedService, GameService>();
+                });
 
-            ObjectIdManager.Instance.Initialize();
-            TradeIdManager.Instance.Initialize();
-
-            ItemIdManager.Instance.Initialize();
-            CharacterIdManager.Instance.Initialize();
-            FamilyIdManager.Instance.Initialize();
-            ExpeditionIdManager.Instance.Initialize();
-            VisitedSubZoneIdManager.Instance.Initialize();
-            PrivateBookIdManager.Instance.Initialize();
-            FriendIdManager.Instance.Initialize();
-            MateIdManager.Instance.Initialize();
-
-            ZoneManager.Instance.Load();
-            WorldManager.Instance.Load();
-            QuestManager.Instance.Load();
-
-            ShipyardManager.Instance.Load();
-
-            FormulaManager.Instance.Load();
-            ExpirienceManager.Instance.Load();
-
-            TlIdManager.Instance.Initialize();
-            ItemManager.Instance.Load();
-            PlotManager.Instance.Load();
-            SkillManager.Instance.Load();
-            CraftManager.Instance.Load();
-            HousingManager.Instance.Load();
-            MateManager.Instance.Load();
-
-            NameManager.Instance.Load();
-            FactionManager.Instance.Load();
-            ExpeditionManager.Instance.Load();
-            CharacterManager.Instance.Load();
-            FamilyManager.Instance.Load();
-            PortalManager.Instance.Load();
-            FriendMananger.Instance.Load();
-
-            NpcManager.Instance.Load();
-            DoodadManager.Instance.Load();
-
-            SpawnManager.Instance.Load();
-            SpawnManager.Instance.SpawnAll();
-            ScriptCompiler.Compile();
-
-            TimeManager.Instance.Start();
-            TaskManager.Instance.Start();
-            GameNetwork.Instance.Start();
-            StreamNetwork.Instance.Start();
-            LoginNetwork.Instance.Start();
-            stopWatch.Stop();
-            
-            _log.Info("Server started! Took {0}", stopWatch.Elapsed);
-            _signal.WaitOne();
-
-            SpawnManager.Instance.Stop();
-            TaskManager.Instance.Stop();
-            GameNetwork.Instance.Stop();
-            StreamNetwork.Instance.Stop();
-            LoginNetwork.Instance.Stop();
-            LogManager.Flush();
+            await builder.RunConsoleAsync();
         }
 
         private static void Initialization()
         {
             _thread.Name = "AA.Game Base Thread";
             _startTime = DateTime.Now;
-            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
-            {
-                if (e.IsTerminating)
-                {
-                    _log.Fatal((Exception)e.ExceptionObject);
-                    Shutdown();
-                }
-                else
-                {
-                    _log.Error((Exception)e.ExceptionObject);
-                }
-            };
-            AppDomain.CurrentDomain.ProcessExit += (sender, e) => Shutdown();
-            AppDomain.CurrentDomain.DomainUnload += (sender, e) => Shutdown();
         }
 
         private static void Configuration(string[] args)
@@ -154,18 +83,6 @@ namespace AAEmu.Game
             configurationBuilder.Bind(AppConfiguration.Instance);
 
             LogManager.Configuration = new XmlLoggingConfiguration(FileManager.AppPath + "NLog.config", false);
-        }
-
-        public static void Shutdown()
-        {
-            if (_shutdown)
-                return;
-            _shutdown = true;
-            _signal.Set();
-        }
-
-        public static void Test()
-        {
         }
     }
 }
