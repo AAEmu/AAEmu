@@ -1,25 +1,24 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCLoginCharInfoHouse : GamePacket
     {
         private readonly uint _id;
-        private readonly HouseData _houseData;
+        private readonly House _house;
 
-        public SCLoginCharInfoHouse(uint id, HouseData houseData) : base(SCOffsets.SCLoginCharInfoHousePacket, 1)
+        public SCLoginCharInfoHouse(uint id, House house) : base(SCOffsets.SCLoginCharInfoHousePacket, 1)
         {
             _id = id;
-            _houseData = houseData;
+            _house = house;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_id);
-            stream.Write(_houseData);
-            return stream;
+            return _house.Write(stream);
         }
     }
 }

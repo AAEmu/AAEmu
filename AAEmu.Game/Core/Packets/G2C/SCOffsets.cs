@@ -186,8 +186,9 @@
         public const ushort SCHouseStatePacket = 0xbc;
         public const ushort SCHouseBuildProgressPacket = 0xbd;
         public const ushort SCHousePermissionChangedPacket = 0xbe;
+        public const ushort SCHouseBuildPayChangedPacket = 0xbf;
         public const ushort SCHouseDemolishedPacket = 0xc0;
-        public const ushort SCHouseBuildPayChangedPacket = 0xc1;
+        public const ushort SCMyHousePacket = 0xc1;
         public const ushort SCMyHouseRemovedPacket = 0xc2;
         public const ushort SCHouseFarmPacket = 0xc3;
         public const ushort SCHouseTaxInfoPacket = 0xc4;

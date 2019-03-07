@@ -1,3 +1,5 @@
+using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -40,34 +42,12 @@ namespace AAEmu.Game.Models.Game.Housing
 
         public override void AddVisibleObject(Character character)
         {
-            var data = new HouseData();
-            data.Tl = TlId;
-            data.DbId = 146502;
-            data.ObjId = ObjId;
-            data.TemplateId = Template.Id;
-            data.Ht = 0;
-            data.Unk2Id = character.Id;
-            data.Unk3Id = character.Id;
-            data.Owner = character.Name;
-            data.Account = 1;
-            data.Permission = 2;
-            data.AllStep = 3;
-            data.CurStep = 1;
-            data.X = Position.X;
-            data.Y = Position.Y;
-            data.Z = Position.Z;
-            data.House = Template.Name;
-            data.AllowRecover = true;
-            data.MoneyAmount = 0;
-            data.Unk4Id = 1;
-            data.SellToName = "";
-
-            character.SendPacket(new SCMyHousePacket(data));
+            character.SendPacket(new SCMyHousePacket(this));
 
             character.SendPacket(new SCUnitStatePacket(this));
             // character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
 
-            character.SendPacket(new SCHouseStatePacket(data));
+            character.SendPacket(new SCHouseStatePacket(this));
 
             // TODO spawn doodads...
         }
@@ -107,6 +87,32 @@ namespace AAEmu.Game.Models.Game.Housing
                 command.Parameters.AddWithValue("@permission", Permission);
                 command.ExecuteNonQuery();
             }
+        }
+
+        public PacketStream Write(PacketStream stream)
+        {
+            stream.Write(TlId);
+            stream.Write(Id); // dbId
+            stream.WriteBc(ObjId);
+            stream.Write(TemplateId);
+            stream.Write(0); // ht
+            stream.Write(OwnerId); // type(id)
+            stream.Write(OwnerId); // type(id)
+            stream.Write(Master?.Name ?? "");
+            stream.Write(AccountId);
+            stream.Write(Permission);
+            stream.Write(Template.BuildSteps.Count); // allstep
+            stream.Write(CurrentStep == -1 ? Template.BuildSteps.Count : CurrentStep); // curstep
+            stream.Write(0); // payMoneyAmount
+            stream.Write(Helpers.ConvertLongX(Position.X));
+            stream.Write(Helpers.ConvertLongY(Position.Y));
+            stream.Write(Position.Z);
+            stream.Write(Template.Name); // house // TODO max length 128
+            stream.Write(true); // allowRecover
+            stream.Write(0); // moneyAmount
+            stream.Write(1); // type(id)
+            stream.Write(""); // sellToName
+            return stream;
         }
     }
 }

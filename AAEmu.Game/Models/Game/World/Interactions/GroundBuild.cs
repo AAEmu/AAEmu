@@ -22,16 +22,22 @@ namespace AAEmu.Game.Models.Game.World.Interactions
                 else
                     house.CurrentStep = -1;
 
-                // TODO to currStep +1 num action
-                ((Character)caster).BroadcastPacket(
-                    new SCHouseBuildProgressPacket(
-                        house.TlId,
-                        house.ModelId,
-                        house.Template.BuildSteps.Count,
-                        nextStep
-                    ),
-                    true
-                );
+                if (caster is Character character)
+                {
+                    // TODO to currStep +1 num action
+                    character.BroadcastPacket(
+                        new SCHouseBuildProgressPacket(
+                            house.TlId,
+                            house.ModelId,
+                            house.Template.BuildSteps.Count,
+                            nextStep
+                        ),
+                        true
+                    );
+
+//                    if (house.CurrentStep == -1)
+//                        character.SendPacket(new SCHousePermissionChangedPacket(house.TlId, 0));
+                }
             }
         }
     }

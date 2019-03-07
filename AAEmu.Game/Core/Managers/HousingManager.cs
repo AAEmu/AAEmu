@@ -268,6 +268,7 @@ namespace AAEmu.Game.Core.Managers
             house.Position.ZoneId = zoneId;
             house.CurrentStep = 0;
             house.Master = connection.ActiveChar;
+            house.Permission = 2;
             _houses.Add(house.Id, house);
 
             house.Spawn();
