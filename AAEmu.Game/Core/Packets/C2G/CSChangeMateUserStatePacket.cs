@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var userState = stream.ReadByte();
 
             //_log.Warn("ChangeMateUserState, TlId: {0}, UserState: {1}", tlId, userState);
-            MateManager.Instance.ChangeStateMate(Connection.ActiveChar, tlId, userState);
+            MateManager.Instance.ChangeStateMate(Connection, tlId, userState);
         }
     }
 }

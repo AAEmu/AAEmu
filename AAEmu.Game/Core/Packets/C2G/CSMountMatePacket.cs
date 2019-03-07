@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var reason = stream.ReadByte();
 
             // _log.Warn("MountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
-            MateManager.Instance.MountMate(Connection.ActiveChar, tlId, ap, reason);
+            MateManager.Instance.MountMate(Connection, tlId, ap, reason);
         }
     }
 }

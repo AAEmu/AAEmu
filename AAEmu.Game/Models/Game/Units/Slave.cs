@@ -13,7 +13,6 @@ namespace AAEmu.Game.Models.Game.Units
         public ushort TlId { get; set; }
         public uint TemplateId { get; set; }
         public uint BondingObjId { get; set; } = 0;
-        public uint DbId { get; set; }
 
         public SlaveTemplate Template { get; set; }
         public Character Bounded { get; set; }

@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var name = stream.ReadString();
 
             //_log.Warn("ChangeMateName, TlId: {0}, Name: {1}", tlId, name);
-            MateManager.Instance.RenameMount(Connection.ActiveChar, tlId, name);
+            MateManager.Instance.RenameMount(Connection, tlId, name);
         }
     }
 }

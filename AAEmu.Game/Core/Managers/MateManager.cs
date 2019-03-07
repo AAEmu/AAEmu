@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
@@ -58,8 +59,9 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void ChangeStateMate(Character owner, uint tlId, byte newState)
+        public void ChangeStateMate(GameConnection connection, uint tlId, byte newState)
         {
+            var owner = connection.ActiveChar;
             var mateInfo = GetActiveMate(owner.ObjId);
             if (mateInfo?.TlId != tlId) return;
 
@@ -67,8 +69,9 @@ namespace AAEmu.Game.Core.Managers
             //owner.BroadcastPacket(new SCMateStatePacket(), );
         }
 
-        public void ChangeTargetMate(Character owner, uint tlId, uint objId)
+        public void ChangeTargetMate(GameConnection connection, uint tlId, uint objId)
         {
+            var owner = connection.ActiveChar;
             var mateInfo = GetActiveMateByTlId(tlId);
             if (mateInfo == null) return;
             mateInfo.CurrentTarget = objId > 0 ? WorldManager.Instance.GetUnit(objId) : null;
@@ -79,8 +82,9 @@ namespace AAEmu.Game.Core.Managers
                 objId);
         }
 
-        public Mount RenameMount(Character owner, uint tlId, string newName)
+        public Mount RenameMount(GameConnection connection, uint tlId, string newName)
         {
+            var owner = connection.ActiveChar;
             if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName)) return null;
             var mateInfo = GetActiveMate(owner.ObjId);
             if (mateInfo == null || mateInfo.TlId != tlId) return null;
@@ -89,8 +93,9 @@ namespace AAEmu.Game.Core.Managers
             return mateInfo;
         }
 
-        public void MountMate(Character character, uint tlId, byte ap, byte reason)
+        public void MountMate(GameConnection connection, uint tlId, byte ap, byte reason)
         {
+            var character = connection.ActiveChar;
             var mateInfo = GetActiveMateByTlId(tlId);
             if (mateInfo == null) return;
 

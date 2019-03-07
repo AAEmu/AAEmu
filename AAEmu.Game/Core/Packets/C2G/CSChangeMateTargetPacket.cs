@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var objId = stream.ReadBc();
 
             //_log.Warn("ChangeMateTarget, TlId: {0}, ObjId: {1}", tlId, objId);
-            MateManager.Instance.ChangeTargetMate(Connection.ActiveChar, tlId, objId);
+            MateManager.Instance.ChangeTargetMate(Connection, tlId, objId);
         }
     }
 }
