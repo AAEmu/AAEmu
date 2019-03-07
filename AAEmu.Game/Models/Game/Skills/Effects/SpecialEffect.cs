@@ -66,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         Unk22 = 57,
         Unk23 = 58,
         Unk24 = 59,
-        Unk25 = 60,
+        SlaveCall = 60,
         Unk26 = 61,
         Unk27 = 63,
         CouponReceive = 64,

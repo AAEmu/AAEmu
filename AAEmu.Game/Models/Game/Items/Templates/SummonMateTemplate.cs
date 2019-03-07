@@ -2,7 +2,7 @@ using System;
 
 namespace AAEmu.Game.Models.Game.Items.Templates
 {
-    public class SummonTemplate : ItemTemplate
+    public class SummonMateTemplate : ItemTemplate
     {
         public override Type ClassType => typeof(Summon);
 

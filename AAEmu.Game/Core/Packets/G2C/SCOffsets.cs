@@ -1,23 +1,25 @@
-﻿namespace AAEmu.Game.Core.Packets.G2C
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace AAEmu.Game.Core.Packets.G2C
 {
     public static class SCOffsets
     {
         // All opcodes here are updated for version client_12_r208022
-        public const ushort X2EnterWorldResponsePacket = 0x0;
-        public const ushort SCReconnectAuthPacket = 0x1;
-        public const ushort SCPrepareLeaveWorldPacket = 0x2;
-        public const ushort SCLeaveWorldGrantedPacket = 0x3;
-        public const ushort SCLeaveWorldCanceledPacket = 0x4;
-        public const ushort SCWorldQueuePacket = 0x5;
-        public const ushort SCInitialConfigPacket = 0x6;
-        public const ushort SCTrionConfigPacket = 0x7;
-        public const ushort SCFactionListPacket = 0x8;
-        public const ushort SCFactionRelationListPacket = 0x9;
-        public const ushort SCExpeditionRolePolicyListPacket = 0xb;
-        public const ushort SCExpeditionRolePolicyChangedPacket = 0xc;
-        public const ushort SCExpeditionRoleChangedPacket = 0xd;
-        public const ushort SCExpeditionOwnerChangedPacket = 0xe;
-        public const ushort SCExpeditionShowRenameUIPacket = 0xf;
+        public const ushort X2EnterWorldResponsePacket = 0x00;
+        public const ushort SCReconnectAuthPacket = 0x01;
+        public const ushort SCPrepareLeaveWorldPacket = 0x02;
+        public const ushort SCLeaveWorldGrantedPacket = 0x03;
+        public const ushort SCLeaveWorldCanceledPacket = 0x04;
+        public const ushort SCWorldQueuePacket = 0x05;
+        public const ushort SCInitialConfigPacket = 0x06;
+        public const ushort SCTrionConfigPacket = 0x07;
+        public const ushort SCFactionListPacket = 0x08;
+        public const ushort SCFactionRelationListPacket = 0x09;
+        public const ushort SCExpeditionRolePolicyListPacket = 0x0b;
+        public const ushort SCExpeditionRolePolicyChangedPacket = 0x0c;
+        public const ushort SCExpeditionRoleChangedPacket = 0x0d;
+        public const ushort SCExpeditionOwnerChangedPacket = 0x0e;
+        public const ushort SCExpeditionShowRenameUIPacket = 0x0f;
         public const ushort SCUnkPacket1 = 0x10;
         public const ushort SCFactionRenamedPacket = 0x11;
         public const ushort SCFactionRetryRenamePacket = 0x12;
@@ -154,8 +156,8 @@
         public const ushort SCSpecialtyGoodsPacket = 0x9a;
         public const ushort SCSpecialtyRecordsPacket = 0x9b;
         public const ushort SCGradeEnchantResultPacket = 0x9c;
-        public const ushort SCItemSocketingResultPacket = 0x9d;
-        public const ushort SCUnkItemPacket = 0x9e;// not confirmed
+        public const ushort SCItemSocketingLunagemResultPacket = 0x9d;
+        public const ushort SCItemSocketingLunastoneResultPacket = 0x9e;
         public const ushort SCGradeEnchantBroadcastPacket = 0x9f;
         public const ushort SCUnknownPacket = 0xa0;
         public const ushort SCSkillStartedPacket = 0xa1;
@@ -176,7 +178,7 @@
         public const ushort SCPlotCastingStoppedPacket = 0xb1;
         public const ushort SCPlotChannelingStoppedPacket = 0xb2;
         public const ushort SCEnvDamagePacket = 0xb3;
-        public const ushort SCOnOffUnkPacket = 0xb4;
+        public const ushort SCOnOffSnowPacket = 0xb4;
         public const ushort SCUnkPacket = 0xb5;
         public const ushort SCBuffCreatedPacket = 0xb6;
         public const ushort SCBuffRemovedPacket = 0xb7;
@@ -376,7 +378,7 @@
         public const ushort SCTrialCancledPacket = 0x183;
         public const ushort SCBotSuspectReportedPacket = 0x184;
         public const ushort SCBotSuspectArrestedPacket = 0x185;
-        public const ushort SCUnkPacket6 = 0x186;
+        public const ushort SCSuspectGoingBotTrial = 0x186;
         public const ushort SCUnderWaterPacket = 0x187;
         public const ushort SCCharacterGamePointsPacket = 0x188;
         public const ushort SCGamePointChangedPacket = 0x189;
@@ -501,18 +503,18 @@
         public const ushort SCPremiumPointChangedPacket = 0x202;
         public const ushort SCUnitGmModeChangedPacket = 0x203;
         public const ushort SCUnitPvPPointsChangedPacket = 0x204;
-        public const ushort SCUnkPacket14 = 0x205;
+        public const ushort SCRankAlarmPacket = 0x205;
         public const ushort SCUnkPacket15 = 0x206;
         public const ushort SCUnkPacket16 = 0x207;
         public const ushort SCUnkPacket17 = 0x208;
         public const ushort SCUnkCharacterAddStatPacket = 0x209;
-        public const ushort SCUnkPacket19 = 0x20a;
+        public const ushort SCUnlockCurrencySlotPacket = 0x20a;
         public const ushort SCUnkPacket20 = 0x20b;
         public const ushort SCUnkPacket21 = 0x20c;
         public const ushort SCUnkPacket22 = 0x20d;
         public const ushort SCUnkPacket23 = 0x20e;
         public const ushort SCUnkPacket24 = 0x20f;
-        public const ushort SCUnkMsgPacket = 0x211;
+        public const ushort SCWorldMessagePacket = 0x211;
         public const ushort SCUnkPacket25 = 0x212;
         public const ushort SCUnkPacket26 = 0x213;
         public const ushort SCUnkPacket27 = 0x214;

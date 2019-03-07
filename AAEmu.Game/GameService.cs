@@ -57,6 +57,7 @@ namespace AAEmu.Game
             SkillManager.Instance.Load();
             CraftManager.Instance.Load();
             MateManager.Instance.Load();
+            SlaveManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
