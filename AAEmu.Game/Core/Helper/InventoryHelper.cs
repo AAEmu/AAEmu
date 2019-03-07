@@ -54,10 +54,10 @@ namespace AAEmu.Game.Core.Helper
             if (item.Count > count) {
                 item.Count -= count;
                 return new ItemCountUpdate(item, -count);
-            } else  {
-                character.Inventory.RemoveItem(item, true);
-                return new ItemRemove(item);
             }
+
+            character.Inventory.RemoveItem(item, true);
+            return new ItemRemove(item);
         }
     }
 }

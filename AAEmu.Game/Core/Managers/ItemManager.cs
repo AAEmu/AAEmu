@@ -38,19 +38,23 @@ namespace AAEmu.Game.Core.Managers
             return _grades.ContainsKey(grade) ? _grades[grade] : null;
         }
 
-        public Holdable GetHoldable(uint id) {
+        public Holdable GetHoldable(uint id)
+        {
             return _holdables.ContainsKey(id) ? _holdables[id] : null;
         }
 
-        public EquipSlotEnchantingCost GetEquipSlotEnchantingCost(uint slotTypeId) {
+        public EquipSlotEnchantingCost GetEquipSlotEnchantingCost(uint slotTypeId)
+        {
             return _enchantingCosts.ContainsKey(slotTypeId) ? _enchantingCosts[slotTypeId] : null;
         }
 
-        public GradeTemplate GetGradeTemplateByOrder(int gradeOrder) {
+        public GradeTemplate GetGradeTemplateByOrder(int gradeOrder)
+        {
             return _gradesOrdered.ContainsKey(gradeOrder) ? _gradesOrdered[gradeOrder] : null;
         }
 
-        public ItemGradeEnchantingSupport GetItemGradEnchantingSupportByItemId(uint itemId) {
+        public ItemGradeEnchantingSupport GetItemGradEnchantingSupportByItemId(uint itemId)
+        {
             return _enchantingSupports.ContainsKey(itemId) ? _enchantingSupports[itemId] : null;
         }
 
@@ -109,7 +113,7 @@ namespace AAEmu.Game.Core.Managers
             Item item;
             try
             {
-                item = (Item) Activator.CreateInstance(template.ClassType, id, template, count);
+                item = (Item)Activator.CreateInstance(template.ClassType, id, template, count);
             }
             catch (Exception ex)
             {
@@ -120,7 +124,7 @@ namespace AAEmu.Game.Core.Managers
 
             item.Grade = grade;
             if (item.Template.FixedGrade >= 0)
-                item.Grade = (byte) item.Template.FixedGrade;
+                item.Grade = (byte)item.Template.FixedGrade;
             item.CreateTime = DateTime.UtcNow;
             return item;
         }
@@ -425,10 +429,29 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SummonTemplate
+                            var template = new SummonMateTemplate
                             {
                                 Id = reader.GetUInt32("item_id"),
                                 NpcId = reader.GetUInt32("npc_id")
+                            };
+                            _templates.Add(template.Id, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_summon_slaves";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new SummonSlaveTemplate
+                            {
+                                Id = reader.GetUInt32("item_id"),
+                                SlaveId = reader.GetUInt32("slave_id")
                             };
                             _templates.Add(template.Id, template);
                         }

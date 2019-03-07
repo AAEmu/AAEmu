@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
@@ -37,6 +38,16 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
+        public Mount GetActiveMateByMateObjId(uint mateObjId)
+        {
+            foreach (var mate in _activeMates.Values)
+            {
+                if (mate.ObjId == mateObjId) return mate;
+            }
+
+            return null;
+        }
+
         public Mount GetIsMounted(uint objId)
         {
             foreach (var mate in _activeMates.Values)
@@ -47,6 +58,15 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
+        public void ChangeStateMate(Character owner, uint tlId, byte newState)
+        {
+            var mateInfo = GetActiveMate(owner.ObjId);
+            if (mateInfo?.TlId != tlId) return;
+
+            mateInfo.UserState = newState; // TODO - Maybe verify range
+            //owner.BroadcastPacket(new SCMateStatePacket(), );
+        }
+
         public void ChangeTargetMate(Character owner, uint tlId, uint objId)
         {
             var mateInfo = GetActiveMateByTlId(tlId);
@@ -55,7 +75,8 @@ namespace AAEmu.Game.Core.Managers
             owner.BroadcastPacket(new SCTargetChangedPacket(mateInfo.ObjId,
                 mateInfo.CurrentTarget?.ObjId ?? 0), true);
 
-            _log.Debug("ChangeTargetMate. tlId: {0}, objId: {1}, targetObjId: {2}", mateInfo.TlId, mateInfo.ObjId, objId);
+            _log.Debug("ChangeTargetMate. tlId: {0}, objId: {1}, targetObjId: {2}", mateInfo.TlId, mateInfo.ObjId,
+                objId);
         }
 
         public Mount RenameMount(Character owner, uint tlId, string newName)
@@ -88,7 +109,8 @@ namespace AAEmu.Game.Core.Managers
                 mateInfo.Reason1 = reason;
             }
 
-            _log.Debug("MountMate. mountTlId: {0}, att1: {1}, att2 {2}, reason: {3}", mateInfo.TlId, mateInfo.Att1, mateInfo.Att2, reason);
+            _log.Debug("MountMate. mountTlId: {0}, att1: {1}, att2 {2}, reason: {3}", mateInfo.TlId, mateInfo.Att1,
+                mateInfo.Att2, reason);
         }
 
         public void UnMountMate(Character character, uint tlId, byte ap, byte reason)
@@ -116,7 +138,8 @@ namespace AAEmu.Game.Core.Managers
             if ((unMounted != 1 && unMounted != 2) || targetObj == null) return;
 
             character.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
-            _log.Debug("UnMountMate. mountTlId: {0}, objId: {1}, att: {2}, reason: {3}", mateInfo.TlId, targetObj.ObjId, unMounted, reason);
+            _log.Debug("UnMountMate. mountTlId: {0}, objId: {1}, att: {2}, reason: {3}", mateInfo.TlId, targetObj.ObjId,
+                unMounted, reason);
         }
 
         public void AddActiveMateAndSpawn(Character owner, Mount mount, Item item)
@@ -126,14 +149,16 @@ namespace AAEmu.Game.Core.Managers
                 owner.Mates.DespawnMate(_activeMates[owner.ObjId].TlId);
                 return;
             }
+
             _activeMates.Add(owner.ObjId, mount);
 
-            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SpawnerUpdate,
-                new List<ItemTask> { new ItemUpdate(item) }, new List<ulong>())); // TODO - maybe update details
-            owner.SendPacket(new SCMateSpawnedPacket(mount.MateTemplate));
+            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem,
+                new List<ItemTask> {new ItemUpdate(item)}, new List<ulong>())); // TODO - maybe update details
+            owner.SendPacket(new SCMateSpawnedPacket(mount));
             mount.Spawn();
 
-            _log.Debug("Mount spawned. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mount.TlId, mount.ObjId);
+            _log.Debug("Mount spawned. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mount.TlId,
+                mount.ObjId);
         }
 
         public void RemoveActiveMateAndDespawn(Character owner, uint tlId)
@@ -142,12 +167,17 @@ namespace AAEmu.Game.Core.Managers
             var mateInfo = _activeMates[owner.ObjId];
             if (mateInfo.TlId != tlId) return;
 
-            if (mateInfo.Att1 > 0) UnMountMate((Character)WorldManager.Instance.GetUnit(mateInfo.Att1), tlId, 1, 1); // TODO reason unmount
-            if (mateInfo.Att2 > 0) UnMountMate((Character)WorldManager.Instance.GetUnit(mateInfo.Att2), tlId, 2, 1); // TODO reason unmount
+            if (mateInfo.Att1 > 0)
+                UnMountMate((Character)WorldManager.Instance.GetUnit(mateInfo.Att1), tlId, 1, 1); // TODO reason unmount
+            if (mateInfo.Att2 > 0)
+                UnMountMate((Character)WorldManager.Instance.GetUnit(mateInfo.Att2), tlId, 2, 1); // TODO reason unmount
             _activeMates[owner.ObjId].Delete();
             _activeMates.Remove(owner.ObjId);
+            ObjectIdManager.Instance.ReleaseId(mateInfo.ObjId);
+            TlIdManager.Instance.ReleaseId(mateInfo.TlId);
 
-            _log.Debug("Mount removed. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mateInfo.TlId, mateInfo.ObjId);
+            _log.Debug("Mount removed. ownerObjId: {0}, tlId: {1}, mateObjId: {2}", owner.ObjId, mateInfo.TlId,
+                mateInfo.ObjId);
         }
 
         public List<uint> GetMateSkills(uint id)
@@ -155,7 +185,8 @@ namespace AAEmu.Game.Core.Managers
             var template = new List<uint>();
 
             foreach (var value in _slaveMountSkills.Values)
-                if (value.NpcId == id && !template.Contains(value.MountSkillId)) template.Add(value.MountSkillId);
+                if (value.NpcId == id && !template.Contains(value.MountSkillId))
+                    template.Add(value.MountSkillId);
 
             return template;
         }
@@ -191,7 +222,6 @@ namespace AAEmu.Game.Core.Managers
             }
 
             #endregion
-
         }
     }
 }

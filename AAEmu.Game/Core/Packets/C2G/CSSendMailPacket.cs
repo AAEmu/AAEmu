@@ -29,9 +29,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var itemSlots = new List<(SlotType slotType, byte slot)>();
             for (var i = 0; i < 10; i++)
             {
-                stream.ReadByte();
                 var slotType = stream.ReadByte();
-                stream.ReadByte();
                 var slot = stream.ReadByte();
                 if (slotType == 0)
                     continue;

@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 using MySql.Data.MySqlClient;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -23,7 +19,6 @@ namespace AAEmu.Game.Models.Game.Char
         // mate battle pet
 
         public Character Owner { get; set; }
-        private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private readonly Dictionary<ulong, MateDb> _mates; // itemId, MountDb
         private readonly List<uint> _removedMates;
@@ -35,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Char
             _removedMates = new List<uint>();
         }
 
-        public MateDb GetMateInfo(ulong itemId)
+        private MateDb GetMateInfo(ulong itemId)
         {
             return _mates.ContainsKey(itemId) ? _mates[itemId] : null;
         }
@@ -45,28 +40,21 @@ namespace AAEmu.Game.Models.Game.Char
             if (_mates.ContainsKey(itemId)) return null;
             var template = new MateDb
             {
+                // TODO
                 Id = MateIdManager.Instance.GetNextId(),
                 ItemId = itemId,
-                Level = 5,
+                Level = 50,
                 Name = name,
                 Owner = Owner.Id,
                 Mileage = 0,
-                Xp = ExpirienceManager.Instance.GetExpForLevel(5, true),
-                Hp = 10,
-                Mp = 10,
+                Xp = ExpirienceManager.Instance.GetExpForLevel(50, true),
+                Hp = 999999,
+                Mp = 999999,
                 UpdatedAt = DateTime.Now,
                 CreatedAt = DateTime.Now
             };
             _mates.Add(template.ItemId, template);
             return template;
-        }
-
-        public void RenameMate(uint tlId, string newName)
-        {
-            var newMateInfo = MateManager.Instance.RenameMount(Owner, tlId, newName);
-            var oldMateDb = GetMateInfo(newMateInfo.MateTemplate.ItemId);
-            oldMateDb.Name = newMateInfo.Name;
-            oldMateDb.UpdatedAt = DateTime.Now;
         }
 
         public void SpawnMount(SkillItem skillData)
@@ -76,15 +64,17 @@ namespace AAEmu.Game.Models.Game.Char
                 DespawnMate(0);
                 return;
             }
+
             var item = Owner.Inventory.GetItem(skillData.ItemId);
             if (item == null) return;
 
-            var itemTemplate = (SummonTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
+            var itemTemplate = (SummonMateTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
             var npcId = itemTemplate.NpcId;
             var template = NpcManager.Instance.GetTemplate(npcId);
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
-            var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template.Name); // TODO - new name
+            var mateDbInfo =
+                GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template.Name); // TODO - new name
 
             var mount = new Mount
             {
@@ -101,23 +91,21 @@ namespace AAEmu.Game.Models.Game.Char
                 Mp = mateDbInfo.Mp,
                 Position = Owner.Position.Clone(),
                 OwnerObjId = Owner.ObjId,
-                MateTemplate = new MateTemplate
-                {
-                    Id = mateDbInfo.Id,
-                    ItemId = mateDbInfo.ItemId,
-                    UserState = 1, // TODO
-                    Exp = mateDbInfo.Xp,
-                    Mileage = mateDbInfo.Mileage,
-                    SpawnDelayTime = 0, // TODO
-                    TlId = tlId
-                }
+
+                Id = mateDbInfo.Id,
+                ItemId = mateDbInfo.ItemId,
+                UserState = 1, // TODO
+                Exp = mateDbInfo.Xp,
+                Mileage = mateDbInfo.Mileage,
+                SpawnDelayTime = 0, // TODO
             };
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
             {
-                mount.MateTemplate.Skills.Add(skill);
+                mount.Skills.Add(skill);
             }
 
-            var (newX, newY) = MathUtil.AddDistanceToFront(3, mount.Position.X, mount.Position.Y, mount.Position.RotationZ);
+            var (newX, newY) =
+                MathUtil.AddDistanceToFront(3, mount.Position.X, mount.Position.Y, mount.Position.RotationZ);
             mount.Position.X = newX;
             mount.Position.Y = newY;
 
@@ -126,6 +114,22 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void DespawnMate(uint tlId)
         {
+            var mateInfo = MateManager.Instance.GetActiveMateByTlId(tlId);
+            if (mateInfo != null)
+            {
+                var mateDbInfo = GetMateInfo(mateInfo.ItemId);
+                if (mateDbInfo != null)
+                {
+                    mateDbInfo.Hp = mateInfo.Hp;
+                    mateDbInfo.Mp = mateInfo.Mp;
+                    mateDbInfo.Level = mateInfo.Level;
+                    mateDbInfo.Xp = mateInfo.Exp;
+                    mateDbInfo.Mileage = mateInfo.Mileage;
+                    mateDbInfo.Name = mateInfo.Name;
+                    mateDbInfo.UpdatedAt = DateTime.Now;
+                }
+            }
+
             MateManager.Instance.RemoveActiveMateAndDespawn(Owner, tlId);
         }
 
@@ -169,7 +173,8 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Connection = connection;
                     command.Transaction = transaction;
 
-                    command.CommandText = "DELETE FROM mates WHERE owner = @owner AND id IN(" + string.Join(",", _removedMates) + ")";
+                    command.CommandText = "DELETE FROM mates WHERE owner = @owner AND id IN(" +
+                                          string.Join(",", _removedMates) + ")";
                     command.Prepare();
                     command.Parameters.AddWithValue("@owner", Owner.Id);
                     command.ExecuteNonQuery();
@@ -184,8 +189,9 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Connection = connection;
                     command.Transaction = transaction;
 
-                    command.CommandText = "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
-                                          "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
+                    command.CommandText =
+                        "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
+                        "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
                     command.Parameters.AddWithValue("@id", value.Id);
                     command.Parameters.AddWithValue("@item_id", value.ItemId);
                     command.Parameters.AddWithValue("@name", value.Name);

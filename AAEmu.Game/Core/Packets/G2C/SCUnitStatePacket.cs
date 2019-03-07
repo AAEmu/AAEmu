@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             else if (_unit is Slave)
             {
                 _type = 2;
-                _modelPostureType = 0;
+                _modelPostureType = 8;
             }
             else if (_unit is House)
             {
@@ -179,21 +179,21 @@ namespace AAEmu.Game.Core.Packets.G2C
                 //        stream.Write(0);
                 //}
             }
-            else if (_unit is Slave)
-            {
-                for (var i = 0; i < 28; i++)
-                {
-                    stream.Write((ulong)0); // id
-                    stream.Write((byte)0); // grade
-                    stream.Write((byte)0); // flags
-                    stream.Write(0); // stackSize
-                    stream.Write((long)0); // creationTime
-                    stream.Write((uint)0); // lifespanMins
-                    stream.Write((uint)0); // type(id)
-                    stream.Write((byte)1); // worldId
-                    stream.Write((ulong)0); // unsecureDateTime
-                }
-            }
+//            else if (_unit is Slave)
+//            {
+//                for (var i = 0; i < 28; i++)
+//                {
+//                    stream.Write((ulong)0); // id
+//                    stream.Write((byte)0); // grade
+//                    stream.Write((byte)0); // flags
+//                    stream.Write(0); // stackSize
+//                    stream.Write((long)0); // creationTime
+//                    stream.Write((uint)0); // lifespanMins
+//                    stream.Write((uint)0); // type(id)
+//                    stream.Write((byte)1); // worldId
+//                    stream.Write((ulong)0); // unsecureDateTime
+//                }
+//            }
             else
                 for (var i = 0; i < 28; i++)
                     stream.Write(0);
@@ -215,6 +215,14 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write((sbyte)-1); // point
                 else
                     stream.Write(character.Bonding);
+            }
+            else if (_unit is Slave)
+            {
+                var slave = (Slave)_unit;
+                if (slave.BondingObjId > 0)
+                    stream.WriteBc(slave.BondingObjId);
+                else
+                    stream.Write((sbyte)-1);
             }
             else
                 stream.Write((sbyte)-1); // point
@@ -243,7 +251,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(false); // isWithered
                     stream.Write(false); // isHarvested
                     break;
-                case 8: // object?
+                case 8: // slave
                     stream.Write(0f); // pitch
                     stream.Write(0f); // yaw
                     break;
