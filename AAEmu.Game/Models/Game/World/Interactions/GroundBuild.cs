@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
                         house.TlId,
                         house.ModelId,
                         house.Template.BuildSteps.Count,
-                        house.CurrentStep
+                        nextStep
                     ),
                     true
                 );
