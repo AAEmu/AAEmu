@@ -1,9 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Housing;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -20,12 +17,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var x = Helpers.ConvertLongX(stream.ReadInt64());
             var y = Helpers.ConvertLongY(stream.ReadInt64());
             var z = stream.ReadSingle();
-            
+
             _log.Debug("ConstructHouseTax");
-
-            HousingManager.Instance.GetTax(Connection.ActiveChar, designId);
-
+            HousingManager.Instance.ConstructHouseTax(Connection, designId, x, y, z);
         }
-        
     }
 }

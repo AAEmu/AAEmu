@@ -1,22 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCHouseStatePacket : GamePacket
     {
-        private readonly HouseData _houseData;
+        private readonly House _house;
         
-        public SCHouseStatePacket(HouseData houseData) : base(SCOffsets.SCHouseStatePacket, 1)
+        public SCHouseStatePacket(House house) : base(SCOffsets.SCHouseStatePacket, 1)
         {
-            _houseData = houseData;
+            _house = house;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_houseData);
-            return stream;
+            return _house.Write(stream);
         }
     }
 }

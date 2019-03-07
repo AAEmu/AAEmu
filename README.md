@@ -7,6 +7,7 @@ Head over to the [wiki](https://github.com/atel0/AAEmu/wiki).
 If you don't find what you're looking for there, [talk to a human](#discussion). Please do not use our issue tracker for support requests.
 
 ### Discussion
+- [Site](https://aaemu.info/)
 - [Forums](https://boards.aaemu.pw/)
 - [Community Discord](https://discord.gg/vn8E8E6)
 

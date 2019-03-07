@@ -348,7 +348,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
             }
 
-            var content = FileManager.GetFileContents("./Data/CharTemplates.json");
+            var content = FileManager.GetFileContents($"{FileManager.AppPath}Data/CharTemplates.json");
             if (string.IsNullOrWhiteSpace(content))
                 throw new IOException(
                     $"File {FileManager.AppPath + "Data/CharTemplates.json"} doesn't exists or is empty.");

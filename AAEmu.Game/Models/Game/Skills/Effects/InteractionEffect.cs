@@ -22,13 +22,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var classType = Type.GetType("AAEmu.Game.Models.Game.World.Interactions." + WorldInteraction);
             if (classType == null)
             {
-                _log.Error("Unknown world interaction: {0}", WorldInteraction);
+                _log.Error("InteractionEffect, Unknown world interaction: {0}", WorldInteraction);
                 return;
             }
 
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
             action.Execute(caster, casterObj, target, targetObj, skill.Template.Id);
-            
+
             if (caster is Character character)
                 character.Quests.OnInteraction(WorldInteraction);
         }

@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.IO;
-using AAEmu.Login.Core.Controllers;
-using AAEmu.Login.Core.Network.Internal;
-using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
 
@@ -21,14 +21,13 @@ namespace AAEmu.Login
         private static DateTime _startTime;
         private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
         private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
-        private static AutoResetEvent _signal = new AutoResetEvent(false);
 
         public static int UpTime => (int) (DateTime.Now - _startTime).TotalSeconds;
 
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             Initialization();
-            
+
             if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
                 Configuration(args);
             else
@@ -48,36 +47,29 @@ namespace AAEmu.Login
 
             connection.Close();
 
-            GameController.Instance.Load();
-            LoginNetwork.Instance.Start();
-            InternalNetwork.Instance.Start();
+            var builder = new HostBuilder()
+                .ConfigureAppConfiguration((hostingContext, config) =>
+                {
+                    config.AddEnvironmentVariables();
 
-            _signal.WaitOne();
+                    if (args != null)
+                    {
+                        config.AddCommandLine(args);
+                    }
+                })
+                .ConfigureServices((hostContext, services) =>
+                {
+                    services.AddOptions();
+                    services.AddSingleton<IHostedService, LoginService>();
+                });
 
-            LoginNetwork.Instance.Stop();
-            InternalNetwork.Instance.Stop();
-
-            LogManager.Flush();
+            await builder.RunConsoleAsync();
         }
 
         private static void Initialization()
         {
             _thread.Name = "AA.LoginServer Base Thread";
             _startTime = DateTime.Now;
-            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
-            {
-                if (e.IsTerminating)
-                {
-                    _log.Fatal((Exception) e.ExceptionObject);
-                    Shutdown();
-                }
-                else
-                {
-                    _log.Error((Exception) e.ExceptionObject);
-                }
-            };
-            AppDomain.CurrentDomain.ProcessExit += (sender, e) => Shutdown();
-            AppDomain.CurrentDomain.DomainUnload += (sender, e) => Shutdown();
         }
 
         private static void Configuration(string[] args)
@@ -90,14 +82,6 @@ namespace AAEmu.Login
             configurationBuilder.Bind(AppConfiguration.Instance);
 
             LogManager.Configuration = new XmlLoggingConfiguration(FileManager.AppPath + "NLog.config", false);
-        }
-
-        public static void Shutdown()
-        {
-            if (_shutdown)
-                return;
-            _shutdown = true;
-            _signal.Set();
         }
     }
 }
