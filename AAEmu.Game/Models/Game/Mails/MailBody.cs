@@ -9,6 +9,7 @@ namespace AAEmu.Game.Models.Game.Mails
         public long Id { get; set; }
         public byte Type { get; set; }
         public string ReceiverName { get; set; }
+        public string Title { get; set; }
         public string Text { get; set; }
         public int MoneyAmount1 { get; set; }
         public int MoneyAmount2 { get; set; }
@@ -23,6 +24,7 @@ namespace AAEmu.Game.Models.Game.Mails
             stream.Write(Id);
             stream.Write(Type);
             stream.Write(ReceiverName);
+            stream.Write(Title);
             stream.Write(Text);
             stream.Write(MoneyAmount1);
             stream.Write(MoneyAmount2);
