@@ -113,7 +113,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         RuneItem = 106,
         GenderChange = 107,
         Unk47 = 108,
-        Unk48 = 109
+        Unk109 = 109,
+        Unk110 = 110,
+        Unk111 = 111,
+        Unk112 = 112,
+        Unk113 = 113,
+        Unk114 = 114,
+        ExitIndun = 115,
+        Unk116 = 116,
+        Unk117 = 117
     }
 
     public class SpecialEffect : EffectTemplate

@@ -260,7 +260,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public const ushort SCSkillsResetPacket = 0x108;
         public const ushort SCAbilitySwappedPacket = 0x109;
         public const ushort SCErrorMsgPacket = 0x10a;
-        public const ushort SCDoodadCreatedPacket = 0x10b;
+        public const ushort SCDoodadCreatedPacket = 0x10c;
         public const ushort SCDoodadRemovedPacket = 0x10d;
         public const ushort SCDoodadChangedPacket = 0x10e;
         public const ushort SCDoodadPhaseChangedPacket = 0x10f;
