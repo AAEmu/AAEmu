@@ -9,8 +9,6 @@ namespace AAEmu.Game.Models.Game.Items
 {
     public class Accessory : EquipItem
     {
-        public override byte DetailType => 1;
-
         public override int Str
         {
             get
@@ -163,7 +161,7 @@ namespace AAEmu.Game.Models.Game.Items
             }
         }
 
-        public sealed override short MaxDurability
+        public sealed override byte MaxDurability
         {
             get
             {
@@ -174,7 +172,7 @@ namespace AAEmu.Game.Models.Game.Items
                           (int)(template.SlotTemplate.Coverage * 100 + 0.5f) * template.KindTemplate.DurabilityRatio *
                           1000 * 1.0e-10f) * ItemManager.Instance.GetDurabilityConst() * grade.Durability;
                 durability = (float)Math.Round(durability * template.DurabilityMultiplier * 0.0099999998f);
-                return (short)durability;
+                return (byte)durability;
             }
         }
 
@@ -185,24 +183,6 @@ namespace AAEmu.Game.Models.Game.Items
         public Accessory(ulong id, ItemTemplate template, int count) : base(id, template, count)
         {
             Durability = MaxDurability;
-        }
-
-        public override void ReadDetails(PacketStream stream)
-        {
-            stream.ReadInt32();
-            Durability = stream.ReadInt16();
-            stream.ReadByte();
-            RuneId = stream.ReadUInt32();
-            stream.ReadBytes(44);
-        }
-
-        public override void WriteDetails(PacketStream stream)
-        {
-            stream.Write(0);
-            stream.Write(Durability);
-            stream.Write((byte)0);
-            stream.Write(RuneId);
-            stream.Write(new byte[44]);
         }
     }
 }
