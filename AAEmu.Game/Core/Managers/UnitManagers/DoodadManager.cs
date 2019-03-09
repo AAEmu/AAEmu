@@ -24,6 +24,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return _templates.ContainsKey(templateId);
         }
 
+        public DoodadTemplate GetTemplate(uint id)
+        {
+            return Exist(id) ? _templates[id] : null;
+        }
+
         public void Load()
         {
             _templates = new Dictionary<uint, DoodadTemplate>();
