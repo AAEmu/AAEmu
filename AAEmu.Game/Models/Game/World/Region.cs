@@ -112,9 +112,14 @@ namespace AAEmu.Game.Models.Game.World
                 for (var i = 0; i < units.Count; i++)
                     character.SendPacket(new SCUnitStatePacket(units[i]));
 
-                var doodads = GetList(new List<Doodad>(), obj.ObjId);
-                if (doodads.Count > 0)
-                    character.SendPacket(new SCDoodadsCreatedPacket(doodads.ToArray()));
+                var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
+                for (var i = 0; i < doodads.Length; i += 30)
+                {
+                    var count = doodads.Length - i;
+                    var temp = new Doodad[count <= 30 ? count : 30];
+                    Array.Copy(doodads, i, temp, 0, temp.Length);
+                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
+                }
 
                 // TODO ... others types...
             }

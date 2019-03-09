@@ -1,4 +1,6 @@
 using System;
+using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -61,7 +63,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public override void AddVisibleObject(Character character)
         {
-            character.SendPacket(new SCDoodadsCreatedPacket(new[] {this}));
+            character.SendPacket(new SCDoodadCreatedPacket(this));
         }
 
         public override void RemoveVisibleObject(Character character)
@@ -73,6 +75,37 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+        }
+
+        public PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(ObjId);
+            stream.Write(TemplateId);
+            stream.WriteBc(OwnerBcId);
+            stream.WriteBc(0);
+            stream.Write((byte)255); // attachPoint
+            stream.Write(Helpers.ConvertX(Position.X));
+            stream.Write(Helpers.ConvertY(Position.Y));
+            stream.Write(Helpers.ConvertZ(Position.Z));
+            stream.Write(Helpers.ConvertRotation(Position.RotationX));
+            stream.Write(Helpers.ConvertRotation(Position.RotationY));
+            stream.Write(Helpers.ConvertRotation(Position.RotationZ));
+            stream.Write(Scale);
+            stream.Write(false); // hasLootItem
+            stream.Write(FuncGroupId); // doodad_func_groups Id
+            stream.Write(OwnerId); // characterId
+            stream.Write((long)0); // type(id)
+            stream.Write(ItemId); // item Id
+            stream.Write(0u); // type(id)
+            stream.Write(TimeLeft); // growing
+            stream.Write(PlantTime);
+            stream.Write(10u); // type(id)?
+            stream.Write(0); // family
+            stream.Write(-1); // puzzleGroup
+            stream.Write((byte)OwnerType); // ownerType
+            stream.Write(0u); // dbHouseId
+            stream.Write(0); // data
+            return stream;
         }
     }
 }
