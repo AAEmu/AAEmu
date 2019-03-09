@@ -42,12 +42,11 @@ namespace AAEmu.Game.Models.Game.Housing
 
         public override void AddVisibleObject(Character character)
         {
-            character.SendPacket(new SCMyHousePacket(this));
-
             character.SendPacket(new SCUnitStatePacket(this));
             // character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
 
-            character.SendPacket(new SCHouseStatePacket(this));
+            if (character.Id != OwnerId)
+                character.SendPacket(new SCHouseStatePacket(this));
 
             // TODO spawn doodads...
         }

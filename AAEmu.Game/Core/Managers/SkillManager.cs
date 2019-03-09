@@ -170,8 +170,8 @@ namespace AAEmu.Game.Core.Managers
                             template.EffectRepeatTick = reader.GetInt32("effect_repeat_tick");
                             template.ActiveWeaponId = reader.GetInt32("active_weapon_id");
                             template.TargetType = (SkillTargetType) reader.GetInt32("target_type_id");
-                            template.TargetSelectionId = reader.GetInt32("target_selection_id");
-                            template.TargetRelationId = reader.GetInt32("target_relation_id");
+                            template.TargetSelection = (SkillTargetSelection)reader.GetInt32("target_selection_id");
+                            template.TargetRelation = (SkillTargetRelation)reader.GetInt32("target_relation_id");
                             template.TargetAreaCount = reader.GetInt32("target_area_count");
                             template.TargetAreaRadius = reader.GetInt32("target_area_radius");
                             template.TargetSiege = reader.GetBoolean("target_siege", true);
