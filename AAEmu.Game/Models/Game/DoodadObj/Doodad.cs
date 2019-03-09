@@ -20,12 +20,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
         public uint FuncGroupId { get; set; }
-        public uint ItemId { get; set; }
+        public ulong ItemId { get; set; }
         public DateTime GrowthTime { get; set; }
         public DateTime PlantTime { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
         public uint OwnerBcId { get; set; }
         public uint OwnerId { get; set; }
+        public uint SlaveObjId { get; set; }
+        public byte AttachPoint { get; set; }
+        public uint DbId { get; set; }
+        public int Data { get; set; }
 
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
@@ -37,6 +41,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _scale = 1f;
             Position = new Point();
             PlantTime = DateTime.MinValue;
+            SlaveObjId = 0;
+            AttachPoint = 255;
+            Data = 0;
         }
 
         public void SetScale(float scale)
@@ -82,8 +89,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(ObjId);
             stream.Write(TemplateId);
             stream.WriteBc(OwnerBcId);
-            stream.WriteBc(0);
-            stream.Write((byte)255); // attachPoint
+            stream.WriteBc(SlaveObjId);
+            stream.Write(AttachPoint); // attachPoint
             stream.Write(Helpers.ConvertX(Position.X));
             stream.Write(Helpers.ConvertY(Position.Y));
             stream.Write(Helpers.ConvertZ(Position.Z));
@@ -94,8 +101,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(false); // hasLootItem
             stream.Write(FuncGroupId); // doodad_func_groups Id
             stream.Write(OwnerId); // characterId
-            stream.Write((long)0); // type(id)
-            stream.Write(ItemId); // item Id
+            stream.Write(ItemId); // type(id)
+            stream.Write(0u); // item Id
             stream.Write(0u); // type(id)
             stream.Write(TimeLeft); // growing
             stream.Write(PlantTime);
@@ -103,8 +110,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(0); // family
             stream.Write(-1); // puzzleGroup
             stream.Write((byte)OwnerType); // ownerType
-            stream.Write(0u); // dbHouseId
-            stream.Write(0); // data
+            stream.Write(DbId); // dbHouseId
+            stream.Write(Data); // data
             return stream;
         }
     }
