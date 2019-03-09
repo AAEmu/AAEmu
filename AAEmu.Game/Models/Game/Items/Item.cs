@@ -15,6 +15,7 @@ namespace AAEmu.Game.Models.Game.Items
         public byte Grade { get; set; }
         public int Count { get; set; }
         public int LifespanMins { get; set; }
+        public uint MadeUnitId { get; set; }
         public DateTime CreateTime { get; set; }
         public DateTime UnsecureTime { get; set; }
         public DateTime UnpackTime { get; set; }
@@ -71,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Items
             WriteDetails(stream);
             stream.Write(CreateTime);
             stream.Write(LifespanMins);
-            stream.Write(0); // type...
+            stream.Write(MadeUnitId);
             stream.Write(WorldId);
             stream.Write(UnsecureTime);
             stream.Write(UnpackTime);

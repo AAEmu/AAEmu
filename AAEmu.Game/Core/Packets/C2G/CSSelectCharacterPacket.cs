@@ -45,6 +45,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Friends.Send();
                 Connection.ActiveChar.Blocked.Send();
 
+                // TODO SCMyHousePacket
+                
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {
                     Connection.SendPacket(

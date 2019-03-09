@@ -271,6 +271,7 @@ namespace AAEmu.Game.Core.Managers
             house.Permission = 2;
             _houses.Add(house.Id, house);
 
+            connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
             house.Spawn();
         }
     }

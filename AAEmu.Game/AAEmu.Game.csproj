@@ -26,6 +26,7 @@
     
     <ItemGroup>
         <Compile Remove="Scripts\**\**" />
+        <Compile Include="Scripts\Commands\TestCombat.cs" />
         <Compile Include="Scripts\Commands\TestSlave.cs">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
