@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -26,6 +27,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var character = Connection.Characters[characterId];
                 character.Load();
                 character.Connection = Connection;
+                var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
 
                 Connection.ActiveChar = character;
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
@@ -35,8 +37,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Inventory.Send();
                 Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
 
-                 Connection.ActiveChar.Quests.Send();
-                 Connection.ActiveChar.Quests.SendCompleted();
+                Connection.ActiveChar.Quests.Send();
+                Connection.ActiveChar.Quests.SendCompleted();
 
                 Connection.ActiveChar.Actability.Send();
                 Connection.ActiveChar.Appellations.Send();
@@ -45,15 +47,18 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Friends.Send();
                 Connection.ActiveChar.Blocked.Send();
 
-                // TODO SCMyHousePacket
-                
+                foreach (var house in houses)
+                    Connection.SendPacket(new SCMyHousePacket(house));
+
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {
                     Connection.SendPacket(
                         new SCConflictZoneStatePacket(
                             conflict.ZoneGroupId,
                             ZoneConflictType.Trouble0,
-                            conflict.NoKillMin[0] > 0 ? DateTime.Now.AddMinutes(conflict.NoKillMin[0]) : DateTime.MinValue
+                            conflict.NoKillMin[0] > 0
+                                ? DateTime.Now.AddMinutes(conflict.NoKillMin[0])
+                                : DateTime.MinValue
                         )
                     );
                 }
@@ -62,7 +67,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 FactionManager.Instance.SendRelations(Connection.ActiveChar);
                 ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
 
-                if (Connection.ActiveChar.Expedition != null) {
+                if (Connection.ActiveChar.Expedition != null)
+                {
                     ExpeditionManager.Instance.SendExpeditionInfo(Connection.ActiveChar);
                 }
 

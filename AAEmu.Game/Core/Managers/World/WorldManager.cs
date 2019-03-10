@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils.DB;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
@@ -22,6 +23,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         private Dictionary<uint, InstanceWorld> _worlds;
         private Dictionary<uint, uint> _worldIdByZoneId;
+        private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
 
         private readonly ConcurrentDictionary<uint, GameObject> _objects;
         private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits;
@@ -43,12 +45,20 @@ namespace AAEmu.Game.Core.Managers.World
             _characters = new ConcurrentDictionary<uint, Character>();
         }
 
+        public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
+        {
+            if (_worldInteractionGroups.ContainsKey(worldInteractionType))
+                return _worldInteractionGroups[worldInteractionType];
+            return null;
+        }
+
         public void Load()
         {
             _log.Info("Loading world data...");
 
             _worlds = new Dictionary<uint, InstanceWorld>();
             _worldIdByZoneId = new Dictionary<uint, uint>();
+            _worldInteractionGroups = new Dictionary<uint, WorldInteractionGroup>();
 
             var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/worlds.json");
             if (string.IsNullOrWhiteSpace(contents))
@@ -159,6 +169,24 @@ namespace AAEmu.Game.Core.Managers.World
                 }
 
                 _log.Info("Heightmaps loaded");
+            }
+
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM wi_group_wis";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var id = reader.GetUInt32("wi_id");
+                            var group = (WorldInteractionGroup)reader.GetUInt32("wi_group_id");
+                            _worldInteractionGroups.Add(id, group);
+                        }
+                    }
+                }
             }
         }
 

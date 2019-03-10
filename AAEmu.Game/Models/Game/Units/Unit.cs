@@ -41,7 +41,7 @@ namespace AAEmu.Game.Models.Game.Units
         public bool ForceAttack { get; set; }
         public bool Invisible { get; set; }
 
-        public Unit Master { get; set; }
+        public uint OwnerId { get; set; }
         public SkillTask SkillTask { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public Expedition Expedition { get; set; }

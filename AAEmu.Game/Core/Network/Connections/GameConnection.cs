@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
@@ -37,14 +38,17 @@ namespace AAEmu.Game.Core.Network.Connections
         public GameState State { get; set; }
         public Character ActiveChar { get; set; }
         public readonly Dictionary<uint, Character> Characters;
-
+        public Dictionary<uint, House> Houses;
+        
         public Task LeaveTask { get; set; }
 
         public GameConnection(Session session)
         {
             _session = session;
-            Characters = new Dictionary<uint, Character>();
             Subscribers = new List<IDisposable>();
+            
+            Characters = new Dictionary<uint, Character>();
+            Houses = new Dictionary<uint, House>();
             Payment = new AccountPayment(this);
         }
 
@@ -97,7 +101,7 @@ namespace AAEmu.Game.Core.Network.Connections
             Subscribers.Add(disposable);
         }
 
-        public void LoadCharacters()
+        public void LoadAccount()
         {
             Characters.Clear();
             using (var connection = MySQL.CreateConnection())
@@ -126,6 +130,9 @@ namespace AAEmu.Game.Core.Network.Connections
                 foreach (var character in Characters.Values)
                     character.Inventory.Load(connection, SlotType.Equipment);
             }
+
+            Houses.Clear();
+            HousingManager.Instance.GetByAccountId(Houses, AccountId);
         }
 
         public void SetDeleteCharacter(uint characterId)

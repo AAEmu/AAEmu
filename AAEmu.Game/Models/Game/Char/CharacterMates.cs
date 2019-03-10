@@ -82,7 +82,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 ObjId = objId,
                 TlId = tlId,
-                Master = Owner,
+                OwnerId = Owner.Id,
                 Name = mateDbInfo.Name,
                 TemplateId = template.Id,
                 Template = template,

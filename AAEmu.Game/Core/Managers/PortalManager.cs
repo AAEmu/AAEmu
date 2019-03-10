@@ -185,7 +185,7 @@ namespace AAEmu.Game.Core.Managers
             var portalUnitModel = new Models.Game.Units.Portal
             {
                 ObjId = ObjectIdManager.Instance.GetNextId(),
-                Master = owner,
+                OwnerId = ((Character)owner).Id,
                 TemplateId = templateId,
                 Template = template,
                 ModelId = template.ModelId,

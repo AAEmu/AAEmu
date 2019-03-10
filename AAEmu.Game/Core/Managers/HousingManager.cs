@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
@@ -18,6 +19,14 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, HousingTemplate> _housingTemplates;
         private Dictionary<uint, House> _houses;
 
+        public Dictionary<uint, House> GetByAccountId(Dictionary<uint, House> values, uint accountId)
+        {
+            foreach (var (id, house) in _houses)
+                if (house.AccountId == accountId)
+                    values.Add(id, house);
+            return values;
+        }
+
         public House Create(uint templateId, uint objectId = 0, ushort tlId = 0)
         {
             if (!_housingTemplates.ContainsKey(templateId))
@@ -32,7 +41,7 @@ namespace AAEmu.Game.Core.Managers
             house.TemplateId = template.Id;
             house.Faction = FactionManager.Instance.GetFaction(1); // TODO frandly
             house.Name = template.Name;
-            house.MaxHp = house.Hp = template.Hp;
+            house.Hp = house.MaxHp;
             house.CurrentStep = -1;
 
             return house;
@@ -184,19 +193,17 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var house = new House();
+                            var templateId = reader.GetUInt32("template_id");
+                            var house = Create(templateId);
                             house.Id = reader.GetUInt32("id");
                             house.AccountId = reader.GetUInt32("account_id");
                             house.OwnerId = reader.GetUInt32("owner");
-                            house.TemplateId = reader.GetUInt32("template_id");
-                            house.Template = _housingTemplates[house.TemplateId];
                             house.Position =
                                 new Point(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"));
                             house.Position.RotationX = reader.GetSByte("rotation_z");
                             house.Position.WorldId = 1;
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.Permission = reader.GetByte("permission");
-
                             _houses.Add(house.Id, house);
                         }
                     }
@@ -234,7 +241,13 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
         }
-        
+
+        public void SpawnAll()
+        {
+            foreach (var house in _houses.Values)
+                house.Spawn();
+        }
+
         public void ConstructHouseTax(GameConnection connection, uint designId, float x, float y, float z)
         {
             // TODO validation position and some range...
@@ -267,7 +280,8 @@ namespace AAEmu.Game.Core.Managers
             house.Position.WorldId = 1;
             house.Position.ZoneId = zoneId;
             house.CurrentStep = 0;
-            house.Master = connection.ActiveChar;
+            house.OwnerId = connection.ActiveChar.Id;
+            house.AccountId = connection.AccountId;
             house.Permission = 2;
             _houses.Add(house.Id, house);
 

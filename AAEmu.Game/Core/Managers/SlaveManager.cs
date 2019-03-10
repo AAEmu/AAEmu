@@ -140,8 +140,8 @@ namespace AAEmu.Game.Core.Managers
                 {
                     ObjId = ObjectIdManager.Instance.GetNextId(),
                     TemplateId = doodadBinding.DoodadId,
-                    OwnerBcId = owner.ObjId,
-                    SlaveObjId = template.ObjId,
+                    OwnerObjId = owner.ObjId,
+                    ParentObjId = template.ObjId,
                     AttachPoint = (byte)doodadBinding.AttachPointId,
                     Position = new Point(0f, 3.204f, 12588.96f, 0, 0, 0),
                     OwnerId = owner.Id,

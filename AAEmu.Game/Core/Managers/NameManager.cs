@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers
         public string GetCharacterName(uint characterId)
         {
             if (_characterNames.ContainsKey(characterId))
-                return _characterNames[characterId];
+                return _characterNames[characterId].FirstCharToUpper();
             return null;
         }
 

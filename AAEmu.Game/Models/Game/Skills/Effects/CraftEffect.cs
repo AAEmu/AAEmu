@@ -1,5 +1,9 @@
 using System;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -18,18 +22,59 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         {
             _log.Debug("CraftEffect, {0}", WorldInteraction);
 
-            var classType = Type.GetType("AAEmu.Game.Models.Game.World.Interactions." + WorldInteraction);
-            if (classType == null)
-            {
-                _log.Error("CraftEffect, Unknown world interaction: {0}", WorldInteraction);
-                return;
-            }
-
-            var action = (IWorldInteraction)Activator.CreateInstance(classType);
-            action.Execute(caster, casterObj, target, targetObj, skill.Template.Id);
-
+            var wiGroup = WorldManager.Instance.GetWorldInteractionGroup((uint)WorldInteraction);
             if (caster is Character character)
+            {
+                switch (wiGroup)
+                {
+                    case WorldInteractionGroup.Craft:
+                        character.Craft.EndCraft();
+                        break;
+                    case WorldInteractionGroup.Collect:
+                        break;
+                    case WorldInteractionGroup.Building: // TODO not done, debug only
+                        if (target is House house)
+                        {
+                            // TODO remove resources...
+
+                            var nextStep = house.CurrentStep + 1;
+                            if (house.Template.BuildSteps.Count > nextStep)
+                                house.CurrentStep = nextStep;
+                            else
+                                house.CurrentStep = -1;
+
+                            // TODO to currStep +1 num action
+                            character.BroadcastPacket(
+                                new SCHouseBuildProgressPacket(
+                                    house.TlId,
+                                    house.ModelId,
+                                    house.Template.BuildSteps.Count,
+                                    nextStep
+                                ),
+                                true
+                            );
+
+                            if (house.CurrentStep == -1)
+                            {
+                                var doodads = house.AttachedDoodads.ToArray();
+                                for (var i = 0; i < doodads.Length; i += 30)
+                                {
+                                    var count = doodads.Length - i;
+                                    var temp = new Doodad[count <= 30 ? count : 30];
+                                    Array.Copy(doodads, i, temp, 0, temp.Length);
+                                    character.BroadcastPacket(new SCDoodadsCreatedPacket(temp), true);
+                                }
+                            }
+                        }
+
+                        break;
+                    default:
+                        _log.Warn("CraftEffect, {0} not have wi group", WorldInteraction);
+                        break;
+                }
+
                 character.Quests.OnInteraction(WorldInteraction);
+            }
         }
     }
 }

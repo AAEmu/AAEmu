@@ -23,10 +23,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public ulong ItemId { get; set; }
         public DateTime GrowthTime { get; set; }
         public DateTime PlantTime { get; set; }
-        public DoodadOwnerType OwnerType { get; set; }
-        public uint OwnerBcId { get; set; }
         public uint OwnerId { get; set; }
-        public uint SlaveObjId { get; set; }
+        public uint OwnerObjId { get; set; }
+        public uint ParentObjId { get; set; }
+        public DoodadOwnerType OwnerType { get; set; }
         public byte AttachPoint { get; set; }
         public uint DbId { get; set; }
         public int Data { get; set; }
@@ -41,9 +41,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _scale = 1f;
             Position = new Point();
             PlantTime = DateTime.MinValue;
-            SlaveObjId = 0;
             AttachPoint = 255;
-            Data = 0;
         }
 
         public void SetScale(float scale)
@@ -88,8 +86,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             stream.WriteBc(ObjId);
             stream.Write(TemplateId);
-            stream.WriteBc(OwnerBcId);
-            stream.WriteBc(SlaveObjId);
+            stream.WriteBc(OwnerObjId);
+            stream.WriteBc(ParentObjId);
             stream.Write(AttachPoint); // attachPoint
             stream.Write(Helpers.ConvertX(Position.X));
             stream.Write(Helpers.ConvertY(Position.Y));
