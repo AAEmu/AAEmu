@@ -40,8 +40,6 @@ namespace AAEmu.Game.Core.Packets.C2G
             var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
             if (doodad == null) // TODO validation || doodad.Template.GroupId == 6)
                 return;
-            
-            Connection.ActiveChar.Mails.SendMail(type, receiverCharName, unkId, title, text, attachments, moneyAmounts, extra, itemSlots.ToArray());
         }
     }
 }

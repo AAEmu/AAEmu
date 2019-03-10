@@ -219,6 +219,28 @@ CREATE TABLE IF NOT EXISTS `skills` (
   `owner` int(11) UNSIGNED NOT NULL,
   PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+CREATE TABLE IF NOT EXISTS `mails` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `type` tinyint(4) NOT NULL,
+  `status` tinyint(4) NOT NULL,
+  `title` varchar(400) NOT NULL,
+  `text` varchar(1600) NOT NULL,
+  `sender_name` varchar(128) NOT NULL,
+  `attachments` tinyint(4) NOT NULL,
+  `receiver_name` varchar(128) NOT NULL,
+  `open_date` datetime NOT NULL,
+  `send_date` datetime NOT NULL,
+  `received_date` datetime NOT NULL,
+  `returned` tinyint(4) NOT NULL,
+  `extra` int(11) unsigned NOT NULL,
+  `money_amount_1` bigint(20) unsigned NOT NULL,
+  `money_amount_2` bigint(20) unsigned NOT NULL,
+  `money_amount_3` bigint(20) unsigned NOT NULL,
+  `items` varchar(45) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
