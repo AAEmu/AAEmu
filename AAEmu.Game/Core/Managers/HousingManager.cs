@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -8,6 +11,7 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -92,6 +96,18 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 _log.Info("Loading Housing Templates...");
+                
+                var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/housing_bindings.json");
+                if (string.IsNullOrWhiteSpace(contents))
+                    throw new IOException(
+                        $"File {FileManager.AppPath}Data/housing_bindings.json doesn't exists or is empty.");
+
+                List<HousingBindingTemplate> binding;
+                if (JsonHelper.TryDeserializeObject(contents, out binding, out _))
+                    _log.Info("Housing bindings loaded...");
+                else
+                    _log.Warn("Housing bindings not loaded...");
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM housings";
@@ -129,6 +145,7 @@ namespace AAEmu.Game.Core.Managers
                             template.IsSellable = reader.GetBoolean("is_sellable", true);
                             _housingTemplates.Add(template.Id, template);
 
+                            var templateBindings = binding.Find(x => x.TemplateId.Contains(template.Id));
                             using (var command2 = connection.CreateCommand())
                             {
                                 command2.CommandText =
@@ -143,7 +160,16 @@ namespace AAEmu.Game.Core.Managers
                                         var bindingDoodad = new HousingBindingDoodad();
                                         bindingDoodad.AttachPointId = reader2.GetUInt32("attach_point_id");
                                         bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
-
+                                        
+                                        if (templateBindings != null && 
+                                            templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
+                                            bindingDoodad.Position = templateBindings
+                                                .AttachPointId[bindingDoodad.AttachPointId].Clone();
+                                        
+                                        if (bindingDoodad.Position == null)
+                                            bindingDoodad.Position = new Point(0, 0, 0);
+                                        bindingDoodad.Position.WorldId = 1;
+                                        
                                         doodads.Add(bindingDoodad);
                                     }
 
@@ -277,6 +303,8 @@ namespace AAEmu.Game.Core.Managers
             var house = Create(designId);
             house.Id = HousingIdManager.Instance.GetNextId();
             house.Position = position;
+            house.Position.RotationZ = MathUtil.ConvertDegreeToDirection(zRot);
+            
             house.Position.WorldId = 1;
             house.Position.ZoneId = zoneId;
             house.CurrentStep = 0;

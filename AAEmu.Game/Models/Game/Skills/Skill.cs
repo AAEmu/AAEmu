@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 using NLog;
@@ -161,6 +162,16 @@ namespace AAEmu.Game.Models.Game.Skills
                 
                 if (caster.ObjId == target.ObjId)
                     return; //TODO отправлять ошибку?
+            }
+            else if (Template.TargetType == SkillTargetType.Pos)
+            {
+                var positionTarget = (SkillCastPositionTarget)targetCaster;
+                var positionUnit = new BaseUnit();
+                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                positionUnit.Position.ZoneId = caster.Position.ZoneId;
+                positionUnit.Position.WorldId = caster.Position.WorldId;
+                positionUnit.Region = caster.Region;
+                target = positionUnit;
             }
             else
             {

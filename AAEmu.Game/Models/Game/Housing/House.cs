@@ -8,7 +8,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -39,9 +38,7 @@ namespace AAEmu.Game.Models.Game.Housing
                     {
                         var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this);
                         doodad.AttachPoint = (byte)bindingDoodad.AttachPointId;
-                        // doodad.Position = new Point(0.02f, 0.374f, 199.88f);
-                        doodad.Position = new Point(0f, 0f, 8391.792f); // TODO ...
-                        doodad.Position.WorldId = 1;
+                        doodad.Position = bindingDoodad.Position.Clone();
 
                         AttachedDoodads.Add(doodad);
                     }
