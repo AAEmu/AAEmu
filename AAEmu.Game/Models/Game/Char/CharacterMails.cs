@@ -23,8 +23,6 @@ namespace AAEmu.Game.Models.Game.Char
         public Character Self { get; set; }
         public Dictionary<long, Tuple<Mail,MailBody,bool>> mail; //mail, body, isSent
 
-        private static Logger log = LogManager.GetCurrentClassLogger();
-
         public CharacterMails(Character self)
         {
             unreadMailCount = new CountUnreadMail
@@ -109,15 +107,9 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (KeyValuePair<long, Tuple<Mail, MailBody, bool>> m in mail)
             {
                 if (m.Value.Item2.OpenDate == DateTime.MinValue && m.Value.Item1.OpenDate > DateTime.MinValue && m.Value.Item3 == false)
-                {
                     tempCommand = "UPDATE mails SET `open_date` = @openDate, `money_amount_1` = @money WHERE `id` = @id";
-                    log.Debug("0: " + m.Value.Item2.OpenDate + " | " + m.Value.Item3);
-                }
                 else if (m.Value.Item2.OpenDate > DateTime.MinValue && m.Value.Item3 == false)
-                {
                     tempCommand = "UPDATE mails SET `money_amount_1` = @money WHERE `id` = @id";
-                    log.Debug("1: " + m.Value.Item2.OpenDate + " | " + m.Value.Item3);
-                }
                 else
                 {
                     tempCommand = "";
