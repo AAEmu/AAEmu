@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
 using MySql.Data.MySqlClient;
-using NLog.Fluent;
+using NLog;
 
 /****TODO****
 * 1. When player reads the mail send a packet to make it show as read in the client mail list.
@@ -22,6 +22,8 @@ namespace AAEmu.Game.Models.Game.Char
         public CountUnreadMail unreadMailCount;
         public Character Self { get; set; }
         public Dictionary<long, Tuple<Mail,MailBody,bool>> mail; //mail, body, isSent
+
+        private static Logger log = LogManager.GetCurrentClassLogger();
 
         public CharacterMails(Character self)
         {
@@ -109,17 +111,17 @@ namespace AAEmu.Game.Models.Game.Char
                 if (m.Value.Item2.OpenDate == DateTime.MinValue && m.Value.Item1.OpenDate > DateTime.MinValue && m.Value.Item3 == false)
                 {
                     tempCommand = "UPDATE mails SET `open_date` = @openDate, `money_amount_1` = @money WHERE `id` = @id";
-                    Log.Debug("0: " + m.Value.Item2.OpenDate + " | " + m.Value.Item3);
+                    log.Debug("0: " + m.Value.Item2.OpenDate + " | " + m.Value.Item3);
                 }
                 else if (m.Value.Item2.OpenDate > DateTime.MinValue && m.Value.Item3 == false)
                 {
                     tempCommand = "UPDATE mails SET `money_amount_1` = @money WHERE `id` = @id";
-                    Log.Debug("1: " + m.Value.Item2.OpenDate + " | " + m.Value.Item3);
+                    log.Debug("1: " + m.Value.Item2.OpenDate + " | " + m.Value.Item3);
                 }
                 else
                 {
                     tempCommand = "";
-                    Log.Debug("2: "+ m.Value.Item2.OpenDate + " | " + m.Value.Item3);
+                    log.Debug("2: "+ m.Value.Item2.OpenDate + " | " + m.Value.Item3);
                 }
                 if (tempCommand != "")
                     using (var command = connection.CreateCommand())
