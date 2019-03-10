@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -40,8 +40,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
             if (doodad == null) // TODO validation || doodad.Template.GroupId == 6)
                 return;
-
-
+            
+            Connection.ActiveChar.Mails.SendMail(type, receiverCharName, unkId, title, text, attachments, moneyAmounts, extra, itemSlots.ToArray());
         }
     }
 }
