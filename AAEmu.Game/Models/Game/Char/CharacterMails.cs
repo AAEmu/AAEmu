@@ -107,9 +107,9 @@ namespace AAEmu.Game.Models.Game.Char
             string tempCommand;
             foreach (KeyValuePair<long, Tuple<Mail, MailBody, bool>> m in mail)
             {
-                if (m.Value.Item2.OpenDate == DateTime.MinValue && m.Value.Item1.OpenDate > DateTime.MinValue && m.Value.Item3 == false)
+                if (m.Value.Item2.OpenDate == DateTime.MinValue && m.Value.Item1.OpenDate > DateTime.MinValue && !m.Value.Item3)
                     tempCommand = "UPDATE mails SET `open_date` = @openDate, `money_amount_1` = @money WHERE `id` = @id";
-                else if (m.Value.Item2.OpenDate > DateTime.MinValue && m.Value.Item3 == false)
+                else if (m.Value.Item2.OpenDate > DateTime.MinValue && !m.Value.Item3)
                     tempCommand = "UPDATE mails SET `money_amount_1` = @money WHERE `id` = @id";
                 else
                     tempCommand = "";
@@ -137,10 +137,7 @@ namespace AAEmu.Game.Models.Game.Char
                     unreadMailCount.Received -= 1;
                     mail[id].Item1.OpenDate = DateTime.UtcNow;
                 }
-                if (isSent)
-                    Self.SendPacket(new SCMailBodyPacket(true, mail[id].Item3, mail[id].Item2, false, unreadMailCount));
-                else
-                    Self.SendPacket(new SCMailBodyPacket(true, mail[id].Item3, mail[id].Item2, true, unreadMailCount));
+                Self.SendPacket(new SCMailBodyPacket(true, mail[id].Item3, mail[id].Item2, !isSent, unreadMailCount));
             }
         }
 
