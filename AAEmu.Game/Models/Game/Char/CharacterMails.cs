@@ -13,6 +13,7 @@ using NLog;
 * 3. Items in mail.
 * 4. Update system to work with persistent and dynamic data instead of the Save()/Load() system right now. (Refer to Nike's housing)
 * 5. Send mail.
+* 6. Read mail does not send mail bodies.
 */
 
 namespace AAEmu.Game.Models.Game.Char
@@ -111,10 +112,7 @@ namespace AAEmu.Game.Models.Game.Char
                 else if (m.Value.Item2.OpenDate > DateTime.MinValue && m.Value.Item3 == false)
                     tempCommand = "UPDATE mails SET `money_amount_1` = @money WHERE `id` = @id";
                 else
-                {
                     tempCommand = "";
-                    log.Debug("2: "+ m.Value.Item2.OpenDate + " | " + m.Value.Item3);
-                }
                 if (tempCommand != "")
                     using (var command = connection.CreateCommand())
                     {
@@ -133,25 +131,22 @@ namespace AAEmu.Game.Models.Game.Char
         public void ReadMail(bool isSent, long id) //click on mail in box
         {
             if (mail.ContainsKey(id))
+            {
                 if (mail[id].Item1.OpenDate == DateTime.MinValue && !isSent)
                 {
                     unreadMailCount.Received -= 1;
                     mail[id].Item1.OpenDate = DateTime.UtcNow;
                 }
+                if (isSent)
+                    Self.SendPacket(new SCMailBodyPacket(true, mail[id].Item3, mail[id].Item2, false, unreadMailCount));
+                else
+                    Self.SendPacket(new SCMailBodyPacket(true, mail[id].Item3, mail[id].Item2, true, unreadMailCount));
+            }
         }
 
         public void CountMail() //When character is spawning
-        {
-            bool openDateModified;
+        {         
             Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
-            foreach (KeyValuePair<long, Tuple<Mail, MailBody, bool>> m in mail)
-            {
-                if (m.Value.Item1.OpenDate == DateTime.MinValue)
-                    openDateModified = false;
-                else
-                    openDateModified = true;
-                Self.SendPacket(new SCMailBodyPacket(true, m.Value.Item3, m.Value.Item2, openDateModified, unreadMailCount));
-            }
         }
 
         public void GetAttachedMoney(long id) //Clicking left attachment button in mail body
