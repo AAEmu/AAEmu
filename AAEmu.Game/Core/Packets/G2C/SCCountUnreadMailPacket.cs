@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly CountUnreadMail _count;
 
-        public SCCountUnreadMailPacket(CountUnreadMail count) : base(0x0110, 1)
+        public SCCountUnreadMailPacket(CountUnreadMail count) : base(SCOffsets.SCCountUnreadMailPacket, 1)
         {
             _count = count;
         }

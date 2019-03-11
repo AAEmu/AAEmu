@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateCharacterPacket : GamePacket
     {
-        public CSCreateCharacterPacket() : base(0x021, 1)
+        public CSCreateCharacterPacket() : base(0x022, 1)
         {
         }
 

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly SkillCaster _skillCaster;
         
-        public SCNotifyResurrectionPacket(SkillCaster skillCaster) : base(0x03c, 1)
+        public SCNotifyResurrectionPacket(SkillCaster skillCaster) : base(SCOffsets.SCNotifyResurrectionPacket, 1)
         {
             _skillCaster = skillCaster;
         }

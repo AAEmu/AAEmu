@@ -1,11 +1,12 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCancelTradePacket : GamePacket
     {
-        public CSCancelTradePacket() : base(0x0ec, 1)
+        public CSCancelTradePacket() : base(0x0ef, 1)
         {
         }
 
@@ -14,6 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var reason = stream.ReadInt32();
             
             _log.Warn("CancelTrade, Reason: {0}", reason);
+            TradeManager.Instance.CancelTrade(Connection.ActiveChar.ObjId, reason);
         }
     }
 }

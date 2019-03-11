@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSkipFinalStatementPacket : GamePacket
     {
-        public CSSkipFinalStatementPacket() : base(0x06e, 1)
+        public CSSkipFinalStatementPacket() : base(0x070, 1)
         {
         }
 

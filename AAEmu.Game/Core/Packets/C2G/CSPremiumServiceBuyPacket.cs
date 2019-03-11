@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSPremiumServiceBuyPacket : GamePacket
     {
-        public CSPremiumServiceBuyPacket() : base(0x131, 1)
+        public CSPremiumServiceBuyPacket() : base(0x135, 1)
         {
         }
 

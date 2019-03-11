@@ -1,15 +1,15 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
     public class ItemMove : ItemTask
     {
-        private SlotType _fromSlotType;
-        private byte _fromSlot;
-        private ulong _fromItemId;
-        private SlotType _toSlotType;
-        private byte _toSlot;
-        private ulong _toItemId;
+        private readonly SlotType _fromSlotType;
+        private readonly byte _fromSlot;
+        private readonly ulong _fromItemId;
+        private readonly SlotType _toSlotType;
+        private readonly byte _toSlot;
+        private readonly ulong _toItemId;
 
         public ItemMove(SlotType fromSlotType, byte fromSlot, ulong fromItemId, SlotType toSlotType, byte toSlot, ulong toItemId)
         {
@@ -26,15 +26,11 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         {
             base.Write(stream);
 
-            stream.Write((byte) 0); // v
-            stream.Write((byte) _fromSlotType); // v
-            stream.Write((byte) 0); // v
-            stream.Write(_fromSlot); // v
+            stream.Write((byte)_fromSlotType);
+            stream.Write(_fromSlot);
 
-            stream.Write((byte) 0); // v
-            stream.Write((byte) _toSlotType); // v
-            stream.Write((byte) 0); // v
-            stream.Write(_toSlot); // v
+            stream.Write((byte)_toSlotType);
+            stream.Write(_toSlot);
 
             stream.Write(_fromItemId);
             stream.Write(_toItemId); // i2

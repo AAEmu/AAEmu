@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNaviOpenBountyPacket : GamePacket
     {
-        public CSNaviOpenBountyPacket() : base(0x0e7, 1)
+        public CSNaviOpenBountyPacket() : base(0x0ea, 1)
         {
         }
 

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly AbilityType _ability;
 
-        public SCSkillsResetPacket(uint objId, AbilityType ability) : base(0x102, 1)
+        public SCSkillsResetPacket(uint objId, AbilityType ability) : base(SCOffsets.SCSkillsResetPacket, 1)
         {
             _objId = objId;
             _ability = ability;

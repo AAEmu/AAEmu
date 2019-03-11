@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _unitId;
         
-        public SCUnitPortalUsedPacket(uint unitId) : base(0x05b, 1)
+        public SCUnitPortalUsedPacket(uint unitId) : base(SCOffsets.SCUnitPortalUsedPacket, 1)
         {
             _unitId = unitId;
         }

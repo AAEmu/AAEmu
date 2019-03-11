@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Chat;
 
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly short _subType;
         private readonly uint _factionId;
 
-        public SCJoinedChatChannelPacket(ChatType type, short subType, uint factionId) : base(0x0c4, 1)
+        public SCJoinedChatChannelPacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCJoinedChatChannelPacket, 1)
         {
             _type = type;
             _subType = subType;

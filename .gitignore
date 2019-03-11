@@ -15,3 +15,4 @@ AAEmu.Game/Data/Worlds/*/hmap.dat
 AAEmu.Game/Config.json
 AAEmu.Login/Config.json
 publish/
+*.old

@@ -57,17 +57,18 @@ namespace AAEmu.Game.Core.Managers
 
         public void SendStatusChange(Character owner, bool isOnline)
         {
+            if (_allFriends.Count <= 0) return;
             foreach (var (_, value) in _allFriends)
             {
                 if (value.FriendId != owner.Id) continue;
 
                 var friendOwner = WorldManager.Instance.GetCharacterById(value.Owner);
-                if (friendOwner != null)
-                {
-                    var myInfos = FormatFriend(owner);
-                    myInfos.IsOnline = isOnline;
-                    friendOwner.SendPacket(new SCFriendStatusChangedPacket(myInfos));
-                }
+                if (friendOwner == null)
+                    continue;
+
+                var myInfos = FormatFriend(owner);
+                myInfos.IsOnline = isOnline;
+                friendOwner.SendPacket(new SCFriendStatusChangedPacket(myInfos));
             }
         }
 
@@ -151,7 +152,7 @@ namespace AAEmu.Game.Core.Managers
             return friendInfo.Count > 0 ? GetFriendInfo(new List<uint> { friendId })[0] : null;
         }
 
-        private Friend FormatFriend(Character friend)
+        private static Friend FormatFriend(Character friend)
         {
             return new Friend()
             {

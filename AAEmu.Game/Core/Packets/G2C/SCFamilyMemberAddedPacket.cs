@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Family _family;
         private readonly int _addedIndex;
         
-        public SCFamilyMemberAddedPacket(Family family, int addedIndex) : base(0x02c, 1)
+        public SCFamilyMemberAddedPacket(Family family, int addedIndex) : base(SCOffsets.SCFamilyMemberAddedPacket, 1)
         {
             _family = family;
             _addedIndex = addedIndex;

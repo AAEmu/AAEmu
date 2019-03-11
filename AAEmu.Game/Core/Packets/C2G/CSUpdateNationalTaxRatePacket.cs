@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUpdateNationalTaxRatePacket : GamePacket
     {
-        public CSUpdateNationalTaxRatePacket() : base(0x012, 1)
+        public CSUpdateNationalTaxRatePacket() : base(0x013, 1)
         {
         }
 

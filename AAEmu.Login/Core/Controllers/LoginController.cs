@@ -48,14 +48,14 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastIp = connection.Ip;
 
                         connection.SendPacket(new ACJoinResponsePacket(0, 6));
-                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId));
+                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
                     }
                 }
             }
         }
 
         /// <summary>
-        /// Ru Method Auth
+        /// Eu Method Auth
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="username"></param>
@@ -90,7 +90,7 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastIp = connection.Ip;
 
                         connection.SendPacket(new ACJoinResponsePacket(0, 6));
-                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId));
+                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
                     }
                 }
             }
@@ -111,7 +111,7 @@ namespace AAEmu.Login.Core.Controllers
             {
                 var parentId = GameController.Instance.GetParentId(gsId);
                 if (parentId != null)
-                    gsId = (byte) parentId;
+                    gsId = (byte)parentId;
                 else
                 {
                     // TODO ...
@@ -129,7 +129,7 @@ namespace AAEmu.Login.Core.Controllers
             {
                 connection.AccountId = accountId;
                 connection.SendPacket(new ACJoinResponsePacket(0, 6));
-                connection.SendPacket(new ACAuthResponsePacket(connection.AccountId));
+                connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
             }
             else
             {

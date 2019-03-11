@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly long _mailId;
         private readonly byte _status;
 
-        public SCMailStatusUpdatedPacket(bool isSent, long mailId, byte status) : base(0x11c, 1)
+        public SCMailStatusUpdatedPacket(bool isSent, long mailId, byte status) : base(SCOffsets.SCMailStatusUpdatedPacket, 1)
         {
             _isSent = isSent;
             _mailId = mailId;

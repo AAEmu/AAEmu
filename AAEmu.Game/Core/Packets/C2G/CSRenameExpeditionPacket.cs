@@ -13,8 +13,9 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var id = stream.ReadUInt32(); // type(id)
             var name = stream.ReadString();
-
-            _log.Debug("RenameExpedition, Id: {0}, Name: {1}", id, name);
+            var isExpedition = stream.ReadBoolean();
+            
+            _log.Debug("RenameExpedition, Id: {0}, Name: {1}, IsExpedition: {2}", id, name, isExpedition);
         }
     }
 }

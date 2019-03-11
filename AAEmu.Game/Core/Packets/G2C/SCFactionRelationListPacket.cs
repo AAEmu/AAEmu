@@ -8,12 +8,12 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly FactionRelation[] _relations;
 
-        public SCFactionRelationListPacket() : base(0x007, 1)
+        public SCFactionRelationListPacket() : base(0x008, 1)
         {
             _relations = new FactionRelation[] { };
         }
 
-        public SCFactionRelationListPacket(FactionRelation[] relations) : base(0x007, 1)
+        public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 1)
         {
             _relations = relations;
         }
@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(false); // uiRequest
-            stream.Write((byte) _relations.Length);
+            stream.Write((byte) _relations.Length); // TODO max length 200
             foreach (var relation in _relations)
             {
                 stream.Write(relation.Id);

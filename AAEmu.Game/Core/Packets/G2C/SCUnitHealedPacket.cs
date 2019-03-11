@@ -12,7 +12,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _type;
         private readonly int _value;
         
-        public SCUnitHealedPacket(CastAction castAction, SkillCaster skillCaster, uint targetId, byte type, int value) : base(0x0a1, 1)
+        public SCUnitHealedPacket(CastAction castAction, SkillCaster skillCaster, uint targetId, byte type, int value) 
+            : base(SCOffsets.SCUnitHealedPacket, 1)
         {
             _castAction = castAction;
             _skillCaster = skillCaster;

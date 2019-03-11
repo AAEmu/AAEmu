@@ -9,7 +9,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -24,6 +23,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         private Dictionary<uint, InstanceWorld> _worlds;
         private Dictionary<uint, uint> _worldIdByZoneId;
+        private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
 
         private readonly ConcurrentDictionary<uint, GameObject> _objects;
         private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits;
@@ -45,10 +45,18 @@ namespace AAEmu.Game.Core.Managers.World
             _characters = new ConcurrentDictionary<uint, Character>();
         }
 
+        public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
+        {
+            if (_worldInteractionGroups.ContainsKey(worldInteractionType))
+                return _worldInteractionGroups[worldInteractionType];
+            return null;
+        }
+
         public void Load()
         {
             _worlds = new Dictionary<uint, InstanceWorld>();
             _worldIdByZoneId = new Dictionary<uint, uint>();
+            _worldInteractionGroups = new Dictionary<uint, WorldInteractionGroup>();
 
             _log.Info("Loading world data...");
 
@@ -134,21 +142,21 @@ namespace AAEmu.Game.Core.Managers.World
                             if (hMapCellX == world.CellX && hMapCellY == world.CellY)
                             {
                                 for (var cellX = 0; cellX < world.CellX; cellX++)
-                                    for (var cellY = 0; cellY < world.CellY; cellY++)
+                                for (var cellY = 0; cellY < world.CellY; cellY++)
+                                {
+                                    if (br.ReadBoolean())
+                                        continue;
+                                    for (var i = 0; i < 16; i++)
+                                    for (var j = 0; j < 16; j++)
+                                    for (var x = 0; x < 32; x++)
+                                    for (var y = 0; y < 32; y++)
                                     {
-                                        if (br.ReadBoolean())
-                                            continue;
-                                        for (var i = 0; i < 16; i++)
-                                            for (var j = 0; j < 16; j++)
-                                                for (var x = 0; x < 32; x++)
-                                                    for (var y = 0; y < 32; y++)
-                                                    {
-                                                        var sx = cellX * 512 + i * 32 + x;
-                                                        var sy = cellY * 512 + j * 32 + y;
+                                        var sx = cellX * 512 + i * 32 + x;
+                                        var sy = cellY * 512 + j * 32 + y;
 
-                                                        world.HeightMaps[sx, sy] = br.ReadUInt16();
-                                                    }
+                                        world.HeightMaps[sx, sy] = br.ReadUInt16();
                                     }
+                                }
                             }
                             else
                                 _log.Warn("{0}: Invalid heightmap cells...", world.Name);
@@ -164,6 +172,24 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             #endregion
+
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM wi_group_wis";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var id = reader.GetUInt32("wi_id");
+                            var group = (WorldInteractionGroup)reader.GetUInt32("wi_group_id");
+                            _worldInteractionGroups.Add(id, group);
+                        }
+                    }
+                }
+            }
         }
 
         public InstanceWorld GetWorld(uint worldId)
@@ -197,7 +223,15 @@ namespace AAEmu.Game.Core.Managers.World
 
         public Region GetRegion(GameObject obj)
         {
-            return GetRegion(obj.Position.ZoneId, obj.Position.X, obj.Position.Y);
+            InstanceWorld world;
+            if (obj.Position.Relative)
+            {
+                world = GetWorld(obj.WorldPosition.WorldId);
+                return GetRegion(world, obj.WorldPosition.X, obj.WorldPosition.Y);
+            }
+
+            world = GetWorld(obj.Position.WorldId);
+            return GetRegion(world, obj.Position.X, obj.Position.Y);
         }
 
         public Region GetRegion(Point point)
@@ -434,9 +468,24 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
+        public void BroadcastPacketToServer(GamePacket packet)
+        {
+            foreach (var character in _characters.Values)
+            {
+                character.SendPacket(packet);
+            }
+        }
+
         private Region GetRegion(uint zoneId, float x, float y)
         {
             var world = GetWorldByZone(zoneId);
+            var sx = (int)(x / REGION_SIZE);
+            var sy = (int)(y / REGION_SIZE);
+            return world.GetRegion(sx, sy);
+        }
+
+        private Region GetRegion(InstanceWorld world, float x, float y)
+        {
             var sx = (int)(x / REGION_SIZE);
             var sy = (int)(y / REGION_SIZE);
             return world.GetRegion(sx, sy);

@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -20,7 +21,8 @@ namespace AAEmu.Game.Core.Managers
 {
     public class PortalManager : Singleton<PortalManager>
     {
-        private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+        private readonly Logger _log = LogManager.GetCurrentClassLogger();
+        
         private Dictionary<uint, uint> _allDistrictPortalsKey;
         private Dictionary<uint, Portal> _allDistrictPortals;
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
@@ -31,9 +33,9 @@ namespace AAEmu.Game.Core.Managers
             return _allDistrictPortals.ContainsKey(subZoneId) ? _allDistrictPortals[subZoneId] : null;
         }
 
-        public Portal GetPortalById(uint Id)
+        public Portal GetPortalById(uint id)
         {
-            return _allDistrictPortalsKey.ContainsKey(Id) ? (_allDistrictPortals.ContainsKey(_allDistrictPortalsKey[Id]) ? _allDistrictPortals[_allDistrictPortalsKey[Id]] : null) : null;
+            return _allDistrictPortalsKey.ContainsKey(id) ? (_allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id]) ? _allDistrictPortals[_allDistrictPortalsKey[id]] : null) : null;
         }
 
         public void Load()
@@ -118,23 +120,21 @@ namespace AAEmu.Game.Core.Managers
 
         }
 
-        private bool CheckItemAndRemove(Character owner, uint itemId, int amount)
+        private static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
         {
-            if (owner.Inventory.CheckItems(itemId, amount))
+            if (!owner.Inventory.CheckItems(itemId, amount)) return false;
+
+            var items = owner.Inventory.RemoveItem(itemId, amount);
+            var tasks = new List<ItemTask>();
+            foreach (var (item, count) in items)
             {
-                var items = owner.Inventory.RemoveItem(itemId, amount);
-                var tasks = new List<ItemTask>();
-                foreach (var (item, count) in items)
-                {
-                    if (item.Count == 0)
-                        tasks.Add(new ItemRemove(item));
-                    else
-                        tasks.Add(new ItemCountUpdate(item, -count));
-                }
-                owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, tasks, new List<ulong>()));
-                return true;
+                if (item.Count == 0)
+                    tasks.Add(new ItemRemove(item));
+                else
+                    tasks.Add(new ItemCountUpdate(item, -count));
             }
-            return false;
+            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Teleport, tasks, new List<ulong>()));
+            return true;
         }
 
         private bool CheckCanOpenPortal(Character owner, uint targetZoneId)
@@ -159,59 +159,69 @@ namespace AAEmu.Game.Core.Managers
             return false; // Not enough items
         }
 
-        private void MakePortal(Character owner, bool isExit, Portal portalInfo)
+        private static void MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
-            var portalLocation = new Point
+            var portalPointDestination = new Point
             {
-                // TODO - Add distance to portal
                 X = portalInfo.X,
                 Y = portalInfo.Y,
                 Z = portalInfo.Z,
                 ZoneId = portalInfo.ZoneId,
-                RotationZ = Helpers.ConvertRotation(Convert.ToInt16(portalInfo.ZRot))
+                RotationZ = Helpers.ConvertRotation(Convert.ToInt16(portalInfo.ZRot)),
+                WorldId = WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id
+            };
+            var portalPointLocation = new Point
+            {
+                X = portalEffectObj.X,
+                Y = portalEffectObj.Y,
+                Z = portalEffectObj.Z,
+                ZoneId = owner.Position.ZoneId,
+                RotationZ = owner.Position.RotationZ,
+                WorldId = owner.Position.WorldId
             };
             var templateId = isExit ? 6949u : 3891u; // TODO - better way? maybe not hardcoded
             var template = NpcManager.Instance.GetTemplate(templateId);
             var portalUnitModel = new Models.Game.Units.Portal
             {
                 ObjId = ObjectIdManager.Instance.GetNextId(),
-                Master = owner,
+                OwnerId = ((Character)owner).Id,
                 TemplateId = templateId,
                 Template = template,
                 ModelId = template.ModelId,
                 Faction = owner.Faction, // INFO - FactionManager.Instance.GetFaction(template.FactionId)
                 Level = template.Level,
-                Position = isExit ? portalLocation : owner.Position.Clone(),
+                Position = isExit ? portalPointDestination : portalPointLocation,
                 Name = portalInfo.Name,
-                Hp = 862, // BUG - portal.MaxHp does not work
+                Hp = 955, // BUG - portal.MaxHp does not work 1.0
                 Mp = 290, // TODO - portal.MaxMp
-                TeleportPosition = portalLocation
+                TeleportPosition = portalPointDestination
             };
             portalUnitModel.Spawn();
         }
 
-        public void OpenPortal(Character owner, SkillObjectUnk1 obj)
+        public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)
         {
-            var portalInfo = owner.Portals.GetPortalInfo(obj.Id);
-            if (CheckCanOpenPortal(owner, portalInfo.ZoneId))
-            {
-                MakePortal(owner, false, portalInfo);   // Entrance (green)
-                MakePortal(owner, true, portalInfo);    // Exit (yellow)
-            }
+            var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
+            if (!CheckCanOpenPortal(owner, portalInfo.ZoneId)) return;
+
+            MakePortal(owner, false, portalInfo, portalEffectObj);   // Entrance (green)
+            MakePortal(owner, true, portalInfo, portalEffectObj);    // Exit (yellow)
         }
 
         public void UsePortal(Character character, uint objId)
         {
             // TODO - Cooldown between portals
-            // TODO - Reason, ErrorMessage
             var portalInfo = (Models.Game.Units.Portal)WorldManager.Instance.GetNpc(objId);
             if (portalInfo == null) return;
 
             character.DisabledSetPosition = true;
-            character.BroadcastPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.X,
-                portalInfo.TeleportPosition.Y, portalInfo.TeleportPosition.Z, portalInfo.TeleportPosition.RotationZ), true);
+            // TODO - UnitPortalUsed
+            // TODO - Maybe need unitstate?
+            // TODO - Reason, ErrorMessage
+            character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.X,
+                portalInfo.TeleportPosition.Y, portalInfo.TeleportPosition.Z, portalInfo.TeleportPosition.RotationZ));
         }
 
         public void DeletePortal(Character owner, byte type, uint id)

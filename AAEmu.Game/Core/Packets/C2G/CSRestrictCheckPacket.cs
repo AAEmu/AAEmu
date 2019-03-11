@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRestrictCheckPacket : GamePacket
     {
-        public CSRestrictCheckPacket() : base(0x116, 1)
+        public CSRestrictCheckPacket() : base(0x11a, 1)
         {
         }
 

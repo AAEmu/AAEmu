@@ -41,6 +41,12 @@ namespace AAEmu.Game.Models.Game.NPChar
         public override Npc Spawn(uint objId)
         {
             var npc = NpcManager.Instance.Create(objId, UnitId);
+            if (npc == null)
+            {
+                _log.Warn("Npc {0}, from spawn not exist at db", UnitId);
+                return null;
+            }
+            
             npc.Spawner = this;
             npc.Position = Position.Clone();
             if (npc.Position == null)

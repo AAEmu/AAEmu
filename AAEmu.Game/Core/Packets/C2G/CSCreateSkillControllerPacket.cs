@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateSkillControllerPacket : GamePacket
     {
-        public CSCreateSkillControllerPacket() : base(0x08a, 1)
+        public CSCreateSkillControllerPacket() : base(0x08b, 1)
         {
         }
 
@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var scType = stream.ReadByte();
             var fallDamageImmune = stream.ReadBoolean();
 
-            _log.Debug("CreateSkillController, Type: {0}", scType);
+            _log.Debug("CreateSkillController, objId: {0}, scType: {1}, fallDamageImmune: {2}", objId, scType, fallDamageImmune);
         }
     }
 }

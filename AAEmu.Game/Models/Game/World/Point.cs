@@ -2,6 +2,7 @@ namespace AAEmu.Game.Models.Game.World
 {
     public class Point
     {
+        public uint WorldId { get; set; }
         public uint ZoneId { get; set; }
         public float X { get; set; }
         public float Y { get; set; }
@@ -9,6 +10,7 @@ namespace AAEmu.Game.Models.Game.World
         public sbyte RotationX { get; set; }
         public sbyte RotationY { get; set; }
         public sbyte RotationZ { get; set; }
+        public bool Relative { get; set; }
 
         public Point()
         {
@@ -39,8 +41,10 @@ namespace AAEmu.Game.Models.Game.World
             Z = z;
         }
 
-        public Point(uint zoneId, float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        public Point(uint worldId, uint zoneId, float x, float y, float z,
+            sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {
+            WorldId = worldId;
             ZoneId = zoneId;
             X = x;
             Y = y;
@@ -52,7 +56,7 @@ namespace AAEmu.Game.Models.Game.World
 
         public Point Clone()
         {
-            return new Point(ZoneId, X, Y, Z, RotationX, RotationY, RotationZ);
+            return new Point(WorldId, ZoneId, X, Y, Z, RotationX, RotationY, RotationZ);
         }
     }
 }

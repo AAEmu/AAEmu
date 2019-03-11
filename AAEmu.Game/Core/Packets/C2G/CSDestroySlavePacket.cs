@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDestroySlavePacket : GamePacket
     {
-        public CSDestroySlavePacket() : base(0x02e, 1)
+        public CSDestroySlavePacket() : base(0x030, 1)
         {
         }
 

@@ -1,5 +1,5 @@
-﻿using System;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
@@ -11,7 +11,8 @@ namespace AAEmu.Game.Models.Game.Skills
         Unk3 = 3,
         Unk4 = 4,
         Unk5 = 5,
-        Unk6 = 6
+        Unk6 = 6,
+        ItemGradeEnchantingSupport = 7
     }
 
     public class SkillObject : PacketMarshaler
@@ -47,6 +48,9 @@ namespace AAEmu.Game.Models.Game.Skills
                 case SkillObjectType.Unk6:
                     obj = new SkillObjectUnk6();
                     break;
+                case SkillObjectType.ItemGradeEnchantingSupport:
+                    obj = new SkillObjectItemGradeEnchantingSupport();
+                    break;
                 default:
                     obj = new SkillObject();
                     break;
@@ -60,12 +64,18 @@ namespace AAEmu.Game.Models.Game.Skills
     public class SkillObjectUnk1 : SkillObject
     {
         public byte Type { get; set; }
-        public uint Id { get; set; }
+        public int Id { get; set; }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Z { get; set; }
 
         public override void Read(PacketStream stream)
         {
             Type = stream.ReadByte();
-            Id = stream.ReadUInt32();
+            Id = stream.ReadInt32();
+            X = Helpers.ConvertLongX(stream.ReadInt64());
+            Y = Helpers.ConvertLongX(stream.ReadInt64());
+            Z = stream.ReadSingle();
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -73,6 +83,9 @@ namespace AAEmu.Game.Models.Game.Skills
             base.Write(stream);
             stream.Write(Type);
             stream.Write(Id);
+            stream.Write(Helpers.ConvertLongX(X));
+            stream.Write(Helpers.ConvertLongX(Y));
+            stream.Write(Z);
             return stream;
         }
     }
@@ -116,22 +129,22 @@ namespace AAEmu.Game.Models.Game.Skills
     
     public class SkillObjectUnk4 : SkillObject
     {
-        public long Id { get; set; }
-        public long Y { get; set; }
+        public float X { get; set; }
+        public float Y { get; set; }
         public float Z { get; set; }
 
         public override void Read(PacketStream stream)
         {
-            Id = stream.ReadInt64();
-            Y = stream.ReadInt64();
+            X = Helpers.ConvertLongX(stream.ReadInt64());
+            Y = Helpers.ConvertLongY(stream.ReadInt64());
             Z = stream.ReadSingle();
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(Id);
-            stream.Write(Y);
+            stream.Write(Helpers.ConvertLongX(X));
+            stream.Write(Helpers.ConvertLongY(Y));
             stream.Write(Z);
             return stream;
         }
@@ -167,6 +180,29 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             base.Write(stream);
             stream.Write(Name);
+            return stream;
+        }
+    }
+
+    public class SkillObjectItemGradeEnchantingSupport : SkillObject
+    {
+        public uint Id { get; set; }
+        public ulong SupportItemId { get; set; }
+        public bool AutoUseAaPoint { get; set; }
+
+        public override void Read(PacketStream stream)
+        {
+            Id = stream.ReadUInt32();
+            SupportItemId = stream.ReadUInt64();
+            AutoUseAaPoint = stream.ReadBoolean();
+        }
+
+        public override PacketStream Write(PacketStream stream)
+        {
+            base.Write(stream);
+            stream.Write(Id);
+            stream.Write(SupportItemId);
+            stream.Write(AutoUseAaPoint);
             return stream;
         }
     }

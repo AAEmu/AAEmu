@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeHouseNamePacket : GamePacket
     {
-        public CSChangeHouseNamePacket() : base(0x057, 1)
+        public CSChangeHouseNamePacket() : base(0x059, 1) //TODO 1.0 opcode: 0x057
         {
         }
 

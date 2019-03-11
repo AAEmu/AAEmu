@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 
 namespace AAEmu.Commons.Utils
@@ -53,7 +54,7 @@ namespace AAEmu.Commons.Utils
             if (time < _unixDate)
                 return 0;
             var timeSpan = (time - _unixDate);
-            return (long) timeSpan.TotalSeconds;
+            return (long)timeSpan.TotalSeconds;
         }
 
         public static DateTime UnixTime(long time)
@@ -64,18 +65,18 @@ namespace AAEmu.Commons.Utils
         public static long UnixTimeNow()
         {
             var timeSpan = (DateTime.Now - _unixDate);
-            return (long) timeSpan.TotalSeconds;
+            return (long)timeSpan.TotalSeconds;
         }
 
         public static long UnixTimeNowInMilli()
         {
             var timeSpan = (DateTime.Now - _unixDate);
-            return (long) timeSpan.TotalMilliseconds;
+            return (long)timeSpan.TotalMilliseconds;
         }
 
         public static float ConvertX(byte[] coords)
         {
-            return (float) Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
+            return (float)Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
         }
 
         public static byte[] ConvertX(float x)
@@ -92,7 +93,7 @@ namespace AAEmu.Commons.Utils
 
         public static float ConvertY(byte[] coords)
         {
-            return (float) Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
+            return (float)Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
         }
 
         public static byte[] ConvertY(float y)
@@ -109,7 +110,7 @@ namespace AAEmu.Commons.Utils
 
         public static float ConvertZ(byte[] coords)
         {
-            return (float) Math.Round(coords[0] * 0.001f + coords[1] * 0.2561f + coords[2] * 65.5625f - 100, 4,
+            return (float)Math.Round(coords[0] * 0.001f + coords[1] * 0.2561f + coords[2] * 65.5625f - 100, 4,
                 MidpointRounding.ToEven);
         }
 
@@ -117,11 +118,11 @@ namespace AAEmu.Commons.Utils
         {
             var coords = new byte[3];
             var temp = z + 100;
-            coords[2] = (byte) (temp / 65.5625f);
+            coords[2] = (byte)(temp / 65.5625f);
             temp -= coords[2] * 65.5625f;
-            coords[1] = (byte) (temp / 0.2561);
+            coords[1] = (byte)(temp / 0.2561);
             temp -= coords[1] * 0.2561f;
-            coords[0] = (byte) (temp / 0.001);
+            coords[0] = (byte)(temp / 0.001);
             return coords;
         }
 
@@ -132,7 +133,7 @@ namespace AAEmu.Commons.Utils
 
         public static long ConvertLongX(float x)
         {
-            return (long) (x * 4096) << 32;
+            return (long)(x * 4096) << 32;
         }
 
         public static float ConvertLongY(long y)
@@ -142,25 +143,50 @@ namespace AAEmu.Commons.Utils
 
         public static long ConvertLongY(float y)
         {
-            return (long) (y * 4096) << 32;
+            return (long)(y * 4096) << 32;
         }
 
         public static short ConvertRotation(sbyte rotation)
         {
-            return (short) (rotation * 0.0078740157f / 0.000030518509f);
+            return (short)(rotation * 0.0078740157f / 0.000030518509f);
         }
 
         public static sbyte ConvertRotation(short rotation)
         {
-            return (sbyte) (rotation * 0.000030518509f / 0.0078740157f);
+            return (sbyte)(rotation * 0.000030518509f / 0.0078740157f);
         }
-        
+
         public static byte[] StringToByteArray(string hex)
         {
             return Enumerable.Range(0, hex.Length)
                 .Where(x => x % 2 == 0)
                 .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
                 .ToArray();
+        }
+
+        public static byte[] ConvertIp(string ip)
+        {
+            var result = IPAddress.Parse(ip);
+            return result.GetAddressBytes().Reverse().ToArray();
+        }
+
+        public static byte Crc8(byte[] data, int size)
+        {
+            var len = size;
+            uint checksum = 0;
+            for (var i = 0; i <= len - 1; i++)
+            {
+                checksum *= 0x13;
+                checksum += data[i];
+            }
+
+            return (byte)(checksum);
+        }
+
+        public static byte Crc8(byte[] data)
+        {
+            var size = data.Length;
+            return Crc8(data, size);
         }
     }
 }

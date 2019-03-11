@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCompleteQuestContextPacket : GamePacket
     {
-        public CSCompleteQuestContextPacket() : base(0x0d2, 1)
+        public CSCompleteQuestContextPacket() : base(0x0d6, 1)
         {
         }
 

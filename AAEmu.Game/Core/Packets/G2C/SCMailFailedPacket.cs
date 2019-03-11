@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly (SlotType slotType, byte slot)[] _items;
         private readonly bool _money;
 
-        public SCMailFailedPacket(byte err, (SlotType slotType, byte slot)[] items, bool money) : base(0x10f, 1)
+        public SCMailFailedPacket(byte err, (SlotType slotType, byte slot)[] items, bool money) : base(SCOffsets.SCMailFailedPacket, 1)
         {
             _err = err;
             _items = items;
@@ -22,9 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_err);
             foreach (var (slotType, slot) in _items) // TODO 10 items
             {
-                stream.Write((byte)0);
                 stream.Write((byte)slotType);
-                stream.Write((byte)0);
                 stream.Write(slot);
             }
 

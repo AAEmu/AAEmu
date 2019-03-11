@@ -11,7 +11,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly DateTime _payStart;
         private readonly DateTime _payEnd;
 
-        public SCAccountInfoPacket(int payMethod, int payLocation, DateTime payStart, DateTime payEnd) : base(0x1b8, 1)
+        public SCAccountInfoPacket(int payMethod, int payLocation, DateTime payStart, DateTime payEnd)
+            : base(SCOffsets.SCAccountInfoPacket, 1)
         {
             _payMethod = payMethod;
             _payLocation = payLocation;
@@ -25,6 +26,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_payLocation);
             stream.Write(_payStart);
             stream.Write(_payEnd);
+            stream.Write((long)0); // realPayTime
             return stream;
         }
     }

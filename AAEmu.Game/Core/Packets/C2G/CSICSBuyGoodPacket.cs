@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSICSBuyGoodPacket : GamePacket
     {
-        public CSICSBuyGoodPacket() : base(0x119, 1)
+        public CSICSBuyGoodPacket() : base(0x11d, 1)
         {
         }
 

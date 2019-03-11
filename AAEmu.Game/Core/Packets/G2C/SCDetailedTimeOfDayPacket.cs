@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _start;
         private readonly float _end;
 
-        public SCDetailedTimeOfDayPacket(float time) : base(0x0ea, 1)
+        public SCDetailedTimeOfDayPacket(float time) : base(SCOffsets.SCDetailedTimeOfDayPacket, 1)
         {
             _time = time;
             _speed = 0.0016666f;

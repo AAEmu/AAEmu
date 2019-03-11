@@ -7,12 +7,12 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCNationalMonumentChangedPacket : GamePacket
     {
         private readonly ushort _id;
-        private readonly int _type; // TODO id?
+        private readonly long _type; // TODO id?
         private readonly float _x;
         private readonly float _y;
         private readonly float _z;
         
-        public SCNationalMonumentChangedPacket(ushort id, int type, float x, float y, float z) : base(0x01f, 1)
+        public SCNationalMonumentChangedPacket(ushort id, long type, float x, float y, float z) : base(SCOffsets.SCNationalMonumentChangedPacket, 1)
         {
             _id = id;
             _type = type;

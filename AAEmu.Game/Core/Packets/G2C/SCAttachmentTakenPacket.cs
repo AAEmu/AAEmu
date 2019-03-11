@@ -9,15 +9,17 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly long _mailId;
         private readonly bool _money;
         private readonly bool _aaPoint;
+        private readonly bool _takeSequentially;
         private readonly ulong[] _itemsId;
         private readonly (SlotType slotType, byte slot)[] _itemSlots;
 
-        public SCAttachmentTakenPacket(long mailId, bool money, bool aaPoint, ulong[] itemsId, (SlotType slotType, byte slot)[] itemSlots) 
-            : base(0x117, 1)
+        public SCAttachmentTakenPacket(long mailId, bool money, bool aaPoint, bool takeSequentially,
+            ulong[] itemsId, (SlotType slotType, byte slot)[] itemSlots) : base(SCOffsets.SCAttachmentTakenPacket, 1)
         {
             _mailId = mailId;
             _money = money;
             _aaPoint = aaPoint;
+            _takeSequentially = takeSequentially;
             _itemsId = itemsId;
             _itemSlots = itemSlots;
         }
@@ -27,12 +29,11 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_mailId);
             stream.Write(_money);
             stream.Write(_aaPoint);
+            stream.Write(_takeSequentially);
             stream.Write((byte)_itemsId.Length);
             foreach (var (slotType, slot) in _itemSlots) // TODO 10 items
             {
-                stream.Write((byte)0);
                 stream.Write((byte)slotType);
-                stream.Write((byte)0);
                 stream.Write(slot);
             }
 

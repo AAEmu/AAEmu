@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly uint _buffId;
 
-        public SCBuffLearnedPacket(uint objId, uint buffId) : base(0x101, 1)
+        public SCBuffLearnedPacket(uint objId, uint buffId) : base(SCOffsets.SCBuffLearnedPacket, 1)
         {
             _objId = objId;
             _buffId = buffId;

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _id;
 
-        public SCDoodadRemovedPacket(uint id) : base(0x107, 1)
+        public SCDoodadRemovedPacket(uint id) : base(SCOffsets.SCDoodadRemovedPacket, 1)
         {
             _id = id;
         }

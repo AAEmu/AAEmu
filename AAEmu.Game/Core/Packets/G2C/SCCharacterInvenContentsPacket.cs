@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Item[] _items;
 
         public SCCharacterInvenContentsPacket(SlotType type, byte numChunks, byte startChunkIdx, Item[] items)
-            : base(0x047, 1)
+            : base(SCOffsets.SCCharacterInvenContentsPacket, 1)
         {
             _type = type;
             _numChunks = numChunks;

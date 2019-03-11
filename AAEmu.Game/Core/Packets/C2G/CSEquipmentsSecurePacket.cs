@@ -5,12 +5,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEquipmentsSecurePacket : GamePacket
     {
-        public CSEquipmentsSecurePacket() : base(0x04a, 1)
+        public CSEquipmentsSecurePacket() : base(0x04c, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            // Empty struct
             _log.Warn("EquipmentsSecure");
         }
     }

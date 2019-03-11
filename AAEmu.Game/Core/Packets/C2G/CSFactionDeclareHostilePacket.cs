@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFactionDeclareHostilePacket : GamePacket
     {
-        public CSFactionDeclareHostilePacket() : base(0x018, 1)
+        public CSFactionDeclareHostilePacket() : base(0x019, 1)
         {
         }
 

@@ -8,14 +8,19 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly SystemFaction[] _factions;
 
-        public SCFactionListPacket() : base(0x006, 1)
+        public SCFactionListPacket() : base(0x007, 1)
         {
             _factions = new SystemFaction[] { };
         }
 
-        public SCFactionListPacket(SystemFaction[] factions) : base(0x006, 1)
+        public SCFactionListPacket(SystemFaction[] factions) : base(SCOffsets.SCFactionListPacket, 1)
         {
             _factions = factions;
+        }
+
+        public SCFactionListPacket(SystemFaction faction) : base(SCOffsets.SCFactionListPacket, 1)
+        {
+            _factions = new SystemFaction[] {faction};
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -33,6 +38,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(faction.PoliticalSystem);
                 stream.Write(faction.Created);
                 stream.Write(faction.DiplomacyTarget);
+                stream.Write((byte)0); // allowChangeName
             }
 
             return stream;

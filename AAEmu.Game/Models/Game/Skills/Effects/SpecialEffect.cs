@@ -1,9 +1,21 @@
-using System;
+﻿using System;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using Quartz.Impl.AdoJobStore;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
+    public interface ISpecialEffect
+    {
+        void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+            Skill skill, SkillObject skillObject, DateTime time, int Value1, int Value2, int Value3, int Value4);
+    }
+
     public enum SpecialType
     {
         BuffApply = 1,
@@ -54,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         Unk22 = 57,
         Unk23 = 58,
         Unk24 = 59,
-        Unk25 = 60,
+        SlaveCall = 60,
         Unk26 = 61,
         Unk27 = 63,
         CouponReceive = 64,
@@ -84,7 +96,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         Arrest = 89,
         PetRecall = 90,
         CreateCharacterCount = 91,
-        Unk43 = 92,
+        ItemGradeEnchanting = 92,
         PlayMusic = 93,
         StopMusic = 94,
         WashItem = 95,
@@ -101,9 +113,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         RuneItem = 106,
         GenderChange = 107,
         Unk47 = 108,
-        Unk48 = 109
+        Unk109 = 109,
+        Unk110 = 110,
+        Unk111 = 111,
+        Unk112 = 112,
+        Unk113 = 113,
+        Unk114 = 114,
+        ExitIndun = 115,
+        Unk116 = 116,
+        Unk117 = 117
     }
-    
+
     public class SpecialEffect : EffectTemplate
     {
         public SpecialType SpecialEffectTypeId { get; set; } // TODO inspect
@@ -117,7 +137,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             Skill skill, SkillObject skillObject, DateTime time)
         {
-            _log.Debug("SpecialEffect");
+            _log.Debug("SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}", SpecialEffectTypeId, Value1, Value2, Value3, Value4);
+
+            var classType = Type.GetType("AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects." + SpecialEffectTypeId);
+            if (classType == null)
+            {
+                _log.Error("Unknown special effect: {0}", SpecialEffectTypeId);
+                return;
+            }
+
+            var action = (ISpecialEffect)Activator.CreateInstance(classType);
+            action.Execute(caster, casterObj, target, targetObj, castObj, skill, skillObject, time, Value1, Value2, Value3, Value4);
         }
     }
 }

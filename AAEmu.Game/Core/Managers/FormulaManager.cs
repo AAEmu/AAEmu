@@ -16,6 +16,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<FormulaOwnerType, Dictionary<UnitFormulaKind, UnitFormula>> _unitFormulas;
         private Dictionary<WearableFormulaType, WearableFormula> _wearableFormulas;
+        private Dictionary<uint, Formula> _formulas;
 
         private Dictionary<uint, Dictionary<UnitFormulaVariableType, Dictionary<uint, UnitFormulaVariable>>>
             _unitVariables;
@@ -42,6 +43,10 @@ namespace AAEmu.Game.Core.Managers
             return _wearableFormulas.ContainsKey(type) ? _wearableFormulas[type] : null;
         }
 
+        public Formula GetFormula(uint id) {
+            return _formulas.ContainsKey(id) ? _formulas[id] : null;
+        }
+
         public void Load()
         {
             // TODO Funcs: min, max, clamp, if_zero, if_positive, if_negative, floor, log, sqrt
@@ -57,6 +62,7 @@ namespace AAEmu.Game.Core.Managers
             _wearableFormulas = new Dictionary<WearableFormulaType, WearableFormula>();
             _unitVariables =
                 new Dictionary<uint, Dictionary<UnitFormulaVariableType, Dictionary<uint, UnitFormulaVariable>>>();
+            _formulas = new Dictionary<uint, Formula>();
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -127,6 +133,26 @@ namespace AAEmu.Game.Core.Managers
                             };
                             if (formula.Prepare())
                                 _wearableFormulas.Add(formula.Type, formula);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * from formulas";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var formula = new Formula
+                            {
+                                Id = reader.GetUInt32("id"),
+                                TextFormula = reader.GetString("formula")
+                            };
+                            if (formula.Prepare())
+                                _formulas.Add(formula.Id, formula);
                         }
                     }
                 }

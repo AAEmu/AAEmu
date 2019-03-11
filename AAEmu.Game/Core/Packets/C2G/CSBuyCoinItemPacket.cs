@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBuyCoinItemPacket : GamePacket
     {
-        public CSBuyCoinItemPacket() : base(0x0ab, 1)
+        public CSBuyCoinItemPacket() : base(0x0af, 1)
         {
         }
 

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _r;
         private readonly bool _s;
         
-        public SCTeamAreaInvitedPacket(uint r, bool s) : base(0x0de, 1)
+        public SCTeamAreaInvitedPacket(uint r, bool s) : base(SCOffsets.SCTeamAreaInvitedPacket, 1)
         {
             _r = r;
             _s = s;

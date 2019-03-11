@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTryQuestCompleteAsLetItDonePacket : GamePacket
     {
-        public CSTryQuestCompleteAsLetItDonePacket() : base(0x0d9, 1)
+        public CSTryQuestCompleteAsLetItDonePacket() : base(0x0dd, 1)
         {
         }
 

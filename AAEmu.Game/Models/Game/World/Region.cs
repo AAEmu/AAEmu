@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
 
@@ -50,6 +51,7 @@ namespace AAEmu.Game.Models.Game.World
                 _objects[_objectsSize] = obj;
                 _objectsSize++;
 
+                obj.Position.WorldId = _worldId;
                 var zoneId = WorldManager.Instance.GetZoneId(_worldId, obj.Position.X, obj.Position.Y);
                 if (zoneId > 0)
                     obj.Position.ZoneId = zoneId;
@@ -109,11 +111,21 @@ namespace AAEmu.Game.Models.Game.World
 
                 var units = GetList(new List<Unit>(), obj.ObjId);
                 for (var i = 0; i < units.Count; i++)
-                    character.SendPacket(new SCUnitStatePacket(units[i]));
+                {
+                    if (units[i] is House house)
+                        house.AddVisibleObject(character);
+                    else
+                        character.SendPacket(new SCUnitStatePacket(units[i]));
+                }
 
-                var doodads = GetList(new List<Doodad>(), obj.ObjId);
-                if (doodads.Count > 0)
-                    character.SendPacket(new SCDoodadsCreatedPacket(doodads.ToArray()));
+                var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
+                for (var i = 0; i < doodads.Length; i += 30)
+                {
+                    var count = doodads.Length - i;
+                    var temp = new Doodad[count <= 30 ? count : 30];
+                    Array.Copy(doodads, i, temp, 0, temp.Length);
+                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
+                }
 
                 // TODO ... others types...
             }

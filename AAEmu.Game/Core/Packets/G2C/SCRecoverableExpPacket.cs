@@ -7,12 +7,14 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _objId;
         private readonly int _recoverableExp;
+        private readonly int _penaltiedExp;
         private readonly int _reason;
         
-        public SCRecoverableExpPacket(uint objId, int recoverableExp, int reason) : base(0x0fa, 1)
+        public SCRecoverableExpPacket(uint objId, int recoverableExp, int penaltiedExp, int reason) : base(SCOffsets.SCRecoverableExpPacket, 1)
         {
             _objId = objId;
             _recoverableExp = recoverableExp;
+            _penaltiedExp = penaltiedExp;
             _reason = reason;
         }
 
@@ -20,6 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.WriteBc(_objId);
             stream.Write(_recoverableExp);
+            stream.Write(_penaltiedExp);
             stream.Write(_reason);
             return stream;
         }
