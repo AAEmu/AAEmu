@@ -119,6 +119,15 @@ namespace AAEmu.Game.Core.Network.Game
                         stream2.ReadUInt16(); //len
                         stream2.ReadByte(); //unk
                         var level = stream2.ReadByte();
+                        
+                        byte crc = 0;
+                        byte counter = 0;
+                        if (level == 1)
+                        {
+                            crc = stream2.ReadByte(); // TODO 1.2 crc
+                            counter = stream2.ReadByte(); // TODO 1.2 counter
+                        }
+                        
                         var type = stream2.ReadUInt16();
                         _packets[level].TryGetValue(type, out var classType);
                         if(classType == null)

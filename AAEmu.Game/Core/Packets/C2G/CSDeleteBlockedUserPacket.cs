@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeleteBlockedUserPacket : GamePacket
     {
-        public CSDeleteBlockedUserPacket() : base(0x105, 1)
+        public CSDeleteBlockedUserPacket() : base(0x108, 1)
         {
         }
 
@@ -14,6 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var name = stream.ReadString();
 
             _log.Warn("CSDeleteBlockedUserPacket, {0}", name);
+            Connection.ActiveChar.Blocked.RemoveBlockedUser(name);
         }
     }
 }

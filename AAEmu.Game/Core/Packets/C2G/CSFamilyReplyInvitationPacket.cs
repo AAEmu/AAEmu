@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFamilyReplyInvitationPacket : GamePacket
     {
-        public CSFamilyReplyInvitationPacket() : base(0x01a, 1)
+        public CSFamilyReplyInvitationPacket() : base(0x01b, 1) //TODO : 1.0 opcode: 0x01a
         {
         }
 

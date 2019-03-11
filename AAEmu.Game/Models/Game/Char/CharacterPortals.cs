@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Char
                 if (PrivatePortals.ContainsKey(portal.Id) && PrivatePortals.Remove(portal.Id))
                 {
                     _removedPrivatePortals.Add(portal.Id);
-                    Owner.SendMessage("Recorded Portal deleted.");
+                    //Owner.SendMessage("Recorded Portal deleted.");
                 }
             }
             else
@@ -50,7 +50,7 @@ namespace AAEmu.Game.Models.Game.Char
                 if (VisitedDistricts.ContainsKey(portal.SubZoneId) && VisitedDistricts.Remove(portal.SubZoneId))
                 {
                     _removedVisitedDistricts.Add(portal.SubZoneId);
-                    Owner.SendMessage("Default Portal deleted.");
+                    //Owner.SendMessage("Default Portal deleted.");
                 }
             }
         }

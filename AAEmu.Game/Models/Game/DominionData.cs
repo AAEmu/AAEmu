@@ -31,6 +31,8 @@ namespace AAEmu.Game.Models.Game
         public uint ObjId { get; set; }
         public DominionTerritoryData TerritoryData { get; set; }
         public DominionSiegeTimers Timers { get; set; } // TODO mb not correct namings
+        public DateTime NonPvPStart { get; set; }
+        public ushort NonPvPDuration { get; set; }
         
         public override PacketStream Write(PacketStream stream)
         {
@@ -58,6 +60,9 @@ namespace AAEmu.Game.Models.Game
             stream.Write(NationalMonumentZ);
             stream.WriteBc(ObjId);
             stream.Write(TerritoryData);
+            stream.Write(Timers);
+            stream.Write(NonPvPStart);
+            stream.Write(NonPvPDuration);
             return stream;
         }
     }

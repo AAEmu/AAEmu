@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetOverHeadMarkerPacket : GamePacket
     {
-        public CSSetOverHeadMarkerPacket() : base(0x085, 1)
+        public CSSetOverHeadMarkerPacket() : base(0x086, 1)
         {
         }
 

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetLogicDoodadPacket : GamePacket
     {
-        public CSSetLogicDoodadPacket() : base(0x0f3, 1)
+        public CSSetLogicDoodadPacket() : base(0x0f6, 1)
         {
         }
 

@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSExpressEmotionPacket : GamePacket
     {
-        public CSExpressEmotionPacket() : base(0x0a9, 1)
+        public CSExpressEmotionPacket() : base(0x0ad, 1)
         {
         }
 
@@ -15,7 +15,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var obj2Id = stream.ReadBc();
             var emotionId = stream.ReadUInt32();
 
-            _log.Warn("ExpressEmotion, ObjId: {0}, Obj2Id: {1}, EmotionId: {2}", objId, obj2Id, emotionId);
+            //_log.Warn("ExpressEmotion, ObjId: {0}, Obj2Id: {1}, EmotionId: {2}", objId, obj2Id, emotionId);
+            // TODO - verify ids
+            Connection.ActiveChar.BroadcastPacket(new SCEmotionExpressedPacket(objId, obj2Id, emotionId), true);
         }
     }
 }

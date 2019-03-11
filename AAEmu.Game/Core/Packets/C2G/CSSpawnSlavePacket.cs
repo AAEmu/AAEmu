@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSpawnSlavePacket : GamePacket
     {
-        public CSSpawnSlavePacket() : base(0x02c, 1)
+        public CSSpawnSlavePacket() : base(0x02e, 1)
         {
         }
 
@@ -20,6 +20,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var zRot = stream.ReadSingle();
             var itemId = stream.ReadUInt64();
 
+            // TODO : check this part with nikes
             stream.ReadByte();
             var slotType = (SlotType)stream.ReadByte();
             stream.ReadByte();

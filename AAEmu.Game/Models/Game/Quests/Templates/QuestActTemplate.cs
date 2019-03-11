@@ -1,11 +1,13 @@
-using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Char;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates
 {
     public abstract class QuestActTemplate
     {
+        public static Logger _log = LogManager.GetCurrentClassLogger();
         public uint Id { get; set; }
 
-        public abstract bool Use(Unit unit, int objective);
+        public abstract bool Use(Character character, Quest quest, int objective);
     }
 }

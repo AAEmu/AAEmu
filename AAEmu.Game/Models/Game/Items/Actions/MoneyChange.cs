@@ -1,10 +1,10 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
     public class MoneyChange : ItemTask
     {
-        private int _amount { get; set; }
+        private readonly int _amount;
 
         public MoneyChange(int amount)
         {

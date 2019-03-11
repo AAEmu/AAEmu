@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartDuelPacket : GamePacket
     {
-        public CSStartDuelPacket() : base(0x04f, 1)
+        public CSStartDuelPacket() : base(0x051, 1)
         {
         }
 

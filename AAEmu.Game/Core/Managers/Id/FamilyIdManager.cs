@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers.Id
 
         public static FamilyIdManager Instance => _instance ?? (_instance = new FamilyIdManager());
 
-        public FamilyIdManager() : base("FamilyIdManager", FirstId, LastId, ObjTables, Exclude)
+        public FamilyIdManager() : base("FamilyIdManager", FirstId, LastId, ObjTables, Exclude, true)
         {
         }
     }

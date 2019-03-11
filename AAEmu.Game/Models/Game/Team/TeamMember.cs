@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Team
             stream.Write(Helpers.ConvertX(Position.X));
             stream.Write(Helpers.ConvertX(Position.Y));
             stream.Write(Helpers.ConvertZ(Position.Z));
-            stream.Write(MathUtil.ConvertDirectionToDegree(Position.RotationZ)); // zRot
+            stream.Write(MathUtil.ConvertDirectionToDegree(Position.RotationZ)); // angZ
             stream.Write(Ability1);
             stream.Write(Ability2);
             stream.Write(Ability3);

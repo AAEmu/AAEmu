@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly CharacterVisualOptions _visualOptions;
 
-        public SCUnitVisualOptionsPacket(uint id, CharacterVisualOptions visualOptions) : base(0x1c1, 1)
+        public SCUnitVisualOptionsPacket(uint id, CharacterVisualOptions visualOptions) : base(SCOffsets.SCUnitVisualOptionsPacket, 1)
         {
             _id = id;
             _visualOptions = visualOptions;

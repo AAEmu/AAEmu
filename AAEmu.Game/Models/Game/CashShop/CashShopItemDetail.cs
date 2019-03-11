@@ -16,7 +16,8 @@ namespace AAEmu.Game.Models.Game.CashShop
         public byte PriceType { get; set; }
         public int Price { get; set; }
         public int DisPrice { get; set; }
-        public int Bonus { get; set; }
+        public int BonusType { get; set; }
+        public int BonusCount { get; set; }
 
         public override PacketStream Write(PacketStream stream)
         {
@@ -31,7 +32,8 @@ namespace AAEmu.Game.Models.Game.CashShop
             stream.Write(PriceType);
             stream.Write(Price);
             stream.Write(DisPrice);
-            stream.Write(Bonus);
+            stream.Write(BonusType);
+            stream.Write(BonusCount);
             return stream;
         }
     }

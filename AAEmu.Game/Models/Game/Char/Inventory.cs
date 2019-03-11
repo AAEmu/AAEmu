@@ -92,6 +92,7 @@ namespace AAEmu.Game.Models.Game.Char
                         item.Slot = reader.GetInt32("slot");
                         item.Count = reader.GetInt32("count");
                         item.LifespanMins = reader.GetInt32("lifespan_mins");
+                        item.MadeUnitId = reader.GetUInt32("made_unit_id");
                         item.UnsecureTime = reader.GetDateTime("unsecure_time");
                         item.UnpackTime = reader.GetDateTime("unpack_time");
                         item.CreateTime = reader.GetDateTime("created_at");
@@ -171,9 +172,9 @@ namespace AAEmu.Game.Models.Game.Char
                     item.WriteDetails(details);
 
                     command.CommandText = "REPLACE INTO " +
-                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`)" +
+                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`,`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`)" +
                                           " VALUES " +
-                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@unsecure_time,@unpack_time,@owner,@created_at,@grade)";
+                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@made_unit_id,@unsecure_time,@unpack_time,@owner,@created_at,@grade)";
 
                     command.Parameters.AddWithValue("@id", item.Id);
                     command.Parameters.AddWithValue("@type", item.GetType().ToString());
@@ -183,6 +184,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@count", item.Count);
                     command.Parameters.AddWithValue("@details", details.GetBytes());
                     command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
+                    command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
                     command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
                     command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
                     command.Parameters.AddWithValue("@created_at", item.CreateTime);
@@ -236,6 +238,9 @@ namespace AAEmu.Game.Models.Game.Char
                 Items[item.Slot] = item;
 
                 _freeSlot = CheckFreeSlot(SlotType.Inventory);
+
+                if (item.Template.LootQuestId > 0)
+                    Owner.Quests.OnItemGather(item, item.Count);
 
                 return item;
             }
@@ -317,6 +322,15 @@ namespace AAEmu.Game.Models.Game.Char
             return count == 0;
         }
 
+        public int GetItemsCount(uint templateId)
+        {
+            var count = 0;
+            foreach (var item in Items)
+                if (item != null && item.TemplateId == templateId)
+                    count += item.Count;
+            return count;
+        }
+
         public void Move(ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
             if (count < 0)
@@ -389,6 +403,19 @@ namespace AAEmu.Game.Models.Game.Char
                     }), false);
         }
 
+        public bool TakeoffBackpack()
+        {
+            Item backpack = GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+            if (backpack == null) return true;
+
+            // Move to first available slot
+            var slot = CheckFreeSlot(SlotType.Inventory);
+            if (slot == -1) return false;
+
+            Move(backpack.Id, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack, 0, SlotType.Inventory, (byte)slot, 1);
+            return true;
+        }
+
         public Item GetItem(ulong id)
         {
             foreach (var item in Equip)
@@ -437,6 +464,23 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             return item;
+        }
+
+        public int CountFreeSlots(SlotType type)
+        {
+            var slot = 0;
+            if (type == SlotType.Inventory)
+            {
+                for (int i = 0; i < Owner.NumInventorySlots; i++)
+                    if (Items[i] == null) slot++;
+            }
+            else if (type == SlotType.Bank)
+            {
+                for (int i = 0; i < Owner.NumBankSlots; i++)
+                    if (Bank[i] == null) slot++;
+            }
+
+            return slot;
         }
 
         public int CheckFreeSlot(SlotType type)

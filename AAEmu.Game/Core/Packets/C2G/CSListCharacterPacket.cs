@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
@@ -9,12 +9,16 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListCharacterPacket : GamePacket
     {
-        public CSListCharacterPacket() : base(0x01f, 1)
+        public CSListCharacterPacket() : base(0x020, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            var size = stream.ReadInt32(); // TODO max size 4096
+            var data = stream.ReadBytes(); // TODO or string?
+
+            Connection.SendPacket(new SCGetSlotCountPacket(0));
             Connection.SendPacket(
                 new SCAccountInfoPacket(
                     (int)Connection.Payment.Method,
@@ -24,19 +28,19 @@ namespace AAEmu.Game.Core.Packets.C2G
                 )
             );
 
-            Connection.LoadCharacters();
+            Connection.LoadAccount();
 
             var characters = Connection.Characters.Values.ToArray();
 
-            foreach (var character in characters)
-            {
-                Connection.SendPacket(
-                    new SCResponseUIDataPacket(character.Id, character.Name, "character_option", character.GetOption("character_option"))
-                );
-                Connection.SendPacket(
-                    new SCResponseUIDataPacket(character.Id, character.Name, "key_binding", character.GetOption("key_binding"))
-                );
-            }
+//            foreach (var character in characters)
+//            {
+//                Connection.SendPacket(
+//                    new SCResponseUIDataPacket(character.Id, character.Name, "character_option", character.GetOption("character_option"))
+//                );
+//                Connection.SendPacket(
+//                    new SCResponseUIDataPacket(character.Id, character.Name, "key_binding", character.GetOption("key_binding"))
+//                );
+//            }
 
             Connection.SendPacket(new SCRaceCongestionPacket());
 
@@ -50,6 +54,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                     Array.Copy(characters, i, temp, 0, temp.Length);
                     Connection.SendPacket(new SCCharacterListPacket(last, temp));
                 }
+
+            var houses = Connection.Houses.Values.ToArray();
+            foreach (var house in houses)
+                Connection.SendPacket(new SCLoginCharInfoHouse(house.OwnerId, house));
         }
     }
 }

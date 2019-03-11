@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeleteFriendPacket : GamePacket
     {
-        public CSDeleteFriendPacket() : base(0x102, 1)
+        public CSDeleteFriendPacket() : base(0x105, 1) // 0x102
         {
         }
 
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var name = stream.ReadString();
 
-            _log.Debug("CSDeleteFriendPacket, {0}", name);
+            _log.Info("CSDeleteFriendPacket, {0}", name);
             Connection.ActiveChar.Friends.RemoveFriend(name);
         }
     }

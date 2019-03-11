@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFamilyInviteMemberPacket : GamePacket
     {
-        public CSFamilyInviteMemberPacket() : base(0x019, 1)
+        public CSFamilyInviteMemberPacket() : base(0x01a, 1) //TODO 1.0 opcode 0x019
         {
         }
 

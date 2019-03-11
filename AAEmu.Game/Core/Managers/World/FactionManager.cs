@@ -25,6 +25,11 @@ namespace AAEmu.Game.Core.Managers.World
             return null;
         }
 
+        public void AddFaction(SystemFaction faction) {
+            if (!_systemFactions.ContainsKey(faction.Id))
+                _systemFactions.Add(faction.Id, faction);
+        }
+
         public void Load()
         {
             _systemFactions = new Dictionary<uint, SystemFaction>();

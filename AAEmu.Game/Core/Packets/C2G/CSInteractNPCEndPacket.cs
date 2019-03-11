@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSInteractNPCEndPacket : GamePacket
     {
-        public CSInteractNPCEndPacket() : base(0x064, 1)
+        public CSInteractNPCEndPacket() : base(0x066, 1)
         {
         }
 

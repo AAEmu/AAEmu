@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _token;
 
-        public SCReconnectAuthPacket(uint token) : base(0x001, 1)
+        public SCReconnectAuthPacket(uint token) : base(SCOffsets.SCReconnectAuthPacket, 1)
         {
             _token = token;
         }

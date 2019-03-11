@@ -48,13 +48,15 @@ namespace AAEmu.Game.Models.Game.Skills
         private uint _plotId;
         private ushort _tlId;
         private uint _eventId;
+        private uint _skillId;
 
-        public CastPlot(uint plotId, ushort tlId, uint eventId)
+        public CastPlot(uint plotId, ushort tlId, uint eventId, uint skillId)
         {
             Type = CastType.Plot;
             _plotId = plotId;
             _tlId = tlId;
             _eventId = eventId;
+            _skillId = skillId;
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -63,6 +65,7 @@ namespace AAEmu.Game.Models.Game.Skills
             stream.Write(_plotId); // type(id)
             stream.Write(_tlId);
             stream.Write(_eventId); // type(id)
+            stream.Write(_skillId); // type(id)
             return stream;
         }
     }

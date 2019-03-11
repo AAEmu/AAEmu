@@ -38,6 +38,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     character.InstanceId = world.Id; // TODO all instances are sys now
                     character.WorldPosition = character.Position.Clone();
                     character.Position = world.SpawnPosition.Clone();
+                    character.Position.WorldId = world.Id;
                 }
                 else
                     _log.Warn("World #.{0}, not have default spawn position.", world.Id);

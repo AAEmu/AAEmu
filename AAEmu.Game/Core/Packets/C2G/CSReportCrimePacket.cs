@@ -5,12 +5,13 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReportCrimePacket : GamePacket
     {
-        public CSReportCrimePacket() : base(0x074, 1)
+        public CSReportCrimePacket() : base(0x076, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
+            // TODO find what the unknowns are
             var objId = stream.ReadBc();
             var unkId = stream.ReadUInt32();
             var unk2Id = stream.ReadUInt32();

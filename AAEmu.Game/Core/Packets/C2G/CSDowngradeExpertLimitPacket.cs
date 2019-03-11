@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDowngradeExpertLimitPacket : GamePacket
     {
-        public CSDowngradeExpertLimitPacket() : base(0x0fd, 1)
+        public CSDowngradeExpertLimitPacket() : base(0x100, 1)
         {
         }
 

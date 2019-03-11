@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSwapCofferItemsPacket : GamePacket
     {
-        public CSSwapCofferItemsPacket() : base(0x03e, 1)
+        public CSSwapCofferItemsPacket() : base(0x040, 1)
         {
         }
 

@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeLootingRulePacket : GamePacket
     {
-        public CSChangeLootingRulePacket() : base(0x082, 1)
+        public CSChangeLootingRulePacket() : base(0x083, 1)
         {
         }
 

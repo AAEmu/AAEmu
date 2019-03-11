@@ -1,10 +1,10 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
     public class ItemUpdate : ItemTask
     {
-        private Item _item;
+        private readonly Item _item;
 
         public ItemUpdate(Item item)
         {
@@ -16,16 +16,14 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         {
             base.Write(stream);
 
-            stream.Write((byte) 0); // v
-            stream.Write((byte) _item.SlotType); // v
-            stream.Write((byte) 0); // v
-            stream.Write((byte) _item.Slot); // v
+            stream.Write((byte)_item.SlotType);
+            stream.Write((byte)_item.Slot);
 
             stream.Write(_item.Id);
             var details = new PacketStream();
             details.Write(_item.DetailType);
             _item.WriteDetails(details);
-            stream.Write((short) 128);
+            stream.Write((short)128);
             stream.Write(details, false);
             stream.Write(new byte[128 - details.Count]);
             return stream;

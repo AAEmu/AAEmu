@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDepositMoneyPacket : GamePacket
     {
-        public CSDepositMoneyPacket() : base(0x045, 1)
+        public CSDepositMoneyPacket() : base(0x047, 1)
         {
         }
 

@@ -31,7 +31,7 @@ namespace AAEmu.Game.Scripts.Commands
             var newZ = float.Parse(args[2]);
 
             character.DisabledSetPosition = true;
-            character.SendPacket(new SCNaviTeleportPacket(newX, newY, newZ));
+            character.SendPacket(new SCTeleportUnitPacket(0, 0, newX, newY, newZ, 0f));
             character.SendMessage("[Move] X: {0}, Y: {1}, Z: {2}", newX, newY, newZ);
         }
     }

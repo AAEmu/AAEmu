@@ -449,12 +449,20 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         while (reader.Read())
                         {
                             var id = reader.GetUInt32("merchant_pack_id");
-                            var template = new MerchantItem();
-                            template.Id = reader.GetUInt32("item_id");
-                            template.Grade = reader.GetByte("grade_id");
                             if (!_goods.ContainsKey(id))
                                 _goods.Add(id, new MerchantGoods(id));
-                            _goods[id].Items.Add(template.Id, template);
+
+                            var itemId = reader.GetUInt32("item_id");
+                            var grade = reader.GetByte("grade_id");
+                            if (_goods[id].Items.ContainsKey(itemId))
+                            {
+                                if (_goods[id].Items[itemId].IndexOf(grade) > -1)
+                                    continue;
+
+                                _goods[id].Items[itemId].Add(grade);
+                            }
+                            else
+                                _goods[id].Items.Add(itemId, new List<byte> {grade});
                         }
                     }
                 }

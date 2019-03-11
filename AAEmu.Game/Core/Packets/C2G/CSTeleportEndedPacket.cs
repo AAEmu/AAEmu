@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTeleportEndedPacket : GamePacket
     {
-        public CSTeleportEndedPacket() : base(0x0b0, 1)
+        public CSTeleportEndedPacket() : base(0x0b4, 1) // 0x0b0
         {
         }
 

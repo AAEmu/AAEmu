@@ -5,13 +5,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEnteredInstantGameWorldPacket : GamePacket
     {
-        public CSEnteredInstantGameWorldPacket() : base(0x0e0, 1)
+        public CSEnteredInstantGameWorldPacket() : base(0x0e4, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            _log.Warn("EnteredInstantGameWorld");
+            var qualifiedId = stream.ReadUInt64();
+            _log.Warn("EnteredInstantGameWorld, QualifiedId: {0}", qualifiedId);
         }
     }
 }

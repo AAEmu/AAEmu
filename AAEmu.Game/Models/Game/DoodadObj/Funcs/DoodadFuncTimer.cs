@@ -1,6 +1,8 @@
 using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
@@ -27,6 +29,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (Delay > 0)
             {
                 owner.GrowthTime = DateTime.Now.AddMilliseconds(Delay); // TODO ... need here?
+                owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), false); // TODO door, windows with delay of this timer...
+
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay));
             }

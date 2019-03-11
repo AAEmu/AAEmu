@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetCraftingPayPacket : GamePacket
     {
-        public CSSetCraftingPayPacket() : base(0x08c, 1)
+        public CSSetCraftingPayPacket() : base(0x08d, 1)
         {
         }
 

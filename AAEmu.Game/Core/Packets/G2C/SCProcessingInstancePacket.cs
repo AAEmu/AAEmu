@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _zoneId;
 
-        public SCProcessingInstancePacket(int zoneId) : base(0x18f, 1)
+        public SCProcessingInstancePacket(int zoneId) : base(SCOffsets.SCProcessingInstancePacket, 1)
         {
             _zoneId = zoneId;
         }

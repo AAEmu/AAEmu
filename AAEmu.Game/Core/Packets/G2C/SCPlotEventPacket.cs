@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _flag;
 
         public SCPlotEventPacket(ushort tl, uint eventId, uint skillId, uint casterId, uint targetId, uint unkId, ushort castingTime,
-            byte flag) : base(0x0a7, 1)
+            byte flag) : base(SCOffsets.SCPlotEventPacket, 1)
         {
             _tl = tl;
             _eventId = eventId;
@@ -82,7 +82,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             if (((_flag >> 3) & 1) == 1)
             {
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < 13; i++)
                     stream.Write(0); // v
             }
 

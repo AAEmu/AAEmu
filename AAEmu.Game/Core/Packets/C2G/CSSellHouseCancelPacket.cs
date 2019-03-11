@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellHouseCancelPacket : GamePacket
     {
-        public CSSellHouseCancelPacket() : base(0x05d, 1)
+        public CSSellHouseCancelPacket() : base(0x05f, 1) //TODO 1.0 opcode: 0x05d
         {
         }
 

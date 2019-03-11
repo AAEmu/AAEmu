@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Mails;
 
@@ -10,11 +10,13 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly CountUnreadMail _count;
         private readonly bool _hasBody;
         private readonly MailBody _body;
+        private readonly bool _isCancel;
 
-        public SCGotMailPacket(Mail mail, CountUnreadMail count, MailBody body = null) : base(0x112, 1)
+        public SCGotMailPacket(Mail mail, CountUnreadMail count, bool isCancel, MailBody body = null) : base(SCOffsets.SCGotMailPacket, 1)
         {
             _mail = mail;
             _count = count;
+            _isCancel = isCancel;
             _hasBody = body != null;
             _body = body;
         }
@@ -26,6 +28,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_hasBody);
             if (_hasBody)
                 stream.Write(_body);
+            stream.Write(_isCancel);
             return stream;
         }
     }

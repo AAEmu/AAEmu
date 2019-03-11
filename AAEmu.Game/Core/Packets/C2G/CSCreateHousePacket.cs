@@ -1,15 +1,16 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateHousePacket : GamePacket
     {
-        public CSCreateHousePacket() : base(0x055, 1)
+        public CSCreateHousePacket() : base(0x057, 1) //TODO 1.0 opcode: 0x055
         {
         }
 
@@ -27,11 +28,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("CreateHouse, Id: {0}, X: {1}, Y: {2}, Z: {3}, ZRot: {4}", designId, x, y, z, zRot);
 
-            var zoneId = WorldManager.Instance.GetZoneId(Connection.ActiveChar.InstanceId, x, y);
-            var house = HousingManager.Instance.Create(designId);
-            house.Position = new Point(zoneId, x, y, z);
-
-            house.Spawn();
+            var position = new Point(x, y, z);
+            HousingManager.Instance.Build(
+                Connection,
+                designId, position, zRot,
+                itemId, moneyAmount, ht, autoUseAaPoint
+            );
         }
     }
 }

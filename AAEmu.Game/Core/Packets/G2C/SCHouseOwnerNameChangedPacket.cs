@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _tl;
         private readonly string _newName;
         
-        public SCHouseOwnerNameChangedPacket(ushort tl, string newName) : base(0x0c3, 1)
+        public SCHouseOwnerNameChangedPacket(ushort tl, string newName) : base(SCOffsets.SCHouseOwnerNameChangedPacket, 1)
         {
             _tl = tl;
             _newName = newName;

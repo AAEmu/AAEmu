@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetLpManageCharacterPacket : GamePacket
     {
-        public CSSetLpManageCharacterPacket() : base(0x0fb, 1)
+        public CSSetLpManageCharacterPacket() : base(0x0fe, 1)
         {
         }
 

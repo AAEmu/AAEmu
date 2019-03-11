@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _id;
         private readonly int _taxRate;
 
-        public SCDominionTaxRatePacket(ushort id, int taxRate) : base(0x01d, 1)
+        public SCDominionTaxRatePacket(ushort id, int taxRate) : base(SCOffsets.SCDominionTaxRatePacket, 1)
         {
             _id = id;
             _taxRate = taxRate;

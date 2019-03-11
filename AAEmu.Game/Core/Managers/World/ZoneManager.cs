@@ -29,7 +29,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             return _zones.ContainsKey(zoneKey) ? _zones[zoneKey] : null;
         }
-
+        
         public ZoneGroup GetZoneGroupById(uint zoneId)
         {
             return _groups.ContainsKey(zoneId) ? _groups[zoneId] : null;

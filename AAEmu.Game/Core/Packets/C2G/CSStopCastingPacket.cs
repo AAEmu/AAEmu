@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStopCastingPacket : GamePacket
     {
-        public CSStopCastingPacket() : base(0x052, 1)
+        public CSStopCastingPacket() : base(0x054, 1)
         {
         }
 

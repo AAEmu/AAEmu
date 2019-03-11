@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTurretStatePacket : GamePacket
     {
-        public CSTurretStatePacket() : base(0x034, 1)
+        public CSTurretStatePacket() : base(0x036, 1)
         {
         }
 

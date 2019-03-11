@@ -22,10 +22,10 @@ namespace AAEmu.Game.Models.Game.Quests
             return QuestManager.Instance.GetActTemplate<T>(DetailId, DetailType);
         }
 
-        public bool Use(Character character, int objective)
+        public bool Use(Character character, Quest quest, int objective)
         {
             var template = QuestManager.Instance.GetActTemplate(DetailId, DetailType);
-            return template.Use(character, objective);
+            return template.Use(character, quest, objective);
         }
 
         /*

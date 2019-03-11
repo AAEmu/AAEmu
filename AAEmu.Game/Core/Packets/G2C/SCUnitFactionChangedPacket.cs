@@ -9,13 +9,16 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _unitName;
         private readonly uint _id;
         private readonly uint _id2;
+        private readonly bool _temp;
         
-        public SCUnitFactionChangedPacket(uint unitId, string unitName, uint id, uint id2) : base(0x018, 1)
+        public SCUnitFactionChangedPacket(uint unitId, string unitName, uint id, uint id2, bool temp) 
+            : base(SCOffsets.SCUnitFactionChangedPacket, 1)
         {
             _unitId = unitId;
             _unitName = unitName;
             _id = id;
             _id2 = id2;
+            _temp = temp;
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -24,6 +27,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unitName);
             stream.Write(_id);
             stream.Write(_id2);
+            stream.Write(_temp);
             return stream;
         }
     }

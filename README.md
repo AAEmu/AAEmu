@@ -8,7 +8,7 @@ If you don't find what you're looking for there, [talk to a human](#discussion).
 
 ### Discussion
 - [Site](https://aaemu.info/)
-- [Forum](https://boards.aaemu.pw/)
+- [Forums](https://boards.aaemu.pw/)
 - [Community Discord](https://discord.gg/vn8E8E6)
 
 ### Can I contribute?

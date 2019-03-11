@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _friendName;
         private readonly short _errorMessage;
 
-        public SCDeleteFriendPacket(uint characterId, bool success, string friendName, short errorMessage) : base(0x04c, 1)
+        public SCDeleteFriendPacket(uint characterId, bool success, string friendName, short errorMessage) : base(SCOffsets.SCDeleteFriendPacket, 1)
         {
             _characterId = characterId;
             _success = success;

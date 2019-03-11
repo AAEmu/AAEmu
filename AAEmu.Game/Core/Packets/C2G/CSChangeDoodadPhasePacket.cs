@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeDoodadPhasePacket : GamePacket
     {
-        public CSChangeDoodadPhasePacket() : base(0x0e6, 1)
+        public CSChangeDoodadPhasePacket() : base(0x0e9, 1)
         {
         }
 

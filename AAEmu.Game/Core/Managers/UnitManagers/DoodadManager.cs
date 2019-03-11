@@ -1,10 +1,12 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -23,7 +25,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             return _templates.ContainsKey(templateId);
         }
-        
+
+        public DoodadTemplate GetTemplate(uint id)
+        {
+            return Exist(id) ? _templates[id] : null;
+        }
+
         public void Load()
         {
             _templates = new Dictionary<uint, DoodadTemplate>();
@@ -75,7 +82,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.GrowthTime = reader.GetInt32("growth_time", 0);
                             template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
                             template.NoCollision = reader.GetBoolean("no_collision", true);
-                            // TODO 1.2 template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
+                            template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
 
                             using (var commandChild = connection.CreateCommand())
                             {
@@ -280,7 +287,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_buy_fish_items";
@@ -297,7 +304,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_buy_fish_models";
@@ -441,7 +448,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.BuffId = reader.GetUInt32("buff_id", 0);
                             func.ProjectileId = reader.GetUInt32("projectile_id", 0);
                             func.ShowToFriendlyOnly = reader.GetBoolean("show_to_friendly_only", true);
-                            func.NextPhase = reader.GetInt32("next_phase",-1) >= 0 ? reader.GetUInt32("next_phase") : 0;
+                            func.NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetUInt32("next_phase") : 0;
                             func.AoeShapeId = reader.GetUInt32("aoe_shape_id");
                             func.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                             func.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
@@ -519,7 +526,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_consume_changer_model_items";
@@ -586,7 +593,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_convert_fish_items";
@@ -680,7 +687,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_craft_infos";
@@ -711,7 +718,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_craft_start_crafts";
@@ -833,7 +840,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_digs";
@@ -934,7 +941,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 // TODO doodad_func_exchange_items( id INT, doodad_func_exchange_id INT, item_id INT, loot_pack_id INT )
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_exchanges";
@@ -1764,7 +1771,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_renew_items";
@@ -1814,7 +1821,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_respawns";
@@ -1831,7 +1838,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_rock_mines";
@@ -2040,22 +2047,22 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
-// TODO 1.2                
-//                using (var command = connection.CreateCommand())
-//                {
-//                    command.CommandText = "SELECT * FROM doodad_func_store_uis";
-//                    command.Prepare();
-//                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-//                    {
-//                        while (reader.Read())
-//                        {
-//                            var func = new DoodadFuncStoreUi();
-//                            func.Id = reader.GetUInt32("id");
-//                            func.MerchantPackId = reader.GetUInt32("merchant_pack_id");
-//                            _funcTemplates["DoodadFuncTimer"].Add(func.Id, func);
-//                        }
-//                    }
-//                }
+                // TODO 1.2                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_store_uis";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var func = new DoodadFuncStoreUi();
+                            func.Id = reader.GetUInt32("id");
+                            func.MerchantPackId = reader.GetUInt32("merchant_pack_id");
+                            _funcTemplates["DoodadFuncStoreUi"].Add(func.Id, func);
+                        }
+                    }
+                }
 
                 using (var command = connection.CreateCommand())
                 {
@@ -2140,7 +2147,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_water_volumes";
@@ -2158,28 +2165,28 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
-// TODO 1.2                
-//                using (var command = connection.CreateCommand())
-//                {
-//                    command.CommandText = "SELECT * FROM doodad_func_zone_reacts";
-//                    command.Prepare();
-//                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-//                    {
-//                        while (reader.Read())
-//                        {
-//                            var func = new DoodadFuncZoneReact();
-//                            func.Id = reader.GetUInt32("id");
-//                            func.ZoneGroupId = reader.GetUInt32("zone_group_id");
-//                            func.NextPhase = reader.GetUInt32("next_phase");
-//
-//                            _funcTemplates["DoodadFuncZoneReact"].Add(func.Id, func);
-//                        }
-//                    }
-//                }
+                // TODO 1.2                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_zone_reacts";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var func = new DoodadFuncZoneReact();
+                            func.Id = reader.GetUInt32("id");
+                            func.ZoneGroupId = reader.GetUInt32("zone_group_id");
+                            func.NextPhase = reader.GetUInt32("next_phase");
+
+                            _funcTemplates["DoodadFuncZoneReact"].Add(func.Id, func);
+                        }
+                    }
+                }
             }
         }
 
-        public Doodad Create(uint bcId, uint id, Character character)
+        public Doodad Create(uint bcId, uint id, Unit unit = null)
         {
             if (!_templates.ContainsKey(id))
                 return null;
@@ -2188,8 +2195,24 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
             doodad.TemplateId = template.Id;
             doodad.Template = template;
-            doodad.OwnerBcId = character?.ObjId ?? 0;
-            doodad.OwnerId = character?.Id ?? 0;
+            doodad.OwnerObjId = unit?.ObjId ?? 0;
+            doodad.OwnerId = 0;
+
+            if (unit is Character character)
+            {
+                doodad.OwnerId = character.Id;
+                doodad.OwnerType = DoodadOwnerType.Character;
+            }
+
+            if (unit is House house)
+            {
+                doodad.OwnerObjId = 0;
+                doodad.ParentObjId = house.ObjId;
+                doodad.OwnerId = house.OwnerId;
+                doodad.OwnerType = DoodadOwnerType.Housing;
+                doodad.DbId = house.Id;
+            }
+
             doodad.FuncGroupId = doodad.GetGroupId(); // TODO look, using doodadFuncId
             return doodad;
         }

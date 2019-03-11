@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly TeamMember _member;
         private readonly int _party;
 
-        public SCTeamMemberJoinedPacket(uint teamId, TeamMember member, int party) : base(0x0d2, 1)
+        public SCTeamMemberJoinedPacket(uint teamId, TeamMember member, int party) : base(SCOffsets.SCTeamMemberJoinedPacket, 1)
         {
             _teamId = teamId;
             _member = member;

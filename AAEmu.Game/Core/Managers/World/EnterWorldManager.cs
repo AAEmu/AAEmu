@@ -75,7 +75,7 @@ namespace AAEmu.Game.Core.Managers.World
                 case 1: // выход к списку персонажей
                     if (connection.State == GameState.World)
                     {
-                        connection.SendPacket(new SCPrepareLeaveWorldPacket(10000, type));
+                        connection.SendPacket(new SCPrepareLeaveWorldPacket(10000, type, false));
 
                         connection.LeaveTask = new LeaveWorldTask(connection, type);
                         TaskManager.Instance.Schedule(connection.LeaveTask, TimeSpan.FromSeconds(10));

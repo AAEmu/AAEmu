@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSKickTeamMemberPacket : GamePacket
     {
-        public CSKickTeamMemberPacket() : base(0x07c, 1)
+        public CSKickTeamMemberPacket() : base(0x07e, 1)
         {
         }
 

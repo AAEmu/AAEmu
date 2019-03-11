@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUsePortalPacket : GamePacket
     {
-        public CSUsePortalPacket() : base(0x0da, 1)
+        public CSUsePortalPacket() : base(0x0da, 1) // 0x0da
         {
         }
 
