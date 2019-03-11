@@ -57,13 +57,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             if (house.CurrentStep == -1)
                             {
                                 var doodads = house.AttachedDoodads.ToArray();
-                                for (var i = 0; i < doodads.Length; i += 30)
-                                {
-                                    var count = doodads.Length - i;
-                                    var temp = new Doodad[count <= 30 ? count : 30];
-                                    Array.Copy(doodads, i, temp, 0, temp.Length);
-                                    character.BroadcastPacket(new SCDoodadsCreatedPacket(temp), true);
-                                }
+                                foreach (var doodad in doodads)
+                                    doodad.Spawn();
                             }
                         }
 

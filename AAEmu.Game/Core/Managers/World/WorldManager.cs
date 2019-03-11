@@ -221,7 +221,14 @@ namespace AAEmu.Game.Core.Managers.World
 
         public Region GetRegion(GameObject obj)
         {
-            var world = GetWorld(obj.Position.WorldId);
+            InstanceWorld world;
+            if (obj.Position.Relative)
+            {
+                world = GetWorld(obj.WorldPosition.WorldId);
+                return GetRegion(world, obj.WorldPosition.X, obj.WorldPosition.Y);
+            }
+
+            world = GetWorld(obj.Position.WorldId);
             return GetRegion(world, obj.Position.X, obj.Position.Y);
         }
 

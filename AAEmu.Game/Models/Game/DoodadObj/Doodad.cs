@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
 
-        public uint TimeLeft => 0u; // TODO formula time of phase
+        public uint TimeLeft => GrowthTime > DateTime.Now ? (uint)(GrowthTime - DateTime.Now).TotalMilliseconds : 0; // TODO formula time of phase
 
         public Doodad()
         {

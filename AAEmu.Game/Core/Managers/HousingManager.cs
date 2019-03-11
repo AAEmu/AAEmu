@@ -46,7 +46,6 @@ namespace AAEmu.Game.Core.Managers
             house.Faction = FactionManager.Instance.GetFaction(1); // TODO frandly
             house.Name = template.Name;
             house.Hp = house.MaxHp;
-            house.CurrentStep = -1;
 
             return house;
         }
@@ -226,7 +225,7 @@ namespace AAEmu.Game.Core.Managers
                             house.OwnerId = reader.GetUInt32("owner");
                             house.Position =
                                 new Point(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"));
-                            house.Position.RotationX = reader.GetSByte("rotation_z");
+                            house.Position.RotationZ = reader.GetSByte("rotation_z");
                             house.Position.WorldId = 1;
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.Permission = reader.GetByte("permission");

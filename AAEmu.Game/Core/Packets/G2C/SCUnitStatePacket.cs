@@ -205,9 +205,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 case 1: // build
                     for (var i = 0; i < 2; i++)
-                        stream.Write(false); // door
+                        stream.Write(true); // door
                     for (var i = 0; i < 6; i++)
-                        stream.Write(false); // window
+                        stream.Write(true); // window
                     break;
                 case 4: // npc
                     var npc = (Npc)_unit;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -39,12 +40,20 @@ namespace AAEmu.Game.Models.Game.Housing
                         var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this);
                         doodad.AttachPoint = (byte)bindingDoodad.AttachPointId;
                         doodad.Position = bindingDoodad.Position.Clone();
+                        doodad.Position.Relative = true;
+                        doodad.WorldPosition = Position.Clone();
 
                         AttachedDoodads.Add(doodad);
                     }
                 }
                 else
+                {
+                    foreach (var doodad in AttachedDoodads)
+                        if (doodad.ObjId > 0)
+                            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+
                     AttachedDoodads.Clear();
+                }
             }
         }
 
