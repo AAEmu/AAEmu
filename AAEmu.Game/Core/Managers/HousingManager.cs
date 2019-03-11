@@ -302,7 +302,7 @@ namespace AAEmu.Game.Core.Managers
             var house = Create(designId);
             house.Id = HousingIdManager.Instance.GetNextId();
             house.Position = position;
-            house.Position.RotationZ = MathUtil.ConvertDegreeToDirection(zRot);
+            house.Position.RotationZ = MathUtil.ConvertRadianToDirection(zRot);
             
             house.Position.WorldId = 1;
             house.Position.ZoneId = zoneId;
