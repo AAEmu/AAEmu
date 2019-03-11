@@ -17,11 +17,10 @@ namespace AAEmu.Game
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private static Thread _thread = Thread.CurrentThread;
-        private static bool _shutdown;
         private static DateTime _startTime;
         private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
         private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
-        private static AutoResetEvent _signal = new AutoResetEvent(false);
+        public static AutoResetEvent ShutdownSignal = new AutoResetEvent(false); // TODO save to shutdown server?
 
         public static int UpTime => (int)(DateTime.Now - _startTime).TotalSeconds;
 

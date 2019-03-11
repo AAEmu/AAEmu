@@ -26,19 +26,6 @@
     
     <ItemGroup>
         <Compile Remove="Scripts\**\**" />
-        <Compile Include="Scripts\Commands\TestSlave.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
-        <Compile Include="Scripts\Commands\TestTransfer.cs" />
-        <Content Include="Scripts\Commands\TestMount.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="Scripts\Commands\Spawn.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <None Include="Scripts\Commands\Invisible.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
         <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
         <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
     </ItemGroup>

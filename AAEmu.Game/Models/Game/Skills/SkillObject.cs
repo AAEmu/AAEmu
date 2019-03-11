@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills
@@ -31,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Skills
             SkillObject obj;
             switch (flag)
             {
-                case SkillObjectType.Unk1:
+                case SkillObjectType.Unk1: // TODO - Skills bound to portals
                     obj = new SkillObjectUnk1();
                     break;
                 case SkillObjectType.Unk2:

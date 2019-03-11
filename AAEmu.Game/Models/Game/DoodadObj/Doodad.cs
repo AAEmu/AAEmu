@@ -1,4 +1,6 @@
 using System;
+using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -18,23 +20,28 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
         public uint FuncGroupId { get; set; }
-        public uint ItemId { get; set; }
+        public ulong ItemId { get; set; }
         public DateTime GrowthTime { get; set; }
         public DateTime PlantTime { get; set; }
-        public DoodadOwnerType OwnerType { get; set; }
-        public uint OwnerBcId { get; set; }
         public uint OwnerId { get; set; }
+        public uint OwnerObjId { get; set; }
+        public uint ParentObjId { get; set; }
+        public DoodadOwnerType OwnerType { get; set; }
+        public byte AttachPoint { get; set; }
+        public uint DbId { get; set; }
+        public int Data { get; set; }
 
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
 
-        public uint TimeLeft => 0u; // TODO formula time of phase
+        public uint TimeLeft => GrowthTime > DateTime.Now ? (uint)(GrowthTime - DateTime.Now).TotalMilliseconds : 0; // TODO formula time of phase
 
         public Doodad()
         {
             _scale = 1f;
             Position = new Point();
             PlantTime = DateTime.MinValue;
+            AttachPoint = 255;
         }
 
         public void SetScale(float scale)
@@ -61,7 +68,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public override void AddVisibleObject(Character character)
         {
-            character.SendPacket(new SCDoodadsCreatedPacket(new[] {this}));
+            character.SendPacket(new SCDoodadCreatedPacket(this));
         }
 
         public override void RemoveVisibleObject(Character character)
@@ -73,6 +80,37 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+        }
+
+        public PacketStream Write(PacketStream stream)
+        {
+            stream.WriteBc(ObjId);
+            stream.Write(TemplateId);
+            stream.WriteBc(OwnerObjId);
+            stream.WriteBc(ParentObjId);
+            stream.Write(AttachPoint); // attachPoint
+            stream.Write(Helpers.ConvertX(Position.X));
+            stream.Write(Helpers.ConvertY(Position.Y));
+            stream.Write(Helpers.ConvertZ(Position.Z));
+            stream.Write(Helpers.ConvertRotation(Position.RotationX));
+            stream.Write(Helpers.ConvertRotation(Position.RotationY));
+            stream.Write(Helpers.ConvertRotation(Position.RotationZ));
+            stream.Write(Scale);
+            stream.Write(false); // hasLootItem
+            stream.Write(FuncGroupId); // doodad_func_groups Id
+            stream.Write(OwnerId); // characterId
+            stream.Write(ItemId); // type(id)
+            stream.Write(0u); // item Id
+            stream.Write(0u); // type(id)
+            stream.Write(TimeLeft); // growing
+            stream.Write(PlantTime);
+            stream.Write(10u); // type(id)?
+            stream.Write(0); // family
+            stream.Write(-1); // puzzleGroup
+            stream.Write((byte)OwnerType); // ownerType
+            stream.Write(DbId); // dbHouseId
+            stream.Write(Data); // data
+            return stream;
         }
     }
 }

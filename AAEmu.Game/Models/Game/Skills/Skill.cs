@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -10,13 +11,17 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
     public class Skill
     {
+        private static Logger _log = LogManager.GetCurrentClassLogger();
+        
         public uint Id { get; set; }
         public SkillTemplate Template { get; set; }
         public byte Level { get; set; }
@@ -157,6 +162,16 @@ namespace AAEmu.Game.Models.Game.Skills
                 
                 if (caster.ObjId == target.ObjId)
                     return; //TODO отправлять ошибку?
+            }
+            else if (Template.TargetType == SkillTargetType.Pos)
+            {
+                var positionTarget = (SkillCastPositionTarget)targetCaster;
+                var positionUnit = new BaseUnit();
+                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                positionUnit.Position.ZoneId = caster.Position.ZoneId;
+                positionUnit.Position.WorldId = caster.Position.WorldId;
+                positionUnit.Region = caster.Region;
+                target = positionUnit;
             }
             else
             {
@@ -301,34 +316,51 @@ namespace AAEmu.Game.Models.Game.Skills
                 Apply(caster, casterCaster, target, targetCaster, skillObject);
         }
 
-        public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
+            var targets = new List<BaseUnit>(); // TODO crutches
+            if (Template.TargetAreaRadius > 0)
+            {
+                var obj = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius);
+                targets.AddRange(obj);
+            }
+            else
+                targets.Add(targetSelf);
+
             foreach (var effect in Template.Effects)
             {
-                if (effect.StartLevel > caster.Level || effect.EndLevel < caster.Level)
-                    continue;
-                if (effect.Friendly && !effect.NonFriendly && caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
-                    continue;
-                if (!effect.Friendly && effect.NonFriendly && caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Hostile)
-                    continue;
-                if (effect.Front && !effect.Back && !MathUtil.IsFront(caster, target))
-                    continue;
-                if (!effect.Front && effect.Back && MathUtil.IsFront(caster, target))
-                    continue;
-                if (effect.SourceBuffTagId > 0 && !caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
-                    continue;
-                if (effect.SourceNoBuffTagId > 0 &&
-                    caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceNoBuffTagId)))
-                    continue;
-                if (effect.TargetBuffTagId > 0 && !target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
-                    continue;
-                if (effect.TargetNoBuffTagId > 0 &&
-                    target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
-                    continue;
-                if (effect.Chance < 100 && Rand.Next(100) > effect.Chance)
-                    continue;
+                foreach (var target in targets)
+                {
+                    if (effect.StartLevel > caster.Level || effect.EndLevel < caster.Level)
+                        continue;
+                    if (effect.Friendly && !effect.NonFriendly &&
+                        caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
+                        continue;
+                    if (!effect.Friendly && effect.NonFriendly &&
+                        caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Hostile)
+                        continue;
+                    if (effect.Front && !effect.Back && !MathUtil.IsFront(caster, target))
+                        continue;
+                    if (!effect.Front && effect.Back && MathUtil.IsFront(caster, target))
+                        continue;
+                    if (effect.SourceBuffTagId > 0 &&
+                        !caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
+                        continue;
+                    if (effect.SourceNoBuffTagId > 0 &&
+                        caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceNoBuffTagId)))
+                        continue;
+                    if (effect.TargetBuffTagId > 0 &&
+                        !target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
+                        continue;
+                    if (effect.TargetNoBuffTagId > 0 &&
+                        target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
+                        continue;
+                    if (effect.Chance < 100 && Rand.Next(100) > effect.Chance)
+                        continue;
 
-                effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
+                    effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId),
+                        this, skillObject, DateTime.Now);
+                }
             }
 
             if (Template.ConsumeLaborPower > 0) {

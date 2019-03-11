@@ -22,18 +22,14 @@ namespace AAEmu.Game.Core.Managers.World
 
         public Zone GetZoneById(uint zoneId)
         {
-            if (_zoneIdToKey.ContainsKey(zoneId))
-                return _zones[_zoneIdToKey[zoneId]];
-            return null;
+            return _zoneIdToKey.ContainsKey(zoneId) ? _zones[_zoneIdToKey[zoneId]] : null;
         }
 
         public Zone GetZoneByKey(uint zoneKey)
         {
-            if (_zones.ContainsKey(zoneKey))
-                return _zones[zoneKey];
-            return null;
+            return _zones.ContainsKey(zoneKey) ? _zones[zoneKey] : null;
         }
-
+        
         public ZoneGroup GetZoneGroupById(uint zoneId)
         {
             return _groups.ContainsKey(zoneId) ? _groups[zoneId] : null;

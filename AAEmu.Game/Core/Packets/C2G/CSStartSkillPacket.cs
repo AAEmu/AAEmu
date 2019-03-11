@@ -49,6 +49,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var skill = Connection.ActiveChar.Skills.Skills[skillId];
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
+            else
+                _log.Warn("StartSkill: Id {0}, undefined use type", skillId);
         }
     }
 }

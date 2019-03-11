@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Network.Stream
 //            RegisterPacket(0x07, typeof(CTUccStringPacket));
 //            RegisterPacket(0x08, typeof(CTUccPositionPacket));
 //            RegisterPacket(0x09, typeof(CTUccCharacterNamePacket));
-//            RegisterPacket(0x0a, typeof(CTQueryCharNamePacket));
+            RegisterPacket(0x0a, typeof(CTQueryCharNamePacket));
 //            RegisterPacket(0x0c, typeof(CTUploadEmblemStreamPacket));
 //            RegisterPacket(0x0d, typeof(CTEmblemStreamUploadStatusPacket));
 //            RegisterPacket(0x0e, typeof(CTStartUploadEmblemStreamPacket));

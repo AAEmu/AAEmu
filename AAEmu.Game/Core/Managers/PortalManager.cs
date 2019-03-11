@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Managers
     public class PortalManager : Singleton<PortalManager>
     {
         private readonly Logger _log = LogManager.GetCurrentClassLogger();
+        
         private Dictionary<uint, uint> _allDistrictPortalsKey;
         private Dictionary<uint, Portal> _allDistrictPortals;
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
@@ -185,7 +186,7 @@ namespace AAEmu.Game.Core.Managers
             var portalUnitModel = new Models.Game.Units.Portal
             {
                 ObjId = ObjectIdManager.Instance.GetNextId(),
-                Master = owner,
+                OwnerId = ((Character)owner).Id,
                 TemplateId = templateId,
                 Template = template,
                 ModelId = template.ModelId,

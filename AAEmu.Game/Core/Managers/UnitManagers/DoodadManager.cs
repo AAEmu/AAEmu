@@ -5,6 +5,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -22,6 +24,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         public bool Exist(uint templateId)
         {
             return _templates.ContainsKey(templateId);
+        }
+
+        public DoodadTemplate GetTemplate(uint id)
+        {
+            return Exist(id) ? _templates[id] : null;
         }
 
         public void Load()
@@ -2179,7 +2186,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
         }
 
-        public Doodad Create(uint bcId, uint id, Character character)
+        public Doodad Create(uint bcId, uint id, Unit unit = null)
         {
             if (!_templates.ContainsKey(id))
                 return null;
@@ -2188,8 +2195,24 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
             doodad.TemplateId = template.Id;
             doodad.Template = template;
-            doodad.OwnerBcId = character?.ObjId ?? 0;
-            doodad.OwnerId = character?.Id ?? 0;
+            doodad.OwnerObjId = unit?.ObjId ?? 0;
+            doodad.OwnerId = 0;
+
+            if (unit is Character character)
+            {
+                doodad.OwnerId = character.Id;
+                doodad.OwnerType = DoodadOwnerType.Character;
+            }
+
+            if (unit is House house)
+            {
+                doodad.OwnerObjId = 0;
+                doodad.ParentObjId = house.ObjId;
+                doodad.OwnerId = house.OwnerId;
+                doodad.OwnerType = DoodadOwnerType.Housing;
+                doodad.DbId = house.Id;
+            }
+
             doodad.FuncGroupId = doodad.GetGroupId(); // TODO look, using doodadFuncId
             return doodad;
         }

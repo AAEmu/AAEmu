@@ -27,6 +27,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(ZRot);
             return stream;
         }
+
     }
 
     public class VisitedDistrict

@@ -57,7 +57,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x026, 1, typeof(CSSpawnCharacterPacket));
             RegisterPacket(0x027, 1, typeof(CSCancelCharacterDeletePacket));
             RegisterPacket(0x029, 1, typeof(CSNotifyInGamePacket));
-
+            RegisterPacket(0x02a, 1, typeof(CSNotifyInGameCompletedPacket));
             RegisterPacket(0x02b, 1, typeof(CSEditorGameModePacket));
             RegisterPacket(0x02c, 1, typeof(CSChangeTargetPacket));
             RegisterPacket(0x02d, 1, typeof(CSRequestCharBriefPacket));
@@ -87,11 +87,11 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x047, 1, typeof(CSDepositMoneyPacket));
             RegisterPacket(0x048, 1, typeof(CSWithdrawMoneyPacket));
             RegisterPacket(0x049, 1, typeof(CSConvertItemLookPacket));
-
-
+            RegisterPacket(0x04a, 1, typeof(CSItemSecurePacket));
+            RegisterPacket(0x04b, 1, typeof(CSItemUnsecurePacket));
             RegisterPacket(0x04c, 1, typeof(CSEquipmentsSecurePacket));
-
-            RegisterPacket(0x02a, 1, typeof(CSNotifyInGameCompletedPacket));
+            RegisterPacket(0x04d, 1, typeof(CSEquipmentsUnsecurePacket));
+            RegisterPacket(0x04e, 1, typeof(CSResurrectCharacterPacket));
             RegisterPacket(0x04f, 1, typeof(CSSetForceAttackPacket));
             RegisterPacket(0x050, 1, typeof(CSChallengeDuelPacket));
             RegisterPacket(0x051, 1, typeof(CSStartDuelPacket));

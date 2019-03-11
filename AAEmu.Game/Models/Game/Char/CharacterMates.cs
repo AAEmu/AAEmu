@@ -14,9 +14,12 @@ namespace AAEmu.Game.Models.Game.Char
 {
     public class CharacterMates
     {
-        // TODO
-        // mate equip
-        // mate battle pet
+        /*
+         * TODO:
+         * EQUIPMENT CHANGE
+         * FINISH ATTRIBUTES
+         * NAME FROM LOCALIZED TABLE
+         */
 
         public Character Owner { get; set; }
 
@@ -73,14 +76,13 @@ namespace AAEmu.Game.Models.Game.Char
             var template = NpcManager.Instance.GetTemplate(npcId);
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
-            var mateDbInfo =
-                GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template.Name); // TODO - new name
+            var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template.Name); // TODO - new name
 
             var mount = new Mount
             {
                 ObjId = objId,
                 TlId = tlId,
-                Master = Owner,
+                OwnerId = Owner.Id,
                 Name = mateDbInfo.Name,
                 TemplateId = template.Id,
                 Template = template,
@@ -104,8 +106,7 @@ namespace AAEmu.Game.Models.Game.Char
                 mount.Skills.Add(skill);
             }
 
-            var (newX, newY) =
-                MathUtil.AddDistanceToFront(3, mount.Position.X, mount.Position.Y, mount.Position.RotationZ);
+            var (newX, newY) = MathUtil.AddDistanceToFront(3, mount.Position.X, mount.Position.Y, mount.Position.RotationZ);
             mount.Position.X = newX;
             mount.Position.Y = newY;
 
@@ -173,8 +174,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Connection = connection;
                     command.Transaction = transaction;
 
-                    command.CommandText = "DELETE FROM mates WHERE owner = @owner AND id IN(" +
-                                          string.Join(",", _removedMates) + ")";
+                    command.CommandText = "DELETE FROM mates WHERE owner = @owner AND id IN(" + string.Join(",", _removedMates) + ")";
                     command.Prepare();
                     command.Parameters.AddWithValue("@owner", Owner.Id);
                     command.ExecuteNonQuery();

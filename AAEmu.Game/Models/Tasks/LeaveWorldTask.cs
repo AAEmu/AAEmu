@@ -22,6 +22,8 @@ namespace AAEmu.Game.Models.Tasks
         {
             if (_connection.ActiveChar != null)
             {
+                _connection.ActiveChar.DisabledSetPosition = true;
+                
                 var activeMate = MateManager.Instance.GetActiveMate(_connection.ActiveChar.ObjId);
                 if (activeMate != null)
                 {

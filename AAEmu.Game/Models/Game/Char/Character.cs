@@ -1070,6 +1070,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Friends.Load(connection);
                 Blocked = new CharacterBlocked(this);
                 Blocked.Load(connection);
+                
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
                 Mails = new CharacterMails(this);

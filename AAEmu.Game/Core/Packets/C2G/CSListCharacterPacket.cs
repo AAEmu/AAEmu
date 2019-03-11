@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 )
             );
 
-            Connection.LoadCharacters();
+            Connection.LoadAccount();
 
             var characters = Connection.Characters.Values.ToArray();
 
@@ -54,6 +54,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                     Array.Copy(characters, i, temp, 0, temp.Length);
                     Connection.SendPacket(new SCCharacterListPacket(last, temp));
                 }
+
+            var houses = Connection.Houses.Values.ToArray();
+            foreach (var house in houses)
+                Connection.SendPacket(new SCLoginCharInfoHouse(house.OwnerId, house));
         }
     }
 }

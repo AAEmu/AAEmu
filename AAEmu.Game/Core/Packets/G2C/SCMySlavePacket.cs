@@ -9,20 +9,20 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _unitId;
         private readonly ushort _tl; // TODO slaveId
         private readonly string _slaveName;
-        private readonly uint _unkId;
+        private readonly uint _templateId;
         private readonly int _hp;
         private readonly int _maxHp;
         private readonly float _x;
         private readonly float _y;
         private readonly float _z;
 
-        public SCMySlavePacket(uint unitId, ushort tl, string slaveName, uint unkId, int hp, int maxHp, float x, float y, float z)
+        public SCMySlavePacket(uint unitId, ushort tl, string slaveName, uint templateId, int hp, int maxHp, float x, float y, float z)
             : base(SCOffsets.SCMySlavePacket, 1)
         {
             _unitId = unitId;
             _tl = tl;
             _slaveName = slaveName;
-            _unkId = unkId;
+            _templateId = templateId;
             _hp = hp;
             _maxHp = maxHp;
             _x = x;
@@ -35,7 +35,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(_unitId);
             stream.Write(_tl);
             stream.Write(_slaveName);
-            stream.Write(_unkId);
+            stream.Write(_templateId);
             stream.Write(_hp);
             stream.Write(_maxHp);
             stream.Write(Helpers.ConvertLongX(_x));

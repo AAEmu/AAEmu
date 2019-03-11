@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
@@ -55,17 +56,28 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        
+        public void UnbindSlave(GameConnection connection, uint tlId)
+        {
+            // TODO
+            var unit = connection.ActiveChar;
+            var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
+            if (activeSlaveInfo == null) return;
+            unit.SendPacket(new SCUnitDetachedPacket(unit.ObjId, 5));
+        }
+
         public void BindSlave(GameConnection connection, uint tlId)
         {
+            // TODO
             var unit = connection.ActiveChar;
             var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
             if (activeSlaveInfo == null) return;
             unit.SendPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, activeSlaveInfo.ObjId));
-            unit.SendPacket(new SCSlaveBoundPacket(unit.ObjId, tlId));
+            unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, activeSlaveInfo.ObjId), true);
+            unit.CurrentTarget = activeSlaveInfo;
+            unit.SendPacket(new SCSlaveBoundPacket(unit.Id, activeSlaveInfo.ObjId));
         }
 
-        // GameConnection connection
+        // TODO - GameConnection connection
         public void Delete(Character owner, uint objId)
         {
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
@@ -106,7 +118,7 @@ namespace AAEmu.Game.Core.Managers
                 TlId = tlId,
                 ObjId = objId,
                 TemplateId = slaveTemplate.Id,
-                Position = owner.Position.Clone(), // TODO
+                Position = owner.Position.Clone(),
                 Name = slaveTemplate.Name,
                 Level = (byte)slaveTemplate.Level,
                 ModelId = slaveTemplate.ModelId,
@@ -115,31 +127,38 @@ namespace AAEmu.Game.Core.Managers
                 Mp = 10000,
                 ModelParams = new UnitCustomModelParams(),
                 Faction = owner.Faction,
-                Id = 10000 // TODO
+                Id = 10 // TODO
             };
-            template.Position.X += 5.0f; // TODO
-            template.Position.Y += 5.0f; // TODO
+            template.Position.X += 5.0f;
+            template.Position.Y += 5.0f;
             template.Spawn();
-            owner.SendPacket(new SCMySlavePacket(objId, tlId, template.Name, 60, 1000000, 800, template.Position.X,
-                template.Position.Y, template.Position.Z));
-            owner.SendPacket(new SCSlaveStatePacket(objId, tlId, 0, "Lemes", template.Id));
+            owner.SendPacket(new SCSlaveStatePacket(objId, tlId, owner.Name, owner.Id, template.Id));
+            // TODO - DOODAD SERVER SIDE
             foreach (var doodadBinding in template.Template.DoodadBindings)
             {
-//                var doodad = DoodadManager.Instance.Create(0, doodadBinding.DoodadId, owner);
-//                doodad.AttachPoint = (byte)doodadBinding.AttachPointId;
-//                doodad.Position = new Point(1, owner.Position.ZoneId, 0, 0, 0, 0, 0, 0);
-//                doodad.Data = doodadBinding.AttachPointId;
-//                doodad.SetScale(doodadBinding.Scale);
-//                doodad.DbId = template.DbId;
-//                doodad.PlantTime = DateTime.Now;
-//                doodad.ItemId = skillData.ItemId;
-//                doodad.Spawn();
-//                owner.SendPacket(new SCDoodadCreatedPacket(doodad));
+                var doodad = new Doodad
+                {
+                    ObjId = ObjectIdManager.Instance.GetNextId(),
+                    TemplateId = doodadBinding.DoodadId,
+                    OwnerObjId = owner.ObjId,
+                    ParentObjId = template.ObjId,
+                    AttachPoint = (byte)doodadBinding.AttachPointId,
+                    Position = new Point(0f, 3.204f, 12588.96f, 0, 0, 0),
+                    OwnerId = owner.Id,
+                    PlantTime = DateTime.Now,
+                    OwnerType = DoodadOwnerType.Slave,
+                    DbId = template.Id,
+                    Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
+                    Data = (byte)doodadBinding.AttachPointId
+                };
+                doodad.SetScale(doodadBinding.Scale);
+                doodad.FuncGroupId = doodad.GetGroupId();
+                owner.SendPacket(new SCDoodadCreatedPacket(doodad));
             }
 
             _activeSlaves.Add(owner.ObjId, template);
-            owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId,
-                template.Hp, template.Mp, template.Position.X, template.Position.Y, template.Position.Z));
+            owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId, template.Hp, template.Mp,
+                template.Position.X, template.Position.Y, template.Position.Z));
         }
 
         public void Load()
