@@ -29,7 +29,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 foreach (var member in team.Members)
                 {
-                    if (member.Character.Id == unitId) return team;
+                    if (member == null)
+                        continue;
+                    if (member.Character.Id == unitId)
+                        return team;
                 }
             }
 
