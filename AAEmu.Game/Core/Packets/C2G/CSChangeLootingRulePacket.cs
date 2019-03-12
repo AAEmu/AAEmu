@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -19,7 +20,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var changeFlags = stream.ReadByte();
 
-            _log.Warn("ChangeLootingRule, TeamId: {0}");
+            // _log.Warn("ChangeLootingRule, TeamId: {0}, Flag: {1}, Rule: {2}/{3}/{4}/{5}", teamId, changeFlags, lootingRule.LootMethod, lootingRule.Type,
+            //     lootingRule.Id, lootingRule.RollForBop);
+            TeamManager.Instance.ChangeLootingRule(Connection.ActiveChar, teamId, lootingRule, changeFlags);
         }
     }
 }

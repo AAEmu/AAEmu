@@ -9,6 +9,15 @@ namespace AAEmu.Game.Models.Game.Team
         public uint Id { get; set; }
         public bool RollForBop { get; set; }
 
+        public LootingRule()
+        {
+            // TODO - MAKE IT CONFIGURABLE (config.json)
+            LootMethod = 1;
+            Type = 2;
+            Id = 0;
+            RollForBop = true;
+        }
+        
         public override void Read(PacketStream stream)
         {
             LootMethod = stream.ReadByte();

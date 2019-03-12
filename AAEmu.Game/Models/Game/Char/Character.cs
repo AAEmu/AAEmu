@@ -119,6 +119,34 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterSkills Skills { get; set; }
         public CharacterCraft Craft { get; set; }
 
+        private bool _inParty;
+        private bool _isOnline;
+
+        public bool InParty
+        {
+            get => _inParty;
+            set
+            {
+                if (_inParty == value) return;
+                // TODO - GUILD STATUS CHANGE
+                FriendMananger.Instance.SendStatusChange(this, false, value);
+                _inParty = value;
+            }
+        }
+
+        public bool IsOnline
+        {
+            get => _isOnline;
+            set
+            {
+                if (_isOnline == value) return;
+                // TODO - GUILD STATUS CHANGE
+                FriendMananger.Instance.SendStatusChange(this, true, value);
+                if(!value) TeamManager.Instance.SetOffline(this);
+                _isOnline = value;
+            }
+        }
+
         #region Attributes
 
         public int Str
@@ -740,7 +768,11 @@ namespace AAEmu.Game.Models.Game.Char
                         Money -= amount;
                         Money2 += amount;
                         SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney,
-                            new List<ItemTask> {new MoneyChange(-amount), new MoneyChangeBank(amount)},
+                            new List<ItemTask>
+                            {
+                                new MoneyChange(-amount),
+                                new MoneyChangeBank(amount)
+                            },
                             new List<ulong>()));
                     }
                     else
@@ -753,7 +785,11 @@ namespace AAEmu.Game.Models.Game.Char
                         Money2 -= amount;
                         Money += amount;
                         SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.WithdrawMoney,
-                            new List<ItemTask> {new MoneyChange(amount), new MoneyChangeBank(-amount)},
+                            new List<ItemTask>
+                            {
+                                new MoneyChange(amount),
+                                new MoneyChangeBank(-amount)
+                            },
                             new List<ulong>()));
                     }
                     else
@@ -1070,7 +1106,6 @@ namespace AAEmu.Game.Models.Game.Char
                 Friends.Load(connection);
                 Blocked = new CharacterBlocked(this);
                 Blocked.Load(connection);
-                
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
                 Mails = new CharacterMails(this);
