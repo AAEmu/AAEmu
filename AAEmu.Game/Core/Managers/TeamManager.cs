@@ -202,8 +202,10 @@ namespace AAEmu.Game.Core.Managers
             if (activeTeam == null) return;
             var isDisband = false;
 
-            if (riskyAction == RiskyAction.Kick && activeTeam.OwnerId != unit.Id || riskyAction == RiskyAction.Leave && unit.Id != targetId) return;
-            if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) && activeTeam.RemoveMember(targetId))
+            if (riskyAction == RiskyAction.Kick && activeTeam.OwnerId != unit.Id ||
+                riskyAction == RiskyAction.Leave && unit.Id != targetId) return;
+            if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) &&
+                activeTeam.RemoveMember(targetId))
             {
                 if (targetId == activeTeam.OwnerId)
                 {
@@ -219,7 +221,8 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                activeTeam.BroadcastPacket(new SCTeamMemberLeavedPacket(teamId, targetId, riskyAction == RiskyAction.Kick));
+                activeTeam.BroadcastPacket(new SCTeamMemberLeavedPacket(teamId, targetId,
+                    riskyAction == RiskyAction.Kick));
                 var target = WorldManager.Instance.GetCharacterById(targetId);
                 if (target != null)
                 {
@@ -236,7 +239,7 @@ namespace AAEmu.Game.Core.Managers
                 activeTeam.BroadcastPacket(new SCTeamDismissedPacket(teamId));
                 foreach (var member in activeTeam.Members)
                 {
-                    if (member.Character != null && member.Character.IsOnline)
+                    if (member?.Character != null && member.Character.IsOnline)
                     {
                         member.Character.SendPacket(new SCLeavedTeamPacket(teamId, false, true));
                         member.Character.InParty = false;
@@ -259,7 +262,8 @@ namespace AAEmu.Game.Core.Managers
         public void ConvertToRaid(Character owner, uint teamId)
         {
             var activeTeam = GetActiveTeam(teamId);
-            if (activeTeam?.OwnerId != owner.Id) return;
+            if (activeTeam?.OwnerId != owner.Id) 
+                return;
 
             activeTeam.IsParty = false;
             activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));

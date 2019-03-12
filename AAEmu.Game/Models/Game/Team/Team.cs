@@ -1,3 +1,4 @@
+using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -18,9 +19,6 @@ namespace AAEmu.Game.Models.Game.Team
         public Team()
         {
             Members = new TeamMember[50];
-            for (var i = 0; i < Members.Length; i++)
-                Members[i] = new TeamMember();
-
             ResetMarks();
             PingPosition = new Point(0, 0, 0);
         }
@@ -29,49 +27,39 @@ namespace AAEmu.Game.Models.Game.Team
         {
             MarksList = new (byte, uint)[12];
             for (var i = 0; i < 12; i++)
-            {
                 MarksList[i] = (0, 0);
-            }
         }
 
         public bool IsMarked(uint id)
         {
             foreach (var (_, obj) in MarksList)
-            {
-                if (obj == id) return true;
-            }
-
+                if (obj == id)
+                    return true;
             return false;
         }
 
         public int MembersCount()
         {
             var count = 0;
-            for (var i = 0; i < Members.Length; i++)
-            {
-                if (Members[i].Character != null) count++;
-            }
-
+            foreach (var member in Members)
+                if (member?.Character != null)
+                    count++;
             return count;
         }
 
         public bool IsMember(uint id)
         {
             foreach (var member in Members)
-            {
-                if (member.Character != null && member.Character.Id == id) return true;
-            }
-
+                if (member?.Character != null && member.Character.Id == id)
+                    return true;
             return false;
         }
 
         public uint GetNewOwner()
         {
             foreach (var member in Members)
-            {
-                if (member.Character != null && member.Character.IsOnline && member.Character.Id != OwnerId) return member.Character.Id;
-            }
-
+                if (member?.Character != null && member.Character.IsOnline && member.Character.Id != OwnerId)
+                    return member.Character.Id;
             return 0;
         }
 
@@ -79,9 +67,12 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member.Character?.Id != id) continue;
+                if (member == null || member.Character?.Id != id)
+                    continue;
 
-                if (member.Role == role) return false;
+                if (member.Role == role)
+                    return false;
+
                 member.Role = role;
                 return true;
             }
@@ -89,11 +80,12 @@ namespace AAEmu.Game.Models.Game.Team
             return false;
         }
 
-        public (TeamMember, int) AddMember(Character unit)
+        public (TeamMember member, int partyIndex) AddMember(Character unit)
         {
             for (var i = 0; i < Members.Length; i++)
             {
-                if (Members[i].Character != null) continue;
+                if (Members[i]?.Character != null)
+                    continue;
 
                 Members[i] = new TeamMember(unit);
                 return (Members[i], GetParty(i));
@@ -105,14 +97,16 @@ namespace AAEmu.Game.Models.Game.Team
         public bool RemoveMember(uint id)
         {
             var i = GetIndex(id);
-            if (i < 0) return false;
+            if (i < 0)
+                return false;
 
-            Members[i] = new TeamMember();
+            Members[i] = null;
             return true;
         }
 
         public bool MoveMember(uint id, uint id2, byte from, byte to)
         {
+            // TODO validate idFrom, idTo
             try
             {
                 var tempMember = Members[from];
@@ -130,9 +124,13 @@ namespace AAEmu.Game.Models.Game.Team
         public TeamMember ChangeStatus(Character unit)
         {
             var i = GetIndex(unit.Id);
-            if (i < 0) return null;
+            if (i < 0)
+                return null;
 
-            Members[i] = new TeamMember(unit);
+            // TODO ...
+            Members[i].Character = unit;
+
+            // Members[i] = new TeamMember(unit);
             return Members[i];
         }
 
@@ -140,7 +138,8 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member.Character == null || !member.Character.IsOnline || member.Character.Id == id) continue;
+                if (member?.Character == null || !member.Character.IsOnline || member.Character.Id == id) 
+                    continue;
                 member.Character.SendPacket(packet);
             }
         }
@@ -148,17 +147,30 @@ namespace AAEmu.Game.Models.Game.Team
         public int GetIndex(uint id)
         {
             for (var i = 0; i < Members.Length; i++)
-            {
-                if (Members[i].Character != null && Members[i].Character.Id == id) return i;
-            }
-
+                if (Members[i]?.Character != null && Members[i].Character.Id == id)
+                    return i;
             return -1;
         }
 
         public int GetParty(int index)
         {
-            if (index < 5) return 0;
+            if (index < 5)
+                return 0;
             return index / 5;
+        }
+
+        public byte[] GetPartyCounts()
+        {
+            var result = new byte[10];
+            for (var i = 0; i < Members.Length; i++)
+            {
+                if (Members[i]?.Character == null)
+                    continue;
+                var partyIndex = GetParty(i);
+                result[partyIndex]++;
+            }
+
+            return result;
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -167,71 +179,13 @@ namespace AAEmu.Game.Models.Game.Team
             stream.Write(OwnerId);
             stream.Write(IsParty);
 
-            // TODO - BETTER WAY TO MAKE THIS MONSTER
-            var p1 = 0;
-            var p2 = 0;
-            var p3 = 0;
-            var p4 = 0;
-            var p5 = 0;
-            var p6 = 0;
-            var p7 = 0;
-            var p8 = 0;
-            var p9 = 0;
-            var p10 = 0;
-            for (var i = 0; i < Members.Length; i++)
-            {
-                if (Members[i].Character == null) continue;
-                var party = GetParty(i);
-                switch (party)
-                {
-                    case 0:
-                        p1++;
-                        break;
-                    case 1:
-                        p2++;
-                        break;
-                    case 2:
-                        p3++;
-                        break;
-                    case 3:
-                        p4++;
-                        break;
-                    case 4:
-                        p5++;
-                        break;
-                    case 5:
-                        p6++;
-                        break;
-                    case 6:
-                        p7++;
-                        break;
-                    case 7:
-                        p8++;
-                        break;
-                    case 8:
-                        p9++;
-                        break;
-                    case 9:
-                        p10++;
-                        break;
-                }
-            }
-
-            stream.Write((byte)p1);
-            stream.Write((byte)p2);
-            stream.Write((byte)p3);
-            stream.Write((byte)p4);
-            stream.Write((byte)p5);
-            stream.Write((byte)p6);
-            stream.Write((byte)p7);
-            stream.Write((byte)p8);
-            stream.Write((byte)p9);
-            stream.Write((byte)p10);
+            foreach (var count in GetPartyCounts())
+                stream.Write(count);
 
             foreach (var member in Members)
             {
-                stream.Write(member.Character?.Id ?? 0u);
-                stream.Write(member.Character?.IsOnline ?? false);
+                stream.Write(member?.Character?.Id ?? 0u);
+                stream.Write(member?.Character?.IsOnline ?? false);
             }
 
             for (var i = 0; i < 12; i++)

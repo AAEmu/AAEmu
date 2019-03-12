@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Team
 {
     public class TeamMember : PacketMarshaler
     {
-        public Character Character { get; }
+        public Character Character { get; set; }
         public MemberRole Role { get; set; }
 
         public TeamMember(Character character = null)

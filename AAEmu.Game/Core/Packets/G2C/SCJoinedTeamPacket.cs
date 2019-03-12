@@ -16,10 +16,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_team);
-            for (var i = 0; i < _team.Members.Length; i++)
+            foreach (var member in _team.Members)
             {
-                var member = _team.Members[i];
-                if (member.Character == null) continue;
+                if (member?.Character == null) 
+                    continue;
                 stream.Write(member);
             }
 
