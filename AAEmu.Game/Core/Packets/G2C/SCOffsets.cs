@@ -221,7 +221,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public const ushort SCTeamMemberRoleChangedPacket = 0xde;
         public const ushort SCTeamBecameRaidTeamPacket = 0xdf;
         public const ushort SCTeamMemberMovedPacket = 0xe0;
-        public const ushort SCTeamLootingRuleChangedPacket = 0xe1;
+        public const ushort SCTeamLootingRuleChangedPacket = 0xe2;
         public const ushort SCRefreshTeamMemberPacket = 0xe3;
         public const ushort SCTeamRemoteMembersExPacket = 0xe4;
         public const ushort SCTeamAreaInvitedPacket = 0xe5;

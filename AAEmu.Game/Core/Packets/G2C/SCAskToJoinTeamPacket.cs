@@ -6,24 +6,24 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCAskToJoinTeamPacket : GamePacket
     {
         private readonly uint _teamId;
-        private readonly uint _id;
-        private readonly string _name;
-        private readonly bool _party;
+        private readonly uint _senderId;
+        private readonly string _senderName;
+        private readonly bool _isParty;
         
-        public SCAskToJoinTeamPacket(uint teamId, uint id, string name, bool party) : base(SCOffsets.SCAskToJoinTeamPacket, 1)
+        public SCAskToJoinTeamPacket(uint teamId, uint senderId, string senderName, bool isParty) : base(SCOffsets.SCAskToJoinTeamPacket, 1)
         {
             _teamId = teamId;
-            _id = id;
-            _name = name;
-            _party = party;
+            _senderId = senderId;
+            _senderName = senderName;
+            _isParty = isParty;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_teamId);
-            stream.Write(_id);
-            stream.Write(_name);
-            stream.Write(_party);
+            stream.Write(_senderId);
+            stream.Write(_senderName);
+            stream.Write(_isParty);
             return stream;
         }
     }

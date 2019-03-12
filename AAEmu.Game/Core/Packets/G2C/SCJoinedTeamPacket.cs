@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCJoinedTeamPacket : GamePacket
     {
         private readonly Team _team;
-        
+
         public SCJoinedTeamPacket(Team team) : base(SCOffsets.SCJoinedTeamPacket, 1)
         {
             _team = team;
@@ -16,10 +16,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_team);
-            foreach (var member in _team.Members)
+            for (var i = 0; i < _team.Members.Length; i++)
             {
-                if (member == null)
-                    continue;
+                var member = _team.Members[i];
+                if (member.Character == null) continue;
                 stream.Write(member);
             }
 
