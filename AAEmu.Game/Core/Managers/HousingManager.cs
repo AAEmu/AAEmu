@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
@@ -95,7 +93,7 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 _log.Info("Loading Housing Templates...");
-                
+
                 var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/housing_bindings.json");
                 if (string.IsNullOrWhiteSpace(contents))
                     throw new IOException(
@@ -159,16 +157,16 @@ namespace AAEmu.Game.Core.Managers
                                         var bindingDoodad = new HousingBindingDoodad();
                                         bindingDoodad.AttachPointId = reader2.GetUInt32("attach_point_id");
                                         bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
-                                        
-                                        if (templateBindings != null && 
+
+                                        if (templateBindings != null &&
                                             templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
                                             bindingDoodad.Position = templateBindings
                                                 .AttachPointId[bindingDoodad.AttachPointId].Clone();
-                                        
+
                                         if (bindingDoodad.Position == null)
                                             bindingDoodad.Position = new Point(0, 0, 0);
                                         bindingDoodad.Position.WorldId = 1;
-                                        
+
                                         doodads.Add(bindingDoodad);
                                     }
 
@@ -303,10 +301,13 @@ namespace AAEmu.Game.Core.Managers
             house.Id = HousingIdManager.Instance.GetNextId();
             house.Position = position;
             house.Position.RotationZ = MathUtil.ConvertRadianToDirection(zRot);
-            
+
             house.Position.WorldId = 1;
             house.Position.ZoneId = zoneId;
-            house.CurrentStep = 0;
+            if (house.Template.BuildSteps.Count > 0)
+                house.CurrentStep = 0;
+            else
+                house.CurrentStep = -1;
             house.OwnerId = connection.ActiveChar.Id;
             house.AccountId = connection.AccountId;
             house.Permission = 2;
