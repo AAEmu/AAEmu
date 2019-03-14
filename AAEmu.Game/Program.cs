@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
@@ -36,6 +37,8 @@ namespace AAEmu.Game
                 return;
             }
 
+            Test();
+
             _log.Info("{0} version {1}", Name, Version);
 
             var connection = MySQL.CreateConnection();
@@ -64,6 +67,12 @@ namespace AAEmu.Game
                 });
 
             await builder.RunConsoleAsync();
+        }
+
+        private static void Test()
+        {
+            var first = Helpers.StringToByteArray("0A 00 00 BB 00 00 BE 8F 01".Replace(" ", ""));
+            var (x, y, z) = Helpers.ConvertPosition(first);
         }
 
         private static void Initialization()

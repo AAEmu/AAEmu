@@ -122,9 +122,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
                 stream.Write("");
 
-            stream.Write(Helpers.ConvertX(_unit.Position.X));
-            stream.Write(Helpers.ConvertY(_unit.Position.Y));
-            stream.Write(Helpers.ConvertZ(_unit.Position.Z));
+            stream.WritePosition(_unit.Position.X, _unit.Position.Y, _unit.Position.Z);
             stream.Write(_unit.Scale);
             stream.Write(_unit.Level);
             stream.Write(_unit.ModelId); // modelRef

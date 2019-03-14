@@ -41,9 +41,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.WriteBc(_casterId);
                     break;
                 case 2:
-                    stream.Write(Helpers.ConvertX(0f));
-                    stream.Write(Helpers.ConvertY(0f));
-                    stream.Write(Helpers.ConvertZ(0f));
+                    stream.WritePosition(0f, 0f, 0f);
                     stream.Write((sbyte) 0); // rot.x
                     stream.Write((sbyte) 0); // rot.y
                     stream.Write((sbyte) 0); // rot.z
@@ -58,9 +56,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.WriteBc(_targetId);
                     break;
                 case 2:
-                    stream.Write(Helpers.ConvertX(0f));
-                    stream.Write(Helpers.ConvertY(0f));
-                    stream.Write(Helpers.ConvertZ(0f));
+                    stream.WritePosition(0f, 0f, 0f);
                     stream.Write((sbyte) 0); // rot.x
                     stream.Write((sbyte) 0); // rot.y
                     stream.Write((sbyte) 0); // rot.z

@@ -541,6 +541,12 @@ namespace AAEmu.Commons.Network
 
             return result;
         }
+        
+        public (float x, float y, float z) ReadPosition()
+        {
+            var position = ReadBytes(9);
+            return Helpers.ConvertPosition(position);
+        }
 
         #endregion // Read Complex Types
 
@@ -711,6 +717,13 @@ namespace AAEmu.Commons.Network
             return this;
         }
 
+        public PacketStream WritePosition(float x, float y, float z)
+        {
+            var res = Helpers.ConvertPosition(x, y, z);
+            Write(res);
+            return this;
+        }
+        
         #endregion // Write Complex Types
 
         #region Write Strings

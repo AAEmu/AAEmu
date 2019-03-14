@@ -38,9 +38,7 @@ namespace AAEmu.Game.Models.Game.Team
             stream.Write(Character.MaxHp);
             stream.Write(Character.Mp);
             stream.Write(Character.MaxMp);
-            stream.Write(Helpers.ConvertX(Character.Position.X));
-            stream.Write(Helpers.ConvertX(Character.Position.Y));
-            stream.Write(Helpers.ConvertZ(Character.Position.Z));
+            stream.WritePosition(Character.Position.X, Character.Position.Y, Character.Position.Z);
             stream.Write(MathUtil.ConvertDirectionToDegree(Character.Position.RotationZ)); // angZ
             stream.Write((byte)Character.Ability1);
             stream.Write((byte)Character.Ability2);
