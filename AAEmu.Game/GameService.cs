@@ -76,6 +76,9 @@ namespace AAEmu.Game
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();
             HousingManager.Instance.SpawnAll();
+
+            AccessLevelManager.Instance.Load();
+            
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();
