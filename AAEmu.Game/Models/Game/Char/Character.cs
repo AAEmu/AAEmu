@@ -119,6 +119,8 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterSkills Skills { get; set; }
         public CharacterCraft Craft { get; set; }
 
+        public int AccessLevel { get; set;}
+
         private bool _inParty;
         private bool _isOnline;
 
@@ -907,6 +909,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.AccountId = accountId;
                         character.Id = reader.GetUInt32("id");
                         character.Name = reader.GetString("name");
+                        character.AccessLevel = reader.GetInt32("access_level");
                         character.Race = (Race)reader.GetByte("race");
                         character.Gender = (Gender)reader.GetByte("gender");
                         character.Level = reader.GetByte("level");
@@ -1011,6 +1014,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Id = reader.GetUInt32("id");
                         character.AccountId = reader.GetUInt32("account_id");
                         character.Name = reader.GetString("name");
+                        character.AccessLevel = reader.GetInt32("access_level");
                         character.Race = (Race)reader.GetByte("race");
                         character.Gender = (Gender)reader.GetByte("gender");
                         character.Level = reader.GetByte("level");
@@ -1164,12 +1168,13 @@ namespace AAEmu.Game.Models.Game.Char
                             // ----
                             command.CommandText =
                                 "REPLACE INTO `characters` " +
-                                "(`id`,`account_id`,`name`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
-                                "VALUES(@id,@account_id,@name,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
+                                "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
+                                "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
 
                             command.Parameters.AddWithValue("@id", Id);
                             command.Parameters.AddWithValue("@account_id", AccountId);
                             command.Parameters.AddWithValue("@name", Name);
+                            command.Parameters.AddWithValue("@access_level", AccessLevel);
                             command.Parameters.AddWithValue("@race", (byte)Race);
                             command.Parameters.AddWithValue("@gender", (byte)Gender);
                             command.Parameters.AddWithValue("@unit_model_params", unitModelParams);

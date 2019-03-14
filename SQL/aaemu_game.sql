@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `id` int(11) UNSIGNED NOT NULL,
   `account_id` int(11) UNSIGNED NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `access_level` int(3) UNSIGNED NOT NULL DEFAULT 0,
   `race` tinyint(2) NOT NULL,
   `gender` tinyint(1) NOT NULL,
   `unit_model_params` blob NOT NULL,
