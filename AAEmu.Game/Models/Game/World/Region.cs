@@ -112,10 +112,9 @@ namespace AAEmu.Game.Models.Game.World
                 var units = GetList(new List<Unit>(), obj.ObjId);
                 for (var i = 0; i < units.Count; i++)
                 {
-                    if (units[i] is House house)
+                    character.SendPacket(new SCUnitStatePacket(units[i]));
+                    if (units[i] is House house && house.CurrentStep != -1)
                         house.AddVisibleObject(character);
-                    else
-                        character.SendPacket(new SCUnitStatePacket(units[i]));
                 }
 
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
@@ -126,8 +125,6 @@ namespace AAEmu.Game.Models.Game.World
                     Array.Copy(doodads, i, temp, 0, temp.Length);
                     character.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }
-
-                // TODO ... others types...
             }
 
             // показать обьект всем игрокам в регионе
