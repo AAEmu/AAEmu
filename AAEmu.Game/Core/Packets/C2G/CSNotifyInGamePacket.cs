@@ -26,6 +26,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             
             // TODO - MAYBE MOVE TO SPAWN CHARACTER
             TeamManager.Instance.UpdateAtLogin(Connection.ActiveChar);
+            Connection.ActiveChar.Expedition?.OnCharacterLogin(Connection.ActiveChar);
 
             _log.Info("NotifyInGame");
         }

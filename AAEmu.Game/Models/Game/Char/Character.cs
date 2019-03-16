@@ -1324,7 +1324,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Position.ZoneId);
             stream.Write(Faction.Id);
             stream.Write(FactionName);
-            stream.Write(0); // type
+            stream.Write(Expedition?.Id ?? 0);
             stream.Write(Family);
 
             foreach (var item in Inventory.Equip)

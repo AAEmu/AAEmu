@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Team> _activeTeams; // teamId, Team
         private Dictionary<uint, InvitationTemplate> _activeInvitations; // targetId, InvitationTemplate
 
-        private Team GetActiveTeamByUnit(uint unitId)
+        public Team GetActiveTeamByUnit(uint unitId)
         {
             foreach (var team in _activeTeams.Values)
             {

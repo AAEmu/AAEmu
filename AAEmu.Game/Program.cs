@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Models;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
@@ -28,7 +27,7 @@ namespace AAEmu.Game
         public static async Task Main(string[] args)
         {
             Initialization();
-
+            
             if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
                 Configuration(args);
             else
@@ -36,8 +35,6 @@ namespace AAEmu.Game
                 _log.Error($"{FileManager.AppPath}Config.json doesn't exist!");
                 return;
             }
-
-            Test();
 
             _log.Info("{0} version {1}", Name, Version);
 
@@ -68,13 +65,7 @@ namespace AAEmu.Game
 
             await builder.RunConsoleAsync();
         }
-
-        private static void Test()
-        {
-            var first = Helpers.StringToByteArray("0A 00 00 BB 00 00 BE 8F 01".Replace(" ", ""));
-            var (x, y, z) = Helpers.ConvertPosition(first);
-        }
-
+        
         private static void Initialization()
         {
             _thread.Name = "AA.Game Base Thread";

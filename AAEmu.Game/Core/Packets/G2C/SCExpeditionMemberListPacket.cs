@@ -10,9 +10,9 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _total;
         private readonly uint _id;
-        private readonly List<Member> _members;
+        private readonly List<ExpeditionMember> _members;
 
-        public SCExpeditionMemberListPacket(uint total, uint id, List<Member> members) : base(SCOffsets.SCExpeditionMemberListPacket, 1)
+        public SCExpeditionMemberListPacket(uint total, uint id, List<ExpeditionMember> members) : base(SCOffsets.SCExpeditionMemberListPacket, 1)
         {
             _total = total;
             _id = id;

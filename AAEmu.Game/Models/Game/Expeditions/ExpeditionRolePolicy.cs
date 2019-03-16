@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions
 {
@@ -16,7 +17,35 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public bool ManagerChat { get; set; }
         public bool SiegeMaster { get; set; }
         public bool JoinSiege { get; set; }
-        
+
+        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                command.Transaction = transaction;
+
+                command.CommandText =
+                    "REPLACE INTO " +
+                    "expedition_role_policies(`expedition_id`,`role`,`name`,`dominion_declare`,`invite`,`expel`,`promote`,`dismiss`, `chat`, `manager_chat`, `siege_master`, `join_siege`) " +
+                    "VALUES (@expedition_id,@role,@name,@dominion_declare,@invite,@expel,@promote,@dismiss,@chat,@manager_chat,@siege_master,@join_siege)";
+
+                command.Parameters.AddWithValue("@expedition_id", this.Id);
+                command.Parameters.AddWithValue("@role", this.Role);
+                command.Parameters.AddWithValue("@name", this.Name);
+                command.Parameters.AddWithValue("@dominion_declare", this.DominionDeclare);
+                command.Parameters.AddWithValue("@invite", this.Invite);
+                command.Parameters.AddWithValue("@expel", this.Expel);
+                command.Parameters.AddWithValue("@promote", this.Promote);
+                command.Parameters.AddWithValue("@dismiss", this.Dismiss);
+                command.Parameters.AddWithValue("@chat", this.Chat);
+                command.Parameters.AddWithValue("@manager_chat", this.ManagerChat);
+                command.Parameters.AddWithValue("@siege_master", this.SiegeMaster);
+                command.Parameters.AddWithValue("@join_siege", this.JoinSiege);
+                command.ExecuteNonQuery();
+            }
+        }
+
         public override void Read(PacketStream stream)
         {
             Id = stream.ReadUInt32();
@@ -48,6 +77,24 @@ namespace AAEmu.Game.Models.Game.Expeditions
             stream.Write(SiegeMaster);
             stream.Write(JoinSiege);
             return stream;
+        }
+
+        public ExpeditionRolePolicy Clone()
+        {
+            var rolePolicy = new ExpeditionRolePolicy();
+            rolePolicy.Id = Id;
+            rolePolicy.Role = Role;
+            rolePolicy.Name = Name;
+            rolePolicy.DominionDeclare = DominionDeclare;
+            rolePolicy.Invite = Invite;
+            rolePolicy.Expel = Expel;
+            rolePolicy.Promote = Promote;
+            rolePolicy.Dismiss = Dismiss;
+            rolePolicy.Chat = Chat;
+            rolePolicy.ManagerChat = ManagerChat;
+            rolePolicy.SiegeMaster = SiegeMaster;
+            rolePolicy.JoinSiege = JoinSiege;
+            return rolePolicy;
         }
     }
 }
