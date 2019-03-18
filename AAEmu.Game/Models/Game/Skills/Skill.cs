@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -357,6 +358,26 @@ namespace AAEmu.Game.Models.Game.Skills
                         continue;
                     if (effect.Chance < 100 && Rand.Next(100) > effect.Chance)
                         continue;
+                    // TODO effect.ConsumeSourceItem ? give : take
+                    // TODO ...
+//                    if (!effect.ConsumeSourceItem && 
+//                        effect.ConsumeItemId > 0 &&
+//                        caster is Character character &&
+//                        character.Inventory.CheckItems(effect.ConsumeItemId, effect.ConsumeItemCount))
+//                    {
+//                        var items = character.Inventory.RemoveItem(effect.ConsumeItemId, effect.ConsumeItemCount);
+//                        var tasks = new List<ItemTask>();
+//                        foreach (var (item, count) in items)
+//                        {
+//                            if (item.Count == 0)
+//                                tasks.Add(new ItemRemove(item));
+//                            else
+//                                tasks.Add(new ItemCountUpdate(item, -count));
+//                        }
+//
+//                        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectConsumption, tasks, new List<ulong>()));
+//                    } else
+//                        continue;
 
                     effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId),
                         this, skillObject, DateTime.Now);

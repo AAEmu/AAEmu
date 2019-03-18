@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
@@ -36,6 +37,12 @@ namespace AAEmu.Game.Scripts.Commands
                         attachPointObj.Position.Z = z;
 
                         house.Spawn();
+                        
+                        character.CurrentTarget = house;
+
+                        character
+                            .BroadcastPacket(
+                                new SCTargetChangedPacket(character.ObjId, character.CurrentTarget?.ObjId ?? 0), true);
                     } else
                         character.SendMessage("[HouseBindings] Not found this attach doodad");
                 } else

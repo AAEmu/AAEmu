@@ -90,8 +90,10 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case 3:
                     var house = (House)_unit;
-                    var buildStep = house.CurrentStep == -1 ? 0 : (-house.Template.BuildSteps.Count + house.CurrentStep);
-                    
+                    var buildStep = house.CurrentStep == -1
+                        ? 0
+                        : -house.Template.BuildSteps.Count + house.CurrentStep;
+
                     stream.Write(house.TlId); // tl
                     stream.Write(house.TemplateId); // house templateId
                     stream.Write((short)buildStep); // buildstep

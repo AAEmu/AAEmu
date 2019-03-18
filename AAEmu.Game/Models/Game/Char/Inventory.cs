@@ -405,7 +405,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public bool TakeoffBackpack()
         {
-            Item backpack = GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+            var backpack = GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
             if (backpack == null) return true;
 
             // Move to first available slot

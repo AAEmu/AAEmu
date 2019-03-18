@@ -32,7 +32,8 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public void OnCharacterLogin(Character character)
         {
             var member = GetMember(character);
-            if (member == null) return;
+            if (member == null)
+                return;
 
             member.Refresh(character);
 

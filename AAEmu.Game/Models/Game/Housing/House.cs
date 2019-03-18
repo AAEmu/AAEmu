@@ -183,9 +183,9 @@ namespace AAEmu.Game.Models.Game.Housing
             stream.Write(Helpers.ConvertLongY(Position.Y));
             stream.Write(Position.Z);
             stream.Write(Template.Name); // house // TODO max length 128
-            stream.Write(true); // allowRecover
+            stream.Write(false); // allowRecover
             stream.Write(0); // moneyAmount
-            stream.Write(1); // type(id)
+            stream.Write(0); // type(id)
             stream.Write(""); // sellToName
             return stream;
         }
