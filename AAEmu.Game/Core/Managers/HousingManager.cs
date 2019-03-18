@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -140,6 +141,8 @@ namespace AAEmu.Game.Core.Managers
                             template.AbsoluteDecoLimit = reader.GetUInt32("absolute_deco_limit");
                             template.HousingDecoLimitId = reader.GetUInt32("housing_deco_limit_id", 0);
                             template.IsSellable = reader.GetBoolean("is_sellable", true);
+                            template.HeavyTax = reader.GetBoolean("heavy_tax", true);
+                            template.AlwaysPublic = reader.GetBoolean("always_public", true);
                             _housingTemplates.Add(template.Id, template);
 
                             var templateBindings = binding.Find(x => x.TemplateId.Contains(template.Id));
@@ -275,17 +278,25 @@ namespace AAEmu.Game.Core.Managers
         {
             // TODO validation position and some range...
 
-            var tax = _housingTemplates[designId].Taxation?.Tax ?? 0;
+            var template = _housingTemplates[designId];
+            var baseTax = (int)(template.Taxation?.Tax ?? 0);
+            var depositTax = baseTax * 2;
+            var totalTax = baseTax + depositTax;
+
+            var heavyTaxHouseCount = connection.Houses.Values
+                .Count(house => house.OwnerId == connection.ActiveChar.Id && house.Template.HeavyTax);
+            var normalTaxHouseCount = connection.Houses.Values
+                .Count(house => house.OwnerId == connection.ActiveChar.Id && !house.Template.HeavyTax);
 
             connection.SendPacket(
                 new SCConstructHouseTaxPacket(designId,
-                    0,
-                    0,
-                    false,
-                    (int)tax,
-                    (int)tax,
-                    0,
-                    0)
+                    heavyTaxHouseCount,
+                    normalTaxHouseCount,
+                    template.HeavyTax,
+                    baseTax,
+                    depositTax,
+                    totalTax
+                )
             );
         }
 
