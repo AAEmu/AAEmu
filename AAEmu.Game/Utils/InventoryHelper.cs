@@ -5,16 +5,17 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
-namespace AAEmu.Game.Core.Helper
+namespace AAEmu.Game.Utils
 {
     public class InventoryHelper
     {
-        public static void AddItemAndUpdateClient(Character character, Item item) {
+        public static bool AddItemAndUpdateClient(Character character, Item item)
+        {
             var res = character.Inventory.AddItem(item);
             if (res == null)
             {
-                ItemIdManager.Instance.ReleaseId((uint) item.Id);
-                return;
+                ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                return false;
             }
 
             var tasks = new List<ItemTask>();
@@ -22,11 +23,15 @@ namespace AAEmu.Game.Core.Helper
                 tasks.Add(new ItemCountUpdate(res, item.Count));
             else
                 tasks.Add(new ItemAdd(item));
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, tasks, new List<ulong>()));
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, tasks,
+                new List<ulong>()));
+            return true;
         }
 
-        public static bool RemoveItemAndUpdateClient(Character character, Item item, int count) {
-            if (item.Count > count) {
+        public static bool RemoveItemAndUpdateClient(Character character, Item item, int count)
+        {
+            if (item.Count > count)
+            {
                 item.Count -= count;
                 character.SendPacket(
                     new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
@@ -35,23 +40,26 @@ namespace AAEmu.Game.Core.Helper
                             new ItemCountUpdate(item, -count)
                         }, new List<ulong>()));
                 return true;
-            } else if (item.Count == count) {
-                character.Inventory.RemoveItem(item, true);
-                character.SendPacket(
-                    new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
-                        new List<ItemTask>
-                        {
-                            new ItemRemove(item)
-                        },
-                        new List<ulong>()));
-                return true;
-            } else {
-                return false;
             }
+
+            if (item.Count != count)
+                return false;
+
+            character.Inventory.RemoveItem(item, true);
+            character.SendPacket(
+                new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
+                    new List<ItemTask>
+                    {
+                        new ItemRemove(item)
+                    },
+                    new List<ulong>()));
+            return true;
         }
 
-        public static ItemTask GetTaskAndRemoveItem(Character character, Item item, int count) {
-            if (item.Count > count) {
+        public static ItemTask GetTaskAndRemoveItem(Character character, Item item, int count)
+        {
+            if (item.Count > count)
+            {
                 item.Count -= count;
                 return new ItemCountUpdate(item, -count);
             }

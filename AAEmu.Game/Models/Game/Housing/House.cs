@@ -17,6 +17,7 @@ namespace AAEmu.Game.Models.Game.Housing
     public sealed class House : Unit
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private object _lock = new object();
         private int _currentStep;
 
         public uint Id { get; set; }
@@ -26,6 +27,7 @@ namespace AAEmu.Game.Models.Game.Housing
         public HousingTemplate Template { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
 
+        public int NumActions { get; set; }
         public int CurrentStep
         {
             get => _currentStep;
@@ -68,6 +70,33 @@ namespace AAEmu.Game.Models.Game.Housing
             AttachedDoodads = new List<Doodad>();
         }
 
+        public bool AddBuildAction()
+        {
+            if (CurrentStep == -1)
+                return false;
+
+            var changeProgress = false;
+            lock (_lock)
+            {
+                var nextAction = NumActions + 1;
+                if (Template.BuildSteps[CurrentStep].NumActions > nextAction)
+                    NumActions = nextAction;
+                else
+                {
+                    NumActions = 0;
+                    var nextStep = CurrentStep + 1;
+                    if (Template.BuildSteps.Count > nextStep)
+                        CurrentStep = nextStep;
+                    else
+                        CurrentStep = -1;
+                    changeProgress = true;
+                }
+            }
+
+            return changeProgress;
+        }
+
+        #region Visible
         public override void Spawn()
         {
             base.Spawn();
@@ -135,6 +164,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 character.SendPacket(new SCDoodadsRemovedPacket(last, temp));
             }
         }
+        #endregion
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction = null)
         {
@@ -185,7 +215,7 @@ namespace AAEmu.Game.Models.Game.Housing
             stream.Write(Template.Name); // house // TODO max length 128
             stream.Write(false); // allowRecover
             stream.Write(0); // moneyAmount
-            stream.Write(0); // type(id)
+            stream.Write(0u); // type(id)
             stream.Write(""); // sellToName
             return stream;
         }

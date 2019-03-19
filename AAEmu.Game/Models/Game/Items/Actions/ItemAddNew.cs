@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write(new byte[128 - details.Count]);
             stream.Write(_item.CreateTime);
             stream.Write(_item.LifespanMins);
-            stream.Write(0);
+            stream.Write(_item.MadeUnitId);
             stream.Write(_item.WorldId);
             stream.Write(_item.UnsecureTime);
             stream.Write(_item.UnpackTime);
