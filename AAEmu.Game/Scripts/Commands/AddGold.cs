@@ -22,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            if (uint.TryParse(args[0], out var amount))
+            if (int.TryParse(args[0], out var amount))
             {
                 character.Money += amount;
                 character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(amount) }, new List<ulong>()));
