@@ -41,6 +41,7 @@ namespace AAEmu.Game
             FriendIdManager.Instance.Initialize();
             MateIdManager.Instance.Initialize();
             HousingIdManager.Instance.Initialize();
+            HousingTldManager.Instance.Initialize();
             TeamIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();

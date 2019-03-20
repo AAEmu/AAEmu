@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -9,6 +10,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -18,16 +20,30 @@ namespace AAEmu.Game.Models.Game.Housing
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private object _lock = new object();
+        private HousingTemplate _template;
         private int _currentStep;
-
+        private int _allAction;
+        private int _baseAction;
+        
         public uint Id { get; set; }
         public uint AccountId { get; set; }
         public ushort TlId { get; set; }
         public uint TemplateId { get; set; }
-        public HousingTemplate Template { get; set; }
+
+        public HousingTemplate Template
+        {
+            get => _template;
+            set
+            {
+                _template = value;
+                _allAction = _template.BuildSteps.Values.Sum(step => step.NumActions);
+            }
+        }
         public List<Doodad> AttachedDoodads { get; set; }
 
-        public int NumActions { get; set; }
+        public int AllAction => _allAction;
+        public int CurrentAction => _baseAction + NumAction;
+        public int NumAction { get; set; }
         public int CurrentStep
         {
             get => _currentStep;
@@ -48,13 +64,20 @@ namespace AAEmu.Game.Models.Game.Housing
                         AttachedDoodads.Add(doodad);
                     }
                 }
-                else
+                else if (AttachedDoodads.Count > 0)
                 {
                     foreach (var doodad in AttachedDoodads)
                         if (doodad.ObjId > 0)
                             ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
 
                     AttachedDoodads.Clear();
+                }
+
+                if (_currentStep > 0)
+                {
+                    _baseAction = 0;
+                    for (var i = 0; i < _currentStep; i++)
+                        _baseAction += Template.BuildSteps[i].NumActions;
                 }
             }
         }
@@ -70,30 +93,31 @@ namespace AAEmu.Game.Models.Game.Housing
             AttachedDoodads = new List<Doodad>();
         }
 
-        public bool AddBuildAction()
+        public void AddBuildAction()
         {
             if (CurrentStep == -1)
-                return false;
+                return;
 
-            var changeProgress = false;
             lock (_lock)
             {
-                var nextAction = NumActions + 1;
+                var nextAction = NumAction + 1;
                 if (Template.BuildSteps[CurrentStep].NumActions > nextAction)
-                    NumActions = nextAction;
+                    NumAction = nextAction;
                 else
                 {
-                    NumActions = 0;
+                    NumAction = 0;
                     var nextStep = CurrentStep + 1;
                     if (Template.BuildSteps.Count > nextStep)
                         CurrentStep = nextStep;
                     else
+                    {
                         CurrentStep = -1;
-                    changeProgress = true;
+
+                        using (var connection = MySQL.CreateConnection())
+                            Save(connection);
+                    }
                 }
             }
-
-            return changeProgress;
         }
 
         #region Visible
@@ -175,8 +199,8 @@ namespace AAEmu.Game.Models.Game.Housing
 
                 command.CommandText =
                     "REPLACE INTO `housings` " +
-                    "(`id`,`account_id`,`owner`,`template_id`,`x`,`y`,`z`,`rotation_z`,`current_step`,`permission`) " +
-                    "VALUES(@id,@account_id,@owner,@template_id,@x,@y,@z,@rotation_z,@current_step,@permission)";
+                    "(`id`,`account_id`,`owner`,`template_id`,`x`,`y`,`z`,`rotation_z`,`current_step`,`current_action`,`permission`) " +
+                    "VALUES(@id,@account_id,@owner,@template_id,@x,@y,@z,@rotation_z,@current_step,@current_action,@permission)";
 
                 command.Parameters.AddWithValue("@id", Id);
                 command.Parameters.AddWithValue("@account_id", AccountId);
@@ -187,6 +211,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 command.Parameters.AddWithValue("@z", Position.Z);
                 command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
                 command.Parameters.AddWithValue("@current_step", CurrentStep);
+                command.Parameters.AddWithValue("@current_action", NumAction);
                 command.Parameters.AddWithValue("@permission", Permission);
                 command.ExecuteNonQuery();
             }
@@ -195,7 +220,7 @@ namespace AAEmu.Game.Models.Game.Housing
         public PacketStream Write(PacketStream stream)
         {
             var ownerName = NameManager.Instance.GetCharacterName(OwnerId);
-            
+
             stream.Write(TlId);
             stream.Write(Id); // dbId
             stream.WriteBc(ObjId);
@@ -206,14 +231,24 @@ namespace AAEmu.Game.Models.Game.Housing
             stream.Write(ownerName ?? "");
             stream.Write(AccountId);
             stream.Write(Permission);
-            stream.Write(Template.BuildSteps.Count); // allstep
-            stream.Write(CurrentStep == -1 ? Template.BuildSteps.Count : CurrentStep); // curstep
+
+            if (CurrentStep == -1)
+            {
+                stream.Write(0);
+                stream.Write(0);
+            }
+            else
+            {
+                stream.Write(AllAction); // allstep
+                stream.Write(CurrentAction); // curstep
+            }
+
             stream.Write(0); // payMoneyAmount
             stream.Write(Helpers.ConvertLongX(Position.X));
             stream.Write(Helpers.ConvertLongY(Position.Y));
             stream.Write(Position.Z);
             stream.Write(Template.Name); // house // TODO max length 128
-            stream.Write(false); // allowRecover
+            stream.Write(true); // allowRecover
             stream.Write(0); // moneyAmount
             stream.Write(0u); // type(id)
             stream.Write(""); // sellToName

@@ -182,6 +182,7 @@ CREATE TABLE IF NOT EXISTS `housings` (
   `z` float NOT NULL,
   `rotation_z` tinyint(4) NOT NULL,
   `current_step` tinyint(4) NOT NULL,
+  `current_action` int(11) NOT NULL DEFAULT '0',
   `permission` tinyint(4) NOT NULL,
   PRIMARY KEY (`account_id`,`owner`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

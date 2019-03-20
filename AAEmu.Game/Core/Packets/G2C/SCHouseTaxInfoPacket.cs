@@ -1,3 +1,4 @@
+using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -9,14 +10,13 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _dominionTaxRate;
         private readonly int _moneyAmount;
         private readonly int _moneyAmount2;
-        private readonly ulong _due;
+        private readonly DateTime _due;
         private readonly bool _isAlreadyPaid;
-        private readonly byte _weeksWithoutPay;
-        private readonly byte _weeksPrepay;
+        private readonly int _weeksWithoutPay;
         private readonly bool _isHeavyTaxHouse;
 
-        public SCHouseTaxInfoPacket(ushort tl, int dominionTaxRate, int moneyAmount, int moneyAmount2, ulong due, bool isAlreadyPaid,
-            byte weeksWithoutPay, byte weeksPrepay, bool isHeavyTaxHouse) : base(SCOffsets.SCHouseTaxInfoPacket, 1)
+        public SCHouseTaxInfoPacket(ushort tl, int dominionTaxRate, int moneyAmount, int moneyAmount2, DateTime due, bool isAlreadyPaid,
+            int weeksWithoutPay, bool isHeavyTaxHouse) : base(SCOffsets.SCHouseTaxInfoPacket, 1)
         {
             _tl = tl;
             _dominionTaxRate = dominionTaxRate;
@@ -25,7 +25,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             _due = due;
             _isAlreadyPaid = isAlreadyPaid;
             _weeksWithoutPay = weeksWithoutPay;
-            _weeksPrepay = weeksPrepay;
             _isHeavyTaxHouse = isHeavyTaxHouse;
         }
 
@@ -38,7 +37,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_due);
             stream.Write(_isAlreadyPaid);
             stream.Write(_weeksWithoutPay);
-            stream.Write(_weeksPrepay);
             stream.Write(_isHeavyTaxHouse);
             return stream;
         }

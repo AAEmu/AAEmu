@@ -104,7 +104,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x059, 1, typeof(CSChangeHouseNamePacket));
             RegisterPacket(0x05a, 1, typeof(CSChangeHousePermissionPacket));
             //              RegisterPacket(0x05b, 1, typeof(CSChangeHousePayPacket)); TODO: this packet is not in the offsets
-            RegisterPacket(0x05b, 1, typeof(CSRequestHouseTaxPacket));
+            RegisterPacket(0x05c, 1, typeof(CSRequestHouseTaxPacket));
             // 0x5c unk packet
             RegisterPacket(0x05d, 1, typeof(CSAllowHousingRecoverPacket));
             RegisterPacket(0x05e, 1, typeof(CSSellHousePacket));

@@ -32,25 +32,20 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     case WorldInteractionGroup.Collect:
                         break;
                     case WorldInteractionGroup.Building when target is House house: // TODO not done, debug only
-                        bool changeProgress;
                         if (house.Template.BuildSteps.Count == 0)
-                        {
                             house.CurrentStep = -1;
-                            changeProgress = true;
-                        }
                         else
-                            changeProgress = house.AddBuildAction();
+                            house.AddBuildAction();
 
-                        if (changeProgress)
-                            character.BroadcastPacket(
-                                new SCHouseBuildProgressPacket(
-                                    house.TlId,
-                                    house.ModelId,
-                                    house.Template.BuildSteps.Count,
-                                    house.CurrentStep != -1 ? house.CurrentStep : house.Template.BuildSteps.Count
-                                ),
-                                true
-                            );
+                        character.BroadcastPacket(
+                            new SCHouseBuildProgressPacket(
+                                house.TlId,
+                                house.ModelId,
+                                house.AllAction,
+                                house.CurrentStep == -1 ? house.AllAction : house.CurrentAction
+                            ),
+                            true
+                        );
 
                         if (house.CurrentStep == -1)
                         {

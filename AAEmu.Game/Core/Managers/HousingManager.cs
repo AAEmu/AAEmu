@@ -21,6 +21,7 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<uint, HousingTemplate> _housingTemplates;
         private Dictionary<uint, House> _houses;
+        private Dictionary<ushort, House> _housesTl; // TODO or so mb tlId is id in the active zone? or type of house
 
         public Dictionary<uint, House> GetByAccountId(Dictionary<uint, House> values, uint accountId)
         {
@@ -38,7 +39,7 @@ namespace AAEmu.Game.Core.Managers
             var template = _housingTemplates[templateId];
 
             var house = new House();
-            house.TlId = tlId > 0 ? tlId : (ushort)TlIdManager.Instance.GetNextId(); // TODO что то придумать...
+            house.TlId = tlId > 0 ? tlId : (ushort)HousingTldManager.Instance.GetNextId();
             house.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
             house.Template = template;
             house.TemplateId = template.Id;
@@ -53,6 +54,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _housingTemplates = new Dictionary<uint, HousingTemplate>();
             _houses = new Dictionary<uint, House>();
+            _housesTl = new Dictionary<ushort, House>();
 
 //            var housingAreas = new Dictionary<uint, HousingAreas>();
             var houseTaxes = new Dictionary<uint, HouseTax>();
@@ -229,8 +231,10 @@ namespace AAEmu.Game.Core.Managers
                             house.Position.RotationZ = reader.GetSByte("rotation_z");
                             house.Position.WorldId = 1;
                             house.CurrentStep = reader.GetInt32("current_step");
+                            house.NumAction = reader.GetInt32("current_action");
                             house.Permission = reader.GetByte("permission");
                             _houses.Add(house.Id, house);
+                            _housesTl.Add(house.TlId, house);
                         }
                     }
                 }
@@ -296,6 +300,29 @@ namespace AAEmu.Game.Core.Managers
                     baseTax,
                     depositTax,
                     totalTax
+                )
+            );
+        }
+
+        public void HouseTaxInfo(GameConnection connection, ushort tlId)
+        {
+            if (!_housesTl.ContainsKey(tlId))
+                return;
+
+            var house = _housesTl[tlId];
+            var baseTax = (int)(house.Template.Taxation?.Tax ?? 0);
+            var depositTax = baseTax * 2;
+
+            connection.SendPacket(
+                new SCHouseTaxInfoPacket(
+                    house.TlId,
+                    0,
+                    depositTax,
+                    baseTax, // Amount Due
+                    DateTime.Now,
+                    true,
+                    0,
+                    house.Template.HeavyTax
                 )
             );
         }
