@@ -350,6 +350,7 @@ namespace AAEmu.Game.Core.Managers
             house.AccountId = connection.AccountId;
             house.Permission = 2;
             _houses.Add(house.Id, house);
+            _housesTl.Add(house.TlId, house);
 
             connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
             house.Spawn();
