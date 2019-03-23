@@ -196,8 +196,13 @@ namespace AAEmu.Game.Models.Game.Skills
 
                 var res = true;
                 if (step.Flag != 0)
+                {
+                    var callCounter = new Dictionary<uint, int>();
+                    callCounter.Add(step.Event.Id, 1);
                     foreach (var evnt in eventTemplate.NextEvents)
-                        res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step);
+                        res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step, callCounter);
+                }
+
                 ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step);
                 if (!res)
                     return;
@@ -219,14 +224,23 @@ namespace AAEmu.Game.Models.Game.Skills
         }
 
         public bool BuildPlot(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster,
-            SkillObject skillObject,
-            PlotNextEvent nextEvent, PlotStep baseStep)
+            SkillObject skillObject, PlotNextEvent nextEvent, PlotStep baseStep, Dictionary<uint, int> counter)
         {
+            if (counter.ContainsKey(nextEvent.Event.Id))
+            {
+                var nextCount = counter[nextEvent.Event.Id] + 1;
+                if (nextCount > nextEvent.Event.Tickets)
+                    return true;
+                counter[nextEvent.Event.Id] = nextCount;
+            }
+            else
+                counter.Add(nextEvent.Event.Id, 1);
+
             if (nextEvent.Delay > 0)
             {
                 baseStep.Delay = nextEvent.Delay;
                 caster.SkillTask =
-                    new PlotTask(this, caster, casterCaster, target, targetCaster, skillObject, nextEvent);
+                    new PlotTask(this, caster, casterCaster, target, targetCaster, skillObject, nextEvent, counter);
                 TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(nextEvent.Delay));
                 return false;
             }
@@ -235,9 +249,10 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 baseStep.Speed = nextEvent.Speed;
                 caster.SkillTask =
-                    new PlotTask(this, caster, casterCaster, target, targetCaster, skillObject, nextEvent);
+                    new PlotTask(this, caster, casterCaster, target, targetCaster, skillObject, nextEvent, counter);
+                var dist = MathUtil.CalculateDistance(caster.Position, target.Position, true);
                 TaskManager.Instance.Schedule(caster.SkillTask,
-                    TimeSpan.FromMilliseconds(nextEvent.Speed * 40)); // TODO зависит от расстояния, найти формулу
+                    TimeSpan.FromSeconds(dist / nextEvent.Speed));
                 return false;
             }
 
@@ -259,7 +274,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 return true;
             var res = true;
             foreach (var e in nextEvent.Event.NextEvents)
-                res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, e, step);
+                res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, e, step, counter);
             return res;
         }
 
