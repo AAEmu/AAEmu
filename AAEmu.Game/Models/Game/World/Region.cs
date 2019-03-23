@@ -113,8 +113,8 @@ namespace AAEmu.Game.Models.Game.World
                 for (var i = 0; i < units.Count; i++)
                 {
                     character.SendPacket(new SCUnitStatePacket(units[i]));
-                    if (units[i] is House house && house.CurrentStep != -1)
-                        house.AddVisibleObject(character);
+                    if (units[i] is House house)
+                        character.SendPacket(new SCHouseStatePacket(house));
                 }
 
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
