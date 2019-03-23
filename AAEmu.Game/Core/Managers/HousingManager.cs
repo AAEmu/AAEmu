@@ -226,13 +226,15 @@ namespace AAEmu.Game.Core.Managers
                             house.Id = reader.GetUInt32("id");
                             house.AccountId = reader.GetUInt32("account_id");
                             house.OwnerId = reader.GetUInt32("owner");
+                            house.CoOwnerId = reader.GetUInt32("co_owner");
+                            house.Name = reader.GetString("name");
                             house.Position =
                                 new Point(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"));
                             house.Position.RotationZ = reader.GetSByte("rotation_z");
                             house.Position.WorldId = 1;
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.NumAction = reader.GetInt32("current_action");
-                            house.Permission = reader.GetByte("permission");
+                            house.Permission = (HousingPermission)reader.GetByte("permission");
                             _houses.Add(house.Id, house);
                             _housesTl.Add(house.TlId, house);
                         }
@@ -347,13 +349,54 @@ namespace AAEmu.Game.Core.Managers
             else
                 house.CurrentStep = -1;
             house.OwnerId = connection.ActiveChar.Id;
+            house.CoOwnerId = connection.ActiveChar.Id;
             house.AccountId = connection.AccountId;
-            house.Permission = 2;
+            house.Permission = HousingPermission.Public;
             _houses.Add(house.Id, house);
             _housesTl.Add(house.TlId, house);
 
             connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
             house.Spawn();
+        }
+
+        public void ChangeHousePermission(GameConnection connection, ushort tlId, HousingPermission permission)
+        {
+            if (!_housesTl.ContainsKey(tlId))
+                return;
+            var house = _housesTl[tlId];
+            if (house.OwnerId != connection.ActiveChar.Id)
+                return;
+            
+            switch (permission)
+            {
+                case HousingPermission.Guild when connection.ActiveChar?.Expedition == null:
+                case HousingPermission.Family when connection.ActiveChar.Family == 0:
+                    return;
+                case HousingPermission.Guild:
+                    house.CoOwnerId = connection.ActiveChar.Expedition.Id;
+                    break;
+                case HousingPermission.Family:
+                    house.CoOwnerId = connection.ActiveChar.Family;
+                    break;
+                default:
+                    house.CoOwnerId = connection.ActiveChar.Id;
+                    break;
+            }
+
+            house.Permission = permission;
+            connection.SendPacket(new SCHousePermissionChangedPacket(tlId, (byte)permission));
+        }
+
+        public void ChangeHouseName(GameConnection connection, ushort tlId, string name)
+        {
+            if (!_housesTl.ContainsKey(tlId))
+                return;
+            var house = _housesTl[tlId];
+            if (house.OwnerId != connection.ActiveChar.Id)
+                return;
+
+            house.Name = name.Substring(0, 1).ToUpper() + name.Substring(1);
+            connection.SendPacket(new SCHouseOwnerNameChangedPacket(tlId, house.Name));
         }
     }
 }
