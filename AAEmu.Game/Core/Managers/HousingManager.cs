@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, HousingTemplate> _housingTemplates;
         private Dictionary<uint, House> _houses;
         private Dictionary<ushort, House> _housesTl; // TODO or so mb tlId is id in the active zone? or type of house
+        private List<uint> _removedHousings;
 
         public Dictionary<uint, House> GetByAccountId(Dictionary<uint, House> values, uint accountId)
         {
@@ -55,6 +56,7 @@ namespace AAEmu.Game.Core.Managers
             _housingTemplates = new Dictionary<uint, HousingTemplate>();
             _houses = new Dictionary<uint, House>();
             _housesTl = new Dictionary<ushort, House>();
+            _removedHousings = new List<uint>();
 
 //            var housingAreas = new Dictionary<uint, HousingAreas>();
             var houseTaxes = new Dictionary<uint, HouseTax>();
@@ -251,6 +253,22 @@ namespace AAEmu.Game.Core.Managers
             {
                 using (var transaction = connection.BeginTransaction())
                 {
+                    lock (_removedHousings)
+                    {
+                        if (_removedHousings.Count > 0)
+                        {
+                            using (var command = connection.CreateCommand())
+                            {
+                                command.CommandText =
+                                    $"DELETE FROM housings WHERE id IN({string.Join(",", _removedHousings)})";
+                                command.Prepare();
+                                command.ExecuteNonQuery();
+                            }
+
+                            _removedHousings.Clear();
+                        }
+                    }
+
                     foreach (var house in _houses.Values)
                         house.Save(connection, transaction);
 
@@ -319,11 +337,11 @@ namespace AAEmu.Game.Core.Managers
                 new SCHouseTaxInfoPacket(
                     house.TlId,
                     0,
-                    depositTax,
-                    baseTax, // Amount Due
-                    DateTime.Now,
-                    true,
                     0,
+                    0, // Amount Due
+                    DateTime.Now.AddDays(30),
+                    true,
+                    -1,
                     house.Template.HeavyTax
                 )
             );
@@ -366,10 +384,10 @@ namespace AAEmu.Game.Core.Managers
             var house = _housesTl[tlId];
             if (house.OwnerId != connection.ActiveChar.Id)
                 return;
-            
+
             switch (permission)
             {
-                case HousingPermission.Guild when connection.ActiveChar?.Expedition == null:
+                case HousingPermission.Guild when connection.ActiveChar.Expedition == null:
                 case HousingPermission.Family when connection.ActiveChar.Family == 0:
                     return;
                 case HousingPermission.Guild:
@@ -396,7 +414,29 @@ namespace AAEmu.Game.Core.Managers
                 return;
 
             house.Name = name.Substring(0, 1).ToUpper() + name.Substring(1);
-            connection.SendPacket(new SCHouseOwnerNameChangedPacket(tlId, house.Name));
+            connection.SendPacket(new SCUnitNameChangedPacket(house.ObjId, house.Name));
+        }
+
+        public void Demolish(GameConnection connection, House house)
+        {
+            if (!_houses.ContainsKey(house.Id))
+                return;
+            if (house.OwnerId == connection.ActiveChar.Id)
+            {
+                _removedHousings.Add(house.Id);
+                _houses.Remove(house.Id);
+                _housesTl.Remove(house.TlId);
+
+                connection.ActiveChar.BroadcastPacket(new SCHouseDemolishedPacket(house.TlId), true);
+                house.Delete();
+
+                HousingIdManager.Instance.ReleaseId(house.Id);
+                HousingTldManager.Instance.ReleaseId(house.TlId);
+            }
+            else
+            {
+                // TODO send error...
+            }
         }
     }
 }
