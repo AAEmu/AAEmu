@@ -337,12 +337,12 @@ namespace AAEmu.Game.Core.Managers
                 new SCHouseTaxInfoPacket(
                     house.TlId,
                     0,
-                    0,
-                    0, // Amount Due
+                    baseTax,
+                    depositTax, // Amount Due
                     DateTime.Now.AddDays(30),
                     true,
                     -1,
-                    house.Template.HeavyTax
+                    false
                 )
             );
         }
@@ -420,18 +420,19 @@ namespace AAEmu.Game.Core.Managers
         public void Demolish(GameConnection connection, House house)
         {
             if (!_houses.ContainsKey(house.Id))
-                return;
+                return; // TODO send error
             if (house.OwnerId == connection.ActiveChar.Id)
             {
                 _removedHousings.Add(house.Id);
                 _houses.Remove(house.Id);
                 _housesTl.Remove(house.TlId);
 
-                connection.ActiveChar.BroadcastPacket(new SCHouseDemolishedPacket(house.TlId), true);
                 house.Delete();
+                connection.ActiveChar.BroadcastPacket(new SCHouseDemolishedPacket(house.TlId), true);
+                connection.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
 
-                HousingIdManager.Instance.ReleaseId(house.Id);
                 HousingTldManager.Instance.ReleaseId(house.TlId);
+                HousingIdManager.Instance.ReleaseId(house.Id);
             }
             else
             {
