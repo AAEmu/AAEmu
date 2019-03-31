@@ -143,9 +143,8 @@ namespace AAEmu.Game.Models.Game.World
                 var character = (Character)obj;
 
                 var unitIds = GetListId<Unit>(new List<uint>(), obj.ObjId).ToArray();
-                for (var i = 0; i < unitIds.Length; i += 500)
+                for (var offset = 0; offset < unitIds.Length; offset += 500)
                 {
-                    var offset = i * 500;
                     var length = unitIds.Length - offset;
                     var temp = new uint[length > 500 ? 500 : length];
                     Array.Copy(unitIds, offset, temp, 0, temp.Length);
@@ -153,9 +152,8 @@ namespace AAEmu.Game.Models.Game.World
                 }
 
                 var doodadIds = GetListId<Doodad>(new List<uint>(), obj.ObjId).ToArray();
-                for (var i = 0; i < doodadIds.Length; i += 400)
+                for (var offset = 0; offset < doodadIds.Length; offset += 400)
                 {
-                    var offset = i * 400;
                     var length = doodadIds.Length - offset;
                     var last = length <= 400;
                     var temp = new uint[last ? length : 400];
