@@ -5,7 +5,6 @@ using System;
 using System.Linq;
 using System.Security.Principal;
 using NLog;
-using NLog.Fluent;
 
 namespace AAEmu.Commons.Utils
 {
