@@ -5,9 +5,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncFishSchool : DoodadFuncTemplate
     {
+        public uint NpcSpawnerId { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            throw new System.NotImplementedException();
+            _log.Debug("DoodadFuncFishSchool");
         }
     }
 }

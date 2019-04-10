@@ -5,9 +5,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncEvidenceItemLoot : DoodadFuncTemplate
     {
+        public uint SkillId { get; set; }
+        public int CrimeValue { get; set; }
+        public uint CrimeKindId { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            throw new System.NotImplementedException();
+            _log.Debug("DoodadFuncEvidenceItemLoot");
         }
     }
 }

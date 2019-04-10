@@ -2,151 +2,232 @@
   {
     "Id": 1,
     "Name": "main_world",
-    "OffsetX": -14336,
-    "OffsetY": -3072,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 35,
     "CellY": 38
   },
   {
     "Id": 2,
     "Name": "arche_mall_world",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 8,
-    "CellY": 8
+    "CellY": 8,
+	"SpawnPosition": {
+		"ZoneId": 260,
+		"X": 3680.518,
+		"Y": 4572.221,
+		"Z": 156
+	}
   },
   {
     "Id": 3,
     "Name": "instance_burntcastle_armory",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 256,
-    "OceanLevel": 16,
+    "MaxHeight": 256.0,
+    "HeightMaxCoeff": 1023.984375,
+    "OceanLevel": 16.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 236,
+		"X": 169,
+		"Y": 90.62,
+		"Z": 25.13
+	}
   },
   {
     "Id": 4,
     "Name": "instance_cradle_of_destruction",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 1,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 1.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 264,
+		"X": 898.942,
+		"Y": 837.212,
+		"Z": 194.87
+	}
   },
   {
     "Id": 5,
     "Name": "instance_cuttingwind_deadmine",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 262,
+		"X": 796.3,
+		"Y": 325.386,
+		"Z": 249.54
+	}
   },
   {
     "Id": 6,
     "Name": "instance_hadir_farm",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 241,
+		"X": 575.28,
+		"Y": 482.01,
+		"Z": 136.755
+	}
   },
   {
     "Id": 7,
     "Name": "instance_howling_abyss",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 265,
+		"X": 713.56,
+		"Y": 720.398,
+		"Z": 184.444
+	}
   },
   {
     "Id": 8,
     "Name": "instance_howling_abyss_2",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 2,
-    "CellY": 2
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 280,
+		"X": 713.56,
+		"Y": 720.398,
+		"Z": 184.444
+	}
   },
   {
     "Id": 9,
     "Name": "instance_immortal_isle",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 0,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 0.0,
     "CellX": 3,
-    "CellY": 3
+    "CellY": 3,
+	"SpawnPosition": {
+		"ZoneId": 285,
+		"X": 1712.18,
+		"Y": 1324.28,
+		"Z": 167.018
+	}
   },
   {
     "Id": 10,
     "Name": "instance_immortal_isle_easy",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 0,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 0.0,
     "CellX": 3,
-    "CellY": 3
+    "CellY": 3,
+	"SpawnPosition": {
+		"ZoneId": 290,
+		"X": 1712.18,
+		"Y": 1324.28,
+		"Z": 167.018
+	}
   },
   {
     "Id": 11,
     "Name": "instance_library",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 0.0,
     "CellX": 8,
-    "CellY": 8
+    "CellY": 8,
+	"SpawnPosition": {
+		"ZoneId": 296,
+		"X": 621.05,
+		"Y": 643.36,
+		"Z": 134.64
+	}
   },
   {
     "Id": 12,
     "Name": "instance_nachashgar",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 4,
-    "CellY": 4
+    "CellY": 4,
+	"SpawnPosition": {
+		"ZoneId": 278,
+		"X": 0,
+		"Y": 0,
+		"Z": 0
+	}
   },
   {
     "Id": 13,
     "Name": "instance_nachashgar_easy",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
+    "CellX": 4,
+    "CellY": 4,
+	"SpawnPosition": {
+		"ZoneId": 292,
+		"X": 0,
+		"Y": 0,
+		"Z": 0
+	}
+  },
+  {
+    "Id": 14,
+    "Name": "instance_prologue",
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 4,
     "CellY": 4
   },
   {
-    "Id": 14,
+    "Id": 15,
     "Name": "instance_sal_temple",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
+    "CellX": 2,
+    "CellY": 2,
+	"SpawnPosition": {
+		"ZoneId": 240,
+		"X": 431.406,
+		"Y": 300.08,
+		"Z": 154.036
+	}
+  },
+  {
+    "Id": 16,
+    "Name": "instance_training_camp",
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
     "CellX": 2,
     "CellY": 2
   },
   {
-    "Id": 15,
-    "Name": "racing_test_world",
-    "OffsetX": 0,
-    "OffsetY": 0,
-    "MaxHeight": 4096,
-    "OceanLevel": 100,
-    "CellX": 8,
-    "CellY": 8
+    "Id": 17,
+    "Name": "instance_training_camp_1on1",
+    "MaxHeight": 4096.0,
+    "HeightMaxCoeff": 63.9990234375,
+    "OceanLevel": 100.0,
+    "CellX": 2,
+    "CellY": 2
   }
 ]

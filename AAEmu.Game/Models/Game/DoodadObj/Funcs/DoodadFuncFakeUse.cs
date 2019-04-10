@@ -5,9 +5,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncFakeUse : DoodadFuncTemplate
     {
+        public uint SkillId { get; set; }
+        public uint FakeSkillId { get; set; }
+        public bool TargetParent { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            throw new System.NotImplementedException();
+            _log.Debug("DoodadFuncFakeUse");
         }
     }
 }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly bool _isOffline;
 
-        public SCUnitOfflinePacket(uint objId, bool isOffline) : base(0x069, 1)
+        public SCUnitOfflinePacket(uint objId, bool isOffline) : base(SCOffsets.SCUnitOfflinePacket, 1)
         {
             _objId = objId;
             _isOffline = isOffline;

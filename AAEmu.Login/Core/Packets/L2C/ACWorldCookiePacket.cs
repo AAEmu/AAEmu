@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
 
@@ -18,8 +19,11 @@ namespace AAEmu.Login.Core.Packets.L2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_cookie);
-            stream.Write(_gs.Ip);
-            stream.Write(_gs.Port);
+            for (var i = 0; i < 4; i++)
+            {
+                stream.Write(Helpers.ConvertIp(_gs.Host));
+                stream.Write(_gs.Port);
+            }
 
             return stream;
         }

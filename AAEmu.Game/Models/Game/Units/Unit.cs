@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -11,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Units
     public class Unit : BaseUnit
     {
         private Task _regenTask;
-        
+
         public uint ModelId { get; set; }
         public byte Level { get; set; }
         public int Hp { get; set; }
@@ -40,8 +41,10 @@ namespace AAEmu.Game.Models.Game.Units
         public bool ForceAttack { get; set; }
         public bool Invisible { get; set; }
 
+        public uint OwnerId { get; set; }
         public SkillTask SkillTask { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
+        public Expedition Expedition { get; set; }
 
         public Unit()
         {
@@ -53,9 +56,10 @@ namespace AAEmu.Game.Models.Game.Units
             if (Hp == 0)
                 return;
             Hp = Math.Max(Hp - value, 0);
-            if (Hp == 0)
+            if (Hp == 0) {
                 DoDie(attacker);
-            else
+                StopRegen();
+            } else
                 StartRegen();
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
@@ -68,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void StartRegen()
         {
-            if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp)
+            if (_regenTask != null || (Hp >= MaxHp && Mp >= MaxMp) || Hp == 0)
                 return;
             _regenTask = new UnitPointsRegenTask(this);
             TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));

@@ -7,17 +7,20 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _time;
         private readonly byte _target;
+        private readonly bool _idleKick;
 
-        public SCPrepareLeaveWorldPacket(int time, byte target) : base(0x002, 1)
+        public SCPrepareLeaveWorldPacket(int time, byte target, bool idleKick) : base(SCOffsets.SCPrepareLeaveWorldPacket, 1)
         {
             _time = time;
             _target = target;
+            _idleKick = idleKick;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_time);
             stream.Write(_target);
+            stream.Write(_idleKick);
             return stream;
         }
     }

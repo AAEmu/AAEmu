@@ -86,7 +86,7 @@ namespace AAEmu.Game.Core.Managers
                 return _passiveBuffs[id];
             return null;
         }
-        
+
         public void Load()
         {
             _skills = new Dictionary<uint, SkillTemplate>();
@@ -138,7 +138,7 @@ namespace AAEmu.Game.Core.Managers
                 "SpawnFishEffect"
                 "PlayLogEffect"
              */
-            
+
             _taggedBuffs = new Dictionary<uint, List<uint>>();
 
             using (var connection = SQLite.CreateConnection())
@@ -170,8 +170,8 @@ namespace AAEmu.Game.Core.Managers
                             template.EffectRepeatTick = reader.GetInt32("effect_repeat_tick");
                             template.ActiveWeaponId = reader.GetInt32("active_weapon_id");
                             template.TargetType = (SkillTargetType) reader.GetInt32("target_type_id");
-                            template.TargetSelectionId = reader.GetInt32("target_selection_id");
-                            template.TargetRelationId = reader.GetInt32("target_relation_id");
+                            template.TargetSelection = (SkillTargetSelection)reader.GetInt32("target_selection_id");
+                            template.TargetRelation = (SkillTargetRelation)reader.GetInt32("target_relation_id");
                             template.TargetAreaCount = reader.GetInt32("target_area_count");
                             template.TargetAreaRadius = reader.GetInt32("target_area_radius");
                             template.TargetSiege = reader.GetBoolean("target_siege", true);
@@ -227,6 +227,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ChannelingCancelable = reader.GetBoolean("channeling_cancelable", true);
                             template.TargetOffsetAngle = reader.GetFloat("target_offset_angle");
                             template.TargetOffsetDistance = reader.GetFloat("target_offset_distance");
+                            template.ActabilityGroupId = reader.GetInt32("actability_group_id", 0);
                             template.PlotOnly = reader.GetBoolean("plot_only", true);
                             template.SkillControllerAtEnd = reader.GetBoolean("skill_controller_at_end", true);
                             template.EndSkillController = reader.GetBoolean("end_skill_controller", true);
@@ -255,7 +256,7 @@ namespace AAEmu.Game.Core.Managers
                             template.TargetFishing = reader.GetBoolean("target_fishing", true);
                             template.SourceNoSlave = reader.GetBoolean("source_no_slave", true);
                             template.AutoReUse = reader.GetBoolean("auto_reuse", true);
-                            template.AutoReUseDelay = reader.GetInt32("auto_reuse_delay");
+                            template.AutoReUseDelay = reader.GetInt32("auto_reuse_delay", 0);
                             template.SourceNotCollided = reader.GetBoolean("source_not_collided", true);
                             template.SkillPoints = reader.GetInt32("skill_points");
                             template.DoodadHitFamily = reader.GetInt32("doodad_hit_family");
@@ -309,9 +310,9 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
+
                 _log.Info("Loading skill effects/buffs...");
-                
+
                 using(var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM buffs";
@@ -694,7 +695,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new CraftEffect();
                             template.Id = reader.GetUInt32("id");
-                            template.WorldInteractionId = reader.GetUInt32("wi_id");
+                            template.WorldInteraction = (WorldInteractionType)reader.GetUInt32("wi_id");
                             _effects["CraftEffect"].Add(template.Id, template);
                         }
                     }
@@ -1156,7 +1157,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SpecialEffect();
                             template.Id = reader.GetUInt32("id");
-                            template.SpecialEffectTypeId = reader.GetInt32("special_effect_type_id");
+                            template.SpecialEffectTypeId = (SpecialType)reader.GetInt32("special_effect_type_id");
                             template.Value1 = reader.GetInt32("value1");
                             template.Value2 = reader.GetInt32("value2");
                             template.Value3 = reader.GetInt32("value3");
@@ -1205,8 +1206,11 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while(reader.Read())
                         {
-                            var template = new SkillEffect();
                             var skillId = reader.GetUInt32("skill_id");
+                            if (!_skills.ContainsKey(skillId))
+                                continue;
+                            
+                            var template = new SkillEffect();
                             var effectId = reader.GetUInt32("effect_id");
                             var type = _types[effectId];
                             if(_effects.ContainsKey(type.Type))
@@ -1229,8 +1233,8 @@ namespace AAEmu.Game.Core.Managers
                             template.ConsumeItemId = reader.GetUInt32("consume_item_id", 0);
                             template.ConsumeItemCount = reader.GetInt32("consume_item_count");
                             template.AlwaysHit = reader.GetBoolean("always_hit", true);
-                            // TODO 1.2 // template.ItemSetId = reader.GetUInt32("item_set_id", 0);
-                            // TODO 1.2 // template.InteractionSuccessHit = reader.GetBoolean("interaction_success_hit", true);
+                            template.ItemSetId = reader.GetUInt32("item_set_id", 0);
+                            template.InteractionSuccessHit = reader.GetBoolean("interaction_success_hit", true);
                             _skills[skillId].Effects.Add(template);
                         }
                     }

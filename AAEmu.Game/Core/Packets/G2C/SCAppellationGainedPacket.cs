@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -6,8 +6,8 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCAppellationGainedPacket : GamePacket
     {
         private readonly uint _appellationId;
-        
-        public SCAppellationGainedPacket(uint appellationId) : base(0x19b, 1)
+
+        public SCAppellationGainedPacket(uint appellationId) : base(SCOffsets.SCAppellationGainedPacket, 1)
         {
             _appellationId = appellationId;
         }

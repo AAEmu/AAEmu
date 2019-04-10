@@ -1,4 +1,7 @@
+using System;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.World;
 using NLog;
 
@@ -8,10 +11,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public float Scale { get; set; }
+        
+        public Doodad Last { get; set; }
 
         public override Doodad Spawn(uint objId)
         {
             var doodad = DoodadManager.Instance.Create(objId, UnitId, null); // TODO look
+            if (doodad == null)
+            {
+                _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);
+                return null;
+            }
+            
             doodad.Spawner = this;
             doodad.Position = Position.Clone();
             doodad.OwnerType = DoodadOwnerType.System;
@@ -24,11 +35,28 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             doodad.Spawn();
+            Last = doodad;
             return doodad;
         }
 
         public override void Despawn(Doodad doodad)
         {
+            doodad.Delete();
+            if (doodad.Respawn == DateTime.MinValue)
+                ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            Last = null;
+        }
+
+        public void DecreaseCount(Doodad doodad)
+        {
+            if (RespawnTime > 0)
+            {
+                doodad.Respawn = DateTime.Now.AddSeconds(RespawnTime);
+                SpawnManager.Instance.AddRespawn(doodad);
+            }
+            else
+                Last = null;
+
             doodad.Delete();
         }
     }

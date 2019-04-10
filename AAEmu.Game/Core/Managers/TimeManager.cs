@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers
 
         public static float Speed = .0016666f;
         public float GetTime() => _time / 3600f;
-       
+
         public TimeManager()
         {
             _observers = new List<IObserver<float>>();

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCRaceCongestionPacket : GamePacket
     {
-        public SCRaceCongestionPacket() : base(0x03a, 1)
+        public SCRaceCongestionPacket() : base(SCOffsets.SCRaceCongestionPacket, 1)
         {
         }
 

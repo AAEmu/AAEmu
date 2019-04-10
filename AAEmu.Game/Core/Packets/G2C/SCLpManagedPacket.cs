@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _characterId;
 
-        public SCLpManagedPacket(uint characterId) : base(0x43, 1)
+        public SCLpManagedPacket(uint characterId) : base(SCOffsets.SCLpManagedPacket, 1)
         {
             _characterId = characterId;
         }

@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.Proxy
         // TODO Only command without body...
         public UnbindPredictedObjPacket() : base(0x009, 2)
         {
-            
         }
     }
 }

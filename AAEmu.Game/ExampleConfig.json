@@ -1,5 +1,7 @@
 {
   "Id": 1,
+  "AdditionalesId": [],
+  "SecretKey": "test",
   "Network": {
     "Host": "127.0.0.1",
     "Port": 1239
@@ -18,7 +20,7 @@
       "Port": "3306",
       "User": "root",
       "Password": "",
-      "Database": "aaemu"
+      "Database": "aaemu_game"
     }
   },
   "CharacterNameRegex": "^[a-zA-Z0-9а-яА-Я]{1,18}$",

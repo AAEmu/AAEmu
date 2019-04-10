@@ -1,6 +1,5 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {
@@ -11,9 +10,11 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public bool DropWhenDestroy { get; set; }
         public bool DestroyWhenDrop { get; set; }
 
-        public override bool Use(Unit unit, int objective)
+        public override bool Use(Character character, Quest quest, int objective) // triggered by using things
         {
-            return false;
+            _log.Debug("QuestActConAcceptItem: ItemId {0}", ItemId);
+            // TODO Cleanup
+            return character.Inventory.CheckItems(ItemId, 1);
         }
     }
 }

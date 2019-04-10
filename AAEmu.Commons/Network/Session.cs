@@ -7,7 +7,7 @@ using NLog;
 
 namespace AAEmu.Commons.Network
 {
-    public class Session
+    public class Session : IDisposable
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
@@ -23,16 +23,16 @@ namespace AAEmu.Commons.Network
         public Socket Socket { get; }
         public SocketAsyncEventArgs ReadEventArg { get; }
 
-        public IPEndPoint LocalEndPoint => (IPEndPoint) Socket.LocalEndPoint;
+        public IPEndPoint LocalEndPoint => (IPEndPoint)Socket.LocalEndPoint;
 
-        public IPEndPoint RemoteEndPoint => (IPEndPoint) Socket.RemoteEndPoint;
+        public IPEndPoint RemoteEndPoint => (IPEndPoint)Socket.RemoteEndPoint;
 
         public IPAddress Ip { get; private set; }
 
         public Session(INetBase server, SocketAsyncEventArgs readEventArg, Socket socket)
         {
             Socket = socket;
-            Id = (uint) RemoteEndPoint.GetHashCode();
+            Id = (uint)RemoteEndPoint.GetHashCode();
             _server = server;
             ReadEventArg = readEventArg;
             _writeEventArg.Completed += WriteComplete;
@@ -154,6 +154,11 @@ namespace AAEmu.Commons.Network
 
             Socket.Close();
             _server.RemoveSession(this);
+        }
+
+        public void Dispose()
+        {
+            _writeEventArg.Dispose();
         }
     }
 }

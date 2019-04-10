@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.C2S
     {
         public CTUploadEmblemStreamPacket() : base(0x0C)
         {
-            
         }
 
         public override void Read(PacketStream stream)
@@ -16,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2S
             var size = stream.ReadInt32();
             var index = stream.ReadInt32();
             var data = stream.ReadString(); // or bytes; max length 3096
-            
+
             /*
             v2 = (char *)this;
             a2->Reader->ReadInt32("total", (char *)this + 8, 0);

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ushort _tlId;
         
-        public SCSkillEndedPacket(ushort tlId) : base(0x09c, 1)
+        public SCSkillEndedPacket(ushort tlId) : base(SCOffsets.SCSkillEndedPacket, 1)
         {
             _tlId = tlId;
         }

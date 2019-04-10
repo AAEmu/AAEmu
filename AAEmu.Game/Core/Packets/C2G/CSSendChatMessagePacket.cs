@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendChatMessagePacket : GamePacket
     {
-        public CSSendChatMessagePacket() : base(0x061, 1)
+        public CSSendChatMessagePacket() : base(0x063, 1) //TODO 1.0 opcode: 0x061
         {
         }
 
@@ -44,6 +44,9 @@ namespace AAEmu.Game.Core.Packets.C2G
                     break;
                 case ChatType.Shout:
                     // TODO ...
+                    break;
+                case ChatType.Clan:
+                    Connection.ActiveChar.Expedition?.SendPacket(new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType));
                     break;
                 case ChatType.Region:
                     WorldManager.Instance.BroadcastPacketToFaction(

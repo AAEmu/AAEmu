@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -11,18 +11,43 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
+        private Dictionary<uint, uint> _zoneIdToKey;
         private Dictionary<uint, Zone> _zones;
-        private Dictionary<ushort, ZoneGroup> _groups;
+        private Dictionary<uint, ZoneGroup> _groups;
         private Dictionary<ushort, ZoneConflict> _conflicts;
         private Dictionary<uint, ZoneGroupBannedTag> _groupBannedTags;
         private Dictionary<uint, ZoneClimateElem> _climateElem;
 
         public ZoneConflict[] GetConflicts() => _conflicts.Values.ToArray();
+
+        public Zone GetZoneById(uint zoneId)
+        {
+            return _zoneIdToKey.ContainsKey(zoneId) ? _zones[_zoneIdToKey[zoneId]] : null;
+        }
+
+        public Zone GetZoneByKey(uint zoneKey)
+        {
+            return _zones.ContainsKey(zoneKey) ? _zones[zoneKey] : null;
+        }
         
+        public ZoneGroup GetZoneGroupById(uint zoneId)
+        {
+            return _groups.ContainsKey(zoneId) ? _groups[zoneId] : null;
+        }
+
+        public uint GetTargetIdByZoneId(uint zoneId)
+        {
+            var zone = GetZoneByKey(zoneId);
+            if (zone == null) return 0;
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+            return zoneGroup?.TargetId ?? 0;
+        }
+
         public void Load()
         {
+            _zoneIdToKey = new Dictionary<uint, uint>();
             _zones = new Dictionary<uint, Zone>();
-            _groups = new Dictionary<ushort, ZoneGroup>();
+            _groups = new Dictionary<uint, ZoneGroup>();
             _conflicts = new Dictionary<ushort, ZoneConflict>();
             _groupBannedTags = new Dictionary<uint, ZoneGroupBannedTag>();
             _climateElem = new Dictionary<uint, ZoneClimateElem>();
@@ -39,12 +64,13 @@ namespace AAEmu.Game.Core.Managers.World
                         {
                             var template = new Zone();
                             template.Id = reader.GetUInt32("id");
-                            template.Name = (string) reader.GetValue("name");
+                            template.Name = (string)reader.GetValue("name");
                             template.ZoneKey = reader.GetUInt32("zone_key");
                             template.GroupId = reader.GetUInt32("group_id", 0);
                             template.Closed = reader.GetBoolean("closed", true);
                             template.FactionId = reader.GetUInt32("faction_id", 0);
                             template.ZoneClimateId = reader.GetUInt32("zone_climate_id", 0);
+                            _zoneIdToKey.Add(template.Id, template.ZoneKey);
                             _zones.Add(template.ZoneKey, template);
                         }
                     }
@@ -61,7 +87,7 @@ namespace AAEmu.Game.Core.Managers.World
                         while (reader.Read())
                         {
                             var template = new ZoneGroup();
-                            template.Id = reader.GetUInt16("id");
+                            template.Id = reader.GetUInt32("id");
                             template.Name = (string) reader.GetValue("name");
                             template.X = reader.GetFloat("x");
                             template.Y = reader.GetFloat("y");

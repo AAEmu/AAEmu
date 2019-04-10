@@ -1,17 +1,21 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNotifySubZonePacket : GamePacket
     {
-        public CSNotifySubZonePacket() : base(0x10f, 1)
+        public CSNotifySubZonePacket() : base(0x112, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            _log.Debug("Enter RegionId: {0} ", stream.ReadInt32());
+            var subZoneId = stream.ReadUInt32();
+            if (subZoneId == 0) return;
+
+            _log.Debug("Enter RegionId: {0} ", subZoneId);
+            Connection.ActiveChar.Portals.NotifySubZone(subZoneId);
         }
     }
 }

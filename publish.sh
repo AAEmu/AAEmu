@@ -1,6 +1,4 @@
-﻿#!bin/bash
-
-VERSION_PREFIX=0.0.1.1
+VERSION_PREFIX=0.0.2.0
 VERSION_SUFFIX=alpha
 
 FRAMEWORK=netcoreapp2.2

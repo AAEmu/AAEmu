@@ -1,6 +1,5 @@
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {
@@ -15,16 +14,16 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public int LvlMin { get; set; }
         public int LvlMax { get; set; }
         public bool IsParty { get; set; }
+        public int LvlMinNpc { get; set; }
+        public int LvlMaxNpc { get; set; }
+        public uint PcFactionId { get; set; }
+        public bool PcFactionExclusive { get; set; }
+        public uint NpcFactionId { get; set; }
+        public bool NpcFactionExclusive { get; set; }
 
-        // TODO 1.2 // public int LvlMinNpc { get; set; }
-        // TODO 1.2 // public int LvlMaxNpc { get; set; }
-        // TODO 1.2 // public uint PcFactionId { get; set; }
-        // TODO 1.2 // public bool PcFactionExclusive { get; set; }
-        // TODO 1.2 // public uint NpcFactionId { get; set; }
-        // TODO 1.2 // public bool NpcFactionExclusive { get; set; }
-        
-        public override bool Use(Unit unit, int objective)
+        public override bool Use(Character character, Quest quest, int objective)
         {
+            _log.Warn("QuestActObjZoneKill");
             return false;
         }
     }

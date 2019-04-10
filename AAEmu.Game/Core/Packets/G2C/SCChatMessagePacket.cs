@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
@@ -13,14 +13,14 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _ability;
         private readonly byte _languageType;
 
-        public SCChatMessagePacket(ChatType type, string message) : base(0xc6, 1)
+        public SCChatMessagePacket(ChatType type, string message) : base(SCOffsets.SCChatMessagePacket, 1)
         {
             _type = type;
             _message = message;
         }
 
         public SCChatMessagePacket(ChatType type, Character character, string message, int ability, byte languageType) :
-            base(0x0c6, 1)
+            base(SCOffsets.SCChatMessagePacket, 1)
         {
             _type = type;
             _character = character;

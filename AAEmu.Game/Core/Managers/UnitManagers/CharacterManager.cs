@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using AAEmu.Commons.IO;
@@ -7,7 +7,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -27,6 +26,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         private readonly Dictionary<byte, AbilityItems> _abilityItems;
         private readonly Dictionary<int, List<Expand>> _expands;
         private readonly Dictionary<uint, AppellationTemplate> _appellations;
+        private readonly Dictionary<uint, ActabilityTemplate> _actabilities;
+        private readonly Dictionary<int, ExpertLimit> _expertLimits;
+        private readonly Dictionary<int, ExpandExpertLimit> _expandExpertLimits;
 
         public CharacterManager()
         {
@@ -34,6 +36,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             _abilityItems = new Dictionary<byte, AbilityItems>();
             _expands = new Dictionary<int, List<Expand>>();
             _appellations = new Dictionary<uint, AppellationTemplate>();
+            _actabilities = new Dictionary<uint, ActabilityTemplate>();
+            _expertLimits = new Dictionary<int, ExpertLimit>();
+            _expandExpertLimits = new Dictionary<int, ExpandExpertLimit>();
         }
 
         public CharacterTemplate GetTemplate(byte race, byte gender)
@@ -45,6 +50,30 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             if (_appellations.ContainsKey(id))
                 return _appellations[id];
+            return null;
+        }
+        
+        public List<Expand> GetExpands(int step)
+        {
+            return _expands[step];
+        }
+
+        public ActabilityTemplate GetActability(uint id)
+        {
+            return _actabilities[id];
+        }
+
+        public ExpertLimit GetExpertLimit(int step)
+        {
+            if (_expertLimits.ContainsKey(step))
+                return _expertLimits[step];
+            return null;
+        }
+
+        public ExpandExpertLimit GetExpandExpertLimit(int step)
+        {
+            if (_expandExpertLimits.ContainsKey(step))
+                return _expandExpertLimits[step];
             return null;
         }
 
@@ -65,8 +94,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var template = new CharacterTemplate();
                             var id = reader.GetUInt32("id");
-                            template.Race = (Race) reader.GetByte("char_race_id");
-                            template.Gender = (Gender) reader.GetByte("char_gender_id");
+                            template.Race = (Race)reader.GetByte("char_race_id");
+                            template.Gender = (Gender)reader.GetByte("char_gender_id");
                             template.ModelId = reader.GetUInt32("model_id");
                             template.FactionId = reader.GetUInt32("faction_id");
                             template.ZoneId = reader.GetUInt32("starting_zone_id");
@@ -89,7 +118,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 }
                             }
 
-                            var templateId = (byte) (16 * (byte) template.Gender + (byte) template.Race);
+                            var templateId = (byte)(16 * (byte)template.Gender + (byte)template.Race);
                             _templates.Add(templateId, template);
                             temp.Add(id, templateId);
                         }
@@ -224,20 +253,18 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     {
                         while (reader.Read())
                         {
-                            var expand = new Expand
-                            {
-                                IsBank = reader.GetBoolean("is_bank", true),
-                                Step = reader.GetInt32("step"),
-                                Price = reader.GetInt32("price"),
-                                ItemId = reader.GetUInt32("item_id", 0),
-                                ItemCount = reader.GetInt32("item_count"),
-                                CurrencyId = reader.GetInt32("currency_id")
-                            };
+                            var expand = new Expand();
+                            expand.IsBank = reader.GetBoolean("is_bank", true);
+                            expand.Step = reader.GetInt32("step");
+                            expand.Price = reader.GetInt32("price");
+                            expand.ItemId = reader.GetUInt32("item_id", 0);
+                            expand.ItemCount = reader.GetInt32("item_count");
+                            expand.CurrencyId = reader.GetInt32("currency_id");
 
                             if (!_expands.ContainsKey(expand.Step))
                                 _expands.Add(expand.Step, new List<Expand> {expand});
-
-                            else _expands[expand.Step].Add(expand);
+                            else
+                                _expands[expand.Step].Add(expand);
                         }
                     }
                 }
@@ -258,9 +285,70 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM actability_groups";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new ActabilityTemplate();
+                            template.Id = reader.GetUInt32("id");
+                            template.Name = reader.GetString("name");
+                            template.UnitAttributeId = reader.GetInt32("unit_attr_id");
+                            _actabilities.Add(template.Id, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM expert_limits ORDER BY up_limit ASC";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        var step = 0;
+                        while (reader.Read())
+                        {
+                            var template = new ExpertLimit();
+                            template.Id = reader.GetUInt32("id");
+                            template.UpLimit = reader.GetInt32("up_limit");
+                            template.ExpertLimitCount = reader.GetByte("expert_limit");
+                            template.Advantage = reader.GetInt32("advantage");
+                            template.CastAdvantage = reader.GetInt32("cast_adv");
+                            template.UpCurrencyId = reader.GetUInt32("up_currency_id", 0);
+                            template.UpPrice = reader.GetInt32("up_price");
+                            template.DownCurrencyId = reader.GetUInt32("down_currency_id", 0);
+                            template.DownPrice = reader.GetInt32("down_price");
+                            _expertLimits.Add(step++, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM expand_expert_limits ORDER BY expand_count ASC";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        var step = 0;
+                        while (reader.Read())
+                        {
+                            var template = new ExpandExpertLimit();
+                            template.Id = reader.GetUInt32("id");
+                            template.ExpandCount = reader.GetByte("expand_count");
+                            template.LifePoint = reader.GetInt32("life_point");
+                            template.ItemId = reader.GetUInt32("item_id", 0);
+                            template.ItemCount = reader.GetInt32("item_count");
+                            _expandExpertLimits.Add(step++, template);
+                        }
+                    }
+                }
             }
 
-            var content = FileManager.GetFileContents("./Data/CharTemplates.json");
+            var content = FileManager.GetFileContents($"{FileManager.AppPath}Data/CharTemplates.json");
             if (string.IsNullOrWhiteSpace(content))
                 throw new IOException(
                     $"File {FileManager.AppPath + "Data/CharTemplates.json"} doesn't exists or is empty.");
@@ -270,6 +358,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 foreach (var charTemplate in charTemplates)
                 {
                     var point = new Point(charTemplate.Pos.X, charTemplate.Pos.Y, charTemplate.Pos.Z);
+                    point.WorldId = charTemplate.Pos.WorldId;
                     point.ZoneId = WorldManager
                         .Instance
                         .GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y); // TODO ...
@@ -297,11 +386,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var nameValidationCode = NameManager.Instance.ValidationCharacterName(name);
             if (nameValidationCode == 0)
             {
-                NameManager.Instance.AddCharacterName(name);
+                var characterId = CharacterIdManager.Instance.GetNextId();
+                NameManager.Instance.AddCharacterName(characterId, name);
                 var template = GetTemplate(race, gender);
 
                 var character = new Character(customModel);
-                character.Id = CharacterIdManager.Instance.GetNextId();
+                character.Id = characterId;
                 character.AccountId = connection.AccountId;
                 character.Name = name.Substring(0, 1).ToUpper() + name.Substring(1);
                 character.Race = (Race) race;
@@ -373,6 +463,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                 character.Abilities = new CharacterAbilities(character);
                 character.Abilities.SetAbility(character.Ability1, 0);
+                
+                character.Actability = new CharacterActability(character);
+                foreach (var (id, actabilityTemplate) in _actabilities)
+                    character.Actability.Actabilities.Add(id, new Actability(actabilityTemplate));
 
                 character.Skills = new CharacterSkills(character);
                 foreach (var skill in SkillManager.Instance.GetDefaultSkills())
@@ -394,6 +488,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 
                 character.Appellations = new CharacterAppellations(character);
                 character.Quests = new CharacterQuests(character);
+                character.Mails = new CharacterMails(character);
+                character.Portals = new CharacterPortals(character);
+                character.Friends = new CharacterFriends(character);
                 
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;
@@ -404,7 +501,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     connection.SendPacket(new SCCreateCharacterResponsePacket(character));
                 }
                 else
+                {
                     connection.SendPacket(new SCCharacterCreationFailedPacket(3));
+                    CharacterIdManager.Instance.ReleaseId(characterId);
+                    NameManager.Instance.RemoveCharacterName(characterId);
+                    // TODO release items...
+                }
             }
             else
             {

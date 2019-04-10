@@ -1,5 +1,7 @@
-﻿using System;
+using System;
+using System.Threading;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Core.Network.Game
@@ -18,25 +20,46 @@ namespace AAEmu.Game.Core.Network.Game
             var ps = new PacketStream();
             try
             {
-                ps.Write(new PacketStream().Write((byte) 0xdd).Write(Level).Write(TypeId).Write(this));
+                var packet = new PacketStream()
+                    .Write((byte)0xdd)
+                    .Write(Level);
+
+                var body = new PacketStream()
+                    .Write(TypeId)
+                    .Write(this);
+
+                if (Level == 1)
+                {
+                    packet
+                        .Write((byte)0) // hash
+                        .Write((byte)0); // count
+                }
+
+                packet.Write(body, false);
+                
+                ps.Write(packet);
             }
             catch (Exception ex)
             {
                 _log.Fatal(ex);
                 throw;
             }
-            //не выводим Pong и SCUnitMovementsPacket
-            if (!(TypeId == 0x013 && Level == 2) && !(TypeId == 0x066 && Level == 1))
-                _log.Debug("GamePacket: S->C\n{0}", ps);
+
+            if (!(TypeId == 0x013 && Level == 2) && 
+                !(TypeId == 0x016 && Level == 2) &&
+                !(TypeId == 0x066 && Level == 1) && 
+                !(TypeId == 0x068 && Level == 1))
+                _log.Debug("GamePacket: S->C type {0:X}\n{1}", TypeId, ps);
 
             return ps;
         }
 
         public override PacketBase<GameConnection> Decode(PacketStream ps)
         {
-            //не выводим Ping и CSMoveUnitPacket
-            if (!(TypeId == 0x012 && Level == 2) && !(TypeId == 0x088 && Level == 1))
-                _log.Debug("GamePacket: C->S\n{0}", ps);
+            if (!(TypeId == 0x012 && Level == 2) && 
+                !(TypeId == 0x015 && Level == 2) &&
+                !(TypeId == 0x089 && Level == 1))
+                _log.Debug("GamePacket: C->S type {0:X}\n{1}", TypeId, ps);
 
             try
             {

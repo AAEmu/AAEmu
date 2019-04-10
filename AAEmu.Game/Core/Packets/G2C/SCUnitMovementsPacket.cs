@@ -1,6 +1,5 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -9,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private (uint id, MoveType type)[] _movements;
 
-        public SCUnitMovementsPacket((uint id, MoveType type)[] movements) : base(0x066, 1)
+        public SCUnitMovementsPacket((uint id, MoveType type)[] movements) : base(SCOffsets.SCUnitMovementsPacket, 1)
         {
             _movements = movements;
         }

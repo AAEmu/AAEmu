@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly List<ItemTask> _tasks;
         private readonly List<ulong> _forceRemove;
 
-        public SCItemTaskSuccessPacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove) : base(0x08b, 1)
+        public SCItemTaskSuccessPacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove) : base(SCOffsets.SCItemTaskSuccessPacket, 1)
         {
             _action = action;
             _tasks = tasks;

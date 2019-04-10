@@ -5,9 +5,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncPulseTrigger : DoodadFuncTemplate
     {
+        public bool Flag { get; set; }
+        public uint NextPhase { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            throw new System.NotImplementedException();
+            _log.Debug("DoodadFuncPulseTrigger");
         }
     }
 }

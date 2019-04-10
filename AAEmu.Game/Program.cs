@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.IO;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Network.Login;
-using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models;
 using AAEmu.Game.Utils.DB;
-using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NLog;
 using NLog.Config;
 
@@ -22,21 +17,26 @@ namespace AAEmu.Game
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private static Thread _thread = Thread.CurrentThread;
-        private static bool _shutdown;
         private static DateTime _startTime;
         private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
         private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
-        private static AutoResetEvent _signal = new AutoResetEvent(false);
+        public static AutoResetEvent ShutdownSignal = new AutoResetEvent(false); // TODO save to shutdown server?
 
-        public static int UpTime => (int) (DateTime.Now - _startTime).TotalSeconds;
+        public static int UpTime => (int)(DateTime.Now - _startTime).TotalSeconds;
 
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             Initialization();
-            Configuration(args);
-            _log.Info("{0} version {1}", Name, Version);
+            
+            if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
+                Configuration(args);
+            else
+            {
+                _log.Error($"{FileManager.AppPath}Config.json doesn't exist!");
+                return;
+            }
 
-            Test();
+            _log.Info("{0} version {1}", Name, Version);
 
             var connection = MySQL.CreateConnection();
             if (connection == null)
@@ -47,94 +47,41 @@ namespace AAEmu.Game
 
             connection.Close();
 
-            TaskIdManager.Instance.Initialize();
-            TaskManager.Instance.Initialize();
+            var builder = new HostBuilder()
+                .ConfigureAppConfiguration((hostingContext, config) =>
+                {
+                    config.AddEnvironmentVariables();
 
-            ObjectIdManager.Instance.Initialize();
+                    if (args != null)
+                    {
+                        config.AddCommandLine(args);
+                    }
+                })
+                .ConfigureServices((hostContext, services) =>
+                {
+                    services.AddOptions();
+                    services.AddSingleton<IHostedService, GameService>();
+                });
 
-            ItemIdManager.Instance.Initialize();
-            CharacterIdManager.Instance.Initialize();
-
-            ZoneManager.Instance.Load();
-            WorldManager.Instance.Load();
-            QuestManager.Instance.Load();
-
-            FormulaManager.Instance.Load();
-            ExpirienceManager.Instance.Load();
-
-            TlIdManager.Instance.Initialize();
-            ItemManager.Instance.Load();
-            PlotManager.Instance.Load();
-            SkillManager.Instance.Load();
-
-            NameManager.Instance.Load();
-            FactionManager.Instance.Load();
-            CharacterManager.Instance.Load();
-
-            NpcManager.Instance.Load();
-            DoodadManager.Instance.Load();
-            
-            SpawnManager.Instance.Load();
-            SpawnManager.Instance.Spawn();
-            ScriptCompiler.Compile();
-            
-            TimeManager.Instance.Start();
-            TaskManager.Instance.Start();
-            GameNetwork.Instance.Start();
-            StreamNetwork.Instance.Start();
-            LoginNetwork.Instance.Start();
-
-            _signal.WaitOne();
-
-            TaskManager.Instance.Stop();
-            GameNetwork.Instance.Stop();
-            StreamNetwork.Instance.Stop();
-            LoginNetwork.Instance.Stop();
-            LogManager.Flush();
+            await builder.RunConsoleAsync();
         }
-
+        
         private static void Initialization()
         {
             _thread.Name = "AA.Game Base Thread";
             _startTime = DateTime.Now;
-            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
-            {
-                if (e.IsTerminating)
-                {
-                    _log.Fatal((Exception) e.ExceptionObject);
-                    Shutdown();
-                }
-                else
-                {
-                    _log.Error((Exception) e.ExceptionObject);
-                }
-            };
-            AppDomain.CurrentDomain.ProcessExit += (sender, e) => Shutdown();
-            AppDomain.CurrentDomain.DomainUnload += (sender, e) => Shutdown();
         }
 
         private static void Configuration(string[] args)
         {
             var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile(FileManager.AppPath + "ExampleConfig.json")
+                .AddJsonFile(FileManager.AppPath + "Config.json")
                 .AddCommandLine(args)
                 .Build();
 
             configurationBuilder.Bind(AppConfiguration.Instance);
 
             LogManager.Configuration = new XmlLoggingConfiguration(FileManager.AppPath + "NLog.config", false);
-        }
-
-        public static void Shutdown()
-        {
-            if (_shutdown)
-                return;
-            _shutdown = true;
-            _signal.Set();
-        }
-
-        public static void Test()
-        {
         }
     }
 }

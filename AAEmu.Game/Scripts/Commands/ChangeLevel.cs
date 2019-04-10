@@ -41,7 +41,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;
-                
+
                 character.SendPacket(new SCLevelChangedPacket(character.ObjId, level));
             }
         }

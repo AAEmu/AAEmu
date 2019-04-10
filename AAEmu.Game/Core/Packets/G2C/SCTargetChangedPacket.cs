@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly uint _targetId;
 
-        public SCTargetChangedPacket(uint id, uint targetId) : base(0x07f, 1)
+        public SCTargetChangedPacket(uint id, uint targetId) : base(SCOffsets.SCTargetChangedPacket, 1)
         {
             _id = id;
             _targetId = targetId;

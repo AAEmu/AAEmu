@@ -1,17 +1,18 @@
-using System;
+﻿using System;
+using System.Linq;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSelectCharacterPacket : GamePacket
     {
-        public CSSelectCharacterPacket() : base(0x024, 1)
+        public CSSelectCharacterPacket() : base(0x025, 1)
         {
         }
 
@@ -19,28 +20,37 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var characterId = stream.ReadUInt32();
             var gm = stream.ReadBoolean();
+            stream.ReadByte();
 
             if (Connection.Characters.ContainsKey(characterId))
             {
                 var character = Connection.Characters[characterId];
                 character.Load();
                 character.Connection = Connection;
+                var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
 
                 Connection.ActiveChar = character;
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
 
                 Connection.SendPacket(new SCCharacterStatePacket(character));
-                Connection.SendPacket(new SCCharacterGamePointsPacket());
+                Connection.SendPacket(new SCCharacterGamePointsPacket(character));
                 Connection.ActiveChar.Inventory.Send();
                 Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
 
                 Connection.ActiveChar.Quests.Send();
                 Connection.ActiveChar.Quests.SendCompleted();
 
-                Connection.SendPacket(new SCActabilityPacket()); // Умения (Крафт, Язык)
+                Connection.ActiveChar.Actability.Send();
                 Connection.ActiveChar.Appellations.Send();
+                Connection.ActiveChar.Portals.Send();
+                Connection.ActiveChar.Friends.Send();
 
-                Connection.SendPacket(new SCFriendsPacket());
+                Connection.ActiveChar.Portals.Send();
+                Connection.ActiveChar.Friends.Send();
+                Connection.ActiveChar.Blocked.Send();
+
+                foreach (var house in houses)
+                    Connection.SendPacket(new SCMyHousePacket(house));
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {
@@ -48,17 +58,25 @@ namespace AAEmu.Game.Core.Packets.C2G
                         new SCConflictZoneStatePacket(
                             conflict.ZoneGroupId,
                             ZoneConflictType.Trouble0,
-                            conflict.NoKillMin[0] > 0 ? DateTime.Now.AddMinutes(conflict.NoKillMin[0]) : DateTime.MinValue
+                            conflict.NoKillMin[0] > 0
+                                ? DateTime.Now.AddMinutes(conflict.NoKillMin[0])
+                                : DateTime.MinValue
                         )
                     );
                 }
 
                 FactionManager.Instance.SendFactions(Connection.ActiveChar);
                 FactionManager.Instance.SendRelations(Connection.ActiveChar);
+                ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
 
-                Connection.ActiveChar.SendOption("quest_notifier_list");
-                Connection.ActiveChar.SendOption("roadmap_option");
-                Connection.ActiveChar.SendOption("quest_context_state_values");
+                if (Connection.ActiveChar.Expedition != null)
+                {
+                    ExpeditionManager.Instance.SendExpeditionInfo(Connection.ActiveChar);
+                }
+
+                Connection.ActiveChar.SendOption(1);
+                Connection.ActiveChar.SendOption(2);
+                Connection.ActiveChar.SendOption(5);
             }
             else
             {

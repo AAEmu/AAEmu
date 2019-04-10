@@ -3,7 +3,6 @@ using System.Net;
 using AAEmu.Commons.Network.Type;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Packets.C2L;
-using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Models;
 using NLog;
 
@@ -23,15 +22,16 @@ namespace AAEmu.Login.Core.Network.Login
             RegisterPacket(0x01, typeof(CARequestAuthPacket)); // TODO +---
             RegisterPacket(0x02, typeof(CARequestAuthTencentPacket));
             RegisterPacket(0x03, typeof(CARequestAuthGameOnPacket));
-            RegisterPacket(0x04, typeof(CARequestAuthMailRuPacket)); // TODO +
-            RegisterPacket(0x05, typeof(CAChallengeResponsePacket));
-            RegisterPacket(0x06, typeof(CAChallengeResponse2Packet));
-            RegisterPacket(0x07, typeof(CAOtpNumberPacket));
-            RegisterPacket(0x09, typeof(CAPcCertNumberPacket));
-            RegisterPacket(0x0a, typeof(CAListWorldPacket)); // TODO +
-            RegisterPacket(0x0b, typeof(CAEnterWorldPacket)); // TODO +
-            RegisterPacket(0x0c, typeof(CACancelEnterWorldPacket));
-            RegisterPacket(0x0d, typeof(CARequestReconnectPacket)); // TODO +
+            RegisterPacket(0x04, typeof(CARequestAuthTrionPacket));
+            RegisterPacket(0x05, typeof(CARequestAuthMailRuPacket)); // TODO +
+            RegisterPacket(0x06, typeof(CAChallengeResponsePacket));
+            RegisterPacket(0x07, typeof(CAChallengeResponse2Packet));
+            RegisterPacket(0x08, typeof(CAOtpNumberPacket));
+            RegisterPacket(0x0a, typeof(CAPcCertNumberPacket));
+            RegisterPacket(0x0b, typeof(CAListWorldPacket)); // TODO +
+            RegisterPacket(0x0c, typeof(CAEnterWorldPacket)); // TODO +
+            RegisterPacket(0x0d, typeof(CACancelEnterWorldPacket));
+            RegisterPacket(0x0e, typeof(CARequestReconnectPacket)); // TODO +
         }
 
         public void Start()

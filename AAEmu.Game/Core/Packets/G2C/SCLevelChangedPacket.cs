@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly byte _level;
 
-        public SCLevelChangedPacket(uint objId, byte level) : base(0x0fc, 1)
+        public SCLevelChangedPacket(uint objId, byte level) : base(SCOffsets.SCLevelChangedPacket, 1)
         {
             _objId = objId;
             _level = level;

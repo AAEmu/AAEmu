@@ -5,9 +5,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncQuest : DoodadFuncTemplate
     {
+        public uint QuestKindId { get; set; }
+        public uint QuestId { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            throw new System.NotImplementedException();
+            _log.Debug("DoodadFuncQuest");
         }
     }
 }

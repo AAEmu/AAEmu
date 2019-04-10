@@ -523,6 +523,31 @@ namespace AAEmu.Commons.Network
             return Helpers.UnixTime(ReadInt64());
         }
 
+        public long[] ReadPisc(int count)
+        {
+            var result = new long[count];
+            var pish = new BitArray(new[] {ReadByte()});
+            for (var index = 0; index < count * 2; index += 2)
+            {
+                if (pish[index] && pish[index + 1]) // uint
+                    result[index / 2] = ReadUInt32();
+                else if (pish[index + 1]) // bc
+                    result[index / 2] = ReadBc();
+                else if (pish[index]) // ushort
+                    result[index / 2] = ReadUInt16();
+                else // byte
+                    result[index / 2] = ReadByte();
+            }
+
+            return result;
+        }
+        
+        public (float x, float y, float z) ReadPosition()
+        {
+            var position = ReadBytes(9);
+            return Helpers.ConvertPosition(position);
+        }
+
         #endregion // Read Complex Types
 
         #region Read Strings
@@ -692,6 +717,13 @@ namespace AAEmu.Commons.Network
             return this;
         }
 
+        public PacketStream WritePosition(float x, float y, float z)
+        {
+            var res = Helpers.ConvertPosition(x, y, z);
+            Write(res);
+            return this;
+        }
+        
         #endregion // Write Complex Types
 
         #region Write Strings

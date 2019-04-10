@@ -5,9 +5,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncZoneReact : DoodadFuncTemplate
     {
+        public uint ZoneGroupId { get; set; }
+        public uint NextPhase { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            throw new System.NotImplementedException();
+            _log.Debug("DoodadFuncZoneReact");
         }
     }
 }

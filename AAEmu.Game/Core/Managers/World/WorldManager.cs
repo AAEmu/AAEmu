@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils.DB;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
@@ -22,6 +23,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         private Dictionary<uint, InstanceWorld> _worlds;
         private Dictionary<uint, uint> _worldIdByZoneId;
+        private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
 
         private readonly ConcurrentDictionary<uint, GameObject> _objects;
         private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits;
@@ -43,17 +45,27 @@ namespace AAEmu.Game.Core.Managers.World
             _characters = new ConcurrentDictionary<uint, Character>();
         }
 
+        public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
+        {
+            if (_worldInteractionGroups.ContainsKey(worldInteractionType))
+                return _worldInteractionGroups[worldInteractionType];
+            return null;
+        }
+
         public void Load()
         {
-            _log.Info("Loading world data...");
-
             _worlds = new Dictionary<uint, InstanceWorld>();
             _worldIdByZoneId = new Dictionary<uint, uint>();
+            _worldInteractionGroups = new Dictionary<uint, WorldInteractionGroup>();
 
-            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/worlds.json");
+            _log.Info("Loading world data...");
+
+            #region FileManager
+
+            var pathFile = $"{FileManager.AppPath}Data/worlds.json";
+            var contents = FileManager.GetFileContents(pathFile);
             if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException(
-                    $"File {FileManager.AppPath}Data/worlds.json doesn't exists or is empty.");
+                throw new IOException($"File {pathFile} doesn't exists or is empty.");
 
             if (JsonHelper.TryDeserializeObject(contents, out List<InstanceWorld> worlds, out _))
             {
@@ -71,14 +83,14 @@ namespace AAEmu.Game.Core.Managers.World
                 }
             }
             else
-                throw new Exception($"WorldManager: Parse {FileManager.AppPath}Data/worlds.json file");
+                throw new Exception($"WorldManager: Parse {pathFile} file");
 
             foreach (var world in _worlds.Values)
             {
-                contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/zones.json");
+                pathFile = $"{FileManager.AppPath}Data/Worlds/{world.Name}/zones.json";
+                contents = FileManager.GetFileContents(pathFile);
                 if (string.IsNullOrWhiteSpace(contents))
-                    throw new IOException(
-                        $"File {FileManager.AppPath}Data/Worlds/{world.Name}/zones.json doesn't exists or is empty.");
+                    throw new IOException($"File {pathFile} doesn't exists or is empty.");
 
                 if (JsonHelper.TryDeserializeObject(contents, out List<ZoneConfig> zones, out _))
                     foreach (var zone in zones)
@@ -99,12 +111,10 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                 else
-                    throw new Exception(
-                        $"WorldManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/zones.json file");
+                    throw new Exception($"WorldManager: Parse {pathFile} file");
             }
 
             var active = false;
-
             if (active) // TODO fastboot if active = false!
             {
                 _log.Info("Loading heightmaps...");
@@ -160,13 +170,33 @@ namespace AAEmu.Game.Core.Managers.World
 
                 _log.Info("Heightmaps loaded");
             }
+
+            #endregion
+
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM wi_group_wis";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var id = reader.GetUInt32("wi_id");
+                            var group = (WorldInteractionGroup)reader.GetUInt32("wi_group_id");
+                            _worldInteractionGroups.Add(id, group);
+                        }
+                    }
+                }
+            }
         }
 
         public InstanceWorld GetWorld(uint worldId)
         {
             return _worlds.ContainsKey(worldId) ? _worlds[worldId] : null;
         }
-        
+
         public InstanceWorld[] GetWorlds()
         {
             return _worlds.Values.ToArray();
@@ -180,8 +210,8 @@ namespace AAEmu.Game.Core.Managers.World
         public uint GetZoneId(uint worldId, float x, float y)
         {
             var world = _worlds[worldId];
-            var sx = (int) ((x - world.OffsetX) / REGION_SIZE);
-            var sy = (int) ((y - world.OffsetY) / REGION_SIZE);
+            var sx = (int)(x / REGION_SIZE);
+            var sy = (int)(y / REGION_SIZE);
             return world.ZoneIds[sx, sy];
         }
 
@@ -193,7 +223,15 @@ namespace AAEmu.Game.Core.Managers.World
 
         public Region GetRegion(GameObject obj)
         {
-            return GetRegion(obj.Position.ZoneId, obj.Position.X, obj.Position.Y);
+            InstanceWorld world;
+            if (obj.Position.Relative)
+            {
+                world = GetWorld(obj.WorldPosition.WorldId);
+                return GetRegion(world, obj.WorldPosition.X, obj.WorldPosition.Y);
+            }
+
+            world = GetWorld(obj.Position.WorldId);
+            return GetRegion(world, obj.Position.X, obj.Position.Y);
         }
 
         public Region GetRegion(Point point)
@@ -207,11 +245,23 @@ namespace AAEmu.Game.Core.Managers.World
 
             var result = new List<Region>();
             for (var a = -1; a <= 1; a++)
-            for (var b = -1; b <= 1; b++)
-                if (ValidRegion(world.Id, x + a, y + b) && world.Regions[x + a, y + b] != null)
-                    result.Add(world.Regions[x + a, y + b]);
+                for (var b = -1; b <= 1; b++)
+                    if (ValidRegion(world.Id, x + a, y + b) && world.Regions[x + a, y + b] != null)
+                        result.Add(world.Regions[x + a, y + b]);
 
             return result.ToArray();
+        }
+
+        public BaseUnit GetBaseUnit(uint objId)
+        {
+            _baseUnits.TryGetValue(objId, out var ret);
+            return ret;
+        }
+
+        public Doodad GetDoodad(uint objId)
+        {
+            _doodads.TryGetValue(objId, out var ret);
+            return ret;
         }
 
         public Unit GetUnit(uint objId)
@@ -219,7 +269,13 @@ namespace AAEmu.Game.Core.Managers.World
             _units.TryGetValue(objId, out var ret);
             return ret;
         }
-        
+
+        public Npc GetNpc(uint objId)
+        {
+            _npcs.TryGetValue(objId, out var ret);
+            return ret;
+        }
+
         public Character GetCharacter(string name)
         {
             foreach (var player in _characters.Values)
@@ -228,10 +284,18 @@ namespace AAEmu.Game.Core.Managers.World
             return null;
         }
 
-        public Character GetCharacter(uint id)
+        public Character GetCharacterByObjId(uint id)
         {
             _characters.TryGetValue(id, out var ret);
             return ret;
+        }
+
+        public Character GetCharacterById(uint id)
+        {
+            foreach (var player in _characters.Values)
+                if (player.Id.Equals(id)) 
+                    return player;
+            return null;
         }
 
         public void AddObject(GameObject obj)
@@ -373,11 +437,11 @@ namespace AAEmu.Game.Core.Managers.World
             var result = new List<T>();
             var regions = new List<Region>();
             for (var a = x * CELL_SIZE; a < (x + 1) * CELL_SIZE; a++)
-            for (var b = y * CELL_SIZE; b < (y + 1) * CELL_SIZE; b++)
-            {
-                if (ValidRegion(worldId, a, b) && _worlds[worldId].Regions[a, b] != null)
-                    regions.Add(_worlds[worldId].Regions[a, b]);
-            }
+                for (var b = y * CELL_SIZE; b < (y + 1) * CELL_SIZE; b++)
+                {
+                    if (ValidRegion(worldId, a, b) && _worlds[worldId].Regions[a, b] != null)
+                        regions.Add(_worlds[worldId].Regions[a, b]);
+                }
 
             foreach (var region in regions)
                 region.GetList(result, 0);
@@ -404,11 +468,26 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
+        public void BroadcastPacketToServer(GamePacket packet)
+        {
+            foreach (var character in _characters.Values)
+            {
+                character.SendPacket(packet);
+            }
+        }
+
         private Region GetRegion(uint zoneId, float x, float y)
         {
             var world = GetWorldByZone(zoneId);
-            var sx = (int) ((x - world.OffsetX) / REGION_SIZE);
-            var sy = (int) ((y - world.OffsetY) / REGION_SIZE);
+            var sx = (int)(x / REGION_SIZE);
+            var sy = (int)(y / REGION_SIZE);
+            return world.GetRegion(sx, sy);
+        }
+
+        private Region GetRegion(InstanceWorld world, float x, float y)
+        {
+            var sx = (int)(x / REGION_SIZE);
+            var sy = (int)(y / REGION_SIZE);
             return world.GetRegion(sx, sy);
         }
 

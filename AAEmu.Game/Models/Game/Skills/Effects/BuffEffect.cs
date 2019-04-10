@@ -16,8 +16,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override uint BuffId => Buff.BuffId;
         public override bool OnActionTime => Buff.Tick > 0;
 
-        public override void Apply(Unit caster, SkillAction casterObj, BaseUnit target, SkillAction targetObj, CastAction castObj,
-            Skill skill, DateTime time)
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+            Skill skill, SkillObject skillObject, DateTime time)
         {
             if (Buff.RequireBuffId > 0 && !target.Effects.CheckBuff(Buff.RequireBuffId))
                 return; // TODO send error?
@@ -50,8 +50,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(Buff.TickEffect.TargetNoBuffTagId)))
                 return;
             var eff = SkillManager.Instance.GetEffectTemplate(Buff.TickEffect.EffectId);
-            var targetObj = new SkillActionUnit(owner.ObjId);
-            eff.Apply(caster, effect.CasterAction, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
+            var targetObj = new SkillCastUnitTarget(owner.ObjId);
+            var skillObj = new SkillObject(); // TODO ?
+            eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, skillObj, DateTime.Now);
         }
 
         public override void Dispel(Unit caster, BaseUnit owner, Effect effect)
@@ -63,7 +64,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override void WriteData(PacketStream stream)
         {
-            stream.WritePisc(0, Buff.Duration / 10, 0, (long) (Buff.Tick / 10)); // TODO unk, Duration / 10, unk / 10, Tick / 10
+            stream.WritePisc(0, Buff.Duration / 10, 0, (long)(Buff.Tick / 10)); // TODO unk, Duration / 10, unk / 10, Tick / 10
         }
 
         public override int GetDuration()

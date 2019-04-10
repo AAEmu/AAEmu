@@ -1,16 +1,18 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
-using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {
     public class QuestActSupplyLp : QuestActTemplate
     {
         public int LaborPower { get; set; }
-        
-        public override bool Use(Unit unit, int objective)
+
+        public override bool Use(Character character, Quest quest, int objective)
         {
-            return false;
+            _log.Debug("QuestActSupplyLp");
+            
+            character.ChangeLabor((short)LaborPower, 0);
+            return true;
         }
     }
 }

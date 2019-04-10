@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSIdleStatusPacket : GamePacket
     {
-        public CSIdleStatusPacket() : base(0x12e, 1)
+        public CSIdleStatusPacket() : base(0x132, 1)
         {
         }
 

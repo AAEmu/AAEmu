@@ -1,0 +1,24 @@
+using System.Linq;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+
+namespace AAEmu.Game.Core.Packets.C2G
+{
+    public class CSListSoldItemPacket : GamePacket
+    {
+        public CSListSoldItemPacket() : base(0x0b1, 1)
+        {
+        }
+
+        public override void Read(PacketStream stream)
+        {
+            var npcObjId = stream.ReadBc();
+            var npc = WorldManager.Instance.GetNpc(npcObjId);
+            if (npc == null || !npc.Template.Merchant)
+                return;
+            Connection.SendPacket(new SCSoldItemListPacket(Connection.ActiveChar.BuyBack.Where(item => item != null).ToArray()));
+        }
+    }
+}

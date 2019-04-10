@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public Skill Skill { get; set; }
         public EffectTemplate Template { get; set; }
         public Unit Caster { get; set; }
-        public SkillAction CasterAction { get; set; }
+        public SkillCaster SkillCaster { get; set; }
         public BaseUnit Owner { get; set; }
         public EffectState State { get; set; }
         public bool InUse { get; set; }
@@ -32,11 +32,11 @@ namespace AAEmu.Game.Models.Game.Skills
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
 
-        public Effect(BaseUnit owner, Unit caster, SkillAction casterAction, EffectTemplate template, Skill skill, DateTime time)
+        public Effect(BaseUnit owner, Unit caster, SkillCaster skillCaster, EffectTemplate template, Skill skill, DateTime time)
         {
             Owner = owner;
             Caster = caster;
-            CasterAction = casterAction;
+            SkillCaster = skillCaster;
             Template = template;
             Skill = skill;
             StartTime = time;

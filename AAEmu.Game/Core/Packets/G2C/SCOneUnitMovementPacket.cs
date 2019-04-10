@@ -1,6 +1,5 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -10,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly MoveType _type;
 
-        public SCOneUnitMovementPacket(uint id, MoveType type) : base(0x067, 1)
+        public SCOneUnitMovementPacket(uint id, MoveType type) : base(SCOffsets.SCOneUnitMovementPacket, 1)
         {
             _id = id;
             _type = type;

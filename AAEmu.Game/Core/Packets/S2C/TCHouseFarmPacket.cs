@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public TCHouseFarmPacket() : base(0x0E)
         {
-            
         }
         
         public override PacketStream Write(PacketStream stream)

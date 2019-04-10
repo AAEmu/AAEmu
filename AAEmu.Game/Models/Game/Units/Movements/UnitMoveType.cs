@@ -23,9 +23,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public override void Read(PacketStream stream)
         {
             base.Read(stream);
-            X = Helpers.ConvertX(stream.ReadBytes(3));
-            Y = Helpers.ConvertY(stream.ReadBytes(3));
-            Z = Helpers.ConvertZ(stream.ReadBytes(3));
+            (X, Y, Z) = stream.ReadPosition();
             VelX = stream.ReadInt16();
             VelY = stream.ReadInt16();
             VelZ = stream.ReadInt16();
@@ -43,9 +41,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             {
                 GcFlags = stream.ReadByte(); // actor.gcFlags
                 GcPartId = stream.ReadUInt16(); // actor.gcPartId
-                X2 = Helpers.ConvertX(stream.ReadBytes(3)); // ix
-                Y2 = Helpers.ConvertY(stream.ReadBytes(3)); // iy
-                Z2 = Helpers.ConvertZ(stream.ReadBytes(3)); // iz
+                (X2, Y2, Z2) = stream.ReadPosition(); // ix, iy, iz
                 RotationX2 = stream.ReadSByte();
                 RotationY2 = stream.ReadSByte(); 
                 RotationZ2 = stream.ReadSByte();
@@ -61,9 +57,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(Helpers.ConvertX(X));
-            stream.Write(Helpers.ConvertY(Y));
-            stream.Write(Helpers.ConvertZ(Z));
+            stream.WritePosition(X, Y, Z);
             stream.Write(VelX);
             stream.Write(VelY);
             stream.Write(VelZ);
@@ -80,9 +74,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             {
                 stream.Write(GcFlags);
                 stream.Write(GcPartId);
-                stream.Write(Helpers.ConvertX(X2));
-                stream.Write(Helpers.ConvertY(Y2));
-                stream.Write(Helpers.ConvertZ(Z2));
+                stream.WritePosition(X2, Y2, Z2);
                 stream.Write(RotationX2);
                 stream.Write(RotationY2);
                 stream.Write(RotationZ2);

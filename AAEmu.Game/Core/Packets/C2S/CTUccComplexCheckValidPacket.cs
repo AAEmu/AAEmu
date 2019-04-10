@@ -7,7 +7,6 @@ namespace AAEmu.Game.Core.Packets.C2S
     {
         public CTUccComplexCheckValidPacket() : base(0x12)
         {
-            
         }
 
         public override void Read(PacketStream stream)

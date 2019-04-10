@@ -21,8 +21,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public int EffectRepeatTick { get; set; }
         public int ActiveWeaponId { get; set; }
         public SkillTargetType TargetType { get; set; }
-        public int TargetSelectionId { get; set; }
-        public int TargetRelationId { get; set; }
+        public SkillTargetSelection TargetSelection { get; set; }
+        public SkillTargetRelation TargetRelation { get; set; }
         public int TargetAreaCount { get; set; }
         public int TargetAreaRadius { get; set; }
         public bool TargetSiege { get; set; }
@@ -76,6 +76,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool ChannelingCancelable { get; set; }
         public float TargetOffsetAngle { get; set; }
         public float TargetOffsetDistance { get; set; }
+        public int ActabilityGroupId { get; set; }
         public bool PlotOnly { get; set; }
         public bool SkillControllerAtEnd { get; set; }
         public bool EndSkillController { get; set; }

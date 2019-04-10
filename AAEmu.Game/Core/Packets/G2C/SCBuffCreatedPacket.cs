@@ -9,14 +9,14 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Effect _effect;
 
-        public SCBuffCreatedPacket(Effect effect) : base(0x0ae, 1)
+        public SCBuffCreatedPacket(Effect effect) : base(SCOffsets.SCBuffCreatedPacket, 1)
         {
             _effect = effect;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_effect.CasterAction);
+            stream.Write(_effect.SkillCaster);
             stream.Write((_effect.Caster is Character character) ? character.Id : 0); // casterId
             stream.WriteBc(_effect.Owner.ObjId); // targetBcId
             stream.Write(_effect.Index);

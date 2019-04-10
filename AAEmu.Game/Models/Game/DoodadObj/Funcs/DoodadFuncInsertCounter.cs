@@ -5,9 +5,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncInsertCounter : DoodadFuncTemplate
     {
+        public int Count { get; set; }
+        public uint ItemId { get; set; }
+        public int ItemCount { get; set; }
+        
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            throw new System.NotImplementedException();
+            _log.Debug("DoodadFuncInsertCounter");
         }
     }
 }

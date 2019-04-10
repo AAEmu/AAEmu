@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartQuestContextPacket : GamePacket
     {
-        public CSStartQuestContextPacket() : base(0x0d1, 1)
+        public CSStartQuestContextPacket() : base(0x0d5, 1) //TODO 1.0 opcode: 0x0d1
         {
         }
 

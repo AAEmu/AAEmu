@@ -1,3 +1,5 @@
+using System;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
@@ -12,9 +14,29 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint PermId { get; set; }
         public int Count { get; set; }
 
-        public void Use(Unit caster, Doodad owner, uint skillId)
+        public async void Use(Unit caster, Doodad owner, uint skillId)
         {
+            owner.GrowthTime = DateTime.MinValue;
+            var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
 
+            if (template == null)
+                return;
+
+            template.Use(caster, owner, skillId);
+
+            if (NextPhase > 0)
+            {
+                if (owner.FuncTask != null)
+                {
+                    await owner.FuncTask.Cancel();
+                    owner.FuncTask = null;
+                }
+
+                owner.FuncGroupId = (uint)NextPhase;
+                var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
+                foreach (var func in funcs)
+                    func.Use(caster, owner, skillId);
+            }
         }
     }
 }

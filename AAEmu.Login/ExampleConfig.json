@@ -1,4 +1,5 @@
 {
+  "SecretKey": "test",
   "InternalNetwork": {
     "Host": "127.0.0.1",
     "Port": 1234
@@ -13,7 +14,7 @@
       "Port": "3306",
       "User": "root",
       "Password": "",
-      "Database": "aaemu"
+      "Database": "aaemu_login"
     }
   }
 }

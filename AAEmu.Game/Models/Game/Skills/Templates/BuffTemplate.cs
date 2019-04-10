@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
@@ -160,8 +159,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             DynamicBonuses = new List<DynamicBonusTemplate>();
         }
 
-        public override void Apply(Unit caster, SkillAction casterObj, BaseUnit target, SkillAction targetObj, CastAction castObj,
-            Skill skill, DateTime time)
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
+            Skill skill, SkillObject skillObject, DateTime time)
         {
             if (RequireBuffId > 0 && !target.Effects.CheckBuff(RequireBuffId))
                 return; //TODO send error?
@@ -194,8 +193,9 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                     owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetNoBuffTagId)))
                     return;
                 var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
-                var targetObj = new SkillActionUnit(owner.ObjId);
-                eff.Apply(caster, effect.CasterAction, owner, targetObj, new CastBuff(effect), null, DateTime.Now);
+                var targetObj = new SkillCastUnitTarget(owner.ObjId);
+                var skillObj = new SkillObject(); // TODO ?
+                eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, skillObj, DateTime.Now);
             }
         }
 
