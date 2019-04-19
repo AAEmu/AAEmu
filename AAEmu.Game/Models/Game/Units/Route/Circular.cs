@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
     {
 
         public sbyte Radius { get; set; } = 5;
-        public short Degree { get; set; } = 360;
+        public short Degree { get; set; } = 180;
 
         public override void Execute(Npc npc)
         {
@@ -25,10 +25,19 @@ namespace AAEmu.Game.Models.Game.Units.Route
             //返回moveType对象
             var moveType = (UnitMoveType)MoveType.GetType(type);
 
+
+            if (npc.Position.RotationX < 127)
+            {
+                npc.Position.RotationZ += 1;
+            }
+            else
+            {
+                npc.Position.RotationX = 0;
+            }
+
             //改变NPC坐标
-            moveType.X = npc.Position.X;
-            moveType.Y = npc.Position.Y;
             moveType.Z = npc.Position.Z;
+            moveType.RotationZ = npc.Position.RotationZ;
             moveType.Flags = 5;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
@@ -39,9 +48,9 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Time = Seq;
 
             //圆形巡航
-            var hudu = 2 * Math.PI / 360 * Count;
-            moveType.X = npc.Spawner.Position.X + (float)Math.Sin(hudu) * Radius;
-            moveType.Y = npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
+            var hudu = 4 * Math.PI / 360 * Count;
+            moveType.X = npc.Position.X = npc.Spawner.Position.X + (float)Math.Sin(hudu) * Radius;
+            moveType.Y = npc.Position.Y = npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
 
             //广播移动状态
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);

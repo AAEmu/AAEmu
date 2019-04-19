@@ -1,9 +1,12 @@
 ﻿using System;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Tasks.UnitMove;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -116,8 +119,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
             trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
-            if(trg is Npc && trg.CurrentTarget!=caster) { 
-                trg.BroadcastPacket(new SCTargetChangedPacket(target.ObjId,caster.ObjId), true);
+
+            if(trg is Npc npc && npc.CurrentTarget!=caster) {
+                npc.CurrentTarget = caster;
+                npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId,caster.ObjId), true);
+                if (npc.Patrol != null)
+                {
+                    npc.Patrol.PauseAuto(npc);
+                }
+                TaskManager.Instance.Schedule(
+                new UnitMove(new Track(), npc), TimeSpan.FromMilliseconds(100));
             }
 
         }

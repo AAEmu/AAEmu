@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.Game.Units
         public void Apply(Npc npc)
         {
             //如果NPC不存在或不处于巡航模式或者当前执行次数不为0
-            if (npc.Patrol == null || (npc.Patrol.Running == false && Count==0) ||(npc.Patrol.Running == true && Count != 0))
+            if (npc.Patrol == null || (npc.Patrol.Running == false && this!=npc.Patrol) ||(npc.Patrol.Running == true && this==npc.Patrol))
             {
                 ++Count;
                 ++Seq;
@@ -106,6 +106,8 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (Loop)
             {
+                Count = 0;
+                Seq = 0;
                 Repet(npc,LoopDelay);
             }
         }
