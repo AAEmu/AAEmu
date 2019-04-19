@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -115,8 +116,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
             trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
-            trg.BroadcastPacket(new SCTargetChangedPacket(target.ObjId,
-                        caster.ObjId), true);
+            if(trg is Npc)
+                trg.BroadcastPacket(new SCTargetChangedPacket(target.ObjId,caster.ObjId), true);
         }
     }
 }

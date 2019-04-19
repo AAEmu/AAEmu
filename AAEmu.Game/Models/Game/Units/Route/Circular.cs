@@ -1,9 +1,7 @@
 ﻿using System;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Tasks.UnitMove;
 
 namespace AAEmu.Game.Models.Game.Units.Route
 {
@@ -14,22 +12,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
     /// </summary>
     public class Circular:Patrol
     {
-        /// <summary>
-        /// 执行顺序编号
-        /// 每次执行必须递增序号，否则重复序号的动作不被执行
-        /// </summary>
-        public static uint Seq = 0;
-        public static uint Count = 0;
 
         public sbyte Radius { get; set; } = 5;
         public short Degree { get; set; } = 360;
 
         public override void Execute(Npc npc)
         {
-
-            ++Count;
-            ++Seq;
-
             //debug by Yanlongli date 2019.04.18
             //将自己的移动赋予选择的对象 跟随自己一起移动
             //模拟unit
@@ -59,15 +47,13 @@ namespace AAEmu.Game.Models.Game.Units.Route
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
             ///如果执行次数小于角度则继续添加任务 否则停止移动
             if (Count < Degree)
-                TaskManager.Instance.Schedule(
-                           new UnitMove(this, npc), TimeSpan.FromMilliseconds(100)
-                        );
+                Repet(npc);
             else
             {
                 //停止移动
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
-                Count = 0;
+                Close();
             }
         }
     }
