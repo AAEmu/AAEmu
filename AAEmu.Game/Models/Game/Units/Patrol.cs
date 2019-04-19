@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.UnitMove;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -14,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// 是否正在执行巡逻任务
         /// 默认为 False
         /// </summary>
-        public bool Running { get; set; } = false;
+        public bool Running { get; set; } = true;
         /// <summary>
         /// 是否为循环
         /// 默认为 True
@@ -23,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// <summary>
         /// 循环间隔 毫秒
         /// </summary>
-        public uint LoopDelay { get; set; }
+        public double LoopDelay { get; set; }
         /// <summary>
         /// 执行进度 0-100
         /// </summary>
@@ -43,13 +44,21 @@ namespace AAEmu.Game.Models.Game.Units
         /// </summary>
         protected uint Count { get; set; } = 0;
         /// <summary>
+        /// 暂停巡航点
+        /// </summary>
+        protected Point PausePosition { get; set; }
+
+
+
+
+        /// <summary>
         /// 执行巡逻任务
         /// </summary>
         /// <param name="caster"></param>
         public void Apply(Npc npc)
         {
             //如果NPC不存在或不处于巡航模式或者当前执行次数不为0
-            if (npc.Patrol == null || npc.Patrol.Running == false ||(npc.Patrol.Running == true && Count != 0))
+            if (npc.Patrol == null || (npc.Patrol.Running == false && Count==0) ||(npc.Patrol.Running == true && Count != 0))
             {
                 ++Count;
                 ++Seq;
@@ -64,15 +73,41 @@ namespace AAEmu.Game.Models.Game.Units
         /// 再次执行任务
         /// </summary>
         /// <param name="npc"></param>
-        public void Repet(Npc npc)
+        public void Repet(Npc npc,double time = 100)
         {
-            TaskManager.Instance.Schedule(new UnitMove(this, npc), TimeSpan.FromMilliseconds(100));
+            TaskManager.Instance.Schedule(new UnitMove(this, npc), TimeSpan.FromMilliseconds(time));
         }
-        public void Close()
+        public void PauseAuto(Npc npc)
+        {
+            if (Interrupt)
+            {
+                Pause(npc);
+            }
+        }
+        public void Pause(Npc npc)
         {
             Running = false;
-            Count = 0;
-            Seq = 0;
+        }
+
+        public void Stop(Npc npc)
+        {
+            Pause(npc);
+        }
+        public void Recovery(Npc npc)
+        {
+            if (PausePosition!=null)
+            {
+                Running = true;
+                Repet(npc);
+            }
+
+        }
+        public void LoopAuto(Npc npc)
+        {
+            if (Loop)
+            {
+                Repet(npc,LoopDelay);
+            }
         }
     }
 }

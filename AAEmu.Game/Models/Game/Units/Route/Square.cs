@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
-                Close();
+                LoopAuto(npc);
             }
         }
     }

@@ -116,8 +116,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
             trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
-            if(trg is Npc)
+            if(trg is Npc && trg.CurrentTarget!=caster) { 
                 trg.BroadcastPacket(new SCTargetChangedPacket(target.ObjId,caster.ObjId), true);
+            }
+
         }
     }
 }

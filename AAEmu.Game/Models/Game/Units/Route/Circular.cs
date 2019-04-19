@@ -47,13 +47,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
             ///如果执行次数小于角度则继续添加任务 否则停止移动
             if (Count < Degree)
+            {
                 Repet(npc);
+            }
             else
             {
                 //停止移动
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
-                Close();
+                LoopAuto(npc);
             }
         }
     }
