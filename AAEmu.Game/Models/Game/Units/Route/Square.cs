@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         /// <param name="caster">触发角色</param>
         /// <param name="npc">NPC</param>
         /// <param name="degree">角度 默认360度</param>
-        public override void Execute(Unit caster, Npc npc)
+        public override void Execute(Npc npc)
         {
             if (Count < Degree / 2)
             {
@@ -68,16 +68,16 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Time = Seq;
 
 
-            caster.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+            npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
 
             if (Count < Degree)
                 TaskManager.Instance.Schedule(
-                           new UnitMove(this, caster, npc), TimeSpan.FromMilliseconds(100)
+                           new UnitMove(this, npc), TimeSpan.FromMilliseconds(100)
                         );
             else
             {
                 moveType.DeltaMovement[1] = 0;
-                caster.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 Count = 0;
             }
         }
