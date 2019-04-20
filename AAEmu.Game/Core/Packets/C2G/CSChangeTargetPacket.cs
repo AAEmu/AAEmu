@@ -6,7 +6,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Tasks.UnitMove;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -35,9 +35,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (Connection.ActiveChar.CurrentTarget is Npc npc) { 
                 Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}", targetId, npc.TemplateId);
 
-                //测试执行圆形巡航路线
                 TaskManager.Instance.Schedule(
-                    new UnitMove(new Circular(),Connection.ActiveChar, npc), TimeSpan.FromMilliseconds(100)
+                    new UnitMove(new Patrol(),Connection.ActiveChar, npc), TimeSpan.FromMilliseconds(365)
                  );
             }
             else if (Connection.ActiveChar.CurrentTarget is Character character)

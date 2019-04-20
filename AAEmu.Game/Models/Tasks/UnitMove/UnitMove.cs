@@ -1,4 +1,7 @@
-﻿using AAEmu.Game.Models.Game.NPChar;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.UnitMove
