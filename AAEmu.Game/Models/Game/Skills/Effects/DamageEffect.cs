@@ -122,6 +122,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if(trg is Npc npc && npc.CurrentTarget!=caster) {
                 npc.CurrentTarget = caster;
+                npc.BroadcastPacket(new SCCombatEngagedPacket(caster.ObjId), true);
                 npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId,caster.ObjId), true);
                 if (npc.Patrol != null)
                 {

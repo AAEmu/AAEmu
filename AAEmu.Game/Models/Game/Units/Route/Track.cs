@@ -116,6 +116,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 Repet(npc);
             }
             else{
+                npc.BroadcastPacket(new SCCombatClearedPacket(npc.CurrentTarget.ObjId), true);
+                npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
                 npc.CurrentTarget = null;
                 npc.StartRegen();
                 npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
