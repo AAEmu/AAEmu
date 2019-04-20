@@ -48,6 +48,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 {
                     npc.Position.X -= tempMovingDistance;
                 }
+                if (Math.Abs(x) < tempMovingDistance)
+                {
+                    npc.Position.X = Position.X;
+                }
                 move = true;
             }
             if (Math.Abs(y) > distance)
@@ -69,6 +73,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 {
                     npc.Position.Y -= tempMovingDistance;
                 }
+                if (Math.Abs(y) < tempMovingDistance)
+                {
+                    npc.Position.Y = Position.Y;
+                }
                 move = true;
             }
             if (Math.Abs(z) > distance)
@@ -89,6 +97,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 else
                 {
                     npc.Position.Z -= tempMovingDistance;
+                }
+                if(Math.Abs(z)< tempMovingDistance)
+                {
+                    npc.Position.Z = Position.Z;
                 }
                 move = true;
             }
