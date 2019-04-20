@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.NPChar;
+﻿using System;
+using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -35,11 +37,11 @@ namespace AAEmu.Game.Models.Game.Units
         /// 执行巡逻任务
         /// </summary>
         /// <param name="caster"></param>
-        public void Apply(Npc npc)
+        public void Apply(Unit caster, Npc npc)
         {
-            Execute(npc);
+            Execute(caster,npc);
         }
 
-        public abstract void Execute(Npc npc);
+        public abstract void Execute(Unit caster, Npc npc);
     }
 }

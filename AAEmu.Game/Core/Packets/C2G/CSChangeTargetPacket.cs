@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 //测试执行圆形巡航路线
                 TaskManager.Instance.Schedule(
-                    new UnitMove(new Circular(),npc), TimeSpan.FromMilliseconds(100)
+                    new UnitMove(new Circular(),Connection.ActiveChar, npc), TimeSpan.FromMilliseconds(100)
                  );
             }
             else if (Connection.ActiveChar.CurrentTarget is Character character)

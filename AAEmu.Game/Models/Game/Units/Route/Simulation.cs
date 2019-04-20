@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Models.Game.Units.Route
@@ -10,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
     /// </summary>
     public class Simulation : Patrol
     {
-        public override void Execute(Npc npc)
+        public override void Execute(Unit caster, Npc npc)
         {
             throw new NotImplementedException();
         }

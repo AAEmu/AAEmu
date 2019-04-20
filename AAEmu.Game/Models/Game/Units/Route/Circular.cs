@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public sbyte Radius { get; set; } = 5;
         public short Degree { get; set; } = 360;
 
-        public override void Execute(Npc npc)
+        public override void Execute(Unit caster, Npc npc)
         {
 
             ++Count;
@@ -56,17 +56,17 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Y = npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
 
             //广播移动状态
-            npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+            caster.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
             ///如果执行次数小于角度则继续添加任务 否则停止移动
             if (Count < Degree)
                 TaskManager.Instance.Schedule(
-                           new UnitMove(this, npc), TimeSpan.FromMilliseconds(100)
+                           new UnitMove(this, caster, npc), TimeSpan.FromMilliseconds(100)
                         );
             else
             {
                 //停止移动
                 moveType.DeltaMovement[1] = 0;
-                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+                caster.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 Count = 0;
             }
         }
