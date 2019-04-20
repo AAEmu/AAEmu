@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.Units.Route
 {
-   
+
     class Track : Patrol
     {
         float distance = 1.5f;
@@ -15,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public override void Execute(Npc npc)
         {
             Interrupt = false;
-            bool move = true;
+            bool move = false;
             float x = npc.Position.X - npc.CurrentTarget.Position.X;
             float y = npc.Position.Y - npc.CurrentTarget.Position.Y;
             float z = npc.Position.Z - npc.CurrentTarget.Position.Z;
@@ -116,11 +114,24 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 Repet(npc);
             }
             else{
-                npc.BroadcastPacket(new SCCombatClearedPacket(npc.CurrentTarget.ObjId), true);
-                npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
-                npc.CurrentTarget = null;
-                npc.StartRegen();
-                npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
+
+                //如果小于差距则停止移动准备攻击
+                if (Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z)) <= distance)
+                {
+                    Combat combat = new Combat();
+                    combat.LastPatrol = LastPatrol;
+                    combat.LoopDelay = 2900;
+                    combat.Pause(npc);
+                    LastPatrol = combat;
+                }
+                else
+                {
+                    npc.BroadcastPacket(new SCCombatClearedPacket(npc.CurrentTarget.ObjId), true);
+                    npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
+                    npc.CurrentTarget = null;
+                    npc.StartRegen();
+                    npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
+                }
                 //距离超过指定长度 放弃追踪 停止移动
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
