@@ -4,21 +4,27 @@ using System.Text;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units.Route
 {
-   
-    class Track : Patrol
+    class Line : Patrol
     {
-        float distance = 1.5f;
+        float distance = 0f;
         float MovingDistance = 0.17f;
+        public Point Position { get; set; } 
+
         public override void Execute(Npc npc)
         {
-            Interrupt = false;
-            bool move = true;
-            float x = npc.Position.X - npc.CurrentTarget.Position.X;
-            float y = npc.Position.Y - npc.CurrentTarget.Position.Y;
-            float z = npc.Position.Z - npc.CurrentTarget.Position.Z;
+            if (Position == null)
+            {
+                Stop(npc);
+                return;
+            }
+            bool move = false;
+            float x = npc.Position.X - Position.X;
+            float y = npc.Position.Y - Position.Y;
+            float z = npc.Position.Z - Position.Z;
             float MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
             float tempMovingDistance;
 
@@ -27,6 +33,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 if (MaxXYZ != Math.Abs(x))
                 {
                     tempMovingDistance = Math.Abs(x) / (MaxXYZ / MovingDistance);
+                    tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
                 }
                 else
                 {
@@ -48,6 +55,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 if (MaxXYZ != Math.Abs(y))
                 {
                     tempMovingDistance = Math.Abs(y) / (MaxXYZ / MovingDistance);
+                    tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
                 }
                 else
                 {
@@ -68,6 +76,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 if (MaxXYZ != Math.Abs(z))
                 {
                     tempMovingDistance = Math.Abs(z) / (MaxXYZ / MovingDistance);
+                    tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
                 }
                 else
                 {
@@ -84,10 +93,6 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 move = true;
             }
 
-            if (Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z)) > 20)
-            {
-                move = false;
-            }
 
             //模拟unit
             var type = (MoveTypeEnum)1;
@@ -107,7 +112,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Alertness = 2;
             moveType.Time = Seq;
 
-            
+
             if (move)
             {
                 //广播移动状态
@@ -115,27 +120,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 LoopDelay = 500;
                 Repet(npc);
             }
-            else{
-                npc.CurrentTarget = null;
-                npc.StartRegen();
-                npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
-                //距离超过指定长度 放弃追踪 停止移动
+            else
+            {
+                //停止移动
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
-                Stop(npc);
-            }
-
-
-            if (LastPatrol == null)
-            {
-                //创建直线巡航回归上次巡航暂停点
-                Line line = new Line();
-                //不可中断，不受外力及攻击影响 类似于处于脱战状态
-                line.Interrupt = false;
-                line.Loop = false;
-                line.Abandon = false;
-                line.Pause(npc);
-                LastPatrol = line;
+                LoopAuto(npc);
             }
         }
     }

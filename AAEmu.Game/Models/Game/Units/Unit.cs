@@ -67,7 +67,7 @@ namespace AAEmu.Game.Models.Game.Units
                 //StopRegen();
             } //else
                 //StartRegen();
-            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp>0?Mp:0), true);
         }
 
         public virtual void DoDie(Unit killer)

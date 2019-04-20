@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.UnitMove;
 
@@ -47,6 +48,14 @@ namespace AAEmu.Game.Models.Game.Units
         /// 暂停巡航点
         /// </summary>
         protected Point PausePosition { get; set; }
+        /// <summary>
+        /// 上次任务
+        /// </summary>
+        public Patrol LastPatrol { get; set; }
+        /// <summary>
+        /// 放弃任务
+        /// </summary>
+        public bool Abandon { get; set; } = false;
 
 
 
@@ -60,6 +69,11 @@ namespace AAEmu.Game.Models.Game.Units
             //如果NPC不存在或不处于巡航模式或者当前执行次数不为0
             if (npc.Patrol == null || (npc.Patrol.Running == false && this!=npc.Patrol) ||(npc.Patrol.Running == true && this==npc.Patrol))
             {
+                //如果上次巡航模式处于暂停状态则保存上次巡航模式
+                if (npc.Patrol!=null && npc.Patrol !=this && !npc.Patrol.Abandon) { 
+                    LastPatrol = npc.Patrol;
+                }
+
                 ++Count;
                 ++Seq;
                 Running = true;
@@ -73,9 +87,14 @@ namespace AAEmu.Game.Models.Game.Units
         /// 再次执行任务
         /// </summary>
         /// <param name="npc"></param>
-        public void Repet(Npc npc,double time = 100)
+        public void Repet(Npc npc,double time = 100,Patrol patrol=null)
         {
-            TaskManager.Instance.Schedule(new UnitMove(this, npc), TimeSpan.FromMilliseconds(time));
+
+            if(!(patrol ?? this).Abandon)
+            {
+                TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, npc), TimeSpan.FromMilliseconds(time));
+            }
+               
         }
         public void PauseAuto(Npc npc)
         {
@@ -87,18 +106,52 @@ namespace AAEmu.Game.Models.Game.Units
         public void Pause(Npc npc)
         {
             Running = false;
+            PausePosition = npc.Position.Clone();
         }
 
         public void Stop(Npc npc)
         {
-            Pause(npc);
+            Running = false;
+            Abandon = true;
+
+            Recovery(npc);
         }
+
         public void Recovery(Npc npc)
         {
-            if (PausePosition!=null)
+            //如果当前巡航处于暂停状态则恢复当前巡航
+            if (!Abandon && Running==false)
             {
-                Running = true;
+                npc.Patrol.Running = true;
                 Repet(npc);
+                return;
+            }
+
+            //如果上次巡航不为null
+            if (LastPatrol!=null && Running == false)
+            {
+
+                if (npc.Position.X == LastPatrol.PausePosition.X && npc.Position.Y == LastPatrol.PausePosition.Y && npc.Position.Z == LastPatrol.PausePosition.Z)
+                {
+                    LastPatrol.Running = true;
+                    npc.Patrol = LastPatrol;
+                    //恢复上次巡航
+                    Repet(npc, 100, LastPatrol);
+                }
+                else
+                {
+                    //创建直线巡航回归上次巡航暂停点
+                    Line line = new Line();
+                    //不可中断，不受外力及攻击影响 类似于处于脱战状态
+                    line.Interrupt = false;
+                    line.Loop = false;
+                    line.LastPatrol = LastPatrol;
+                    //指定目标Point
+                    line.Position = LastPatrol.PausePosition;
+                    //恢复上次巡航
+                    Repet(npc, 100, line);
+                }
+               
             }
 
         }
@@ -109,6 +162,11 @@ namespace AAEmu.Game.Models.Game.Units
                 Count = 0;
                 Seq = 0;
                 Repet(npc,LoopDelay);
+            }
+            else
+            {
+                //非循环任务则终止本任务并尝试恢复上次任务
+                Stop(npc);
             }
         }
     }
