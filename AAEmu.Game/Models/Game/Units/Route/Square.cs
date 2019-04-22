@@ -1,9 +1,6 @@
-﻿using System;
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Tasks.UnitMove;
 
 namespace AAEmu.Game.Models.Game.Units.Route
 {
@@ -14,10 +11,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
     /// </summary>
     public class Square: Patrol
     {
-        public static uint Seq = 0;
-        public static uint Count = 0;
-        public static short VelZ = 0;
 
+        public short VelZ { get; set; } = 0;
 
         public sbyte Radius { get; set; } = 5;
         public short Degree { get; set; } = 360;
@@ -71,14 +66,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
 
             if (Count < Degree)
-                TaskManager.Instance.Schedule(
-                           new UnitMove(this, npc), TimeSpan.FromMilliseconds(100)
-                        );
+                Repet(npc);
             else
             {
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
-                Count = 0;
+                LoopAuto(npc);
             }
         }
     }
