@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,6 +26,7 @@ namespace AAEmu.Game
             var stopWatch = new Stopwatch();
 
             stopWatch.Start();
+
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 

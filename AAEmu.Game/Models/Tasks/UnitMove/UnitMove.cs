@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
     public class UnitMove : Task
     {
         private readonly Patrol _patrol;
-        private readonly Npc _npc;
+        private readonly Npc _targetId;
         /// <summary>
         /// 初始化任务
         /// </summary>
@@ -14,15 +14,14 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         public UnitMove(Patrol patrol, Npc npc)
         {
             _patrol = patrol;
-            _npc = npc;
+            _targetId = npc;
         }
         /// <summary>
         /// 执行任务
         /// </summary>
         public override void Execute()
         {
-            if(_npc.Hp!=0)
-                _patrol.Apply(_npc);
+            _patrol.Apply(_targetId);
         }
     }
 }

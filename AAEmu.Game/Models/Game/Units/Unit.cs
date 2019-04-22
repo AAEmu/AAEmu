@@ -46,12 +46,6 @@ namespace AAEmu.Game.Models.Game.Units
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public Expedition Expedition { get; set; }
 
-        /// <summary>
-        /// Unit巡逻
-        /// 指明Unit巡逻路线及速度、是否正在执行巡逻等行为
-        /// </summary>
-        public Patrol Patrol { get; set; }
-
         public Unit()
         {
             Bonuses = new Dictionary<uint, List<Bonus>>();
@@ -64,18 +58,16 @@ namespace AAEmu.Game.Models.Game.Units
             Hp = Math.Max(Hp - value, 0);
             if (Hp == 0) {
                 DoDie(attacker);
-                //StopRegen();
-            } //else
-                //StartRegen();
-            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp>0?Mp:0), true);
+                StopRegen();
+            } else
+                StartRegen();
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
         public virtual void DoDie(Unit killer)
         {
             Effects.RemoveEffectsOnDeath();
             BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
-            if(CurrentTarget!=null)
-                BroadcastPacket(new SCCombatClearedPacket(CurrentTarget.ObjId), true);
         }
 
         public void StartRegen()
