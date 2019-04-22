@@ -274,7 +274,6 @@ namespace AAEmu.Game.Core.Network.Game
             // 0x12e CSEnterBeautySalonPacket
             RegisterPacket(0x12F, 1, typeof(CSRankCharacterPacket));
             RegisterPacket(0x125, 1, typeof(CSRequestSecondPasswordKeyTablesPacket));
-            // 0x12f CSRankCharacterPacket
             // 0x130 CSRankSnapshotPacket
             // 0x131 unk packet
             RegisterPacket(0x132, 1, typeof(CSIdleStatusPacket));

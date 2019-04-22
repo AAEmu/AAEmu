@@ -36,9 +36,9 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}", targetId, npc.TemplateId);
 
                 //测试执行圆形巡航路线
-                TaskManager.Instance.Schedule(
-                    new UnitMove(new Circular(),npc), TimeSpan.FromMilliseconds(100)
-                 );
+                //TaskManager.Instance.Schedule(
+                //    new UnitMove(new Circular(),npc), TimeSpan.FromMilliseconds(100)
+                // );
             }
             else if (Connection.ActiveChar.CurrentTarget is Character character)
                 Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}", targetId, character.Id);
