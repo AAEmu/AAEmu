@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -54,6 +54,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             npc.ModelId = template.ModelId;
             npc.Faction = FactionManager.Instance.GetFaction(template.FactionId);
             npc.Level = template.Level;
+            npc.Patrol = null;
 
             SetEquipItemTemplate(npc, template.Items.Headgear, EquipmentItemSlot.Head);
             SetEquipItemTemplate(npc, template.Items.Necklace, EquipmentItemSlot.Neck);
