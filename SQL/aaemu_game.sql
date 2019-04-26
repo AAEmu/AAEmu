@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `id` int(11) UNSIGNED NOT NULL,
   `account_id` int(11) UNSIGNED NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `access_level` int(3) UNSIGNED NOT NULL DEFAULT '0',
   `race` tinyint(2) NOT NULL,
   `gender` tinyint(1) NOT NULL,
   `unit_model_params` blob NOT NULL,
@@ -55,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `hp` int(11) NOT NULL,
   `mp` int(11) NOT NULL,
   `labor_power` mediumint(9) NOT NULL,
-  `labor_power_modified` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `labor_power_modified` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `consumed_lp` int(11) NOT NULL,
   `ability1` tinyint(4) NOT NULL,
   `ability2` tinyint(4) NOT NULL,
@@ -73,27 +74,27 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `expedition_id` int(11) NOT NULL,
   `family` int(11) UNSIGNED NOT NULL,
   `dead_count` mediumint(8) UNSIGNED NOT NULL,
-  `dead_time` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `dead_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `rez_wait_duration` int(11) NOT NULL,
-  `rez_time` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `rez_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `rez_penalty_duration` int(11) NOT NULL,
-  `leave_time` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `leave_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `money` bigint(20) NOT NULL,
   `money2` bigint(20) NOT NULL,
   `honor_point` int(11) NOT NULL,
   `vocation_point` int(11) NOT NULL,
   `crime_point` int(11) NOT NULL,
   `crime_record` int(11) NOT NULL,
-  `delete_request_time` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `transfer_request_time` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `delete_time` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `delete_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `transfer_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `delete_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `bm_point` int(11) NOT NULL,
   `auto_use_aapoint` tinyint(1) NOT NULL,
   `prev_point` int(11) NOT NULL,
   `point` int(11) NOT NULL,
   `gift` int(11) NOT NULL,
-  `num_inv_slot` tinyint(3) UNSIGNED NOT NULL DEFAULT 50,
-  `num_bank_slot` smallint(5) UNSIGNED NOT NULL DEFAULT 50,
+  `num_inv_slot` tinyint(3) UNSIGNED NOT NULL DEFAULT '50',
+  `num_bank_slot` smallint(5) UNSIGNED NOT NULL DEFAULT '50',
   `expanded_expert` tinyint(4) NOT NULL,
   `slots` blob NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -120,6 +121,38 @@ CREATE TABLE IF NOT EXISTS `expeditions` (
   PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
+DROP TABLE IF EXISTS `expedition_members`;
+CREATE TABLE IF NOT EXISTS `expedition_members` (
+  `character_id` int(11) NOT NULL,
+  `expedition_id` int(11) NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `level` tinyint(4) UNSIGNED NOT NULL,
+  `role` tinyint(4) UNSIGNED NOT NULL,
+  `last_leave_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ability1` tinyint(4) UNSIGNED NOT NULL,
+  `ability2` tinyint(4) UNSIGNED NOT NULL,
+  `ability3` tinyint(4) UNSIGNED NOT NULL,
+  `memo` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  PRIMARY KEY (`character_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+DROP TABLE IF EXISTS `expedition_role_policies`;
+CREATE TABLE IF NOT EXISTS `expedition_role_policies` (
+  `expedition_id` int(11) NOT NULL,
+  `role` tinyint(4) UNSIGNED NOT NULL,
+  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `dominion_declare` tinyint(1) NOT NULL,
+  `invite` tinyint(1) NOT NULL,
+  `expel` tinyint(1) NOT NULL,
+  `promote` tinyint(1) NOT NULL,
+  `dismiss` tinyint(1) NOT NULL,
+  `chat` tinyint(1) NOT NULL,
+  `manager_chat` tinyint(1) NOT NULL,
+  `siege_master` tinyint(1) NOT NULL,
+  `join_siege` tinyint(1) NOT NULL,
+  PRIMARY KEY (`expedition_id`,`role`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
 DROP TABLE IF EXISTS `family_members`;
 CREATE TABLE IF NOT EXISTS `family_members` (
   `character_id` int(11) NOT NULL,
@@ -143,12 +176,15 @@ CREATE TABLE IF NOT EXISTS `housings` (
   `id` int(11) NOT NULL,
   `account_id` int(10) UNSIGNED NOT NULL,
   `owner` int(10) UNSIGNED NOT NULL,
+  `co_owner` int(10) UNSIGNED NOT NULL,
   `template_id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(128) NOT NULL,
   `x` float NOT NULL,
   `y` float NOT NULL,
   `z` float NOT NULL,
   `rotation_z` tinyint(4) NOT NULL,
   `current_step` tinyint(4) NOT NULL,
+  `current_action` int(11) NOT NULL DEFAULT '0',
   `permission` tinyint(4) NOT NULL,
   PRIMARY KEY (`account_id`,`owner`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -161,7 +197,7 @@ CREATE TABLE IF NOT EXISTS `items` (
   `slot_type` enum('Equipment','Inventory','Bank') CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `slot` int(11) NOT NULL,
   `count` int(11) NOT NULL,
-  `details` blob NULL,
+  `details` blob,
   `lifespan_mins` int(11) NOT NULL,
   `made_unit_id` int(11) UNSIGNED NOT NULL DEFAULT '0',
   `unsecure_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',

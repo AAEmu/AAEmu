@@ -23,9 +23,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public override void Read(PacketStream stream)
         {
             base.Read(stream);
-            X = Helpers.ConvertX(stream.ReadBytes(3));
-            Y = Helpers.ConvertY(stream.ReadBytes(3));
-            Z = Helpers.ConvertZ(stream.ReadBytes(3));
+            (X, Y, Z) = stream.ReadPosition();
             VelX = stream.ReadInt16();
             VelY = stream.ReadInt16();
             VelZ = stream.ReadInt16();
@@ -47,9 +45,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(Helpers.ConvertX(X));
-            stream.Write(Helpers.ConvertY(Y));
-            stream.Write(Helpers.ConvertZ(Z));
+            stream.WritePosition(X, Y, Z);
             stream.Write(VelX);
             stream.Write(VelY);
             stream.Write(VelZ);

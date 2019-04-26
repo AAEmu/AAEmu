@@ -58,16 +58,18 @@ namespace AAEmu.Game.Models.Game.Units
             Hp = Math.Max(Hp - value, 0);
             if (Hp == 0) {
                 DoDie(attacker);
-                StopRegen();
-            } else
-                StartRegen();
-            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+                //StopRegen();
+            } //else
+                //StartRegen();
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp>0?Mp:0), true);
         }
 
         public virtual void DoDie(Unit killer)
         {
             Effects.RemoveEffectsOnDeath();
             BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
+            if(CurrentTarget!=null)
+                BroadcastPacket(new SCCombatClearedPacket(CurrentTarget.ObjId), true);
         }
 
         public void StartRegen()

@@ -90,8 +90,10 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case 3:
                     var house = (House)_unit;
-                    var buildStep = house.CurrentStep == -1 ? 0 : (-house.Template.BuildSteps.Count + house.CurrentStep);
-                    
+                    var buildStep = house.CurrentStep == -1
+                        ? 0
+                        : -house.Template.BuildSteps.Count + house.CurrentStep;
+
                     stream.Write(house.TlId); // tl
                     stream.Write(house.TemplateId); // house templateId
                     stream.Write((short)buildStep); // buildstep
@@ -122,9 +124,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
                 stream.Write("");
 
-            stream.Write(Helpers.ConvertX(_unit.Position.X));
-            stream.Write(Helpers.ConvertY(_unit.Position.Y));
-            stream.Write(Helpers.ConvertZ(_unit.Position.Z));
+            stream.WritePosition(_unit.Position.X, _unit.Position.Y, _unit.Position.Z);
             stream.Write(_unit.Scale);
             stream.Write(_unit.Level);
             stream.Write(_unit.ModelId); // modelRef

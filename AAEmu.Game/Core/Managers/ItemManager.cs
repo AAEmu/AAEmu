@@ -27,6 +27,11 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, EquipSlotEnchantingCost> _enchantingCosts;
         private Dictionary<int, GradeTemplate> _gradesOrdered;
         private Dictionary<uint, ItemGradeEnchantingSupport> _enchantingSupports;
+        
+        // LootPacks
+        private Dictionary<uint, List<LootPacks>> _lootPacks;
+        private Dictionary<uint, List<LootGroups>> _lootGroups;
+        private Dictionary<int, GradeDistributions> _itemGradeDistributions;
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -56,6 +61,23 @@ namespace AAEmu.Game.Core.Managers
         public ItemGradeEnchantingSupport GetItemGradEnchantingSupportByItemId(uint itemId)
         {
             return _enchantingSupports.ContainsKey(itemId) ? _enchantingSupports[itemId] : null;
+        }
+        
+        public LootPacks[] GetLootPacks(uint lootPackId)
+        {
+            var res = (_lootPacks.ContainsKey(lootPackId) ? _lootPacks[lootPackId] : new List<LootPacks>()).ToArray();
+            Array.Sort(res);
+            return res;
+        }
+        public LootGroups[] GetLootGroups(uint packId)
+        {
+            var res = (_lootGroups.ContainsKey(packId) ? _lootGroups[packId] : new List<LootGroups>()).ToArray();
+            Array.Sort(res);
+            return res;
+        }
+        public GradeDistributions GetGradeDistributions(byte id)
+        {
+            return _itemGradeDistributions.ContainsKey(id) ? _itemGradeDistributions[id] : null;
         }
 
         public float GetDurabilityRepairCostFactor()
@@ -141,6 +163,9 @@ namespace AAEmu.Game.Core.Managers
             _enchantingCosts = new Dictionary<uint, EquipSlotEnchantingCost>();
             _gradesOrdered = new Dictionary<int, GradeTemplate>();
             _enchantingSupports = new Dictionary<uint, ItemGradeEnchantingSupport>();
+            _lootPacks = new Dictionary<uint, List<LootPacks>>();
+            _lootGroups = new Dictionary<uint, List<LootGroups>>();
+            _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
             _config = new ItemConfig();
             using (var connection = SQLite.CreateConnection())
             {
@@ -612,6 +637,95 @@ namespace AAEmu.Game.Core.Managers
 
                             if (!_enchantingSupports.ContainsKey(template.ItemId))
                                 _enchantingSupports.Add(template.ItemId, template);
+                        }
+                    }
+                }
+                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM loots";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new LootPacks();
+                            template.Id = reader.GetUInt32("id");
+                            template.Group = reader.GetInt32("group");
+                            template.ItemId = reader.GetUInt32("item_id");
+                            template.DropRate = reader.GetUInt32("drop_rate");
+                            template.MinAmount = reader.GetInt32("min_amount");
+                            template.MaxAmount = reader.GetInt32("max_amount");
+                            template.LootPackId = reader.GetUInt32("loot_pack_id");
+                            template.GradeId = reader.GetByte("grade_id");
+                            template.AlwaysDrop = reader.GetBoolean("always_drop");
+                            List<LootPacks> lootPacks;
+                            if (_lootPacks.ContainsKey(template.LootPackId))
+                                lootPacks = _lootPacks[template.LootPackId];
+                            else
+                            {
+                                lootPacks = new List<LootPacks>();
+                                _lootPacks.Add(template.LootPackId, lootPacks);
+                            }
+
+                            lootPacks.Add(template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM loot_groups";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new LootGroups();
+                            template.Id = reader.GetUInt32("id");
+                            template.PackId = reader.GetUInt32("pack_id");
+                            template.GroupNo = reader.GetInt32("group_no");
+                            template.DropRate = reader.GetUInt32("drop_rate");
+                            template.ItemGradeDistributionId = reader.GetByte("item_grade_distribution_id");
+                            List<LootGroups> lootGroups;
+                            if (_lootGroups.ContainsKey(template.PackId))
+                                lootGroups = _lootGroups[template.PackId];
+                            else
+                            {
+                                lootGroups = new List<LootGroups>();
+                                _lootGroups.Add(template.PackId, lootGroups);
+                            }
+
+                            lootGroups.Add(template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_grade_distributions";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new GradeDistributions();
+                            template.Id = reader.GetInt32("id");
+                            template.Name = reader.GetString("name");
+                            template.Weight0 = reader.GetInt32("weight_0");
+                            template.Weight1 = reader.GetInt32("weight_1");
+                            template.Weight2 = reader.GetInt32("weight_2");
+                            template.Weight3 = reader.GetInt32("weight_3");
+                            template.Weight4 = reader.GetInt32("weight_4");
+                            template.Weight5 = reader.GetInt32("weight_5");
+                            template.Weight6 = reader.GetInt32("weight_6");
+                            template.Weight7 = reader.GetInt32("weight_7");
+                            template.Weight8 = reader.GetInt32("weight_8");
+                            template.Weight9 = reader.GetInt32("weight_9");
+                            template.Weight10 = reader.GetInt32("weight_10");
+                            template.Weight11 = reader.GetInt32("weight_11");
+                            _itemGradeDistributions.Add(template.Id, template);
                         }
                     }
                 }

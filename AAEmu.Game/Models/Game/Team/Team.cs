@@ -1,117 +1,206 @@
+using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Team
 {
     public class Team : PacketMarshaler
     {
         public uint Id { get; set; }
-        public bool Party { get; set; }
-        public TeamMember[] Officers { get; set; } // TODO max length 10
-        public TeamMember[] Members { get; set; } // TODO max length 50
+        public uint OwnerId { get; set; }
+        public bool IsParty { get; set; }
+        public TeamMember[] Members { get; set; }
         public LootingRule LootingRule { get; set; }
+        public (byte, uint)[] MarksList { get; set; }
+        public Point PingPosition { get; set; }
 
         public Team()
         {
-            Officers = new TeamMember[0];
             Members = new TeamMember[50];
+            ResetMarks();
+            PingPosition = new Point(0, 0, 0);
+        }
+
+        public void ResetMarks()
+        {
+            MarksList = new (byte, uint)[12];
+            for (var i = 0; i < 12; i++)
+                MarksList[i] = (0, 0);
+        }
+
+        public bool IsMarked(uint id)
+        {
+            foreach (var (_, obj) in MarksList)
+                if (obj == id)
+                    return true;
+            return false;
+        }
+
+        public int MembersCount()
+        {
+            var count = 0;
+            foreach (var member in Members)
+                if (member?.Character != null)
+                    count++;
+            return count;
+        }
+
+        public bool IsMember(uint id)
+        {
+            foreach (var member in Members)
+                if (member?.Character != null && member.Character.Id == id)
+                    return true;
+            return false;
+        }
+
+        public uint GetNewOwner()
+        {
+            foreach (var member in Members)
+                if (member?.Character != null && member.Character.IsOnline && member.Character.Id != OwnerId)
+                    return member.Character.Id;
+            return 0;
+        }
+
+        public bool ChangeRole(uint id, MemberRole role)
+        {
+            foreach (var member in Members)
+            {
+                if (member == null || member.Character?.Id != id)
+                    continue;
+
+                if (member.Role == role)
+                    return false;
+
+                member.Role = role;
+                return true;
+            }
+
+            return false;
+        }
+
+        public (TeamMember member, int partyIndex) AddMember(Character unit)
+        {
+            for (var i = 0; i < Members.Length; i++)
+            {
+                if (Members[i]?.Character != null)
+                    continue;
+
+                Members[i] = new TeamMember(unit);
+                return (Members[i], GetParty(i));
+            }
+
+            return (null, 0);
+        }
+
+        public bool RemoveMember(uint id)
+        {
+            var i = GetIndex(id);
+            if (i < 0)
+                return false;
+
+            Members[i] = null;
+            return true;
+        }
+
+        public bool MoveMember(uint id, uint id2, byte from, byte to)
+        {
+            // TODO validate idFrom, idTo
+            try
+            {
+                var tempMember = Members[from];
+                var tempMember2 = Members[to];
+                Members[from] = tempMember2;
+                Members[to] = tempMember;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public TeamMember ChangeStatus(Character unit)
+        {
+            var i = GetIndex(unit.Id);
+            if (i < 0)
+                return null;
+
+            // TODO ...
+            Members[i].Character = unit;
+
+            // Members[i] = new TeamMember(unit);
+            return Members[i];
+        }
+
+        public void BroadcastPacket(GamePacket packet, uint id = 0)
+        {
+            foreach (var member in Members)
+            {
+                if (member?.Character == null || !member.Character.IsOnline || member.Character.Id == id) 
+                    continue;
+                member.Character.SendPacket(packet);
+            }
+        }
+
+        public int GetIndex(uint id)
+        {
+            for (var i = 0; i < Members.Length; i++)
+                if (Members[i]?.Character != null && Members[i].Character.Id == id)
+                    return i;
+            return -1;
+        }
+
+        public int GetParty(int index)
+        {
+            if (index < 5)
+                return 0;
+            return index / 5;
+        }
+
+        public byte[] GetPartyCounts()
+        {
+            var result = new byte[10];
+            for (var i = 0; i < Members.Length; i++)
+            {
+                if (Members[i]?.Character == null)
+                    continue;
+                var partyIndex = GetParty(i);
+                result[partyIndex]++;
+            }
+
+            return result;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(Id);
-            stream.Write(Party);
-            stream.Write((byte)Officers.Length);
-            foreach (var officer in Officers)
-                stream.Write(officer.Id);
-            for (byte i = 0; i < 10; i++)
-                stream.Write(i); // num
+            stream.Write(OwnerId);
+            stream.Write(IsParty);
+
+            foreach (var count in GetPartyCounts())
+                stream.Write(count);
+
             foreach (var member in Members)
             {
-                stream.Write(member?.Id ?? 0); // type(id)
-                stream.Write(false); // con
+                stream.Write(member?.Character?.Id ?? 0u);
+                stream.Write(member?.Character?.IsOnline ?? false);
             }
 
             for (var i = 0; i < 12; i++)
             {
-                byte type = 1;
-                stream.Write(type); // type: 1 -> uint, 2 -> bc
+                var type = MarksList[i].Item1;
+                var obj = MarksList[i].Item2;
+                stream.Write(type);
                 if (type == 1)
-                    stream.Write(0u);
+                    stream.Write(obj);
                 else if (type == 2)
-                    stream.WriteBc(0);
+                    stream.WriteBc(obj);
             }
 
             stream.Write(LootingRule);
             return stream;
         }
-        
-        // TODO if i miss
-        /*
-         *    v2 = this;
-              a2->Reader->ReadUInt32("id", this, 0);
-              a2->Reader->ReadBool("party", v2 + 4, 0);
-              a2->Reader->ReadByte("numOfficers", (v2 + 5), 0);
-              v3 = 0;
-              v17 = 10;
-              for ( i = v2 + 8; ; i += 4 )
-              {
-                v5 = v2 + 5;
-                if ( v2[5] > 10u )
-                  v5 = &v17;
-                if ( v3 >= *v5 )
-                  break;
-                a2->Reader->ReadUInt32("type", i, 0);
-                ++v3;
-              }
-              v6 = 0;
-              do
-                a2->Reader->ReadByte("num", &v2[v6++ + 48], 0);
-              while ( v6 < 10 );
-              v7 = 0;
-              v8 = v2 + 60;
-              do
-              {
-                a2->Reader->ReadUInt32("type", v8, 0);
-                a2->Reader->ReadBool("con", &v2[v7++ + 260], 0);
-                v8 += 4;
-              }
-              while ( v7 < 50 );
-              v9 = v2 + 312;
-              v15 = 12;
-              do
-              {
-                if ( a2->Reader->field_1C() )
-                {
-                  a2->Reader->ReadByte("type", &v16, 0);
-                  *v9 = v16;
-                }
-                else
-                {
-                  v10 = a2->Reader->ReadByte;
-                  v17 = *v9;
-                  v10(a2, "type", &v17);
-                }
-                if ( *v9 == 1 )
-                {
-                  (a2->Reader->ReadUInt32)(a2, "type", v9 + 1, 0);
-                }
-                else if ( *v9 == 2 )
-                {
-                  if ( a2->Reader->field_1C() )
-                    v9[1] = 0;
-                  v11 = a2->Reader->field_1C();
-                  v12 = a2->Reader;
-                  if ( v11 )
-                    v13 = v12->ReadBytes1;
-                  else
-                    v13 = v12->ReadBytes;
-                  (v13)(a2, "bc", v9 + 1, 3);
-                }
-                v9 += 2;
-                --v15;
-              }
-              while ( v15 );
-              return LootingRuleRead(v2 + 102, a2);
-         */
     }
 }

@@ -79,5 +79,19 @@ namespace AAEmu.Game.Utils
                 res = (sbyte)((degree - 360) / (360f / 128));
             return res;
         }
+
+        public static float CalculateDistance(Point loc, Point loc2, bool includeZAxis = false)
+        {
+            double dx = loc.X - loc2.X;
+            double dy = loc.Y - loc2.Y;
+
+            if (includeZAxis)
+            {
+                double dz = loc.Z - loc2.Z;
+                return (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            }
+
+            return (float)Math.Sqrt(dx * dx + dy * dy);
+        }
     }
 }

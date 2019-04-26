@@ -1,10 +1,10 @@
 using System;
-using AAEmu.Game.Core.Helper;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {

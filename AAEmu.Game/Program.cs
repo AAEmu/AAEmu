@@ -27,7 +27,7 @@ namespace AAEmu.Game
         public static async Task Main(string[] args)
         {
             Initialization();
-
+            
             if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
                 Configuration(args);
             else
@@ -65,7 +65,7 @@ namespace AAEmu.Game
 
             await builder.RunConsoleAsync();
         }
-
+        
         private static void Initialization()
         {
             _thread.Name = "AA.Game Base Thread";

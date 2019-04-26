@@ -5,14 +5,19 @@ namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCUccCharNamePacket : StreamPacket
     {
-        public TCUccCharNamePacket() : base(0x08)
+        private readonly uint _id;
+        private readonly string _name;
+
+        public TCUccCharNamePacket(uint id, string name) : base(0x08)
         {
+            _id = id;
+            _name = name;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((uint) 0); // type
-            stream.Write((ushort) 0); // "name" length
+            stream.Write(_id);
+            stream.Write(_name);
 
             return stream;
         }

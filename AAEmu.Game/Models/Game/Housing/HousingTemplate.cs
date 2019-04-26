@@ -31,6 +31,8 @@ namespace AAEmu.Game.Models.Game.Housing
         public uint AbsoluteDecoLimit { get; set; }
         public uint HousingDecoLimitId { get; set; }
         public bool IsSellable { get; set; }
+        public bool HeavyTax { get; set; }
+        public bool AlwaysPublic { get; set; }
 
         public Dictionary<int, HousingBuildStep> BuildSteps { get; set; }
         public HousingBindingDoodad[] HousingBindingDoodad { get; set; }

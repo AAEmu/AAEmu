@@ -41,6 +41,8 @@ namespace AAEmu.Game
             FriendIdManager.Instance.Initialize();
             MateIdManager.Instance.Initialize();
             HousingIdManager.Instance.Initialize();
+            HousingTldManager.Instance.Initialize();
+            TeamIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
@@ -58,6 +60,7 @@ namespace AAEmu.Game
             CraftManager.Instance.Load();
             MateManager.Instance.Load();
             SlaveManager.Instance.Load();
+            TeamManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
@@ -74,6 +77,9 @@ namespace AAEmu.Game
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();
             HousingManager.Instance.SpawnAll();
+
+            AccessLevelManager.Instance.Load();
+            
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();

@@ -20,26 +20,14 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public SCFactionListPacket(SystemFaction faction) : base(SCOffsets.SCFactionListPacket, 1)
         {
-            _factions = new SystemFaction[] {faction};
+            _factions = new[] {faction};
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((byte) _factions.Length);
             foreach (var faction in _factions)
-            {
-                stream.Write(faction.Id);
-                stream.Write(faction.AggroLink);
-                stream.Write(faction.MotherId);
-                stream.Write(faction.Name);
-                stream.Write(faction.OwnerId);
-                stream.Write(faction.OwnerName);
-                stream.Write(faction.UnitOwnerType);
-                stream.Write(faction.PoliticalSystem);
-                stream.Write(faction.Created);
-                stream.Write(faction.DiplomacyTarget);
-                stream.Write((byte)0); // allowChangeName
-            }
+                stream.Write(faction);
 
             return stream;
         }

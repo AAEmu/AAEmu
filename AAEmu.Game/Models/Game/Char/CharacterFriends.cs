@@ -19,9 +19,45 @@ namespace AAEmu.Game.Models.Game.Char
             _removedFriends = new List<uint>();
         }
 
+        public void AddFriend(string name)
+        {
+            var friend = FriendMananger.Instance.GetFriendInfo(name);
+            if (friend == null || FriendsIdList.ContainsKey(friend.CharacterId))
+            {
+                // TODO - ERROR MESSAGE ALREADY ADDED
+                return;
+            }
+
+            var template = new FriendTemplate()
+            {
+                Id = FriendIdManager.Instance.GetNextId(),
+                FriendId = friend.CharacterId,
+                Owner = Owner.Id
+            };
+            FriendsIdList.Add(friend.CharacterId, template);
+            FriendMananger.Instance.AddToAllFriends(template);
+            Owner.SendPacket(new SCAddFriendPacket(friend, true, 0));
+        }
+
+        public void RemoveFriend(string name)
+        {
+            var friend = FriendMananger.Instance.GetFriendInfo(name);
+            if (friend == null || !FriendsIdList.ContainsKey(friend.CharacterId))
+            {
+                // TODO - ERROR MESSAGE NOT FRIEND
+                return;
+            }
+
+            FriendMananger.Instance.RemoveFromAllFriends(FriendsIdList[friend.CharacterId].Id);
+            FriendsIdList.Remove(friend.CharacterId);
+            _removedFriends.Add(friend.CharacterId);
+            Owner.SendPacket(new SCDeleteFriendPacket(friend.CharacterId, true, name, 0));
+        }
+
         public void Send()
         {
             if (FriendsIdList.Count <= 0) return;
+
             var allFriends = FriendMananger.Instance.GetFriendInfo(new List<uint>(FriendsIdList.Keys));
             var allFriendsArray = new Friend[allFriends.Count];
             allFriends.CopyTo(allFriendsArray, 0);
@@ -53,8 +89,6 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction)
         {
-            FriendMananger.Instance.SendStatusChange(Owner, false);
-
             if (_removedFriends.Count > 0)
             {
                 using (var command = connection.CreateCommand())
@@ -84,31 +118,6 @@ namespace AAEmu.Game.Models.Game.Char
                     command.ExecuteNonQuery();
                 }
             }
-        }
-
-        public void AddFriend(string name)
-        {
-            var friend = FriendMananger.Instance.GetFriendInfo(name);
-            if (friend == null || FriendsIdList.ContainsKey(friend.CharacterId)) return; // already add
-            var template = new FriendTemplate()
-            {
-                Id = FriendIdManager.Instance.GetNextId(),
-                FriendId = friend.CharacterId,
-                Owner = Owner.Id
-            };
-            FriendsIdList.Add(friend.CharacterId, template);
-            FriendMananger.Instance.AddToAllFriends(template);
-            Owner.SendPacket(new SCAddFriendPacket(friend, true, 0));
-        }
-
-        public void RemoveFriend(string name)
-        {
-            var friend = FriendMananger.Instance.GetFriendInfo(name);
-            if (friend == null || !FriendsIdList.ContainsKey(friend.CharacterId)) return; // not friend
-            FriendMananger.Instance.RemoveFromAllFriends(FriendsIdList[friend.CharacterId].Id);
-            FriendsIdList.Remove(friend.CharacterId);
-            _removedFriends.Add(friend.CharacterId);
-            Owner.SendPacket(new SCDeleteFriendPacket(friend.CharacterId, true, name, 0)); // maybe id is for friend
         }
     }
 }
