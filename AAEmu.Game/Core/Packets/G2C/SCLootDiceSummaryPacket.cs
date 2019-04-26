@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             _iId = iId;
             _count = count;
             _id = id;
-            _diceValue = diceValue:
+            _diceValue = diceValue;
         }
 
         public override PacketStream Write(PacketStream stream)
