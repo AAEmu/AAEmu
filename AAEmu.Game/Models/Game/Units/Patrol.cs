@@ -96,12 +96,15 @@ namespace AAEmu.Game.Models.Game.Units
             }
                
         }
-        public void PauseAuto(Npc npc)
+
+        public bool PauseAuto(Npc npc)
         {
-            if (Interrupt)
+            if (Interrupt || !npc.Patrol.Running)
             {
                 Pause(npc);
+                return true;
             }
+            return false;
         }
         public void Pause(Npc npc)
         {

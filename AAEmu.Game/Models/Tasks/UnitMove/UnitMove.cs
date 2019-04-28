@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         /// </summary>
         public override void Execute()
         {
-            if(_npc.Hp!=0)
+            if(_npc.Hp>0)
                 _patrol.Apply(_npc);
         }
     }

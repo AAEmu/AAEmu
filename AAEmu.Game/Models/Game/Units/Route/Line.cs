@@ -106,12 +106,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
 
 
-            //模拟unit
+            //模拟unit / Simulated unit
             var type = (MoveTypeEnum)1;
-            //返回moveType对象
+            //返回moveType对象 / Return moveType object
             var moveType = (UnitMoveType)MoveType.GetType(type);
 
-            //改变NPC坐标
+            //改变NPC坐标 / Changing NPC coordinates
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
             moveType.Z = npc.Position.Z;
@@ -127,14 +127,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
             if (move)
             {
-                //广播移动状态
+                //广播移动状态 / Broadcasting Mobile State
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 LoopDelay = 500;
                 Repet(npc);
             }
             else
             {
-                //停止移动
+                //停止移动 / Stop moving
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 LoopAuto(npc);

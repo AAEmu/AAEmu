@@ -47,8 +47,8 @@ namespace AAEmu.Game.Models.Game.Units
         public Expedition Expedition { get; set; }
 
         /// <summary>
-        /// Unit巡逻
-        /// 指明Unit巡逻路线及速度、是否正在执行巡逻等行为
+        /// Unit巡逻 / Unit patrol
+        /// 指明Unit巡逻路线及速度、是否正在执行巡逻等行为 / Indicate Unit Patrol Route and Speed, Are Patrols Executing, etc.
         /// </summary>
         public Patrol Patrol { get; set; }
 

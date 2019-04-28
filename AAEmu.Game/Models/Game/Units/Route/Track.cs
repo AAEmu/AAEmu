@@ -87,12 +87,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 move = false;
             }
 
-            //模拟unit
+            //模拟unit / Simulated unit
             var type = (MoveTypeEnum)1;
-            //返回moveType对象
+            //返回moveType对象 / Return moveType object
             var moveType = (UnitMoveType)MoveType.GetType(type);
 
-            //改变NPC坐标
+            //改变NPC坐标 / Changing NPC coordinates
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
             moveType.Z = npc.Position.Z;
@@ -108,14 +108,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
             
             if (move)
             {
-                //广播移动状态
+                //广播移动状态 / Broadcasting Mobile State
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 LoopDelay = 500;
                 Repet(npc);
             }
             else{
 
-                //如果小于差距则停止移动准备攻击
+                //如果小于差距则停止移动准备攻击 / Stop moving and prepare for attack if it is less than the gap
                 if (Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z)) <= distance)
                 {
                     Combat combat = new Combat();
@@ -132,7 +132,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     npc.StartRegen();
                     npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
                 }
-                //距离超过指定长度 放弃追踪 停止移动
+                //距离超过指定长度 放弃追踪 停止移动 / Abandon tracking to stop moving beyond specified length
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 Stop(npc);
@@ -141,9 +141,9 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
             if (LastPatrol == null)
             {
-                //创建直线巡航回归上次巡航暂停点
+                //创建直线巡航回归上次巡航暂停点 / Create Linear Cruise Return to Last Cruise Stop Point
                 Line line = new Line();
-                //不可中断，不受外力及攻击影响 类似于处于脱战状态
+                //不可中断，不受外力及攻击影响 类似于处于脱战状态 / Uninterruptible, unaffected by external forces and attacks, similar to being out of combat
                 line.Interrupt = false;
                 line.Loop = false;
                 line.Abandon = false;

@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x001, 1, typeof(CSLeaveWorldPacket));
             RegisterPacket(0x002, 1, typeof(CSCancelLeaveWorldPacket));
             RegisterPacket(0x004, 1, typeof(CSCreateExpeditionPacket));
-            //            RegisterPacket(0x005, 1, typeof(CSChangeExpeditionSponsorPacket)); TODO : this packet seems like it has been removed.
+            // RegisterPacket(0x005, 1, typeof(CSChangeExpeditionSponsorPacket)); TODO : this packet seems like it has been removed.
             RegisterPacket(0x006, 1, typeof(CSChangeExpeditionRolePolicyPacket));
             RegisterPacket(0x007, 1, typeof(CSChangeExpeditionMemberRolePacket));
             RegisterPacket(0x008, 1, typeof(CSChangeExpeditionOwnerPacket));
@@ -66,7 +66,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x030, 1, typeof(CSDestroySlavePacket));
             RegisterPacket(0x031, 1, typeof(CSBindSlavePacket));
             RegisterPacket(0x032, 1, typeof(CSDiscardSlavePacket));
-            //            RegisterPacket(0x031, 1, typeof(CSChangeSlaveTargetPacket)); TODO: this packet is not in the offsets
+            // RegisterPacket(0x031, 1, typeof(CSChangeSlaveTargetPacket)); TODO: this packet is not in the offsets
             RegisterPacket(0x034, 1, typeof(CSChangeSlaveNamePacket));
             RegisterPacket(0x035, 1, typeof(CSRepairSlaveItemsPacket));
             RegisterPacket(0x036, 1, typeof(CSTurretStatePacket));
@@ -82,8 +82,8 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x042, 1, typeof(CSSellBackpackGoodsPacket));
             RegisterPacket(0x043, 1, typeof(CSSpecialtyRatioPacket));
             RegisterPacket(0x044, 1, typeof(CSListSpecialtyGoodsPacket));
-            //            RegisterPacket(0x043, 1, typeof(CSBuySpecialtyItemPacket)); TODO: this packet is not in the offsets
-            //            RegisterPacket(0x044, 1, typeof(CSSpecialtyRecordLoadPacket)); TODO: this packet is not in the offsets
+            // RegisterPacket(0x043, 1, typeof(CSBuySpecialtyItemPacket)); TODO: this packet is not in the offsets
+            // RegisterPacket(0x044, 1, typeof(CSSpecialtyRecordLoadPacket)); TODO: this packet is not in the offsets
             RegisterPacket(0x047, 1, typeof(CSDepositMoneyPacket));
             RegisterPacket(0x048, 1, typeof(CSWithdrawMoneyPacket));
             RegisterPacket(0x049, 1, typeof(CSConvertItemLookPacket));
@@ -103,7 +103,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x058, 1, typeof(CSDecorateHousePacket));
             RegisterPacket(0x059, 1, typeof(CSChangeHouseNamePacket));
             RegisterPacket(0x05a, 1, typeof(CSChangeHousePermissionPacket));
-            //              RegisterPacket(0x05b, 1, typeof(CSChangeHousePayPacket)); TODO: this packet is not in the offsets
+            // RegisterPacket(0x05b, 1, typeof(CSChangeHousePayPacket)); TODO: this packet is not in the offsets
             RegisterPacket(0x05c, 1, typeof(CSRequestHouseTaxPacket));
             // 0x5c unk packet
             RegisterPacket(0x05d, 1, typeof(CSAllowHousingRecoverPacket));
@@ -138,7 +138,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x07d, 1, typeof(CSLeaveTeamPacket));
             RegisterPacket(0x07e, 1, typeof(CSKickTeamMemberPacket));
             RegisterPacket(0x07f, 1, typeof(CSMakeTeamOwnerPacket));
-            //            RegisterPacket(0x07e, 1, typeof(CSSetTeamOfficerPacket)); TODO: this packet is not in the offsets 
+            // RegisterPacket(0x07e, 1, typeof(CSSetTeamOfficerPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x080, 1, typeof(CSConvertToRaidTeamPacket));
             RegisterPacket(0x081, 1, typeof(CSMoveTeamMemberPacket));
             RegisterPacket(0x083, 1, typeof(CSChangeLootingRulePacket));
@@ -151,7 +151,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x08a, 1, typeof(CSSkillControllerStatePacket));
             RegisterPacket(0x08b, 1, typeof(CSCreateSkillControllerPacket));
 
-            //            RegisterPacket(0x08d, 1, typeof(CSChangeItemLookPacket)); TODO: this packet is not in the offsets 
+            // RegisterPacket(0x08d, 1, typeof(CSChangeItemLookPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x08e, 1, typeof(CSLootOpenBagPacket));
 
             RegisterPacket(0x090, 1, typeof(CSLootCloseBagPacket));
@@ -170,7 +170,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x0a0, 1, typeof(CSPayChargeMoneyPacket));
             RegisterPacket(0x0a1, 1, typeof(CSDeleteMailPacket));
             RegisterPacket(0x0a3, 1, typeof(CSReportSpamPacket));
-            //            RegisterPacket(0x0a1, 1, typeof(CSReturnMailPacket)); TODO: this packet is not in the offsets 
+            // RegisterPacket(0x0a1, 1, typeof(CSReturnMailPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x0a4, 1, typeof(CSRemoveMatePacket));
             RegisterPacket(0x0a5, 1, typeof(CSChangeMateTargetPacket));
             RegisterPacket(0x0a6, 1, typeof(CSChangeMateNamePacket));
@@ -197,26 +197,24 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x0bb, 1, typeof(CSAuctionMyBidListPacket));
             RegisterPacket(0x0bc, 1, typeof(CSAuctionLowestPricePacket));
             RegisterPacket(0x0bd, 1, typeof(CSRollDicePacket));
-            //0xbf CSRequestNpcSpawnerList
-
-
-            //0xc8 CSRemoveAllFieldSlaves
-            //0xc9 CSAddFieldSlave
+            // 0xbf CSRequestNpcSpawnerList
+            // 0xc8 CSRemoveAllFieldSlaves
+            // 0xc9 CSAddFieldSlave
             RegisterPacket(0x0cb, 1, typeof(CSHangPacket));
             RegisterPacket(0x0cc, 1, typeof(CSUnhangPacket));
 
             RegisterPacket(0x0ce, 1, typeof(CSCompletedCinemaPacket));
             RegisterPacket(0x0cf, 1, typeof(CSStartedCinemaPacket));
-            //0xd0 CSRequestPermissionToPlayCinemaForDirectingMode
-            //0xd1 CSEditorRemoveGimmickPacket
-            //0xd2 CSEditorAddGimmickPacket
-            //0xd3 CSInteractGimmickPacket
-            //0xd4 CSWorldRayCastingPacket
+            // 0xd0 CSRequestPermissionToPlayCinemaForDirectingMode
+            // 0xd1 CSEditorRemoveGimmickPacket
+            // 0xd2 CSEditorAddGimmickPacket
+            // 0xd3 CSInteractGimmickPacket
+            // 0xd4 CSWorldRayCastingPacket
             RegisterPacket(0x0d5, 1, typeof(CSStartQuestContextPacket));
             RegisterPacket(0x0d6, 1, typeof(CSCompleteQuestContextPacket));
             RegisterPacket(0x0d7, 1, typeof(CSDropQuestContextPacket));
-            //            RegisterPacket(0x0d4, 1, typeof(CSResetQuestContextPacket)); TODO: this packet is not in the offsets 
-            //            RegisterPacket(0x0d5, 1, typeof(CSAcceptCheatQuestContextPacket)); TODO: this packet is not in the offsets 
+            // RegisterPacket(0x0d4, 1, typeof(CSResetQuestContextPacket)); TODO: this packet is not in the offsets 
+            // RegisterPacket(0x0d5, 1, typeof(CSAcceptCheatQuestContextPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x0da, 1, typeof(CSQuestTalkMadePacket));
             RegisterPacket(0x0db, 1, typeof(CSQuestStartWithPacket));
             RegisterPacket(0x0dd, 1, typeof(CSTryQuestCompleteAsLetItDonePacket));
@@ -229,7 +227,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x0e4, 1, typeof(CSEnteredInstantGameWorldPacket));
             RegisterPacket(0x0e5, 1, typeof(CSLeaveInstantGamePacket));
             RegisterPacket(0x0e6, 1, typeof(CSCreateDoodadPacket));
-            //            RegisterPacket(0x0e3, 1, typeof(CSSaveDoodadUccStringPacket)); TODO: this packet is not in the offsets 
+            // RegisterPacket(0x0e3, 1, typeof(CSSaveDoodadUccStringPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x0e7, 1, typeof(CSNaviTeleportPacket));
             RegisterPacket(0x0e8, 1, typeof(CSNaviOpenPortalPacket));
             RegisterPacket(0x0e9, 1, typeof(CSChangeDoodadPhasePacket));
@@ -255,7 +253,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x0ff, 1, typeof(CSUpgradeExpertLimitPacket));
             RegisterPacket(0x100, 1, typeof(CSDowngradeExpertLimitPacket));
             RegisterPacket(0x101, 1, typeof(CSExpandExpertPacket));
-            //            RegisterPacket(0x100, 1, typeof(CSSearchListPacket)); TODO: this packet is not in the offsets 
+            // RegisterPacket(0x100, 1, typeof(CSSearchListPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x104, 1, typeof(CSAddFriendPacket));
             RegisterPacket(0x105, 1, typeof(CSDeleteFriendPacket));
             RegisterPacket(0x106, 1, typeof(CSCharDetailPacket));

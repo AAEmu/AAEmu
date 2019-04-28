@@ -104,7 +104,7 @@ namespace AAEmu.Game.Models.Game.World
             if (_objects == null)
                 return;
 
-            // показать игроку все обьекты в регионе
+            // показать игроку все объекты в регионе
             if (obj is Character)
             {
                 var character = (Character)obj;
@@ -127,7 +127,7 @@ namespace AAEmu.Game.Models.Game.World
                 }
             }
 
-            // показать обьект всем игрокам в регионе
+            // показать объекты всем игрокам в регионе
             foreach (var character in GetList(new List<Character>(), obj.ObjId))
                 obj.AddVisibleObject(character);
         }
@@ -137,7 +137,7 @@ namespace AAEmu.Game.Models.Game.World
             if (_objects == null)
                 return;
 
-            // убрать у игрока все видимые обьекты в регионе
+            // убрать у игрока все видимые объекты в регионе
             if (obj is Character)
             {
                 var character = (Character)obj;
@@ -164,7 +164,7 @@ namespace AAEmu.Game.Models.Game.World
                 // TODO ... others types...
             }
 
-            // убрать обьект у всех игроков в регионе
+            // убрать объекты у всех игроков в регионе
             foreach (var character in GetList(new List<Character>(), obj.ObjId))
                 obj.RemoveVisibleObject(character);
         }
