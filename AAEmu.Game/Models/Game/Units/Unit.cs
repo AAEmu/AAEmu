@@ -74,7 +74,8 @@ namespace AAEmu.Game.Models.Game.Units
         {
             Effects.RemoveEffectsOnDeath();
             BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
-            if(CurrentTarget!=null)
+            BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
+            if (CurrentTarget!=null)
                 BroadcastPacket(new SCCombatClearedPacket(CurrentTarget.ObjId), true);
         }
 
