@@ -25,10 +25,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             Item item = ItemManager.Instance.Create(500, 5, 0);
             item.WorldId = 1;
             item.CreateTime = DateTime.Now;
-            
+            item.Id = objId;
+            item.MadeUnitId = objId;
+            items.Add(item);
+            items.Add(item);
             items.Add(item);
 
-            Connection.ActiveChar.SendPacket(new SCLootBagDataPacket(items, lootAll));
+            Connection.ActiveChar.SendPacket(new SCLootBagDataPacket(objId,items, lootAll));
 
         }
     }

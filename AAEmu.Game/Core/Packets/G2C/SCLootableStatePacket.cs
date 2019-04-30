@@ -16,10 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((short)0);
-            stream.Write((short)1);
-            stream.WriteBc(_iId);
-            stream.Write((byte)0);
+            stream.Write(((ulong)_iId<<32)+65536);
             stream.Write(_isLootable);
             return stream;
         }
