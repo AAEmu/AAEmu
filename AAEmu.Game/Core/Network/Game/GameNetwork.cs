@@ -153,6 +153,7 @@ namespace AAEmu.Game.Core.Network.Game
 
             //            RegisterPacket(0x08d, 1, typeof(CSChangeItemLookPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x08e, 1, typeof(CSLootOpenBagPacket));
+            RegisterPacket(0x08f, 1, typeof(CSLootItemTookPacket));
 
             RegisterPacket(0x090, 1, typeof(CSLootCloseBagPacket));
             RegisterPacket(0x091, 1, typeof(CSLootDicePacket));

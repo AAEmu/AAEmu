@@ -7,11 +7,13 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     class SCLootBagDataPacket : GamePacket
     {
+        private ulong _objId;
         private readonly List<Item> _items;
         private readonly bool _lootAll;
 
-        public SCLootBagDataPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket,1)
+        public SCLootBagDataPacket(ulong objId,List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket,1)
         {
+            _objId = objId << 32;
             _items = items;
             _lootAll = lootAll;
         }
@@ -22,7 +24,18 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             foreach(var item in _items)
             {
-                item.Write(stream);
+                stream.Write(item.TemplateId);
+                stream.Write(++_objId+65536);
+                stream.Write(item.Grade);
+                stream.Write((byte)0);
+                stream.Write(item.Count);
+                stream.Write(item.DetailType);
+                stream.Write(item.CreateTime);
+                stream.Write(item.LifespanMins);
+                stream.Write(item.MadeUnitId);
+                stream.Write(item.WorldId);
+                stream.Write(item.UnsecureTime);
+                stream.Write(item.UnpackTime);
             }
 
             stream.Write(_lootAll);
