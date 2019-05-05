@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -30,8 +30,11 @@ namespace AAEmu.Game.Core.Managers
         
         // LootPacks
         private Dictionary<uint, List<LootPacks>> _lootPacks;
+        private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
         private Dictionary<uint, List<LootGroups>> _lootGroups;
         private Dictionary<int, GradeDistributions> _itemGradeDistributions;
+
+        public Dictionary<uint, List<LootPackDroppingNpc>> LootPackDroppingNpc { get; set; }
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -63,6 +66,11 @@ namespace AAEmu.Game.Core.Managers
             return _enchantingSupports.ContainsKey(itemId) ? _enchantingSupports[itemId] : null;
         }
         
+        public List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
+        {
+            return _lootPackDroppingNpc.ContainsKey(npcId) ? _lootPackDroppingNpc[npcId] : new List<LootPackDroppingNpc>();
+        }
+
         public LootPacks[] GetLootPacks(uint lootPackId)
         {
             var res = (_lootPacks.ContainsKey(lootPackId) ? _lootPacks[lootPackId] : new List<LootPacks>()).ToArray();
@@ -163,6 +171,7 @@ namespace AAEmu.Game.Core.Managers
             _enchantingCosts = new Dictionary<uint, EquipSlotEnchantingCost>();
             _gradesOrdered = new Dictionary<int, GradeTemplate>();
             _enchantingSupports = new Dictionary<uint, ItemGradeEnchantingSupport>();
+            _lootPackDroppingNpc = new Dictionary<uint, List<LootPackDroppingNpc>>();
             _lootPacks = new Dictionary<uint, List<LootPacks>>();
             _lootGroups = new Dictionary<uint, List<LootGroups>>();
             _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
@@ -726,6 +735,33 @@ namespace AAEmu.Game.Core.Managers
                             template.Weight10 = reader.GetInt32("weight_10");
                             template.Weight11 = reader.GetInt32("weight_11");
                             _itemGradeDistributions.Add(template.Id, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM loot_pack_dropping_npcs";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new LootPackDroppingNpc();
+                            template.Id = reader.GetUInt32("id");
+                            template.NpcId = reader.GetUInt32("npc_id");
+                            template.LootPackId = reader.GetUInt32("loot_pack_id");
+                            template.DefaultPack = reader.GetBoolean("default_pack");
+                            List<LootPackDroppingNpc> lootPackDroppingNpc;
+                            if (_lootPackDroppingNpc.ContainsKey(template.NpcId))
+                                lootPackDroppingNpc = _lootPackDroppingNpc[template.NpcId];
+                            else
+                            {
+                                lootPackDroppingNpc = new List<LootPackDroppingNpc>();
+                                _lootPackDroppingNpc.Add(template.NpcId, lootPackDroppingNpc);
+                            }
+
+                            lootPackDroppingNpc.Add(template);
                         }
                     }
                 }
