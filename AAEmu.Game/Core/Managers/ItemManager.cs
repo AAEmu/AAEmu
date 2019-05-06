@@ -2,9 +2,14 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -33,8 +38,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
         private Dictionary<uint, List<LootGroups>> _lootGroups;
         private Dictionary<int, GradeDistributions> _itemGradeDistributions;
-
-        public Dictionary<uint, List<LootPackDroppingNpc>> LootPackDroppingNpc { get; set; }
+        private Dictionary<uint, List<Item>> _lootDropItems;
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -44,6 +48,11 @@ namespace AAEmu.Game.Core.Managers
         public GradeTemplate GetGradeTemplate(int grade)
         {
             return _grades.ContainsKey(grade) ? _grades[grade] : null;
+        }
+
+        public bool RemoveLootDropItems(uint objId)
+        {
+            return _lootDropItems.Remove(objId);
         }
 
         public Holdable GetHoldable(uint id)
@@ -82,6 +91,111 @@ namespace AAEmu.Game.Core.Managers
             var res = (_lootGroups.ContainsKey(packId) ? _lootGroups[packId] : new List<LootGroups>()).ToArray();
             Array.Sort(res);
             return res;
+        }
+        public List<Item> GetLootDropItems(uint npcId)
+        {
+            return _lootDropItems.ContainsKey(npcId) ? _lootDropItems[npcId] : new List<Item>();
+        }
+        public List<Item> CreateLootDropItems(uint npcId)
+        {
+            var items = GetLootDropItems(npcId);
+
+            if (items.Count > 0)
+            {
+                return items;
+            }
+            var unit = WorldManager.Instance.GetNpc(npcId);
+            if (unit == null)
+            {
+                return items;
+            }
+            var lootPackDroppingNpcs = GetLootPackIdByNpcId(unit.TemplateId);
+
+            if (lootPackDroppingNpcs.Count <= 0)
+            {
+                return items;
+            }
+            items = new List<Item>();
+            ulong itemId = ((ulong)npcId << 32) + 65536;
+            foreach (var lootPackDroppingNpc in lootPackDroppingNpcs)
+            {
+                var lootPacks = GetLootPacks(lootPackDroppingNpc.LootPackId);
+                var dropRateMax = (uint)0;
+                for (var ui = 0; ui < lootPacks.Length; ui++)
+                {
+                    dropRateMax += lootPacks[ui].DropRate;
+                }
+                var dropRateItem = Rand.Next(0, dropRateMax);
+                var dropRateItemId = (uint)0;
+                for (var uii = 0; uii < lootPacks.Length; uii++)
+                {
+                    if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
+                    {
+                        Item item = new Item();
+                        item.TemplateId = lootPacks[uii].ItemId;
+                        item.WorldId = 1;
+                        item.CreateTime = DateTime.Now;
+                        item.Id = ++itemId;
+                        item.MadeUnitId = npcId;
+                        item.Count = Rand.Next(lootPacks[uii].MinAmount, lootPacks[uii].MaxAmount);
+                        items.Add(item);
+                        break;
+                    }
+                    else
+                    {
+                        dropRateItemId += lootPacks[uii].DropRate;
+                    }
+                }
+            }
+            var item2 = new Item
+            {
+                TemplateId = 500,
+                WorldId = 1,
+                CreateTime = DateTime.Now,
+                Id = ++itemId,
+                Count = Rand.Next(unit.Level*5, unit.Level*400),
+                MadeUnitId = npcId
+            };
+            items.Add(item2);
+            _lootDropItems.Add(npcId, items);
+
+            return items;
+        }
+        public void TookLootDropItems(Character character,uint id,bool lootAll)
+        {
+            var lootDropItems = ItemManager.Instance.GetLootDropItems(id);
+            if (lootAll)
+            {
+                for (var i = lootDropItems.Count - 1; i >= 0; --i)
+                {
+                    TookLootDropItem(character, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
+                }
+            }
+            else
+                character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
+        }
+        public void TookLootDropItem(Character character,List<Item> lootDropItems, Item lootDropItem, int count)
+        {
+            var objId = (uint)(lootDropItem.Id >> 32);
+            if (lootDropItem.TemplateId == 500)
+            {
+                character.Money += lootDropItem.Count;
+                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectGainItem,
+                    new List<ItemTask> { new MoneyChange(lootDropItem.Count) }, new List<ulong>()));
+            }
+            else
+            {
+                var item = ItemManager.Instance.Create(lootDropItem.TemplateId, count > lootDropItem.Count ? lootDropItem.Count : count, lootDropItem.Grade);
+                InventoryHelper.AddItemAndUpdateClient(character, item);
+            }
+
+            lootDropItems.Remove(lootDropItem);
+            if (lootDropItems.Count <= 0)
+            {
+                RemoveLootDropItems(objId);
+                character.BroadcastPacket(new SCLootableStatePacket(objId, false), true);
+            }
+            character.SendPacket(new SCLootItemTookPacket(500, lootDropItem.Id, lootDropItem.Count));
         }
         public GradeDistributions GetGradeDistributions(byte id)
         {
@@ -175,6 +289,7 @@ namespace AAEmu.Game.Core.Managers
             _lootPacks = new Dictionary<uint, List<LootPacks>>();
             _lootGroups = new Dictionary<uint, List<LootGroups>>();
             _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
+            _lootDropItems = new Dictionary<uint, List<Item>>();
             _config = new ItemConfig();
             using (var connection = SQLite.CreateConnection())
             {
