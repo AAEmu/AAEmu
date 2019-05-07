@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -89,6 +89,7 @@ namespace AAEmu.Game
             LoginNetwork.Instance.Start();
             stopWatch.Stop();
 
+            CashShopManager.Instance.Load();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
 
             return Task.CompletedTask;

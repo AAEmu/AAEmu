@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.CashShop
 {
     public class CashShopItem : PacketMarshaler
     {
-        public int CashShopId { get; set; }
+        public uint CashShopId { get; set; }
         public string CashName { get; set; }
         public byte MainTab { get; set; }
         public byte SubTab { get; set; }
@@ -17,14 +17,14 @@ namespace AAEmu.Game.Models.Game.CashShop
         public byte LimitType { get; set; }
         public ushort BuyCount { get; set; }
         public byte BuyType { get; set; }
-        public int BuyId { get; set; }
+        public uint BuyId { get; set; }
         public DateTime SDate { get; set; }
         public DateTime EDate { get; set; }
         public byte Type { get; set; }
-        public int Price { get; set; }
-        public int Remain { get; set; }
+        public uint Price { get; set; }
+        public uint Remain { get; set; }
         public int BonusType { get; set; }
-        public int BonusCount { get; set; }
+        public uint BonusCount { get; set; }
         public byte CmdUi { get; set; }
 
         public override PacketStream Write(PacketStream stream)

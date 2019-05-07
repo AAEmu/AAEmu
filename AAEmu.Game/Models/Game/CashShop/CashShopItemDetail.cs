@@ -1,23 +1,23 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.CashShop
 {
     public class CashShopItemDetail : PacketMarshaler
     {
-        public int CashShopId { get; set; }
-        public int CashUniqId { get; set; }
+        public uint CashShopId { get; set; }
+        public uint CashUniqId { get; set; }
         public uint ItemTemplateId { get; set; }
-        public int ItemCount { get; set; }
+        public uint ItemCount { get; set; }
         public byte SelectType { get; set; }
         public byte DefaultFlag { get; set; }
         public byte EventType { get; set; }
         public DateTime EventDate { get; set; }
         public byte PriceType { get; set; }
-        public int Price { get; set; }
-        public int DisPrice { get; set; }
-        public int BonusType { get; set; }
-        public int BonusCount { get; set; }
+        public uint Price { get; set; }
+        public uint DisPrice { get; set; }
+        public uint BonusType { get; set; }
+        public uint BonusCount { get; set; }
 
         public override PacketStream Write(PacketStream stream)
         {

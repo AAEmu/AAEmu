@@ -273,6 +273,43 @@ CREATE TABLE IF NOT EXISTS `skills` (
   `owner` int(11) UNSIGNED NOT NULL,
   PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+-- ----------------------------
+-- Table structure for cash_shop_item
+-- ----------------------------
+DROP TABLE IF EXISTS `cash_shop_item`;
+CREATE TABLE `cash_shop_item`  (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'shop_id',
+  `uniq_id` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '唯一ID',
+  `cash_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '出售名称',
+  `main_tab` tinyint(3) UNSIGNED NULL DEFAULT 1 COMMENT '主分类1-6',
+  `sub_tab` tinyint(3) UNSIGNED NULL DEFAULT 1 COMMENT '子分类1-7',
+  `level_min` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '等级限制',
+  `level_max` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '等级限制',
+  `item_template_id` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '物品模板id',
+  `is_sell` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '是否出售',
+  `is_hidden` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '是否隐藏',
+  `limit_type` tinyint(3) UNSIGNED NULL DEFAULT 0,
+  `buy_count` smallint(5) UNSIGNED NULL DEFAULT 0,
+  `buy_type` tinyint(3) UNSIGNED NULL DEFAULT 0,
+  `buy_id` int(10) UNSIGNED NULL DEFAULT 0,
+  `start_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '出售开始',
+  `end_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '出售截止',
+  `type` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '货币类型',
+  `price` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '价格',
+  `remain` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '剩余数量',
+  `bonus_type` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '赠送类型',
+  `bouns_count` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '赠送数量',
+  `cmd_ui` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '是否限制一人一次',
+  `item_count` int(10) UNSIGNED NULL DEFAULT 1 COMMENT '捆绑数量',
+  `select_type` tinyint(3) UNSIGNED NULL DEFAULT 0,
+  `default_flag` tinyint(3) UNSIGNED NULL DEFAULT 0,
+  `event_type` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '活动类型',
+  `event_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '活动时间',
+  `dis_price` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '当前售价',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '此表来自于代码中的字段并去除重复字段生成。字段名称和内容以代码为准。' ROW_FORMAT = Dynamic;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
