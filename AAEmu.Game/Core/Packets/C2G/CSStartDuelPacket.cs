@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using System.Drawing;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -18,8 +18,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var challengerId = stream.ReadUInt32();  // ID того кто нас вызвал на дуэль
-            var errorMessage = stream.ReadInt16();  // 0 - принял дуэль, 507 - отказался
+            var challengerId = stream.ReadUInt32();  // ID of the one who challenged us to a duel
+            var errorMessage = stream.ReadInt16();  // 0 - accepted the duel, 507 - refused
 
             _log.Warn("StartDuel, Id: {0}, ErrorMessage: {1}", challengerId, errorMessage);
 
