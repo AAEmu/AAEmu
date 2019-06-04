@@ -133,7 +133,6 @@ namespace AAEmu.Game.Models.Game.Units
             //如果上次巡航不为null
             if (LastPatrol!=null && Running == false)
             {
-
                 if (npc.Position.X == LastPatrol.PausePosition.X && npc.Position.Y == LastPatrol.PausePosition.Y && npc.Position.Z == LastPatrol.PausePosition.Z)
                 {
                     LastPatrol.Running = true;
@@ -154,10 +153,9 @@ namespace AAEmu.Game.Models.Game.Units
                     //恢复上次巡航
                     Repet(npc, 100, line);
                 }
-               
             }
-
         }
+
         public void LoopAuto(Npc npc)
         {
             if (Loop)

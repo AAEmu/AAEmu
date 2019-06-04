@@ -48,7 +48,9 @@ namespace AAEmu.Game.Models.Game.Units
 
         /// <summary>
         /// Unit巡逻
+        /// Unit patrol
         /// 指明Unit巡逻路线及速度、是否正在执行巡逻等行为
+        /// Indicates the route and speed of the Unit patrol, whether it is performing patrols, etc.
         /// </summary>
         public Patrol Patrol { get; set; }
 
@@ -64,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Units
             Hp = Math.Max(Hp - value, 0);
             if (Hp == 0) {
                 DoDie(attacker);
-                //StopRegen();
+                StopRegen();
             } //else
                 //StartRegen();
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp>0?Mp:0), true);
@@ -73,13 +75,21 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual void DoDie(Unit killer)
         {
             Effects.RemoveEffectsOnDeath();
-            BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
+            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
             var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
-            if (lootDropItems.Count > 0) { 
-                BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
+            if (lootDropItems.Count > 0)
+            {
+                killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
             }
-            if (CurrentTarget!=null)
-                BroadcastPacket(new SCCombatClearedPacket(CurrentTarget.ObjId), true);
+
+            if (CurrentTarget != null)
+            {
+                killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
+                killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
+                killer.CurrentTarget = null;
+                killer.StartRegen();
+                killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
+            }
         }
 
         public void StartRegen()

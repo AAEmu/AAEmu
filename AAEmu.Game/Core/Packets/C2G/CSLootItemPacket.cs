@@ -5,9 +5,9 @@ using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSLootItemTookPacket : GamePacket
+    public class CSLootItemPacket : GamePacket
     {
-        public CSLootItemTookPacket() : base(0x08f, 1)
+        public CSLootItemPacket() : base(0x08f, 1)
         {
         }
 
@@ -15,6 +15,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var iid = stream.ReadUInt64();
             var count = stream.ReadInt32();
+
+            _log.Warn("LootItem, IId: {0}, Count: {1}", iid, count);
 
             var objId = (uint)(iid >> 32);
             var lootDropItems = ItemManager.Instance.GetLootDropItems(objId);

@@ -5,13 +5,14 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Route
 {
     class Line : Patrol
     {
         float distance = 0f;
-        float MovingDistance = 0.17f;
+        float MovingDistance = 0.27f;
         public Point Position { get; set; } 
 
         public override void Execute(Npc npc)
@@ -21,11 +22,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 Stop(npc);
                 return;
             }
-            bool move = false;
-            float x = npc.Position.X - Position.X;
-            float y = npc.Position.Y - Position.Y;
-            float z = npc.Position.Z - Position.Z;
-            float MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
+            var move = false;
+            var x = npc.Position.X - Position.X;
+            var y = npc.Position.Y - Position.Y;
+            var z = npc.Position.Z - Position.Z;
+            var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
             float tempMovingDistance;
 
             if (Math.Abs(x) > distance)
@@ -115,6 +116,16 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
             moveType.Z = npc.Position.Z;
+            // for work need enable geodata
+            //moveType.Z = WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y);
+
+            // looks in the direction of movement
+            var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
+            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            moveType.RotationX = 0;
+            moveType.RotationY = 0;
+            moveType.RotationZ = rotZ;
+
             moveType.Flags = 5;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;

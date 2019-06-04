@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Route
 {
@@ -9,15 +10,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
     class Track : Patrol
     {
         float distance = 1.5f;
-        float MovingDistance = 0.17f;
+        float MovingDistance = 0.27f;
         public override void Execute(Npc npc)
         {
             Interrupt = false;
-            bool move = false;
-            float x = npc.Position.X - npc.CurrentTarget.Position.X;
-            float y = npc.Position.Y - npc.CurrentTarget.Position.Y;
-            float z = npc.Position.Z - npc.CurrentTarget.Position.Z;
-            float MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
+            var move = false;
+            var x = npc.Position.X - npc.CurrentTarget.Position.X;
+            var y = npc.Position.Y - npc.CurrentTarget.Position.Y;
+            var z = npc.Position.Z - npc.CurrentTarget.Position.Z;
+            var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
             float tempMovingDistance;
 
             if (Math.Abs(x) > distance)
@@ -96,6 +97,16 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
             moveType.Z = npc.Position.Z;
+            // for work need enable geodata
+            //moveType.Z = WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y);
+
+            // looks in the direction of movement
+            var angle = MathUtil.CalculateAngleFrom(npc, npc.CurrentTarget);
+            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            moveType.RotationX = 0;
+            moveType.RotationY = 0;
+            moveType.RotationZ = rotZ;
+
             moveType.Flags = 5;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
@@ -118,7 +129,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 //如果小于差距则停止移动准备攻击
                 if (Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z)) <= distance)
                 {
-                    Combat combat = new Combat();
+                    var combat = new Combat();
                     combat.LastPatrol = LastPatrol;
                     combat.LoopDelay = 2900;
                     combat.Pause(npc);
@@ -142,7 +153,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             if (LastPatrol == null)
             {
                 //创建直线巡航回归上次巡航暂停点
-                Line line = new Line();
+                var line = new Line();
                 //不可中断，不受外力及攻击影响 类似于处于脱战状态
                 line.Interrupt = false;
                 line.Loop = false;
