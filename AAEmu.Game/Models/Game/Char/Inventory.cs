@@ -225,6 +225,10 @@ namespace AAEmu.Game.Models.Game.Char
                     var fItem = Items[fItemIndex];
                     fItem.Count += item.Count;
                     ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                                        
+                    if (item.Template.LootQuestId > 0)
+                        Owner.Quests.OnItemGather(item, item.Count);
+                    
                     return fItem;
                 }
             }
