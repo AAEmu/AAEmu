@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
@@ -16,7 +17,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public async void Use(Unit caster, Doodad owner, uint skillId)
         {
-            owner.GrowthTime = DateTime.MinValue;
+            owner.GrowthTime = DateTime.Now;
             var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
 
             if (template == null)
@@ -33,6 +34,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
 
                 owner.FuncGroupId = (uint)NextPhase;
+                
+                owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), false); // FIX: added to work on/off lighting and destruction of drums/boxes
+
                 var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
                 foreach (var func in funcs)
                     func.Use(caster, owner, skillId);
