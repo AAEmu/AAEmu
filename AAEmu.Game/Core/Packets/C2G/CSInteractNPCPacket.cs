@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("InteractNPC, BcId: {0}", objId);
 
-            Connection.SendPacket(new SCAiAggroPacket(objId));
+            Connection.SendPacket(new SCAiAggroPacket(objId, 0)); // TODO проверить count=1
         }
     }
 }

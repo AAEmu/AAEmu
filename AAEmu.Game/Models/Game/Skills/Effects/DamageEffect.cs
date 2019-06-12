@@ -62,16 +62,20 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time)
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time)
         {
             _log.Debug("DamageEffect");
-            
+
             if (!(target is Unit))
+            {
                 return;
+            }
+
             var trg = (Unit)target;
             var min = 0;
             var max = 0;
+
             if (UseFixedDamage)
             {
                 min += FixedMin;
@@ -85,7 +89,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 skillLevel = (skill.Level - 1) * skill.Template.LevelStep + skill.Template.AbilityLevel;
                 if (skillLevel >= skill.Template.AbilityLevel)
+                {
                     unk = 0.015f * (skillLevel - skill.Template.AbilityLevel + 1);
+                }
                 unk2 = (1 + unk) * 1.3f;
             }
 
@@ -93,33 +99,44 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 var levelMd = (unk + 1) * LevelMd;
                 min += (int)(caster.LevelDps * levelMd + 0.5f);
-                max += (int)((((skillLevel - 1) * 0.020408163f * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.0099999998f + 1f) *
-                             caster.LevelDps * levelMd + 0.5f);
+                max += (int)((((skillLevel - 1) * 0.020408163f * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.0099999998f + 1f) * caster.LevelDps * levelMd + 0.5f);
             }
 
             var dpsInc = 0f;
             if (DamageType == DamageType.Melee)
+            {
                 dpsInc = caster.DpsInc;
+            }
             else if (DamageType == DamageType.Magic)
+            {
                 dpsInc = caster.MDps + caster.MDpsInc;
+            }
             else if (DamageType == DamageType.Ranged)
+            {
                 dpsInc = caster.RangedDpsInc;
+            }
 
             var dps = 0f;
             if (UseMainhandWeapon)
+            {
                 dps += caster.Dps;
+            }
             else if (UseOffhandWeapon)
+            {
                 dps += caster.OffhandDps;
+            }
             else if (UseRangedWeapon)
+            {
                 dps += caster.RangedDps;
+            }
 
             if (dps <= 0) // TODO убрать этот костыль
             {
-                dps = 15000f;
+                dps = 15000f * caster.Level;
             }
             if (dpsInc <= 0)
             {
-                dpsInc = 2000f;
+                dpsInc = 2000f * caster.Level;
             }
 
             min += (int)((DpsMultiplier * dps * 0.001f + DpsIncMultiplier * dpsInc * 0.001f) * unk2 + 0.5f);
@@ -128,20 +145,28 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             max = (int)(max * Multiplier);
             var value = Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
+            caster.SummarizeDamage += value;
             trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
+            if (trg is Npc)
+            {
+                trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
+            }
+            if (trg is Npc npc && npc.CurrentTarget != caster)
+            {
+                //npc.BroadcastPacket(new SCAiAggroPacket(npc.ObjId, 1, caster.ObjId), true);
 
-            if(trg is Npc npc && npc.CurrentTarget!=caster) {
-                
                 if (npc.Patrol == null || npc.Patrol.PauseAuto(npc))
                 {
                     npc.CurrentTarget = caster;
-                    npc.BroadcastPacket(new SCCombatEngagedPacket(caster.ObjId), true);
+                    npc.BroadcastPacket(new SCCombatEngagedPacket(caster.ObjId), true); // caster
+                    npc.BroadcastPacket(new SCCombatEngagedPacket(npc.ObjId), true);    // target
+                    npc.BroadcastPacket(new SCCombatFirstHitPacket(npc.ObjId, caster.ObjId, 0), true);
+                    npc.BroadcastPacket(new SCAggroTargetChangedPacket(npc.ObjId, caster.ObjId), true);
                     npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, caster.ObjId), true);
+
                     TaskManager.Instance.Schedule(new UnitMove(new Track(), npc), TimeSpan.FromMilliseconds(100));
                 }
-                
             }
-
         }
     }
 }
