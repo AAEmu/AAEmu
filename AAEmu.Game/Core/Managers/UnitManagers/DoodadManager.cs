@@ -98,6 +98,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                         var funcGroups = new DoodadFuncGroups();
                                         funcGroups.Id = readerChild.GetUInt32("id");
                                         funcGroups.GroupKindId = readerChild.GetUInt32("doodad_func_group_kind_id");
+                                        funcGroups.SoundId = readerChild.IsDBNull("sound_id") ? 0 : readerChild.GetUInt32("sound_id");
+
                                         template.FuncGroups.Add(funcGroups);
                                     }
                                 }
@@ -124,6 +126,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.FuncId = reader.GetUInt32("actual_func_id");
                             func.FuncType = reader.GetString("actual_func_type");
                             func.NextPhase = reader.GetInt32("next_phase", -1); // TODO next_phase = 0?
+                            func.SoundId = reader.IsDBNull("sound_id") ? 0 : reader.GetUInt32("sound_id");
                             func.SkillId = reader.GetUInt32("func_skill_id", 0);
                             func.PermId = reader.GetUInt32("perm_id");
                             func.Count = reader.GetInt32("act_count", 0);

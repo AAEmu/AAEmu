@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -25,12 +25,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             //This is a temporary fix. We need to find how to properly call the next function.
             // var nextFunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
             // if (nextFunc != null) nextFunc.Use(caster, owner, skillId);
-
             if (Delay > 0)
             {
                 owner.GrowthTime = DateTime.Now.AddMilliseconds(Delay); // TODO ... need here?
-                owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), false); // TODO door, windows with delay of this timer...
+                // выполняем действие
+                owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true); // TODO door, windows with delay of this timer...
 
+                // планируем выполнение действия NextPhase
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay));
             }

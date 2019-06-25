@@ -11,6 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint FuncId { get; set; }
         public string FuncType { get; set; }
         public int NextPhase { get; set; }
+        public uint SoundId { get; set; }
         public uint SkillId { get; set; }
         public uint PermId { get; set; }
         public int Count { get; set; }
@@ -34,7 +35,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
 
                 owner.FuncGroupId = (uint)NextPhase;
-                
+
                 owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), false); // FIX: added to work on/off lighting and destruction of drums/boxes
 
                 var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
