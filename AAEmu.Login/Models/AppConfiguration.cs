@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 
 namespace AAEmu.Login.Models
 {
@@ -13,6 +13,7 @@ namespace AAEmu.Login.Models
         {
             public string Host { get; set; }
             public ushort Port { get; set; }
+            public int NumConnections { get; set; }
         }
 
         public class DBConnections

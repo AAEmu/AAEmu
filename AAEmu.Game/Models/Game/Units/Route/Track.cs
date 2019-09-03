@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
@@ -96,10 +97,9 @@ namespace AAEmu.Game.Models.Game.Units.Route
             //改变NPC坐标
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
-            moveType.Z = npc.Position.Z;
-            // for work need enable geodata
-            //moveType.Z = WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y);
-
+            moveType.Z = AppConfiguration.Instance.HeightMapsEnable
+                ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y)
+                : npc.Position.Z;
             // looks in the direction of movement
             var angle = MathUtil.CalculateAngleFrom(npc, npc.CurrentTarget);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);

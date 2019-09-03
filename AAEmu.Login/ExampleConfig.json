@@ -6,7 +6,8 @@
   },
   "Network": {
     "Host": "*",
-    "Port": 1237
+    "Port": 1237,
+    "NumConnections": 10
   },
   "Connections": {
     "MySQLProvider": {

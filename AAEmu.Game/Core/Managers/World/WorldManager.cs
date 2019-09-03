@@ -6,6 +6,7 @@ using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
@@ -114,8 +115,7 @@ namespace AAEmu.Game.Core.Managers.World
                     throw new Exception($"WorldManager: Parse {pathFile} file");
             }
 
-            var active = false;
-            if (active) // TODO fastboot if active = false!
+            if (AppConfiguration.Instance.HeightMapsEnable) // TODO fastboot if HeightMapsEnable = false!
             {
                 _log.Info("Loading heightmaps...");
 
