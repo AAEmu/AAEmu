@@ -150,6 +150,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x089, 1, typeof(CSMoveUnitPacket));
             RegisterPacket(0x08a, 1, typeof(CSSkillControllerStatePacket));
             RegisterPacket(0x08b, 1, typeof(CSCreateSkillControllerPacket));
+            RegisterPacket(0x08c, 1, typeof(CSActiveWeaponChangedPacket));
 
             //RegisterPacket(0x08d, 1, typeof(CSChangeItemLookPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x08e, 1, typeof(CSLootOpenBagPacket));

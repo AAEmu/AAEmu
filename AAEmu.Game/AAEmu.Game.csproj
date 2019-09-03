@@ -49,13 +49,4 @@
         <PackageReference Include="Quartz" Version="3.0.7" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Reference Include="Microsoft.Extensions.Hosting, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60">
-        <HintPath>C:\Program Files\dotnet\sdk\NuGetFallbackFolder\microsoft.extensions.hosting\2.2.0\lib\netstandard2.0\Microsoft.Extensions.Hosting.dll</HintPath>
-      </Reference>
-      <Reference Include="Microsoft.Extensions.Hosting.Abstractions, Version=2.2.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60">
-        <HintPath>C:\Program Files\dotnet\sdk\NuGetFallbackFolder\microsoft.extensions.hosting.abstractions\2.2.0\lib\netstandard2.0\Microsoft.Extensions.Hosting.Abstractions.dll</HintPath>
-      </Reference>
-    </ItemGroup>
-
 </Project>
