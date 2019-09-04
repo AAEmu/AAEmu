@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Login.Core.Controllers;
@@ -16,6 +16,7 @@ namespace AAEmu.Login
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _log.Info("Starting daemon: AAEmu.Login");
+            RequestController.Instance.Initialize();
             GameController.Instance.Load();
             LoginNetwork.Instance.Start();
             InternalNetwork.Instance.Start();

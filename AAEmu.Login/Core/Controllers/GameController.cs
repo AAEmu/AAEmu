@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.L2C;
@@ -98,17 +99,37 @@ namespace AAEmu.Login.Core.Controllers
             gameServer.MirrorsId.Clear();
         }
 
-        public void RequestWorldList(LoginConnection connection)
+        public async void RequestWorldList(LoginConnection connection)
         {
-            var gsList = new List<GameServer>(_gameServers.Values);
-            connection.SendPacket(new ACWorldListPacket(gsList, connection.GetCharacters()));
+            if (_gameServers.Values.Any(x => x.Active))
+            {
+                var gameServers = _gameServers.Values.ToList();
+                var (requestIds, task) = RequestController.Instance.Create(gameServers.Count, 20000); // TODO Request 20s
+                for (var i = 0; i < gameServers.Count; i++)
+                {
+                    var value = gameServers[i];
+                    if (!value.Active)
+                        continue;
+                    var chars = !connection.Characters.ContainsKey(value.Id);
+                    value.SendPacket(
+                        new LGRequestInfoPacket(connection.Id, requestIds[i], chars ? connection.AccountId : 0));
+                }
+
+                await task;
+                connection.SendPacket(new ACWorldListPacket(gameServers, connection.GetCharacters()));
+            }
+            else
+            {
+                var gsList = new List<GameServer>(_gameServers.Values);
+                connection.SendPacket(new ACWorldListPacket(gsList, connection.GetCharacters()));
+            }
         }
 
         public void SetLoad(byte gsId, byte load)
         {
             lock (_gameServers)
             {
-                _gameServers[gsId].Load = (GSLoad) load;
+                _gameServers[gsId].Load = (GSLoad)load;
             }
         }
 
@@ -128,7 +149,7 @@ namespace AAEmu.Login.Core.Controllers
             {
                 if (_gameServers.ContainsKey(gsId))
                 {
-                    connection.SendPacket(new ACWorldCookiePacket((int) connection.Id, _gameServers[gsId]));
+                    connection.SendPacket(new ACWorldCookiePacket((int)connection.Id, _gameServers[gsId]));
                 }
                 else
                 {

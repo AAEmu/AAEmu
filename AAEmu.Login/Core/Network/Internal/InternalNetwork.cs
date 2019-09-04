@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net;
 using AAEmu.Commons.Network.Type;
 using AAEmu.Commons.Utils;
@@ -22,7 +22,7 @@ namespace AAEmu.Login.Core.Network.Internal
             RegisterPacket(0x00, typeof(GLRegisterGameServerPacket));
             RegisterPacket(0x01, typeof(GLPlayerEnterPacket));
             RegisterPacket(0x02, typeof(GLPlayerReconnectPacket));
-            RegisterPacket(0x03, typeof(GLLoadPacket));
+            RegisterPacket(0x03, typeof(LGRequestInfoPacket));
         }
 
         public void Start()
