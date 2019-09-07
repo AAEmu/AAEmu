@@ -523,12 +523,17 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
-                        "SELECT `id`, `name`, `race`, `gender` FROM characters WHERE `account_id`=@accountId";
+                        "SELECT `id`, `name`, `race`, `gender`,`delete_time` FROM characters WHERE `account_id`=@accountId and `deleted`=0";
                     command.Parameters.AddWithValue("@accountId", accountId);
                     using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
+                            // Skip this char in the list if it's read to be deleted
+                            var deleteTime = reader.GetDateTime("delete_time");
+                            if ((deleteTime > DateTime.MinValue) && (deleteTime < DateTime.UtcNow))
+                                continue;
+
                             var character = new LoginCharacterInfo();
                             character.AccountId = accountId;
                             character.Id = reader.GetUInt32("id");

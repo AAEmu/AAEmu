@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `slots` blob NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `deleted` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`,`account_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using AAEmu.Commons.Network;
@@ -110,7 +110,7 @@ namespace AAEmu.Game.Core.Network.Connections
                 using (var command = connection.CreateCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText = "SELECT id FROM characters WHERE `account_id` = @account_id";
+                    command.CommandText = "SELECT id FROM characters WHERE `account_id` = @account_id and `deleted`=0";
                     command.Parameters.AddWithValue("@account_id", AccountId);
                     using (var reader = command.ExecuteReader())
                     {
@@ -124,7 +124,25 @@ namespace AAEmu.Game.Core.Network.Connections
                     var character = Character.Load(connection, id, AccountId);
                     if (character == null)
                         continue; // TODO ...
-                    Characters.Add(character.Id, character);
+                    
+                    // Mark characters marked for deletion as deleted after their time is finished
+                    if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime < DateTime.UtcNow))
+                    {
+                        // Console.WriteLine("\n---\nWe need to delete: {0} - {1}\n---\n", character.Id, character.Name);
+                        using (var command = connection.CreateCommand())
+                        {
+                            command.Connection = connection;
+                            command.CommandText = "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time WHERE `id`=@char_id and`account_id`=@account_id;";
+                            command.Parameters.AddWithValue("@new_delete_time", DateTime.MinValue);
+                            command.Parameters.AddWithValue("@char_id", character.Id);
+                            command.Parameters.AddWithValue("@account_id", AccountId);
+                            command.ExecuteNonQuery();
+                        }
+                    }
+                    else
+                    {
+                        Characters.Add(character.Id, character);
+                    }
                 }
 
                 foreach (var character in Characters.Values)
@@ -141,7 +159,24 @@ namespace AAEmu.Game.Core.Network.Connections
             {
                 var character = Characters[characterId];
                 character.DeleteRequestTime = DateTime.UtcNow;
-                character.DeleteTime = character.DeleteRequestTime.AddDays(7); // TODO to config...
+                // character.DeleteTime = character.DeleteRequestTime.AddDays(7); // TODO to config...
+
+                // TODO: We need a config for this, but for now I added a silly if/else group
+                if (character.Level <= 1)
+                    character.DeleteTime = character.DeleteRequestTime.AddMinutes(5);
+                else
+                if (character.Level < 10)
+                    character.DeleteTime = character.DeleteRequestTime.AddMinutes(30);
+                else
+                if (character.Level < 30)
+                    character.DeleteTime = character.DeleteRequestTime.AddHours(4);
+                else
+                if (character.Level < 40)
+                    character.DeleteTime = character.DeleteRequestTime.AddDays(1);
+                else
+                    character.DeleteTime = character.DeleteRequestTime.AddDays(7);
+
+                // TODO: Delete leadership, set properties to public, remove from party/guild/family
                 SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime,
                     character.DeleteTime));
 
