@@ -19,7 +19,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Enabled or disables fly-mode (also makes you move at hi-speed)";
+            return "Enables or disables fly-mode (also makes you move at hi-speed)";
         }
 
         public void Execute(Character character, string[] args)
