@@ -11,6 +11,17 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("position", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "[rot]";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Displays information about your and the position of your target if selected.\n" +
+                "If a argument is set, your rotation information will also be displayed.";
+        }
+
         public void Execute(Character character, string[] args)
         {
             var position = character.CurrentTarget?.Position ?? character.Position;
@@ -26,7 +37,7 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 var rx = character.Position.X - character.CurrentTarget.Position.X;
                 var ry = character.Position.Y - character.CurrentTarget.Position.Y;
-                character.SendMessage("[Position][Relation] X: {0}, Y: {1}", rx, ry);
+                character.SendMessage("[Position][Relative] X: {0}, Y: {1}", rx, ry);
             }
         }
     }

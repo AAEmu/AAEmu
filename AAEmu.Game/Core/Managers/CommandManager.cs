@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
@@ -19,6 +19,12 @@ namespace AAEmu.Game.Core.Managers
         public List<string> GetCommandKeys()
         {
             return _commands.Keys.ToList();
+        }
+
+        public ICommand GetCommandInterfaceByName(string commandName)
+        {
+            _commands.TryGetValue(commandName.ToLower(), out var command);
+            return command;
         }
 
         public void Register(string name, ICommand command)

@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -11,11 +11,21 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("add_labor", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "<amount> [targetSkill]";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Add or remove <amount> of labor. If [targetskill] is provided, then target vocation skill also gains a amount of points.";
+        }
+
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Labor] /add_labor <count> <actability id?>");
+                character.SendMessage("[Labor] /add_labor <count> [targetSkill]");
                 return;
             }
 

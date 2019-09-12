@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
@@ -15,12 +15,22 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("around", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "<doodad||npc||character> <radius>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Creates a list of specified <objectType> in a <radius> radius around you.";
+        }
+
         public void Execute(Character character, string[] args)
         {
             if (args.Length < 2)
             {
-                character.SendMessage("[Around] Using: /around <objType> <radius>");
-                character.SendMessage("[Around] ObjType: doodad, npc, character");
+                character.SendMessage("[Around] Using: /around <doodad||npc||character> <radius>");
+                // character.SendMessage("[Around] ObjType: doodad, npc, character");
                 return;
             }
 
@@ -62,7 +72,7 @@ namespace AAEmu.Game.Scripts.Commands
                 }
             }
             else
-                character.SendMessage("[Around] Throw parse radius value!");
+                character.SendMessage("|cFFFF0000[Around] Throw parse radius value!|r");
         }
     }
 }

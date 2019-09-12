@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
@@ -12,6 +12,16 @@ namespace AAEmu.Game.Scripts.Commands
         public void OnLoad()
         {
             CommandManager.Instance.Register("add_gold", this);
+        }
+
+        public string GetCommandLineHelp()
+        {
+            return "<amount>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Adds <amount> amount of copper coins. (Note: 10000 = 1 gold)";
         }
 
         public void Execute(Character character, string[] args)
@@ -28,7 +38,7 @@ namespace AAEmu.Game.Scripts.Commands
                 character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(amount) }, new List<ulong>()));
             }
             else
-                character.SendMessage("[Gold] Params wrong...");
+                character.SendMessage("[Gold] Invalid argument ...");
         }
     }
 }

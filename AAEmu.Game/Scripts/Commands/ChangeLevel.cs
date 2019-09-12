@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -12,12 +12,23 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("change_level", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "<level>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Adds experience points needed to reach target <level> (allowed range is 1-100)\n" +
+                "Do note that going above the intended max level might break skills.";
+        }
+
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
                 character.SendMessage("[ChangeLevel] /change_level <level>");
-                character.SendMessage("[ChangeLevel] level: 1-100");
+                //character.SendMessage("[ChangeLevel] level: 1-100");
                 return;
             }
 

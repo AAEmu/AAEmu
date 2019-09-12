@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
@@ -15,11 +15,21 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("add_item", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "<itemId> [count] [grade]";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Adds item with template <itemId> and amount [count] at a specific [grade]. If [count] is omitted, the amount is one. If [grade] is ommited, the default defined for that item will be used.";
+        }
+
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Items] /add_item <itemId> <count?> <grade?>");
+                character.SendMessage("[Items] /add_item <itemId> [count] [grade]");
                 return;
             }
 
@@ -33,7 +43,7 @@ namespace AAEmu.Game.Scripts.Commands
             var item = ItemManager.Instance.Create(itemId, count, grade, true);
             if (item == null)
             {
-                character.SendMessage("Item cannot be created");
+                character.SendMessage("|cFFFF0000Item could not be created!|r");
                 return;
             }
 

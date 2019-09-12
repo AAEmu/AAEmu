@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -15,11 +15,21 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("spawn", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "<npc||doodad> <unitId>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Spawns a npc or doodad using <unitId> as a template";
+        }
+
         public void Execute(Character character, string[] args)
         {
             if (args.Length < 2)
             {
-                character.SendMessage("[Spawn] /spawn <objType: npc, doodad> <unitId>");
+                character.SendMessage("[Spawn] /spawn <npc||doodad> <unitId>");
                 return;
             }
 

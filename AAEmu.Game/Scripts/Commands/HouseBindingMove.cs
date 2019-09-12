@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -12,7 +12,17 @@ namespace AAEmu.Game.Scripts.Commands
         {
             CommandManager.Instance.Register("house_binding_move", this);
         }
-        
+
+        public string GetCommandLineHelp()
+        {
+            return "<AttachPointId> <X> <Y> <Z>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "";
+        }
+
         public void Execute(Character character, string[] args)
         {
             if (character.CurrentTarget != null && character.CurrentTarget is House house)
@@ -44,11 +54,11 @@ namespace AAEmu.Game.Scripts.Commands
                             .BroadcastPacket(
                                 new SCTargetChangedPacket(character.ObjId, character.CurrentTarget?.ObjId ?? 0), true);
                     } else
-                        character.SendMessage("[HouseBindings] Not found this attach doodad");
+                        character.SendMessage("|cFFFF0000[HouseBindings] Not found this attach doodad|r");
                 } else
-                    character.SendMessage("[HouseBindings] Throw parse args");
+                    character.SendMessage("|cFFFF0000[HouseBindings] Throw parse args|r");
             } else
-                character.SendMessage("[HouseBindings] First select house");
+                character.SendMessage("|cFFFF0000[HouseBindings] First select house|r");
         }
     }
 }

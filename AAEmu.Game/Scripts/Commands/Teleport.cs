@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Packets.G2C;
@@ -15,6 +15,16 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("teleport", this);
  
             loadLocations();
+        }
+
+        public string GetCommandLineHelp()
+        {
+            return "[location]";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Teleports you to target location. if no [location] is provided, you will get a list of available names";
         }
 
         public void loadLocations(){
@@ -49,7 +59,7 @@ namespace AAEmu.Game.Scripts.Commands
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 1){
-                TPloc result = locations.Find(o => o.Name == args[0]);
+                TPloc result = locations.Find(o => o.Name == args[0].ToLower());
                 if(result != null){
                     character.SendMessage("Teleporting to : " + result.Info);
                     character.DisabledSetPosition = true;
@@ -65,7 +75,7 @@ namespace AAEmu.Game.Scripts.Commands
                 character.SendMessage("Usage : /teleport <Location>");
                 character.SendMessage("Available locations :");
                 foreach(TPloc item in locations){
-                    character.SendMessage(item.Info + " (" + item.Name + ")");
+                    character.SendMessage(item.Info + " (|cFFFFFFFF" + item.Name + "|r)");
                 }
             }
         }

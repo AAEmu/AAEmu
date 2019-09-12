@@ -18,6 +18,16 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("move", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "<x> <y> <z>";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Move to target position at <x> <y> <z>";
+        }
+
         public void Execute(Character character, string[] args)
         {
             if (args.Length < 2)

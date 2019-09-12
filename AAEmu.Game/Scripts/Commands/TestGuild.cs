@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -17,6 +17,16 @@ namespace AAEmu.Game.Scripts.Commands
         public void OnLoad()
         {
             CommandManager.Instance.Register("test_guild", this);
+        }
+
+        public string GetCommandLineHelp()
+        {
+            return "";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "";
         }
 
         public void Execute(Character character, string[] args)

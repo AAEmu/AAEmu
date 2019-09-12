@@ -15,12 +15,23 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("add_portal", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "<name> [<x> <y> <z> <zoneid>]";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "Adds a portal with <name> to your teleport book.\n" +
+                "If [<x> <y> <z> <zoneid>] is ommited or incomplete, your current position will be used.";
+        }
+
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[AddPortal] /add_portal <name> <x>* <y>* <z>* <zoneid>*");
-                character.SendMessage("[AddPortal] *optional (will get actual position)");
+                character.SendMessage("[AddPortal] /add_portal <name> [<x> <y> <z> <zoneid>]");
+                //character.SendMessage("[AddPortal] *optional (will get actual position)");
                 return;
             }
 

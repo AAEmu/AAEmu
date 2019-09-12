@@ -15,6 +15,16 @@ namespace AAEmu.Game.Scripts.Commands
             CommandManager.Instance.Register("test_mount", this);
         }
 
+        public string GetCommandLineHelp()
+        {
+            return "";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "";
+        }
+
         public void Execute(Character character, string[] args)
         {
             
