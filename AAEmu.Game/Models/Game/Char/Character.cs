@@ -120,6 +120,7 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterCraft Craft { get; set; }
 
         public int AccessLevel { get; set;}
+        public Point LocalPingPosition { get; set; } // added as a GM command helper
 
         private bool _inParty;
         private bool _isOnline;
@@ -1092,6 +1093,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Slots[i] = new ActionSlot();
 
             Craft = new CharacterCraft(this);
+            LocalPingPosition = new Point();
 
             using (var connection = MySQL.CreateConnection())
             {
