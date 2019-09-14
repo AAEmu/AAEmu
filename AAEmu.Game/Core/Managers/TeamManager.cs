@@ -196,7 +196,32 @@ namespace AAEmu.Game.Core.Managers
             activeInvitation.Owner.InParty = true;
             activeInvitation.Target.SendPacket(new SCJoinedTeamPacket(newTeam));
             activeInvitation.Target.InParty = true;
-            newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, new Point(0, 0, 0), 0)); // TODO - GET "REAL" POSITION FROM DUMP
+            newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, activeInvitation.Owner.LocalPingPosition, 0));
+        }
+
+        public void CreateSoloTeam(Character character, bool asParty)
+        {
+            if (GetActiveTeamByUnit(character.Id) != null)
+            {
+                // TODO - ERROR MESSAGE ALREADY HAVE TEAM
+                return;
+            }
+
+            var newTeam = new Team
+            {
+                Id = TeamIdManager.Instance.GetNextId(),
+                OwnerId = character.Id,
+                IsParty = true,
+                LootingRule = new LootingRule()
+            };
+            if (newTeam.AddMember(character).Item1 == null) return;
+
+            _activeTeams.Add(newTeam.Id, newTeam);
+
+            // TODO - CHAT JOIN CHANNEL???
+            character.SendPacket(new SCJoinedTeamPacket(newTeam));
+            character.InParty = asParty;
+            newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, character.LocalPingPosition, 0));
         }
 
         public void AskRiskyTeam(Character unit, uint teamId, uint targetId, RiskyAction riskyAction)
@@ -318,7 +343,7 @@ namespace AAEmu.Game.Core.Managers
         public void SetPingPos(Character unit, uint teamId, bool hasPing, Point position, uint insId)
         {
             var activeTeam = GetActiveTeam(teamId);
-            if (activeTeam == null || !activeTeam.IsMarked(unit.Id)) return;
+            if ( (activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id)) ) return;
 
             activeTeam.PingPosition = position;
             activeTeam.BroadcastPacket(new SCTeamPingPosPacket(hasPing, position, insId));

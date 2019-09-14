@@ -49,4 +49,13 @@
         <PackageReference Include="Quartz" Version="3.0.7" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="Scripts\Commands\SoloParty.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+      <None Update="Scripts\Commands\TestEcho.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+    </ItemGroup>
+
 </Project>

@@ -217,8 +217,15 @@ namespace AAEmu.Game.Core.Managers.World
 
         public float GetHeight(uint zoneId, float x, float y)
         {
-            var world = GetWorldByZone(zoneId);
-            return world?.GetHeight(x, y) ?? 0f;
+            try
+            {
+                var world = GetWorldByZone(zoneId);
+                return world?.GetHeight(x, y) ?? 0f;
+            }
+            catch
+            {
+                return 0f;
+            }
         }
 
         public Region GetRegion(GameObject obj)

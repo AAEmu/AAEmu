@@ -25,7 +25,8 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Teleports you to target location. if no [location] is provided, you will get a list of available names";
+            return "Teleports you to target location. if no [location] is provided, you will get a list of available names. " +
+                "You can also use a period (.) as a location name to teleport to a location you marked on the map.";
         }
 
         public void loadLocations(){
@@ -86,17 +87,28 @@ namespace AAEmu.Game.Scripts.Commands
 
                 if (n == ".")
                 {
-                    var height = WorldManager.Instance.GetHeight(character.Position.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
-                    if (height == 0)
+                    if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))
                     {
-                        character.SendMessage("|cFFFF0000Heightmaps need to be enabled on the server to use ping teleport.|r");
+                        character.SendMessage("|cFFFFFF00[Teleport] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, before using this teleport function.\n" +
+                            "If required, you can use the /soloparty command to make a party of just yourself.|r");
                     }
                     else
                     {
-                        height += 1.5f; // compensate a bit for terrain irregularities
-                        character.SendMessage("Teleporting to |cFFFFFFFF" + character.LocalPingPosition.X + " , " + character.LocalPingPosition.Y + " , " + height + "|r");
-                        character.DisabledSetPosition = true;
-                        character.SendPacket(new SCTeleportUnitPacket(0, 0, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
+                        var height = WorldManager.Instance.GetHeight(character.Position.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
+                        if (height == 0f)
+                        {
+                            character.SendMessage("|cFFFF0000[Teleport] Target height was |cFFFFFFFFzero|cFFFF0000. " +
+                                "You likely tried to teleport out of bounds, or no heightmaps where loaded on the server.\n" +
+                                "If you still want to move to the target location, you can use |cFFFFFFFF/move|cFFFF0000 to go to the following location|cFF40FF40\n" +
+                                "X:"+ character.LocalPingPosition.X.ToString("0.0") +" Y:"+character.LocalPingPosition.Y.ToString("0.0") + "|r");
+                        }
+                        else
+                        {
+                            height += 2.5f; // compensate a bit for terrain irregularities
+                            character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.X + " Y:" + character.LocalPingPosition.Y + " Z:" + height + "|r");
+                            character.DisabledSetPosition = true;
+                            character.SendPacket(new SCTeleportUnitPacket(0, 0, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
+                        }
                     }
                 }
                 else
@@ -130,7 +142,7 @@ namespace AAEmu.Game.Scripts.Commands
                     }
                     if (!foundIt)
                     {
-                        character.SendMessage("|cFFFF0000Unavailable Location [" + args[0] + "]|r");
+                        character.SendMessage("|cFFFF0000[Teleport] Unavailable Location [" + args[0] + "]|r");
                     }
                 }
                 /*
@@ -148,8 +160,8 @@ namespace AAEmu.Game.Scripts.Commands
             }
             else
             {
-                character.SendMessage("Usage : /teleport <Location>");
-                character.SendMessage("Available locations :");
+                character.SendMessage("Usage : /teleport <Location>\n" +
+                    "Use a period (.) to teleport to YOUR marked location on the map, or use one of the following locations :");
                 List<string> sb = new List<string>();
                 foreach (TeleportCommandRegions r in System.Enum.GetValues(typeof(TeleportCommandRegions)) )
                     sb.Add("|cFFFFFFFF"+r.ToString() + "|r: ");
