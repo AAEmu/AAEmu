@@ -24,6 +24,7 @@ namespace AAEmu.Game.Models.Tasks
             {
                 _connection.ActiveChar.DisabledSetPosition = true;
                 _connection.ActiveChar.IsOnline = false;
+                _connection.ActiveChar.LeaveTime = DateTime.Now;
 
                 var activeMate = MateManager.Instance.GetActiveMate(_connection.ActiveChar.ObjId);
                 if (activeMate != null)
