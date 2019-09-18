@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -17,7 +18,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<itemId> [count] [grade]";
+            return "(target) <itemId> [count] [grade]";
         }
 
         public string GetCommandHelpText()
@@ -29,17 +30,25 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Items] /add_item <itemId> [count] [grade]");
+                character.SendMessage("[Items] /add_item (target) <itemId> [count] [grade]");
                 return;
             }
 
-            var itemId = uint.Parse(args[0]);
+            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+
+            var itemId = 0;
             var count = 1;
             byte grade = 0;
-            if (args.Length > 1)
-                count = int.Parse(args[1]);
-            if (args.Length > 2)
-                grade = byte.Parse(args[2]);
+
+            if ( (args.Length > firstarg + 0) && (uint.TryParse(args[firstarg + 0], out var argitemId)) )
+                itemId = argitemId;
+
+            if ((args.Length > firstarg + 1) && (int.TryParse(args[firstarg + 1], out var argcount)))
+                count = argcount;
+
+            if ((args.Length > firstarg + 2) && (byte.TryParse(args[firstarg + 2], out var arggrade)))
+                grade = arggrade;
+
             var item = ItemManager.Instance.Create(itemId, count, grade, true);
             if (item == null)
             {
