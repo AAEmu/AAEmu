@@ -35,7 +35,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public MerchantGoods GetGoods(uint id)
         {
-            if(_goods.ContainsKey(id))
+            if (_goods.ContainsKey(id))
                 return _goods[id];
             return null;
         }
@@ -74,16 +74,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             SetEquipItemTemplate(npc, template.Items.Cosplay, EquipmentItemSlot.Cosplay);
 
             if (template.ModelParams != null)
-            {
                 SetEquipItemTemplate(npc, template.HairId, EquipmentItemSlot.Hair);
-                for (var i = 0; i < 7; i++)
-                    SetEquipItemTemplate(npc, template.BodyItems[i], (EquipmentItemSlot) (i + 19));
-            }
-            else if (template.CharRaceId > 0)
-            {
-                for (var i = 0; i < 7; i++)
-                    SetEquipItemTemplate(npc, template.BodyItems[i], (EquipmentItemSlot) (i + 19));
-            }
+
+            for (var i = 0; i < 7; i++)
+                SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, (EquipmentItemSlot)(i + 19), 0, template.BodyItems[i].NpcOnly);
 
             foreach (var buffId in template.Buffs)
             {
@@ -285,6 +279,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                                             template.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Face);
                                             template.ModelParams
+                                                .SetModelId(reader2.GetUInt32("model_id"))
                                                 .SetHairColorId(reader2.GetUInt32("hair_color_id"))
                                                 .SetSkinColorId(reader2.GetUInt32("skin_color_id"));
 
@@ -324,12 +319,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                             template.ModelParams.Face.RightPupilColor =
                                                 reader2.GetUInt32("right_pupil_color");
                                             template.ModelParams.Face.EyebrowColor = reader2.GetUInt32("eyebrow_color");
-                                            reader2.GetBytes("modifier", 0, template.ModelParams.Face.Modifier, 0, 128);
                                             template.ModelParams.Face.MovableDecalWeight =
                                                 reader2.GetFloat("face_movable_decal_weight");
                                             template.ModelParams.Face.NormalMapWeight =
                                                 reader2.GetFloat("face_normal_map_weight");
                                             template.ModelParams.Face.DecoColor = reader2.GetUInt32("deco_color");
+                                            reader2.GetBytes("modifier", 0, template.ModelParams.Face.Modifier, 0, 128);
                                         }
                                     }
                                 }
@@ -366,29 +361,47 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                     while (reader2.Read())
                                     {
                                         var itemId = reader2.GetUInt32("item_id", 0);
+                                        var npcOnly = reader2.GetBoolean("npc_only", true);
                                         var slot = reader2.GetInt32("slot_type_id") - 23;
-                                        template.BodyItems[slot] = itemId;
+                                        
+                                        // TODO: slot == 0, как выбрать нужный FaceId?
+                                        
+                                        if (slot == 1)
+                                        {
+                                            if (itemId == template.HairId)
+                                            {
+                                                template.BodyItems[slot] = (itemId, npcOnly);
+                                            }
+
+                                            if (template.HairId == 0)
+                                            {
+                                                template.BodyItems[slot] = (itemId, npcOnly); // TODO: slot == 1, как выбрать нужный HairId?
+                                            }
+                                        }
+                                        else
+                                        {
+                                            template.BodyItems[slot] = (itemId, npcOnly);
+                                        }
                                     }
                                 }
                             }
 
-                            if (template.CharRaceId > 0)
-                                using (var command2 = connection.CreateCommand())
+                            using (var command2 = connection.CreateCommand())
+                            {
+                                command2.CommandText =
+                                    "SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
+                                command2.Prepare();
+                                command2.Parameters.AddWithValue("model_id", template.ModelId);
+                                using (var sqliteReader2 = command2.ExecuteReader())
+                                using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
                                 {
-                                    command2.CommandText =
-                                        "SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
-                                    command2.Prepare();
-                                    command2.Parameters.AddWithValue("model_id", template.ModelId);
-                                    using (var sqliteReader2 = command2.ExecuteReader())
-                                    using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
+                                    if (reader2.Read())
                                     {
-                                        if (reader2.Read())
-                                        {
-                                            template.Race = reader2.GetByte("char_race_id");
-                                            template.Gender = reader2.GetByte("char_gender_id");
-                                        }
+                                        template.Race = reader2.GetByte("char_race_id");
+                                        template.Gender = reader2.GetByte("char_gender_id");
                                     }
                                 }
+                            }
 
                             _templates.Add(template.Id, template);
                         }
@@ -477,7 +490,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 _goods[id].Items[itemId].Add(grade);
                             }
                             else
-                                _goods[id].Items.Add(itemId, new List<byte> {grade});
+                                _goods[id].Items.Add(itemId, new List<byte> { grade });
                         }
                     }
                 }
@@ -486,17 +499,20 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
         }
 
-        private void SetEquipItemTemplate(Npc npc, uint templateId, EquipmentItemSlot slot, byte grade = 0)
+        private void SetEquipItemTemplate(Npc npc, uint templateId, EquipmentItemSlot slot, byte grade = 0, bool npcOnly = false)
         {
+            if (npcOnly && npc.Equip[(int)slot] != null)
+                return;
+
             Item item = null;
             if (templateId > 0)
             {
                 item = ItemManager.Instance.Create(templateId, 1, grade, false);
                 item.SlotType = SlotType.Equipment;
-                item.Slot = (int) slot;
+                item.Slot = (int)slot;
             }
 
-            npc.Equip[(int) slot] = item;
+            npc.Equip[(int)slot] = item;
         }
     }
 }

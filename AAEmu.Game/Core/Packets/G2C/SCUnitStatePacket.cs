@@ -252,7 +252,13 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.Position.RotationX);
             stream.Write(_unit.Position.RotationY);
             stream.Write(_unit.Position.RotationZ);
-            stream.Write(_unit.RaceGender);
+
+            if (_unit is Character unit)
+                stream.Write(unit.RaceGender);
+            else if (_unit is Npc npc)
+                stream.Write(npc.RaceGender);
+            else
+                stream.Write(_unit.RaceGender);
 
             if (_unit is Character)
                 stream.WritePisc(0, 0, ((Character)_unit).Appellations.ActiveAppellation, 0); // pisc

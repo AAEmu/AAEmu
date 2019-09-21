@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public override UnitCustomModelParams ModelParams => Template.ModelParams;
         public override float Scale => Template.Scale;
 
-        public override byte RaceGender => (byte) (Template.CharRaceId > 0 ? 16 * Template.Gender + Template.Race : 0);
+        public override byte RaceGender => (byte) (16 * Template.Gender + Template.Race);
 
         #region Attributes
 
