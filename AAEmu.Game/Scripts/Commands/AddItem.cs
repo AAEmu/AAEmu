@@ -36,17 +36,17 @@ namespace AAEmu.Game.Scripts.Commands
 
             Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
-            var itemId = 0;
-            var count = 1;
+            uint itemId = 0;
+            int count = 1;
             byte grade = 0;
 
-            if ( (args.Length > firstarg + 0) && (uint.TryParse(args[firstarg + 0], out var argitemId)) )
+            if ( (args.Length > firstarg + 0) && (uint.TryParse(args[firstarg + 0], out uint argitemId)) )
                 itemId = argitemId;
 
-            if ((args.Length > firstarg + 1) && (int.TryParse(args[firstarg + 1], out var argcount)))
+            if ((args.Length > firstarg + 1) && (int.TryParse(args[firstarg + 1], out int argcount)))
                 count = argcount;
 
-            if ((args.Length > firstarg + 2) && (byte.TryParse(args[firstarg + 2], out var arggrade)))
+            if ((args.Length > firstarg + 2) && (byte.TryParse(args[firstarg + 2], out byte arggrade)))
                 grade = arggrade;
 
             var item = ItemManager.Instance.Create(itemId, count, grade, true);
@@ -56,7 +56,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            var res = character.Inventory.AddItem(item);
+            var res = targetPlayer.Inventory.AddItem(item);
             if (res == null)
             {
                 ItemIdManager.Instance.ReleaseId((uint) item.Id);
@@ -68,7 +68,12 @@ namespace AAEmu.Game.Scripts.Commands
                 tasks.Add(new ItemCountUpdate(res, item.Count));
             else
                 tasks.Add(new ItemAdd(item));
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, tasks, new List<ulong>()));
+            targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, tasks, new List<ulong>()));
+            if (character.Id != targetPlayer.Id)
+            {
+                character.SendMessage("[Add_Item] added item {0} to {1}'s inventory", itemId, targetPlayer.Name);
+                targetPlayer.SendMessage("[GM] {0} has added a item to your inventory", character.Name);
+            }
 
         }
     }
