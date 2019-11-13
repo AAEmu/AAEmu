@@ -1,16 +1,17 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Models.Game.Char
 {
     public class CharacterSkills
     {
-        private enum SkillType : byte
+        public enum SkillType : byte
         {
             Skill = 1,
             Buff = 2
@@ -120,33 +121,22 @@ namespace AAEmu.Game.Models.Game.Char
             return points;
         }
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
+            var items = ctx.Skills.Where(s => s.Owner == Owner.Id);
+            foreach(var it in items)
             {
-                command.CommandText = "SELECT * FROM skills WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                using (var reader = command.ExecuteReader())
+                var type = (SkillType)Enum.Parse(typeof(SkillType), it.Type, true);
+                switch (type)
                 {
-                    while (reader.Read())
-                    {
-                        var type = (SkillType) Enum.Parse(typeof(SkillType), reader.GetString("type"), true);
-                        switch (type)
-                        {
-                            case SkillType.Skill:
-                                var skill = new Skill
-                                {
-                                    Id = reader.GetUInt32("id"),
-                                    Level = reader.GetByte("level")
-                                };
-                                Skills.Add(skill.Id, skill);
-                                break;
-                            case SkillType.Buff:
-                                var buff = new PassiveBuff {Id = reader.GetUInt32("id")};
-                                PassiveBuffs.Add(buff.Id, buff);
-                                break;
-                        }
-                    }
+                    case SkillType.Skill:
+                        var skill = (Skill)it;
+                        Skills.Add(skill.Id, skill);
+                        break;
+                    case SkillType.Buff:
+                        var buff = (PassiveBuff)it;
+                        PassiveBuffs.Add(buff.Id, buff);
+                        break;
                 }
             }
 
@@ -155,56 +145,54 @@ namespace AAEmu.Game.Models.Game.Char
                     skill.Template = SkillManager.Instance.GetSkillTemplate(skill.Id);
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
             if (_removed.Count > 0)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
+                ctx.Skills.RemoveRange(
+                    ctx.Skills.Where(s => s.Owner == Owner.Id && _removed.Contains((uint)s.Id)));
 
-                    command.CommandText = "DELETE FROM skills WHERE owner = @owner AND id IN(" + string.Join(",", _removed) + ")";
-                    command.Prepare();
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                    _removed.Clear();
-                }
+                _removed.Clear();
             }
+            ctx.SaveChanges();
 
             foreach (var skill in Skills.Values)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText =
-                        "REPLACE INTO skills(`id`,`level`,`type`,`owner`) VALUES (@id, @level, @type, @owner)";
-                    command.Parameters.AddWithValue("@id", skill.Id);
-                    command.Parameters.AddWithValue("@level", skill.Level);
-                    command.Parameters.AddWithValue("@type", (byte) SkillType.Skill);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                }
+                ctx.Skills.RemoveRange(
+                    ctx.Skills.Where(s =>
+                        s.Id == skill.Id &&
+                        s.Owner == Owner.Id));
             }
+            ctx.SaveChanges();
 
+            ctx.Skills.AddRange(
+                Skills.Values.Select(s => new DB.Game.Skills()
+                    {
+                        Id = s.Id,
+                        Level = s.Level,
+                        Type = SkillType.Skill.ToString(),
+                        Owner = (int)Owner.Id,
+                    }));
+
+            ctx.SaveChanges();
             foreach (var buff in PassiveBuffs.Values)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText =
-                        "REPLACE INTO skills(`id`,`level`,`type`,`owner`) VALUES(@id,@level,@type,@owner)";
-                    command.Parameters.AddWithValue("@id", buff.Id);
-                    command.Parameters.AddWithValue("@level", 1);
-                    command.Parameters.AddWithValue("@type", (byte) SkillType.Buff);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                }
+                ctx.Skills.RemoveRange(
+                    ctx.Skills.Where(s =>
+                        s.Id == buff.Id &&
+                        s.Owner == Owner.Id));
             }
+            ctx.SaveChanges();
+
+            ctx.Skills.AddRange(
+                PassiveBuffs.Values.Select(s => new DB.Game.Skills()
+                {
+                    Id = s.Id,
+                    Level = 1,
+                    Type = SkillType.Buff.ToString(),
+                    Owner = (int)Owner.Id,
+                }));
+            ctx.SaveChanges();
         }
     }
 }

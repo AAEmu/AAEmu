@@ -1,8 +1,11 @@
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Network;
+using AAEmu.DB.Game;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Models.Game
 {
@@ -63,85 +66,57 @@ namespace AAEmu.Game.Models.Game
                     member.Character?.SendPacket(packet);
         }
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM family_members WHERE family_id=@family_id";
-                command.Prepare();
-                command.Parameters.AddWithValue("family_id", Id);
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var member = new FamilyMember();
-                        member.Id = reader.GetUInt32("character_id");
-                        member.Name = reader.GetString("name");
-                        member.Role = reader.GetByte("role");
-                        member.Title = reader.GetString("title");
-                        AddMember(member);
-                    }
-                }
-            }
+            Members = ctx.FamilyMembers
+                .Where(f => f.FamilyId == Id)
+                .ToList()
+                .Select(f => (FamilyMember)f)
+                .ToList();
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
             if (_removedMembers.Count > 0)
             {
-                var removedMembers = string.Join(",", _removedMembers);
+                
+                ctx.FamilyMembers.RemoveRange(
+                    ctx.FamilyMembers.Where(f => _removedMembers.Contains((uint)f.CharacterId)));
+                ctx.SaveChanges();
 
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = $"DELETE FROM family_members WHERE character_id IN ({removedMembers})";
-                    command.Prepare();
-                    command.Parameters.AddWithValue("@family_id", Id);
-                    command.ExecuteNonQuery();
-                }
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = $"UPDATE characters SET family = 0 WHERE `characters`.`id` IN ({removedMembers})";
-                    command.Prepare();
-                    command.Parameters.AddWithValue("@family_id", Id);
-                    command.ExecuteNonQuery();
-                }
+                ctx.Characters.Where(c => _removedMembers.Contains((uint)c.Id))
+                    .ToList()
+                    .All(c => 
+                        {
+                            c.Family = 0;
+                            return true;
+                        });
 
                 _removedMembers.Clear();
             }
+            ctx.SaveChanges();
 
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
-                foreach (var member in Members)
-                {
-                    command.CommandText = "REPLACE INTO " +
-                                          "family_members(`character_id`,`family_id`,`name`,`role`,`title`)" +
-                                          " VALUES " +
-                                          "(@character_id,@family_id,@name,@role,@title)";
-                    command.Parameters.AddWithValue("@character_id", member.Id);
-                    command.Parameters.AddWithValue("@family_id", Id);
-                    command.Parameters.AddWithValue("@name", member.Name);
-                    command.Parameters.AddWithValue("@role", member.Role);
-                    command.Parameters.AddWithValue("@title", member.Title);
-                    command.ExecuteNonQuery();
-                    command.Parameters.Clear();
-                }
-            }
+            ctx.FamilyMembers.RemoveRange(
+                Members.SelectMany(m => 
+                    ctx.FamilyMembers.Where(fm => fm.CharacterId == m.Id && fm.FamilyId == Id)));
+            ctx.SaveChanges();
+
+            ctx.FamilyMembers.AddRange(
+                Members.Select(
+                    m => {
+                        var e = m.ToEntity();
+                        e.FamilyId = Id;
+                        return e;
+                    }
+                ).ToList());
+
+            ctx.SaveChanges();
         }
     }
 
     public class FamilyMember : PacketMarshaler
     {
         public Character Character { get; set; }
-        
         public uint Id { get; set; }
         public string Name { get; set; }
         public byte Role { get; set; }
@@ -157,5 +132,25 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Title);
             return stream;
         }
+
+        public DB.Game.FamilyMembers ToEntity()
+            =>
+            new DB.Game.FamilyMembers()
+            {
+                CharacterId = this.Id    ,
+                Name        = this.Name  ,
+                Role        = this.Role  ,
+                Title       = this.Title ,
+            };
+
+        public static explicit operator FamilyMember(FamilyMembers v)
+            =>
+            new FamilyMember()
+            {
+                Id    = v.CharacterId ,
+                Name  = v.Name        ,
+                Role  = v.Role        ,
+                Title = v.Title       ,
+            };
     }
 }

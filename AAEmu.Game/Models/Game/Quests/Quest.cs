@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.DB.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -262,6 +263,17 @@ namespace AAEmu.Game.Models.Game.Quests
                 Update();
         }
 
+        public DB.Game.Quests ToEntity()
+            =>
+            new DB.Game.Quests()
+            {
+                Id          =        this.Id           ,
+                TemplateId  =        this.TemplateId   ,
+                Data        =        this.WriteData()  ,
+                Status      = (byte) Status            ,
+                Owner       =        Owner.Id          ,
+            };
+
         public void OnItemUse(Item item)
         {
             var res = false;
@@ -439,6 +451,19 @@ namespace AAEmu.Game.Models.Game.Quests
             stream.Write((byte)0); // type
             stream.Write(0u); // acceptorType
             return stream;
+        }
+
+        public static explicit operator Quest(DB.Game.Quests v)
+        {
+            var quest = new Quest()
+            {
+                Id  = v.Id,
+                TemplateId = v.TemplateId,
+                Status = (QuestStatus)v.Status,
+                Template = QuestManager.Instance.GetTemplate(v.TemplateId),
+            };
+            quest.ReadData(v.Data);
+            return quest;
         }
 
         public void ReadData(byte[] data)

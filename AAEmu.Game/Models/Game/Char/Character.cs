@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.DB.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -19,7 +21,6 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
-using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -875,211 +876,51 @@ namespace AAEmu.Game.Models.Game.Char
 
         public static Character Load(uint characterId, uint accountId)
         {
-            using (var connection = MySQL.CreateConnection())
-                return Load(connection, characterId, accountId);
+            using (var ctx = new GameDBContext())
+                return Load(ctx, characterId, accountId);
         }
 
         public static Character Load(uint characterId)
         {
-            using (var connection = MySQL.CreateConnection())
-                return Load(connection, characterId);
+            using (var ctx = new GameDBContext())
+                return Load(ctx, characterId);
         }
 
         #region Database
 
-        public static Character Load(MySqlConnection connection, uint characterId, uint accountId)
+        public static Character Load(GameDBContext ctx, uint characterId, uint accountId)
         {
-            Character character = null;
-            using (var command = connection.CreateCommand())
+            Character character = ctx.Characters
+                .Where(c =>
+                    c.Id == characterId &&
+                    c.AccountId == accountId && 
+                    c.Deleted == 0)
+                .ToList()
+                .Select(c => (Character)c).FirstOrDefault();
+            
+
+            if (character != null)
             {
-                command.Connection = connection;
-                command.CommandText = "SELECT * FROM characters WHERE `id` = @id AND `account_id` = @account_id and `deleted`=0";
-                command.Parameters.AddWithValue("@id", characterId);
-                command.Parameters.AddWithValue("@account_id", accountId);
-                using (var reader = command.ExecuteReader())
-                {
-                    if (reader.Read())
+                ctx.Options
+                    .Where(o => o.Owner == characterId)
+                    .ToList()
+                    .All(o =>
                     {
-                        var stream = (PacketStream)(byte[])reader.GetValue("unit_model_params");
-                        var modelParams = new UnitCustomModelParams();
-                        modelParams.Read(stream);
-
-                        character = new Character(modelParams);
-                        character.Position = new Point();
-                        character.AccountId = accountId;
-                        character.Id = reader.GetUInt32("id");
-                        character.Name = reader.GetString("name");
-                        character.AccessLevel = reader.GetInt32("access_level");
-                        character.Race = (Race)reader.GetByte("race");
-                        character.Gender = (Gender)reader.GetByte("gender");
-                        character.Level = reader.GetByte("level");
-                        character.Expirience = reader.GetInt32("expirience");
-                        character.RecoverableExp = reader.GetInt32("recoverable_exp");
-                        character.Hp = reader.GetInt32("hp");
-                        character.Mp = reader.GetInt32("mp");
-                        character.LaborPower = reader.GetInt16("labor_power");
-                        character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
-                        character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
-                        character.Ability1 = (AbilityType)reader.GetByte("ability1");
-                        character.Ability2 = (AbilityType)reader.GetByte("ability2");
-                        character.Ability3 = (AbilityType)reader.GetByte("ability3");
-                        character.Position.WorldId = reader.GetUInt32("world_id");
-                        character.Position.ZoneId = reader.GetUInt32("zone_id");
-                        character.Position.X = reader.GetFloat("x");
-                        character.Position.Y = reader.GetFloat("y");
-                        character.Position.Z = reader.GetFloat("z");
-                        character.Position.RotationX = reader.GetSByte("rotation_x");
-                        character.Position.RotationY = reader.GetSByte("rotation_y");
-                        character.Position.RotationZ = reader.GetSByte("rotation_z");
-                        character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
-                        character.FactionName = reader.GetString("faction_name");
-                        character.Expedition = ExpeditionManager.Instance.GetExpedition(reader.GetUInt32("expedition_id"));
-                        character.Family = reader.GetUInt32("family");
-                        character.DeadCount = reader.GetInt16("dead_count");
-                        character.DeadTime = reader.GetDateTime("dead_time");
-                        character.RezWaitDuration = reader.GetInt32("rez_wait_duration");
-                        character.RezTime = reader.GetDateTime("rez_time");
-                        character.RezPenaltyDuration = reader.GetInt32("rez_penalty_duration");
-                        character.LeaveTime = reader.GetDateTime("leave_time");
-                        character.Money = reader.GetInt64("money");
-                        character.Money2 = reader.GetInt64("money2");
-                        character.HonorPoint = reader.GetInt32("honor_point");
-                        character.VocationPoint = reader.GetInt32("vocation_point");
-                        character.CrimePoint = reader.GetInt16("crime_point");
-                        character.CrimeRecord = reader.GetInt32("crime_record");
-                        character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
-                        character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
-                        character.DeleteTime = reader.GetDateTime("delete_time");
-                        character.BmPoint = reader.GetInt32("bm_point");
-                        character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
-                        character.PrevPoint = reader.GetInt32("prev_point");
-                        character.Point = reader.GetInt32("point");
-                        character.Gift = reader.GetInt32("gift");
-                        character.NumInventorySlots = reader.GetByte("num_inv_slot");
-                        character.NumBankSlots = reader.GetInt16("num_bank_slot");
-                        character.ExpandedExpert = reader.GetByte("expanded_expert");
-                        character.Updated = reader.GetDateTime("updated_at");
-
-                        character.Inventory = new Inventory(character);
-
-                        if (character.Hp > character.MaxHp)
-                            character.Hp = character.MaxHp;
-                        if (character.Mp > character.MaxMp)
-                            character.Mp = character.MaxMp;
-                        character.CheckExp();
-                    }
-                }
-            }
-
-            if (character == null)
-                return null;
-
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.CommandText = "SELECT * FROM `options` WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", characterId);
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var key = reader.GetUInt16("key");
-                        var value = reader.GetString("value");
-                        character.SetOption(key, value);
-                    }
-                }
+                        character.SetOption(ushort.Parse(o.Key), o.Value);
+                        return true;
+                    });
             }
 
             return character;
         }
 
-        public static Character Load(MySqlConnection connection, uint characterId)
+        public static Character Load(GameDBContext ctx, uint characterId)
         {
-            Character character = null;
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.CommandText = "SELECT * FROM characters WHERE `id` = @id and `deleted`=0";
-                command.Parameters.AddWithValue("@id", characterId);
-                using (var reader = command.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        var stream = (PacketStream)(byte[])reader.GetValue("unit_model_params");
-                        var modelParams = new UnitCustomModelParams();
-                        modelParams.Read(stream);
-
-                        character = new Character(modelParams);
-                        character.Position = new Point();
-                        character.Id = reader.GetUInt32("id");
-                        character.AccountId = reader.GetUInt32("account_id");
-                        character.Name = reader.GetString("name");
-                        character.AccessLevel = reader.GetInt32("access_level");
-                        character.Race = (Race)reader.GetByte("race");
-                        character.Gender = (Gender)reader.GetByte("gender");
-                        character.Level = reader.GetByte("level");
-                        character.Expirience = reader.GetInt32("expirience");
-                        character.RecoverableExp = reader.GetInt32("recoverable_exp");
-                        character.Hp = reader.GetInt32("hp");
-                        character.Mp = reader.GetInt32("mp");
-                        character.LaborPower = reader.GetInt16("labor_power");
-                        character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
-                        character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
-                        character.Ability1 = (AbilityType)reader.GetByte("ability1");
-                        character.Ability2 = (AbilityType)reader.GetByte("ability2");
-                        character.Ability3 = (AbilityType)reader.GetByte("ability3");
-                        character.Position.WorldId = reader.GetUInt32("world_id");
-                        character.Position.ZoneId = reader.GetUInt32("zone_id");
-                        character.Position.X = reader.GetFloat("x");
-                        character.Position.Y = reader.GetFloat("y");
-                        character.Position.Z = reader.GetFloat("z");
-                        character.Position.RotationX = reader.GetSByte("rotation_x");
-                        character.Position.RotationY = reader.GetSByte("rotation_y");
-                        character.Position.RotationZ = reader.GetSByte("rotation_z");
-                        character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
-                        character.FactionName = reader.GetString("faction_name");
-                        character.Expedition = ExpeditionManager.Instance.GetExpedition(reader.GetUInt32("expedition_id"));
-                        character.Family = reader.GetUInt32("family");
-                        character.DeadCount = reader.GetInt16("dead_count");
-                        character.DeadTime = reader.GetDateTime("dead_time");
-                        character.RezWaitDuration = reader.GetInt32("rez_wait_duration");
-                        character.RezTime = reader.GetDateTime("rez_time");
-                        character.RezPenaltyDuration = reader.GetInt32("rez_penalty_duration");
-                        character.LeaveTime = reader.GetDateTime("leave_time");
-                        character.Money = reader.GetInt64("money");
-                        character.Money2 = reader.GetInt64("money2");
-                        character.HonorPoint = reader.GetInt32("honor_point");
-                        character.VocationPoint = reader.GetInt32("vocation_point");
-                        character.CrimePoint = reader.GetInt16("crime_point");
-                        character.CrimeRecord = reader.GetInt32("crime_record");
-                        character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
-                        character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
-                        character.DeleteTime = reader.GetDateTime("delete_time");
-                        character.BmPoint = reader.GetInt32("bm_point");
-                        character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
-                        character.PrevPoint = reader.GetInt32("prev_point");
-                        character.Point = reader.GetInt32("point");
-                        character.Gift = reader.GetInt32("gift");
-                        character.NumInventorySlots = reader.GetByte("num_inv_slot");
-                        character.NumBankSlots = reader.GetInt16("num_bank_slot");
-                        character.ExpandedExpert = reader.GetByte("expanded_expert");
-                        character.Updated = reader.GetDateTime("updated_at");
-
-                        character.Inventory = new Inventory(character);
-
-                        if (character.Hp > character.MaxHp)
-                            character.Hp = character.MaxHp;
-                        if (character.Mp > character.MaxMp)
-                            character.Mp = character.MaxMp;
-                        character.CheckExp();
-                    }
-                }
-            }
-
-            if (character == null)
-                return null;
-
-            return character;
+            return ctx.Characters
+                .Where(c => c.Id == characterId && c.Deleted == 0)
+                .ToList()
+                .Select(c => (Character)c)
+                .FirstOrDefault();
         }
 
         public void Load()
@@ -1093,51 +934,45 @@ namespace AAEmu.Game.Models.Game.Char
 
             Craft = new CharacterCraft(this);
 
-            using (var connection = MySQL.CreateConnection())
+            using (var ctx = new GameDBContext())
             {
-                Inventory.Load(connection);
+                Inventory.Load(ctx);
                 Abilities = new CharacterAbilities(this);
-                Abilities.Load(connection);
+                Abilities.Load(ctx);
                 Actability = new CharacterActability(this);
-                Actability.Load(connection);
+                Actability.Load(ctx);
                 Skills = new CharacterSkills(this);
-                Skills.Load(connection);
+                Skills.Load(ctx);
                 Appellations = new CharacterAppellations(this);
-                Appellations.Load(connection);
+                Appellations.Load(ctx);
                 Portals = new CharacterPortals(this);
-                Portals.Load(connection);
+                Portals.Load(ctx);
                 Friends = new CharacterFriends(this);
-                Friends.Load(connection);
+                Friends.Load(ctx);
                 Blocked = new CharacterBlocked(this);
-                Blocked.Load(connection);
+                Blocked.Load(ctx);
                 Quests = new CharacterQuests(this);
-                Quests.Load(connection);
+                Quests.Load(ctx);
                 Mails = new CharacterMails(this);
-                Mails.Load(connection);
+                Mails.Load(ctx);
                 Mates = new CharacterMates(this);
-                Mates.Load(connection);
+                Mates.Load(ctx);
 
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText =
-                        "SELECT slots FROM `characters` WHERE `id` = @id AND `account_id` = @account_id";
-                    command.Parameters.AddWithValue("@id", Id);
-                    command.Parameters.AddWithValue("@account_id", AccountId);
-                    using (var reader = command.ExecuteReader())
+                var slots = ctx.Characters
+                    .Where(c => c.Id == Id && c.AccountId == AccountId)
+                    .Select(c => c.Slots)
+                    .ToList()
+                    .Select(s => (PacketStream)s)
+                    .All(s =>
                     {
-                        if (reader.Read())
+                        foreach (var slot in Slots)
                         {
-                            var slots = (PacketStream)((byte[])reader.GetValue("slots"));
-                            foreach (var slot in Slots)
-                            {
-                                slot.Type = (ActionSlotType)slots.ReadByte();
-                                if (slot.Type != ActionSlotType.None)
-                                    slot.ActionId = slots.ReadUInt32();
-                            }
+                            slot.Type = (ActionSlotType)s.ReadByte();
+                            if (slot.Type != ActionSlotType.None)
+                                slot.ActionId = s.ReadUInt32();
                         }
-                    }
-                }
+                        return true;
+                    });
             }
         }
 
@@ -1146,120 +981,46 @@ namespace AAEmu.Game.Models.Game.Char
             bool result;
             try
             {
-                var unitModelParams = ModelParams.Write(new PacketStream()).GetBytes();
 
-                var slots = new PacketStream();
-                foreach (var slot in Slots)
+                using (var ctx = new GameDBContext())
                 {
-                    slots.Write((byte)slot.Type);
-                    if (slot.Type != ActionSlotType.None)
-                        slots.Write(slot.ActionId);
-                }
-
-                using (var connection = MySQL.CreateConnection())
-                {
-                    using (var transaction = connection.BeginTransaction())
+                    using (var transaction = ctx.Database.BeginTransaction())
                     {
-                        using (var command = connection.CreateCommand())
+                        ctx.Characters.RemoveRange(
+                            ctx.Characters.Where(c => c.Id == Id && c.AccountId == AccountId));
+                        ctx.SaveChanges();
+
+                        ctx.Characters.Add(this.ToEntity());
+
+                        foreach (var pair in _options)
                         {
-                            command.Connection = connection;
-                            command.Transaction = transaction;
-
-                            // ----
-                            command.CommandText =
-                                "REPLACE INTO `characters` " +
-                                "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
-                                "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
-
-                            command.Parameters.AddWithValue("@id", Id);
-                            command.Parameters.AddWithValue("@account_id", AccountId);
-                            command.Parameters.AddWithValue("@name", Name);
-                            command.Parameters.AddWithValue("@access_level", AccessLevel);
-                            command.Parameters.AddWithValue("@race", (byte)Race);
-                            command.Parameters.AddWithValue("@gender", (byte)Gender);
-                            command.Parameters.AddWithValue("@unit_model_params", unitModelParams);
-                            command.Parameters.AddWithValue("@level", Level);
-                            command.Parameters.AddWithValue("@expirience", Expirience);
-                            command.Parameters.AddWithValue("@recoverable_exp", RecoverableExp);
-                            command.Parameters.AddWithValue("@hp", Hp);
-                            command.Parameters.AddWithValue("@mp", Mp);
-                            command.Parameters.AddWithValue("@labor_power", LaborPower);
-                            command.Parameters.AddWithValue("@labor_power_modified", LaborPowerModified);
-                            command.Parameters.AddWithValue("@consumed_lp", ConsumedLaborPower);
-                            command.Parameters.AddWithValue("@ability1", (byte)Ability1);
-                            command.Parameters.AddWithValue("@ability2", (byte)Ability2);
-                            command.Parameters.AddWithValue("@ability3", (byte)Ability3);
-                            command.Parameters.AddWithValue("@world_id", WorldPosition?.WorldId ?? Position.WorldId);
-                            command.Parameters.AddWithValue("@zone_id", WorldPosition?.ZoneId ?? Position.ZoneId);
-                            command.Parameters.AddWithValue("@x", WorldPosition?.X ?? Position.X);
-                            command.Parameters.AddWithValue("@y", WorldPosition?.Y ?? Position.Y);
-                            command.Parameters.AddWithValue("@z", WorldPosition?.Z ?? Position.Z);
-                            command.Parameters.AddWithValue("@rotation_x",
-                                WorldPosition?.RotationX ?? Position.RotationX);
-                            command.Parameters.AddWithValue("@rotation_y",
-                                WorldPosition?.RotationY ?? Position.RotationY);
-                            command.Parameters.AddWithValue("@rotation_z",
-                                WorldPosition?.RotationZ ?? Position.RotationZ);
-                            command.Parameters.AddWithValue("@faction_id", Faction.Id);
-                            command.Parameters.AddWithValue("@faction_name", FactionName);
-                            command.Parameters.AddWithValue("@expedition_id", Expedition?.Id ?? 0);
-                            command.Parameters.AddWithValue("@family", Family);
-                            command.Parameters.AddWithValue("@dead_count", DeadCount);
-                            command.Parameters.AddWithValue("@dead_time", DeadTime);
-                            command.Parameters.AddWithValue("@rez_wait_duration", RezWaitDuration);
-                            command.Parameters.AddWithValue("@rez_time", RezTime);
-                            command.Parameters.AddWithValue("@rez_penalty_duration", RezPenaltyDuration);
-                            command.Parameters.AddWithValue("@leave_time", LeaveTime);
-                            command.Parameters.AddWithValue("@money", Money);
-                            command.Parameters.AddWithValue("@money2", Money2);
-                            command.Parameters.AddWithValue("@honor_point", HonorPoint);
-                            command.Parameters.AddWithValue("@vocation_point", VocationPoint);
-                            command.Parameters.AddWithValue("@crime_point", CrimePoint);
-                            command.Parameters.AddWithValue("@crime_record", CrimeRecord);
-                            command.Parameters.AddWithValue("@delete_request_time", DeleteRequestTime);
-                            command.Parameters.AddWithValue("@transfer_request_time", TransferRequestTime);
-                            command.Parameters.AddWithValue("@delete_time", DeleteTime);
-                            command.Parameters.AddWithValue("@bm_point", BmPoint);
-                            command.Parameters.AddWithValue("@auto_use_aapoint", AutoUseAAPoint);
-                            command.Parameters.AddWithValue("@prev_point", PrevPoint);
-                            command.Parameters.AddWithValue("@point", Point);
-                            command.Parameters.AddWithValue("@gift", Gift);
-                            command.Parameters.AddWithValue("@num_inv_slot", NumInventorySlots);
-                            command.Parameters.AddWithValue("@num_bank_slot", NumBankSlots);
-                            command.Parameters.AddWithValue("@expanded_expert", ExpandedExpert);
-                            command.Parameters.AddWithValue("@slots", slots.GetBytes());
-                            command.Parameters.AddWithValue("@updated_at", Updated);
-                            command.ExecuteNonQuery();
+                            ctx.Options.RemoveRange(
+                                ctx.Options.Where(o => o.Key == pair.Key.ToString() && o.Value == pair.Value));
                         }
+                        ctx.SaveChanges();
 
-                        using (var command = connection.CreateCommand())
+                        foreach (var pair in _options)
                         {
-                            command.Connection = connection;
-                            command.Transaction = transaction;
-
-                            foreach (var pair in _options)
+                            ctx.Options.Add(new Options()
                             {
-                                command.CommandText =
-                                    "REPLACE INTO `options` (`key`,`value`,`owner`) VALUES (@key,@value,@owner)";
-                                command.Parameters.AddWithValue("@key", pair.Key);
-                                command.Parameters.AddWithValue("@value", pair.Value);
-                                command.Parameters.AddWithValue("@owner", Id);
-                                command.ExecuteNonQuery();
-                                command.Parameters.Clear();
-                            }
+                                Key = pair.Key.ToString(),
+                                Value = pair.Value,
+                                Owner = (int)Id
+                            });
                         }
+                        ctx.SaveChanges();
 
-                        Inventory?.Save(connection, transaction);
-                        Abilities?.Save(connection, transaction);
-                        Actability?.Save(connection, transaction);
-                        Appellations?.Save(connection, transaction);
-                        Portals?.Save(connection, transaction);
-                        Friends?.Save(connection, transaction);
-                        Blocked?.Save(connection, transaction);
-                        Skills?.Save(connection, transaction);
-                        Quests?.Save(connection, transaction);
-                        Mails?.Save(connection, transaction);
-                        Mates?.Save(connection, transaction);
+                        Inventory?.Save(ctx);
+                        Abilities?.Save(ctx);
+                        Actability?.Save(ctx);
+                        Appellations?.Save(ctx);
+                        Portals?.Save(ctx);
+                        Friends?.Save(ctx);
+                        Blocked?.Save(ctx);
+                        Skills?.Save(ctx);
+                        Quests?.Save(ctx);
+                        Mails?.Save(ctx);
+                        Mates?.Save(ctx);
 
                         try
                         {
@@ -1371,6 +1132,151 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Updated);
             stream.Write((byte)0); // forceNameChange
             return stream;
+        }
+
+        public DB.Game.Characters ToEntity()
+        {
+            var slots = new PacketStream();
+            foreach (var slot in Slots)
+            {
+                slots.Write((byte)slot.Type);
+                if (slot.Type != ActionSlotType.None)
+                    slots.Write(slot.ActionId);
+            }
+
+            return new Characters()
+            {
+                Id                  =        Id                                               ,
+                AccountId           =        AccountId                                        ,
+                Name                =        Name                                             ,
+                AccessLevel         =        AccessLevel                                      ,
+                Race                = (byte) Race                                             ,
+                Gender              = (byte) Gender                                           ,
+                Level               =        Level                                            ,
+                Expirience          =        Expirience                                       ,
+                RecoverableExp      =        RecoverableExp                                   ,
+                Hp                  =        Hp                                               ,
+                Mp                  =        Mp                                               ,
+                LaborPower          =        LaborPower                                       ,
+                LaborPowerModified  =        LaborPowerModified                               ,
+                ConsumedLp          =        ConsumedLaborPower                               ,
+                Ability1            = (byte) Ability1                                         ,
+                Ability2            = (byte) Ability2                                         ,
+                Ability3            = (byte) Ability3                                         ,
+                WorldId             =        (WorldPosition?.WorldId   ?? Position.WorldId)   ,
+                ZoneId              =        (WorldPosition?.ZoneId    ?? Position.ZoneId)    ,
+                X                   =        WorldPosition ?.X         ?? Position.X          ,
+                Y                   =        WorldPosition ?.Y         ?? Position.Y          ,
+                Z                   =        WorldPosition ?.Z         ?? Position.Z          ,
+                RotationX           =        (WorldPosition?.RotationX ?? Position.RotationX) ,
+                RotationY           =        (WorldPosition?.RotationY ?? Position.RotationY) ,
+                RotationZ           =        (WorldPosition?.RotationZ ?? Position.RotationZ) ,
+                FactionId           =        Faction.Id                                       ,
+                FactionName         =        FactionName                                      ,
+                ExpeditionId        =        (Expedition?.Id ?? 0)                            ,
+                Family              =        Family                                           ,
+                DeadCount           =        DeadCount                                        ,
+                DeadTime            =        DeadTime                                         ,
+                RezPenaltyDuration  =        RezWaitDuration                                  ,
+                RezTime             =        RezTime                                          ,
+                RezWaitDuration     =        RezPenaltyDuration                               ,
+                LeaveTime           =        LeaveTime                                        ,
+                Money               =        Money                                            ,
+                Money2              =        Money2                                           ,
+                HonorPoint          =        HonorPoint                                       ,
+                VocationPoint       =        VocationPoint                                    ,
+                CrimePoint          =        CrimePoint                                       ,
+                CrimeRecord         =        CrimeRecord                                      ,
+                DeleteRequestTime   =        DeleteRequestTime                                ,
+                TransferRequestTime =        TransferRequestTime                              ,
+                DeleteTime          =        DeleteTime                                       ,
+                BmPoint             = (int)  BmPoint                                          ,
+                AutoUseAapoint      = (byte) (AutoUseAAPoint ? 1 : 0)                         ,
+                PrevPoint           =        PrevPoint                                        ,
+                Point               =        Point                                            ,
+                Gift                =        Gift                                             ,
+                NumInvSlot          =        NumInventorySlots                                ,
+                NumBankSlot         =        NumBankSlots                                     ,
+                ExpandedExpert      =        ExpandedExpert                                   ,
+                UpdatedAt           =        Updated                                          ,
+                Slots               =        slots.GetBytes()                                 ,
+                UnitModelParams     =        ModelParams.Write(new PacketStream()).GetBytes() ,
+            };
+
+        }
+
+        public static explicit operator Character(Characters v)
+        {
+            var stream = (PacketStream)v.UnitModelParams;
+            var modelParams = new UnitCustomModelParams();
+            modelParams.Read(stream);
+
+            Character c = new Character(modelParams) 
+            {
+                Position            = new Point()
+                                    {
+                                        WorldId   = v.WorldId             ,
+                                        ZoneId    = v.ZoneId              ,
+                                        X         = v.X                   ,
+                                        Y         = v.Y                   ,
+                                        Z         = v.Z                   ,
+                                        RotationX = v.RotationX           ,
+                                        RotationY = v.RotationY           ,
+                                        RotationZ = v.RotationZ           ,
+                                    }                                     ,
+                AccountId           =               v.AccountId           ,
+                Id                  =               v.Id                  ,
+                Name                =               v.Name                ,
+                AccessLevel         =               v.AccessLevel         ,
+                Race                = (Race)        v.Race                ,
+                Gender              = (Gender)      v.Gender              ,
+                Level               =               v.Level               ,
+                Expirience          =               v.Expirience          ,
+                RecoverableExp      =               v.RecoverableExp      ,
+                Hp                  =               v.Hp                  ,
+                Mp                  =               v.Mp                  ,
+                LaborPower          =               v.LaborPower          ,
+                LaborPowerModified  =               v.LaborPowerModified  ,
+                ConsumedLaborPower  =               v.ConsumedLp          ,
+                Ability1            = (AbilityType) v.Ability1            ,
+                Ability2            = (AbilityType) v.Ability2            ,
+                Ability3            = (AbilityType) v.Ability3            ,
+                FactionName         =               v.FactionName         ,
+                Family              =               v.Family              ,
+                DeadCount           =               v.DeadCount           ,
+                DeadTime            =               v.DeadTime            ,
+                RezWaitDuration     =               v.RezWaitDuration     ,
+                RezTime             =               v.RezTime             ,
+                RezPenaltyDuration  =               v.RezPenaltyDuration  ,
+                LeaveTime           =               v.LeaveTime           ,
+                Money               =               v.Money               ,
+                Money2              =               v.Money2              ,
+                HonorPoint          =               v.HonorPoint          ,
+                VocationPoint       =               v.VocationPoint       ,
+                CrimePoint          =               v.CrimePoint          ,
+                CrimeRecord         =               v.CrimeRecord         ,
+                TransferRequestTime =               v.TransferRequestTime ,
+                DeleteRequestTime   =               v.DeleteRequestTime   ,
+                DeleteTime          =               v.DeleteTime          ,
+                BmPoint             =               v.BmPoint             ,
+                AutoUseAAPoint      =               v.AutoUseAapoint == 1 ,
+                PrevPoint           =               v.PrevPoint           ,
+                Point               =               v.Point               ,
+                Gift                =               v.Gift                ,
+                NumInventorySlots   =               v.NumInvSlot          ,
+                NumBankSlots        =               v.NumBankSlot         ,
+                ExpandedExpert      =               v.ExpandedExpert      ,
+                Updated             =               v.UpdatedAt           ,
+                Faction             = FactionManager.Instance.GetFaction(v.FactionId),
+                Expedition          = ExpeditionManager.Instance.GetExpedition(v.ExpeditionId),
+            };
+
+            c.Inventory = new Inventory(c);
+            c.Hp = Math.Min(c.Hp, c.MaxHp);
+            c.Mp = Math.Min(c.Mp, c.MaxMp);
+            c.CheckExp();
+
+            return c;
         }
     }
 }

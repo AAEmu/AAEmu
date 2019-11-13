@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
         protected static Logger _log = LogManager.GetCurrentClassLogger(); 
 
-        public void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, int Value1, int Value2, int Value3, int Value4)
+        public void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, long Value1, long Value2, long Value3, long Value4)
         {
             Character character = (Character) caster;
             if (character == null) return;
@@ -131,7 +131,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             }
         }
 
-        private int GoldCost(GradeTemplate gradeTemplate, Item item, int ItemType) {
+        private int GoldCost(GradeTemplate gradeTemplate, Item item, long ItemType) {
             int cost = 0;
 
             uint slotTypeId = 0;

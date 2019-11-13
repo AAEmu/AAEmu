@@ -1,8 +1,10 @@
-using System;
+﻿using System;
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.DB.Game;
 using AAEmu.Game.Models.Game.Char;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Models.Game.Expeditions
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public byte Level { get; set; }
         public int ZoneId { get; set; }
         public uint Id3 { get; set; } // TODO mb system faction.Id?
-        public byte[] Abilities { get; set; } = {11, 11, 11};
+        public byte[] Abilities { get; set; } = { 11, 11, 11 };
         public byte Role { get; set; }
         public float X { get; set; }
         public float Y { get; set; }
@@ -32,31 +34,19 @@ namespace AAEmu.Game.Models.Game.Expeditions
             Y = character.Position.Y;
             Z = character.Position.Z;
             ZoneId = (int)character.Position.ZoneId;
-            Abilities = new[] {(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3};
+            Abilities = new[] { (byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3 };
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        internal void Save(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
- 
-                    command.CommandText = "REPLACE INTO expedition_members(`character_id`,`expedition_id`,`name`,`level`,`role`,`last_leave_time`,`ability1`,`ability2`,`ability3`, `memo`) VALUES (@character_id,@expedition_id,@name,@level,@role,@last_leave_time,@ability1,@ability2,@ability3,@memo)";
-                    command.Parameters.AddWithValue("@character_id", this.CharacterId);
-                    command.Parameters.AddWithValue("@expedition_id", this.ExpeditionId);
-                    command.Parameters.AddWithValue("@name", this.Name);
-                    command.Parameters.AddWithValue("@level", this.Level);
-                    command.Parameters.AddWithValue("@role", this.Role);
-                    command.Parameters.AddWithValue("@last_leave_time", this.LastWorldLeaveTime);
-                    command.Parameters.AddWithValue("@ability1", this.Abilities[0]);
-                    command.Parameters.AddWithValue("@ability2", this.Abilities[1]);
-                    command.Parameters.AddWithValue("@ability3", this.Abilities[2]);
-                    command.Parameters.AddWithValue("@memo", this.Memo);
-                    command.ExecuteNonQuery();
-            }
+            ctx.ExpeditionMembers.RemoveRange(
+                ctx.ExpeditionMembers.Where(m => m.CharacterId == m.CharacterId));
+            ctx.SaveChanges();
+
+            ctx.ExpeditionMembers.Add(this.ToEntity());
+            ctx.SaveChanges();
         }
- 
+
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(ExpeditionId);
@@ -78,5 +68,40 @@ namespace AAEmu.Game.Models.Game.Expeditions
             stream.Write(TransferRequestedTime);
             return stream;
         }
+
+        public DB.Game.ExpeditionMembers ToEntity()
+            =>
+            new DB.Game.ExpeditionMembers()
+            {
+                CharacterId   = this.CharacterId        ,
+                ExpeditionId  = this.ExpeditionId       ,
+                Name          = this.Name               ,
+                Level         = this.Level              ,
+                Role          = this.Role               ,
+                LastLeaveTime = this.LastWorldLeaveTime ,
+                Ability1      = this.Abilities[0]       ,
+                Ability2      = this.Abilities[1]       ,
+                Ability3      = this.Abilities[2]       ,
+                Memo          = this.Memo               ,
+            };
+
+        public static explicit operator ExpeditionMember(ExpeditionMembers v) 
+            => 
+            new ExpeditionMember()
+            {
+                CharacterId         = v.CharacterId   ,
+                ExpeditionId        = v.ExpeditionId  ,
+                Role                = v.Role          ,
+                Memo                = v.Memo          ,
+                LastWorldLeaveTime  = v.LastLeaveTime ,
+                Name                = v.Name          ,
+                Level               = v.Level         ,
+                Abilities           = new byte[3]
+                                    {
+                                        v.Ability1    ,
+                                        v.Ability2    ,
+                                        v.Ability3    ,
+                                    }                 ,
+            };
     }
 }

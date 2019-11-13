@@ -1,5 +1,7 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.DB.Game;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items
@@ -54,6 +56,56 @@ namespace AAEmu.Game.Models.Game.Items
             Slot = -1;
         }
 
+        public static explicit operator Item(DB.Game.Items v)
+        {
+            var type = v.Type;
+            Type nClass = null;
+            try
+            {
+                nClass = Type.GetType(type);
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, string.Format("Item type {0} not found!", type));
+                return null;
+            }
+
+            Item item;
+            try
+            {
+                item = (Item)Activator.CreateInstance(nClass);
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex);
+                _log.Error(ex.InnerException);
+                item = new Item();
+            }
+
+            item.Id             = v.Id           ;
+            item.TemplateId     = v.TemplateId   ;
+            item.Slot           = v.Slot         ;
+            item.Count          = v.Count        ;
+            item.LifespanMins   = v.LifespanMins ;
+            item.MadeUnitId     = v.MadeUnitId   ;
+            item.UnsecureTime   = v.UnsecureTime ;
+            item.UnpackTime     = v.UnpackTime   ;
+            item.CreateTime     = v.CreatedAt    ;
+
+            item.Template = ItemManager.Instance.GetTemplate(item.TemplateId) ;
+            item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), v.SlotType, true);
+
+            var details = (PacketStream) v.Details;
+            item.ReadDetails(details);
+
+            if (item.Template.FixedGrade >= 0)
+                item.Grade = (byte)item.Template.FixedGrade; // Overwrite Fixed-grade items, just to make sure
+            else if (item.Template.Gradable)
+                item.Grade = (byte)v.Grade; // Load from our DB if the item is gradable
+
+            return item;
+        }
+
         public override void Read(PacketStream stream)
         {
         }
@@ -77,6 +129,30 @@ namespace AAEmu.Game.Models.Game.Items
             stream.Write(UnsecureTime);
             stream.Write(UnpackTime);
             return stream;
+        }
+
+        public DB.Game.Items ToEntity(uint ownerId)
+        {
+            var details = new PacketStream();
+            this.WriteDetails(details);
+            DB.Game.Items item = new DB.Game.Items()
+            {
+                Id           = this.Id                   ,
+                Type         = this.GetType().ToString() ,
+                TemplateId   = this.TemplateId           ,
+                SlotType     = this.SlotType.ToString()  ,
+                Slot         = this.Slot                 ,
+                Count        = this.Count                ,
+                Details      = details.GetBytes()        ,
+                LifespanMins = this.LifespanMins         ,
+                MadeUnitId   = this.MadeUnitId           ,
+                UnsecureTime = this.UnsecureTime         ,
+                UnpackTime   = this.UnpackTime           ,
+                CreatedAt    = this.CreateTime           ,
+                Grade        = this.Grade                ,
+                Owner        = ownerId                   ,
+            };
+            return item;
         }
 
         public virtual void ReadDetails(PacketStream stream)

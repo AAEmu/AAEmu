@@ -14,14 +14,8 @@
     "Host": "127.0.0.1",
     "Port": 1234
   },
-  "Connections": {
-    "MySQLProvider": {
-      "Host": "localhost",
-      "Port": "3306",
-      "User": "root",
-      "Password": "",
-      "Database": "aaemu_game"
-    }
+  "Database": {
+      "ConnectionString": "server=localhost;port=3306;user=lg;password=pw;database=aaemu_game;Pooling=true;Min Pool Size=0;Max Pool Size=10;Connection Lifetime=600;charset=utf8;Allow Zero Datetime=true;Convert Zero Datetime=true;default command timeout=180;SslMode=none"
   },
   "CharacterNameRegex": "^[a-zA-Z0-9а-яА-Я]{1,18}$",
   "MaxConcurencyThreadPool": 8,

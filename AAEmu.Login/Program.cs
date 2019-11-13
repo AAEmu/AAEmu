@@ -37,14 +37,19 @@ namespace AAEmu.Login
 
             _log.Info("{0} version {1}", Name, Version);
 
-            var connection = MySQL.Create();
-            if (connection == null)
+            using (var ctx = new LoginDBContext())
             {
-                LogManager.Flush();
-                return;
+                try
+                {
+                    ctx.ThrowIfNotExists();
+                }
+                catch (Exception e)
+                {
+                    _log.Error("Error on DB connect: {0}", (e.InnerException ?? e).Message);
+                    LogManager.Flush();
+                    return;
+                }
             }
-
-            connection.Close();
 
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>

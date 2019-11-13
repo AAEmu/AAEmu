@@ -854,7 +854,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using (var command = connection.CreateCommand())
+                /*using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM loot_pack_dropping_npcs";
                     command.Prepare();
@@ -879,7 +879,7 @@ namespace AAEmu.Game.Core.Managers
                             lootPackDroppingNpc.Add(template);
                         }
                     }
-                }
+                }*/
 
                 _log.Info("Loaded {0} items", _templates.Count);
             }

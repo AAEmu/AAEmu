@@ -1,5 +1,8 @@
+﻿using System;
+using System.Linq;
 using AAEmu.Commons.Network;
-using MySql.Data.MySqlClient;
+using AAEmu.DB.Game;
+using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Models.Game.Expeditions
 {
@@ -18,32 +21,14 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public bool SiegeMaster { get; set; }
         public bool JoinSiege { get; set; }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
+            ctx.ExpeditionRolePolicies.RemoveRange(
+                ctx.ExpeditionRolePolicies.Where(p => p.ExpeditionId == this.Id && p.Role == this.Role));
+            ctx.SaveChanges();
 
-                command.CommandText =
-                    "REPLACE INTO " +
-                    "expedition_role_policies(`expedition_id`,`role`,`name`,`dominion_declare`,`invite`,`expel`,`promote`,`dismiss`, `chat`, `manager_chat`, `siege_master`, `join_siege`) " +
-                    "VALUES (@expedition_id,@role,@name,@dominion_declare,@invite,@expel,@promote,@dismiss,@chat,@manager_chat,@siege_master,@join_siege)";
-
-                command.Parameters.AddWithValue("@expedition_id", this.Id);
-                command.Parameters.AddWithValue("@role", this.Role);
-                command.Parameters.AddWithValue("@name", this.Name);
-                command.Parameters.AddWithValue("@dominion_declare", this.DominionDeclare);
-                command.Parameters.AddWithValue("@invite", this.Invite);
-                command.Parameters.AddWithValue("@expel", this.Expel);
-                command.Parameters.AddWithValue("@promote", this.Promote);
-                command.Parameters.AddWithValue("@dismiss", this.Dismiss);
-                command.Parameters.AddWithValue("@chat", this.Chat);
-                command.Parameters.AddWithValue("@manager_chat", this.ManagerChat);
-                command.Parameters.AddWithValue("@siege_master", this.SiegeMaster);
-                command.Parameters.AddWithValue("@join_siege", this.JoinSiege);
-                command.ExecuteNonQuery();
-            }
+            ctx.ExpeditionRolePolicies.Add(this.ToEntity());
+            ctx.SaveChanges();
         }
 
         public override void Read(PacketStream stream)
@@ -96,5 +81,41 @@ namespace AAEmu.Game.Models.Game.Expeditions
             rolePolicy.JoinSiege = JoinSiege;
             return rolePolicy;
         }
+
+        public DB.Game.ExpeditionRolePolicies ToEntity()
+            =>
+            new DB.Game.ExpeditionRolePolicies()
+            {
+                ExpeditionId    = this.Id                                  ,
+                Role            = this.Role                                ,
+                Name            = this.Name                                ,
+                DominionDeclare = this.DominionDeclare ? (byte)1 : (byte)0 ,
+                Invite          = this.Invite          ? (byte)1 : (byte)0 ,
+                Expel           = this.Expel           ? (byte)1 : (byte)0 ,
+                Promote         = this.Promote         ? (byte)1 : (byte)0 ,
+                Dismiss         = this.Dismiss         ? (byte)1 : (byte)0 ,
+                Chat            = this.Chat            ? (byte)1 : (byte)0 ,
+                ManagerChat     = this.ManagerChat     ? (byte)1 : (byte)0 ,
+                SiegeMaster     = this.SiegeMaster     ? (byte)1 : (byte)0 ,
+                JoinSiege       = this.JoinSiege       ? (byte)1 : (byte)0 ,
+            };
+
+        public static explicit operator ExpeditionRolePolicy(ExpeditionRolePolicies v) 
+            =>
+            new ExpeditionRolePolicy()
+            {
+                Id              = v.ExpeditionId        ,
+                Role            = v.Role                ,
+                Name            = v.Name                ,
+                DominionDeclare = v.DominionDeclare == 1,
+                Invite          = v.Invite          == 1,
+                Expel           = v.Expel           == 1,
+                Promote         = v.Promote         == 1,
+                Dismiss         = v.Dismiss         == 1,
+                Chat            = v.Chat            == 1,
+                ManagerChat     = v.ManagerChat     == 1,
+                SiegeMaster     = v.SiegeMaster     == 1,
+                JoinSiege       = v.JoinSiege       == 1,
+            };
     }
 }

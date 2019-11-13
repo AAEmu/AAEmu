@@ -15,8 +15,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 
         public void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, int Value1, int Value2, int Value3,
-            int Value4)
+            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, long Value1, long Value2, long Value3,
+            long Value4)
         {
             var owner = (Character)caster;
             var skillData = (SkillItem)casterObj;

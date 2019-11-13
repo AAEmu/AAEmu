@@ -161,7 +161,7 @@ namespace AAEmu.Game.Core.Managers
                             template.AbilityId = reader.GetByte("ability_id");
                             template.ManaCost = reader.GetInt32("mana_cost");
                             template.TimingId = reader.GetInt32("timing_id");
-                            template.CooldownTime = reader.GetInt32("cooldown_time");
+                            template.CooldownTime = reader.GetUInt64("cooldown_time");
                             template.CastingTime = reader.GetInt32("casting_time");
                             template.IgnoreGlobalCooldown = reader.GetBoolean("ignore_global_cooldown", true);
                             template.EffectDelay = reader.GetInt32("effect_delay");
@@ -325,7 +325,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Id = reader.GetUInt32("id");
                             template.AnimStartId = reader.GetUInt32("anim_start_id", 0);
                             template.AnimEndId = reader.GetUInt32("anim_end_id", 0);
-                            template.Duration = reader.GetInt32("duration");
+                            template.Duration = reader.GetInt64("duration");
                             template.Tick = reader.GetDouble("tick");
                             template.Silence = reader.GetBoolean("silence", true);
                             template.Root = reader.GetBoolean("root", true);
@@ -357,7 +357,7 @@ namespace AAEmu.Game.Core.Managers
                             template.SpellImmune = reader.GetBoolean("spell_immune", true);
                             template.RangedImmune = reader.GetBoolean("ranged_immune", true);
                             template.SiegeImmune = reader.GetBoolean("siege_immune", true);
-                            template.ImmuneDamage = reader.GetInt32("immune_damage");
+                            template.ImmuneDamage = reader.GetInt64("immune_damage");
                             var value = reader.GetString("skill_controller_id", "0");
                             template.SkillControllerId = value.Contains("null") ? 0 : uint.Parse(value);
                             template.ResurrectionHealth = reader.GetInt32("resurrection_health");
@@ -1158,10 +1158,10 @@ namespace AAEmu.Game.Core.Managers
                             var template = new SpecialEffect();
                             template.Id = reader.GetUInt32("id");
                             template.SpecialEffectTypeId = (SpecialEffectType)reader.GetInt32("special_effect_type_id");
-                            template.Value1 = reader.GetInt32("value1");
-                            template.Value2 = reader.GetInt32("value2");
-                            template.Value3 = reader.GetInt32("value3");
-                            template.Value4 = reader.GetInt32("value4");
+                            template.Value1 = reader.GetInt64("value1");
+                            template.Value2 = reader.GetInt64("value2");
+                            template.Value3 = reader.GetInt64("value3");
+                            template.Value4 = reader.GetInt64("value4");
                             _effects["SpecialEffect"].Add(template.Id, template);
                         }
                     }

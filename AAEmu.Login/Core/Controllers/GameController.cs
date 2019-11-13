@@ -32,25 +32,11 @@ namespace AAEmu.Login.Core.Controllers
 
         public void Load()
         {
-            using (var connection = MySQL.Create())
+            using (var ctx = new LoginDBContext())
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM game_servers WHERE hidden = 0";
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var gameServer = new GameServer(
-                                reader.GetByte("id"),
-                                reader.GetString("name"),
-                                reader.GetString("host"),
-                                reader.GetUInt16("port"));
-                            _gameServers.Add(gameServer.Id, gameServer);
-                        }
-                    }
-                }
+                _gameServers = ctx.GameServers
+                    .Where(gs => gs.Hidden == 0)
+                    .ToDictionary(gs => gs.Id, gs=> (GameServer)gs);
             }
 
             _log.Info("Loaded {0} gs", _gameServers.Count);

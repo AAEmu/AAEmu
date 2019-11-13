@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models
         public byte Id { get; set; }
         public byte[] AdditionalesId { get; set; } = new byte[0];
         public string SecretKey { get; set; }
-        public DBConnections Connections { get; set; }
+        public DBConnections Database { get; set; }
         public NetworkConfig Network { get; set; }
         public NetworkConfig StreamNetwork { get; set; }
         public NetworkConfig LoginNetwork { get; set; }
@@ -23,16 +23,7 @@ namespace AAEmu.Game.Models
 
         public class DBConnections
         {
-            public MySqlConnectionSettings MySQLProvider { get; set; }
-        }
-
-        public class MySqlConnectionSettings
-        {
-            public string Host { get; set; }
-            public ushort Port { get; set; }
-            public string User { get; set; }
-            public string Password { get; set; }
-            public string Database { get; set; }
+            public string ConnectionString { get; set; }
         }
     }
 }

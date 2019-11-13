@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public BaseUnit Owner { get; set; }
         public EffectState State { get; set; }
         public bool InUse { get; set; }
-        public int Duration { get; set; }
+        public long Duration { get; set; }
         public double Tick { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }

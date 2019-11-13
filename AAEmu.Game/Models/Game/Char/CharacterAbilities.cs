@@ -1,7 +1,8 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -81,49 +82,33 @@ namespace AAEmu.Game.Models.Game.Char
             Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, oldAbilityId, abilityId), true);
         }
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM abilities WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                using (var reader = command.ExecuteReader())
+            Abilities = Abilities.Concat(ctx.Abilities
+                .Where(a => a.Owner == Owner.Id)
+                .ToList()
+                .Select(a => (Ability)a)
+                .Select(a =>
                 {
-                    while (reader.Read())
-                    {
-                        var ability = new Ability
-                        {
-                            Id = (AbilityType) reader.GetByte("id"),
-                            Exp = reader.GetInt32("exp")
-                        };
-                        if (ability.Id == Owner.Ability1)
-                            ability.Order = 0;
-                        if (ability.Id == Owner.Ability2)
-                            ability.Order = 1;
-                        if (ability.Id == Owner.Ability3)
-                            ability.Order = 2;
-                        Abilities[ability.Id] = ability;
-                    }
-                }
-            }
+                    a.Order = (byte)(a.Id == Owner.Ability1 ? 0 :
+                                     a.Id == Owner.Ability2 ? 1 :
+                                     a.Id == Owner.Ability3 ? 2 : 0);
+                    return a;
+                }).ToDictionary(a => a.Id, a => a))
+                .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
-            foreach (var ability in Abilities.Values)
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
+            List<byte> ids = Abilities.Keys.Select(a => (byte)(int)a).ToList();
 
-                    command.CommandText = "REPLACE INTO abilities(`id`,`exp`,`owner`) VALUES (@id, @exp, @owner)";
-                    command.Parameters.AddWithValue("@id", (byte) ability.Id);
-                    command.Parameters.AddWithValue("@exp", ability.Exp);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                }
-            }
+            ctx.Abilities.RemoveRange(
+                ctx.Abilities.Where(a => ids.Contains(a.Id) && a.Owner == Owner.Id));
+            ctx.SaveChanges();
+
+            ctx.Abilities.AddRange(
+                Abilities.Values.Select(a => a.ToEntity(Owner.Id)));
+            ctx.SaveChanges();
         }
     }
 }

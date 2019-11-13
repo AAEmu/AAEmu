@@ -1,9 +1,9 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Actions;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -105,48 +105,30 @@ namespace AAEmu.Game.Models.Game.Char
             Owner.SendPacket(new SCActabilityPacket(true, Actabilities.Values.ToArray()));
         }
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM actabilities WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var id = reader.GetUInt32("id");
-                        var template = CharacterManager.Instance.GetActability(id);
-
-                        var actability = new Actability(template)
-                        {
-                            Id = id,
-                            Point = reader.GetInt32("point"),
-                            Step = reader.GetByte("step")
-                        };
-                        Actabilities.Add(actability.Id, actability);
-                    }
-                }
-            }
+            Actabilities = Actabilities.Concat(
+                ctx.Actabilities
+                .Where(a => a.Owner == Owner.Id)
+                .ToList()
+                .Select(a=>(Actability)a)
+                .ToDictionary(a=>a.Id,a=>a)
+                )
+                .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
-            foreach (var actability in Actabilities.Values)
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
+            List<byte> ids = Actabilities.Values.Select(a => (byte)a.Id).ToList();
 
-                    command.CommandText = "REPLACE INTO actabilities(`id`,`point`,`step`,`owner`) VALUES (@id, @point, @step, @owner)";
-                    command.Parameters.AddWithValue("@id", (byte)actability.Id);
-                    command.Parameters.AddWithValue("@point", actability.Point);
-                    command.Parameters.AddWithValue("@step", actability.Step);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                }
-            }
+            ctx.Actabilities.RemoveRange(
+                ctx.Actabilities.Where(a => ids.Contains((byte)a.Id) && a.Owner == Owner.Id));
+            ctx.SaveChanges();
+
+            ctx.Actabilities.AddRange(
+                Actabilities.Values.Select(a => a.ToEntity(Owner.Id)));
+
+            ctx.SaveChanges();
         }
     }
 }

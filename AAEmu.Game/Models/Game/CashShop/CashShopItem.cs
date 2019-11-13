@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.DB.Game;
 
 namespace AAEmu.Game.Models.Game.CashShop
 {
@@ -52,5 +53,31 @@ namespace AAEmu.Game.Models.Game.CashShop
             stream.Write(CmdUi);
             return stream;
         }
+
+        public static explicit operator CashShopItem(DB.Game.CashShopItem v)
+            =>
+            new CashShopItem() 
+            { 
+                CashShopId = v.Id         ,
+                MainTab    = v.MainTab    ,
+                SubTab     = v.SubTab     ,
+                LevelMin   = v.LevelMin   ,
+                LevelMax   = v.LevelMax   ,
+                IsSell     = v.IsSell     ,
+                IsHidden   = v.IsHidden   ,
+                LimitType  = v.LimitType  ,
+                BuyCount   = v.BuyCount   ,
+                BuyType    = v.BuyType    ,
+                BuyId      = v.BuyId      ,
+                SDate      = v.StartDate  ,
+                EDate      = v.EndDate    ,
+                Remain     = v.Remain     ,
+                BonusType  = v.BonusType  ,
+                BonusCount = v.BounsCount ,
+                CmdUi      = v.CmdUi      ,
+                Type       = v.Type       ,
+                Price      = v.Price      ,
+                CashName   = v.CashName   ,
+            };
     }
 }

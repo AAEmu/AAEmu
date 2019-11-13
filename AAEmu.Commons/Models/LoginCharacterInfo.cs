@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 
 namespace AAEmu.Commons.Models
 {
@@ -29,5 +30,17 @@ namespace AAEmu.Commons.Models
             stream.Write(Gender);
             return stream;
         }
+
+        public static explicit operator LoginCharacterInfo(AAEmu.DB.Game.Characters v)
+            =>
+            new LoginCharacterInfo()
+            {
+                AccountId = v.AccountId ,
+                Id        = v.Id        ,
+                Name      = v.Name      ,
+                Race      = v.Race      ,
+                Gender    = v.Gender    ,
+            };
+
     }
 }

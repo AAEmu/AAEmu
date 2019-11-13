@@ -1,6 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Packets.G2C;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -70,43 +71,31 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT id, active FROM appellations WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var id = reader.GetUInt32("id");
-                        var active = reader.GetBoolean("active");
+            var aps = ctx.Appellations.Where(a => a.Owner == Owner.OwnerId).ToList();
+            Appellations.AddRange(aps.Select(a => (uint)a.Id));
 
-                        Appellations.Add(id);
-                        if (active)
-                            ActiveAppellation = id; // TODO нужно повесить баф
-                    }
-                }
-            }
+            // Preserving original comments as they may (or may not) be important.
+            // TODO нужно повесить баф
+            ActiveAppellation = (uint)(aps.Where(a => a.Active == 1).FirstOrDefault()?.Id ?? 0);
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
-            foreach (var appellation in Appellations)
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
+            ctx.Appellations.RemoveRange(
+                ctx.Appellations.Where(a => Appellations.Contains((uint)a.Id) && a.Owner == Owner.Id));
+            ctx.SaveChanges();
 
-                    command.CommandText = "REPLACE INTO appellations(`id`,`active`,`owner`) VALUES (@id, @active, @owner)";
-                    command.Parameters.AddWithValue("@id", appellation);
-                    command.Parameters.AddWithValue("@active", ActiveAppellation == appellation);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                }
-            }
+            // TODO: move convertions into ToEntity() function after creating Appelation entity.
+            ctx.Appellations.AddRange(
+                Appellations.Select(a => new DB.Game.Appellations() { 
+                    Id      = (int) a,
+                    Active  = (byte) (ActiveAppellation == a ? 1 : 0),
+                    Owner   = (int) Owner.Id
+                }));
+
+            ctx.SaveChanges();
         }
     }
 }

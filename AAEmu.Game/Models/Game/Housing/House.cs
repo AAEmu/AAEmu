@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Network;
@@ -11,7 +11,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
-using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Housing
@@ -32,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Housing
         private int _currentStep;
         private int _allAction;
         private int _baseAction;
-        
+
         public uint Id { get; set; }
         public uint AccountId { get; set; }
         public uint CoOwnerId { get; set; }
@@ -89,7 +88,7 @@ namespace AAEmu.Game.Models.Game.Housing
             }
         }
         public DateTime PlaceDate { get; set; }
-        
+
         public override int MaxHp => Template.Hp;
         public override UnitCustomModelParams ModelParams { get; set; }
         public HousingPermission Permission { get; set; }
@@ -121,8 +120,8 @@ namespace AAEmu.Game.Models.Game.Housing
                     {
                         CurrentStep = -1;
 
-                        using (var connection = MySQL.CreateConnection())
-                            Save(connection);
+                        using (var ctx = new GameDBContext())
+                            Save(ctx);
                     }
                 }
             }
@@ -180,7 +179,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
 
             var doodadIds = new uint[AttachedDoodads.Count];
             for (var i = 0; i < AttachedDoodads.Count; i++)
@@ -198,33 +197,17 @@ namespace AAEmu.Game.Models.Game.Housing
         }
         #endregion
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction = null)
+        public void Save(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
+            ctx.Housings.RemoveRange(
+                ctx.Housings.Where(h =>
+                    h.Id == Id &&
+                    h.AccountId == AccountId &&
+                    h.Owner == OwnerId));
+            ctx.SaveChanges();
 
-                command.CommandText =
-                    "REPLACE INTO `housings` " +
-                    "(`id`,`account_id`,`owner`,`co_owner`,`template_id`,`name`,`x`,`y`,`z`,`rotation_z`,`current_step`,`current_action`,`permission`) " +
-                    "VALUES(@id,@account_id,@owner,@co_owner,@template_id,@name,@x,@y,@z,@rotation_z,@current_step,@current_action,@permission)";
-
-                command.Parameters.AddWithValue("@id", Id);
-                command.Parameters.AddWithValue("@account_id", AccountId);
-                command.Parameters.AddWithValue("@owner", OwnerId);
-                command.Parameters.AddWithValue("@co_owner", CoOwnerId);
-                command.Parameters.AddWithValue("@template_id", TemplateId);
-                command.Parameters.AddWithValue("@name", Name);
-                command.Parameters.AddWithValue("@x", Position.X);
-                command.Parameters.AddWithValue("@y", Position.Y);
-                command.Parameters.AddWithValue("@z", Position.Z);
-                command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
-                command.Parameters.AddWithValue("@current_step", CurrentStep);
-                command.Parameters.AddWithValue("@current_action", NumAction);
-                command.Parameters.AddWithValue("@permission", (byte)Permission);
-                command.ExecuteNonQuery();
-            }
+            ctx.Housings.Add(this.ToEntity());
+            ctx.SaveChanges();
         }
 
         public PacketStream Write(PacketStream stream)
@@ -264,5 +247,24 @@ namespace AAEmu.Game.Models.Game.Housing
             stream.Write(""); // sellToName
             return stream;
         }
+
+        public DB.Game.Housings ToEntity()
+            =>
+            new DB.Game.Housings()
+            {
+                Id            =        this.Id                  ,
+                AccountId     =        this.AccountId           ,
+                Owner         =        this.OwnerId             ,
+                CoOwner       =        this.CoOwnerId           ,
+                TemplateId    =        this.TemplateId          ,
+                Name          =        this.Name                ,
+                X             =        this.Position.X          ,
+                Y             =        this.Position.Y          ,
+                Z             =        this.Position.Z          ,
+                RotationZ     = (byte) this.Position.RotationZ  ,
+                CurrentStep   = (byte) this.CurrentStep         ,
+                CurrentAction =        this.CurrentAction       ,
+                Permission    = (byte) this.Permission          ,
+            };
     }
 }

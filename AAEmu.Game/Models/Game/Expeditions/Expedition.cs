@@ -1,11 +1,12 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Models.Game.Expeditions
 {
@@ -80,57 +81,63 @@ namespace AAEmu.Game.Models.Game.Expeditions
                 WorldManager.Instance.GetCharacterById(member.CharacterId)?.SendPacket(packet);
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        internal void Save(GameDBContext ctx)
         {
             if (_removedMembers.Count > 0)
             {
-                var removedMembers = string.Join(",", _removedMembers);
+                ctx.ExpeditionMembers.RemoveRange(
+                        ctx.ExpeditionMembers.Where(e => _removedMembers.Contains((uint)e.CharacterId)));
+                ctx.SaveChanges();
 
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = $"DELETE FROM expedition_members WHERE character_id IN ({removedMembers})";
-                    command.Prepare();
-                    command.ExecuteNonQuery();
-                }
-
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText =
-                        $"UPDATE characters SET expedition_id = 0 WHERE `characters`.`id` IN ({removedMembers})";
-                    command.Prepare();
-                    command.ExecuteNonQuery();
-                }
+                ctx.Characters.Where(c => _removedMembers.Contains((uint)c.Id))
+                    .ToList()
+                    .All(c => 
+                        { 
+                            c.ExpeditionId = 0;
+                            return true;
+                        });
 
                 _removedMembers.Clear();
             }
+            ctx.SaveChanges();
 
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
+            ctx.Expeditions.RemoveRange(
+                    ctx.Expeditions.Where(e => e.Id == this.Id && e.Owner == this.OwnerId));
+            ctx.SaveChanges();
 
-                command.CommandText =
-                    "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`) VALUES (@id, @owner, @owner_name, @name, @mother, @created_at)";
-                command.Parameters.AddWithValue("@id", this.Id);
-                command.Parameters.AddWithValue("@owner", this.OwnerId);
-                command.Parameters.AddWithValue("@owner_name", this.OwnerName);
-                command.Parameters.AddWithValue("@name", this.Name);
-                command.Parameters.AddWithValue("@mother", this.MotherId);
-                command.Parameters.AddWithValue("@created_at", this.Created);
-                command.ExecuteNonQuery();
-            }
+            ctx.Expeditions.Add(this.ToEntity());
+            ctx.SaveChanges();
 
             foreach (var member in Members)
-                member.Save(connection, transaction);
+                member.Save(ctx);
 
             foreach (var policy in Policies)
-                policy.Save(connection, transaction);
+                policy.Save(ctx);
         }
+
+        public DB.Game.Expeditions ToEntity()
+            =>
+            new DB.Game.Expeditions()
+            {
+                Id          = this.Id         ,
+                Owner       = this.OwnerId    ,
+                OwnerName   = this.OwnerName  ,
+                Name        = this.Name       ,
+                Mother      = this.MotherId   ,
+                CreatedAt   = this.Created    ,
+            };
+
+        public static explicit operator Expedition(DB.Game.Expeditions v) 
+            =>
+            new Expedition()
+            {
+                Id        = v.Id         ,
+                MotherId  = v.Mother     ,
+                OwnerId   = v.Owner      ,
+                Name      = v.Name       ,
+                OwnerName = v.OwnerName  ,
+                Created   = v.CreatedAt  ,
+            };
+
     }
 }

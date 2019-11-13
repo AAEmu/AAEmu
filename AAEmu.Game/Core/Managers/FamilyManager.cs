@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -23,33 +24,19 @@ namespace AAEmu.Game.Core.Managers
             _familyMembers = new Dictionary<uint, FamilyMember>();
 
             _log.Info("Loading families...");
-            using (var connection = MySQL.CreateConnection())
+
+            using (var ctx = new GameDBContext())
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT DISTINCT family FROM characters";
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var familyId = reader.GetUInt32("family");
-                            if (familyId == 0)
-                                continue;
+                uint[] ids = ctx.Characters.Select(c => c.Family).Distinct().ToArray();
+                _families = ids.ToDictionary(
+                    i => i, 
+                    i => {
+                        var f = new Family() { Id = i };
+                        f.Load(ctx);
+                        return f;
+                    });
 
-                            var family = new Family();
-                            family.Id = familyId;
-                            _families.Add(family.Id, family);
-
-                            using (var connection2 = MySQL.CreateConnection()) {
-                                family.Load(connection2); // TODO : Maybe find a prettier way
-                            }
-
-                            foreach (var member in family.Members)
-                                _familyMembers.Add(member.Id, member);
-                        }
-                    }
-                }
+                _familyMembers = _families.Values.SelectMany(f => f.Members).ToDictionary(f => f.Id, f => f);                
             }
 
             _log.Info("Loaded {0} families", _families.Count);
@@ -57,25 +44,15 @@ namespace AAEmu.Game.Core.Managers
 
         public void SaveAllFamilies()
         {
-            using (var connection = MySQL.CreateConnection())
-            using (var transaction = connection.BeginTransaction())
-            {
+            using (var ctx = new GameDBContext())
                 foreach (var family in _families.Values)
-                    family.Save(connection, transaction);
-
-                transaction.Commit(); // TODO try/catch
-            }
+                    family.Save(ctx);
         }
 
         public void SaveFamily(Family family)
         {
-            using (var connection = MySQL.CreateConnection())
-            using (var transaction = connection.BeginTransaction())
-            {
-                family.Save(connection, transaction);
-
-                transaction.Commit(); // TODO try/catch
-            }
+            using (var ctx = new GameDBContext())
+                family.Save(ctx);
         }
 
         public void InviteToFamily(Character inviter, string invitedCharacterName, string title)

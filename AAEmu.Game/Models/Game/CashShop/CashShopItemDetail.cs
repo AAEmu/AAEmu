@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.DB.Game;
 
 namespace AAEmu.Game.Models.Game.CashShop
 {
@@ -36,5 +37,21 @@ namespace AAEmu.Game.Models.Game.CashShop
             stream.Write(BonusCount);
             return stream;
         }
+
+        public static explicit operator CashShopItemDetail(DB.Game.CashShopItem v) =>
+            new CashShopItemDetail()
+            {
+                CashShopId      = v.Id               ,
+                CashUniqId      = v.UniqId           ,
+                ItemTemplateId  = v.ItemTemplateId   ,
+                PriceType       = v.Type             ,
+                Price           = v.Price            ,
+                ItemCount       = v.ItemCount        ,
+                SelectType      = v.SelectType       ,
+                DefaultFlag     = v.DefaultFlag      ,
+                EventType       = v.EventType        ,
+                EventDate       = v.EventDate        ,
+                DisPrice        = v.DisPrice         ,
+            };
     }
 }

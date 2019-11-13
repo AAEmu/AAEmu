@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.DB.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -17,6 +18,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 using NLog;
+using static AAEmu.Game.Models.Game.Char.CharacterSkills;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
@@ -275,6 +277,14 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
         }
+
+        public static explicit operator Skill(DB.Game.Skills v)
+            =>
+            new Skill()
+            {
+                Id    = v.Id    ,
+                Level = v.Level ,
+            };
 
         public bool BuildPlot(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotNextEvent nextEvent, PlotStep baseStep, Dictionary<uint, int> counter)
         {

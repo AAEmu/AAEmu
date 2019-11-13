@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
     {
         public void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time, int Value1, int Value2, int Value3, int Value4)
+            Skill skill, SkillObject skillObject, DateTime time, long Value1, long Value2, long Value3, long Value4)
         {
             if (caster is Character character)
             {

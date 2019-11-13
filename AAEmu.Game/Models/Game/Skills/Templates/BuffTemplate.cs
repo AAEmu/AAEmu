@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
     {
         public uint AnimStartId { get; set; }
         public uint AnimEndId { get; set; }
-        public int Duration { get; set; }
+        public long Duration { get; set; }
         public double Tick { get; set; }
         public bool Silence { get; set; }
         public bool Root { get; set; }
@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool SpellImmune { get; set; }
         public bool RangedImmune { get; set; }
         public bool SiegeImmune { get; set; }
-        public int ImmuneDamage { get; set; }
+        public long ImmuneDamage { get; set; }
         public uint SkillControllerId { get; set; }
         public int ResurrectionHealth { get; set; }
         public int ResurrectionMana { get; set; }
@@ -211,7 +211,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             stream.WritePisc(0, Duration / 10, 0, (long) (Tick / 10)); // unk, Duration, unk / 10, Tick
         }
 
-        public override int GetDuration()
+        public override long GetDuration()
         {
             return Duration;
         }

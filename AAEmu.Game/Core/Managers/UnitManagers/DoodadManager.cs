@@ -1038,8 +1038,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.Id = reader.GetUInt32("id");
                             func.After = reader.GetInt32("after", 0);
                             func.Respawn = reader.GetBoolean("respawn", true);
-                            func.MinTime = reader.GetInt32("min_time", 0);
-                            func.MaxTime = reader.GetInt32("max_time", 0);
+                            func.MinTime = reader.GetInt64("min_time", 0);
+                            func.MaxTime = reader.GetInt64("max_time", 0);
                             func.ShowTip = reader.GetBoolean("show_tip", true);
                             func.ShowEndTime = reader.GetBoolean("show_end_time", true);
                             func.Tip = reader.GetString("tip");

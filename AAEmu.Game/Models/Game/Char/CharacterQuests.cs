@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,6 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
-using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -20,8 +19,8 @@ namespace AAEmu.Game.Models.Game.Char
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private readonly List<uint> _removed;
 
-        public Dictionary<uint, Quest> Quests { get; }
-        public Dictionary<ushort, CompletedQuest> CompletedQuests { get; }
+        public Dictionary<uint, Quest> Quests { get; set; }
+        public Dictionary<ushort, CompletedQuest> CompletedQuests { get; set; }
 
         public Character Owner { get; set; }
 
@@ -204,104 +203,59 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM completed_quests WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var quest = new CompletedQuest();
-                        quest.Id = reader.GetUInt16("id");
-                        quest.Body = new BitArray((byte[])reader.GetValue("data"));
-                        CompletedQuests.Add(quest.Id, quest);
-                    }
-                }
-            }
+            CompletedQuests = CompletedQuests.Concat(
+                ctx.CompletedQuests
+                .Where(c => c.Owner == Owner.Id)
+                .ToList()
+                .Select(c => (CompletedQuest)c)
+                .ToDictionary(c => c.Id, c => c)
+                )
+                .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
 
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM quests WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var quest = new Quest();
-                        quest.Id = reader.GetUInt32("id");
-                        quest.TemplateId = reader.GetUInt32("template_id");
-                        quest.Status = (QuestStatus)reader.GetByte("status");
-                        quest.ReadData((byte[])reader.GetValue("data"));
-                        quest.Owner = Owner;
-                        quest.Template = QuestManager.Instance.GetTemplate(quest.TemplateId);
-                        quest.RecalcObjectives(false);
-                        Quests.Add(quest.TemplateId, quest);
-                    }
-                }
-            }
+            Quests = Quests.Concat(
+                ctx.Quests
+                .Where(q => q.Owner == Owner.Id)
+                .ToList()
+                .Select(q => (Quest)q)
+                .Select(q=> {
+                    q.Owner = Owner;
+                    q.RecalcObjectives(false);
+                    return q;
+                })
+                .ToDictionary(q => q.TemplateId, q => q)
+                )
+                .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
             if (_removed.Count > 0)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    var ids = string.Join(",", _removed);
-                    command.CommandText = $"DELETE FROM quests WHERE owner = @owner AND template_id IN({ids})";
-                    command.Prepare();
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                }
-
+                ctx.Quests.RemoveRange(
+                    ctx.Quests.Where(q => q.Owner == Owner.Id && _removed.Contains((uint)q.Id)));
                 _removed.Clear();
             }
+            ctx.SaveChanges();
 
-            using (var command = connection.CreateCommand())
+            foreach (var value in CompletedQuests.Values)
             {
-                command.Connection = connection;
-                command.Transaction = transaction;
-
-                command.CommandText = "REPLACE INTO completed_quests(`id`,`data`,`owner`) VALUES(@id,@data,@owner)";
-                foreach (var quest in CompletedQuests.Values)
-                {
-                    command.Parameters.AddWithValue("@id", quest.Id);
-                    var body = new byte[8];
-                    quest.Body.CopyTo(body, 0);
-                    command.Parameters.AddWithValue("@data", body);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-
-                    command.Parameters.Clear();
-                }
+                ctx.CompletedQuests.RemoveRange(
+                    ctx.CompletedQuests.Where(q => q.Id == value.Id && q.Owner == Owner.Id));
             }
+            ctx.SaveChanges();
+            ctx.CompletedQuests.AddRange(CompletedQuests.Values.Select(q => q.ToEntity(Owner.Id)));
 
-            using (var command = connection.CreateCommand())
+            foreach (var value in Quests.Values)
             {
-                command.Connection = connection;
-                command.Transaction = transaction;
-
-                command.CommandText =
-                    "REPLACE INTO quests(`id`,`template_id`,`data`,`status`,`owner`) VALUES(@id,@template_id,@data,@status,@owner)";
-
-                foreach (var quest in Quests.Values)
-                {
-                    command.Parameters.AddWithValue("@id", quest.Id);
-                    command.Parameters.AddWithValue("@template_id", quest.TemplateId);
-                    command.Parameters.AddWithValue("@data", quest.WriteData());
-                    command.Parameters.AddWithValue("@status", (byte)quest.Status);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-
-                    command.Parameters.Clear();
-                }
+                ctx.Quests.RemoveRange(
+                    ctx.Quests.Where(q => q.Id == value.Id && q.Owner == Owner.Id));
             }
+            ctx.SaveChanges();
+
+            ctx.Quests.AddRange(Quests.Values.Select(q => q.ToEntity()));
+            ctx.SaveChanges();
         }
     }
 }

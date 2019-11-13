@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -37,7 +38,7 @@ namespace AAEmu.Game.Core.Network.Connections
         public List<IDisposable> Subscribers { get; set; }
         public GameState State { get; set; }
         public Character ActiveChar { get; set; }
-        public readonly Dictionary<uint, Character> Characters;
+        public Dictionary<uint, Character> Characters;
         public Dictionary<uint, House> Houses;
         
         public Task LeaveTask { get; set; }
@@ -104,49 +105,36 @@ namespace AAEmu.Game.Core.Network.Connections
         public void LoadAccount()
         {
             Characters.Clear();
-            using (var connection = MySQL.CreateConnection())
+            using (var ctx = new GameDBContext())
             {
-                var characterIds = new List<uint>();
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = "SELECT id FROM characters WHERE `account_id` = @account_id and `deleted`=0";
-                    command.Parameters.AddWithValue("@account_id", AccountId);
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                            characterIds.Add(reader.GetUInt32("id"));
-                    }
-                }
+                var items = ctx.Characters
+                    .Where(c => 
+                        c.AccountId == AccountId && 
+                        c.Deleted == 0)
+                    .ToList();
 
-                foreach (var id in characterIds)
-                {
-                    var character = Character.Load(connection, id, AccountId);
-                    if (character == null)
-                        continue; // TODO ...
-                    
-                    // Mark characters marked for deletion as deleted after their time is finished
-                    if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime < DateTime.UtcNow))
+                items.Where(c => c.DeleteTime > DateTime.MinValue && c.DeleteTime < DateTime.UtcNow)
+                    .All(c =>
                     {
-                        // Console.WriteLine("\n---\nWe need to delete: {0} - {1}\n---\n", character.Id, character.Name);
-                        using (var command = connection.CreateCommand())
-                        {
-                            command.Connection = connection;
-                            command.CommandText = "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time WHERE `id`=@char_id and`account_id`=@account_id;";
-                            command.Parameters.AddWithValue("@new_delete_time", DateTime.MinValue);
-                            command.Parameters.AddWithValue("@char_id", character.Id);
-                            command.Parameters.AddWithValue("@account_id", AccountId);
-                            command.ExecuteNonQuery();
-                        }
-                    }
-                    else
-                    {
-                        Characters.Add(character.Id, character);
-                    }
-                }
+                        c.Deleted = 1;
+                        return true;
+                    });
+                ctx.SaveChanges();
+
+                var q = items.Where(c => c.Deleted == 0).ToList().Select(i => Character.Load(ctx, i.Id, AccountId)).Where(c => c != null).ToArray();
+
+                Characters = Characters.Concat(
+                        items
+                        .Where(c => c.Deleted == 0)
+                        .ToList()
+                        .Select(i => Character.Load(ctx, i.Id, AccountId))
+                        .Where(c => c != null)
+                        .ToDictionary(c => c.Id, c => c)
+                    )
+                    .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
 
                 foreach (var character in Characters.Values)
-                    character.Inventory.Load(connection, SlotType.Equipment);
+                    character.Inventory.Load(ctx, SlotType.Equipment);
             }
 
             Houses.Clear();
@@ -180,18 +168,15 @@ namespace AAEmu.Game.Core.Network.Connections
                 SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime,
                     character.DeleteTime));
 
-                using (var connection = MySQL.CreateConnection())
+                using (var ctx = new GameDBContext())
                 {
-                    using (var command = connection.CreateCommand())
+                    ctx.Characters.Where(c => c.Id == character.Id).ToList().All(c =>
                     {
-                        command.CommandText =
-                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
-                        command.Prepare();
-                        command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
-                        command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
-                        command.Parameters.AddWithValue("@id", character.Id);
-                        command.ExecuteNonQuery();
-                    }
+                        c.DeleteRequestTime = character.DeleteRequestTime;
+                        c.DeleteTime = character.DeleteTime;
+                        return true;
+                    });
+                    ctx.SaveChanges();
                 }
             }
             else
@@ -200,6 +185,7 @@ namespace AAEmu.Game.Core.Network.Connections
             }
         }
 
+        
         public void SetRestoreCharacter(uint characterId)
         {
             if (Characters.ContainsKey(characterId))
@@ -209,18 +195,16 @@ namespace AAEmu.Game.Core.Network.Connections
                 character.DeleteTime = DateTime.MinValue;
                 SendPacket(new SCCancelCharacterDeleteResponsePacket(character.Id, 3));
 
-                using (var connection = MySQL.CreateConnection())
+                // TODO: Verify restore actually works
+                using (var ctx = new GameDBContext())
                 {
-                    using (var command = connection.CreateCommand())
+                    ctx.Characters.Where(c => c.Id == character.Id).ToList().All(c =>
                     {
-                        command.CommandText =
-                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
-                        command.Prepare();
-                        command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
-                        command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
-                        command.Parameters.AddWithValue("@id", character.Id);
-                        command.ExecuteNonQuery();
-                    }
+                        c.DeleteRequestTime = character.DeleteRequestTime;
+                        c.DeleteTime = character.DeleteTime;
+                        return true;
+                    });
+                    ctx.SaveChanges();
                 }
             }
             else

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         {
         }
 
-        public virtual int GetDuration()
+        public virtual long GetDuration()
         {
             return 0;
         }

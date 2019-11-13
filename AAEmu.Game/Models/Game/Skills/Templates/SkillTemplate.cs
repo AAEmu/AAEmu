@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Models.Game.Skills.Plots;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public byte AbilityId { get; set; }
         public int ManaCost { get; set; }
         public int TimingId { get; set; }
-        public int CooldownTime { get; set; }
+        public ulong CooldownTime { get; set; }
         public int CastingTime { get; set; }
         public bool IgnoreGlobalCooldown { get; set; }
         public int EffectDelay { get; set; }

@@ -50,11 +50,11 @@ namespace AAEmu.Game.Models.Game.Units
         public uint NormalMapId { get; set; }
         public uint EyelashMapId { get; set; }
         public float NormalMapWeight { get; set; }
-        public uint LipColor { get; set; }
-        public uint LeftPupilColor { get; set; }
-        public uint RightPupilColor { get; set; }
-        public uint EyebrowColor { get; set; }
-        public uint DecoColor { get; set; }
+        public long LipColor { get; set; }
+        public long LeftPupilColor { get; set; }
+        public long RightPupilColor { get; set; }
+        public long EyebrowColor { get; set; }
+        public long DecoColor { get; set; }
 
         public byte[] Modifier { get; set; }
 

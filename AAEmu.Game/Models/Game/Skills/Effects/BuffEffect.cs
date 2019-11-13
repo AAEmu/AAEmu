@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -67,7 +67,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             stream.WritePisc(0, Buff.Duration / 10, 0, (long)(Buff.Tick / 10)); // TODO unk, Duration / 10, unk / 10, Tick / 10
         }
 
-        public override int GetDuration()
+        public override long GetDuration()
         {
             return Buff.Duration;
         }

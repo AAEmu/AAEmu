@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,14 +39,40 @@ namespace AAEmu.Game
 
             _log.Info("{0} version {1}", Name, Version);
 
-            var connection = MySQL.CreateConnection();
-            if (connection == null)
+            using (var ctx = new GameDBContext())
             {
-                LogManager.Flush();
-                return;
-            }
+                /*ctx.Abilities.ToList();
+                ctx.Actabilities.ToList();
+                ctx.Appellations.ToList();
+                ctx.Blocked.ToList();
+                ctx.CashShopItem.ToList();
+                ctx.Characters.ToList();
+                ctx.CompletedQuests.ToList();
+                ctx.ExpeditionMembers.ToList();
+                ctx.ExpeditionRolePolicies.ToList();
+                ctx.Expeditions.ToList();
+                ctx.FamilyMembers.ToList();
+                ctx.Friends.ToList();
+                ctx.Housings.ToList();
+                ctx.Items.ToList();
+                ctx.Mates.ToList();
+                ctx.Options.ToList();
+                ctx.PortalBookCoords.ToList();
+                ctx.PortalVisitedDistrict.ToList();
+                ctx.Quests.ToList();
+                ctx.Skills.ToList();*/
 
-            connection.Close();
+                try
+                {
+                    ctx.ThrowIfNotExists();
+                }
+                catch (Exception e)
+                {
+                    _log.Error("Error on DB connect: {0}", (e.InnerException ?? e).Message);
+                    LogManager.Flush();
+                    return;
+                }
+            }
 
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>

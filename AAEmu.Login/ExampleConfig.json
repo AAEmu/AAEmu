@@ -9,13 +9,7 @@
     "Port": 1237,
     "NumConnections": 10
   },
-  "Connections": {
-    "MySQLProvider": {
-      "Host": "localhost",
-      "Port": "3306",
-      "User": "root",
-      "Password": "",
-      "Database": "aaemu_login"
-    }
+  "Database": {
+      "ConnectionString": "server=localhost;port=3306;user=lg;password=pw;database=aaemu_login;Pooling=true;Min Pool Size=0;Max Pool Size=10;Connection Lifetime=600;charset=utf8;Allow Zero Datetime=true;Convert Zero Datetime=true;default command timeout=180;SslMode=none"
   }
 }

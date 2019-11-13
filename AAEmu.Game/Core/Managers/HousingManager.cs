@@ -51,6 +51,37 @@ namespace AAEmu.Game.Core.Managers
             return house;
         }
 
+        public House Create(DB.Game.Housings h)
+        {
+            if (!_housingTemplates.ContainsKey((uint)h.TemplateId))
+                return null;
+
+            var template = _housingTemplates[(uint)h.TemplateId];
+
+            var house = new House();
+            house.TlId = (ushort)HousingTldManager.Instance.GetNextId();
+            house.ObjId = ObjectIdManager.Instance.GetNextId();
+            house.Template = template;
+            house.TemplateId = template.Id;
+            house.Faction = FactionManager.Instance.GetFaction(1); // TODO frandly
+            house.Name = template.Name;
+            house.Hp = house.MaxHp;
+
+            house.Id = (uint)h.Id;
+            house.AccountId = (uint)h.AccountId;
+            house.OwnerId = (uint)h.Owner;
+            house.CoOwnerId = (uint)h.CoOwner;
+            house.Name = h.Name;
+            house.Position = new Point(h.X, h.Y, h.Z);
+            house.Position.RotationZ = (sbyte)h.RotationZ;
+            house.Position.WorldId = 1;
+            house.CurrentStep = h.CurrentStep;
+            house.NumAction = h.CurrentAction;
+            house.Permission = (HousingPermission)h.Permission;
+
+            return house;
+        }
+
         public void Load()
         {
             _housingTemplates = new Dictionary<uint, HousingTemplate>();
@@ -213,35 +244,12 @@ namespace AAEmu.Game.Core.Managers
             }
 
             _log.Info("Loading Housing...");
-            using (var connection = MySQL.CreateConnection())
+
+            using (var ctx = new GameDBContext())
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.CommandText = "SELECT * FROM housings";
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var templateId = reader.GetUInt32("template_id");
-                            var house = Create(templateId);
-                            house.Id = reader.GetUInt32("id");
-                            house.AccountId = reader.GetUInt32("account_id");
-                            house.OwnerId = reader.GetUInt32("owner");
-                            house.CoOwnerId = reader.GetUInt32("co_owner");
-                            house.Name = reader.GetString("name");
-                            house.Position =
-                                new Point(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"));
-                            house.Position.RotationZ = reader.GetSByte("rotation_z");
-                            house.Position.WorldId = 1;
-                            house.CurrentStep = reader.GetInt32("current_step");
-                            house.NumAction = reader.GetInt32("current_action");
-                            house.Permission = (HousingPermission)reader.GetByte("permission");
-                            _houses.Add(house.Id, house);
-                            _housesTl.Add(house.TlId, house);
-                        }
-                    }
-                }
+                var items = ctx.Housings.Select(h => Create(h));
+                _houses = items.ToDictionary(h => h.Id, h => h);
+                _housesTl = items.ToDictionary(h => h.TlId, h => h);
             }
 
             _log.Info("Loaded Housing {0}", _houses.Count);
@@ -249,31 +257,27 @@ namespace AAEmu.Game.Core.Managers
 
         public void Save()
         {
-            using (var connection = MySQL.CreateConnection())
+            using (var ctx = new GameDBContext())
             {
-                using (var transaction = connection.BeginTransaction())
+                using (var transaction = ctx.Database.BeginTransaction())
                 {
-                    lock (_removedHousings)
-                    {
-                        if (_removedHousings.Count > 0)
-                        {
-                            using (var command = connection.CreateCommand())
-                            {
-                                command.CommandText =
-                                    $"DELETE FROM housings WHERE id IN({string.Join(",", _removedHousings)})";
-                                command.Prepare();
-                                command.ExecuteNonQuery();
-                            }
-
-                            _removedHousings.Clear();
-                        }
-                    }
-
-                    foreach (var house in _houses.Values)
-                        house.Save(connection, transaction);
-
                     try
                     {
+                        lock (_removedHousings)
+                        {
+                            if (_removedHousings.Count > 0)
+                            {
+                                ctx.Housings.RemoveRange(
+                                    ctx.Housings.Where(h => _removedHousings.Contains(h.Id)));
+
+                                ctx.SaveChanges();
+                                _removedHousings.Clear();
+                            }
+                        }
+
+                        foreach (var house in _houses.Values)
+                            house.Save(ctx);
+
                         transaction.Commit();
                     }
                     catch (Exception e)

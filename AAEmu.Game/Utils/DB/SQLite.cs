@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.IO;
 using Microsoft.Data.Sqlite;
 using NLog;

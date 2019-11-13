@@ -1,3 +1,5 @@
+﻿using System;
+using AAEmu.DB.Game;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Skills
@@ -16,5 +18,12 @@ namespace AAEmu.Game.Models.Game.Skills
             Id = template.Id;
             Template = template;
         }
+
+        public static explicit operator PassiveBuff(DB.Game.Skills v)
+            =>
+            new PassiveBuff 
+            { 
+                Id = v.Id 
+            };
     }
 }

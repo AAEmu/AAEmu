@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -10,8 +10,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public int After { get; set; }
         public bool Respawn { get; set; }
-        public int MinTime { get; set; }
-        public int MaxTime { get; set; }
+        public long MinTime { get; set; }
+        public long MaxTime { get; set; }
         public bool ShowTip { get; set; }
         public bool ShowEndTime { get; set; }
         public string Tip { get; set; }

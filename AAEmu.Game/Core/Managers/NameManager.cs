@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
@@ -30,19 +30,11 @@ namespace AAEmu.Game.Core.Managers
         public void Load()
         {
             _characterNameRegex = new Regex(AppConfiguration.Instance.CharacterNameRegex, RegexOptions.Compiled);
-            using (var connection = MySQL.CreateConnection())
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT id, name FROM characters";
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                            _characterNames.Add(reader.GetUInt32("id"), reader.GetString("name").ToLower());
-                    }
-                }
-            }
+
+            using (var ctx = new GameDBContext())
+                _characterNames = _characterNames.Concat(
+                    ctx.Characters.ToDictionary(c => (uint)c.Id, c => c.Name.ToLowerInvariant()))
+                    .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
 
             _log.Info("Loaded {0} character names", _characterNames.Count);
         }

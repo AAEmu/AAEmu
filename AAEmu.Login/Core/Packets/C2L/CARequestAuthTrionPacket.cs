@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Controllers;
@@ -39,8 +39,8 @@ namespace AAEmu.Login.Core.Packets.C2L
                 return;
             }
 
-            var token = Helpers.StringToByteArray(password);
-            LoginController.Login(Connection, username, token);
+            byte[] token = Helpers.StringToByteArray(password);
+            LoginController.Login(Connection, username, token ?? new byte[0]);
         }
     }
 }

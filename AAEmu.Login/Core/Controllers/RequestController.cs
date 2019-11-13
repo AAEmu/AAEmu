@@ -1,4 +1,5 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using AAEmu.Login.Utils;
 
@@ -10,11 +11,10 @@ namespace AAEmu.Login.Core.Controllers
         private const uint firstId = 0x00000001;
         private const uint lastId = 0x00FFFFFF;
         private static uint[] exclude = { };
-        private static string[,] objTables = {{ }};
         private readonly ConcurrentDictionary<uint, TaskCompletionSource<bool>> _requests;
         public static RequestController Instance => _instance ?? (_instance = new RequestController());
 
-        public RequestController() : base("RequestController", firstId, lastId, objTables, exclude)
+        public RequestController() : base("RequestController", firstId, lastId, exclude)
         {
             _requests = new ConcurrentDictionary<uint, TaskCompletionSource<bool>>();
         }
@@ -43,5 +43,7 @@ namespace AAEmu.Login.Core.Controllers
 
             base.ReleaseId(usedObjectId);
         }
+
+        protected override IEnumerable<uint> ExtractUsedIds(bool isDistinct) => new List<uint>();
     }
 }

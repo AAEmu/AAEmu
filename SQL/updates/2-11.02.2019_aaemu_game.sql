@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS `aaemu_game`.`portal_book_coords` (
   `owner` INT(11) NOT NULL,
   PRIMARY KEY (`id`, `owner`))
 ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+DEFAULT CHARACTER SET = utf8
+COLLATE = utf8_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -26,5 +26,5 @@ CREATE TABLE IF NOT EXISTS `aaemu_game`.`portal_visited_district` (
   `owner` INT(11) NOT NULL,
   PRIMARY KEY (`id`, `subzone`, `owner`))
 ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+DEFAULT CHARACTER SET = utf8
+COLLATE = utf8_unicode_ci;

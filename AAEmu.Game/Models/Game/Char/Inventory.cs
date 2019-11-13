@@ -9,7 +9,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Utils.DB;
-using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -38,81 +37,26 @@ namespace AAEmu.Game.Models.Game.Char
 
         #region Database
 
-        public void Load(MySqlConnection connection, SlotType? slotType = null)
+        public void Load(GameDBContext ctx, SlotType? slotType = null)
         {
-            using (var command = connection.CreateCommand())
+            List<Item> items = (slotType == null ?
+                    ctx.Items.Where(i => i.Owner == Owner.Id)
+                    :
+                    ctx.Items.Where(i => i.Owner == Owner.Id && i.SlotType == slotType.ToString()))
+                    .ToList()
+                    .Select(i=>(Item)i)
+                    .ToList();
+
+            items.All(i =>
             {
-                if (slotType == null)
-                    command.CommandText = "SELECT * FROM items WHERE `owner` = @owner";
-                else
-                {
-                    command.CommandText = "SELECT * FROM items WHERE `owner` = @owner AND `slot_type` = @slot_type";
-                    command.Parameters.AddWithValue("@slot_type", slotType);
-                }
-
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var type = reader.GetString("type");
-                        Type nClass = null;
-                        try
-                        {
-                            nClass = Type.GetType(type);
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.Error(ex);
-                        }
-
-                        if (nClass == null)
-                        {
-                            _log.Error("Item type {0} not found!", type);
-                            continue;
-                        }
-
-                        Item item;
-                        try
-                        {
-                            item = (Item)Activator.CreateInstance(nClass);
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.Error(ex);
-                            _log.Error(ex.InnerException);
-                            item = new Item();
-                        }
-
-                        item.Id = reader.GetUInt64("id");
-                        item.TemplateId = reader.GetUInt32("template_id");
-                        item.Template = ItemManager.Instance.GetTemplate(item.TemplateId);
-                        item.SlotType = (SlotType)Enum.Parse(typeof(SlotType), reader.GetString("slot_type"), true);
-                        item.Slot = reader.GetInt32("slot");
-                        item.Count = reader.GetInt32("count");
-                        item.LifespanMins = reader.GetInt32("lifespan_mins");
-                        item.MadeUnitId = reader.GetUInt32("made_unit_id");
-                        item.UnsecureTime = reader.GetDateTime("unsecure_time");
-                        item.UnpackTime = reader.GetDateTime("unpack_time");
-                        item.CreateTime = reader.GetDateTime("created_at");
-                        var details = (PacketStream)(byte[])reader.GetValue("details");
-                        item.ReadDetails(details);
-
-                        if (item.Template.FixedGrade >= 0)
-                            item.Grade = (byte)item.Template.FixedGrade; // Overwrite Fixed-grade items, just to make sure
-                        else if (item.Template.Gradable)
-                            item.Grade = reader.GetByte("grade"); // Load from our DB if the item is gradable
-
-                        if (item.SlotType == SlotType.Equipment)
-                            Equip[item.Slot] = item;
-                        else if (item.SlotType == SlotType.Inventory)
-                            Items[item.Slot] = item;
-                        else if (item.SlotType == SlotType.Bank)
-                            Bank[item.Slot] = item;
-                    }
-                }
-            }
+                if (i.SlotType == SlotType.Equipment)
+                    Equip[i.Slot] = i;
+                else if (i.SlotType == SlotType.Inventory)
+                    Items[i.Slot] = i;
+                else if (i.SlotType == SlotType.Bank)
+                    Bank[i.Slot] = i;
+                return true;
+            });
 
             if (slotType == null || slotType == SlotType.Equipment)
                 foreach (var item in Equip.Where(x => x != null))
@@ -129,71 +73,40 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 foreach (var item in Bank.Where(x => x != null))
                     item.Template = ItemManager.Instance.GetTemplate(item.TemplateId);
-
                 _freeBankSlot = CheckFreeSlot(SlotType.Bank);
             }
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
             lock (_removedItems)
             {
                 if (_removedItems.Count > 0)
                 {
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = "DELETE FROM items WHERE owner= @owner AND id IN(" + string.Join(",", _removedItems) + ")";
-                        command.Prepare();
-                        command.Parameters.AddWithValue("@owner", Owner.Id);
-                        command.ExecuteNonQuery();
-                    }
-
+                    ctx.Items.RemoveRange(
+                        ctx.Items.Where(i => i.Owner == Owner.Id && _removedItems.Contains(i.Id)));
                     _removedItems.Clear();
                 }
             }
 
-            SaveItems(connection, transaction, Equip);
-            SaveItems(connection, transaction, Items);
-            SaveItems(connection, transaction, Bank);
+            ctx.SaveChanges();
+
+            SaveItems(ctx, Equip);
+            SaveItems(ctx, Items);
+            SaveItems(ctx, Bank);
         }
 
-        private void SaveItems(MySqlConnection connection, MySqlTransaction transaction, Item[] items)
+        private void SaveItems(GameDBContext ctx, Item[] items)
         {
-            using (var command = connection.CreateCommand())
+            foreach (var item in items.Where(i => i != null))
             {
-                command.Connection = connection;
-                command.Transaction = transaction;
-
-                foreach (var item in items)
-                {
-                    if (item == null)
-                        continue;
-                    var details = new PacketStream();
-                    item.WriteDetails(details);
-
-                    command.CommandText = "REPLACE INTO " +
-                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`,`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`)" +
-                                          " VALUES " +
-                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@made_unit_id,@unsecure_time,@unpack_time,@owner,@created_at,@grade)";
-
-                    command.Parameters.AddWithValue("@id", item.Id);
-                    command.Parameters.AddWithValue("@type", item.GetType().ToString());
-                    command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                    command.Parameters.AddWithValue("@slot_type", (byte)item.SlotType);
-                    command.Parameters.AddWithValue("@slot", item.Slot);
-                    command.Parameters.AddWithValue("@count", item.Count);
-                    command.Parameters.AddWithValue("@details", details.GetBytes());
-                    command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
-                    command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
-                    command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
-                    command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
-                    command.Parameters.AddWithValue("@created_at", item.CreateTime);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.Parameters.AddWithValue("@grade", item.Grade);
-                    command.ExecuteNonQuery();
-                    command.Parameters.Clear();
-                }
+                ctx.Items.RemoveRange(
+                    ctx.Items.Where(i => i.Id == item.Id && i.Owner == Owner.Id));
             }
+            ctx.SaveChanges();
+
+            ctx.Items.AddRange(items.Where(i => i != null).Select(i => i.ToEntity(Owner.Id)));
+            ctx.SaveChanges();
         }
 
         #endregion

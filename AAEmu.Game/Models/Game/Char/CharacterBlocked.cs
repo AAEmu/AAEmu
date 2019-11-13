@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using AAEmu.DB.Game;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Utils.DB;
-using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -41,25 +43,17 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (offlineIds.Count <= 0) return blockedList;
 
-            using (var connection = MySQL.CreateConnection())
+            using (var ctx = new GameDBContext())
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM characters WHERE id IN(" + string.Join(",", offlineIds) + ")";
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new Blocked
-                            {
-                                Name = reader.GetString("name"),
-                                CharacterId = reader.GetUInt32("id"),
-                            };
-                            blockedList.Add(template);
-                        }
-                    }
-                }
+                blockedList.AddRange(
+                    ctx.Characters
+                    .Where(c => offlineIds.Contains(c.Id))
+                    .ToList()
+                    .Select(c => new Blocked() {
+                        Name = c.Name,
+                        CharacterId = (uint)c.Id
+                    })
+                    .ToList());
             }
             return blockedList;
         }
@@ -75,58 +69,33 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM blocked WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                command.Prepare();
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var template = new BlockedTemplate()
-                        {
-                            Owner = reader.GetUInt32("owner"),
-                            BlockedId = reader.GetUInt32("blocked_id")
-                        };
-                        BlockedList.Add(template.BlockedId, template);
-                    }
-                }
-            }
+            BlockedList = BlockedList.Concat(
+                ctx.Blocked
+                .Where(b => b.Owner == Owner.Id)
+                .ToList()
+                .Select(b => (BlockedTemplate)b)
+                .ToDictionary(b => b.BlockedId, b => b)
+                )
+                .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
-            if (_removedBlocked.Count > 0)
+            ctx.Blocked.RemoveRange(
+                ctx.Blocked.Where(b => b.Owner == Owner.Id && _removedBlocked.Contains((uint)b.BlockedId)));
+            ctx.SaveChanges();
+
+            _removedBlocked.Clear();
+
+            foreach (var value in BlockedList.Values)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = "DELETE FROM blocked WHERE owner = @owner AND blocked_id IN(" + string.Join(",", _removedBlocked) + ")";
-                    command.Prepare();
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                    _removedBlocked.Clear();
-                }
+                ctx.Blocked.RemoveRange(
+                    ctx.Blocked.Where(b => b.Owner == value.Owner && (uint)b.BlockedId == value.BlockedId));
+                ctx.Blocked.Add(value.ToEntity());
             }
-
-            foreach (var (_, value) in BlockedList)
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = "REPLACE INTO blocked(`owner`,`blocked_id`) VALUES (@owner, @blocked_id)";
-                    command.Parameters.AddWithValue("@owner", value.Owner);
-                    command.Parameters.AddWithValue("@blocked_id", value.BlockedId);
-                    command.ExecuteNonQuery();
-                }
-            }
+            ctx.SaveChanges();
         }
                
 
@@ -169,5 +138,21 @@ namespace AAEmu.Game.Models.Game.Char
     {
         public uint Owner { get; set; }
         public uint BlockedId { get; set; }
+
+        public DB.Game.Blocked ToEntity()
+            =>
+            new DB.Game.Blocked()
+            {
+                Owner     = this.Owner     ,
+                BlockedId = this.BlockedId ,
+            };
+
+        public static explicit operator BlockedTemplate(DB.Game.Blocked v)
+            =>
+            new BlockedTemplate()
+            {
+                Owner     = v.Owner     ,
+                BlockedId = v.BlockedId ,
+            };
     }
 }

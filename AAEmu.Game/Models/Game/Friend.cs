@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.DB.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World;
@@ -42,5 +43,25 @@ namespace AAEmu.Game.Models.Game
             stream.Write(LastWorldLeaveTime);
             return stream;
         }
-    }
+
+        public static explicit operator Friend(Characters v)
+            =>
+            new Friend
+            {
+                Name               =               v.Name       ,
+                CharacterId        =               v.Id         ,
+                Race               = (Race)        v.Race       ,
+                Level              =               v.Level      ,
+                LastWorldLeaveTime =               v.LeaveTime  ,
+                Health             =               v.Hp         ,
+                Ability1           = (AbilityType) v.Ability1   ,
+                Ability2           = (AbilityType) v.Ability2   ,
+                Ability3           = (AbilityType) v.Ability3   ,
+                Position           = new Point(    v.ZoneId     , 
+                                                   v.X          , 
+                                                   v.Y          , 
+                                                   v.Z)         ,
+            };
+
+}
 }

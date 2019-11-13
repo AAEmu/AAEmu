@@ -1,3 +1,6 @@
+﻿using System;
+using AAEmu.DB.Game;
+
 namespace AAEmu.Game.Models.Game.Skills
 {
     public enum AbilityType : byte
@@ -32,5 +35,23 @@ namespace AAEmu.Game.Models.Game.Skills
             Id = id;
             Order = 255;
         }
+
+
+        public DB.Game.Abilities ToEntity(uint ownerId)
+            =>
+            new DB.Game.Abilities()
+            {
+                Exp   =             this.Exp ,
+                Id    = (byte)(int) this.Id  ,
+                Owner =             ownerId  ,
+            };
+
+        public static explicit operator Ability(Abilities v)
+            =>
+            new Ability()
+            {
+                Id  = (AbilityType) v.Id  ,
+                Exp =               v.Exp ,
+            };
     }
 }

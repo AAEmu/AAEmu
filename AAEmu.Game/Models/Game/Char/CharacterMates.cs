@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using AAEmu.DB.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -8,7 +10,7 @@ using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -23,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public Character Owner { get; set; }
 
-        private readonly Dictionary<ulong, MateDb> _mates; // itemId, MountDb
+        private Dictionary<ulong, MateDb> _mates; // itemId, MountDb
         private readonly List<uint> _removedMates;
 
         public CharacterMates(Character owner)
@@ -134,78 +136,41 @@ namespace AAEmu.Game.Models.Game.Char
             MateManager.Instance.RemoveActiveMateAndDespawn(Owner, tlId);
         }
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM mates WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                command.Prepare();
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var template = new MateDb
-                        {
-                            Id = reader.GetUInt32("id"),
-                            ItemId = reader.GetUInt64("item_id"),
-                            Name = reader.GetString("name"),
-                            Xp = reader.GetInt32("xp"),
-                            Level = reader.GetUInt16("level"),
-                            Mileage = reader.GetInt32("mileage"),
-                            Hp = reader.GetInt32("hp"),
-                            Mp = reader.GetInt32("mp"),
-                            Owner = reader.GetUInt32("owner"),
-                            UpdatedAt = reader.GetDateTime("updated_at"),
-                            CreatedAt = reader.GetDateTime("created_at")
-                        };
-                        _mates.Add(template.ItemId, template);
-                    }
-                }
-            }
+            _mates = _mates.Concat(
+                ctx.Mates
+                .Where(m => m.Owner == Owner.Id)
+                .ToList()
+                .Select(m => (MateDb)m)
+                .ToDictionary(m => m.ItemId, m => m)
+                )
+                .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
             if (_removedMates.Count > 0)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = "DELETE FROM mates WHERE owner = @owner AND id IN(" + string.Join(",", _removedMates) + ")";
-                    command.Prepare();
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                    _removedMates.Clear();
-                }
+                ctx.Mates.RemoveRange(
+                    ctx.Mates.Where(m => m.Owner == Owner.Id && _removedMates.Contains((uint)m.Id)));
+                _removedMates.Clear();
             }
+            ctx.SaveChanges();
 
-            foreach (var (_, value) in _mates)
+            foreach (var value in _mates.Values)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText =
-                        "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
-                        "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
-                    command.Parameters.AddWithValue("@id", value.Id);
-                    command.Parameters.AddWithValue("@item_id", value.ItemId);
-                    command.Parameters.AddWithValue("@name", value.Name);
-                    command.Parameters.AddWithValue("@xp", value.Xp);
-                    command.Parameters.AddWithValue("@level", value.Level);
-                    command.Parameters.AddWithValue("@mileage", value.Mileage);
-                    command.Parameters.AddWithValue("@hp", value.Hp);
-                    command.Parameters.AddWithValue("@mp", value.Mp);
-                    command.Parameters.AddWithValue("@owner", value.Owner);
-                    command.Parameters.AddWithValue("@updated_at", value.UpdatedAt);
-                    command.Parameters.AddWithValue("@created_at", value.CreatedAt);
-                    command.ExecuteNonQuery();
-                }
+                ctx.Mates.RemoveRange(
+                    ctx.Mates.Where(m =>
+                        m.Id == value.Id &&
+                        m.ItemId == value.ItemId &&
+                        m.Owner == value.Owner));
             }
+            ctx.SaveChanges();
+
+            ctx.Mates.AddRange(_mates.Values.Select(m => m.ToEntity()));
+
+            ctx.SaveChanges();
         }
     }
 
@@ -222,5 +187,39 @@ namespace AAEmu.Game.Models.Game.Char
         public uint Owner { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        public Mates ToEntity()
+            =>
+            new Mates()
+            {
+                Id        = this.Id        ,
+                ItemId    = this.ItemId    ,
+                Name      = this.Name      ,
+                Xp        = this.Xp        ,
+                Level     = this.Level     ,
+                Mileage   = this.Mileage   ,
+                Hp        = this.Hp        ,
+                Mp        = this.Mp        ,
+                Owner     = this.Owner     ,
+                UpdatedAt = this.UpdatedAt ,
+                CreatedAt = this.CreatedAt ,
+            };
+
+        public static explicit operator MateDb(Mates v)
+            =>
+            new MateDb
+            {
+                Id        = v.Id        ,
+                ItemId    = v.ItemId    ,
+                Name      = v.Name      ,
+                Xp        = v.Xp        ,
+                Level     = v.Level     ,
+                Mileage   = v.Mileage   ,
+                Hp        = v.Hp        ,
+                Mp        = v.Mp        ,
+                Owner     = v.Owner     ,
+                UpdatedAt = v.UpdatedAt ,
+                CreatedAt = v.CreatedAt ,
+            };
     }
 }

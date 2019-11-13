@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Utils;
+﻿using System.Collections.Generic;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Managers.Id
 {
@@ -8,12 +9,13 @@ namespace AAEmu.Game.Core.Managers.Id
         private const uint FirstId = 0x00000001;
         private const uint LastId = 0x00FFFFFF;
         private static readonly uint[] Exclude = { };
-        private static readonly string[,] ObjTables = { { } };
 
         public static TeamIdManager Instance => _instance ?? (_instance = new TeamIdManager());
 
-        public TeamIdManager() : base("TeamIdManager", FirstId, LastId, ObjTables, Exclude)
+        public TeamIdManager() : base("TeamIdManager", FirstId, LastId, Exclude)
         {
         }
+
+        protected override IEnumerable<uint> ExtractUsedIds(bool isDistinct) => new List<uint>();
     }
 }

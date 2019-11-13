@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.DB.Game;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
@@ -21,26 +24,10 @@ namespace AAEmu.Game.Core.Managers
             _allFriends = new Dictionary<uint, FriendTemplate>();
 
             _log.Info("Loading friends ...");
-            using (var connection = MySQL.CreateConnection())
+
+            using (var ctx = new GameDBContext())
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM friends";
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new FriendTemplate()
-                            {
-                                Id = reader.GetUInt32("id"),
-                                FriendId = reader.GetUInt32("friend_id"),
-                                Owner = reader.GetUInt32("owner")
-                            };
-                            _allFriends.Add(template.Id, template);
-                        }
-                    }
-                }
+                _allFriends = ctx.Friends.ToDictionary(f => (uint)f.Id, f => (FriendTemplate)f);
             }
 
             _log.Info("Loaded {0} friends", _allFriends.Count);
@@ -93,37 +80,23 @@ namespace AAEmu.Game.Core.Managers
                 friendsList.Add(newFriend);
             }
 
-            if (offlineIds.Count <= 0) return friendsList;
+            if (offlineIds.Count <= 0) 
+                return friendsList;
 
-            using (var connection = MySQL.CreateConnection())
+            using (var ctx = new GameDBContext())
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM characters WHERE id IN(" + string.Join(",", offlineIds) + ")";
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
+                friendsList.AddRange(
+                    ctx.Characters.Where(c => 
+                    offlineIds.Contains((uint)c.Id))
+                    .ToArray()
+                    .Select(c=>(Friend)c)
+                    .Select(c =>
                     {
-                        while (reader.Read())
-                        {
-                            var template = new Friend
-                            {
-                                Name = reader.GetString("name"),
-                                CharacterId = reader.GetUInt32("id"),
-                                Position = new Point(reader.GetUInt32("zone_id"), reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
-                                InParty = false,
-                                IsOnline = false,
-                                Race = (Race)reader.GetUInt32("race"),
-                                Level = reader.GetByte("level"),
-                                LastWorldLeaveTime = reader.GetDateTime("leave_time"),
-                                Health = reader.GetInt32("hp"),
-                                Ability1 = (AbilityType)reader.GetByte("ability1"),
-                                Ability2 = (AbilityType)reader.GetByte("ability2"),
-                                Ability3 = (AbilityType)reader.GetByte("ability3")
-                            };
-                            friendsList.Add(template);
-                        }
-                    }
-                }
+                        c.IsOnline = false;
+                        c.InParty = false;
+                        return c;
+                    })
+                    .ToArray());
             }
 
             return friendsList;
@@ -135,22 +108,8 @@ namespace AAEmu.Game.Core.Managers
             if (friend != null) return FormatFriend(friend);
 
             uint friendId = 0;
-            using (var connection = MySQL.CreateConnection())
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM characters WHERE `name` = @name";
-                    command.Parameters.AddWithValue("@name", name);
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            friendId = reader.GetUInt32("id");
-                        }
-                    }
-                }
-            }
+            using (var ctx = new GameDBContext())
+                friendId = ctx.Characters.Where(f => f.Name == name).Select(s=>s.Id).FirstOrDefault();
 
             var friendInfo = GetFriendInfo(new List<uint> {friendId});
             return friendInfo.Count > 0 ? GetFriendInfo(new List<uint> {friendId})[0] : null;
@@ -181,5 +140,23 @@ namespace AAEmu.Game.Core.Managers
         public uint Id { get; set; }
         public uint FriendId { get; set; }
         public uint Owner { get; set; }
+
+        public DB.Game.Friends ToEntity()
+            =>
+            new Friends()
+            {
+                Id       = this.Id       ,
+                FriendId = this.FriendId ,
+                Owner    = this.Owner    ,
+            };
+
+        public static explicit operator FriendTemplate(Friends v)
+            =>
+            new FriendTemplate()
+            {
+                Id       = v.Id       ,
+                FriendId = v.FriendId ,
+                Owner    = v.Owner    ,
+            };
     }
 }

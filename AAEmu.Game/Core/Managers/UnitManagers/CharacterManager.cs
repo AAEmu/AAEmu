@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Utils;
@@ -517,35 +518,18 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public List<LoginCharacterInfo> LoadCharacters(uint accountId)
         {
-            var result = new List<LoginCharacterInfo>();
-            using (var connection = MySQL.CreateConnection())
+            using (var ctx = new GameDBContext())
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText =
-                        "SELECT `id`, `name`, `race`, `gender`,`delete_time` FROM characters WHERE `account_id`=@accountId and `deleted`=0";
-                    command.Parameters.AddWithValue("@accountId", accountId);
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            // Skip this char in the list if it's read to be deleted
-                            var deleteTime = reader.GetDateTime("delete_time");
-                            if ((deleteTime > DateTime.MinValue) && (deleteTime < DateTime.UtcNow))
-                                continue;
-
-                            var character = new LoginCharacterInfo();
-                            character.AccountId = accountId;
-                            character.Id = reader.GetUInt32("id");
-                            character.Name = reader.GetString("name");
-                            character.Race = reader.GetByte("race");
-                            character.Gender = reader.GetByte("gender");
-                            result.Add(character);
-                        }
-                    }
-                }
+                return ctx.Characters
+                    .Where(c =>
+                        c.AccountId == accountId &&
+                        c.Deleted == 0 &&
+                        c.DeleteTime > DateTime.MinValue &&
+                        c.DeleteTime < DateTime.UtcNow)
+                    .ToList()
+                    .Select(c => (LoginCharacterInfo)c)
+                    .ToList();
             }
-            return result;
         }
 
         private void SetEquipItemTemplate(Inventory inventory, uint templateId, EquipmentItemSlot slot, byte grade)

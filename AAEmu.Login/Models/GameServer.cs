@@ -1,4 +1,6 @@
+﻿using System;
 using System.Collections.Generic;
+using AAEmu.DB.Login;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
 
@@ -37,6 +39,7 @@ namespace AAEmu.Login.Models
             MirrorsId = new List<byte>();
         }
 
+
         public void SendPacket(InternalPacket packet)
         {
             Connection.SendPacket(packet);
@@ -51,6 +54,16 @@ namespace AAEmu.Login.Models
             if (obj.GetType() != typeof(GameServer))
                 return false;
             return Equals((GameServer) obj);
+        }
+
+        public static explicit operator GameServer(GameServers v)
+        {
+            return new GameServer(
+                    v.Id,
+                    v.Name,
+                    v.Host,
+                    (ushort)v.Port
+                );
         }
 
         public bool Equals(GameServer other)

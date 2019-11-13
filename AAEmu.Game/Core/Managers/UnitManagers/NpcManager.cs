@@ -313,17 +313,17 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                                 reader2.GetUInt32("face_normal_map_id");
                                             template.ModelParams.Face.EyelashMapId =
                                                 reader2.GetUInt32("face_eyelash_map_id");
-                                            template.ModelParams.Face.LipColor = reader2.GetUInt32("lip_color");
+                                            template.ModelParams.Face.LipColor = reader2.GetInt64("lip_color");
                                             template.ModelParams.Face.LeftPupilColor =
-                                                reader2.GetUInt32("left_pupil_color");
+                                                reader2.GetInt64("left_pupil_color");
                                             template.ModelParams.Face.RightPupilColor =
-                                                reader2.GetUInt32("right_pupil_color");
-                                            template.ModelParams.Face.EyebrowColor = reader2.GetUInt32("eyebrow_color");
+                                                reader2.GetInt64("right_pupil_color");
+                                            template.ModelParams.Face.EyebrowColor = reader2.GetInt64("eyebrow_color");
                                             template.ModelParams.Face.MovableDecalWeight =
                                                 reader2.GetFloat("face_movable_decal_weight");
                                             template.ModelParams.Face.NormalMapWeight =
                                                 reader2.GetFloat("face_normal_map_weight");
-                                            template.ModelParams.Face.DecoColor = reader2.GetUInt32("deco_color");
+                                            template.ModelParams.Face.DecoColor = reader2.GetInt64("deco_color");
                                             reader2.GetBytes("modifier", 0, template.ModelParams.Face.Modifier, 0, 128);
                                         }
                                     }

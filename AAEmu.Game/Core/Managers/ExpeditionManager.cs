@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -62,91 +62,40 @@ namespace AAEmu.Game.Core.Managers
                     $"ExpeditionManager: Parse {FileManager.AppPath}Data/expedition.json file");
             _nameRegex = new Regex(_config.NameRegex, RegexOptions.Compiled);
 
-            using (var connection = MySQL.CreateConnection())
+            using (var ctx = new GameDBContext())
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM expeditions";
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
+                _expeditions = _expeditions.Concat(
+                    ctx.Expeditions
+                    .ToDictionary(
+                        e => (uint)e.Id,
+                        e =>
                         {
-                            var expedition = new Expedition();
-                            expedition.Id = reader.GetUInt32("id");
-                            expedition.MotherId = reader.GetUInt32("mother");
-                            expedition.Name = reader.GetString("name");
-                            expedition.OwnerId = reader.GetUInt32("owner");
-                            expedition.OwnerName = reader.GetString("owner_name");
-                            expedition.UnitOwnerType = 0;
-                            expedition.PoliticalSystem = 1;
-                            expedition.Created = reader.GetDateTime("created_at");
-                            expedition.AggroLink = false;
-                            expedition.DiplomacyTarget = false;
+                            var ex = (Expedition)e;
+                            ex.UnitOwnerType = 0;
+                            ex.PoliticalSystem = 1;
+                            ex.AggroLink = false;
+                            ex.DiplomacyTarget = false;
 
-                            _expeditions.Add(expedition.Id, expedition);
-                        }
-                    }
-                }
+                            ex.Members = ctx.ExpeditionMembers
+                                            .Where(em => em.ExpeditionId == e.Id)
+                                            .ToList()
+                                            .Select(em => (ExpeditionMember)em)
+                                            .Select(emg =>
+                                            {
+                                                emg.IsOnline = false;
+                                                emg.InParty = false;
+                                                return emg;
+                                            })
+                                            .ToList();
 
-                foreach (var expedition in _expeditions.Values)
-                {
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = "SELECT * FROM expedition_members WHERE expedition_id = @expedition_id";
-                        command.Prepare();
-                        command.Parameters.AddWithValue("@expedition_id", expedition.Id);
-                        using (var reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                var member = new ExpeditionMember();
-                                member.CharacterId = reader.GetUInt32("character_id");
-                                member.ExpeditionId = reader.GetUInt32("expedition_id");
-                                member.Role = reader.GetByte("role");
-                                member.Memo = reader.GetString("memo");
-                                member.LastWorldLeaveTime = reader.GetDateTime("last_leave_time");
-                                member.Name = reader.GetString("name");
-                                member.Level = reader.GetByte("level");
-                                member.Abilities = new byte[]
-                                {
-                                    reader.GetByte("ability1"), reader.GetByte("ability2"), reader.GetByte("ability3")
-                                };
-                                member.IsOnline = false;
-                                member.InParty = false;
-                                expedition.Members.Add(member);
-                            }
-                        }
-                    }
-
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText =
-                            "SELECT * FROM expedition_role_policies WHERE expedition_id = @expedition_id";
-                        command.Prepare();
-                        command.Parameters.AddWithValue("@expedition_id", expedition.Id);
-                        using (var reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                var policy = new ExpeditionRolePolicy();
-                                policy.Id = reader.GetUInt32("expedition_id");
-                                policy.Role = reader.GetByte("role");
-                                policy.Name = reader.GetString("name");
-                                policy.DominionDeclare = reader.GetBoolean("dominion_declare");
-                                policy.Invite = reader.GetBoolean("invite");
-                                policy.Expel = reader.GetBoolean("expel");
-                                policy.Promote = reader.GetBoolean("promote");
-                                policy.Dismiss = reader.GetBoolean("dismiss");
-                                policy.Chat = reader.GetBoolean("chat");
-                                policy.ManagerChat = reader.GetBoolean("manager_chat");
-                                policy.SiegeMaster = reader.GetBoolean("siege_master");
-                                policy.JoinSiege = reader.GetBoolean("join_siege");
-                                expedition.Policies.Add(policy);
-                            }
-                        }
-                    }
-                }
+                            ex.Policies = ctx.ExpeditionRolePolicies
+                                            .Where(p => p.ExpeditionId == e.Id)
+                                            .ToList()
+                                            .Select(p => (ExpeditionRolePolicy)p)
+                                            .ToList();
+                            return ex;
+                        }))
+                    .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
             }
         }
 
@@ -407,12 +356,8 @@ namespace AAEmu.Game.Core.Managers
 
         public void Save(Expedition expedition)
         {
-            using (var connection = MySQL.CreateConnection())
-            using (var transaction = connection.BeginTransaction())
-            {
-                expedition.Save(connection, transaction);
-                transaction.Commit();
-            }
+            using (var ctx = new GameDBContext())
+                expedition.Save(ctx);
         }
 
         public ExpeditionMember GetMemberFromCharacter(Expedition expedition, Character character, bool owner)

@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
-using MySql.Data.MySqlClient;
+using AAEmu.Game.Utils.DB;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -10,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Char
     public class CharacterPortals
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-        private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; }
+        private Dictionary<uint, VisitedDistrict> VisitedDistricts { get; set; }
         private readonly List<uint> _removedVisitedDistricts;
         private readonly List<uint> _removedPrivatePortals;
 
@@ -111,123 +112,71 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void Load(MySqlConnection connection)
+        public void Load(GameDBContext ctx)
         {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM portal_book_coords WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                command.Prepare();
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var template = new Portal
-                        {
-                            Id = reader.GetUInt32("id"),
-                            Name = reader.GetString("name"),
-                            X = reader.GetFloat("x"),
-                            Y = reader.GetFloat("y"),
-                            Z = reader.GetFloat("z"),
-                            ZoneId = reader.GetUInt32("zone_id"),
-                            ZRot = reader.GetFloat("z_rot"),
-                            SubZoneId = reader.GetUInt32("sub_zone_id"),
-                            Owner = reader.GetUInt32("owner")
-                        };
-                        PrivatePortals.Add(template.Id, template);
-                    }
-                }
-            }
+            PrivatePortals = PrivatePortals.Concat(
+                ctx.PortalBookCoords
+                .Where(p => p.Owner == Owner.Id)
+                .ToList()
+                .Select(p => (Portal)p)
+                .ToDictionary(p => p.Id, p => p)
+                )
+                .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
 
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM portal_visited_district WHERE `owner` = @owner";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                command.Prepare();
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var template = new VisitedDistrict
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SubZone = reader.GetUInt32("subzone"),
-                            Owner = reader.GetUInt32("owner")
-                        };
-                        VisitedDistricts.Add(template.SubZone, template);
-                    }
-                }
-            }
+            VisitedDistricts = VisitedDistricts.Concat(
+               ctx.PortalVisitedDistrict
+               .Where(p => p.Owner == Owner.Id)
+               .ToList()
+               .Select(p => (VisitedDistrict)p)
+               .ToDictionary(p => p.SubZone, p => p)
+               )
+               .GroupBy(i => i.Key).ToDictionary(group => group.Key, group => group.First().Value);
 
             PopulateDistrictPortals();
         }
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction)
+        public void Save(GameDBContext ctx)
         {
             if (_removedVisitedDistricts.Count > 0)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = "DELETE FROM portal_visited_district WHERE owner = @owner AND subzone IN(" + string.Join(",", _removedVisitedDistricts) + ")";
-                    command.Prepare();
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                    _removedVisitedDistricts.Clear();
-                }
+                ctx.PortalVisitedDistrict.RemoveRange(
+                    ctx.PortalVisitedDistrict.Where(p => p.Owner == Owner.Id && _removedVisitedDistricts.Contains((uint)p.Subzone)));
+                _removedVisitedDistricts.Clear();
             }
+            ctx.SaveChanges();
 
             if (_removedPrivatePortals.Count > 0)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = "DELETE FROM portal_book_coords WHERE owner = @owner AND id IN(" + string.Join(",", _removedPrivatePortals) + ")";
-                    command.Prepare();
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
-                    command.ExecuteNonQuery();
-                    _removedPrivatePortals.Clear();
-                }
+                ctx.PortalBookCoords.RemoveRange(
+                    ctx.PortalBookCoords.Where(p => p.Owner == Owner.Id && _removedPrivatePortals.Contains((uint)p.Id)));
+                _removedPrivatePortals.Clear();
             }
+            ctx.SaveChanges();
 
-            foreach (var (_, value) in PrivatePortals)
+            foreach (var value in PrivatePortals.Values)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = "REPLACE INTO portal_book_coords(`id`,`name`,`x`,`y`,`z`,`zone_id`,`z_rot`,`owner`) VALUES (@id, @name, @x, @y, @z, @zone_id, @z_rot, @owner)";
-                    command.Parameters.AddWithValue("@id", value.Id);
-                    command.Parameters.AddWithValue("@name", value.Name);
-                    command.Parameters.AddWithValue("@x", value.X);
-                    command.Parameters.AddWithValue("@y", value.Y);
-                    command.Parameters.AddWithValue("@z", value.Z);
-                    command.Parameters.AddWithValue("@zone_id", value.ZoneId);
-                    command.Parameters.AddWithValue("@z_rot", value.ZRot);
-                    command.Parameters.AddWithValue("@owner", value.Owner);
-                    command.ExecuteNonQuery();
-                }
+                ctx.PortalBookCoords.RemoveRange(
+                    ctx.PortalBookCoords.Where(p =>
+                        p.Id == value.Id &&
+                        p.Owner == value.Owner));
             }
+            ctx.SaveChanges();
 
-            foreach (var (_, value) in VisitedDistricts)
+            ctx.PortalBookCoords.AddRange(PrivatePortals.Values.Select(p => p.ToEntity()));
+            ctx.SaveChanges();
+
+            foreach (var value in VisitedDistricts.Values)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.Connection = connection;
-                    command.Transaction = transaction;
-
-                    command.CommandText = "REPLACE INTO portal_visited_district(`id`,`subzone`,`owner`) VALUES (@id, @subzone, @owner)";
-                    command.Parameters.AddWithValue("@id", value.Id);
-                    command.Parameters.AddWithValue("@subzone", value.SubZone);
-                    command.Parameters.AddWithValue("@owner", value.Owner);
-                    command.ExecuteNonQuery();
-                }
+                ctx.PortalVisitedDistrict.RemoveRange(
+                    ctx.PortalVisitedDistrict.Where(p =>
+                        p.Id == value.Id &&
+                        p.Subzone == value.SubZone &&
+                        p.Owner == value.Owner));
             }
+            ctx.SaveChanges();
+            ctx.PortalVisitedDistrict.AddRange(VisitedDistricts.Values.Select(p => p.ToEntity()));
+
+            ctx.SaveChanges();
         }
 
         private void PopulateDistrictPortals()

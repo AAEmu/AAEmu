@@ -8,7 +8,7 @@ using NLog;
 
 namespace AAEmu.Game.Utils
 {
-    public class IdManager
+    public abstract class IdManager
     {
         protected static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
@@ -21,17 +21,16 @@ namespace AAEmu.Game.Utils
         private readonly uint _lastId = 0xFFFFFFFF;
         private readonly uint[] _exclude;
         private readonly int _freeIdSize;
-        private readonly string[,] _objTables;
         private readonly bool _distinct;
         private readonly object _lock = new object();
+        protected abstract IEnumerable<uint> ExtractUsedIds(bool isDistinct = false);
 
-        public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude,
+        public IdManager(string name, uint firstId, uint lastId, uint[] exclude,
             bool distinct = false)
         {
             _name = name;
             _firstId = firstId;
             _lastId = lastId;
-            _objTables = objTables;
             _exclude = exclude;
             _distinct = distinct;
             _freeIdSize = (int) (_lastId - _firstId);
@@ -46,7 +45,10 @@ namespace AAEmu.Game.Utils
                 _freeIds.Clear();
                 _freeIdCount = _freeIdSize;
 
-                foreach (var usedObjectId in ExtractUsedObjectIdTable())
+                var extracted = ExtractUsedIds(_distinct);
+                _log.Info("{0}: Successfully extracted {1} used id's from data tables.", _name, extracted.Count());
+
+                foreach (var usedObjectId in extracted)
                 {
                     if (_exclude.Contains(usedObjectId))
                         continue;
@@ -74,59 +76,6 @@ namespace AAEmu.Game.Utils
             }
 
             return true;
-        }
-
-        private IEnumerable<uint> ExtractUsedObjectIdTable()
-        {
-            if (_objTables.Length < 2)
-                return new uint[0];
-
-            using (var connection = MySQL.CreateConnection())
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    var query = "SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[0, 1] + ", 0 AS i FROM " +
-                                _objTables[0, 0];
-                    for (var i = 1; i < _objTables.Length / 2; i++)
-                        query += " UNION SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[i, 1] + ", " + i +
-                                 " FROM " + _objTables[i, 0];
-
-                    command.CommandText = "SELECT COUNT(*), COUNT(DISTINCT " + _objTables[0, 1] + ") FROM ( " + query +
-                                          " ) AS all_ids";
-                    command.Prepare();
-                    int count;
-                    using (var reader = command.ExecuteReader())
-                    {
-                        if (!reader.Read())
-                            throw new Exception("IdManager: can't extract count ids");
-                        if (reader.GetInt32(0) != reader.GetInt32(1) && !_distinct)
-                            throw new Exception("IdManager: there are duplicates in object ids");
-                        count = reader.GetInt32(0);
-                    }
-
-                    if (count == 0)
-                        return new uint[0];
-
-                    var result = new uint[count];
-                    _log.Info("{0}: Extracting {1} used id's from data tables...", _name, count);
-
-                    command.CommandText = query;
-                    command.Prepare();
-                    using (var reader = command.ExecuteReader())
-                    {
-                        var idx = 0;
-                        while (reader.Read())
-                        {
-                            result[idx] = reader.GetUInt32(0);
-                            idx++;
-                        }
-
-                        _log.Info("{0}: Successfully extracted {1} used id's from data tables.", _name, idx);
-                    }
-
-                    return result;
-                }
-            }
         }
 
         public void ReleaseId(uint usedObjectId)

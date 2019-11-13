@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 
@@ -107,6 +107,13 @@ namespace AAEmu.Game.Utils.DB
         public long GetInt64(string column)
         {
             return _reader.GetInt64(GetOrdinal(column));
+        }
+        public long GetInt64(string column, long defaultValue)
+        {
+            var ordinal = GetOrdinal(column);
+            if (_reader.IsDBNull(ordinal))
+                return defaultValue;
+            return _reader.GetInt64(ordinal);
         }
 
         public ulong GetUInt64(string column) => (ulong) GetInt64(column);
