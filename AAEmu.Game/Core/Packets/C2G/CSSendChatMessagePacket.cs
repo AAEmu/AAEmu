@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -26,8 +26,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (message.StartsWith("/"))
             {
-                CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(1).Trim());
-                return;
+                if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(1).Trim()))
+                    return;
             }
 
             switch (type)

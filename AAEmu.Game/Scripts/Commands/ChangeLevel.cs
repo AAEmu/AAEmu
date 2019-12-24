@@ -32,23 +32,33 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            var level = byte.Parse(args[0]);
+            byte level = 0;
+            if (byte.TryParse(args[0], out byte parselevel))
+            {
+                level = parselevel;
+            }
+
             if (level <= 0 && level > 100)
             {
                 character.SendMessage("[ChangeLevel] level: 1-100");
                 return;
             }
+            var expforlevel = ExpirienceManager.Instance.GetExpForLevel(level);
 
-            var exp = ExpirienceManager.Instance.GetExpForLevel(level);
-            if (exp <= 0)
+            /*
+            if (character.Ability1 != AbilityType.None)
+                character.Abilities[character.Ability1].Exp += expforlevel;
+            */
+            
+            if (expforlevel <= 0)
                 return;
-            var diffExp = exp - character.Expirience;
+            var diffExp = expforlevel - character.Expirience;
             if (diffExp > 0)
                 character.AddExp(diffExp, true);
             else
             {
                 character.Level = level;
-                character.Expirience = exp;
+                character.Expirience = expforlevel;
 
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;

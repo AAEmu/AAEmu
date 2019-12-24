@@ -19,7 +19,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            // Optional TODO: Add the values be extracting them from actability_groups ?
+            // Optional TODO: Add the values by extracting them from actability_groups ?
             return "Add or remove <amount> of labor. If [vocationSkillId] is provided, then target vocation skill also gains a amount of points.\n" +
                 "(1)Alchemy, (2)Construction, (3)Cooking, (4)Handicrafts, (5)Husbandry, (6)Farming, (7)Fishing, (8)Logging, (9)Gathering, (10)Machining, " +
                 "(11)Metalwork, (12)Printing, (13)Mining, (14)Masonry, (15)Tailoring, (16)Leatherwork, (17)Weaponry, (18)Carpentry, (20)Larceny, " +
