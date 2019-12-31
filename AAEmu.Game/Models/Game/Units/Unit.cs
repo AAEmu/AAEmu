@@ -107,10 +107,13 @@ namespace AAEmu.Game.Models.Game.Units
                 if (killer is Character character)
                 {
                     character.StopAutoSkill(character);
+                    character.IsInBattle = false; // we need the character to be "not in battle"
                 }
-                else
+                else if (killer.CurrentTarget is Character character2)
                 {
-                    killer.StopAutoSkill((Unit)killer.CurrentTarget);
+                    character2.StopAutoSkill(character2);
+                    character2.IsInBattle = false; // we need the character to be "not in battle"
+                    character2.DeadTime = DateTime.Now;
                 }
 
                 killer.CurrentTarget = null;

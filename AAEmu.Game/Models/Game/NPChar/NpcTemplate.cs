@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -124,14 +124,16 @@ namespace AAEmu.Game.Models.Game.NPChar
         public uint HairId { get; set; }
         public UnitCustomModelParams ModelParams { get; set; }
         public EquipItemsTemplate Items { get; set; }
-        public uint[] BodyItems { get; set; }
+        public (uint ItemId, bool NpcOnly)[] BodyItems { get; set; }
         public List<uint> Buffs { get; set; }
         public List<BonusTemplate> Bonuses { get; set; }
 
         public NpcTemplate()
         {
+            HairId = 0;
             Items = new EquipItemsTemplate();
-            BodyItems = new uint[7];
+            ModelParams = new UnitCustomModelParams();
+            BodyItems = new (uint, bool)[7];
             Buffs = new List<uint>();
             Bonuses = new List<BonusTemplate>();
         }

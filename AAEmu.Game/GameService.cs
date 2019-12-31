@@ -43,6 +43,7 @@ namespace AAEmu.Game
             HousingIdManager.Instance.Initialize();
             HousingTldManager.Instance.Initialize();
             TeamIdManager.Instance.Initialize();
+            LaborPowerManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
@@ -79,7 +80,7 @@ namespace AAEmu.Game
             HousingManager.Instance.SpawnAll();
 
             AccessLevelManager.Instance.Load();
-            
+            CashShopManager.Instance.Load();
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();
@@ -89,7 +90,6 @@ namespace AAEmu.Game
             LoginNetwork.Instance.Start();
             stopWatch.Stop();
 
-            CashShopManager.Instance.Load();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
 
             return Task.CompletedTask;
