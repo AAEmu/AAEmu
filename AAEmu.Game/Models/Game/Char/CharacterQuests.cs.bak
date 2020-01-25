@@ -71,27 +71,17 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (supply)
                 {
-                    var exps = quest.GetExps();
-                    var amount = quest.GetCopper();
                     var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
                     if (supplies != null)
                     {
-                        if (exps == 0)
-                            Owner.AddExp(supplies.Exp, true);
-                        if (amount == 0)
-                        {
-                            amount = supplies.Copper;
-                        }
-                        
-                            
-                        Owner.Money += amount;
-                        
+                        Owner.AddExp(supplies.Exp, true);
+                        Owner.Money += supplies.Copper;
                         Owner.SendPacket(
                             new SCItemTaskSuccessPacket(
                                 ItemTaskType.QuestComplete,
                                 new List<ItemTask>
                                 {
-                                    new MoneyChange(amount)
+                                    new MoneyChange(supplies.Copper)
                                 },
                                 new List<ulong>())
                         );

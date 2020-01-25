@@ -74,8 +74,6 @@ namespace AAEmu.Game.Models.Game.Quests
                     Status = QuestStatus.Completed;
                 else if (Step >= 6)
                     Status = QuestStatus.Ready;
-                if (Step == 3)
-                    Step = 4;
                 var component = Template.GetComponent(Step);
                 if (component == null)
                     continue;
@@ -126,64 +124,6 @@ namespace AAEmu.Game.Models.Game.Quests
             return res ? componentId : 0;
         }
 
-        public int GetExps()
-        {
-            var res = false;
-            var exps = 0;
-            for (; Step <= 9; Step++)
-            {
-                if (Step >= 8)
-                    Status = QuestStatus.Completed;
-                var component = Template.GetComponent(8);
-                if (component == null)
-                    continue;
-                var acts = QuestManager.Instance.GetActs(component.Id);
-                foreach (var act in acts)
-                {
-                    if (act.DetailType == "QuestActSupplyExp")
-                    {
-                        var detailid = act.DetailId;
-                        var template = act.GetTemplate<QuestActSupplyExp>();
-                        exps = template.Exp;
-                    }
-                    else
-                        exps = 0;
-                }
-
-                if (!res)
-                    return exps;
-            }
-            return res ? exps : 0;
-        }
-        public int GetCopper()
-        {
-            var res = false;
-            var copper = 0;
-            for (; Step <= 8; Step++)
-            {
-                 if (Step >= 8)
-                  Status = QuestStatus.Completed;
-                var component = Template.GetComponent(8);
-                if (component == null)
-                    continue;
-                var acts = QuestManager.Instance.GetActs(component.Id);
-                foreach (var act in acts)
-                {
-                    if (act.DetailType == "QuestActSupplyCoppers")
-                    {
-                        var detailid = act.DetailId;
-                        var template = act.GetTemplate<QuestActSupplyCopper>();
-                        copper = template.Amount;
-                    }
-                    else
-                        copper = 0;
-                }
-
-                if (!res)
-                    return copper;
-            }
-            return res ? copper : 0;
-        }
         public void Drop()
         {
             Status = QuestStatus.Dropped;
@@ -288,19 +228,6 @@ namespace AAEmu.Game.Models.Game.Quests
                     var act = acts[i];
                     switch (act.DetailType)
                     {
-                        case "QuestActSupplyItem":
-                            {
-                                var template = acts[i].GetTemplate<QuestActSupplyItem>();
-                                if (template.ItemId == item.TemplateId)
-                                {
-                                    res = true;
-                                    Objectives[i] += count;
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
-                                        Objectives[i] = template.Count;
-                                }
-                               
-                                break;
-                            }
                         case "QuestActObjItemGather":
                         {
                             var template = acts[i].GetTemplate<QuestActObjItemGather>();
@@ -470,14 +397,6 @@ namespace AAEmu.Game.Models.Game.Quests
             for (var i = 0; i < acts.Length; i++)
             {
                 var act = acts[i];
-
-                if (act.DetailType == "QuestActSupplyItem")
-                {
-                    var template = acts[i].GetTemplate<QuestActSupplyItem>();
-                    Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
-                    if (Objectives[i] > template.Count) // TODO check to overtime
-                        Objectives[i] = template.Count;
-                }
                 if (act.DetailType == "QuestActObjItemGather")
                 {
                     var template = acts[i].GetTemplate<QuestActObjItemGather>();
