@@ -71,8 +71,8 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (supply)
                 {
-                    var exps = quest.GetExps();
-                    var amount = quest.GetCopper();
+                    var exps = quest.GetCustomSupplies("exp"); 
+                    var amount = quest.GetCustomSupplies("copper");
                     var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
                     if (supplies != null)
                     {
@@ -82,10 +82,7 @@ namespace AAEmu.Game.Models.Game.Char
                         {
                             amount = supplies.Copper;
                         }
-                        
-                            
                         Owner.Money += amount;
-                        
                         Owner.SendPacket(
                             new SCItemTaskSuccessPacket(
                                 ItemTaskType.QuestComplete,
@@ -97,7 +94,6 @@ namespace AAEmu.Game.Models.Game.Char
                         );
                     }
                 }
-
                 var completeId = (ushort)(quest.TemplateId / 64);
                 if (!CompletedQuests.ContainsKey(completeId))
                     CompletedQuests.Add(completeId, new CompletedQuest(completeId));

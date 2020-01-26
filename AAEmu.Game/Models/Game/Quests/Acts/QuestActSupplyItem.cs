@@ -33,27 +33,16 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             _log.Warn("QuestActSupplyItem"); // TODO add item
             var tasks = new List<ItemTask>();
             var item = ItemManager.Instance.Create(ItemId, Count,  GradeId);
-            //character.Inventory.AddItem(item);
-
-            //InventoryHelper.AddItemAndUpdateClient(character, item);
-              var res = character.Inventory.AddItem(item);
-             if (res == null)
-             {
-                 ItemIdManager.Instance.ReleaseId((uint)item.Id);
-              }
-
-              if (res.Id != item.Id)
-                  tasks.Add(new ItemCountUpdate(res, item.Count));
-              else
-                 tasks.Add(new ItemAdd(item));
-
-              //tasks.Add(new ItemAdd(item));
-
-
-              character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestSupplyItems, tasks , new List<ulong>()));
-
-
-
+            var res = character.Inventory.AddItem(item);
+            if (res == null)
+            {
+                ItemIdManager.Instance.ReleaseId((uint)item.Id);
+            }
+            if (res.Id != item.Id)
+                tasks.Add(new ItemCountUpdate(res, item.Count));
+            else
+                tasks.Add(new ItemAdd(item));
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestSupplyItems, tasks , new List<ulong>()));
             return false;
         }
     }

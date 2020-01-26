@@ -74,18 +74,18 @@ namespace AAEmu.Game.Models.Game.Quests
                     Status = QuestStatus.Completed;
                 else if (Step >= 6)
                     Status = QuestStatus.Ready;
-                if (Step == 3)
-                    Step = 4;
                 var component = Template.GetComponent(Step);
                 if (component == null)
                     continue;
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
+                    if (acts[i].DetailType == "QuestActSupplyItem")
+                        res = true;
+                    else
                     res = acts[i].Use(Owner, this, Objectives[i]);
                 if (!res)
                     break;
                 componentId = component.Id;
-
                 for (var i = 0; i < 5; i++)
                     Objectives[i] = 0;
             }
@@ -126,10 +126,12 @@ namespace AAEmu.Game.Models.Game.Quests
             return res ? componentId : 0;
         }
 
-        public int GetExps()
+        public int GetCustomSupplies(string supply)
         {
+            //supply == "exp" for exps  "copper" for "coppers"
+             
             var res = false;
-            var exps = 0;
+            var value = 0;
             for (; Step <= 9; Step++)
             {
                 if (Step >= 8)
@@ -140,49 +142,25 @@ namespace AAEmu.Game.Models.Game.Quests
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 foreach (var act in acts)
                 {
-                    if (act.DetailType == "QuestActSupplyExp")
+                    if (act.DetailType == "QuestActSupplyExp" & supply == "exp" )
                     {
                         var detailid = act.DetailId;
                         var template = act.GetTemplate<QuestActSupplyExp>();
-                        exps = template.Exp;
+                        value = template.Exp;
                     }
-                    else
-                        exps = 0;
-                }
-
-                if (!res)
-                    return exps;
-            }
-            return res ? exps : 0;
-        }
-        public int GetCopper()
-        {
-            var res = false;
-            var copper = 0;
-            for (; Step <= 8; Step++)
-            {
-                 if (Step >= 8)
-                  Status = QuestStatus.Completed;
-                var component = Template.GetComponent(8);
-                if (component == null)
-                    continue;
-                var acts = QuestManager.Instance.GetActs(component.Id);
-                foreach (var act in acts)
-                {
-                    if (act.DetailType == "QuestActSupplyCoppers")
+                    else if (act.DetailType == "QuestActSupplyCoppers" & supply == "copper")
                     {
                         var detailid = act.DetailId;
                         var template = act.GetTemplate<QuestActSupplyCopper>();
-                        copper = template.Amount;
+                        value = template.Amount;
                     }
                     else
-                        copper = 0;
+                        value = 0;
                 }
-
                 if (!res)
-                    return copper;
+                    return value;
             }
-            return res ? copper : 0;
+            return res ? value : 0;
         }
         public void Drop()
         {
