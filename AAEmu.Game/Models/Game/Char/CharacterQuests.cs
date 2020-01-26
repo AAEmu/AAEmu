@@ -71,17 +71,15 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (supply)
                 {
-                    var exps = quest.GetCustomSupplies("exp"); 
-                    var amount = quest.GetCustomSupplies("copper");
+                    var exps = quest.GetCustomExp(); 
+                    var amount = quest.GetCustomCopper();
                     var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
                     if (supplies != null)
                     {
                         if (exps == 0)
                             Owner.AddExp(supplies.Exp, true);
                         if (amount == 0)
-                        {
                             amount = supplies.Copper;
-                        }
                         Owner.Money += amount;
                         Owner.SendPacket(
                             new SCItemTaskSuccessPacket(

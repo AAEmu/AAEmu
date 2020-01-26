@@ -125,42 +125,33 @@ namespace AAEmu.Game.Models.Game.Quests
 
             return res ? componentId : 0;
         }
-
+        public int GetCustomExp() { return GetCustomSupplies("copper"); }
+        public int GetCustomCopper() { return GetCustomSupplies("exp"); }
         public int GetCustomSupplies(string supply)
         {
             //supply == "exp" for exps  "copper" for "coppers"
-             
-            var res = false;
+           
             var value = 0;
-            for (; Step <= 9; Step++)
+            var component = Template.GetComponent(8);// set to 8 since the component kind id is 8 for QuestActSupplyExp and QuestActSupplyCoppers
+            if (component == null)
+                return 0;
+            var acts = QuestManager.Instance.GetActs(component.Id);
+            foreach (var act in acts)
             {
-                if (Step >= 8)
-                    Status = QuestStatus.Completed;
-                var component = Template.GetComponent(8);
-                if (component == null)
-                    continue;
-                var acts = QuestManager.Instance.GetActs(component.Id);
-                foreach (var act in acts)
+                if (act.DetailType == "QuestActSupplyExp" & supply == "exp" )
                 {
-                    if (act.DetailType == "QuestActSupplyExp" & supply == "exp" )
-                    {
-                        var detailid = act.DetailId;
-                        var template = act.GetTemplate<QuestActSupplyExp>();
-                        value = template.Exp;
-                    }
-                    else if (act.DetailType == "QuestActSupplyCoppers" & supply == "copper")
-                    {
-                        var detailid = act.DetailId;
-                        var template = act.GetTemplate<QuestActSupplyCopper>();
-                        value = template.Amount;
-                    }
-                    else
-                        value = 0;
+                    var template = act.GetTemplate<QuestActSupplyExp>();
+                    value = template.Exp;
                 }
-                if (!res)
-                    return value;
+                else if (act.DetailType == "QuestActSupplyCoppers" & supply == "copper")
+                {
+                    var template = act.GetTemplate<QuestActSupplyCopper>();
+                    value = template.Amount;
+                }
+                else
+                    value = 0;
             }
-            return res ? value : 0;
+            return value;
         }
         public void Drop()
         {
