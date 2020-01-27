@@ -127,7 +127,8 @@ namespace AAEmu.Game.Models.Game.Quests
         }
         public int GetCustomExp() { return GetCustomSupplies("copper"); }
         public int GetCustomCopper() { return GetCustomSupplies("exp"); }
-        enum QuestComponentKind
+
+        public enum QuestComponentKind
         {
             None = 1,
             Start = 2,
@@ -138,12 +139,12 @@ namespace AAEmu.Game.Models.Game.Quests
             Drop = 7,
             Reward = 8
         }
-
         public int GetCustomSupplies(string supply)
         {
             //supply == "exp" for exps  "copper" for "coppers"
            
             var value = 0;
+
             var step = QuestComponentKind.Reward;
             var component = Template.GetComponent((byte) step);// set to 8 since the component kind id is 8 for QuestActSupplyExp and QuestActSupplyCoppers
             if (component == null)
@@ -166,7 +167,6 @@ namespace AAEmu.Game.Models.Game.Quests
             }
             return value;
         }
-
         public void RemoveQuestItems() //MJ this Function created directly from Drop Fuction, since it is used Multiple place to avoid duplicate code
         {
             for (byte step = 0; step <= 8; step++)
