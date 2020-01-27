@@ -127,12 +127,25 @@ namespace AAEmu.Game.Models.Game.Quests
         }
         public int GetCustomExp() { return GetCustomSupplies("copper"); }
         public int GetCustomCopper() { return GetCustomSupplies("exp"); }
+        enum QuestComponentKind
+        {
+            None = 1,
+            Start = 2,
+            Supply = 3,
+            Progress = 4,
+            Fail = 5,
+            Ready = 6,
+            Drop = 7,
+            Reward = 8
+        }
+
         public int GetCustomSupplies(string supply)
         {
             //supply == "exp" for exps  "copper" for "coppers"
            
             var value = 0;
-            var component = Template.GetComponent(8);// set to 8 since the component kind id is 8 for QuestActSupplyExp and QuestActSupplyCoppers
+            var step = QuestComponentKind.Reward;
+            var component = Template.GetComponent((byte) step);// set to 8 since the component kind id is 8 for QuestActSupplyExp and QuestActSupplyCoppers
             if (component == null)
                 return 0;
             var acts = QuestManager.Instance.GetActs(component.Id);
@@ -153,12 +166,9 @@ namespace AAEmu.Game.Models.Game.Quests
             }
             return value;
         }
-        public void Drop()
+
+        public void RemoveQuestItems() //MJ this Function created directly from Drop Fuction, since it is used Multiple place to avoid duplicate code
         {
-            Status = QuestStatus.Dropped;
-            for (var i = 0; i < 5; i++)
-                Objectives[i] = 0;
-            Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
             for (byte step = 0; step <= 8; step++)
             {
                 var component = Template.GetComponent(step);
@@ -168,7 +178,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 foreach (var act in acts)
                 {
                     var items = new List<(Item, int)>();
-                    if (act.DetailType == "QuestActSupplyItem")
+                    if (act.DetailType == "QuestActSupplyItem" & step == 3)
                     {
                         var template = act.GetTemplate<QuestActSupplyItem>();
                         if (template.DestroyWhenDrop)
@@ -197,6 +207,15 @@ namespace AAEmu.Game.Models.Game.Quests
                     );
                 }
             }
+        }
+        public void Drop()
+        {
+            Status = QuestStatus.Dropped;
+            for (var i = 0; i < 5; i++)
+                Objectives[i] = 0;
+            Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
+            //MJ remaining code moved to new function RemoveQuestItems()
+            RemoveQuestItems();
         }
 
         public void OnKill(Npc npc)
