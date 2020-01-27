@@ -144,7 +144,6 @@ namespace AAEmu.Game.Models.Game.Quests
             //supply == "exp" for exps  "copper" for "coppers"
            
             var value = 0;
-
             var step = QuestComponentKind.Reward;
             var component = Template.GetComponent((byte) step);// set to 8 since the component kind id is 8 for QuestActSupplyExp and QuestActSupplyCoppers
             if (component == null)
