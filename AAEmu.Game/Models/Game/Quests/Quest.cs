@@ -127,18 +127,7 @@ namespace AAEmu.Game.Models.Game.Quests
         }
         public int GetCustomExp() { return GetCustomSupplies("copper"); }
         public int GetCustomCopper() { return GetCustomSupplies("exp"); }
-
-        public enum QuestComponentKind
-        {
-            None = 1,
-            Start = 2,
-            Supply = 3,
-            Progress = 4,
-            Fail = 5,
-            Ready = 6,
-            Drop = 7,
-            Reward = 8
-        }
+       
         public int GetCustomSupplies(string supply)
         {
             //supply == "exp" for exps  "copper" for "coppers"
@@ -166,6 +155,7 @@ namespace AAEmu.Game.Models.Game.Quests
             }
             return value;
         }
+
         public void RemoveQuestItems() //MJ this Function created directly from Drop Fuction, since it is used Multiple place to avoid duplicate code
         {
             for (byte step = 0; step <= 8; step++)
