@@ -100,6 +100,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var body = new byte[8];
                 complete.Body.CopyTo(body, 0);
                 Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
+                quest.RemoveQuestItems();
                 Quests.Remove(questId);
                 _removed.Add(questId);
                 OnQuestComplete(questId);
