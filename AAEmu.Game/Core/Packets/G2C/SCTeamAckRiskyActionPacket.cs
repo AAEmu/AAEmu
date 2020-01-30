@@ -1,5 +1,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -7,11 +8,11 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _teamId;
         private readonly uint _id;
-        private readonly byte _ra;
+        private readonly RiskyAction _ra;
         private readonly int _w;
         private readonly short _errorMessage;
-        
-        public SCTeamAckRiskyActionPacket(uint teamId, uint id, byte ra, int w, short errorMessage) : base(SCOffsets.SCTeamAckRiskyActionPacket, 1)
+
+        public SCTeamAckRiskyActionPacket(uint teamId, uint id, RiskyAction ra, int w, short errorMessage) : base(SCOffsets.SCTeamAckRiskyActionPacket, 1)
         {
             _teamId = teamId;
             _id = id;
@@ -24,7 +25,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_teamId);
             stream.Write(_id);
-            stream.Write(_ra);
+            stream.Write((byte)_ra);
             stream.Write(_w);
             stream.Write(_errorMessage);
             return stream;

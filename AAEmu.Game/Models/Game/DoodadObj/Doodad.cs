@@ -89,9 +89,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId);
             stream.WriteBc(ParentObjId);
             stream.Write(AttachPoint); // attachPoint
-            stream.Write(Helpers.ConvertX(Position.X));
-            stream.Write(Helpers.ConvertY(Position.Y));
-            stream.Write(Helpers.ConvertZ(Position.Z));
+            stream.WritePosition(Position.X, Position.Y, Position.Z);
             stream.Write(Helpers.ConvertRotation(Position.RotationX));
             stream.Write(Helpers.ConvertRotation(Position.RotationY));
             stream.Write(Helpers.ConvertRotation(Position.RotationZ));

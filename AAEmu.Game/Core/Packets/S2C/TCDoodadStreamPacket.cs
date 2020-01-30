@@ -27,9 +27,7 @@ namespace AAEmu.Game.Core.Packets.S2C
             {
                 stream.WriteBc(doodad.ObjId);
                 stream.Write(doodad.TemplateId);
-                stream.Write(Helpers.ConvertX(doodad.Position.X));
-                stream.Write(Helpers.ConvertY(doodad.Position.Y));
-                stream.Write(Helpers.ConvertZ(doodad.Position.Z));
+                stream.WritePosition(doodad.Position.X, doodad.Position.Y, doodad.Position.Z);
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationX));
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationY));
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationZ));

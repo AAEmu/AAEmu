@@ -23,7 +23,8 @@ namespace AAEmu.Game.Models.Tasks
             if (_connection.ActiveChar != null)
             {
                 _connection.ActiveChar.DisabledSetPosition = true;
-                
+                _connection.ActiveChar.IsOnline = false;
+
                 var activeMate = MateManager.Instance.GetActiveMate(_connection.ActiveChar.ObjId);
                 if (activeMate != null)
                 {
@@ -48,6 +49,9 @@ namespace AAEmu.Game.Models.Tasks
 
                 if (_connection.ActiveChar.Family > 0)
                     FamilyManager.Instance.OnCharacterLogout(_connection.ActiveChar);
+                
+                _connection.ActiveChar.Expedition?.OnCharacterLogout(_connection.ActiveChar);
+
                 _connection.ActiveChar.Delete();
                 ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
 

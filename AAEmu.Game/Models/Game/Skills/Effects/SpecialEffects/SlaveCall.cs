@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using AAEmu.Game.Core.Helper;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;

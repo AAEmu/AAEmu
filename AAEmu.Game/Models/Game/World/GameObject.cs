@@ -1,4 +1,5 @@
 using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -33,7 +34,7 @@ namespace AAEmu.Game.Models.Game.World
         {
             if (DisabledSetPosition)
                 return;
-            
+
             Position.X = x;
             Position.Y = y;
             Position.Z = z;
@@ -44,7 +45,11 @@ namespace AAEmu.Game.Models.Game.World
         {
             if (DisabledSetPosition)
                 return;
-            
+
+            if (this is Character)
+                if (!Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z))
+                    TeamManager.Instance.UpdatePosition(((Character)this).Id);
+
             Position.X = x;
             Position.Y = y;
             Position.Z = z;

@@ -1,9 +1,9 @@
-using AAEmu.Game.Core.Helper;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Char
 {

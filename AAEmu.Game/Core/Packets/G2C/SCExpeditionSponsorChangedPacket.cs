@@ -17,18 +17,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_faction.Id);
-            stream.Write(_faction.AggroLink);
-            stream.Write(_faction.MotherId);
-            stream.Write(_faction.Name);
-            stream.Write(_faction.OwnerId);
-            stream.Write(_faction.OwnerName);
-            stream.Write(_faction.UnitOwnerType);
-            stream.Write(_faction.PoliticalSystem);
-            stream.Write(_faction.Created);
-            stream.Write(_faction.DiplomacyTarget);
-            stream.Write((byte)0); // allowChangeName
-
+            stream.Write(_faction);
             stream.Write(_success);
             return stream;
         }

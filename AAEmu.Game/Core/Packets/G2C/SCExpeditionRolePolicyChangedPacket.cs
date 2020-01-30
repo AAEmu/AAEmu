@@ -18,6 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_rolePolicy);
+            stream.Write(_success);
             return stream;
         }
     }

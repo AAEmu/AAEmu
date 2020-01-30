@@ -6,8 +6,8 @@ namespace AAEmu.Game.Models.Game
 {
     public class DominionData : PacketMarshaler
     {
-        public ushort Id { get; set; }
-        public uint Id2 { get; set; }
+        public ushort ZoneId { get; set; }
+        public uint ExpeditionId { get; set; }
         public uint House { get; set; } // TODO id?
         public int TaxRate { get; set; }
         public float X { get; set; }
@@ -30,14 +30,14 @@ namespace AAEmu.Game.Models.Game
         public float NationalMonumentZ { get; set; }
         public uint ObjId { get; set; }
         public DominionTerritoryData TerritoryData { get; set; }
-        public DominionSiegeTimers Timers { get; set; } // TODO mb not correct namings
+        public DominionSiegeTimers SiegeTimers { get; set; } // TODO mb not correct namings
         public DateTime NonPvPStart { get; set; }
         public ushort NonPvPDuration { get; set; }
         
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(Id);
-            stream.Write(Id2);
+            stream.Write(ZoneId);
+            stream.Write(ExpeditionId);
             stream.Write(House);
             stream.Write(TaxRate);
             stream.Write(Helpers.ConvertLongX(X));
@@ -60,7 +60,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(NationalMonumentZ);
             stream.WriteBc(ObjId);
             stream.Write(TerritoryData);
-            stream.Write(Timers);
+            stream.Write(SiegeTimers);
             stream.Write(NonPvPStart);
             stream.Write(NonPvPDuration);
             return stream;
@@ -122,7 +122,7 @@ namespace AAEmu.Game.Models.Game
 
     public class DominionUnkData : PacketMarshaler
     {
-        public uint Id { get; set; }
+        public uint Id { get; set; } // TODO ExpeditionId
         public uint ObjId { get; set; }
         public float X { get; set; }
         public float Y { get; set; }

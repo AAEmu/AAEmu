@@ -1,3 +1,4 @@
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -53,6 +54,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             npc.ModelId = template.ModelId;
             npc.Faction = FactionManager.Instance.GetFaction(template.FactionId);
             npc.Level = template.Level;
+            npc.Patrol = null;
 
             SetEquipItemTemplate(npc, template.Items.Headgear, EquipmentItemSlot.Head);
             SetEquipItemTemplate(npc, template.Items.Necklace, EquipmentItemSlot.Neck);
@@ -81,6 +83,19 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 for (var i = 0; i < 7; i++)
                     SetEquipItemTemplate(npc, template.BodyItems[i], (EquipmentItemSlot) (i + 19));
+            }
+
+            foreach (var buffId in template.Buffs)
+            {
+                var buff = SkillManager.Instance.GetBuffTemplate(buffId);
+                if (buff == null)
+                {
+                    _log.Warn("BuffId {0} for npc {1} not found", buffId, npc.TemplateId);
+                    continue;
+                }
+
+                var obj = new SkillCasterUnit(npc.ObjId);
+                buff.Apply(npc, obj, npc, null, null, null, null, DateTime.Now);
             }
 
             foreach (var bonusTemplate in template.Bonuses)

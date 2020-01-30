@@ -28,9 +28,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_reason);
             stream.Write(_errorMessage);
-            stream.Write(Helpers.ConvertX(_x));
-            stream.Write(Helpers.ConvertY(_y));
-            stream.Write(Helpers.ConvertZ(_z));
+            stream.WritePosition(_x, _y, _z);
             stream.Write(_z2);
             return stream;
         }

@@ -22,9 +22,13 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            var amount = int.Parse(args[0]);
-            character.Money += amount;
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(amount) }, new List<ulong>()));
+            if (int.TryParse(args[0], out var amount))
+            {
+                character.Money += amount;
+                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, new List<ItemTask> { new MoneyChange(amount) }, new List<ulong>()));
+            }
+            else
+                character.SendMessage("[Gold] Params wrong...");
         }
     }
 }

@@ -2,7 +2,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
-namespace AAEmu.Game.Models.Game
+namespace AAEmu.Game.Models.Game.Shipyard
 {
     public class ShipyardData : PacketMarshaler
     {
