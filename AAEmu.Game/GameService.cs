@@ -43,7 +43,9 @@ namespace AAEmu.Game
             HousingIdManager.Instance.Initialize();
             HousingTldManager.Instance.Initialize();
             TeamIdManager.Instance.Initialize();
+
             LaborPowerManager.Instance.Initialize();
+
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
@@ -70,7 +72,7 @@ namespace AAEmu.Game
             FamilyManager.Instance.Load();
             PortalManager.Instance.Load();
             FriendMananger.Instance.Load();
-
+            MailManager.Instance.Load();
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
             HousingManager.Instance.Load();
@@ -80,6 +82,7 @@ namespace AAEmu.Game
             HousingManager.Instance.SpawnAll();
 
             AccessLevelManager.Instance.Load();
+
             CashShopManager.Instance.Load();
             ScriptCompiler.Compile();
 
@@ -106,6 +109,7 @@ namespace AAEmu.Game
             LoginNetwork.Instance.Stop();
 
             HousingManager.Instance.Save();
+            MailManager.Instance.Save();
             return Task.CompletedTask;
         }
 

@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
-
 namespace AAEmu.Game.Models.Game.Units.Route
 {
     class Line : Patrol
     {
         float distance = 0f;
+
         float MovingDistance = 0.27f;
+
         public Point Position { get; set; } 
 
         public override void Execute(Npc npc)
@@ -23,11 +25,13 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 Stop(npc);
                 return;
             }
+
             var move = false;
             var x = npc.Position.X - Position.X;
             var y = npc.Position.Y - Position.Y;
             var z = npc.Position.Z - Position.Z;
             var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
+
             float tempMovingDistance;
 
             if (Math.Abs(x) > distance)
@@ -116,6 +120,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             //改变NPC坐标
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
+
             moveType.Z = AppConfiguration.Instance.HeightMapsEnable
                 ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y)
                 : npc.Position.Z;
@@ -125,6 +130,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
+
 
             moveType.Flags = 5;
             moveType.DeltaMovement = new sbyte[3];

@@ -147,6 +147,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
             trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
+
             if (trg is Npc)
             {
                 trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
@@ -167,6 +168,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     TaskManager.Instance.Schedule(new UnitMove(new Track(), npc), TimeSpan.FromMilliseconds(100));
                 }
             }
+
         }
     }
 }
