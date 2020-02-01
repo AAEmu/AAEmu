@@ -79,9 +79,6 @@ namespace AAEmu.Game.Models.Game.Quests
                     continue;
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
-                    if (acts[i].DetailType == "QuestActSupplyItem")
-                        res = true;
-                    else
                     res = acts[i].Use(Owner, this, Objectives[i]);
                 if (!res)
                     break;
