@@ -71,23 +71,27 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (supply)
                 {
+                    var exps = quest.GetCustomExp(); 
+                    var amount = quest.GetCustomCopper();
                     var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
                     if (supplies != null)
                     {
-                        Owner.AddExp(supplies.Exp, true);
-                        Owner.Money += supplies.Copper;
+                        if (exps == 0)
+                            Owner.AddExp(supplies.Exp, true);
+                        if (amount == 0)
+                            amount = supplies.Copper;
+                        Owner.Money += amount;
                         Owner.SendPacket(
                             new SCItemTaskSuccessPacket(
                                 ItemTaskType.QuestComplete,
                                 new List<ItemTask>
                                 {
-                                    new MoneyChange(supplies.Copper)
+                                    new MoneyChange(amount)
                                 },
                                 new List<ulong>())
                         );
                     }
                 }
-
                 var completeId = (ushort)(quest.TemplateId / 64);
                 if (!CompletedQuests.ContainsKey(completeId))
                     CompletedQuests.Add(completeId, new CompletedQuest(completeId));
@@ -96,6 +100,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var body = new byte[8];
                 complete.Body.CopyTo(body, 0);
                 Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
+                quest.RemoveQuestItems();
                 Quests.Remove(questId);
                 _removed.Add(questId);
                 OnQuestComplete(questId);

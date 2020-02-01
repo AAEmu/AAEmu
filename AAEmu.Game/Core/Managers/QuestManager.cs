@@ -759,7 +759,7 @@ namespace AAEmu.Game.Core.Managers
                             template.TeamShare = reader.GetBoolean("team_share", true);
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
                             template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
-                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
+                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id",0);
                             template.Phase = reader.GetUInt32("phase", 0);
                             _actTemplates["QuestActObjInteraction"].Add(template.Id, template);
                         }
