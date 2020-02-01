@@ -79,11 +79,13 @@ namespace AAEmu.Game.Models.Game.Quests
                     continue;
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
+                    if (acts[i].DetailType == "QuestActSupplyItem")
+                        res = true;
+                    else
                     res = acts[i].Use(Owner, this, Objectives[i]);
                 if (!res)
                     break;
                 componentId = component.Id;
-
                 for (var i = 0; i < 5; i++)
                     Objectives[i] = 0;
             }
@@ -123,13 +125,36 @@ namespace AAEmu.Game.Models.Game.Quests
 
             return res ? componentId : 0;
         }
-
-        public void Drop()
+        public int GetCustomExp() { return GetCustomSupplies("copper"); }
+        public int GetCustomCopper() { return GetCustomSupplies("exp"); }
+       
+        public int GetCustomSupplies(string supply)
         {
-            Status = QuestStatus.Dropped;
-            for (var i = 0; i < 5; i++)
-                Objectives[i] = 0;
-            Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
+            var value = 0;
+            var component = Template.GetComponent((byte) QuestComponentKind.Reward);
+            if (component == null)
+                return 0;
+            var acts = QuestManager.Instance.GetActs(component.Id);
+            foreach (var act in acts)
+            {
+                if (act.DetailType == "QuestActSupplyExp" & supply == "exp" )
+                {
+                    var template = act.GetTemplate<QuestActSupplyExp>();
+                    value = template.Exp;
+                }
+                else if (act.DetailType == "QuestActSupplyCoppers" & supply == "copper")
+                {
+                    var template = act.GetTemplate<QuestActSupplyCopper>();
+                    value = template.Amount;
+                }
+                else
+                    value = 0;
+            }
+            return value;
+        }
+
+        public void RemoveQuestItems()
+        {
             for (byte step = 0; step <= 8; step++)
             {
                 var component = Template.GetComponent(step);
@@ -139,7 +164,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 foreach (var act in acts)
                 {
                     var items = new List<(Item, int)>();
-                    if (act.DetailType == "QuestActSupplyItem")
+                    if (act.DetailType == "QuestActSupplyItem" & step == (byte)QuestComponentKind.Supply)
                     {
                         var template = act.GetTemplate<QuestActSupplyItem>();
                         if (template.DestroyWhenDrop)
@@ -168,6 +193,14 @@ namespace AAEmu.Game.Models.Game.Quests
                     );
                 }
             }
+        }
+        public void Drop()
+        {
+            Status = QuestStatus.Dropped;
+            for (var i = 0; i < 5; i++)
+                Objectives[i] = 0;
+            Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
+            RemoveQuestItems();
         }
 
         public void OnKill(Npc npc)
@@ -228,6 +261,19 @@ namespace AAEmu.Game.Models.Game.Quests
                     var act = acts[i];
                     switch (act.DetailType)
                     {
+                        case "QuestActSupplyItem":
+                            {
+                                var template = acts[i].GetTemplate<QuestActSupplyItem>();
+                                if (template.ItemId == item.TemplateId)
+                                {
+                                    res = true;
+                                    Objectives[i] += count;
+                                    if (Objectives[i] > template.Count) // TODO check to overtime
+                                        Objectives[i] = template.Count;
+                                }
+                               
+                                break;
+                            }
                         case "QuestActObjItemGather":
                         {
                             var template = acts[i].GetTemplate<QuestActObjItemGather>();
@@ -397,6 +443,14 @@ namespace AAEmu.Game.Models.Game.Quests
             for (var i = 0; i < acts.Length; i++)
             {
                 var act = acts[i];
+
+                if (act.DetailType == "QuestActSupplyItem")
+                {
+                    var template = acts[i].GetTemplate<QuestActSupplyItem>();
+                    Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                    if (Objectives[i] > template.Count) // TODO check to overtime
+                        Objectives[i] = template.Count;
+                }
                 if (act.DetailType == "QuestActObjItemGather")
                 {
                     var template = acts[i].GetTemplate<QuestActObjItemGather>();
