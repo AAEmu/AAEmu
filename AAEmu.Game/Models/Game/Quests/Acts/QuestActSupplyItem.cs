@@ -22,17 +22,17 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
 
         public override bool Use(Character character, Quest quest, int objective)
         {
+            _log.Warn("QuestActSupplyItem");
             if (objective >= Count)
                 return true;
             else
             {
-                _log.Warn("QuestActSupplyItem");
                 var tasks = new List<ItemTask>();
                 var item = ItemManager.Instance.Create(ItemId, Count, GradeId);
                 var backpackTemplate = (BackpackTemplate)item?.Template;
                 var res = character.Inventory.AddItem(item);
                 if (res == null)
-                ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
                 if (res.Id != item.Id)
                     tasks.Add(new ItemCountUpdate(res, item.Count));
                 else
