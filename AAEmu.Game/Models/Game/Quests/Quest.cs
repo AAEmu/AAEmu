@@ -79,9 +79,6 @@ namespace AAEmu.Game.Models.Game.Quests
                     continue;
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
-                    if (acts[i].DetailType == "QuestActSupplyItem")
-                        res = true;
-                    else
                     res = acts[i].Use(Owner, this, Objectives[i]);
                 if (!res)
                     break;
@@ -168,17 +165,15 @@ namespace AAEmu.Game.Models.Game.Quests
                     {
                         var template = act.GetTemplate<QuestActSupplyItem>();
                         if (template.DestroyWhenDrop)
+                            Owner.Inventory.TakeoffBackpack();
                             items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-
                     }
-
                     if (act.DetailType == "QuestActObjItemGather")
                     {
                         var template = act.GetTemplate<QuestActObjItemGather>();
                         if (template.DestroyWhenDrop)
                             items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                     }
-
                     var tasks = new List<ItemTask>();
                     foreach (var (item, count) in items)
                     {
@@ -187,7 +182,6 @@ namespace AAEmu.Game.Models.Game.Quests
                         else
                             tasks.Add(new ItemCountUpdate(item, -count));
                     }
-
                     Owner.SendPacket(
                         new SCItemTaskSuccessPacket(ItemTaskType.QuestRemoveSupplies, tasks, new List<ulong>())
                     );
