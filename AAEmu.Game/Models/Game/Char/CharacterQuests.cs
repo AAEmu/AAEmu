@@ -133,7 +133,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void OnItemUse(Item item)
         {
-            foreach (var quest in Quests.Values)
+            foreach (var quest in Quests.Values.ToList())
                 quest.OnItemUse(item);
         }
 
