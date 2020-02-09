@@ -13,7 +13,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("add_portal", this);
+            string[] name = { "add_portal", "addportal" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
@@ -31,7 +32,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[AddPortal] /add_portal (target) <name> [<x> <y> <z> <zoneid>]");
+                character.SendMessage("[AddPortal] " + CommandManager.CommandPrefix + "add_portal (target) <name> [<x> <y> <z> <zoneid>]");
                 //character.SendMessage("[AddPortal] *optional (will get actual position)");
                 return;
             }

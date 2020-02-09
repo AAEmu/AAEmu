@@ -24,9 +24,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var languageType = stream.ReadByte();
             var ability = stream.ReadInt32();
 
-            if (message.StartsWith("/"))
+            if (message.StartsWith(CommandManager.CommandPrefix))
             {
-                if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(1).Trim()))
+                if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim()))
                     return;
             }
 

@@ -29,7 +29,7 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 if (args.Length < 4)
                 {
-                    character.SendMessage("[HouseBindings] /house_binding_move <AttachPointId> <X> <Y> <Z>");
+                    character.SendMessage("[HouseBindings] " + CommandManager.CommandPrefix + "house_binding_move <AttachPointId> <X> <Y> <Z>");
                     return;
                 }
                 if (uint.TryParse(args[0], out var attachPointId) &&

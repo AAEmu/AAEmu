@@ -26,7 +26,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Scripts] Using: /scripts <action>");
+                character.SendMessage("[Scripts] Using: " + CommandManager.CommandPrefix + "scripts <action>");
                 //character.SendMessage("[Scripts] Action: reload");
                 return;
             }

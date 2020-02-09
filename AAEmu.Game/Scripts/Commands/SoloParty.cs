@@ -12,7 +12,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("soloparty", this);
+            string[] name = { "solo_party", "soloparty" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
@@ -22,7 +23,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Creates a party with just yourself in it. This can be usefull to use with \"/teleport .\" command.";
+            return "Creates a party with just yourself in it. This can be usefull to use with \"" + CommandManager.CommandPrefix + "teleport .\" command.";
         }
 
         public void Execute(Character character, string[] args)

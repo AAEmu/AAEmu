@@ -29,7 +29,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length < 2)
             {
-                character.SendMessage("[Spawn] /spawn <npc||doodad> <unitId>");
+                character.SendMessage("[Spawn] " + CommandManager.CommandPrefix + "spawn <npc||doodad> <unitId>");
                 return;
             }
 

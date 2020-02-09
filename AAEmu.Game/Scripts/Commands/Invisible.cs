@@ -25,7 +25,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Invisible] /invisible <true||false>");
+                character.SendMessage("[Invisible] " + CommandManager.CommandPrefix + "invisible <true||false>");
                 return;
             }
 

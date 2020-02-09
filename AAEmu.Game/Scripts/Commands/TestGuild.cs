@@ -33,7 +33,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[TestGuild] /test_guild <GuildName>");
+                character.SendMessage("[TestGuild] " + CommandManager.CommandPrefix + "test_guild <GuildName>");
                 return;
             }
 

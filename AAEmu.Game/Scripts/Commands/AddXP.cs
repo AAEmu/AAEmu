@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -9,35 +10,38 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("addxp", this);
+            string[] name = { "add_xp", "addxp", "givexp", "xp" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
         {
-            return "<xp>";
+            return "(target) <xp>";
         }
 
         public string GetCommandHelpText()
         {
-            return "Adds experience points.";
+            return "Adds experience points (to target player)";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[AddXP] /addxp <exp>");
+                character.SendMessage("[AddXP] " + CommandManager.CommandPrefix + "add_xp (target) <exp>");
                 return;
             }
 
+            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+
             var xptoadd = 0;
-            if (int.TryParse(args[0], out int parsexp))
+            if (int.TryParse(args[firstarg + 0], out int parsexp))
             {
                 xptoadd = parsexp;
             }
 
             if (xptoadd > 0)
-                character.AddExp(xptoadd, true);
+                targetPlayer.AddExp(xptoadd, true);
         }
     }
 }

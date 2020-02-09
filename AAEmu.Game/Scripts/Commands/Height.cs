@@ -14,18 +14,20 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "";
+            return "(target)";
         }
 
         public string GetCommandHelpText()
         {
-            return "Gets your current height and that of the supposed floor (using heightmap data)";
+            return "Gets your or target's current height and that of the supposed floor (using heightmap data)";
         }
 
         public void Execute(Character character, string[] args)
         {
-            var height = WorldManager.Instance.GetHeight(character.Position.ZoneId, character.Position.X, character.Position.Y);
-            character.SendMessage("Me: {0} - Floor: {1}", character.Position.Z, height);
+            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+
+            var height = WorldManager.Instance.GetHeight(targetPlayer.Position.ZoneId, targetPlayer.Position.X, targetPlayer.Position.Y);
+            character.SendMessage("{2} Z-Pos: {0} - Floor: {1}", character.Position.Z, height, targetPlayer.Name);
         }
     }
 }

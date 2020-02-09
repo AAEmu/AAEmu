@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -38,25 +39,28 @@ namespace AAEmu.Game.Scripts.Commands
                         var cmd = CommandManager.Instance.GetCommandInterfaceByName(thisCommand);
                         var argText = cmd.GetCommandLineHelp();
                         var helpText = cmd.GetCommandHelpText();
-                        character.SendMessage($"Help for: |cFFFFFFFF/{thisCommand} {argText}|r\n|cFF999999{helpText}|r");
+                        character.SendMessage("Help for: |cFFFFFFFF" + CommandManager.CommandPrefix + thisCommand + " " + argText + "|r\n|cFF999999" + helpText + "|r");
                     }
                 }
                 if (!foundIt)
-                    character.SendMessage($"Command not found: /{thisCommand}");
+                    character.SendMessage("Command not found: " + CommandManager.CommandPrefix + thisCommand);
                 return;
             }
 
-            character.SendMessage("|cFF80FFFFList of GM Commands|r\n-----------------\n");
+            character.SendMessage("|cFF80FFFFList of available GM Commands|r\n-------------------------\n");
             foreach (var command in list)
             {
                 if (command == "help")
                     continue;
+                if (AccessLevel.getLevel(command) > character.AccessLevel)
+                    continue;
+
                 var cmd = CommandManager.Instance.GetCommandInterfaceByName(command);
                 var arghelp = cmd.GetCommandLineHelp();
                 if (arghelp != string.Empty)
-                    character.SendMessage($"/{command} |cFF999999{arghelp}|r");
+                    character.SendMessage(CommandManager.CommandPrefix + command + " |cFF999999" + arghelp + "|r");
                 else
-                    character.SendMessage($"/{command}");
+                    character.SendMessage(CommandManager.CommandPrefix + command);
             }
         }
 

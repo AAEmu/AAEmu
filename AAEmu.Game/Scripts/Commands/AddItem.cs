@@ -13,7 +13,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("add_item", this);
+            string[] name = { "add_item", "additem" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
@@ -30,7 +31,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Items] /add_item (target) <itemId> [count] [grade]");
+                character.SendMessage("[Items] " + CommandManager.CommandPrefix + "add_item (target) <itemId> [count] [grade]");
                 return;
             }
 

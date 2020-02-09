@@ -160,7 +160,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
             else
             {
-                character.SendMessage("Usage : /teleport <Location>\n" +
+                character.SendMessage("Usage : " + CommandManager.CommandPrefix + "teleport <Location>\n" +
                     "Use a period (.) to teleport to YOUR marked location on the map, or use one of the following locations :");
                 List<string> sb = new List<string>();
                 foreach (TeleportCommandRegions r in System.Enum.GetValues(typeof(TeleportCommandRegions)) )

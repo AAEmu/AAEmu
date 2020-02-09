@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -10,7 +11,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("change_level", this);
+            string[] name = { "set_level", "setlevel", "change_level", "changelevel", "level" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
@@ -28,13 +30,15 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[ChangeLevel] /change_level <level>");
+                character.SendMessage("[ChangeLevel] " + CommandManager.CommandPrefix + "set_level (target) <level>");
                 //character.SendMessage("[ChangeLevel] level: 1-100");
                 return;
             }
 
+            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+
             byte level = 0;
-            if (byte.TryParse(args[0], out byte parselevel))
+            if (byte.TryParse(args[firstarg + 0], out byte parselevel))
             {
                 level = parselevel;
             }
@@ -47,45 +51,45 @@ namespace AAEmu.Game.Scripts.Commands
 
             var maxexptoadd = 0;
 
-            if (character.Ability1 != AbilityType.None)
+            if (targetPlayer.Ability1 != AbilityType.None)
             {
-                var expfora1 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(character.Abilities.Abilities[character.Ability1].Exp, level);
+                var expfora1 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability1].Exp, level);
                 if (expfora1 > maxexptoadd)
                     maxexptoadd = expfora1;
             }
 
-            if (character.Ability2 != AbilityType.None)
+            if (targetPlayer.Ability2 != AbilityType.None)
             {
-                var expfora2 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(character.Abilities.Abilities[character.Ability2].Exp, level);
+                var expfora2 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability2].Exp, level);
                 if (expfora2 > maxexptoadd)
                     maxexptoadd = expfora2;
             }
 
-            if (character.Ability3 != AbilityType.None)
+            if (targetPlayer.Ability3 != AbilityType.None)
             {
-                var expfora3 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(character.Abilities.Abilities[character.Ability3].Exp, level);
+                var expfora3 = ExpirienceManager.Instance.GetExpNeededToGivenLevel(targetPlayer.Abilities.Abilities[targetPlayer.Ability3].Exp, level);
                 if (expfora3 > maxexptoadd)
                     maxexptoadd = expfora3;
             }
 
-            var expforlevel = ExpirienceManager.Instance.GetExpForLevel(level) - character.Expirience;
+            var expforlevel = ExpirienceManager.Instance.GetExpForLevel(level) - targetPlayer.Expirience;
             if (expforlevel > maxexptoadd)
                 maxexptoadd = expforlevel;
 
             // Add maximum required xp to get to target levels
             if (maxexptoadd > 0)
-                character.AddExp(maxexptoadd, true);
+                targetPlayer.AddExp(maxexptoadd, true);
 
             // If the target level is bigger than player's current level, refill HP/MP and send level-up packet
-            if (level > character.Level)
+            if (level > targetPlayer.Level)
             {
-                character.Level = level;
-                character.Expirience = expforlevel;
+                targetPlayer.Level = level;
+                targetPlayer.Expirience = expforlevel;
 
-                character.Hp = character.MaxHp;
-                character.Mp = character.MaxMp;
+                targetPlayer.Hp = targetPlayer.MaxHp;
+                targetPlayer.Mp = targetPlayer.MaxMp;
 
-                character.SendPacket(new SCLevelChangedPacket(character.ObjId, level));
+                targetPlayer.SendPacket(new SCLevelChangedPacket(targetPlayer.ObjId, level));
             }
         }
     }

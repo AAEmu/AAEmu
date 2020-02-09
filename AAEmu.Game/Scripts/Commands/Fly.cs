@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -14,7 +15,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<true||false>";
+            return "(target) <true||false>";
         }
 
         public string GetCommandHelpText()
@@ -26,12 +27,14 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Fly] /fly <true||false>");
+                character.SendMessage("[Fly] " + CommandManager.CommandPrefix + "fly (target) <true||false>");
                 return;
             }
 
-            if (bool.TryParse(args[0], out var isFlying))
-                character.BroadcastPacket(new SCUnitFlyingStateChangedPacket(character.ObjId, isFlying), true);
+            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+
+            if (bool.TryParse(args[firstarg + 0], out var isFlying))
+                targetPlayer.BroadcastPacket(new SCUnitFlyingStateChangedPacket(targetPlayer.ObjId, isFlying), true);
             else
                 character.SendMessage("|cFFFF0000[Fly] Throw parse bool!|r");
         }

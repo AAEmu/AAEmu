@@ -29,7 +29,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length < 2)
             {
-                character.SendMessage("[Around] Using: /around <doodad||npc||character> <radius>");
+                character.SendMessage("[Around] Using: " + CommandManager.CommandPrefix + "around <doodad||npc||character> <radius>");
                 // character.SendMessage("[Around] ObjType: doodad, npc, character");
                 return;
             }

@@ -9,7 +9,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("appellation", this);
+            string[] name = { "set_title", "settitle", "appellation" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
@@ -26,19 +27,19 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Appellation] /appellation <titleId>");
+                character.SendMessage("[Title] " + CommandManager.CommandPrefix + "set_title <titleId>");
                 return;
             }
 
             if (uint.TryParse(args[0], out var id))
             {
                 if (CharacterManager.Instance.GetAppellationsTemplate(id) == null)
-                    character.SendMessage("[Appellation] <titleId> {0} doesn't exist in the database ...", id);
+                    character.SendMessage("[Title] <titleId> {0} doesn't exist in the database ...", id);
                 else
                     character.Appellations.Add(id);
             }
             else
-                character.SendMessage("|cFFFF0000[Appellation] Error parsing <titleId> !|r");
+                character.SendMessage("|cFFFF0000[Title] Error parsing <titleId> !|r");
         }
     }
 }

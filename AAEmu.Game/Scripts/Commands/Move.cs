@@ -32,7 +32,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length < 2)
             {
-                character.SendMessage("[Move] /move <x> <y> <z>");
+                character.SendMessage("[Move] " + CommandManager.CommandPrefix + "move <x> <y> <z>");
                 return;
             }
 

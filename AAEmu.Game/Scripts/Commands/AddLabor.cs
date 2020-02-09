@@ -9,7 +9,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("add_labor", this);
+            string[] name = { "add_labor", "addlabor", "labor" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
@@ -31,7 +32,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Labor] /add_labor (target) <count> [targetSkill]");
+                character.SendMessage("[Labor] " + CommandManager.CommandPrefix + "add_labor (target) <count> [targetSkill]");
                 return;
             }
 

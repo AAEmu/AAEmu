@@ -35,7 +35,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("Announce", this);
+            CommandManager.Instance.Register("announce", this);
         }
 
         public string GetCommandLineHelp()
@@ -51,10 +51,10 @@ namespace AAEmu.Game.Scripts.Commands
                 "<VisibleTime> is in milliseconds\r\n" +
                 "If the first arguments isn't a valid NoticeType, all arguments are treated as the message using default color and time settings for type 3.\r\n" +
                 "examples:\r\n" +
-                "/announce 3 FF00FF00 5000 Text here use as many spaces as you wish\r\n" +
-                "/announce 3 FFFF00 2500 Text here is in yellow\r\n" +
-                "/announce 3 red 2500 Text here is in red\r\n" +
-                "/announce Automaticly generated lime text";
+                CommandManager.CommandPrefix + "announce 3 FF00FF00 5000 Text here use as many spaces as you wish\r\n" +
+                CommandManager.CommandPrefix + "announce 3 FFFF00 2500 Text here is in yellow\r\n" +
+                CommandManager.CommandPrefix + "announce 3 red 2500 Text here is in red\r\n" +
+                CommandManager.CommandPrefix + "announce Automaticly generated lime text";
         }
 
         public Color NameOrHexColor(String hex)
@@ -100,10 +100,10 @@ namespace AAEmu.Game.Scripts.Commands
             //if no arguments send help information
             if (args.Length == 0)
             {                                
-                character.SendMessage("[Announce] syntax: /announce [<NoticeType> <Color> <VisibleTime>] <message>");
-                character.SendMessage("[Announce] example1: /announce 3 FFFF00 2500 Text here is in yellow");
-                character.SendMessage("[Announce] example2: /announce 3 red 2500 Text here is in red");
-                character.SendMessage("[Announce] example3: /announce Automaticly generated lime text");
+                character.SendMessage("[Announce] syntax: " + CommandManager.CommandPrefix + "announce [<NoticeType> <Color> <VisibleTime>] <message>");
+                character.SendMessage("[Announce] example1: " + CommandManager.CommandPrefix + "announce 3 FFFF00 2500 Text here is in yellow");
+                character.SendMessage("[Announce] example2: " + CommandManager.CommandPrefix + "announce 3 red 2500 Text here is in red");
+                character.SendMessage("[Announce] example3: " + CommandManager.CommandPrefix + "announce Automaticly generated lime text");
                 return;
             }
 
