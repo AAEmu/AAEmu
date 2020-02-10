@@ -12,7 +12,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "add_gold", "addgold", "gold" };
+            string[] name = { "addgold", "add_gold", "gold" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Gold] "+ CommandManager.CommandPrefix + "add_gold (target) <gold> [silver] [copper]");
+                character.SendMessage("[Gold] "+ CommandManager.CommandPrefix + "addgold (target) <gold> [silver] [copper]");
                 return;
             }
 

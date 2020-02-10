@@ -9,7 +9,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("test_combat", this);
+            string[] name = { "testcombat", "test_combat" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()

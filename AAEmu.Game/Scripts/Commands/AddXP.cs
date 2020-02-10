@@ -28,7 +28,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[AddXP] " + CommandManager.CommandPrefix + "add_xp (target) <exp>");
+                character.SendMessage("[XP] " + CommandManager.CommandPrefix + "add_xp (target) <exp>");
                 return;
             }
 

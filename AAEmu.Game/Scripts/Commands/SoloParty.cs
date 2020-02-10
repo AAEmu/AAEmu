@@ -12,7 +12,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "solo_party", "soloparty" };
+            string[] name = { "soloparty", "solo_party" };
             CommandManager.Instance.Register(name, this);
         }
 

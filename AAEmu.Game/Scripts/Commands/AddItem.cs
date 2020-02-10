@@ -13,7 +13,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "add_item", "additem" };
+            string[] name = { "additem", "add_item" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -31,7 +31,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Items] " + CommandManager.CommandPrefix + "add_item (target) <itemId> [count] [grade]");
+                character.SendMessage("[Items] " + CommandManager.CommandPrefix + "additem (target) <itemId> [count] [grade]");
                 return;
             }
 
@@ -72,7 +72,7 @@ namespace AAEmu.Game.Scripts.Commands
             targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, tasks, new List<ulong>()));
             if (character.Id != targetPlayer.Id)
             {
-                character.SendMessage("[Add_Item] added item {0} to {1}'s inventory", itemId, targetPlayer.Name);
+                character.SendMessage("[Items] added item {0} to {1}'s inventory", itemId, targetPlayer.Name);
                 targetPlayer.SendMessage("[GM] {0} has added a item to your inventory", character.Name);
             }
 

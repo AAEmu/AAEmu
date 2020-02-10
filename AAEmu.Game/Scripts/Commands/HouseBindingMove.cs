@@ -10,7 +10,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("house_binding_move", this);
+            string[] name = { "housebindingmove", "house_binding_move" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()

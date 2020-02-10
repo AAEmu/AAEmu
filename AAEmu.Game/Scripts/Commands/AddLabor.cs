@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "add_labor", "addlabor", "labor" };
+            string[] name = { "addlabor", "add_labor", "labor" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Labor] " + CommandManager.CommandPrefix + "add_labor (target) <count> [targetSkill]");
+                character.SendMessage("[Labor] " + CommandManager.CommandPrefix + "addlabor (target) <count> [targetSkill]");
                 return;
             }
 
@@ -51,7 +51,7 @@ namespace AAEmu.Game.Scripts.Commands
             targetPlayer.ChangeLabor(count, vocationSkillId);
             if (character.Id != targetPlayer.Id)
             {
-                character.SendMessage("[Add_Labor] added {0} labor to {1}", count, targetPlayer.Name);
+                character.SendMessage("[Labor] added {0} labor to {1}", count, targetPlayer.Name);
                 targetPlayer.SendMessage("[GM] {0} has updated your labor by {1}", character.Name, count);
             }
 

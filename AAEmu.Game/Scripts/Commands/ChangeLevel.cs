@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "set_level", "setlevel", "change_level", "changelevel", "level" };
+            string[] name = { "setlevel", "set_level", "change_level", "changelevel", "level" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -30,8 +30,8 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[ChangeLevel] " + CommandManager.CommandPrefix + "set_level (target) <level>");
-                //character.SendMessage("[ChangeLevel] level: 1-100");
+                character.SendMessage("[Level] " + CommandManager.CommandPrefix + "set_level (target) <level>");
+                //character.SendMessage("[Level] level: 1-100");
                 return;
             }
 
@@ -45,7 +45,7 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (level <= 0 && level > 100)
             {
-                character.SendMessage("[ChangeLevel] level: 1-100");
+                character.SendMessage("|cFFFF0000[Level] Allowed level range: 1-100|r");
                 return;
             }
 

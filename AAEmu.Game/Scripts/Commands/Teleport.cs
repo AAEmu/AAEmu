@@ -82,7 +82,8 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            if (args.Length == 1) {
+            if (args.Length == 1) 
+            {
                 var n = args[0].ToLower();
 
                 if (n == ".")
@@ -145,18 +146,6 @@ namespace AAEmu.Game.Scripts.Commands
                         character.SendMessage("|cFFFF0000[Teleport] Unavailable Location [" + args[0] + "]|r");
                     }
                 }
-                /*
-                TPloc result = locations.Find(o => (o.Name == args[0].ToLower()));
-                if(result != null){
-                    character.SendMessage("Teleporting to : " + result.Info);
-                    character.DisabledSetPosition = true;
-                    character.SendPacket(new SCTeleportUnitPacket(0, 0, result.X, result.Y, result.Z, 0));
-                }
-                else
-                {
-                    character.SendMessage("Unavailable Location ["+ args[0] +"]");
-                }
-                */
             }
             else
             {

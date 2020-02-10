@@ -40,7 +40,7 @@ namespace AAEmu.Game.Scripts.Commands
                     case "npc":
                         if (!NpcManager.Instance.Exist(unitId))
                         {
-                            character.SendMessage("[Spawn] NPC {0} don't exist", unitId);
+                            character.SendMessage("|cFFFF0000[Spawn] NPC {0} don't exist|r", unitId);
                             return;
                         }
 
@@ -54,7 +54,7 @@ namespace AAEmu.Game.Scripts.Commands
                     case "doodad":
                         if (!DoodadManager.Instance.Exist(unitId))
                         {
-                            character.SendMessage("[Spawn] Doodad {0} don't exist", unitId);
+                            character.SendMessage("|cFFFF0000[Spawn] Doodad {0} don't exist|r", unitId);
                             return;
                         }
 
@@ -68,7 +68,7 @@ namespace AAEmu.Game.Scripts.Commands
                 }
             }
             else
-                character.SendMessage("[Spawn] Throw parse unitId");
+                character.SendMessage("|cFFFF0000[Spawn] Throw parse unitId|r");
         }
     }
 }

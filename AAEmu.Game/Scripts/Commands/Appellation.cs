@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "set_title", "settitle", "appellation" };
+            string[] name = { "settitle", "set_title", "appellation" };
             CommandManager.Instance.Register(name, this);
         }
 

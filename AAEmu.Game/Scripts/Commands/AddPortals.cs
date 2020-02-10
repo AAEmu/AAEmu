@@ -13,7 +13,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "add_portal", "addportal" };
+            string[] name = { "addportal", "add_portal" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -32,8 +32,8 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[AddPortal] " + CommandManager.CommandPrefix + "add_portal (target) <name> [<x> <y> <z> <zoneid>]");
-                //character.SendMessage("[AddPortal] *optional (will get actual position)");
+                character.SendMessage("[Portal] " + CommandManager.CommandPrefix + "add_portal (target) <name> [<x> <y> <z> <zoneid>]");
+                //character.SendMessage("[Portal] *optional (will get actual position)");
                 return;
             }
 
@@ -62,12 +62,12 @@ namespace AAEmu.Game.Scripts.Commands
             targetPlayer.Portals.AddPrivatePortal(x, y, z, zRot, zoneId, portalName);
             if (character.Id != targetPlayer.Id)
             {
-                character.SendMessage("[Add_Portal] added {0} labor to {1}'s portal book", portalName, targetPlayer.Name);
+                character.SendMessage("[Portal] added {0} labor to {1}'s portal book", portalName, targetPlayer.Name);
                 targetPlayer.SendMessage("[GM] {0} has added the entry \"{1}\" to your portal book", character.Name, portalName);
             }
             else
             {
-                character.SendMessage("[Add_Portal] Registered \"{0}\" in your portal book", portalName);
+                character.SendMessage("[Portal] Registered \"{0}\" in your portal book", portalName);
             }
         }
     }

@@ -10,7 +10,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("test_transter", this);
+            string[] name = { "testtransfer", "test_transfer" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()

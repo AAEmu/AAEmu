@@ -16,7 +16,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("test_guild", this);
+            string[] name = { "testguild", "test_guild" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
@@ -33,7 +34,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[TestGuild] " + CommandManager.CommandPrefix + "test_guild <GuildName>");
+                character.SendMessage("[TestGuild] " + CommandManager.CommandPrefix + "testguild <GuildName>");
                 return;
             }
 

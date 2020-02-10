@@ -8,7 +8,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("position", this);
+            string[] names = { "position", "pos" };
+            CommandManager.Instance.Register(names, this);
         }
 
         public string GetCommandLineHelp()
