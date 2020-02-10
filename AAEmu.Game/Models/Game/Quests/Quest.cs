@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public DateTime Time { get; set; }
         public Character Owner { get; set; }
         public int LeftTime => Time > DateTime.Now ? (int)(Time - DateTime.Now).TotalSeconds : -1;
-        public int supplyitem = 0;
+        public int SupplyItem = 0;
 
         public uint GetActiveComponent()
         {
@@ -57,11 +57,11 @@ namespace AAEmu.Game.Models.Game.Quests
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
                 {
-                    if (acts[i].DetailType == "QuestActSupplyItem" & Step == 3)
+                    if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte) QuestComponentKind.Supply)
                         res = acts[i].Use(Owner, this, supplyitem);
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
-                    _log.Warn("Start {0} {1} {2}", Step, res, acts[i].DetailType);// for debuging
+                    
                 }
                 if (!res)
                     return componentId;
@@ -81,7 +81,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 else if (Step >= 6)
                     Status = QuestStatus.Ready;
                 var component = Template.GetComponent(Step);
-                if (component == null & Step == 6)
+                if (component == null & Step == (byte) QuestComponentKind.Ready))
                 {
                     Owner.Quests.Complete((uint)TemplateId, 0);
                     continue;
@@ -91,21 +91,26 @@ namespace AAEmu.Game.Models.Game.Quests
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
                 {
-                    if (acts[i].DetailType == "QuestActSupplyItem" & Step == 3)
+                    if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte)QuestComponentKind.Supply)
                     {
-                        byte next = Step;
-                        next++;
-                        var componentnext = Template.GetComponent( next);
-                        var actsnext = QuestManager.Instance.GetActs(componentnext.Id);
-                        if (actsnext[i].DetailType == "QuestActObjItemGather")
-                            res = acts[i].Use(Owner, this, supplyitem);
+                        if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte)QuestComponentKind.Supply)
+                        {
+                            byte next = Step;
+                            next++;
+                            var componentnext = Template.GetComponent(next);
+                            var actsnext = QuestManager.Instance.GetActs(componentnext.Id);
+                            if (actsnext[i].DetailType == "QuestActObjItemGather")
+                                res = acts[i].Use(Owner, this, SupplyItem);
+                            else
+                                res = false;
+                        }
                         else
                             res = false;
                     }
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
-                    supplyitem = 0;
-                    _log.Warn("Update {0} {1} {2}", Step, res, acts[i].DetailType);// for debuging
+                    SupplyItem = 0;
+                    
                 }
                 if (!res)
                     break;
@@ -137,13 +142,12 @@ namespace AAEmu.Game.Models.Game.Quests
                             res = acts[i].Use(Owner, this, Objectives[i]);
                     }
                     else if (acts[i].DetailType == "QuestActSupplyItem" )
-                        res = acts[i].Use(Owner, this, supplyitem);
+                        res = acts[i].Use(Owner, this, SupplyItem);
                     else if (acts[i].DetailType == "QuestActConAutoComplete")
                         res = true;
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
-                    supplyitem = 0;
-                    _log.Warn("Complete {0} {1} {2}", Step, res, acts[i].DetailType);// for debuging
+                    SupplyItem = 0;
                 }
                 if (!res)
                     return componentId;
@@ -289,9 +293,9 @@ namespace AAEmu.Game.Models.Game.Quests
                             if (template.ItemId == item.TemplateId)
                             {
                                 res = true;
-                                supplyitem += count;
-                                if (supplyitem > template.Count) // TODO check to overtime
-                                    supplyitem = template.Count;
+                                SupplyItem += count;
+                                if (SupplyItem > template.Count) // TODO check to overtime
+                                    SupplyItem = template.Count;
                             }
                                 
                             break;
