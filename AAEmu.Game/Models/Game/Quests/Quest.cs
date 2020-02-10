@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 for (var i = 0; i < acts.Length; i++)
                 {
                     if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte) QuestComponentKind.Supply)
-                        res = acts[i].Use(Owner, this, supplyitem);
+                        res = acts[i].Use(Owner, this, SupplyItem);
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
                     
@@ -92,8 +92,6 @@ namespace AAEmu.Game.Models.Game.Quests
                 for (var i = 0; i < acts.Length; i++)
                 {
                     if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte)QuestComponentKind.Supply)
-                    {
-                        if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte)QuestComponentKind.Supply)
                         {
                             byte next = Step;
                             next++;
@@ -104,9 +102,6 @@ namespace AAEmu.Game.Models.Game.Quests
                             else
                                 res = false;
                         }
-                        else
-                            res = false;
-                    }
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
                     SupplyItem = 0;
