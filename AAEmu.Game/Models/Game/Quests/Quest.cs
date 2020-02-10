@@ -92,8 +92,6 @@ namespace AAEmu.Game.Models.Game.Quests
                 for (var i = 0; i < acts.Length; i++)
                 {
                     if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte)QuestComponentKind.Supply)
-                    {
-                        if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte)QuestComponentKind.Supply)
                         {
                             byte next = Step;
                             next++;
