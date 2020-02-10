@@ -102,9 +102,6 @@ namespace AAEmu.Game.Models.Game.Quests
                             else
                                 res = false;
                         }
-                        else
-                            res = false;
-                    }
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
                     SupplyItem = 0;
