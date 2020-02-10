@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 for (var i = 0; i < acts.Length; i++)
                 {
                     if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte) QuestComponentKind.Supply)
-                        res = acts[i].Use(Owner, this, supplyitem);
+                        res = acts[i].Use(Owner, this, SupplyItem);
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
                     
