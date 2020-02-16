@@ -81,7 +81,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 else if (Step >= 6)
                     Status = QuestStatus.Ready;
                 var component = Template.GetComponent(Step);
-                if (component == null & Step == (byte) QuestComponentKind.Ready))
+                if ((component == null) && (Step == (byte) QuestComponentKind.Ready))
                 {
                     Owner.Quests.Complete((uint)TemplateId, 0);
                     continue;
