@@ -24,6 +24,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public DateTime Time { get; set; }
         public Character Owner { get; set; }
         public int LeftTime => Time > DateTime.Now ? (int)(Time - DateTime.Now).TotalSeconds : -1;
+        public int SupplyItem = 0;
 
         public uint GetActiveComponent()
         {
@@ -55,12 +56,17 @@ namespace AAEmu.Game.Models.Game.Quests
                     continue;
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
-                    res = acts[i].Use(Owner, this, Objectives[i]);
+                {
+                    if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte) QuestComponentKind.Supply)
+                        res = acts[i].Use(Owner, this, SupplyItem);
+                    else
+                        res = acts[i].Use(Owner, this, Objectives[i]);
+                    
+                }
                 if (!res)
                     return componentId;
                 componentId = component.Id;
             }
-
             return res ? componentId : 0;
         }
 
@@ -75,16 +81,35 @@ namespace AAEmu.Game.Models.Game.Quests
                 else if (Step >= 6)
                     Status = QuestStatus.Ready;
                 var component = Template.GetComponent(Step);
-                if (component == null)
+                if (component == null & Step == (byte) QuestComponentKind.Ready))
+                {
+                    Owner.Quests.Complete((uint)TemplateId, 0);
+                    continue;
+                }
+                else if (component == null)
                     continue;
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
-                    res = acts[i].Use(Owner, this, Objectives[i]);
+                {
+                    if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte)QuestComponentKind.Supply)
+                        {
+                            byte next = Step;
+                            next++;
+                            var componentnext = Template.GetComponent(next);
+                            var actsnext = QuestManager.Instance.GetActs(componentnext.Id);
+                            if (actsnext[i].DetailType == "QuestActObjItemGather")
+                                res = acts[i].Use(Owner, this, SupplyItem);
+                            else
+                                res = false;
+                        }
+                    else
+                        res = acts[i].Use(Owner, this, Objectives[i]);
+                    SupplyItem = 0;
+                    
+                }
                 if (!res)
                     break;
                 componentId = component.Id;
-                for (var i = 0; i < 5; i++)
-                    Objectives[i] = 0;
             }
 
             Owner.SendPacket(new SCQuestContextUpdatedPacket(this, componentId));
@@ -111,19 +136,22 @@ namespace AAEmu.Game.Models.Game.Quests
                         if (selective == selected)
                             res = acts[i].Use(Owner, this, Objectives[i]);
                     }
+                    else if (acts[i].DetailType == "QuestActSupplyItem" )
+                        res = acts[i].Use(Owner, this, SupplyItem);
+                    else if (acts[i].DetailType == "QuestActConAutoComplete")
+                        res = true;
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
+                    SupplyItem = 0;
                 }
-
                 if (!res)
                     return componentId;
                 componentId = component.Id;
             }
-
             return res ? componentId : 0;
         }
-        public int GetCustomExp() { return GetCustomSupplies("copper"); }
-        public int GetCustomCopper() { return GetCustomSupplies("exp"); }
+        public int GetCustomExp() { return GetCustomSupplies("exp"); }
+        public int GetCustomCopper() { return GetCustomSupplies("copper"); }
        
         public int GetCustomSupplies(string supply)
         {
@@ -238,7 +266,6 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
             }
-
             if (res)
                 Update();
         }
@@ -256,18 +283,18 @@ namespace AAEmu.Game.Models.Game.Quests
                     switch (act.DetailType)
                     {
                         case "QuestActSupplyItem":
+                        {   
+                            var template = acts[i].GetTemplate<QuestActSupplyItem>();
+                            if (template.ItemId == item.TemplateId)
                             {
-                                var template = acts[i].GetTemplate<QuestActSupplyItem>();
-                                if (template.ItemId == item.TemplateId)
-                                {
-                                    res = true;
-                                    Objectives[i] += count;
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
-                                        Objectives[i] = template.Count;
-                                }
-                               
-                                break;
+                                res = true;
+                                SupplyItem += count;
+                                if (SupplyItem > template.Count) // TODO check to overtime
+                                    SupplyItem = template.Count;
                             }
+                                
+                            break;
+                        }
                         case "QuestActObjItemGather":
                         {
                             var template = acts[i].GetTemplate<QuestActObjItemGather>();

@@ -30,12 +30,11 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             {
                 var tasks = new List<ItemTask>();
                 var item = ItemManager.Instance.Create(ItemId, Count, GradeId);
-
+                if (item == null)
+                    return false;
                 var backpackTemplate = (BackpackTemplate)null;
                 if (item.Template is BackpackTemplate)
                     backpackTemplate = (BackpackTemplate)item.Template;
-                // var backpackTemplate = (BackpackTemplate)item?.Template;
-
                 var res = character.Inventory.AddItem(item);
                 if (res == null)
                     ItemIdManager.Instance.ReleaseId((uint)item.Id);
