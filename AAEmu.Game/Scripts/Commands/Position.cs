@@ -32,7 +32,7 @@ namespace AAEmu.Game.Scripts.Commands
             if (args.Length > 0)
                 character.SendMessage("[Position] RotX: {0}, RotY: {1}, RotZ: {2}", position.RotationX,
                     position.RotationY,
-                    position.RotationY);
+                    position.RotationZ);
 
             if (character.CurrentTarget != null)
             {
