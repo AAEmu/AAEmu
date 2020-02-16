@@ -57,7 +57,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
                 {
-                    if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte) QuestComponentKind.Supply)
+                    if (acts[i].DetailType == "QuestActSupplyItem" && Step == (byte) QuestComponentKind.Supply)
                         res = acts[i].Use(Owner, this, SupplyItem);
                     else
                         res = acts[i].Use(Owner, this, Objectives[i]);
@@ -81,7 +81,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 else if (Step >= 6)
                     Status = QuestStatus.Ready;
                 var component = Template.GetComponent(Step);
-                if (component == null & Step == (byte) QuestComponentKind.Ready)
+                if (component == null && Step == (byte) QuestComponentKind.Ready)
                 {
                     Owner.Quests.Complete((uint)TemplateId, 0);
                     continue;
@@ -91,7 +91,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
                 {
-                    if (acts[i].DetailType == "QuestActSupplyItem" & Step == (byte)QuestComponentKind.Supply)
+                    if (acts[i].DetailType == "QuestActSupplyItem" && Step == (byte)QuestComponentKind.Supply)
                         {
                             byte next = Step;
                             next++;
@@ -162,12 +162,12 @@ namespace AAEmu.Game.Models.Game.Quests
             var acts = QuestManager.Instance.GetActs(component.Id);
             foreach (var act in acts)
             {
-                if (act.DetailType == "QuestActSupplyExp" & supply == "exp" )
+                if (act.DetailType == "QuestActSupplyExp" && supply == "exp" )
                 {
                     var template = act.GetTemplate<QuestActSupplyExp>();
                     value = template.Exp;
                 }
-                else if (act.DetailType == "QuestActSupplyCoppers" & supply == "copper")
+                else if (act.DetailType == "QuestActSupplyCoppers" && supply == "copper")
                 {
                     var template = act.GetTemplate<QuestActSupplyCopper>();
                     value = template.Amount;
@@ -189,7 +189,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 foreach (var act in acts)
                 {
                     var items = new List<(Item, int)>();
-                    if (act.DetailType == "QuestActSupplyItem" & step == (byte)QuestComponentKind.Supply)
+                    if (act.DetailType == "QuestActSupplyItem" && step == (byte)QuestComponentKind.Supply)
                     {
                         var template = act.GetTemplate<QuestActSupplyItem>();
                         if (template.DestroyWhenDrop)
