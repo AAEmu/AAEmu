@@ -50,6 +50,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Update="Scripts\Commands\Kit.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
       <None Update="Scripts\Commands\AddXP.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
