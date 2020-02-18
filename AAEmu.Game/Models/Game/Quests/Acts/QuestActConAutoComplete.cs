@@ -8,7 +8,10 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActConAutoComplete");
-            return false;
+            if (character.Quests.IsQuestComplete((uint)quest.TemplateId))
+                return true;
+            else
+                return false;
         }
     }
 }

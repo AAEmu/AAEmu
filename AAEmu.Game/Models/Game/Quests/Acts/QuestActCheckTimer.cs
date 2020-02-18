@@ -19,7 +19,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActCheckTimer");
-            return false;
+            // TODO add what to do with timer
+            return true;
         }
     }
 }
