@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var type = stream.ReadByte();
             var receiverCharName = stream.ReadString();
-            var unkId = stream.ReadUInt32(); //could be status
+            var unkId = stream.ReadUInt32();
             var title = stream.ReadString();
             var text = stream.ReadString(); // TODO max length 1600
             var attachments = stream.ReadByte();
@@ -32,9 +32,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var slotType = stream.ReadByte();
                 var slot = stream.ReadByte();
                 if (slotType == 0)
-                    itemSlots.Add(((byte)0, (byte)0));
-                else
-                    itemSlots.Add(((SlotType)slotType, slot));
+                    continue;
+                itemSlots.Add(((SlotType)slotType, slot));
             }
 
             var doodadObjId = stream.ReadBc();
@@ -42,7 +41,6 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (doodad == null) // TODO validation || doodad.Template.GroupId == 6)
                 return;
 
-            Connection.ActiveChar.Mails.SendMail(type, receiverCharName, "", title, text, attachments, moneyAmounts, extra, itemSlots);
 
         }
     }

@@ -58,7 +58,6 @@ namespace AAEmu.Game.Models.Game.Units
         /// Unit patrol
         /// 指明Unit巡逻路线及速度、是否正在执行巡逻等行为
         /// Indicates the route and speed of the Unit patrol, whether it is performing patrols, etc.
-
         /// </summary>
         public Patrol Patrol { get; set; }
 
@@ -77,20 +76,17 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 DoDie(attacker);
                 //StopRegen();
-
             }
             else
             {
                 //StartRegen();
             }
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
-
         }
 
         public virtual void DoDie(Unit killer)
         {
             Effects.RemoveEffectsOnDeath();
-
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
             var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
             if (lootDropItems.Count > 0)
@@ -137,7 +133,6 @@ namespace AAEmu.Game.Models.Game.Units
             character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
             character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
             TlIdManager.Instance.ReleaseId(character.TlId);
-
         }
 
         public void StartRegen()

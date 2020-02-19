@@ -1,12 +1,9 @@
-using System;
-
+﻿using System;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
-
-
 
 namespace AAEmu.Game.Models.Game.Units.Route
 {
@@ -14,7 +11,6 @@ namespace AAEmu.Game.Models.Game.Units.Route
     class Track : Patrol
     {
         float distance = 1.5f;
-
         float MovingDistance = 0.27f;
         public override void Execute(Npc npc)
         {
@@ -24,7 +20,6 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var y = npc.Position.Y - npc.CurrentTarget.Position.Y;
             var z = npc.Position.Z - npc.CurrentTarget.Position.Z;
             var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
-
             float tempMovingDistance;
 
             if (Math.Abs(x) > distance)
@@ -102,7 +97,6 @@ namespace AAEmu.Game.Models.Game.Units.Route
             //改变NPC坐标
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
-
             moveType.Z = AppConfiguration.Instance.HeightMapsEnable
                 ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y)
                 : npc.Position.Z;
@@ -112,7 +106,6 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
-
 
             moveType.Flags = 5;
             moveType.DeltaMovement = new sbyte[3];
@@ -136,9 +129,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 //如果小于差距则停止移动准备攻击
                 if (Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z)) <= distance)
                 {
-
                     var combat = new Combat();
-
                     combat.LastPatrol = LastPatrol;
                     combat.LoopDelay = 2900;
                     combat.Pause(npc);
@@ -162,7 +153,6 @@ namespace AAEmu.Game.Models.Game.Units.Route
             if (LastPatrol == null)
             {
                 //创建直线巡航回归上次巡航暂停点
-
                 var line = new Line();
                 //不可中断，不受外力及攻击影响 类似于处于脱战状态
                 line.Interrupt = false;

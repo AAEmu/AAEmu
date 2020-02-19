@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -35,12 +35,10 @@ namespace AAEmu.Game.Core.Managers
         
         // LootPacks
         private Dictionary<uint, List<LootPacks>> _lootPacks;
-
         private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
         private Dictionary<uint, List<LootGroups>> _lootGroups;
         private Dictionary<int, GradeDistributions> _itemGradeDistributions;
         private Dictionary<uint, List<Item>> _lootDropItems;
-
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -77,7 +75,10 @@ namespace AAEmu.Game.Core.Managers
             return _enchantingSupports.ContainsKey(itemId) ? _enchantingSupports[itemId] : null;
         }
         
-
+        public List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId)
+        {
+            return _lootPackDroppingNpc.ContainsKey(npcId) ? _lootPackDroppingNpc[npcId] : new List<LootPackDroppingNpc>();
+        }
 
         public LootPacks[] GetLootPacks(uint lootPackId)
         {
@@ -91,7 +92,6 @@ namespace AAEmu.Game.Core.Managers
             Array.Sort(res);
             return res;
         }
-
         public List<Item> GetLootDropItems(uint npcId)
         {
             return _lootDropItems.ContainsKey(npcId) ? _lootDropItems[npcId] : new List<Item>();
@@ -290,7 +290,6 @@ namespace AAEmu.Game.Core.Managers
             _lootGroups = new Dictionary<uint, List<LootGroups>>();
             _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
             _lootDropItems = new Dictionary<uint, List<Item>>();
-
             _config = new ItemConfig();
             using (var connection = SQLite.CreateConnection())
             {
@@ -854,7 +853,6 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-
 
                 using (var command = connection.CreateCommand())
                 {

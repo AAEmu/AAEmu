@@ -153,7 +153,6 @@ namespace AAEmu.Game.Models.Game.Units
                     //恢复上次巡航
                     Repet(npc, 100, line);
                 }
-
             }
         }
 

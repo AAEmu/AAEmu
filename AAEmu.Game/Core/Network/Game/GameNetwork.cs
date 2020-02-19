@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net;
 using AAEmu.Commons.Network.Type;
 using AAEmu.Commons.Utils;
@@ -103,9 +103,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(0x058, 1, typeof(CSDecorateHousePacket));
             RegisterPacket(0x059, 1, typeof(CSChangeHouseNamePacket));
             RegisterPacket(0x05a, 1, typeof(CSChangeHousePermissionPacket));
-
             //RegisterPacket(0x05b, 1, typeof(CSChangeHousePayPacket)); TODO: this packet is not in the offsets
-
             RegisterPacket(0x05c, 1, typeof(CSRequestHouseTaxPacket));
             // 0x5c unk packet
             RegisterPacket(0x05d, 1, typeof(CSAllowHousingRecoverPacket));
@@ -156,9 +154,7 @@ namespace AAEmu.Game.Core.Network.Game
 
             //RegisterPacket(0x08d, 1, typeof(CSChangeItemLookPacket)); TODO: this packet is not in the offsets 
             RegisterPacket(0x08e, 1, typeof(CSLootOpenBagPacket));
-
             RegisterPacket(0x08f, 1, typeof(CSLootItemPacket));
-
 
             RegisterPacket(0x090, 1, typeof(CSLootCloseBagPacket));
             RegisterPacket(0x091, 1, typeof(CSLootDicePacket));

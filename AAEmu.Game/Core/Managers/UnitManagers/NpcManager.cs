@@ -92,19 +92,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 buff.Apply(npc, obj, npc, null, null, null, null, DateTime.Now);
             }
 
-            foreach (var buffId in template.Buffs)
-            {
-                var buff = SkillManager.Instance.GetBuffTemplate(buffId);
-                if (buff == null)
-                {
-                    _log.Warn("BuffId {0} for npc {1} not found", buffId, npc.TemplateId);
-                    continue;
-                }
-
-                var obj = new SkillCasterUnit(npc.ObjId);
-                buff.Apply(npc, obj, npc, null, null, null, null, DateTime.Now);
-            }
-
             foreach (var bonusTemplate in template.Bonuses)
             {
                 var bonus = new Bonus();

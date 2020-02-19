@@ -1,8 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using AAEmu.Game.Core.Managers;
-
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -15,7 +14,6 @@ namespace AAEmu.Game.Models.Game.Units
         float distance = 1.5f;
         public override void Execute(Npc npc)
         {
-
             // 先判断距离
             // First judge the distance
             var move = false;
@@ -85,7 +83,6 @@ namespace AAEmu.Game.Models.Game.Units
 
                     LoopAuto(npc);
                 }
-
             }
         }
     }
