@@ -1,0 +1,339 @@
+{
+    "itemkits": [
+        // Mounts
+        {
+            // White Elk
+            "names": [ "mounts", "elk" ],
+            "id": 23662,
+            "grade": 6,
+            "count": 1
+        },
+        {
+            // Coalmane Snowlion
+            "names": [ "mounts", "snowlion" ],
+            "id": 15561,
+            "grade": 6,
+            "count": 1
+        },
+        {
+            // Palomino Yata
+            "names": [ "mounts", "yata" ],
+            "id": 26630,
+            "grade": 6,
+            "count": 1
+        },
+        {
+            // Zebra
+            "names": [ "mounts" ],
+            "id": 26052,
+            "grade": 6,
+            "count": 1
+        },
+        {
+            // Black Arrow
+            "names": [ "mounts" ],
+            "id": 28138,
+            "grade": 6,
+            "count": 1
+        },
+        {
+            // Emberwild Charger
+            "names": [ "mounts" ],
+            "id": 26427,
+            "grade": 6,
+            "count": 1
+        },
+        {
+            // Heifer
+            "names": [ "mounts", "cow" ],
+            "id": 19604,
+            "grade": 6,
+            "count": 1
+        },
+        {
+            // Companion Crust
+            "names": [ "mounts", "exp" ],
+            "id": 29040,
+            "grade": 0,
+            "count": 100
+        },
+        // Delphinad Weapons
+        {
+            // Sealed Delphinad Dagger
+            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_dagger" ],
+            "id": 23865,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Sword
+            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_sword" ],
+            "id": 23869,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Katana
+            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_katana" ],
+            "id": 23873,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Axe
+            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_axe" ],
+            "id": 23877,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Club
+            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_club" ],
+            "id": 23881,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Shortspear
+            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_shortspear" ],
+            "id": 23885,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Staff
+            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_staff" ],
+            "id": 23889,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Bow
+            "names": [ "delphinad_weapons", "delphinad_ranged" ],
+            "id": 23893,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Shield
+            "names": [ "delphinad_weapons", "delphinad_shield" ],
+            "id": 23897,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Greatsword
+            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_greatsword" ],
+            "id": 23900,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Nodachi
+            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_nodachi" ],
+            "id": 23903,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad GreatAxe
+            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_greataxe" ],
+            "id": 23906,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad GreatClub
+            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_greatclub" ],
+            "id": 23909,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad LongSpear
+            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_longspear" ],
+            "id": 23912,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Scepter
+            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_scepter" ],
+            "id": 23915,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Lute
+            "names": [ "delphinad_weapons", "delphinad_instrument", "delphinad_lute" ],
+            "id": 23918,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Flute
+            "names": [ "delphinad_weapons", "delphinad_instrument", "delphinad_flute" ],
+            "id": 23921,
+            "grade": 7,
+            "count": 1
+        },
+        //{
+        //    // Sealed Delphinad Drum?
+        //    "names": [ "delphinad_weapons", "delphinad_instrument", "delphinad_drum" ],
+        //    "id": 23924,
+        //    "grade": 7,
+        //    "count": 1
+        //},
+        // Delphinad Cloth
+        {
+            // Sealed Delphinad Hood
+            "names": [ "delphinad_cloth" ],
+            "id": 23946,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Shirt
+            "names": [ "delphinad_cloth" ],
+            "id": 23947,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Pants
+            "names": [ "delphinad_cloth" ],
+            "id": 23948,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Gloves
+            "names": [ "delphinad_cloth" ],
+            "id": 23949,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Shoes
+            "names": [ "delphinad_cloth" ],
+            "id": 23950,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Sleeves
+            "names": [ "delphinad_cloth" ],
+            "id": 23951,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Sash
+            "names": [ "delphinad_cloth" ],
+            "id": 23952,
+            "grade": 7,
+            "count": 1
+        },
+        // Sealed Delphinad Leather
+        {
+            // Sealed Delphinad Cap
+            "names": [ "delphinad_leather" ],
+            "id": 23974,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Jerkin
+            "names": [ "delphinad_leather" ],
+            "id": 23975,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Breeches
+            "names": [ "delphinad_leather" ],
+            "id": 23976,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Fists
+            "names": [ "delphinad_leather" ],
+            "id": 23977,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Boots
+            "names": [ "delphinad_leather" ],
+            "id": 23978,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Guards
+            "names": [ "delphinad_leather" ],
+            "id": 23979,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Belt
+            "names": [ "delphinad_leather" ],
+            "id": 23980,
+            "grade": 7,
+            "count": 1
+        },
+        // Sealed Delphinad Plate
+        {
+            // Sealed Delphinad Helm
+            "names": [ "delphinad_plate" ],
+            "id": 24002,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Cuirass
+            "names": [ "delphinad_plate" ],
+            "id": 24003,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Greaves
+            "names": [ "delphinad_plate" ],
+            "id": 24004,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Gauntlets
+            "names": [ "delphinad_plate" ],
+            "id": 24005,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Sabatons
+            "names": [ "delphinad_plate" ],
+            "id": 24006,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Vambraces
+            "names": [ "delphinad_plate" ],
+            "id": 24007,
+            "grade": 7,
+            "count": 1
+        },
+        {
+            // Sealed Delphinad Tassets
+            "names": [ "delphinad_plate" ],
+            "id": 24008,
+            "grade": 7,
+            "count": 1
+        }
+
+    ]
+}
