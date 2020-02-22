@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             var items = new List<Item>();
             var groupNum = 0;
             var groupFound  = false;
-            while (true)
+            while (groupNum < 100)
             {
                 groupNum += 1;
                 _log.Warn("DoodadFuncLootPack : LootPackId {0}, SkillId {1} Group Num {2}", LootPackId, skillId, groupNum);

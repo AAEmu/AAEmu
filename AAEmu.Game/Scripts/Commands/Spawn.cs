@@ -41,22 +41,15 @@ namespace AAEmu.Game.Scripts.Commands
                 switch (args[0])
                 {
                     case "remove":
-                        
-                           
-                                var myDoodad = new Doodad();
-                                myDoodad = WorldManager.Instance.GetDoodad(unitId);
-                                if (myDoodad == null)
-                                    character.SendMessage("[Spawn] Id {0} Does not exist ", unitId);
-                                character.SendMessage("[Spawn] Doodad ID {0} ", myDoodad.ObjId);
-                                if (myDoodad is Doodad doodad)
-                                    character.SendMessage("[Spawn] Object is Doodad ");
-
-
-                                //myDoodad.Spawner.Despawn(myDoodad);
-                                ObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
-                                myDoodad.Delete();
-                              //  character.SendPacket(new SCDoodadRemovedPacket(myDoodad.ObjId));
-                        break;
+                        var myDoodad = WorldManager.Instance.GetDoodad(unitId);
+                        if (myDoodad == null)
+                            character.SendMessage("[Spawn] Id {0} Does not exist ", unitId);
+                        character.SendMessage("[Spawn] Doodad ID {0} ", myDoodad.ObjId);
+                        if (myDoodad is Doodad doodad)
+                            character.SendMessage("[Spawn] Object is Doodad ");
+                        ObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
+                        myDoodad.Delete();
+                    break;
                         
 
                     case "npc":

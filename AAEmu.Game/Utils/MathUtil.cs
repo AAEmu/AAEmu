@@ -45,10 +45,10 @@ namespace AAEmu.Game.Utils
         }
         public static sbyte ConvertDegreeToDoodadDirection(double degree)
         {
-            if (degree < 0f)
+            while (degree < 0f)
                 degree += 360f;
             if ((degree > 90f) && (degree <= 180f))
-                return (sbyte)((((degree - 90f) / 90f * 37f) + 90f) * - 1); // added the * - 1 to each return to adjust for counter clockwise degrees the game uses
+                return (sbyte)((((degree - 90f) / 90f * 37f) + 90f) * - 1); 
             if (degree > 180f)
                 return (sbyte)((((degree - 270f) / 90f * 37f) - 90f) * -1);
             // When range is between -90 and 90, no rotation scaling is applied for doodads
