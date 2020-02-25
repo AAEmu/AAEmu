@@ -23,7 +23,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             var items = new List<Item>();
             var groupNum = 0;
             var groupFound  = false;
-            while (groupNum < 100)
+            HashSet<int> hs = new HashSet<int>();
+            for (int i = 0; i < lootPacks.Length; i++)
+            {
+                hs.Add(lootPacks[i].Group);
+            }
+            while (groupNum < hs.Count)
             {
                 groupNum += 1;
                 _log.Warn("DoodadFuncLootPack : LootPackId {0}, SkillId {1} Group Num {2}", LootPackId, skillId, groupNum);
