@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
+using AAEmu.Game.Core.Packets.G2C;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
@@ -25,7 +26,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Dictionary<uint, InstanceWorld> _worlds;
         private Dictionary<uint, uint> _worldIdByZoneId;
         private Dictionary<uint, WorldInteractionGroup> _worldInteractionGroups;
-
+        public bool IsSnowing = false;
         private readonly ConcurrentDictionary<uint, GameObject> _objects;
         private readonly ConcurrentDictionary<uint, BaseUnit> _baseUnits;
         private readonly ConcurrentDictionary<uint, Unit> _units;
@@ -142,21 +143,21 @@ namespace AAEmu.Game.Core.Managers.World
                             if (hMapCellX == world.CellX && hMapCellY == world.CellY)
                             {
                                 for (var cellX = 0; cellX < world.CellX; cellX++)
-                                for (var cellY = 0; cellY < world.CellY; cellY++)
-                                {
-                                    if (br.ReadBoolean())
-                                        continue;
-                                    for (var i = 0; i < 16; i++)
-                                    for (var j = 0; j < 16; j++)
-                                    for (var x = 0; x < 32; x++)
-                                    for (var y = 0; y < 32; y++)
+                                    for (var cellY = 0; cellY < world.CellY; cellY++)
                                     {
-                                        var sx = cellX * 512 + i * 32 + x;
-                                        var sy = cellY * 512 + j * 32 + y;
+                                        if (br.ReadBoolean())
+                                            continue;
+                                        for (var i = 0; i < 16; i++)
+                                            for (var j = 0; j < 16; j++)
+                                                for (var x = 0; x < 32; x++)
+                                                    for (var y = 0; y < 32; y++)
+                                                    {
+                                                        var sx = cellX * 512 + i * 32 + x;
+                                                        var sy = cellY * 512 + j * 32 + y;
 
-                                        world.HeightMaps[sx, sy] = br.ReadUInt16();
+                                                        world.HeightMaps[sx, sy] = br.ReadUInt16();
+                                                    }
                                     }
-                                }
                             }
                             else
                                 _log.Warn("{0}: Invalid heightmap cells...", world.Name);
@@ -293,7 +294,7 @@ namespace AAEmu.Game.Core.Managers.World
         public Character GetCharacterById(uint id)
         {
             foreach (var player in _characters.Values)
-                if (player.Id.Equals(id)) 
+                if (player.Id.Equals(id))
                     return player;
             return null;
         }
@@ -495,6 +496,32 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var world = _worlds[worldId];
             return world.ValidRegion(x, y);
+        }
+
+        public void OnPlayerJoin(Character character)
+        {
+
+            //turn snow on off 
+            Snow(IsSnowing, character);
+            _log.Warn("Snow value sent to " + character.Name);
+
+            //family stuff
+            if (character.Family > 0)
+            {
+                FamilyManager.Instance.OnCharacterLogin(character);
+            }
+
+
+
+        }
+        public void Snow(bool onoff, Character character)
+        {
+            // set snowing state to value of onoff
+            Instance.IsSnowing = onoff;
+
+            //send the char the packet
+            character.SendPacket(new SCOnOffSnowPacket(onoff));
+
         }
     }
 }
