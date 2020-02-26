@@ -34,9 +34,6 @@ namespace AAEmu.Game.Scripts.Commands
                 //Turn snow on or off for all online characters,
                 //put this on the script level so it only gets executed once when GM enables/disables snow
                 WorldManager.Instance.BroadcastPacketToServer(new SCOnOffSnowPacket(isSnowing));
-
-                //announce to all players on the server snow was enabled or disabled
-                WorldManager.Instance.BroadcastPacketToServer(new SCNoticeMessagePacket(3, "9#0823d1", 3000, "  Snow Was set to " + isSnowing.ToString()));
             }
             else
             {
