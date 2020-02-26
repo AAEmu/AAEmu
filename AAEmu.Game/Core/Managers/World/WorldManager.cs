@@ -501,7 +501,7 @@ namespace AAEmu.Game.Core.Managers.World
         public void OnPlayerJoin(Character character)
         {
             //turn snow on off 
-            Snow(IsSnowing, character);
+            Snow(character);
            
             //family stuff
             if (character.Family > 0)
@@ -509,13 +509,10 @@ namespace AAEmu.Game.Core.Managers.World
                 FamilyManager.Instance.OnCharacterLogin(character);
             }
         }
-        public void Snow(bool onoff, Character character)
+        public void Snow(Character character)
         {
-            // set snowing state to value of onoff
-            Instance.IsSnowing = onoff;
-
             //send the char the packet
-            character.SendPacket(new SCOnOffSnowPacket(onoff));
+            character.SendPacket(new SCOnOffSnowPacket(IsSnowing));
 
         }
     }
