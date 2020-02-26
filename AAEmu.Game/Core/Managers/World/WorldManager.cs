@@ -500,19 +500,14 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void OnPlayerJoin(Character character)
         {
-
             //turn snow on off 
             Snow(IsSnowing, character);
-            _log.Warn("Snow value sent to " + character.Name);
-
+           
             //family stuff
             if (character.Family > 0)
             {
                 FamilyManager.Instance.OnCharacterLogin(character);
             }
-
-
-
         }
         public void Snow(bool onoff, Character character)
         {
