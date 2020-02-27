@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
 
             var max = stream.ReadUInt32();            
-            CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, 1, int.Parse(max.ToString()));          
+            CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, int.Parse(max.ToString()));          
            
         }
     }
