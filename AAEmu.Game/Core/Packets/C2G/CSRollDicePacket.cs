@@ -1,5 +1,8 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Managers.UnitManagers;
+using System.Collections.Generic;
+
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -11,9 +14,11 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
+
             var max = stream.ReadUInt32();
-            
-            _log.Warn("RollDice, Max: {0}", max);
+            int min = 1;            
+            CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, min, int.Parse(max.ToString()));          
+           
         }
     }
 }
