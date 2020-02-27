@@ -385,7 +385,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
 
             var roll = Rand.Next(min, max);
-            Self.SendMessage(roll.ToString() + ".");
+            Self.BroadcastPacket(new SCChatMessagePacket(ChatType.System, string.Format(Self.Name + " Rolled " + roll.ToString() + ".")), true);
             
         }
 
