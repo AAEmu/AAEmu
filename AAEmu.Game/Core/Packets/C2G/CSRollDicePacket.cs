@@ -15,9 +15,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
 
-            var max = stream.ReadUInt32();
-            int min = 1;            
-            CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, min, int.Parse(max.ToString()));          
+            var max = stream.ReadUInt32();            
+            CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, 1, int.Parse(max.ToString()));          
            
         }
     }
