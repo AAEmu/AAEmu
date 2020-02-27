@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
+using AAEmu.Game.Models.Game.Chat;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
