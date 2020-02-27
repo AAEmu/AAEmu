@@ -382,11 +382,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             Log.Info("Loaded {0} character templates", _templates.Count);
         }
 
-        public void PlayerRoll(Character Self, int min, int max)
+        public void PlayerRoll(Character Self, int max)
         {
 
-            var roll = Rand.Next(min, max);
-            Self.BroadcastPacket(new SCChatMessagePacket(ChatType.System, string.Format(Self.Name + " Rolled " + roll.ToString() + ".")), true);
+            var roll = Rand.Next(1, max);
+            Self.BroadcastPacket(new SCChatMessagePacket(ChatType.System, string.Format(Self.Name + " rolled " + roll.ToString() + ".")), true);
             
         }
 
