@@ -1,5 +1,160 @@
 {
     "itemkits": [
+        // Housing
+        {
+            // Design: Stone Slate Mansion
+            "names": [ "44x44", "housing" ],
+            "id": 16027,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Fellowship Plaza Design
+            "names": [ "28x28", "housing", "plaza" ],
+            "id": 31924,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Tudor Slate Villa (Veranda)
+            "names": [ "28x28", "housing" ],
+            "id": 23540,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Swept-Roof Manor
+            "names": [ "28x28", "housing" ],
+            "id": 21193,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Gazebo Farm Design
+            "names": [ "24x24", "housing" ],
+            "id": 34438,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Breezy Bungalow
+            "names": [ "24x24", "housing", "bungalow" ],
+            "id": 27687,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Tudor Slate Townhouse
+            "names": [ "24x24", "housing" ],
+            "id": 23522,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Tudor Slate Manor
+            "names": [ "24x24", "housing" ],
+            "id": 23513,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Swept-Roof Chalet (manor)
+            "names": [ "24x24", "housing" ],
+            "id": 21192,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Thatched Farmhouse
+            "names": [ "24x24", "housing" ],
+            "id": 21165,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Stellar Scarecrow Farm
+            "names": [ "16x16", "scarecrow" ],
+            "id": 30015,
+            "grade": 2,
+            "count": 1
+        },
+        {
+            // Design: Swept-Roof Villa
+            "names": [ "housing", "16x16", "cottage" ],
+            "id": 21191,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Tudor Slate Cottage
+            "names": [ "housing", "16x16", "cottage" ],
+            "id": 21166,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Scarecrow Farm
+            "names": [ "housing", "16x16", "scarecrow" ],
+            "id": 15566,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Aquafarm
+            "names": [ "housing", "16x16", "aquafarm" ],
+            "id": 18664,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Scarecrow Garden
+            "names": [ "housing", "8x8", "scarecrow" ],
+            "id": 15596,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Metalwork Table
+            "names": [ "8x8", "workbench" ],
+            "id": 18459,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Tailoring Table 
+            "names": [ "8x8", "workbench" ],
+            "id": 18470,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Masonry Table
+            "names": [ "8x8", "workbench" ],
+            "id": 18471,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Carpentry Table
+            "names": [ "8x8", "workbench" ],
+            "id": 18472,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: Leatherwork Table
+            "names": [ "8x8", "workbench" ],
+            "id": 18481,
+            "grade": 0,
+            "count": 1
+        },
+        {
+            // Design: General Merchant Machine
+            "names": [ "8x8", "workbench" ],
+            "id": 32120,
+            "grade": 9,
+            "count": 1
+        },
         // Raw Materials
         {
             // Iron Ore
@@ -23,6 +178,27 @@
             "count": 1000
         },
         {
+            // Cotton
+            "names": [ "raw", "fabric" ],
+            "id": 8357,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Wool
+            "names": [ "raw", "fabric" ],
+            "id": 8053,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Pelt
+            "names": [ "raw", "leather" ],
+            "id": 8007,
+            "grade": 0,
+            "count": 1000
+        },
+        {
             // Iron Ingot
             "names": [ "raw", "iron" ],
             "id": 8318,
@@ -37,9 +213,9 @@
             "count": 1000
         },
         {
-            // Brick
+            // Stone Brick
             "names": [ "raw", "stone" ],
-            "id": 8348,
+            "id": 8343,
             "grade": 0,
             "count": 1000
         },
@@ -47,6 +223,13 @@
             // Fabric
             "names": [ "raw", "fabric" ],
             "id": 8256,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Leather
+            "names": [ "raw", "leather" ],
+            "id": 16327,
             "grade": 0,
             "count": 1000
         },
@@ -227,14 +410,7 @@
             "grade": 7,
             "count": 1
         },
-        //{
-        //    // Sealed Delphinad Drum?
-        //    "names": [ "delphinad_weapons", "delphinad_instrument", "delphinad_drum" ],
-        //    "id": 23924,
-        //    "grade": 7,
-        //    "count": 1
-        //},
-        // Delphinad Cloth
+        // Sealed Delphinad Cloth
         {
             // Sealed Delphinad Hood
             "names": [ "delphinad_cloth" ],

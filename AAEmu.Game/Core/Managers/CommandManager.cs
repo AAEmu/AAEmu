@@ -92,7 +92,7 @@ namespace AAEmu.Game.Core.Managers
             if (command == null)
             {
                 _commandAliases.TryGetValue(thisCommand, out var alias);
-                if (alias != string.Empty)
+                if ((alias != null) && (alias != string.Empty))
                     _commands.TryGetValue(alias, out command);
             }
 
