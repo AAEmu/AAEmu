@@ -1,5 +1,55 @@
 {
     "itemkits": [
+        // Raw Materials
+        {
+            // Iron Ore
+            "names": [ "raw", "iron" ],
+            "id": 8022,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Log
+            "names": [ "raw", "wood" ],
+            "id": 8017,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Stone
+            "names": [ "raw", "stone" ],
+            "id": 8008,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Iron Ingot
+            "names": [ "raw", "iron" ],
+            "id": 8318,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Lumber
+            "names": [ "raw", "wood" ],
+            "id": 8337,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Brick
+            "names": [ "raw", "stone" ],
+            "id": 8348,
+            "grade": 0,
+            "count": 1000
+        },
+        {
+            // Fabric
+            "names": [ "raw", "fabric" ],
+            "id": 8256,
+            "grade": 0,
+            "count": 1000
+        },
         // Mounts
         {
             // White Elk
