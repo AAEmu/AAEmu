@@ -138,6 +138,8 @@ namespace AAEmu.Game.Core.Managers.World
 
                                 _groups[zoneGroupId].Conflict = template;
                                 _conflicts.Add(zoneGroupId, template);
+
+                                template.SetState(ZoneConflictType.Conflict); // Set to Conflict for testing, normally it should start at Tension
                             }
                             else
                                 _log.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);

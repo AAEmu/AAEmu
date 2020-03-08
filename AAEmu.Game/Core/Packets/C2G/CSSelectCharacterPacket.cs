@@ -44,26 +44,13 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Appellations.Send();
                 Connection.ActiveChar.Portals.Send();
                 Connection.ActiveChar.Friends.Send();
-
-                Connection.ActiveChar.Portals.Send();
-                Connection.ActiveChar.Friends.Send();
                 Connection.ActiveChar.Blocked.Send();
 
                 foreach (var house in houses)
                     Connection.SendPacket(new SCMyHousePacket(house));
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
-                {
-                    Connection.SendPacket(
-                        new SCConflictZoneStatePacket(
-                            conflict.ZoneGroupId,
-                            ZoneConflictType.Trouble0,
-                            conflict.NoKillMin[0] > 0
-                                ? DateTime.Now.AddMinutes(conflict.NoKillMin[0])
-                                : DateTime.MinValue
-                        )
-                    );
-                }
+                    Connection.SendPacket(new SCConflictZoneStatePacket(conflict.ZoneGroupId, conflict.CurrentZoneState, conflict.NextStateTime));
 
                 FactionManager.Instance.SendFactions(Connection.ActiveChar);
                 FactionManager.Instance.SendRelations(Connection.ActiveChar);
