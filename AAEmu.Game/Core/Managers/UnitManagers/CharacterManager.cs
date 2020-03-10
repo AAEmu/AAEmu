@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
+using AAEmu.Game.Models.Game.Chat;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
@@ -174,7 +175,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         while (reader.Read())
                         {
                             var ability = reader.GetByte("ability_id");
-                            var template = new AbilityItems {Ability = ability, Items = new EquipItemsTemplate()};
+                            var template = new AbilityItems { Ability = ability, Items = new EquipItemsTemplate() };
                             var clothPack = reader.GetUInt32("newbie_cloth_pack_id", 0);
                             var weaponPack = reader.GetUInt32("newbie_weapon_pack_id", 0);
                             if (clothPack > 0)
@@ -263,7 +264,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             expand.CurrencyId = reader.GetInt32("currency_id");
 
                             if (!_expands.ContainsKey(expand.Step))
-                                _expands.Add(expand.Step, new List<Expand> {expand});
+                                _expands.Add(expand.Step, new List<Expand> { expand });
                             else
                                 _expands[expand.Step].Add(expand);
                         }
@@ -364,12 +365,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         .Instance
                         .GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y); // TODO ...
 
-                    var template = _templates[(byte) (16 + charTemplate.Id)];
+                    var template = _templates[(byte)(16 + charTemplate.Id)];
                     template.Position = point;
                     template.NumInventorySlot = charTemplate.NumInventorySlot;
                     template.NumBankSlot = charTemplate.NumBankSlot;
 
-                    template = _templates[(byte) (32 + charTemplate.Id)];
+                    template = _templates[(byte)(32 + charTemplate.Id)];
                     template.Position = point;
                     template.NumInventorySlot = charTemplate.NumInventorySlot;
                     template.NumBankSlot = charTemplate.NumBankSlot;
@@ -379,6 +380,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 throw new Exception($"CharacterManager: Parse {FileManager.AppPath + "Data/CharTemplates.json"} file");
 
             Log.Info("Loaded {0} character templates", _templates.Count);
+        }
+
+        public void PlayerRoll(Character Self, int max)
+        {
+
+            var roll = Rand.Next(1, max);
+            Self.BroadcastPacket(new SCChatMessagePacket(ChatType.System, string.Format(Self.Name + " rolled " + roll.ToString() + ".")), true);
+            
         }
 
         public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body,
