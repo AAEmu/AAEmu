@@ -54,8 +54,6 @@ namespace AAEmu.Game.Models.Game.Quests
                 var components = Template.GetComponents(Step);
                 if (components.Length == 0)
                     continue;
-                if (components.Length > 1)
-                    PercentageQuest = true;
                 int c;
                 for (c = 0; c <= components.Length - 1; c++)
                 {
