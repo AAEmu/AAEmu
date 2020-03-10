@@ -78,8 +78,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 character.CurrentTarget = null;
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
-
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+            character.SendPacket(new SCDoodadRemovedPacket( ObjId ));
         }
 
         public PacketStream Write(PacketStream stream)

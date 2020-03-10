@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var scale = stream.ReadSingle();
             var itemId = stream.ReadUInt64();
 
-            _log.Warn("CreateDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, ItemId: {4}", id, x, y, z, itemId);
+            _log.Warn("CreateDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
 
 
             var doodadSpawner = new DoodadSpawner();

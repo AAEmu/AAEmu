@@ -43,7 +43,17 @@ namespace AAEmu.Game.Utils
                 res = (sbyte)((degree - 360) / (360f / 128));
             return res;
         }
-
+        public static sbyte ConvertDegreeToDoodadDirection(double degree)
+        {
+            while (degree < 0f)
+                degree += 360f;
+            if ((degree > 90f) && (degree <= 180f))
+                return (sbyte)((((degree - 90f) / 90f * 37f) + 90f) * - 1); 
+            if (degree > 180f)
+                return (sbyte)((((degree - 270f) / 90f * 37f) - 90f) * -1);
+            // When range is between -90 and 90, no rotation scaling is applied for doodads
+            return (sbyte)(degree * - 1);
+        }
         public static bool IsFront(GameObject obj1, GameObject obj2)
         {
             var degree = CalculateAngleFrom(obj1, obj2);
