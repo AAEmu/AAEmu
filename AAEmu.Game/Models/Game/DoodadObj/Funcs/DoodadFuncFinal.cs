@@ -25,6 +25,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, skillId, Respawn);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After));
             }
+            else
+            {
+                owner.Delete();
+            }
         }
     }
 }
