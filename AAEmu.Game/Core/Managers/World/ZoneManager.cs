@@ -135,11 +135,14 @@ namespace AAEmu.Game.Core.Managers.World
                                 template.HariharaReturnPointId = reader.GetUInt32("harihara_return_point_id", 0);
                                 template.WarTowerDefId = reader.GetUInt32("war_tower_def_id", 0);
                                 // TODO 1.2 // template.PeaceTowerDefId = reader.GetUInt32("peace_tower_def_id", 0);
+                                template.Closed = reader.GetBoolean("closed",true);
 
                                 _groups[zoneGroupId].Conflict = template;
                                 _conflicts.Add(zoneGroupId, template);
 
-                                template.SetState(ZoneConflictType.Conflict); // Set to Conflict for testing, normally it should start at Tension
+                                // Only do intial setup when the zone isn't closed
+                                if (!template.Closed)
+                                    template.SetState(ZoneConflictType.Conflict); // Set to Conflict for testing, normally it should start at Tension
                             }
                             else
                                 _log.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);

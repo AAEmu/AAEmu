@@ -24,6 +24,7 @@ namespace AAEmu.Game.Models.Game.World.Zones
         public uint HariharaReturnPointId { get; set; }
         public uint WarTowerDefId { get; set; }
         // TODO 1.2 // public uint PeaceTowerDefId { get; set; }
+        public bool Closed { get; set; }
 
         public ZoneConflictType CurrentZoneState { get; protected set; }
         public DateTime NextStateTime { get; protected set; }
@@ -38,6 +39,7 @@ namespace AAEmu.Game.Models.Game.World.Zones
 
             CurrentZoneState = ZoneConflictType.Tension;
             NextStateTime = DateTime.MinValue;
+            Closed = false;
         }
 
         /// <summary>

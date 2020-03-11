@@ -10,7 +10,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("help", this);
+            string[] name = { "help", "?" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()

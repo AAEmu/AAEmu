@@ -164,7 +164,7 @@ namespace AAEmu.Game.Models.Game.World
                 // TODO ... others types...
             }
 
-            // убрать обьект у всех игроков в регионе
+            // убрать обьект у всех игроков в регионе //remove the object from all players in the region
             foreach (var character in GetList(new List<Character>(), obj.ObjId))
                 obj.RemoveVisibleObject(character);
         }

@@ -24,7 +24,9 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+            Character targetPlayer = character;
+            if (args.Length > 0)
+                targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
             var height = WorldManager.Instance.GetHeight(targetPlayer.Position.ZoneId, targetPlayer.Position.X, targetPlayer.Position.Y);
             character.SendMessage("[Height] {2} Z-Pos: {0} - Floor: {1}", character.Position.Z, height, targetPlayer.Name);
