@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -24,10 +24,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             var languageType = stream.ReadByte();
             var ability = stream.ReadInt32();
 
-            if (message.StartsWith("/"))
+            if (message.StartsWith(CommandManager.CommandPrefix))
             {
-                CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(1).Trim());
-                return;
+                if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim()))
+                    return;
             }
 
             switch (type)

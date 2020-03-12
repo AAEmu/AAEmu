@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts

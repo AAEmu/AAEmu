@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
@@ -11,7 +11,18 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("test_slave", this);
+            string[] name = { "testslave", "test_slave" };
+            CommandManager.Instance.Register(name, this);
+        }
+
+        public string GetCommandLineHelp()
+        {
+            return "";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "";
         }
 
         public void Execute(Character character, string[] args)
