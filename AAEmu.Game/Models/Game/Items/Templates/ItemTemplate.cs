@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace AAEmu.Game.Models.Game.Items.Templates
 {
@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public virtual Type ClassType => typeof(Item);
 
         public uint Id { get; set; }
+        public int Category_Id { get; set; }
         public int Level { get; set; }
         public int Price { get; set; }
         public int Refund { get; set; }

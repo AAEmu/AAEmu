@@ -689,6 +689,7 @@ namespace AAEmu.Game.Core.Managers
                             var id = reader.GetUInt32("id");
                             var template = _templates.ContainsKey(id) ? _templates[id] : new ItemTemplate();
                             template.Id = id;
+                            template.Category_Id = reader.GetInt32("category_id");
                             template.Level = reader.GetInt32("level");
                             template.Price = reader.GetInt32("price");
                             template.Refund = reader.GetInt32("refund");

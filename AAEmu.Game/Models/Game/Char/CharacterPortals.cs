@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using MySql.Data.MySqlClient;
 using NLog;
+using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -76,7 +77,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void AddPrivatePortal(float x, float y, float z, uint zoneId, string name)
+        public void AddPrivatePortal(float x, float y, float z, sbyte zRot, uint zoneId, string name)
         {
             // TODO - Only working by command
             var newPortal = new Portal()
@@ -87,7 +88,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Y = y,
                 Z = z,
                 ZoneId = zoneId,
-                ZRot = 0f,
+                ZRot = Helpers.ConvertRotation(zRot),
                 Owner = Owner.Id
             };
             PrivatePortals.Add(newPortal.Id, newPortal);

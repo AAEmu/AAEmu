@@ -218,8 +218,15 @@ namespace AAEmu.Game.Core.Managers.World
 
         public float GetHeight(uint zoneId, float x, float y)
         {
-            var world = GetWorldByZone(zoneId);
-            return world?.GetHeight(x, y) ?? 0f;
+            try
+            {
+                var world = GetWorldByZone(zoneId);
+                return world?.GetHeight(x, y) ?? 0f;
+            }
+            catch
+            {
+                return 0f;
+            }
         }
 
         public Region GetRegion(GameObject obj)
@@ -283,6 +290,31 @@ namespace AAEmu.Game.Core.Managers.World
                 if (name.ToLower().Equals(player.Name.ToLower()))
                     return player;
             return null;
+        }
+
+        /// <summary>
+        /// Returns a player Character object based on the parameters.
+        /// Priority is TargetName > CurrentTarget > character
+        /// </summary>
+        /// <param name="character">Source character</param>
+        /// <param name="TargetName">Possible target name</param>
+        /// <param name="FirstNonNameArgument">Returns 1 if TargetName was a valid online character, 0 otherwise</param>
+        /// <returns></returns>
+        public Character GetTargetOrSelf(Character character, string TargetName, out int FirstNonNameArgument)
+        {
+            FirstNonNameArgument = 0;
+            if ((TargetName != null) && (TargetName != string.Empty))
+            {
+                Character player = WorldManager.Instance.GetCharacter(TargetName);
+                if (player != null)
+                {
+                    FirstNonNameArgument = 1;
+                    return player;
+                }
+            }
+            if ((character.CurrentTarget != null) && (character.CurrentTarget is Character))
+                return (Character)character.CurrentTarget;
+            return character;
         }
 
         public Character GetCharacterByObjId(uint id)

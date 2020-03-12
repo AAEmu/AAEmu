@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World
 {
@@ -47,8 +48,12 @@ namespace AAEmu.Game.Models.Game.World
                 return;
 
             if (this is Character)
+            {
                 if (!Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z))
                     TeamManager.Instance.UpdatePosition(((Character)this).Id);
+                //if (Position.RotationZ != rotationZ)
+                //    ((Character)this).SendMessage("Rotating {0}: {1} -> {2} = {3}°", ((Character)this).Name, this.Position.RotationZ,rotationZ,MathUtil.ConvertDirectionToDegree(rotationZ));
+            }
 
             Position.X = x;
             Position.Y = y;

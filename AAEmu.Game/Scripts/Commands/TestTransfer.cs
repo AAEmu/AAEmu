@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -10,7 +10,18 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("test_transter", this);
+            string[] name = { "testtransfer", "test_transfer" };
+            CommandManager.Instance.Register(name, this);
+        }
+
+        public string GetCommandLineHelp()
+        {
+            return "";
+        }
+
+        public string GetCommandHelpText()
+        {
+            return "";
         }
 
         public void Execute(Character character, string[] args)
