@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Slaves;
 using NLog;
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Units
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         public uint Id { get; set; }
-        public ushort TlId { get; set; }
+        //public ushort TlId { get; set; }
         public uint TemplateId { get; set; }
         public uint BondingObjId { get; set; } = 0;
 

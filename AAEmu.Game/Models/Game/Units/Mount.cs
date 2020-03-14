@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Units
 {
     public sealed class Mount : Unit
     {
-        public ushort TlId { get; set; }
+        //public ushort TlId { get; set; }
         public uint TemplateId { get; set; }
         public NpcTemplate Template { get; set; }
 
