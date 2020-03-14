@@ -29,7 +29,9 @@
     
     <ItemGroup>
         <Compile Remove="Scripts\**\**" />
-        <Compile Include="Scripts\Commands\HouseBindingMove.cs" />
+        <Compile Include="Scripts\Commands\HouseBindingMove.cs">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
         <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
         <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
     </ItemGroup>

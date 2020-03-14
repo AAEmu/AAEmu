@@ -29,8 +29,8 @@ namespace AAEmu.Game.Scripts.Commands
         {
             string s = string.Empty;
             foreach (string a in args)
-                s += a + " ";
-            character.SendMessage("|cFFFFFFFF[Echo] |r" + s);
+                s = s + a + " ";
+            character.SendMessage("|cFFFFFFFF[Echo]|r " + s);
         }
     }
 }

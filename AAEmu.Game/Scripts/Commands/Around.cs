@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Core.Managers.UnitManagers;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -17,66 +18,87 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<doodad||npc||character> <radius>";
+            return "<doodad||npc||player> [radius]";
         }
 
         public string GetCommandHelpText()
         {
-            return "Creates a list of specified <objectType> in a <radius> radius around you.";
+            return "Creates a list of specified <objectType> in a [radius] radius around you. Default radius is 30.\n" +
+                "Note: Only lists objects in viewing range of you (recommanded maximum radius of 100).";
         }
 
         public void Execute(Character character, string[] args)
         {
-            if (args.Length < 2)
+            if (args.Length < 1)
             {
-                character.SendMessage("[Around] Using: " + CommandManager.CommandPrefix + "around <doodad||npc||character> <radius>");
-                // character.SendMessage("[Around] ObjType: doodad, npc, character");
+                character.SendMessage("[Around] Using: " + CommandManager.CommandPrefix + "around " + GetCommandLineHelp());
                 return;
             }
 
-            if (float.TryParse(args[1], out var radius))
+            float radius = 30f;
+            if ((args.Length > 1) && (!float.TryParse(args[1], out radius)))
             {
-                var sb = new StringBuilder();
-                switch (args[0])
-                {
-                    case "doodad":
-                        var doodads = WorldManager.Instance.GetAround<Doodad>(character, radius);
-
-                        sb.AppendLine("[Around] Doodads:");
-                        for (var i = 0; i < doodads.Count; i++)
-                            sb.AppendLine("#" + (i+1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: "+ doodads[i].TemplateId.ToString());
-                        //  sb.AppendLine($"#.{i + 1} -> BcId: {doodads[i].ObjId} DoodadId: {doodads[i].TemplateId}");
-
-                        character.SendMessage(sb.ToString());
-                        character.SendMessage("[Around] Doodad count: {0}", doodads.Count);
-                        break;
-                    case "npc":
-                        var npcs = WorldManager.Instance.GetAround<Npc>(character, radius);
-
-                        sb.AppendLine("[Around] NPCs");
-                        for (var i = 0; i < npcs.Count; i++)
-                            sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + npcs[i].ObjId.ToString() + " NpcTemplateId: " + npcs[i].TemplateId.ToString());
-                        //    sb.AppendLine($"#.{i + 1} -> BcId: {npcs[i].ObjId} NpcId: {npcs[i].TemplateId}");
-
-                        character.SendMessage(sb.ToString());
-                        character.SendMessage("[Around] NPC count: {0}", npcs.Count);
-                        break;
-                    case "player":
-                    case "character":
-                        var characters = WorldManager.Instance.GetAround<Character>(character, radius);
-
-                        sb.AppendLine("[Around] Characters");
-                        for (var i = 0; i < characters.Count; i++)
-                            sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + characters[i].ObjId.ToString() + " CharacterId: " + characters[i].Id.ToString() + " - " + characters[i].Name);
-                        //    sb.AppendLine($"#.{i + 1} -> BcId: {characters[i].ObjId} CharacterId: {characters[i].Id}");
-
-                        character.SendMessage(sb.ToString());
-                        character.SendMessage("[Around] Character count: {0}", characters.Count);
-                        break;
-                }
+                character.SendMessage("|cFFFF0000[Around] Error parsing Radius !|r");
+                return;
             }
-            else
-                character.SendMessage("|cFFFF0000[Around] Throw parse radius value!|r");
+
+            var sb = new StringBuilder();
+            switch (args[0])
+            {
+                case "doodad":
+                    var doodads = WorldManager.Instance.GetAround<Doodad>(character, radius);
+
+                    character.SendMessage("[Around] Doodads:");
+                    // sb.AppendLine("[Around] Doodads:");
+                    for (var i = 0; i < doodads.Count; i++)
+                    {
+                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")");
+                        // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString());
+                    }
+                    character.SendMessage(sb.ToString());
+                    character.SendMessage("[Around] Doodad count: {0}", doodads.Count);
+                    break;
+
+                case "mob":
+                case "npc":
+                    var npcs = WorldManager.Instance.GetAround<Npc>(character, radius);
+
+                    character.SendMessage("[Around] NPCs");
+                    // sb.AppendLine("[Around] NPCs");
+                    for (var i = 0; i < npcs.Count; i++)
+                    {
+                        // TODO: Maybe calculate the localized name here ?
+                        // string OriginalNPCName = NpcManager.Instance.GetTemplate(npcs[i].TemplateId).Name;
+                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + npcs[i].ObjId.ToString() + " NpcTemplateId: " + npcs[i].TemplateId.ToString() + " - @NPC_NAME(" + npcs[i].TemplateId.ToString() + ")");
+                        // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + npcs[i].ObjId.ToString() + " NpcTemplateId: " + npcs[i].TemplateId.ToString());
+                    }
+
+                    // character.SendMessage(sb.ToString());
+                    character.SendMessage("[Around] NPC count: {0}", npcs.Count);
+                    break;
+
+                case "character":
+                case "pc":
+                case "player":
+                    var characters = WorldManager.Instance.GetAround<Character>(character, radius);
+
+                    character.SendMessage("[Around] Characters");
+                    //sb.AppendLine("[Around] Characters");
+                    for (var i = 0; i < characters.Count; i++)
+                    {
+                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + characters[i].ObjId.ToString() + " CharacterId: " + characters[i].Id.ToString() + " - " + characters[i].Name);
+                        // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + characters[i].ObjId.ToString() + " CharacterId: " + characters[i].Id.ToString() + " - " + characters[i].Name);
+                        //    sb.AppendLine($"#.{i + 1} -> BcId: {characters[i].ObjId} CharacterId: {characters[i].Id}");
+                    }
+                    // character.SendMessage(sb.ToString());
+                    character.SendMessage("[Around] Character count: {0}", characters.Count);
+                    break;
+
+                default:
+                    character.SendMessage("|cFFFF0000[Around] Unknown object type {0} !|r",args[0]);
+                    break;
+            }
+            
         }
     }
 }
