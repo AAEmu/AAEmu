@@ -68,12 +68,6 @@ namespace AAEmu.Game.Core.Managers
             var words = text.Split(' ');
             var thisCommand = words[0].ToLower();
 
-            if(AccessLevel.getLevel(thisCommand) > character.AccessLevel)
-            {
-                character.SendMessage("Insufficient privileges.");
-                return false;
-            }
-
             // Only enable the force_scripts_reload when we don't have anything loaded, this is simply a failsafe function in case
             // things aren't working out when live-editing scripts
             if ((thisCommand == "force_scripts_reload") && (_commands.Count <= 0))
@@ -84,7 +78,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (_commands.Count <= 0)
             {
-                character.SendMessage("[Error] No commands have been loaded, this is usually because of compile errors. Try using " + CommandManager.CommandPrefix + "force_scripts_reload");
+                character.SendMessage("[Error] No commands have been loaded, this is usually because of compile errors. Try using " + CommandManager.CommandPrefix + "force_scripts_reload after the issues have been fixed.");
                 return false;
             }
 
@@ -93,11 +87,20 @@ namespace AAEmu.Game.Core.Managers
             {
                 _commandAliases.TryGetValue(thisCommand, out var alias);
                 if ((alias != null) && (alias != string.Empty))
+                {
                     _commands.TryGetValue(alias, out command);
+                    thisCommand = alias;
+                }
             }
 
             if (command == null)
                 return false;
+
+            if (AccessLevel.getLevel(thisCommand) > character.AccessLevel)
+            {
+                character.SendMessage("|cFFFF0000Insufficient privileges.|r");
+                return true;
+            }
 
             var args = new string[words.Length - 1];
             if (words.Length > 1)

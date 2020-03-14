@@ -1,4 +1,5 @@
 {
-"teleport":100,
-"fly":0
+    "teleport": 100,
+    "snow": 100,
+    "fly": 0
 }
