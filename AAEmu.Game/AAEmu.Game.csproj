@@ -64,6 +64,9 @@
       <None Update="Scripts\Commands\SoloParty.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
+      <None Update="Scripts\Commands\Despawn.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
       <None Update="Scripts\Commands\SpawnGrid.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>

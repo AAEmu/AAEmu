@@ -17,9 +17,11 @@ namespace AAEmu.Game.Scripts.Commands
     public class SpawnGrid : ICommand
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
+
         public void OnLoad()
         {
-            CommandManager.Instance.Register("spawngrid", this);
+            string[] names = { "spawngrid", "spawngroup" };
+            CommandManager.Instance.Register(names, this);
         }
 
         public string GetCommandLineHelp()
@@ -109,15 +111,12 @@ namespace AAEmu.Game.Scripts.Commands
                 default:
                     character.SendMessage("|cFFFF0000[Spawn] Unknown object type.|r");
                     return;
-                    break;
             }
 
             float newX;
             float newY;
             float startX;
             float startY;
-            double angle;
-            sbyte newRotZ;
 
             // Origin point for spawns
             (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Position.X, character.Position.Y, character.Position.RotationZ);
