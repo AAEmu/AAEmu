@@ -36,6 +36,12 @@ namespace AAEmu.Game.Core.Managers.World
 
         public const int REGION_SIZE = 64;
         public const int CELL_SIZE = 1024 / REGION_SIZE;
+        /*
+        REGION_NEIGHBORHOOD_SIZE (cell sector size) used for polling objects in your proximity
+        Was originally set to 1, recommended 3 and max 5
+        anything higher is overkill as you can't target it anymore in the client at that distance
+        */
+        public const sbyte REGION_NEIGHBORHOOD_SIZE = 3;
 
         public WorldManager()
         {
@@ -252,8 +258,8 @@ namespace AAEmu.Game.Core.Managers.World
             var world = _worlds[worldId];
 
             var result = new List<Region>();
-            for (var a = -1; a <= 1; a++)
-                for (var b = -1; b <= 1; b++)
+            for (var a = -REGION_NEIGHBORHOOD_SIZE; a <= REGION_NEIGHBORHOOD_SIZE; a++)
+                for (var b = -REGION_NEIGHBORHOOD_SIZE; b <= REGION_NEIGHBORHOOD_SIZE; b++)
                     if (ValidRegion(world.Id, x + a, y + b) && world.Regions[x + a, y + b] != null)
                         result.Add(world.Regions[x + a, y + b]);
 

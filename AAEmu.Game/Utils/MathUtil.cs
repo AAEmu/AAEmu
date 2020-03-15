@@ -79,6 +79,14 @@ namespace AAEmu.Game.Utils
             return (newX, newY);
         }
 
+        public static (float, float) AddDistanceToRight(float distance, float x, float y, sbyte rotZ)
+        {
+            var rad = ConvertDirectionToRadian(rotZ) - (Math.PI / 2);
+            var newX = (distance * (float)Math.Cos(rad)) + x;
+            var newY = (distance * (float)Math.Sin(rad)) + y;
+            return (newX, newY);
+        }
+
         public static sbyte ConvertRadianToDirection(double radian) // TODO float zRot
         {
             var degree = RadianToDegree(radian);
