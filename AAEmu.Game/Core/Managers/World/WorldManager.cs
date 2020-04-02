@@ -16,6 +16,7 @@ using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Core.Packets.G2C;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
+using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Core.Managers.World
 {
@@ -547,11 +548,35 @@ namespace AAEmu.Game.Core.Managers.World
                 FamilyManager.Instance.OnCharacterLogin(character);
             }
         }
+        
         public void Snow(Character character)
         {
             //send the char the packet
             character.SendPacket(new SCOnOffSnowPacket(IsSnowing));
 
+        }
+
+        public void ResendVisibleObjectsToCharacter(Character character)
+        {
+            // Re-send visible flags to character getting out of cinema
+            var stuffs = WorldManager.Instance.GetAround<Unit>(character, 1000f);
+            foreach (var stuff in stuffs)
+            {
+                if (stuff is House)
+                    character.SendPacket(new SCHouseStatePacket((House)stuff));
+                else
+                if (stuff is Unit)
+                    character.SendPacket(new SCUnitStatePacket((Unit)stuff));
+            }
+
+            var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();
+            for (var i = 0; i < doodads.Length; i += 30)
+            {
+                var count = doodads.Length - i;
+                var temp = new Doodad[count <= 30 ? count : 30];
+                Array.Copy(doodads, i, temp, 0, temp.Length);
+                character.SendPacket(new SCDoodadsCreatedPacket(temp));
+            }
         }
     }
 }

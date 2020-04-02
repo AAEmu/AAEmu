@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -19,6 +20,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Connection.ActiveChar.DisabledSetPosition = false;
             _log.Warn("TeleportEnded, X: {0}, Y: {1}, Z: {2}", x, y, z);
+
+            WorldManager.Instance.ResendVisibleObjectsToCharacter(Connection.ActiveChar);
         }
     }
 }
