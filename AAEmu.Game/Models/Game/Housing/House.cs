@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Network;
@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.Housing
         public uint Id { get; set; }
         public uint AccountId { get; set; }
         public uint CoOwnerId { get; set; }
-        public ushort TlId { get; set; }
+        //public ushort TlId { get; set; }
         public uint TemplateId { get; set; }
         public HousingTemplate Template
         {

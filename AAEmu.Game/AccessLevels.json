@@ -1,5 +1,8 @@
 {
-    "teleport": 100,
+    "echo": 100,
     "snow": 100,
-    "fly": 0
+    "announce": 50,
+    "move": 50,
+    "fly": 0,
+    "teleport": 0
 }
