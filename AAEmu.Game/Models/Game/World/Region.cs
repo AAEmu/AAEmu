@@ -136,27 +136,27 @@ namespace AAEmu.Game.Models.Game.World
                             if (npc.Patrol == null)
                             {
                                 Patrol patrol = null;
-                                var rnd = Rand.Next(0, 600);
-                                if (rnd > 410)
+                                var rnd = Rand.Next(0, 500);
+                                if (rnd > 400)
                                 {
                                     // NPCs are moving squarely
                                     var square = new Square() {Interrupt = true, Loop = true, Abandon = false};
                                     square.Degree = (short)Rand.Next(180, 360);
                                     patrol = square;
                                 }
-                                else if (rnd > 310)
+                                else if (rnd > 300)
                                 {
                                     // NPCs are moving around in a circle
                                     patrol = new Circular() {Interrupt = true, Loop = true, Abandon = false};
                                 }
-                                else if (rnd > 110)
+                                else if (rnd > 200)
                                 {
                                     // NPC move along the weaving shuttle in the Y-axis.
                                     var quill = new QuillY {Interrupt = true, Loop = true, Abandon = false};
                                     quill.Degree = (short)Rand.Next(180, 360);
                                     patrol = quill;
                                 }
-                                else if (rnd > 10)
+                                else if (rnd > 100)
                                 {
                                     // NPC move along the weaving shuttle in the X-axis.
                                     var quill = new QuillX {Interrupt = true, Loop = true, Abandon = false};

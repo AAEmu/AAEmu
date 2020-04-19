@@ -83,29 +83,31 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
                             template.NoCollision = reader.GetBoolean("no_collision", true);
                             template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
-
-                            using (var commandChild = connection.CreateCommand())
-                            {
-                                commandChild.CommandText =
-                                    "SELECT * FROM doodad_func_groups WHERE doodad_almighty_id = @doodad_almighty_id";
-                                commandChild.Prepare();
-                                commandChild.Parameters.AddWithValue("doodad_almighty_id", template.Id);
-                                using (var sqliteDataReaderChild = commandChild.ExecuteReader())
-                                using (var readerChild = new SQLiteWrapperReader(sqliteDataReaderChild))
-                                {
-                                    while (readerChild.Read())
-                                    {
-                                        var funcGroups = new DoodadFuncGroups();
-                                        funcGroups.Id = readerChild.GetUInt32("id");
-                                        funcGroups.GroupKindId = readerChild.GetUInt32("doodad_func_group_kind_id");
-                                        funcGroups.SoundId = readerChild.IsDBNull("sound_id") ? 0 : readerChild.GetUInt32("sound_id");
-
-                                        template.FuncGroups.Add(funcGroups);
-                                    }
-                                }
-                            }
-
                             _templates.Add(template.Id, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_groups";
+                    command.Prepare();
+                    using (var sqliteDataReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var templateId = reader.GetUInt32("doodad_almighty_id");
+                            if (_templates.ContainsKey(templateId))
+                            {
+                                var funcGroups = new DoodadFuncGroups
+                                {
+                                    Id = reader.GetUInt32("id"),
+                                    GroupKindId = reader.GetUInt32("doodad_func_group_kind_id"),
+                                    SoundId = reader.IsDBNull("sound_id") ? 0 : reader.GetUInt32("sound_id")
+                                };
+                                _templates[templateId].FuncGroups.Add(funcGroups);
+                            }
                         }
                     }
                 }
