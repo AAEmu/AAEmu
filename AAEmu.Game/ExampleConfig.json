@@ -4,7 +4,8 @@
   "SecretKey": "test",
   "Network": {
     "Host": "127.0.0.1",
-    "Port": 1239
+    "Port": 1239,
+    "NumConnections": 10
   },
   "StreamNetwork": {
     "Host": "127.0.0.1",

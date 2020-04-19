@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Unit _unit;
         private readonly byte _type;
-        private readonly byte _modelPostureType;
+        private byte _modelPostureType;
 
         public SCUnitStatePacket(Unit unit) : base(SCOffsets.SCUnitStatePacket, 1)
         {
@@ -197,8 +197,28 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
                 stream.Write((sbyte)-1); // point
 
-            // TODO UnitModelPosture
-            stream.Write(_modelPostureType); // type
+            // TODO добавлено чтобы NPC на которых можно охотиться двигали ногами при движении, однако если они сидели или что либо делали они станут просто стоять
+            if (_type == 1) // NPC
+            {
+                if (_unit is Npc npc)
+                {
+                    // TODO UnitModelPosture
+                    if (npc.Faction.GuardHelp)
+                    {
+                        stream.Write(_modelPostureType); // type // оставим это для того, чтобы NPC могли заниматься своими делами
+                    }
+                    else
+                    {
+                        _modelPostureType = 0; // type //для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно)
+                        stream.Write(_modelPostureType);
+                    }
+                }
+            }
+            else // other
+            {
+                stream.Write(_modelPostureType);
+            }
+
             stream.Write(false); // isLooted
 
             switch (_modelPostureType)

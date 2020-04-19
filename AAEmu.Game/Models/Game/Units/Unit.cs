@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 
@@ -46,8 +47,8 @@ namespace AAEmu.Game.Models.Game.Units
         public SkillTask AutoAttackTask { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public Expedition Expedition { get; set; }
-
         public bool IsInBattle { get; set; }
+        public bool IsInPatrol { get; set; } // so as not to run the route a second time
         public int SummarizeDamage { get; set; }
         public bool IsAutoAttack = false;
         public uint SkillId;
@@ -60,6 +61,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// Indicates the route and speed of the Unit patrol, whether it is performing patrols, etc.
         /// </summary>
         public Patrol Patrol { get; set; }
+        public Simulation Simulation { get; set; }
 
         public Unit()
         {
