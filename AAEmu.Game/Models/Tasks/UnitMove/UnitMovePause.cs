@@ -3,7 +3,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.UnitMove
 {
-    public class UnitMove : Task
+    public class UnitMovePause : Task
     {
         private readonly Patrol _patrol;
         private readonly Npc _npc;
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         /// </summary>
         /// <param name="patrol"></param>
         /// <param name="npc"></param>
-        public UnitMove(Patrol patrol, Npc npc)
+        public UnitMovePause(Patrol patrol, Npc npc)
         {
             _patrol = patrol;
             _npc = npc;
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         {
             if (_npc.Hp > 0)
             {
-                _patrol?.Apply(_npc);
+                _patrol?.LoopAuto(_npc);
             }
         }
     }

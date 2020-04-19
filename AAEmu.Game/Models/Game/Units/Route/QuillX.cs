@@ -11,25 +11,18 @@ using AAEmu.Game.Utils;
 namespace AAEmu.Game.Models.Game.Units.Route
 {
     /// <summary>
-    /// 正圆形巡航路线
-    /// Round cruise route
-    /// 根据圆点进行正圆形路线行走，适合平面地区
-    /// The regular square route is suitable for the plane area.
-    /// 非平整地区会造成NPC的遁地或飞空
-    /// Non-uniform areas can cause NPC refuge or flight
+    /// The movement back and forth across the X-axis
     /// </summary>
-    public class Square : Patrol
+    public class QuillX : Patrol
     {
-        public short VelZ { get; set; } = 0;
-        public sbyte Radius { get; set; } = 5;
         public short Degree { get; set; } = 360;
 
         /// <summary>
-        /// 正方形巡航 / Square Cruise
+        /// QuillX X-axis movement
         /// </summary>
-        /// <param name="caster">触发角色 / Trigger role</param>
+        /// <param name="caster">Trigger role</param>
         /// <param name="npc">NPC</param>
-        /// <param name="degree">角度 默认360度 / Default angle 360 degrees</param>
+        /// <param name="degree">Default angle 360 degrees</param>
         public override void Execute(Npc npc)
         {
             var x = npc.Position.X;
@@ -43,21 +36,18 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 npc.Position.X -= (float)0.1;
             }
+            //    if (Count < Degree / 4 || (Count > (Degree / 4 + Degree / 2) && Count < Degree))
+            //    {
+            //        npc.Position.Y += (float)0.1;
+            //    }
+            //    else if (Count < (Degree / 4 + Degree / 2))
+            //    {
+            //        npc.Position.Y -= (float)0.1;
+            //    }
 
-            if (Count < Degree / 4 || (Count > (Degree / 4 + Degree / 2) && Count < Degree))
-            {
-                npc.Position.Y += (float)0.1;
-            }
-            else if (Count < (Degree / 4 + Degree / 2))
-            {
-                npc.Position.Y -= (float)0.1;
-            }
-
-            // 模拟unit
             // Simulated unit
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
-            // 改变NPC坐标
             // Change NPC coordinates
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
@@ -69,8 +59,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
 
-            moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
-            //moveType.VelZ = VelZ;
+            moveType.Flags = 5;     // 5-walk, 4-run, 3-stand still
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 127; // 88.. 118
@@ -79,11 +68,9 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = Seq;    // has to change all the time for normal motion.
 
-            // 广播移动状态
             // Broadcasting Mobile State
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
 
-            // 如果执行次数小于角度则继续添加任务 否则停止移动
             // If the number of executions is less than the angle, continue adding tasks or stop moving
             if (Count < Degree)
             {
@@ -91,7 +78,6 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             else
             {
-                // 停止移动
                 // Stop moving
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);

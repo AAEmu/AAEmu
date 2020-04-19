@@ -11,42 +11,62 @@ using AAEmu.Game.Utils;
 namespace AAEmu.Game.Models.Game.Units.Route
 {
     /// <summary>
-    /// 正圆形巡航路线
-    /// Round cruise route
-    /// 根据圆点进行正圆形路线行走，适合平面地区
-    /// According to the circular point, the regular circular route is suitable for the plane area.
-    /// 非平整地区会造成NPC的遁地或飞空
-    /// Non-flat areas will cause NPC's depression or airborne
+    /// Stirring movement
     /// </summary>
-    public class Circular : Patrol
+    public class Stirring : Patrol
     {
         public short VelZ { get; set; } = 0;
-        public sbyte Radius { get; set; } = 2; //5;
-        public short Degree { get; set; } = 180;
+        public sbyte Radius { get; set; } = 5;
+        public short Degree { get; set; } = 360;
 
+        /// <summary>
+        /// Stirring movement
+        /// </summary>
+        /// <param name="caster">Trigger role</param>
+        /// <param name="npc">NPC</param>
+        /// <param name="degree">Default angle 360 degrees</param>
         public override void Execute(Npc npc)
         {
+            Degree = (short)Rand.Next(0, 360);
+
             var x = npc.Position.X;
             var y = npc.Position.Y;
-            // debug by Yanlongli date 2019.04.18
-            // 将自己的移动赋予选择的对象 跟随自己一起移动
-            // Give your own movement to the selected object, move with yourself
+
+            if (Count < Degree / 2)
+            {
+                npc.Position.X += (float)0.1;
+            }
+            else if (Count < Degree)
+            {
+                npc.Position.X -= (float)0.1;
+            }
+
+            if (Count < Degree / 4 || (Count > (Degree / 4 + Degree / 2) && Count < Degree))
+            {
+                npc.Position.Y += (float)0.1;
+            }
+            else if (Count < (Degree / 4 + Degree / 2))
+            {
+                npc.Position.Y -= (float)0.1;
+            }
+
             // 模拟unit
             // Simulated unit
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
-            if (npc.Position.RotationX < 127)
-            {
-                npc.Position.RotationZ += 1;
-            }
-            else
-            {
-                npc.Position.RotationX = 0;
-            }
-
             // 改变NPC坐标
-            // Changing NPC coordinates
-            moveType.Flags = 5;     // 5-walk, 4-run, 3-stand still
+            // Change NPC coordinates
+            moveType.X = npc.Position.X;
+            moveType.Y = npc.Position.Y;
+            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+
+            var angle = MathUtil.CalculateAngleFrom(x, y, npc.Position.X, npc.Position.Y);
+            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            moveType.RotationX = 0;
+            moveType.RotationY = 0;
+            moveType.RotationZ = rotZ;
+
+            moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
             //moveType.VelZ = VelZ;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
@@ -56,23 +76,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = Seq;    // has to change all the time for normal motion.
 
-            // 圆形巡航
-            // Round cruising
-            var hudu = 4 * Math.PI / 360 * Count;
-            moveType.X = npc.Position.X = npc.Spawner.Position.X + (float)Math.Sin(hudu) * Radius;
-            moveType.Y = npc.Position.Y = npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
-
-            //moveType.Z = npc.Position.Z;
-            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-            var angle = MathUtil.CalculateAngleFrom(x, y, npc.Position.X, npc.Position.Y);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-            moveType.RotationX = 0;
-            moveType.RotationY = 0;
-            moveType.RotationZ = rotZ;
-
             // 广播移动状态
             // Broadcasting Mobile State
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+
             // 如果执行次数小于角度则继续添加任务 否则停止移动
             // If the number of executions is less than the angle, continue adding tasks or stop moving
             if (Count < Degree)
@@ -86,7 +93,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 //LoopAuto(npc);
-                // stop at the top for time seconds
+                // остановиться в вершине на time секунд
                 double time = (uint)Rand.Next(10, 25);
                 TaskManager.Instance.Schedule(new UnitMovePause(this, npc), TimeSpan.FromSeconds(time));
             }
