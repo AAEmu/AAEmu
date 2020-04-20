@@ -475,7 +475,18 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
-            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+            if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
+            {
+                moveType.Z = 98.5993f;
+            }
+            else if (npc.TemplateId == 13680) // shark
+            {
+                moveType.Z = 95.5993f;
+            }
+            else // other
+            {
+                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+            }
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
             moveType.RotationX = 0;
@@ -499,7 +510,18 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
-            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+            if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
+            {
+                moveType.Z = 98.5993f;
+            }
+            else if (npc.TemplateId == 13680) // shark
+            {
+                moveType.Z = 95.5993f;
+            }
+            else // other
+            {
+                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+            }
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
             moveType.RotationX = 0;
