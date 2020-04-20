@@ -707,6 +707,9 @@ namespace AAEmu.Game.Core.Managers
                             template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
                             template.ExpDate = reader.IsDBNull("exp_online_lifetime") ? reader.GetInt32("exp_date") : 0;
                             template.LevelRequirement = reader.GetInt32("level_requirement");
+                            template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
+                            template.AuctionCategoryB = reader.IsDBNull("auction_b_category_id") ? 0 : reader.GetInt32("auction_b_category_id");
+                            template.AuctionCategoryC = reader.IsDBNull("auction_c_category_id") ? 0 : reader.GetInt32("auction_c_category_id");
                             template.LevelLimit = reader.GetInt32("level_limit");
                             template.FixedGrade = reader.GetInt32("fixed_grade");
                             template.LivingPointPrice = reader.GetInt32("living_point_price");
