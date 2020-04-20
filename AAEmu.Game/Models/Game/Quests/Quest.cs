@@ -51,21 +51,24 @@ namespace AAEmu.Game.Models.Game.Quests
             {
                 if (Step >= 6)
                     Status = QuestStatus.Ready;
-                var component = Template.GetComponent(Step);
-                if (component == null)
+                var components = Template.GetComponents(Step);
+                if (components.Length == 0)
                     continue;
-                var acts = QuestManager.Instance.GetActs(component.Id);
-                for (var i = 0; i < acts.Length; i++)
+                int c;
+                for (c = 0; c <= components.Length - 1; c++)
                 {
-                    if (acts[i].DetailType == "QuestActSupplyItem" && Step == (byte) QuestComponentKind.Supply)
-                        res = acts[i].Use(Owner, this, SupplyItem);
-                    else
-                        res = acts[i].Use(Owner, this, Objectives[i]);
-                    
+                    var acts = QuestManager.Instance.GetActs(components[c].Id);
+                    for (var i = 0; i < acts.Length; i++)
+                    {
+                        if (acts[i].DetailType == "QuestActSupplyItem" && Step == (byte)QuestComponentKind.Supply)
+                            res = acts[i].Use(Owner, this, SupplyItem);
+                        else
+                            res = acts[i].Use(Owner, this, Objectives[i]);
+                    }
                 }
                 if (!res)
                     return componentId;
-                componentId = component.Id;
+                componentId = components[c - 1].Id;
             }
             return res ? componentId : 0;
         }
@@ -80,36 +83,44 @@ namespace AAEmu.Game.Models.Game.Quests
                     Status = QuestStatus.Completed;
                 else if (Step >= 6)
                     Status = QuestStatus.Ready;
-                var component = Template.GetComponent(Step);
-                if (component == null && Step == (byte) QuestComponentKind.Ready)
+                var components = Template.GetComponents(Step);
+                if (components.Length == 0 && Step == (byte) QuestComponentKind.Ready)
                 {
                     Owner.Quests.Complete((uint)TemplateId, 0);
                     continue;
                 }
-                else if (component == null)
+                else if (components.Length == 0)
                     continue;
-                var acts = QuestManager.Instance.GetActs(component.Id);
-                for (var i = 0; i < acts.Length; i++)
+                int c;
+                for (c = 0; c <= components.Length - 1; c++)
                 {
-                    if (acts[i].DetailType == "QuestActSupplyItem" && Step == (byte)QuestComponentKind.Supply)
+                    var acts = QuestManager.Instance.GetActs(components[c].Id);
+                    for (var i = 0; i < acts.Length; i++)
+                    {
+                        if (acts[i].DetailType == "QuestActSupplyItem" && Step == (byte)QuestComponentKind.Supply)
                         {
                             byte next = Step;
                             next++;
                             var componentnext = Template.GetComponent(next);
                             var actsnext = QuestManager.Instance.GetActs(componentnext.Id);
-                            if (actsnext[i].DetailType == "QuestActObjItemGather")
-                                res = acts[i].Use(Owner, this, SupplyItem);
-                            else
-                                res = false;
+                            for (var an = 0; an < actsnext.Length; an++)
+                            {
+                                var questSupplyItem = (QuestActSupplyItem) QuestManager.Instance.GetActTemplate(acts[i].DetailId, "QuestActSupplyItem");
+                                var questItemGather = (QuestActObjItemGather) QuestManager.Instance.GetActTemplate(actsnext[an].DetailId, "QuestActObjItemGather");
+                                if ((actsnext[an].DetailType == "QuestActObjItemGather") && (questSupplyItem.ItemId == questItemGather.ItemId ))
+                                    res = acts[i].Use(Owner, this, SupplyItem);
+                                else
+                                    res = false;
+                            }
                         }
-                    else
-                        res = acts[i].Use(Owner, this, Objectives[i]);
-                    SupplyItem = 0;
-                    
+                        else
+                            res = acts[i].Use(Owner, this, Objectives[i]);
+                        SupplyItem = 0;
+                    }
                 }
                 if (!res)
                     break;
-                componentId = component.Id;
+                componentId = components[c-1].Id;
             }
 
             Owner.SendPacket(new SCQuestContextUpdatedPacket(this, componentId));
