@@ -62,8 +62,18 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.X = npc.Position.X = npc.Spawner.Position.X + (float)Math.Sin(hudu) * Radius;
             moveType.Y = npc.Position.Y = npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
 
-            //moveType.Z = npc.Position.Z;
-            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+            if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
+            {
+                moveType.Z = 98.5993f;
+            }
+            else if (npc.TemplateId == 13680) // shark
+            {
+                moveType.Z = 95.5993f;
+            }
+            else // other
+            {
+                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+            }
             var angle = MathUtil.CalculateAngleFrom(x, y, npc.Position.X, npc.Position.Y);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
             moveType.RotationX = 0;

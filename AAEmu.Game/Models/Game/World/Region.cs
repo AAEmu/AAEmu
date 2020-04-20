@@ -117,49 +117,51 @@ namespace AAEmu.Game.Models.Game.World
                     if (t is Npc npc)
                     {
                         // We're gonna get the NPC's favorites on the road.
+                        // Nui Forest keeper Arthur
                         if (npc.TemplateId == 11999)
                         {
                             if (!npc.IsInPatrol)
                             {
                                 npc.IsInPatrol = true; // so as not to run the route a second time
                                 var path = new Simulation(npc);
-                                path.MoveFilesPath = @".\Data\Path\";         // location where the coordinate file is located
-                                path.MovePathFileName = @"nuipatrolmovefile"; // path file name
-                                path.MoveFileExt = @".path";                  // type of file
+                                path.MoveFilesPath = @".\Data\Path\";             // location where the coordinate file is located
+                                path.MovePathFileName = @"NuiForestkeeperArthur"; // path file name
+                                path.MoveFileExt = @".path";                      // type of file
                                 path.ReadPath();
                                 path.GoToPath(npc, true);
                             }
                         }
-                        // here we add NPCs that can't be hunted but want them to move, like deer.
-                        if (npc.TemplateId == 4200)
+                        else
+                        //                    deer                         swimmers
+                        if (npc.TemplateId == 4200 || npc.TemplateId == 13677 || npc.TemplateId == 13676)
                         {
                             if (npc.Patrol == null)
                             {
                                 Patrol patrol = null;
-                                var rnd = Rand.Next(0, 500);
-                                if (rnd > 400)
+                                var rnd = Rand.Next(0, 400);
+                                if (rnd > 300)
                                 {
                                     // NPCs are moving squarely
-                                    var square = new Square() {Interrupt = true, Loop = true, Abandon = false};
+                                    var square = new Square() { Interrupt = true, Loop = true, Abandon = false };
                                     square.Degree = (short)Rand.Next(180, 360);
                                     patrol = square;
                                 }
-                                else if (rnd > 300)
-                                {
-                                    // NPCs are moving around in a circle
-                                    patrol = new Circular() {Interrupt = true, Loop = true, Abandon = false};
-                                }
                                 else if (rnd > 200)
                                 {
-                                    // NPC move along the weaving shuttle in the Y-axis.
-                                    var quill = new QuillY {Interrupt = true, Loop = true, Abandon = false};
-                                    quill.Degree = (short)Rand.Next(180, 360);
-                                    patrol = quill;
+                                    // NPCs are moving around in a circle
+                                    patrol = new Circular() { Interrupt = true, Loop = true, Abandon = false };
                                 }
                                 else if (rnd > 100)
                                 {
+                                    // NPC move along the weaving shuttle in the Y-axis.
+                                    var quill = new QuillY { Interrupt = true, Loop = true, Abandon = false };
+                                    quill.Degree = (short)Rand.Next(180, 360);
+                                    patrol = quill;
+                                }
+                                else if (rnd <= 100)
+                                {
                                     // NPC move along the weaving shuttle in the X-axis.
-                                    var quill = new QuillX {Interrupt = true, Loop = true, Abandon = false};
+                                    var quill = new QuillX { Interrupt = true, Loop = true, Abandon = false };
                                     quill.Degree = (short)Rand.Next(180, 360);
                                     patrol = quill;
                                 }
@@ -172,6 +174,7 @@ namespace AAEmu.Game.Models.Game.World
                                 }
                             }
                         }
+                        else
                         // here the NPCs you can hunt, check that they are not protected by Guards
                         if (npc.Faction.GuardHelp == false)
                         {
@@ -181,41 +184,45 @@ namespace AAEmu.Game.Models.Game.World
                                 var rnd = Rand.Next(0, 800);
                                 if (rnd > 700)
                                 {
+                                    // NPC stand still
+                                    npc.Patrol = null;
                                     // NPC is moving slowly
-                                    var stirring = new Stirring() {Interrupt = true, Loop = true, Abandon = false};
-                                    stirring.Degree = (short)Rand.Next(180, 360);
-                                    patrol = stirring;
+                                    //var stirring = new Stirring() { Interrupt = true, Loop = true, Abandon = false };
+                                    //stirring.Degree = (short)Rand.Next(180, 360);
+                                    //patrol = stirring;
                                 }
                                 else if (rnd > 600)
                                 {
                                     // NPCs are moving squarely
-                                    var square = new Square {Interrupt = true, Loop = true, Abandon = false};
+                                    var square = new Square { Interrupt = true, Loop = true, Abandon = false };
                                     square.Degree = (short)Rand.Next(180, 360);
                                     patrol = square;
                                 }
                                 else if (rnd > 500)
                                 {
                                     // NPCs are moving around in a circle
-                                    patrol = new Circular {Interrupt = true, Loop = true, Abandon = false};
+                                    patrol = new Circular { Interrupt = true, Loop = true, Abandon = false };
                                 }
                                 else if (rnd > 400)
                                 {
+                                    // NPC stand still
+                                    npc.Patrol = null;
                                     // NPCs are jerking around
-                                    var jerky = new Jerky {Interrupt = true, Loop = true, Abandon = false};
-                                    jerky.Degree = (short)Rand.Next(180, 360);
-                                    patrol = jerky;
+                                    //var jerky = new Jerky { Interrupt = true, Loop = true, Abandon = false };
+                                    //jerky.Degree = (short)Rand.Next(180, 360);
+                                    //patrol = jerky;
                                 }
                                 else if (rnd > 300)
                                 {
                                     // NPC move along the weaving shuttle in the Y-axis.
-                                    var quill = new QuillY {Interrupt = true, Loop = true, Abandon = false};
+                                    var quill = new QuillY { Interrupt = true, Loop = true, Abandon = false };
                                     quill.Degree = (short)Rand.Next(180, 360);
                                     patrol = quill;
                                 }
                                 else if (rnd > 200)
                                 {
                                     // NPC move along the weaving shuttle in the X-axis.
-                                    var quill = new QuillX {Interrupt = true, Loop = true, Abandon = false};
+                                    var quill = new QuillX { Interrupt = true, Loop = true, Abandon = false };
                                     quill.Degree = (short)Rand.Next(180, 360);
                                     patrol = quill;
                                 }
@@ -224,12 +231,11 @@ namespace AAEmu.Game.Models.Game.World
                                     // NPC stand still
                                     npc.Patrol = null;
                                 }
-
                                 if (patrol != null)
                                 {
                                     patrol.Pause(npc);
                                     npc.Patrol = patrol;
-                                    npc.Patrol.LastPatrol = null;
+                                    npc.Patrol.LastPatrol = patrol;
                                     patrol.Recovery(npc);
                                 }
                             }
@@ -245,7 +251,6 @@ namespace AAEmu.Game.Models.Game.World
                         }
                     }
                 }
-
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
                 for (var i = 0; i < doodads.Length; i += 30)
                 {
@@ -268,35 +273,50 @@ namespace AAEmu.Game.Models.Game.World
                 return;
 
             // remove all visible objects in the region from the player
-            if (obj is Character)
+            if (obj is Character character1)
             {
-                var character = (Character)obj;
+                //var unitIds = GetListId<Unit>(new List<uint>(), obj.ObjId).ToArray();
+                var unitIds = GetListId<Unit>(new List<uint>(), character1.ObjId).ToArray();
+                var units = GetList(new List<Unit>(), character1.ObjId);
+                foreach (var t in units)
+                {
+                    if (t is Npc npc)
+                    {
+                        if (npc.TemplateId == 11999)
+                        {
+                            // leave the NPC on the way
+                        }
+                        else
+                        {
+                            npc.Patrol = null; // Stop NPCs that players don 't see
+                        }
+                    }
+                }
 
-                var unitIds = GetListId<Unit>(new List<uint>(), obj.ObjId).ToArray();
                 for (var offset = 0; offset < unitIds.Length; offset += 500)
                 {
                     var length = unitIds.Length - offset;
                     var temp = new uint[length > 500 ? 500 : length];
                     Array.Copy(unitIds, offset, temp, 0, temp.Length);
-                    character.SendPacket(new SCUnitsRemovedPacket(temp));
+                    character1.SendPacket(new SCUnitsRemovedPacket(temp));
                 }
-
-                var doodadIds = GetListId<Doodad>(new List<uint>(), obj.ObjId).ToArray();
+                var doodadIds = GetListId<Doodad>(new List<uint>(), character1.ObjId).ToArray();
                 for (var offset = 0; offset < doodadIds.Length; offset += 400)
                 {
                     var length = doodadIds.Length - offset;
                     var last = length <= 400;
                     var temp = new uint[last ? length : 400];
                     Array.Copy(doodadIds, offset, temp, 0, temp.Length);
-                    character.SendPacket(new SCDoodadsRemovedPacket(last, temp));
+                    character1.SendPacket(new SCDoodadsRemovedPacket(last, temp));
                 }
-
                 // TODO ... others types...
             }
 
             // remove the object from all players in the region
             foreach (var character in GetList(new List<Character>(), obj.ObjId))
+            {
                 obj.RemoveVisibleObject(character);
+            }
         }
 
         public Region[] GetNeighbors()
