@@ -535,10 +535,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
                     if (casterCaster is SkillItem castItem) // TODO Clean up. 
                     {
-                        var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
-                        var itemCategoryId = itemUsed.Template.AuctionCategoryA;
 
-                        if(itemCategoryId == 6) //if item is a consumable
+                        var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
+                        var isRaegent = itemUsed.Template.UseSkillAsReagent;
+                        if(isRaegent) //if item is a raegent
                         {
                             if (caster is Character player)
                             {
@@ -546,12 +546,8 @@ namespace AAEmu.Game.Models.Game.Skills
                                 var tasks = new List<ItemTask>();
                                 foreach (var (item, count) in items)
                                 {
-                                    if (item.Count == 0)
-                                        tasks.Add(new ItemRemove(item));
-                                    else
-                                        tasks.Add(new ItemCountUpdate(item, -count));
+                                    InventoryHelper.RemoveItemAndUpdateClient(player, item, count);
                                 }
-                                player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectConsumption, tasks, new List<ulong>()));
                             }
                         }
                         ItemIdManager.Instance.ReleaseId((uint)itemUsed.Id);

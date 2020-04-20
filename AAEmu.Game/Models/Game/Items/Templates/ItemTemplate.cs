@@ -16,6 +16,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int MaxCount { get; set; }
         public bool Sellable { get; set; }
         public uint UseSkillId { get; set; }
+        public bool UseSkillAsReagent { get; set; }
         public uint BuffId { get; set; }
         public bool Gradable { get; set; }
         public bool LootMulti { get; set; }
