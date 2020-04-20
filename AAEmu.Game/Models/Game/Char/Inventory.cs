@@ -444,6 +444,14 @@ namespace AAEmu.Game.Models.Game.Char
             return null;
         }
 
+        public Item GetItemBeItemId(ulong id)
+        {
+            foreach (var item in Items)
+                if (item != null && item.Template.Id == id)
+                    return item;
+            return null;
+        }
+
         public Item GetItemByTemplateId(ulong templateId)
         {
             foreach (var item in Equip)
