@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
@@ -13,16 +14,15 @@ namespace AAEmu.Game.Models.Game.Units
         public override void Execute(Npc npc)
         {
             if (npc == null)
+            {
                 return;
+            }
 
             // If we are killed, the NPC goes to the place of spawn
             var trg = (Unit)npc.CurrentTarget;
-            //if (trg == null)
-            //    return;
-
-            if (trg?.Hp <= 0)
+            if (npc.CurrentTarget == null)
             {
-                npc.BroadcastPacket(new SCCombatClearedPacket(trg.ObjId), true);
+                //npc.BroadcastPacket(new SCCombatClearedPacket(trg.ObjId), true);
                 npc.BroadcastPacket(new SCCombatClearedPacket(npc.ObjId), true);
                 npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
                 npc.CurrentTarget = null;
@@ -56,7 +56,9 @@ namespace AAEmu.Game.Models.Game.Units
                     maxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
                 }
                 else
+                {
                     maxXYZ = _distance + 1f;
+                }
 
                 // 如果最大值超过distance 则放弃攻击转而进行追踪
                 // If the maximum value exceeds distance, the attack is abandoned and the tracking is followed.
