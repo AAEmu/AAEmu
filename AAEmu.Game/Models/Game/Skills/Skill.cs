@@ -533,6 +533,29 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         continue;
                     }
+                    if (casterCaster is SkillItem castItem) // TODO Clean up. 
+                    {
+                        var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
+                        var itemCategoryId = itemUsed.Template.AuctionCategoryA;
+
+                        if(itemCategoryId == 6) //if item is a consumable
+                        {
+                            if (caster is Character player)
+                            {
+                                var items = player.Inventory.RemoveItem(castItem.ItemTemplateId, effect.ConsumeItemCount);
+                                var tasks = new List<ItemTask>();
+                                foreach (var (item, count) in items)
+                                {
+                                    if (item.Count == 0)
+                                        tasks.Add(new ItemRemove(item));
+                                    else
+                                        tasks.Add(new ItemCountUpdate(item, -count));
+                                }
+                                player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectConsumption, tasks, new List<ulong>()));
+                            }
+                        }
+                        ItemIdManager.Instance.ReleaseId((uint)itemUsed.Id);
+                    }
                     if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
                     {
                         if (effect.ConsumeSourceItem)

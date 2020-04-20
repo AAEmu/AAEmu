@@ -25,6 +25,9 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int ExpOnlineLifetime { get; set; }
         public int ExpDate { get; set; }
         public int LevelRequirement { get; set; }
+        public int AuctionCategoryA {get; set; }
+        public int AuctionCategoryB { get; set; }
+        public int AuctionCategoryC { get; set; }
         public int LevelLimit { get; set; }
         public int FixedGrade { get; set; }
         public int LivingPointPrice { get; set; }
