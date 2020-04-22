@@ -1,12 +1,12 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Models.Game.Units.Route;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -32,6 +32,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar = character;
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
 
+                Connection.ActiveChar.Simulation = new Simulation(character);
+
                 Connection.SendPacket(new SCCharacterStatePacket(character));
                 Connection.SendPacket(new SCCharacterGamePointsPacket(character));
                 Connection.ActiveChar.Inventory.Send();
@@ -47,10 +49,14 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Blocked.Send();
 
                 foreach (var house in houses)
+                {
                     Connection.SendPacket(new SCMyHousePacket(house));
+                }
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
+                {
                     Connection.SendPacket(new SCConflictZoneStatePacket(conflict.ZoneGroupId, conflict.CurrentZoneState, conflict.NextStateTime));
+                }
 
                 FactionManager.Instance.SendFactions(Connection.ActiveChar);
                 FactionManager.Instance.SendRelations(Connection.ActiveChar);

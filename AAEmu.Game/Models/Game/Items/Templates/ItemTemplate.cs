@@ -16,6 +16,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int MaxCount { get; set; }
         public bool Sellable { get; set; }
         public uint UseSkillId { get; set; }
+        public bool UseSkillAsReagent { get; set; }
         public uint BuffId { get; set; }
         public bool Gradable { get; set; }
         public bool LootMulti { get; set; }
@@ -25,6 +26,9 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int ExpOnlineLifetime { get; set; }
         public int ExpDate { get; set; }
         public int LevelRequirement { get; set; }
+        public int AuctionCategoryA {get; set; }
+        public int AuctionCategoryB { get; set; }
+        public int AuctionCategoryC { get; set; }
         public int LevelLimit { get; set; }
         public int FixedGrade { get; set; }
         public int LivingPointPrice { get; set; }

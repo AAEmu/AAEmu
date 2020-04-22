@@ -124,9 +124,7 @@ namespace AAEmu.Game.Models.Game.World
                             {
                                 npc.IsInPatrol = true; // so as not to run the route a second time
                                 var path = new Simulation(npc);
-                                path.MoveFilesPath = @".\Data\Path\";             // location where the coordinate file is located
-                                path.MovePathFileName = @"NuiForestkeeperArthur"; // path file name
-                                path.MoveFileExt = @".path";                      // type of file
+                                path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
                                 path.ReadPath();
                                 path.GoToPath(npc, true);
                             }
@@ -142,14 +140,14 @@ namespace AAEmu.Game.Models.Game.World
                                 if (rnd > 300)
                                 {
                                     // NPCs are moving squarely
-                                    var square = new Square() { Interrupt = true, Loop = true, Abandon = false };
+                                    var square = new Square { Interrupt = true, Loop = true, Abandon = false };
                                     square.Degree = (short)Rand.Next(180, 360);
                                     patrol = square;
                                 }
                                 else if (rnd > 200)
                                 {
                                     // NPCs are moving around in a circle
-                                    patrol = new Circular() { Interrupt = true, Loop = true, Abandon = false };
+                                    patrol = new Circular { Interrupt = true, Loop = true, Abandon = false };
                                 }
                                 else if (rnd > 100)
                                 {
