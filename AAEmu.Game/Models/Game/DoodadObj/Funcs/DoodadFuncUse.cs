@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers.UnitManagers;
+﻿using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
 
             var func = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
-            
+           
             if (func.NextPhase > 0)
             {
                 owner.FuncGroupId = (uint)func.NextPhase;

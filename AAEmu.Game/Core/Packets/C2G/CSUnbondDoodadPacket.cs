@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -15,14 +15,16 @@ namespace AAEmu.Game.Core.Packets.C2G
             var characterObjId = stream.ReadBc();
             var doodadObjId = stream.ReadBc();
 
+
+            _log.Warn("Unbonding Doodad");
+
             if (Connection.ActiveChar.ObjId != characterObjId ||
                 Connection.ActiveChar.Bonding == null || Connection.ActiveChar.Bonding.ObjId != doodadObjId)
                 return;
 
             Connection.ActiveChar.Bonding.SetOwner(null);
             Connection.ActiveChar.Bonding = null;
-            Connection.ActiveChar.BroadcastPacket(
-                new SCUnbondDoodadPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Id, doodadObjId), true);
+            Connection.ActiveChar.BroadcastPacket(new SCUnbondDoodadPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Id, doodadObjId), true);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -86,8 +87,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                             using (var commandChild = connection.CreateCommand())
                             {
-                                commandChild.CommandText =
-                                    "SELECT * FROM doodad_func_groups WHERE doodad_almighty_id = @doodad_almighty_id";
+                                commandChild.CommandText = "SELECT * FROM doodad_func_groups WHERE doodad_almighty_id = @doodad_almighty_id";
                                 commandChild.Prepare();
                                 commandChild.Parameters.AddWithValue("doodad_almighty_id", template.Id);
                                 using (var sqliteDataReaderChild = commandChild.ExecuteReader())
@@ -2189,7 +2189,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
         }
 
-        public Doodad Create(uint bcId, uint id, Unit unit = null)
+        public Doodad Create(uint bcId, uint id, GameObject obj = null)
         {
             if (!_templates.ContainsKey(id))
                 return null;
@@ -2198,16 +2198,16 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
             doodad.TemplateId = template.Id;
             doodad.Template = template;
-            doodad.OwnerObjId = unit?.ObjId ?? 0;
-            doodad.OwnerId = 0;
+            doodad.OwnerObjId = obj?.ObjId ?? 0;
 
-            if (unit is Character character)
+            if (obj is Character character)
             {
                 doodad.OwnerId = character.Id;
                 doodad.OwnerType = DoodadOwnerType.Character;
+                doodad.Name = character.Name;
             }
 
-            if (unit is House house)
+            if (obj is House house)
             {
                 doodad.OwnerObjId = 0;
                 doodad.ParentObjId = house.ObjId;
@@ -2217,6 +2217,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
 
             doodad.FuncGroupId = doodad.GetGroupId(); // TODO look, using doodadFuncId
+
             return doodad;
         }
 

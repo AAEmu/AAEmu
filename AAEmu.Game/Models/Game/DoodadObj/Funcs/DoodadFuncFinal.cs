@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -19,6 +19,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             _log.Debug("DoodadFuncFinal");
+
             if (After > 0)
             {
                 owner.GrowthTime = DateTime.Now.AddMilliseconds(After); // TODO ... need here?
@@ -28,6 +29,27 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             else
             {
                 owner.Delete();
+            }
+            if (caster.OwnerId != owner.OwnerId)
+            {
+                _log.Warn(owner.Name);
+                _log.Warn(caster.Name);
+                var doodadSpawner = new DoodadSpawner();
+                doodadSpawner.Id = 0;
+                switch (caster.RaceGender)
+                {
+                    case 17:
+                        doodadSpawner.UnitId = 3313;
+                    break;
+                    case 33:
+                        doodadSpawner.UnitId = 3314;
+                    break;
+                }
+                doodadSpawner.Position = caster.Position.Clone();
+                doodadSpawner.Position.RotationX = caster.Position.RotationX;
+                doodadSpawner.Position.RotationY = caster.Position.RotationY;
+                doodadSpawner.Position.RotationZ = caster.Position.RotationZ;
+                var doodad = doodadSpawner.Spawn(0);
             }
         }
     }

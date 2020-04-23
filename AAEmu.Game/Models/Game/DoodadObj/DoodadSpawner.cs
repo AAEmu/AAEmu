@@ -1,4 +1,6 @@
-using System;
+﻿using System;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -14,9 +16,37 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         
         public Doodad Last { get; set; }
 
+        public override Doodad Spawn(uint objId, ulong itemID, uint charID)
+        {
+            Character character = WorldManager.Instance.GetCharacterById(charID); //TODO make ID OOP
+
+            var doodad = DoodadManager.Instance.Create(objId, UnitId, character);
+            if (doodad == null)
+            {
+                _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);
+                return null;
+            }
+
+            doodad.Spawner = this;
+            doodad.Position = Position.Clone();
+            if (Scale > 0)
+                doodad.SetScale(Scale);
+            if (doodad.Position == null)
+            {
+                _log.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
+                return null;
+            }
+            doodad.ItemId = itemID;
+            doodad.Spawn();
+            Last = doodad;
+            return doodad;
+        }
+
         public override Doodad Spawn(uint objId)
         {
-            var doodad = DoodadManager.Instance.Create(objId, UnitId, null); // TODO look
+            Character character = WorldManager.Instance.GetCharacterById(1); //TODO make ID OOP
+           
+            var doodad = DoodadManager.Instance.Create(objId, UnitId, character);
             if (doodad == null)
             {
                 _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);
@@ -25,7 +55,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             
             doodad.Spawner = this;
             doodad.Position = Position.Clone();
-            doodad.OwnerType = DoodadOwnerType.System;
             if (Scale > 0)
                 doodad.SetScale(Scale);
             if (doodad.Position == null)

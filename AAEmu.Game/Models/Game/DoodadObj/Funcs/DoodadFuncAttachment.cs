@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            _log.Debug("DoodadFuncAttachment");
+            _log.Warn("DoodadFuncAttachment");
             if (caster is Character character)
             {
                 character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, 0);
