@@ -273,6 +273,10 @@ namespace AAEmu.Game.Core.Managers
             }
 
             item.Grade = grade;
+            
+            if(item.Template.BindId == 2) // Bind on pickup. 
+                item.Bounded = 1;
+
             if (item.Template.FixedGrade >= 0)
                 item.Grade = (byte)item.Template.FixedGrade;
             item.CreateTime = DateTime.UtcNow;
