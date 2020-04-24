@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Templates;
 
@@ -13,6 +13,7 @@ namespace AAEmu.Game.Models.Game.Items
         public SlotType SlotType { get; set; }
         public int Slot { get; set; }
         public byte Grade { get; set; }
+        public byte Bounded { get; set; }
         public int Count { get; set; }
         public int LifespanMins { get; set; }
         public uint MadeUnitId { get; set; }
@@ -66,7 +67,7 @@ namespace AAEmu.Game.Models.Game.Items
             //     return stream;
             stream.Write(Id);
             stream.Write(Grade);
-            stream.Write((byte) 0); // flags
+            stream.Write(Bounded); //bounded
             stream.Write(Count);
             stream.Write(DetailType);
             WriteDetails(stream);
