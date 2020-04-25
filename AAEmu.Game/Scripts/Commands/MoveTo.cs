@@ -2,23 +2,14 @@
 using System;
 
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Units.Route;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Skills.Effects;
-using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -32,7 +23,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<rec||save||go||run||walk||back||stop>";
+            return "<rec||save filename||go filename||back filename||stop||run||walk>";
         }
 
         public string GetCommandHelpText()
@@ -53,47 +44,76 @@ namespace AAEmu.Game.Scripts.Commands
         }
         public void Execute(Character character, string[] args)
         {
+            string nameFile = "movefile";
+            string cmd = "";
+            Simulation moveTo;
+            bool run = true;
+            bool walk = false;
             if (args.Length < 1)
             {
-                character.SendMessage("[MoveTo] /moveto <rec||save||go||run||walk||back||stop>");
+                character.SendMessage("[MoveTo] /moveto <rec||save filename||go filename||back filename||stop||run||walk>");
                 return;
             }
-            var cmd = args[0];
-            character.SendMessage("[MoveTo] cmd: {0}", cmd);
-            var moveTo = character.Simulation; // взять AI движения 
-            moveTo.npc = (Npc)character.CurrentTarget;
-            switch (@cmd)
+            if (args[0] == "rec" || args[0] == "stop" || args[0] == "run" | args[0] == "walk")
             {
-                case "rec":
-                    character.SendMessage("[MoveTo] start recording...");
-                    moveTo.StartRecord(moveTo, character);
-                    break;
-                case "save":
-                    character.SendMessage("[MoveTo] finished recording...");
-                    moveTo.StopRecord(moveTo);
-                    break;
-                case "go":
-                    character.SendMessage("[MoveTo] walk forward...");
-                    moveTo.ReadPath();
-                    moveTo.GoToPath((Npc)character.CurrentTarget, true);
-                    break;
-                case "run":
-                    character.SendMessage("[MoveTo] turned on running mode...");
-                    moveTo.runningMode = true;
-                    break;
-                //case "walk": // TODO If you uncomment, it leads to an error, I don’t understand why
-                //    character.SendMessage("[MoveTo] turned off running mode...");
-                //    moveTo.runningMode = false;
-                //    break;
-                case "back":
-                    character.SendMessage("[MoveTo] walk back...");
-                    moveTo.ReadPath();
-                    moveTo.GoToPath((Npc)character.CurrentTarget, false);
-                    break;
-                case "stop":
-                    character.SendMessage("[MoveTo] we stand still...");
-                    moveTo.StopMove((Npc)character.CurrentTarget);
-                    break;
+                cmd = args[0];
+            }
+            else if (args.Length == 2)
+            {
+                cmd = args[0];
+                nameFile = args[1];
+            }
+            else
+            {
+                character.SendMessage("[MoveTo] there should be two parameters, a command and a file_name...");
+                return;
+            }
+
+            character.SendMessage("[MoveTo] cmd: {0}, nameFile: {1}", cmd, nameFile);
+            moveTo = character.Simulation; // take the AI ​​movement
+            moveTo.npc = (Npc)character.CurrentTarget;
+            if (moveTo.npc == null)
+            {
+                character.SendMessage("[MoveTo] You need a target NPC to manage it!");
+            }
+            else
+            {
+                switch (@cmd)
+                {
+                    case "rec":
+                        character.SendMessage("[MoveTo] start recording...");
+                        moveTo.StartRecord(moveTo, character);
+                        break;
+                    case "save":
+                        character.SendMessage("[MoveTo] have finished recording...");
+                        moveTo.MoveFileName = nameFile;
+                        moveTo.StopRecord(moveTo);
+                        break;
+                    case "go":
+                        character.SendMessage("[MoveTo] walk go...");
+                        moveTo.MoveFileName = nameFile;
+                        moveTo.ReadPath();
+                        moveTo.GoToPath((Npc)character.CurrentTarget, true);
+                        break;
+                    case "back":
+                        character.SendMessage("[MoveTo] walk back...");
+                        moveTo.MoveFileName = nameFile;
+                        moveTo.ReadPath();
+                        moveTo.GoToPath((Npc)character.CurrentTarget, false);
+                        break;
+                    case "run":
+                        character.SendMessage("[MoveTo] turned on running mode...");
+                        moveTo.runningMode = run;
+                        break;
+                    //case "walk":
+                    //    character.SendMessage("[MoveTo] turned off running mode...");
+                    //    moveTo.runningMode = walk;
+                    //    break;
+                    case "stop":
+                        character.SendMessage("[MoveTo] standing still...");
+                        moveTo.StopMove((Npc)character.CurrentTarget);
+                        break;
+                }
             }
         }
     }
