@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Auction;
@@ -11,6 +12,7 @@ namespace AAEmu.Game.Core.Managers
     class AuctionManager : Singleton<AuctionManager>
     {
         public List<AuctionItem> _auctionItems;
+        public Dictionary<uint, string> _en_localizations;
 
         public void AddAuctionItem()
         {
@@ -19,50 +21,54 @@ namespace AAEmu.Game.Core.Managers
 
         public List<AuctionItem> GetAuctionItems(AuctionSearchTemplate searchTemplate)
         {
-            if (searchTemplate.ItemName.Length == 0)
-                return new List<AuctionItem>();
+            List<AuctionItem> auctionItemsFound = new List<AuctionItem>();
 
-            var itemID = GetItemIdFromName(searchTemplate.ItemName);
-
-            if (itemID == 0)
-                return new List<AuctionItem>();
-
-            var foundItems = new List<AuctionItem>();
-            foreach (var item in _auctionItems)
+            if (searchTemplate.ItemName == "" && searchTemplate.CategoryA == 0 && searchTemplate.Page == 0)
             {
-                if (item.ItemID == itemID)
-                    foundItems.Add(item);
+                foreach (var item in _auctionItems)
+                {
+                    if (item.ClientName == searchTemplate.Player.Name)
+                        auctionItemsFound.Add(item);
+                }
+                return auctionItemsFound;
             }
 
-            return foundItems;
-        }
+            var itemTemplates = ItemManager.Instance.GetItemTemplates(searchTemplate);
 
-        public uint GetItemIdFromName(string itemName)
-        {
-            using (var connection = SQLite.CreateConnection())
+            foreach (var template in itemTemplates)
             {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = $"SELECT * FROM localized_texts WHERE en_us='{itemName}' AND tbl_name='items'";
-                    command.Prepare();
-                    using (var sqlitereader = command.ExecuteReader())
-                    using (var reader = new SQLiteWrapperReader(sqlitereader))
-                    {
-                        var foundItemId = reader.GetUInt32("idx");
+                var query = from item in _auctionItems
+                            where ((searchTemplate.ItemName != "") ? template.Id == item.ItemID : true)
+                            where ((searchTemplate.CategoryA != 0) ? template.AuctionCategoryA == item.Type1 : true)
+                            select item;
 
-                        if (foundItemId != 0)
-                        {
-                            return foundItemId;
-                        }
-                    }
+                var foundItems = query.ToList<AuctionItem>();
+
+                foreach (var item in foundItems)
+                {
+                    if(!auctionItemsFound.Contains(item))
+                        auctionItemsFound.Add(item);
                 }
             }
-            return 0;
+
+            return auctionItemsFound;
+        }
+
+        public List<uint> GetItemIdsFromName(string itemName)
+        {
+            var query = from item in _en_localizations
+                        where (item.Value.Contains(itemName.ToLower()))
+                        select item.Key;
+
+            var itemIdList = query.ToList();
+
+            return itemIdList;
         }
 
         public void Load()
         {
             _auctionItems = new List<AuctionItem>();
+            _en_localizations = new Dictionary<uint, string>();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -75,7 +81,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var auctionItem = new AuctionItem();
                             auctionItem.ID = reader.GetUInt32("id");
-                            auctionItem.Duration = reader.GetByte("duration"); //0 is 6 hours, 1 is 12 hours, 2 is 18 hours, 4 is 24 hours
+                            auctionItem.Duration = reader.GetByte("duration"); //0 is 6 hours, 1 is 12 hours, 2 is 18 hours, 3 is 24 hours
                             auctionItem.ItemID = reader.GetUInt32("item_id");
                             auctionItem.ObjectID = reader.GetUInt32("object_id");
                             auctionItem.Grade = reader.GetByte("grade");
@@ -100,6 +106,26 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.BidMoney = reader.GetUInt32("bid_money");
                             auctionItem.Extra = reader.GetUInt32("extra");
                             _auctionItems.Add(auctionItem);
+                        }
+                    }
+                }
+            }
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = $"SELECT * FROM localized_texts WHERE tbl_name='items' AND tbl_column_name='name'";
+                    command.Prepare();
+                    using (var sqlitereader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqlitereader))
+                    {
+                        while (reader.Read())
+                        {
+                            var _itemName = reader.GetString("en_us").ToLower();
+                            var _itemId = reader.GetUInt32("idx");
+
+                            if(_itemName != "" && _itemId != 0)
+                                _en_localizations.Add(_itemId, _itemName);
                         }
                     }
                 }

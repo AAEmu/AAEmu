@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Auction.Templates;
@@ -14,24 +15,25 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var _searchTemplate = new AuctionSearchTemplate();
-            var npcObjId = stream.ReadBytes(6);
-            _searchTemplate.ItemName = stream.ReadString();
-            _searchTemplate.ExactMatch = stream.ReadBoolean();
-            _searchTemplate.Grade = stream.ReadByte();
-            _searchTemplate.CategoryA = stream.ReadByte();
-            _searchTemplate.CategoryB = stream.ReadByte();
-            _searchTemplate.CategoryC = stream.ReadByte();
-            _searchTemplate.Page = stream.ReadUInt32();
-            _searchTemplate.Type = stream.ReadUInt32();
-            _searchTemplate.Filter = stream.ReadUInt32();
-            _searchTemplate.WorldID = stream.ReadByte();
-            _searchTemplate.MinItemLevel = stream.ReadByte();
-            _searchTemplate.MaxItemLevel = stream.ReadByte();
-            _searchTemplate.SortKind = stream.ReadByte();
-            _searchTemplate.SortOrder = stream.ReadByte();
+            var _sTemplate = new AuctionSearchTemplate();
+            var objId = stream.ReadBytes(6);
+            _sTemplate.Player =Connection.ActiveChar;
+            _sTemplate.ItemName = stream.ReadString();
+            _sTemplate.ExactMatch = stream.ReadBoolean();
+            _sTemplate.Grade = stream.ReadByte();
+            _sTemplate.CategoryA = stream.ReadByte();
+            _sTemplate.CategoryB = stream.ReadByte();
+            _sTemplate.CategoryC = stream.ReadByte();
+            _sTemplate.Page = stream.ReadUInt32();
+            _sTemplate.Type = stream.ReadUInt32();
+            _sTemplate.Filter = stream.ReadUInt32();
+            _sTemplate.WorldID = stream.ReadByte();
+            _sTemplate.MinItemLevel = stream.ReadByte();
+            _sTemplate.MaxItemLevel = stream.ReadByte();
+            _sTemplate.SortKind = stream.ReadByte();
+            _sTemplate.SortOrder = stream.ReadByte();
 
-            var foundItems = AuctionManager.Instance.GetAuctionItems(_searchTemplate);
+            var foundItems = AuctionManager.Instance.GetAuctionItems(_sTemplate);
             Connection.SendPacket(new SCAuctionSearchedPacket(foundItems));
 
         }
