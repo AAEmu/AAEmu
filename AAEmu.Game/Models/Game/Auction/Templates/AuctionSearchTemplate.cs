@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Game.Auction.Templates
 {
-    class AuctionSearchTemplate
+    public class AuctionSearchTemplate
     {
+        public Character Player { get; set; }
         public string ItemName { get; set; }
         public bool ExactMatch { get; set; }
         public byte Grade { get; set; }
