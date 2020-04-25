@@ -19,8 +19,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 owner.FuncTask = null;
             }
 
-            owner.FuncGroupId = NextPhase;
-            var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
+            owner.FuncId = NextPhase;
+            var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncId);
             foreach (var func in funcs)
                 func.Use(caster, owner, skillId);
             owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true);

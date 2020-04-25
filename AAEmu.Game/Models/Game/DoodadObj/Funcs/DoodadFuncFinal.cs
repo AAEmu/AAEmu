@@ -1,7 +1,9 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Tasks.Doodads;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
@@ -30,10 +32,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 owner.Delete();
             }
-            if (caster.OwnerId != owner.OwnerId)
+
+            Character character = WorldManager.Instance.GetCharacterByObjId(caster.ObjId);
+            if (character.Id != owner.OwnerId && owner.OwnerId != 0) //0 usually will belong to the system
             {
-                _log.Warn(owner.Name);
-                _log.Warn(caster.Name);
                 var doodadSpawner = new DoodadSpawner();
                 doodadSpawner.Id = 0;
                 switch (caster.RaceGender)
@@ -49,7 +51,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 doodadSpawner.Position.RotationX = caster.Position.RotationX;
                 doodadSpawner.Position.RotationY = caster.Position.RotationY;
                 doodadSpawner.Position.RotationZ = caster.Position.RotationZ;
-                var doodad = doodadSpawner.Spawn(0);
+                var doodad = doodadSpawner.Spawn(0, 0, caster.ObjId);
             }
         }
     }

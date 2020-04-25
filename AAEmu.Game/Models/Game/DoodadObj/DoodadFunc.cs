@@ -34,11 +34,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     owner.FuncTask = null;
                 }
 
-                owner.FuncGroupId = (uint)NextPhase;
+                owner.FuncId = (uint)NextPhase;
 
                 owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), false); // FIX: added to work on/off lighting and destruction of drums/boxes
 
-                var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
+                var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncId);
                 foreach (var func in funcs)
                     func.Use(caster, owner, skillId);
             }

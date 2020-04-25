@@ -16,11 +16,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         
         public Doodad Last { get; set; }
 
-        public override Doodad Spawn(uint objId, ulong itemID, uint charID)
+        public override Doodad Spawn(uint objId, ulong itemID, uint charID) //Mostly used for player created spawns
         {
-            Character character = WorldManager.Instance.GetCharacterById(charID); //TODO make ID OOP
 
+            Character character = WorldManager.Instance.GetCharacterByObjId(charID);
             var doodad = DoodadManager.Instance.Create(objId, UnitId, character);
+            doodad.Name = character.Name;
             if (doodad == null)
             {
                 _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);
@@ -29,24 +30,26 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             doodad.Spawner = this;
             doodad.Position = Position.Clone();
+            doodad.QuestGlow = 0u; //TODO make this OOP
+            doodad.ItemId = itemID;
+
             if (Scale > 0)
                 doodad.SetScale(Scale);
+
             if (doodad.Position == null)
             {
                 _log.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
                 return null;
             }
-            doodad.ItemId = itemID;
+
             doodad.Spawn();
             Last = doodad;
             return doodad;
         }
 
         public override Doodad Spawn(uint objId)
-        {
-            Character character = WorldManager.Instance.GetCharacterById(1); //TODO make ID OOP
-           
-            var doodad = DoodadManager.Instance.Create(objId, UnitId, character);
+        {  
+            var doodad = DoodadManager.Instance.Create(objId, UnitId, null);
             if (doodad == null)
             {
                 _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);

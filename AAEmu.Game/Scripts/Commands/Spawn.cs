@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -114,7 +114,7 @@ namespace AAEmu.Game.Scripts.Commands
                         doodadSpawner.Position.RotationX = 0;
                         doodadSpawner.Position.RotationY = 0;
                         doodadSpawner.Position.RotationZ = newRotZ;
-                        doodadSpawner.Spawn(0);
+                        doodadSpawner.Spawn(0, 0, character.ObjId);
                         break;
                 }
             }

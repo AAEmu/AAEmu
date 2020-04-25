@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint TemplateId { get; set; }
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
-        public uint FuncGroupId { get; set; }
+        public uint FuncId { get; set; }
         public ulong ItemId { get; set; }
         public DateTime GrowthTime { get; set; }
         public DateTime PlantTime { get; set; }
@@ -32,6 +32,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public byte AttachPoint { get; set; }
         public uint DbId { get; set; }
         public int Data { get; set; }
+
+        public uint QuestGlow { get; set; } //0 off // 1 on
 
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
@@ -51,14 +53,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _scale = scale;
         }
 
-        public uint GetGroupId()
-        {
+        public uint GetFuncId()
+        {   
             foreach (var funcGroup in Template.FuncGroups)
             {
                 if (funcGroup.GroupKindId == 1)
                     return funcGroup.Id;
             }
-
             return 0;
         }
 
@@ -85,8 +86,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public PacketStream Write(PacketStream stream)
         {
+
+
             stream.WriteBc(ObjId); //The object # in the list
-            stream.Write(TemplateId); //The template needed for that object
+            stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //?
             stream.Write(AttachPoint); // attachPoint, but not sure what it means
@@ -95,28 +98,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
             stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
             stream.Write(Scale); //The size of the object
-            stream.Write(false); // hasLootItem /hardball false i guess
-            stream.Write(FuncGroupId); // doodad_func_groups Id
+            stream.Write(false); // hasLootItem /hard false i guess
+            stream.Write(FuncId); // doodad_func_id
             stream.Write(OwnerId); // characterId (Database relative)
-            stream.Write(ItemId); // ?? must be ulong though
-            stream.Write(0); // (Stops the timer if its not accurate
-            stream.Write(0); // ?? usually 0
+            stream.Write(ItemId); // ?? must be ulong though (ItemId seems to be the only ulong)
+            stream.Write(0u); //??type1
+            stream.Write(0u); //??type2
             stream.Write(TimeLeft); // growing
             stream.Write(PlantTime); //Time stamp of when it was planted
-            stream.Write(0); //usually 10
+            stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
             stream.Write(0); // family TODO
             stream.Write(-1); // puzzleGroup /for instances maybe?
             stream.Write((byte)OwnerType); // ownerType
             stream.Write(DbId); // dbHouseId
             stream.Write(Data); // data
-            
 
-
-            _log.Warn("Owner ID: " + OwnerId);
-            _log.Warn("Owner Obj ID: " + OwnerObjId);
-            _log.Warn("Obj: " + ObjId);
-            _log.Warn("Item ID: " + ItemId);
-  
             return stream;
         }
     }

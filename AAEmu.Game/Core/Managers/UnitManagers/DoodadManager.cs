@@ -97,6 +97,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                     {
                                         var funcGroups = new DoodadFuncGroups();
                                         funcGroups.Id = readerChild.GetUInt32("id");
+                                        funcGroups.almighty = readerChild.GetUInt32("doodad_almighty_id");
                                         funcGroups.GroupKindId = readerChild.GetUInt32("doodad_func_group_kind_id");
                                         funcGroups.SoundId = readerChild.IsDBNull("sound_id") ? 0 : readerChild.GetUInt32("sound_id");
 
@@ -2199,12 +2200,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.TemplateId = template.Id;
             doodad.Template = template;
             doodad.OwnerObjId = obj?.ObjId ?? 0;
+            doodad.FuncId = doodad.GetFuncId();
+            doodad.OwnerType = DoodadOwnerType.System;
 
             if (obj is Character character)
             {
                 doodad.OwnerId = character.Id;
                 doodad.OwnerType = DoodadOwnerType.Character;
-                doodad.Name = character.Name;
             }
 
             if (obj is House house)
@@ -2215,9 +2217,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.DbId = house.Id;
             }
-
-            doodad.FuncGroupId = doodad.GetGroupId(); // TODO look, using doodadFuncId
-
+            
             return doodad;
         }
 

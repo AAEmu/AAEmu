@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         {
             if (target is Doodad doodad)
             {
-                var func = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
+                var func = DoodadManager.Instance.GetFunc(doodad.FuncId, skillId);
                 if (func == null)
                     return;
                 func.Use(caster, doodad, skillId);

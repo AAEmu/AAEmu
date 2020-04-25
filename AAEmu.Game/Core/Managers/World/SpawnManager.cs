@@ -41,8 +41,7 @@ namespace AAEmu.Game.Core.Managers.World
                 var contents =
                     FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
                 if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn(
-                        $"File {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json doesn't exists or is empty.");
+                    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json doesn't exists or is empty.");
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> spawners, out _))
@@ -64,8 +63,7 @@ namespace AAEmu.Game.Core.Managers.World
                 contents = FileManager.GetFileContents(
                     $"{FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json");
                 if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn(
-                        $"File {FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json doesn't exists or is empty.");
+                    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json doesn't exists or is empty.");
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))

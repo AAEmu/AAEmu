@@ -35,9 +35,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             doodadSpawner.Position.RotationY = 0;
             doodadSpawner.Position.RotationZ = 0;
             doodadSpawner.Scale = scale;
-            var doodad = doodadSpawner.Spawn(0, itemId, Connection.ActiveChar.Id);
-            _log.Warn(Connection.ActiveChar.Id);
-            _log.Warn(Connection.ActiveChar.OwnerId);
+            var doodad = doodadSpawner.Spawn(0, itemId, Connection.ActiveChar.ObjId);
+
             if (doodad == null)
             {
                 _log.Warn("Doodad {0}, from spawn not exist at db", id);

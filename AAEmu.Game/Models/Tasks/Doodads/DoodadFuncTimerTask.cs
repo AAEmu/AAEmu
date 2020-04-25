@@ -17,8 +17,8 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         public override void Execute()
         {
             _owner.FuncTask = null;
-            _owner.FuncGroupId = _nextPhase;
-            var funcs = DoodadManager.Instance.GetPhaseFunc(_owner.FuncGroupId);
+            _owner.FuncId = _nextPhase;
+            var funcs = DoodadManager.Instance.GetPhaseFunc(_owner.FuncId);
             foreach (var func in funcs)
                 func.Use(_caster, _owner, _skillId);
             _owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(_owner), true);
