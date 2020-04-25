@@ -1,5 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Auction.Templates;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -11,24 +14,26 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var npcObjId = stream.ReadBc();
+            var _searchTemplate = new AuctionSearchTemplate();
+            var npcObjId = stream.ReadBytes(6);
+            _searchTemplate.ItemName = stream.ReadString();
+            _searchTemplate.ExactMatch = stream.ReadBoolean();
+            _searchTemplate.Grade = stream.ReadByte();
+            _searchTemplate.CategoryA = stream.ReadByte();
+            _searchTemplate.CategoryB = stream.ReadByte();
+            _searchTemplate.CategoryC = stream.ReadByte();
+            _searchTemplate.Page = stream.ReadUInt32();
+            _searchTemplate.Type = stream.ReadUInt32();
+            _searchTemplate.Filter = stream.ReadUInt32();
+            _searchTemplate.WorldID = stream.ReadByte();
+            _searchTemplate.MinItemLevel = stream.ReadByte();
+            _searchTemplate.MaxItemLevel = stream.ReadByte();
+            _searchTemplate.SortKind = stream.ReadByte();
+            _searchTemplate.SortOrder = stream.ReadByte();
 
-            var name = stream.ReadString();
-            var exactMatch = stream.ReadBoolean();
-            var type = stream.ReadByte();
-            var categoryA = stream.ReadByte();
-            var categoryB = stream.ReadByte();
-            var categoryC = stream.ReadByte();
-            var page = stream.ReadInt32();
-            var unkId = stream.ReadUInt32(); // type(id)
-            var filter = stream.ReadInt32();
-            var worldId = stream.ReadByte();
-            var minItemLevel = stream.ReadSByte();
-            var maxItemLevel = stream.ReadSByte();
-            var sortKind = stream.ReadByte();
-            var sortOrder = stream.ReadByte();
+            var foundItems = AuctionManager.Instance.GetAuctionItems(_searchTemplate);
+            Connection.SendPacket(new SCAuctionSearchedPacket(foundItems));
 
-            _log.Warn("AuctionSearch, NpcObjId: {0}, Name: {1}", npcObjId, name);
         }
     }
 }
