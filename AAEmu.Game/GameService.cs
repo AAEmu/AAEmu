@@ -62,6 +62,7 @@ namespace AAEmu.Game
             MateManager.Instance.Load();
             SlaveManager.Instance.Load();
             TeamManager.Instance.Load();
+            AuctionManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();

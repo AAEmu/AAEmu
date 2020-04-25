@@ -34,6 +34,37 @@ CREATE TABLE IF NOT EXISTS `appellations` (
   PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
+DROP TABLE IF EXISTS `auction_house`;
+CREATE TABLE IF NOT EXISTS `auction_house` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `duration` tinyint(3) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `object_id` int(11) NOT NULL,
+  `grade` tinyint(1) NOT NULL,
+  `flags` tinyint(1) NOT NULL,
+  `stack_size` int(11) NOT NULL,
+  `detail_type` tinyint(1) NOT NULL,
+  `creation_time` datetime DEFAULT NULL,
+  `lifespan_mins` int(11) NOT NULL,
+  `type_1` int(11) NOT NULL,
+  `world_id` tinyint(2) NOT NULL,
+  `unsecure_date_time` varchar(45) DEFAULT NULL,
+  `unpack_date_time` varchar(45) DEFAULT NULL,
+  `world_id_2` tinyint(2) NOT NULL,
+  `type_2` int(11) NOT NULL,
+  `client_name` varchar(45) NOT NULL,
+  `start_money` int(11) NOT NULL,
+  `direct_money` int(11) NOT NULL,
+  `asked` int(11) NOT NULL,
+  `bid_world_id` tinyint(1) DEFAULT NULL,
+  `type_3` int(11) DEFAULT NULL,
+  `bidder_name` varchar(45) DEFAULT NULL,
+  `bid_money` int(11) DEFAULT NULL,
+  `extra` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
 DROP TABLE IF EXISTS `blocked`;
 CREATE TABLE IF NOT EXISTS `blocked` (
   `owner` int(11) NOT NULL,
@@ -281,35 +312,35 @@ CREATE TABLE IF NOT EXISTS `skills` (
 DROP TABLE IF EXISTS `cash_shop_item`;
 CREATE TABLE `cash_shop_item`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'shop_id',
-  `uniq_id` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '唯一ID',
-  `cash_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '出售名称',
-  `main_tab` tinyint(3) UNSIGNED NULL DEFAULT 1 COMMENT '主分类1-6',
-  `sub_tab` tinyint(3) UNSIGNED NULL DEFAULT 1 COMMENT '子分类1-7',
-  `level_min` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '等级限制',
-  `level_max` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '等级限制',
-  `item_template_id` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '物品模板id',
-  `is_sell` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '是否出售',
-  `is_hidden` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '是否隐藏',
+  `uniq_id` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '脦篓脪禄ID',
+  `cash_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '鲁枚脢脹脙没鲁脝',
+  `main_tab` tinyint(3) UNSIGNED NULL DEFAULT 1 COMMENT '脰梅路脰脌脿1-6',
+  `sub_tab` tinyint(3) UNSIGNED NULL DEFAULT 1 COMMENT '脳脫路脰脌脿1-7',
+  `level_min` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '碌脠录露脧脼脰脝',
+  `level_max` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '碌脠录露脧脼脰脝',
+  `item_template_id` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '脦茂脝路脛拢掳氓id',
+  `is_sell` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '脢脟路帽鲁枚脢脹',
+  `is_hidden` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '脢脟路帽脪镁虏脴',
   `limit_type` tinyint(3) UNSIGNED NULL DEFAULT 0,
   `buy_count` smallint(5) UNSIGNED NULL DEFAULT 0,
   `buy_type` tinyint(3) UNSIGNED NULL DEFAULT 0,
   `buy_id` int(10) UNSIGNED NULL DEFAULT 0,
-  `start_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '出售开始',
-  `end_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '出售截止',
-  `type` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '货币类型',
-  `price` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '价格',
-  `remain` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '剩余数量',
-  `bonus_type` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '赠送类型',
-  `bouns_count` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '赠送数量',
-  `cmd_ui` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '是否限制一人一次',
-  `item_count` int(10) UNSIGNED NULL DEFAULT 1 COMMENT '捆绑数量',
+  `start_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '鲁枚脢脹驴陋脢录',
+  `end_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '鲁枚脢脹陆脴脰鹿',
+  `type` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '禄玫卤脪脌脿脨脥',
+  `price` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '录脹赂帽',
+  `remain` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '脢拢脫脿脢媒脕驴',
+  `bonus_type` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '脭霉脣脥脌脿脨脥',
+  `bouns_count` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '脭霉脣脥脢媒脕驴',
+  `cmd_ui` tinyint(1) UNSIGNED NULL DEFAULT 0 COMMENT '脢脟路帽脧脼脰脝脪禄脠脣脪禄麓脦',
+  `item_count` int(10) UNSIGNED NULL DEFAULT 1 COMMENT '脌娄掳贸脢媒脕驴',
   `select_type` tinyint(3) UNSIGNED NULL DEFAULT 0,
   `default_flag` tinyint(3) UNSIGNED NULL DEFAULT 0,
-  `event_type` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '活动类型',
-  `event_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '活动时间',
-  `dis_price` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '当前售价',
+  `event_type` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '禄卯露炉脌脿脨脥',
+  `event_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '禄卯露炉脢卤录盲',
+  `dis_price` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '碌卤脟掳脢脹录脹',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '此表来自于代码中的字段并去除重复字段生成。字段名称和内容以代码为准。' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '麓脣卤铆脌麓脳脭脫脷麓煤脗毛脰脨碌脛脳脰露脦虏垄脠楼鲁媒脰脴赂麓脳脰露脦脡煤鲁脡隆拢脳脰露脦脙没鲁脝潞脥脛脷脠脻脪脭麓煤脗毛脦陋脳录隆拢' ROW_FORMAT = Dynamic;
 
 COMMIT;
 
