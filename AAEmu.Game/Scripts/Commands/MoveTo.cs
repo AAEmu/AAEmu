@@ -48,13 +48,13 @@ namespace AAEmu.Game.Scripts.Commands
             string cmd = "";
             Simulation moveTo;
             bool run = true;
-            bool walk = false;
+            // bool walk = false;
             if (args.Length < 1)
             {
                 character.SendMessage("[MoveTo] /moveto <rec||save filename||go filename||back filename||stop||run||walk>");
                 return;
             }
-            if (args[0] == "rec" || args[0] == "stop" || args[0] == "run" | args[0] == "walk")
+            if (args[0] == "rec" || args[0] == "stop" || args[0] == "run" || args[0] == "walk")
             {
                 cmd = args[0];
             }
@@ -78,7 +78,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
             else
             {
-                switch (@cmd)
+                switch (cmd)
                 {
                     case "rec":
                         character.SendMessage("[MoveTo] start recording...");
