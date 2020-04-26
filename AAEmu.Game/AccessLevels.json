@@ -5,7 +5,7 @@
     "testslave": 100,
     "testtransfer": 100,
     "zonestate": 100,
-    "test_height_vizualizer": 100,
+    "test_height_visualizer": 100,
     "moveto": 100,
     "announce": 50,
     "move": 50,

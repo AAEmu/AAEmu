@@ -26,35 +26,37 @@ namespace AAEmu.Game.Models.Game.World
             return (float)(HeightMaps[sx, sy] / HeightMaxCoefficient);
         }
 
+        private static float Lerp(float s, float e, float t)
+        {
+            return s + (e - s) * t;
+        }
+
+        private static float Blerp(float cX0Y0, float cX1Y0, float cX0Y1, float cX1Y1, float tx, float ty)
+        {
+            return Lerp(Lerp(cX0Y0, cX1Y0, tx), Lerp(cX0Y1, cX1Y1, tx), ty);
+        }
+
+        private System.Drawing.Rectangle FindNearestSignificantPoints(int x, int y)
+        {
+            return new System.Drawing.Rectangle(x - (x % 2), y - (y % 2), 2, 2);
+        }
+
         public float GetHeight(float x, float y)
         {
-            // return GetRawHeightMapHeight((int)x, (int)y);
+            // return GetRawHeightMapHeight((int)x, (int)y); // <-- the old way we used to do things
 
             // Get bordering points
-            var borderLeft = (int)Math.Floor(x);
-            borderLeft -= (borderLeft % 2);
-            // we're using a divider of 2 of the heightmaps in memory, so we need to compensate with that in mind (instead of 1)
-            var borderRight = borderLeft + 2 ;
-            var borderBottom = (int)Math.Floor(y);
-            borderBottom -= (borderBottom % 2);
-            var borderTop = borderBottom + 2 ;
+            var border = FindNearestSignificantPoints((int)Math.Floor(x), (int)Math.Floor(y));
 
             // Get heights for these points
-            var heightTL = GetRawHeightMapHeight(borderLeft, borderTop);
-            var heightTR = GetRawHeightMapHeight(borderRight, borderTop);
-            var heightBL = GetRawHeightMapHeight(borderLeft, borderBottom);
-            var heightBR = GetRawHeightMapHeight(borderRight, borderBottom);
+            var heightTL = GetRawHeightMapHeight(border.Left, border.Top);
+            var heightTR = GetRawHeightMapHeight(border.Right, border.Top);
+            var heightBL = GetRawHeightMapHeight(border.Left, border.Bottom);
+            var heightBR = GetRawHeightMapHeight(border.Right, border.Bottom);
+            var offX = (x - border.Left) / 2;
+            var offY = (y - border.Top) / 2;
+            var height = Blerp(heightTL, heightTR, heightBL, heightBR, offX, offY); // bilinear interpolation
 
-            // %-based offset inside grid
-            var offsetXL = (x - (float)borderLeft) / 2;
-            var offsetYT = (y - (float)borderBottom) / 2;
-            var deltaHeightXLeft = heightTL - heightBL ;
-            var deltaHeightXRight = heightTR - heightBR ;
-            
-            // Calculate Height
-            var heightXLeft = heightTL + (deltaHeightXLeft * offsetYT);
-            var heightXRight = heightTR + (deltaHeightXRight * offsetYT);
-            var height = heightXLeft + ((heightXRight - heightXLeft) * offsetXL);
             return height;
         }
 
