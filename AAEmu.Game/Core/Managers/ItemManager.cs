@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -253,6 +255,60 @@ namespace AAEmu.Game.Core.Managers
             return _itemDoodadTemplates[doodadID].ItemIds;
         }
 
+        public ItemTemplate GetItemTemplateFromItemId(uint itemId)
+        {
+            foreach (var item in _templates)
+            {
+                if(item.Value.Id == itemId)
+                {
+                    return item.Value;
+                }
+            }
+            return null;
+        }
+
+        public List<ItemTemplate> GetItemTemplates(AuctionSearchTemplate searchTemplate)
+        {
+            var templateList = new List<ItemTemplate>();
+            List<uint> itemIds = new List<uint>();
+
+            if (searchTemplate.ItemName != "")
+                itemIds = AuctionManager.Instance.GetItemIdsFromName(searchTemplate.ItemName);
+
+            if(itemIds.Count > 0)
+            {
+                for (int i = 0; i < itemIds.Count; i++)
+                {
+                    var query = from item in _templates.Values
+                                where ((itemIds[i] != 0) ? item.Id == itemIds[i] : true)
+                                where ((searchTemplate.CategoryA != 0) ? item.AuctionCategoryA == searchTemplate.CategoryA : true)
+                                where ((searchTemplate.CategoryB != 0) ? item.AuctionCategoryB == searchTemplate.CategoryB : true)
+                                where ((searchTemplate.CategoryC != 0) ? item.AuctionCategoryC == searchTemplate.CategoryC : true)
+                                select item;
+                    var _list = query.ToList<ItemTemplate>();
+
+                    foreach (var item in _list)
+                    {
+                        templateList.Add(item);
+                    }
+
+                }
+                return templateList;
+            }
+            else
+            {
+                var query = from item in _templates.Values
+                            where ((searchTemplate.CategoryA != 0) ? item.AuctionCategoryA == searchTemplate.CategoryA : false)
+                            where ((searchTemplate.CategoryB != 0) ? item.AuctionCategoryB == searchTemplate.CategoryB : false)
+                            where ((searchTemplate.CategoryC != 0) ? item.AuctionCategoryC == searchTemplate.CategoryC : false)
+                            select item;
+                templateList = query.ToList<ItemTemplate>();
+                return templateList;
+            }
+        }
+
+
+
         public Item Create(uint templateId, int count, byte grade, bool generateId = true)
         {
             var id = generateId ? ItemIdManager.Instance.GetNextId() : 0u;
@@ -273,6 +329,10 @@ namespace AAEmu.Game.Core.Managers
             }
 
             item.Grade = grade;
+            
+            if(item.Template.BindId == 2) // Bind on pickup. 
+                item.Bounded = 1;
+
             if (item.Template.FixedGrade >= 0)
                 item.Grade = (byte)item.Template.FixedGrade;
             item.CreateTime = DateTime.UtcNow;
