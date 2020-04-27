@@ -34,9 +34,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 case ChatType.Whisper:
                     var target = WorldManager.Instance.GetCharacter(targetName);
-                    var packet = new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType);
+                    var packet = new SCChatMessagePacket(ChatType.Whisper, Connection.ActiveChar, message, ability, languageType);
                     target?.SendPacket(packet);
-                    Connection.SendPacket(packet);
+                    var packet_me = new SCChatMessagePacket(ChatType.Whispered, target, message, ability, languageType);
+                    Connection.SendPacket(packet_me);
                     break;
                 case ChatType.White:
                     Connection.ActiveChar.BroadcastPacket(
