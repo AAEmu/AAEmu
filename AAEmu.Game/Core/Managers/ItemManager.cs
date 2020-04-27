@@ -298,9 +298,9 @@ namespace AAEmu.Game.Core.Managers
             else
             {
                 var query = from item in _templates.Values
-                            where ((searchTemplate.CategoryA != 0) ? item.AuctionCategoryA == searchTemplate.CategoryA : false)
-                            where ((searchTemplate.CategoryB != 0) ? item.AuctionCategoryB == searchTemplate.CategoryB : false)
-                            where ((searchTemplate.CategoryC != 0) ? item.AuctionCategoryC == searchTemplate.CategoryC : false)
+                            where ((searchTemplate.CategoryA != 0) ? item.AuctionCategoryA == searchTemplate.CategoryA : true)
+                            where ((searchTemplate.CategoryB != 0) ? item.AuctionCategoryB == searchTemplate.CategoryB : true)
+                            where ((searchTemplate.CategoryC != 0) ? item.AuctionCategoryC == searchTemplate.CategoryC : true)
                             select item;
                 templateList = query.ToList<ItemTemplate>();
                 return templateList;

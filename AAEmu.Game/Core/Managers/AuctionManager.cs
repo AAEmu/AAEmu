@@ -5,50 +5,140 @@ using System.Text;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.DB;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
-    class AuctionManager : Singleton<AuctionManager>
+    public class AuctionManager : Singleton<AuctionManager>
     {
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
+
         public List<AuctionItem> _auctionItems;
         public Dictionary<uint, string> _en_localizations;
 
-        public void AddAuctionItem()
+        public void AddAuctionItem(Character player, uint itemTeplateId, uint startPrice, uint buyoutPrice, byte duration)
         {
+            var newItem = player.Inventory.GetItemByTemplateId(itemTeplateId);
+            var newAuctionItem = new AuctionItem();
+            newAuctionItem.ItemID = newItem.Template.Id;
+            newAuctionItem.Grade = newItem.Grade;
+        }
 
+        public void RemoteItem(AuctionItem itemToRemove)
+        {
+            if(_auctionItems.Contains(itemToRemove))
+            {
+                _auctionItems.Remove(itemToRemove);
+            }
         }
 
         public List<AuctionItem> GetAuctionItems(AuctionSearchTemplate searchTemplate)
         {
             List<AuctionItem> auctionItemsFound = new List<AuctionItem>();
+            bool myListing = false;
 
-            if (searchTemplate.ItemName == "" && searchTemplate.CategoryA == 0 && searchTemplate.Page == 0)
+            if (searchTemplate.Type == 1)
             {
-                foreach (var item in _auctionItems)
+                myListing = true;
+                if (searchTemplate.Page > 0)
                 {
-                    if (item.ClientName == searchTemplate.Player.Name)
-                        auctionItemsFound.Add(item);
+                    var startingItemNumber = (int)(searchTemplate.Page * 9);
+                    var endingitemNumber = (int)((searchTemplate.Page * 9) + 8);
+                    if (auctionItemsFound.Count > startingItemNumber)
+                    {
+                        var tempItemList = new List<AuctionItem>();
+                        for (int i = startingItemNumber; i < endingitemNumber; i++)
+                        {
+                            if (auctionItemsFound.ElementAtOrDefault(i) != null && auctionItemsFound[i].ClientName == searchTemplate.Player.Name)
+                                tempItemList.Add(auctionItemsFound[i]);
+                        }
+                        auctionItemsFound = tempItemList;
+                    }
+                    else
+                        searchTemplate.Page = 0;
                 }
-                return auctionItemsFound;
+                else
+                {
+                    foreach (var item in _auctionItems)
+                    {
+                        if (item.ClientName == searchTemplate.Player.Name)
+                            auctionItemsFound.Add(item);
+                    }
+                }
             }
 
-            var itemTemplates = ItemManager.Instance.GetItemTemplates(searchTemplate);
-
-            foreach (var template in itemTemplates)
+            if(!myListing)
             {
-                var query = from item in _auctionItems
-                            where ((searchTemplate.ItemName != "") ? template.Id == item.ItemID : true)
-                            where ((searchTemplate.CategoryA != 0) ? template.AuctionCategoryA == item.Type1 : true)
-                            select item;
+                var itemTemplates = ItemManager.Instance.GetItemTemplates(searchTemplate);
 
-                var foundItems = query.ToList<AuctionItem>();
-
-                foreach (var item in foundItems)
+                foreach (var template in itemTemplates)
                 {
-                    if(!auctionItemsFound.Contains(item))
-                        auctionItemsFound.Add(item);
+                    var query = from item in _auctionItems
+                                where ((searchTemplate.ItemName != "") ? template.Id == item.ItemID : true)
+                                where ((searchTemplate.CategoryA != 0) ? template.AuctionCategoryA == item.Type1 : true)
+                                where ((searchTemplate.CategoryB != 0) ? template.AuctionCategoryB == item.Type2 : true)
+                                where ((searchTemplate.CategoryC != 0) ? template.AuctionCategoryC == item.Type3 : true)
+                                select item;
+
+                    var foundItems = query.ToList<AuctionItem>();
+
+                    foreach (var item in foundItems)
+                    {
+                        if (!auctionItemsFound.Contains(item))
+                            auctionItemsFound.Add(item);
+                    }
                 }
+            }
+
+            if (searchTemplate.SortKind == 1) //Price
+            {
+                var sortedList = auctionItemsFound.OrderByDescending(x => x.DirectMoney).ToList();
+                auctionItemsFound = sortedList;
+                if (searchTemplate.SortOrder == 1)
+                    auctionItemsFound.Reverse();
+            }
+
+            //TODO 2 Name of item
+            //TODO 3 Level of item
+
+            if (searchTemplate.SortKind == 4) //TimeLeft
+            {
+                var sortedList = auctionItemsFound.OrderByDescending(x => x.TimeLeft).ToList();
+                auctionItemsFound = sortedList;
+                if (searchTemplate.SortOrder == 1)
+                    auctionItemsFound.Reverse();
+            }
+
+            if (searchTemplate.Page > 0)
+            {
+                var startingItemNumber = (int)(searchTemplate.Page * 9);
+                var endingitemNumber = (int)((searchTemplate.Page * 9) + 8);
+                if (auctionItemsFound.Count > startingItemNumber)
+                {
+                    var tempItemList = new List<AuctionItem>();
+                    for (int i = startingItemNumber; i < endingitemNumber; i++)
+                    {
+                        if (auctionItemsFound.ElementAtOrDefault(i) != null)
+                            tempItemList.Add(auctionItemsFound[i]);
+                    }
+                    auctionItemsFound = tempItemList;
+                }
+                else
+                    searchTemplate.Page = 0;
+            }
+
+            if(auctionItemsFound.Count > 9)
+            {
+                var tempList = new List<AuctionItem>();
+
+                for (int i = 0; i < 9; i++)
+                {
+                    tempList.Add(auctionItemsFound[i]);
+                }
+
+                auctionItemsFound = tempList;
             }
 
             return auctionItemsFound;
@@ -99,7 +189,7 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.ClientName = reader.GetString("client_name");
                             auctionItem.StartMoney = reader.GetUInt32("start_money");
                             auctionItem.DirectMoney = reader.GetUInt32("direct_money");
-                            auctionItem.Asked = reader.GetUInt32("asked");
+                            auctionItem.TimeLeft = reader.GetUInt32("time_left");
                             auctionItem.BidWorldID = reader.GetByte("bid_world_id");
                             auctionItem.Type3 = reader.GetUInt32("type_3");
                             auctionItem.BidderName = reader.GetString("bidder_name");
@@ -129,6 +219,11 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+            }
+
+            foreach (var item in _auctionItems)
+            {
+                item.StartTimer();
             }
         }
     }
