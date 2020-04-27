@@ -12,24 +12,24 @@ namespace AAEmu.Game.Core.Packets.G2C
     class SCAuctionSearchedPacket : GamePacket
     {
         private List<AuctionItem> _auctionItems;
-        private uint Page;
-        private uint Count;
-        private ushort ErrorMessage;
-        private ulong  ServerTime;
+        private uint _page;
+        private uint _count;
+        private ushort _errorMessage;
+        private ulong  _serverTIme;
 
-        public SCAuctionSearchedPacket(List<AuctionItem> auctionItems) : base(SCOffsets.SCAuctionSearchedPacket, 1)
+        public SCAuctionSearchedPacket(List<AuctionItem> auctionItems, uint page) : base(SCOffsets.SCAuctionSearchedPacket, 1)
         {
             _auctionItems = auctionItems;
-            Count = (uint)_auctionItems.Count();
-            _log.Warn(Count);
+            _count = (uint)_auctionItems.Count();
+            _page = page; 
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((uint)0); //TODO Page#
-            stream.Write(Count); //TODO Count
+            stream.Write(_page);
+            stream.Write(_count);
 
-            if(Count > 0)
+            if(_count > 0)
             {
                 foreach (var item in _auctionItems)
                 {
@@ -52,7 +52,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(item.ClientName);
                     stream.Write(item.StartMoney);
                     stream.Write(item.DirectMoney);
-                    stream.Write(item.Asked);
+                    stream.Write(item.TimeLeft);
                     stream.Write(item.BidWorldID);
                     stream.Write(item.Type3);
                     stream.Write(item.BidderName);
@@ -60,8 +60,8 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(item.Extra);
                 }
             }
-            stream.Write((ushort)0); //TODO ERRORMESSAGE
-            stream.Write((ulong)TimeManager.Instance.GetTime()); //TODO SERVERTIME
+            stream.Write((ushort)0);
+            stream.Write((ulong)TimeManager.Instance.GetTime());
             return stream;
         }
     }

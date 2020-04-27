@@ -4,11 +4,14 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Auction.Templates;
+using NLog;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAuctionSearchPacket : GamePacket
     {
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
+
         public CSAuctionSearchPacket() : base(0x0b8, 1)
         {
         }
@@ -17,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var _sTemplate = new AuctionSearchTemplate();
             var objId = stream.ReadBytes(6);
-            _sTemplate.Player =Connection.ActiveChar;
+            _sTemplate.Player = Connection.ActiveChar;
             _sTemplate.ItemName = stream.ReadString();
             _sTemplate.ExactMatch = stream.ReadBoolean();
             _sTemplate.Grade = stream.ReadByte();
@@ -34,8 +37,24 @@ namespace AAEmu.Game.Core.Packets.C2G
             _sTemplate.SortOrder = stream.ReadByte();
 
             var foundItems = AuctionManager.Instance.GetAuctionItems(_sTemplate);
-            Connection.SendPacket(new SCAuctionSearchedPacket(foundItems));
 
+            _log.Warn($"PlayerName: {_sTemplate.Player.Name}, " +
+                $"ItemName: {_sTemplate.ItemName}, " +
+                $"ExactMatch: {_sTemplate.ExactMatch}, " +
+                $"Grade: {_sTemplate.Grade}, " +
+                $"CategoryA: {_sTemplate.CategoryA}, " +
+                $"CategoryB: {_sTemplate.CategoryB}, " +
+                $"CategoryC: {_sTemplate.CategoryC}, " +
+                $"Page: {_sTemplate.Page}, " +
+                $"Type: {_sTemplate.Type}, " +
+                $"Filter: {_sTemplate.Filter}, " +
+                $"WorldID: {_sTemplate.WorldID}, " +
+                $"MinItemLevel: {_sTemplate.MinItemLevel}, " +
+                $"MaxItemLevel: {_sTemplate.MaxItemLevel}, " +
+                $"SortKind: {_sTemplate.SortKind}, " +
+                $"SortOrder: {_sTemplate.SortKind}");
+
+            Connection.SendPacket(new SCAuctionSearchedPacket(foundItems, _sTemplate.Page));
         }
     }
 }

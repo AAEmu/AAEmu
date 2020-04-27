@@ -40,14 +40,14 @@ CREATE TABLE `auction_house` (
   `client_name` varchar(45) NOT NULL,
   `start_money` int(11) NOT NULL,
   `direct_money` int(11) NOT NULL,
-  `asked` int(11) NOT NULL,
+  `time_left` int(11) NOT NULL,
   `bid_world_id` tinyint(1) NOT NULL,
   `type_3` int(11) NOT NULL,
   `bidder_name` varchar(45) NOT NULL,
   `bid_money` int(11) NOT NULL,
   `extra` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `blocked` (
   `owner` int(11) NOT NULL,
