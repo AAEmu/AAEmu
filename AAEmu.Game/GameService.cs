@@ -107,6 +107,7 @@ namespace AAEmu.Game
             LoginNetwork.Instance.Stop();
 
             HousingManager.Instance.Save();
+            MailManager.Instance.Save();
             return Task.CompletedTask;
         }
 
