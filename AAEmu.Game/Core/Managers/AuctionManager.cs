@@ -18,7 +18,6 @@ namespace AAEmu.Game.Core.Managers
         public List<AuctionItem> _auctionItems;
         public Dictionary<uint, string> _en_localizations;
 
-
         public void AddAuctionItem(Character player, uint itemTeplateId, uint startPrice, uint buyoutPrice, byte duration)
         {
             var newItem = player.Inventory.GetItemByTemplateId(itemTeplateId);

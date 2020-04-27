@@ -11,6 +11,8 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using NLog;
 using System;
+using AAEmu.Game.Models.Game.Units.Movements;
+
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -18,17 +20,20 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("test_height_vizualizer", this);
+            CommandManager.Instance.Register("test_height_visualizer", this);
         }
 
         public string GetCommandLineHelp()
         {
-            return "(target)";
+            return "(target) [testpos||mark||line]";
         }
 
         public string GetCommandHelpText()
         {
-            return "Gets your or target's current height and that of the supposed floor (using heightmap data)";
+            return "Gets your or target's current height and that of the supposed floor (using heightmap data)\n" +
+                "testpos will move you near freedich underwater\r" +
+                "mark creates a grid of pillar doodads used for measuring the floor at 2m intervals (exact heightmap points)\r" +
+                "line creates a cross of pillar doodads used for measuring the floor at 1m intervals (for in-between points)";
         }
 
         public void Execute(Character character, string[] args)
@@ -38,16 +43,23 @@ namespace AAEmu.Game.Scripts.Commands
             if (args.Length > 0)
                 targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out firstarg);
 
-            if ((args.Length > firstarg) && (args[firstarg] == "mark"))
+            if ((args.Length > firstarg) && (args[firstarg] == "testpos"))
             {
+                targetPlayer.DisabledSetPosition = true;
+                targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, 22500f, 18500f, 10f, 0f));
+                targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r moved to X: {1}, Y: {2}, Z: {3}", targetPlayer.Name, 22500f, 18500f, 10f);
+            }
+            else
+            if ((args.Length > firstarg) && (args[firstarg] == "mark"))
+            { 
                 // Place markers
                 var rX = (int)Math.Floor(targetPlayer.Position.X);
                 rX = rX - (rX % 2);
                 var rY = (int)Math.Floor(targetPlayer.Position.Y);
                 rY = rY - (rY % 2);
                 uint unitId = 5622;
-                for (var y = rY - 10; y <= rY + 10; y+=2)
-                    for (var x = rX - 10; x <= rX + 10; x+=2)
+                for (var y = rY - 10; y <= rY + 10; y += 2)
+                    for (var x = rX - 10; x <= rX + 10; x += 2)
                     {
                         if (!DoodadManager.Instance.Exist(unitId))
                         {
@@ -79,7 +91,7 @@ namespace AAEmu.Game.Scripts.Commands
                 float rX = rXX;
                 float rY = rYY;
                 uint unitId = 5622;
-                for (var x = rX - 10f; x <= rX + 10f; x+=1f)
+                for (var x = rX - 10f; x <= rX + 10f; x += 1f)
                 {
                     if (!DoodadManager.Instance.Exist(unitId))
                     {
@@ -97,7 +109,7 @@ namespace AAEmu.Game.Scripts.Commands
                     doodadSpawner.Position.RotationZ = 0;
                     doodadSpawner.Spawn(0);
                 }
-                for (var y = rY - 10f; y <= rY + 10f; y+=1f)
+                for (var y = rY - 10f; y <= rY + 10f; y += 1f)
                 {
                     if (!DoodadManager.Instance.Exist(unitId))
                     {
