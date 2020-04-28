@@ -174,7 +174,14 @@ namespace AAEmu.Game.Models.Game.World
                         }
                         else
                         // here the NPCs you can hunt, check that they are not protected by Guards
-                        if (npc.Faction.GuardHelp == false)
+                        if (npc.Faction.GuardHelp == false &&
+                            (
+                                npc.TemplateId != 7512
+                             || npc.TemplateId != 7513
+                             || npc.TemplateId != 7511
+                             || npc.TemplateId != 9129
+                             || npc.TemplateId != 9449
+                             ))
                         {
                             if (npc.Patrol == null)
                             {
