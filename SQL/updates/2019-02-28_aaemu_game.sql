@@ -14,7 +14,7 @@
  Date: 28/02/2019 11:24:17
 */
 
-SET NAMES utf8mb4;
+SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
@@ -36,7 +36,7 @@ CREATE TABLE `mates`  (
   PRIMARY KEY (`id`, `item_id`, `owner`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
-ALTER TABLE `aaemu_game`.`characters` 
+ALTER TABLE `characters` 
 ADD COLUMN `expedition_id` INT(11) NOT NULL AFTER `faction_name`;
 
 SET FOREIGN_KEY_CHECKS = 1;

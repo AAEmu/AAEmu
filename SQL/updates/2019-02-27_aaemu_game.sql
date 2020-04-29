@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS `aaemu_game`.`expeditions`;
-CREATE TABLE `aaemu_game`.`expeditions`  (
+DROP TABLE IF EXISTS `expeditions`;
+CREATE TABLE `expeditions`  (
   `id` int(11) NOT NULL,
   `owner` int(11) NOT NULL,
   `owner_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
