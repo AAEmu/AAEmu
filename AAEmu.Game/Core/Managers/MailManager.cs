@@ -27,6 +27,47 @@ namespace AAEmu.Game.Core.Managers
 
         public long highestMailID;
 
+        public void SendMail(byte type, string receiverName, string senderName, string title, string text, byte attachments, int[] moneyAmounts, long extra, List<Item> items)
+        {
+            var mailTemplate = new Mail()
+            {
+                Id = highestMailID += 1,
+                Type = type,
+                Status = (byte)0,
+                Title = title,
+                SenderName = senderName,
+                Attachments = attachments,
+                ReceiverName = receiverName,
+                OpenDate = DateTime.MinValue,
+                Returned = (byte)0,
+                Extra = 0
+            };
+
+            foreach (var item in items)
+            {
+                if(item != null)
+                    allMailItems.Add(item.Id, (item, 0));
+            }
+
+            var mailBodyTemplate = new MailBody()
+            {
+                Id = mailTemplate.Id,
+                Type = mailTemplate.Type,
+                ReceiverName = mailTemplate.ReceiverName,
+                Title = mailTemplate.Title,
+                Text = text,
+                MoneyAmount1 = moneyAmounts[0],
+                MoneyAmount2 = moneyAmounts[1],
+                MoneyAmount3 = moneyAmounts[2],
+                SendDate = DateTime.UtcNow,
+                RecvDate = DateTime.UtcNow,
+                OpenDate = mailTemplate.OpenDate,
+                Items = items.ToArray()
+            };
+            allPlayerMails.Add(highestMailID, new Tuple<Mail, MailBody>(mailTemplate, mailBodyTemplate));
+            NotifyNewMailByNameIfOnline(mailTemplate, mailBodyTemplate, receiverName);
+        }
+
         #region Database
         public void Load()
         {

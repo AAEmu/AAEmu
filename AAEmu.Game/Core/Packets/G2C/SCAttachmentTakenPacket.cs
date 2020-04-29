@@ -35,6 +35,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 if (_itemId.Length != 0 && i < _itemId.Length)
                     stream.Write(_itemId[i]);
+
                 if (_itemSlots.Length != 0)
                 {
                     stream.Write((byte)_itemSlots[i].slotType);

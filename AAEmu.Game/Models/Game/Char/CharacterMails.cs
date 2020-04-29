@@ -50,9 +50,9 @@ namespace AAEmu.Game.Models.Game.Char
                     MailManager.Instance.allPlayerMails[id].Item1.OpenDate = DateTime.UtcNow;
                     MailManager.Instance.allPlayerMails[id].Item1.Status = 1;
                 }
-                Self.SendPacket(new SCMailBodyPacket(true, isSent, MailManager.Instance.allPlayerMails[id].Item2, true, unreadMailCount));
+                Self.SendPacket(new SCMailBodyPacket(false, isSent, MailManager.Instance.allPlayerMails[id].Item2, true, unreadMailCount));
                 Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, MailManager.Instance.allPlayerMails[id].Item1.Status));
-                Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
+                //Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
             }
         }
 
@@ -159,6 +159,7 @@ namespace AAEmu.Game.Models.Game.Char
                     MailManager.Instance.allPlayerMails[id].Item2.Items = new Item[10];
                 }
                 Self.SendPacket(new SCAttachmentTakenPacket(id, money, false, takeAllSelected, itemIDList.ToArray(), itemSlotList.ToArray()));
+                Self.SendPacket(new SCMailStatusUpdatedPacket(false, id, 1));
             }
         }
 

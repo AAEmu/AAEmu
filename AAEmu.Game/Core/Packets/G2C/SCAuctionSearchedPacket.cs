@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Auction;
-using AAEmu.Game.Models.Game.Auction.Templates;
-using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -29,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_page);
             stream.Write(_count);
 
-            if(_count > 0)
+            if (_count > 0)
             {
                 foreach (var item in _auctionItems)
                 {
@@ -41,18 +40,20 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(item.Flags);
                     stream.Write(item.StackSize);
                     stream.Write(item.DetailType);
-                    stream.Write(item.CreationTime);
+                    stream.Write(DateTime.Now);
                     stream.Write(item.LifespanMins);
                     stream.Write(item.Type1);
                     stream.Write(item.WorldId);
-                    stream.Write(item.UnsecureDateTime);
-                    stream.Write(item.UnpackDateTIme);
+                    stream.Write(DateTime.Now);
+                    stream.Write(DateTime.Now);
                     stream.Write(item.WorldId2);
                     stream.Write(item.Type2);
                     stream.Write(item.ClientName);
                     stream.Write(item.StartMoney);
                     stream.Write(item.DirectMoney);
-                    stream.Write(item.TimeLeft);
+                    var Random = new Random();
+                    var offsett = item.TimeLeft + (ulong)Random.Next(0, 10);
+                    stream.Write(offsett);
                     stream.Write(item.BidWorldID);
                     stream.Write(item.Type3);
                     stream.Write(item.BidderName);
