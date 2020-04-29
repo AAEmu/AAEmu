@@ -117,8 +117,8 @@ namespace AAEmu.Game.Models.Game.World
                     if (t is Npc npc)
                     {
                         // exclude Training Scarecrow from move objects and others NPC
-                        if (npc.TemplateId != 7512 || npc.TemplateId != 7513 || npc.TemplateId != 7511 ||
-                            npc.TemplateId != 9129 || npc.TemplateId != 9449)
+                        if (npc.TemplateId == 7512 || npc.TemplateId == 7513 || npc.TemplateId == 7511 ||
+                            npc.TemplateId == 9129 || npc.TemplateId == 9449)
                         {
                             // do nothing for these NPCs.
                         }
@@ -186,7 +186,7 @@ namespace AAEmu.Game.Models.Game.World
                             if (npc.Patrol == null)
                             {
                                 Patrol patrol = null;
-                                var rnd = Rand.Next(0, 800);
+                                var rnd = Rand.Next(0, 2000);
                                 if (rnd > 700)
                                 {
                                     // NPC stand still
