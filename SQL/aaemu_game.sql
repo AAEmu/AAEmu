@@ -47,7 +47,7 @@ CREATE TABLE `auction_house` (
   `bid_money` int(11) NOT NULL,
   `extra` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `blocked` (
   `owner` int(11) NOT NULL,
@@ -247,6 +247,41 @@ CREATE TABLE `items` (
   PRIMARY KEY (`id`) USING BTREE,
   KEY `owner` (`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+CREATE TABLE `mails` (
+  `id` int(11) NOT NULL,
+  `type` int(11) NOT NULL,
+  `status` int(11) NOT NULL,
+  `title` varchar(45) NOT NULL,
+  `text` varchar(150) NOT NULL,
+  `sender_name` varchar(45) NOT NULL,
+  `attachments` int(11) NOT NULL,
+  `receiver_name` varchar(45) NOT NULL,
+  `open_date` datetime NOT NULL,
+  `send_date` datetime NOT NULL,
+  `received_date` datetime NOT NULL,
+  `returned` int(11) NOT NULL,
+  `extra` int(11) NOT NULL,
+  `money_amount_1` int(11) NOT NULL,
+  `money_amount_2` int(11) NOT NULL,
+  `money_amount_3` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `mails_items` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `item0` int(11) DEFAULT NULL,
+  `item1` int(11) DEFAULT NULL,
+  `item2` int(11) DEFAULT NULL,
+  `item3` int(11) DEFAULT NULL,
+  `item4` int(11) DEFAULT NULL,
+  `item5` int(11) DEFAULT NULL,
+  `item6` int(11) DEFAULT NULL,
+  `item7` int(11) DEFAULT NULL,
+  `item8` int(11) DEFAULT NULL,
+  `item9` int(11) DEFAULT NULL,
+  PRIMARY KEY (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `mates` (
   `id` int(11) unsigned NOT NULL,
