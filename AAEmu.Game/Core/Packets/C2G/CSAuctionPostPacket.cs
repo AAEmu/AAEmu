@@ -13,12 +13,13 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var npcObjId = stream.ReadBc();
-            var itemId = stream.ReadUInt32();
+            var npcObjId2 = stream.ReadBc();
+            var itemId = stream.ReadUInt64();
             var startPrice = stream.ReadUInt32();
             var buyoutPrice = stream.ReadUInt32();
             var duration = stream.ReadByte();
 
-            AuctionManager.Instance.AddAuctionItem(Connection.ActiveChar, itemId, startPrice, buyoutPrice, duration);
+            AuctionManager.Instance.ListAuctionItem(Connection.ActiveChar, itemId, startPrice, buyoutPrice, duration);
         }
     }
 }

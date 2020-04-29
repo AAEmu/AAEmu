@@ -1114,10 +1114,10 @@ namespace AAEmu.Game.Models.Game.Char
                 Blocked.Load(connection);
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
-                Mails = new CharacterMails(this);
-                Mails.Load(connection);
                 Mates = new CharacterMates(this);
                 Mates.Load(connection);
+
+                
 
                 using (var command = connection.CreateCommand())
                 {
@@ -1141,6 +1141,9 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
             }
+
+            Mails = new CharacterMails(this);
+            MailManager.Instance.GetCurrentMailList(this, true); //Doesn't need a connection, but does need to load after the inventory
         }
 
         public bool Save()
@@ -1260,7 +1263,6 @@ namespace AAEmu.Game.Models.Game.Char
                         Blocked?.Save(connection, transaction);
                         Skills?.Save(connection, transaction);
                         Quests?.Save(connection, transaction);
-                        Mails?.Save(connection, transaction);
                         Mates?.Save(connection, transaction);
 
                         try

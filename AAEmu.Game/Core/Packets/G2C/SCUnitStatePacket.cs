@@ -344,6 +344,12 @@ namespace AAEmu.Game.Core.Packets.G2C
             var goodBuffs = new List<Effect>();
             var badBuffs = new List<Effect>();
             var hiddenBuffs = new List<Effect>();
+
+            if (!_unit.Effects.CheckBuff(8000011)) //TODO Wrong place
+                _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
+            if (!_unit.Effects.CheckBuff(8000012)) //TODO Wrong place
+                _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
+
             _unit.Effects.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
 
             stream.Write((byte)goodBuffs.Count); // TODO max 32
@@ -399,7 +405,6 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0); // charged
                 stream.Write(0u); // type(id) -> cooldownSkill
             }
-
             //            for (var i = 0; i < 255; i++)
             //                stream.Write(0);
 

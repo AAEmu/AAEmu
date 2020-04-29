@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -15,6 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var mailId = stream.ReadInt64();
 
             _log.Debug("ReadMail, Id: {0}, isSent: {1}", mailId, isSent);
+            Connection.ActiveChar.Mails.ReadMail(isSent, mailId);
         }
     }
 }

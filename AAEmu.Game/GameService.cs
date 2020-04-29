@@ -63,6 +63,7 @@ namespace AAEmu.Game
             SlaveManager.Instance.Load();
             TeamManager.Instance.Load();
             AuctionManager.Instance.Load();
+            MailManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
@@ -107,6 +108,7 @@ namespace AAEmu.Game
             LoginNetwork.Instance.Stop();
 
             HousingManager.Instance.Save();
+            MailManager.Instance.Save();
             return Task.CompletedTask;
         }
 
