@@ -14,7 +14,7 @@
  Date: 07/05/2019 16:04:56
 */
 
-SET NAMES utf8mb4;
+SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
@@ -24,7 +24,7 @@ DROP TABLE IF EXISTS `cash_shop_item`;
 CREATE TABLE `cash_shop_item`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'shop_id',
   `uniq_id` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '唯一ID',
-  `cash_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '出售名称',
+  `cash_name` varchar(255) CHARACTER SET utf8 NOT NULL COMMENT '出售名称',
   `main_tab` tinyint(3) UNSIGNED NULL DEFAULT 1 COMMENT '主分类1-6',
   `sub_tab` tinyint(3) UNSIGNED NULL DEFAULT 1 COMMENT '子分类1-7',
   `level_min` tinyint(3) UNSIGNED NULL DEFAULT 0 COMMENT '等级限制',
@@ -51,7 +51,7 @@ CREATE TABLE `cash_shop_item`  (
   `event_date` datetime(0) NULL DEFAULT '0001-01-01 00:00:00' COMMENT '活动时间',
   `dis_price` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '当前售价',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '此表来自于代码中的字段并去除重复字段生成。字段名称和内容以代码为准。' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8 COMMENT = '此表来自于代码中的字段并去除重复字段生成。字段名称和内容以代码为准。' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of cash_shop_item

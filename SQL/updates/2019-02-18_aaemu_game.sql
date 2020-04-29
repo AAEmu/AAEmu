@@ -14,14 +14,14 @@
  Date: 18/02/2019 11:31:10
 */
 
-SET NAMES utf8mb4;
+SET NAMES utf8;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
 -- Table structure for friends
 -- ----------------------------
-DROP TABLE IF EXISTS `aaemu_game`.`friends`;
-CREATE TABLE `aaemu_game`.`friends`  (
+DROP TABLE IF EXISTS `friends`;
+CREATE TABLE `friends`  (
   `id` int(11) NOT NULL,
   `friend_id` int(11) NOT NULL,
   `owner` int(11) NOT NULL,
@@ -31,8 +31,8 @@ CREATE TABLE `aaemu_game`.`friends`  (
 -- ----------------------------
 -- Table structure for portal_book_coords
 -- ----------------------------
-DROP TABLE IF EXISTS `aaemu_game`.`portal_book_coords`;
-CREATE TABLE `aaemu_game`.`portal_book_coords`  (
+DROP TABLE IF EXISTS `portal_book_coords`;
+CREATE TABLE `portal_book_coords`  (
   `id` int(11) NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `x` int(11) NULL DEFAULT 0,
@@ -48,8 +48,8 @@ CREATE TABLE `aaemu_game`.`portal_book_coords`  (
 -- ----------------------------
 -- Table structure for portal_visited_district
 -- ----------------------------
-DROP TABLE IF EXISTS `aaemu_game`.`portal_visited_district`;
-CREATE TABLE `aaemu_game`.`portal_visited_district`  (
+DROP TABLE IF EXISTS `portal_visited_district`;
+CREATE TABLE `portal_visited_district`  (
   `id` int(11) NOT NULL,
   `subzone` int(11) NOT NULL,
   `owner` int(11) NOT NULL,
