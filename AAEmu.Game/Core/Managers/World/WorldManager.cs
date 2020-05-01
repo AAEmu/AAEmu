@@ -490,19 +490,35 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void BroadcastPacketToNation(GamePacket packet, Race race)
         {
+            var mRace = (((byte)race - 1) & 0xFC); // some bit magic that makes raceId into some kind of birth continent id
             foreach (var character in _characters.Values)
             {
-                if (character.Race != race)
+                var cmRace = (((byte)character.Race - 1) & 0xFC);
+                if (mRace != cmRace)
                     continue;
                 character.SendPacket(packet);
             }
         }
 
-        public void BroadcastPacketToFaction(GamePacket packet, uint factionId)
+        public void BroadcastPacketToFaction(GamePacket packet, uint factionMotherId)
         {
             foreach (var character in _characters.Values)
             {
-                if (character.Faction.Id != factionId)
+                if (character.Faction.MotherId != factionMotherId)
+                    continue;
+                character.SendPacket(packet);
+            }
+        }
+
+        public void BroadcastPacketToZone(GamePacket packet, uint zoneKey)
+        {
+            // First find the zone group, so functions like /shout work in larger zones that use multiple zone keys
+            var zone = ZoneManager.Instance.GetZoneByKey(zoneKey);
+            var zoneGroupId = zone?.GroupId ?? 0;
+            var validZones = ZoneManager.Instance.GetZoneKeysInZoneGroupById(zoneGroupId);
+            foreach (var character in _characters.Values)
+            {
+                if (!validZones.Contains(character.Position.ZoneId))
                     continue;
                 character.SendPacket(packet);
             }

@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
@@ -859,6 +860,11 @@ namespace AAEmu.Game.Models.Game.Char
         public void SendMessage(ChatType type, string message, params object[] parameters)
         {
             SendPacket(new SCChatMessagePacket(type, string.Format(message, parameters)));
+        }
+
+        public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
+        {
+            SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
         }
 
         public void SendPacket(GamePacket packet)

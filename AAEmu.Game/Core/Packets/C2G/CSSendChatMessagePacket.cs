@@ -30,33 +30,45 @@ namespace AAEmu.Game.Core.Packets.C2G
                     return;
             }
 
+            // Sidenote: Trino mixed up /faction and /nation back then, it was supposed to be the other way around
             switch (type)
             {
-                case ChatType.Whisper:
+                case ChatType.Whisper: //whisper
                     var target = WorldManager.Instance.GetCharacter(targetName);
                     var packet = new SCChatMessagePacket(ChatType.Whisper, Connection.ActiveChar, message, ability, languageType);
                     target?.SendPacket(packet);
                     var packet_me = new SCChatMessagePacket(ChatType.Whispered, target, message, ability, languageType);
                     Connection.SendPacket(packet_me);
                     break;
-                case ChatType.White:
+                case ChatType.White: //say
                     Connection.ActiveChar.BroadcastPacket(
                         new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType), true);
                     break;
-                case ChatType.Shout:
-                    // TODO ...
+                case ChatType.GroupFind: //lfg
+                case ChatType.Shout: //shout
+                    WorldManager.Instance.BroadcastPacketToZone(
+                        new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType),
+                        Connection.ActiveChar.Position.ZoneId);
                     break;
                 case ChatType.Clan:
-                    Connection.ActiveChar.Expedition?.SendPacket(new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType));
+                    Connection.ActiveChar.Expedition?.SendPacket(
+                        new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
+                        );
                     break;
-                case ChatType.Region:
+                case ChatType.Judge: // TODO: Need a check so only defendant and jury can talk here
+                case ChatType.Region: //nation (birth place/race, includes pirates ect)
+                    WorldManager.Instance.BroadcastPacketToNation(
+                        new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType),
+                        Connection.ActiveChar.Race);
+                    break;
+                case ChatType.Trade: //trade
+                case ChatType.Ally: //faction (by current allegiance)
                     WorldManager.Instance.BroadcastPacketToFaction(
                         new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType),
-                        Connection.ActiveChar.Faction.Id);
+                        Connection.ActiveChar.Faction.MotherId);
                     break;
-                case ChatType.Ally:
-                    WorldManager.Instance.BroadcastPacketToNation(
-                        new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType), Connection.ActiveChar.Race);
+                default:
+                    _log.Warn("Unsupported chat type {0} from {1}", type, Connection.ActiveChar.Name);
                     break;
             }
         }
