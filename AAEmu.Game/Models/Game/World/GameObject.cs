@@ -93,7 +93,7 @@ namespace AAEmu.Game.Models.Game.World
                             /*
                             if (!thisChar.isGM)
                             {
-                                // TODO: for non-GMs, add a timed task to kick them out (recall no last Nui)
+                                // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
                                 // TODO: Remove backpack immediatly
                             }
                             */
