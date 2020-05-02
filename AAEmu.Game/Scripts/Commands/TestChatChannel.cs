@@ -22,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "[join||leave] chattypeid chatsubtype chatfaction";
+            return "[list || clean || <<join||leave> chattypeid chatsubtype chatfaction>]";
         }
 
         public string GetCommandHelpText()
@@ -32,6 +32,25 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
+            if ((args.Length == 1) && (args[0].ToLower() == "list"))
+            {
+                character.SendMessage("[TestChatChannel] List all channels");
+                var channels = ChatManager.Instance.ListAllChannels();
+                foreach (var c in channels)
+                {
+                    character.SendMessage("T:{0} ST:{1} F:{2} => {3} - {4} ({5})", c.chatType, c.subType, c.faction, c.internalId, c.internalName, c.members.Count);
+                }
+                character.SendMessage("[TestChatChannel] End of list");
+                return;
+            }
+
+            if ((args.Length == 1) && (args[0].ToLower() == "clean"))
+            {
+                var removed = ChatManager.Instance.CleanUpChannels();
+                character.SendMessage("[TestChatChannel] {0} empty channel(s) removed", removed);
+                return;
+            }
+
             if (args.Length < 4)
             {
                 character.SendMessage("[TestChatChannel] " + CommandManager.CommandPrefix + "test_chat_channel "+GetCommandLineHelp());

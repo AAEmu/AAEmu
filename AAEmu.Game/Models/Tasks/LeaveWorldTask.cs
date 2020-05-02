@@ -47,6 +47,7 @@ namespace AAEmu.Game.Models.Tasks
                     }
                 }
 
+                ChatManager.Instance.LeaveAllChannels(_connection.ActiveChar);
 
                 if (_connection.ActiveChar.Family > 0)
                     FamilyManager.Instance.OnCharacterLogout(_connection.ActiveChar);
