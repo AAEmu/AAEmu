@@ -47,27 +47,35 @@ namespace AAEmu.Game.Core.Packets.C2G
                 case ChatType.Trade: //trade
                 case ChatType.GroupFind: //lfg
                 case ChatType.Shout: //shout
+                    // We use SendPacket here so we can fake our way through the different channel types
                     ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Position.ZoneId).SendPacket(
                         new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
                         );
                     break;
                 case ChatType.Clan:
-                    Connection.ActiveChar.Expedition?.SendPacket(
-                        new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
-                        );
+                    if (Connection.ActiveChar.Expedition != null)
+                    {
+                        ChatManager.Instance.GetGuildChat(Connection.ActiveChar.Expedition).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                    }
+                    else
+                    {
+                        // Looks like the client blocks the chat even before it can get to the server, but let's intercept it anyway
+                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInExpedition);
+                    }
                     break;
                     /*
-                case ChatType.Judge: // TODO: Need a check so only defendant and jury can talk here
+                case ChatType.Judge: 
+                    // TODO: Need a check so only defendant and jury can talk here, the client does some checks too, but let's make sure
                     ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendPacket(
                         new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
                         );
                     break;
                     */
                 case ChatType.Region: //nation (birth place/race, includes pirates ect)
-                    ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendMessage(message, ability, languageType);
+                    ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendMessage(Connection.ActiveChar, message, ability, languageType);
                     break;
                 case ChatType.Ally: //faction (by current allegiance)
-                    ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).SendMessage(message, ability, languageType);
+                    ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).SendMessage(Connection.ActiveChar, message, ability, languageType);
                     break;
                 default:
                     _log.Warn("Unsupported chat type {0} from {1}", type, Connection.ActiveChar.Name);

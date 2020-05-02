@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -25,6 +26,8 @@ namespace AAEmu.Game.Models.Game.Expeditions
 
         public void RemoveMember(ExpeditionMember member)
         {
+            var character = WorldManager.Instance.GetCharacterById(member.CharacterId);
+            ChatManager.Instance.GetGuildChat(this).LeaveChannel(character);
             Members.Remove(member);
             _removedMembers.Add(member.CharacterId);
         }
@@ -38,15 +41,20 @@ namespace AAEmu.Game.Models.Game.Expeditions
             member.Refresh(character);
 
             SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+            ChatManager.Instance.GetGuildChat(this).JoinChannel(character);
         }
 
         public void OnCharacterLogout(Character character)
         {
             var member = GetMember(character);
-            member.IsOnline = false;
-            member.LastWorldLeaveTime = DateTime.Now;
+            if (member != null)
+            {
+                member.IsOnline = false;
+                member.LastWorldLeaveTime = DateTime.Now;
 
-            SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+                SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+            }
+            ChatManager.Instance.GetGuildChat(this).LeaveChannel(character);
         }
 
         public ExpeditionRolePolicy GetPolicyByRole(byte role)

@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Expeditions;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -62,12 +63,12 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="ability"></param>
         /// <param name="languageType"></param>
         /// <returns>Number of members it was sent to</returns>
-        public int SendMessage(string msg, int ability = 0, byte languageType = 0)
+        public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
         {
             var res = 0;
             foreach(var m in members)
             {
-                m.SendPacket(new SCChatMessagePacket(chatType, m, msg, ability, languageType));
+                m.SendPacket(new SCChatMessagePacket(chatType, origin != null? origin : m, msg, ability, languageType));
                 res++;
             }
             return res;
@@ -254,7 +255,32 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
+        private bool AddGuildChannel(Expedition guild)
+        {
+            var channel = new ChatChannel() { chatType = ChatType.Clan, subType = (short)guild.Id, internalId = guild.Id, internalName = guild.Name };
+            return _guildChannels.TryAdd(guild.Id, channel);
+        }
 
+
+        public ChatChannel GetGuildChat(Expedition guild)
+        {
+            // create it if it's not there
+            if (!_guildChannels.ContainsKey(guild.Id))
+            {
+                if (!AddGuildChannel(guild))
+                    _log.Error("Failed to create guild chat channel !");
+            }
+
+            if (_guildChannels.TryGetValue(guild.Id, out var channel))
+            {
+                return channel;
+            }
+            else
+            {
+                _log.Error("Should not be able to get a null channel from GetGuildChat !");
+                return nullChannel;
+            }
+        }
 
 
 
