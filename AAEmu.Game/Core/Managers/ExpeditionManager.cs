@@ -202,7 +202,7 @@ namespace AAEmu.Game.Core.Managers
 
             // ----------------- Conditions, can change this...
             var team = TeamManager.Instance.GetActiveTeamByUnit(owner.Id);
-            if (team == null || !team.IsParty)
+            if (team == null)// || !team.IsParty)
             {
                 // We send the same error on number of party members when we don't have a party
                 connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateMember);

@@ -44,6 +44,37 @@ namespace AAEmu.Game.Core.Packets.C2G
                     Connection.ActiveChar.BroadcastPacket(
                         new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType), true);
                     break;
+                case ChatType.RaidLeader:
+                case ChatType.Raid:
+                    var teamRaid = TeamManager.Instance.GetActiveTeamByUnit(Connection.ActiveChar.Id);
+
+                    if (teamRaid != null)
+                    {
+                        if ((type == ChatType.RaidLeader) && (teamRaid.OwnerId != Connection.ActiveChar.Id))
+                        {
+                            Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotRaidOwner);
+                        }
+                        else
+                        {
+                            ChatManager.Instance.GetRaidChat(teamRaid).SendPacket(new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType));
+                        }
+                    }
+                    else
+                    {
+                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInRaid);
+                    }
+                    break;
+                case ChatType.Party:
+                    var partyRaid = TeamManager.Instance.GetActiveTeamByUnit(Connection.ActiveChar.Id);
+                    if (partyRaid != null)
+                    {
+                        ChatManager.Instance.GetPartyChat(partyRaid,Connection.ActiveChar).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                    }
+                    else
+                    {
+                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInParty);
+                    }
+                    break;
                 case ChatType.Trade: //trade
                 case ChatType.GroupFind: //lfg
                 case ChatType.Shout: //shout

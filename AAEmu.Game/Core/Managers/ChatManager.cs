@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Team;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -33,27 +34,38 @@ namespace AAEmu.Game.Core.Managers
 
         public bool JoinChannel(Character character)
         {
-            if (!members.Contains(character))
+            character.SendMessage(ChatType.System, "ChatManager.JoinChannel:{0} - {1} - {2}", chatType, internalId, internalName);
+            for (var i = members.Count-1; i >= 0; i--)
             {
-                members.Add(character);
-                character.SendPacket(new SCJoinedChatChannelPacket(chatType, subType, faction));
+                if (members[i].Id == character.Id)
+                {
+                    members[i] = character; // override it
+                    return false;
+                }
             }
+            members.Add(character);
+            character.SendPacket(new SCJoinedChatChannelPacket(chatType, subType, faction));
 
-            //character.SendMessage(ChatType.System, "ChatManager.JoinChannel:{0} - {1}", internalId, internalName);
 
             return true;
         }
 
         public bool LeaveChannel(Character character)
         {
-            //character.SendMessage(ChatType.System, "ChatManager.LeaveChannel:{0} - {1}", internalId, internalName);
+            character.SendMessage(ChatType.System, "ChatManager.LeaveChannel:{0} - {1} - {2}", chatType, internalId, internalName);
 
-            if (members.Contains(character))
+            var res = 0;
+            for (var i = members.Count - 1; i >= 0; i--)
             {
-                character.SendPacket(new SCLeavedChatChannelPacket(chatType, subType, faction));
-                return members.Remove(character);
+                if (members[i].Id == character.Id)
+                {
+                    character.SendPacket(new SCLeavedChatChannelPacket(chatType, subType, faction));
+                    members.RemoveAt(i);
+                    res++;
+                }
             }
-            return false;
+
+            return (res > 0);
         }
 
         /// <summary>
@@ -171,25 +183,25 @@ namespace AAEmu.Game.Core.Managers
             foreach (var c in _partyChannels)
                 if (c.Value.members.Count <= 0)
                 {
-                    _zoneChannels.TryRemove(c.Key, out _);
+                    _partyChannels.TryRemove(c.Key, out _);
                     res++;
                 }
             foreach (var c in _raidChannels)
                 if (c.Value.members.Count <= 0)
                 {
-                    _zoneChannels.TryRemove(c.Key, out _);
+                    _raidChannels.TryRemove(c.Key, out _);
                     res++;
                 }
             foreach (var c in _guildChannels)
                 if (c.Value.members.Count <= 0)
                 {
-                    _zoneChannels.TryRemove(c.Key, out _);
+                    _guildChannels.TryRemove(c.Key, out _);
                     res++;
                 }
             foreach (var c in _familyChannels)
                 if (c.Value.members.Count <= 0)
                 {
-                    _zoneChannels.TryRemove(c.Key, out _);
+                    _familyChannels.TryRemove(c.Key, out _);
                     res++;
                 }
             return res;
@@ -278,6 +290,77 @@ namespace AAEmu.Game.Core.Managers
             else
             {
                 _log.Error("Should not be able to get a null channel from GetGuildChat !");
+                return nullChannel;
+            }
+        }
+
+        private bool AddPartyChannel(uint partyId)
+        {
+            var channel = new ChatChannel() { chatType = ChatType.Party, subType = (short)partyId, internalId = partyId, internalName = "Party(" + partyId.ToString() + ")" };
+            return _partyChannels.TryAdd(partyId, channel);
+        }
+
+
+        public ChatChannel GetPartyChat(Team party, Character myChar)
+        {
+            uint partyId = party.Id << 6;
+            // Find my position inside the raid
+            uint partyNumber = 0;
+            for(uint i = 0; i < party.Members.Length;i++)
+            {
+                if ((party.Members[i] == null) || (party.Members[i].Character == null))
+                    continue;
+                if (party.Members[i].Character.Id == myChar.Id)
+                {
+                    partyNumber = (i / 5);
+                    break;
+                }
+            }
+            partyId += partyNumber;
+
+            // create it if it's not there
+            if (!_partyChannels.ContainsKey(partyId))
+            {
+                if (!AddPartyChannel(partyId))
+                    _log.Error("Failed to create party chat channel !");
+            }
+
+            if (_partyChannels.TryGetValue(partyId, out var channel))
+            {
+                channel.internalName = "Party " + (partyNumber + 1).ToString() + " of " + WorldManager.Instance.GetCharacterById(party.OwnerId)?.Name ?? " ???";
+                return channel;
+            }
+            else
+            {
+                _log.Error("Should not be able to get a null channel from GetPartyChat !");
+                return nullChannel;
+            }
+        }
+
+        private bool AddRaidChannel(uint partyId)
+        {
+            var channel = new ChatChannel() { chatType = ChatType.Raid, subType = (short)partyId, internalId = partyId, internalName = "Party("+partyId.ToString()+")" };
+            return _raidChannels.TryAdd(partyId, channel);
+        }
+
+
+        public ChatChannel GetRaidChat(Team party)
+        {
+            // create it if it's not there
+            if (!_raidChannels.ContainsKey(party.Id))
+            {
+                if (!AddRaidChannel(party.Id))
+                    _log.Error("Failed to create party chat channel !");
+            }
+
+            if (_raidChannels.TryGetValue(party.Id, out var channel))
+            {
+                channel.internalName = "Raid of " + WorldManager.Instance.GetCharacterById(party.OwnerId)?.Name ?? " ???";
+                return channel;
+            }
+            else
+            {
+                _log.Error("Should not be able to get a null channel from GetRaidChat !");
                 return nullChannel;
             }
         }

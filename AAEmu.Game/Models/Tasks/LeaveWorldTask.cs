@@ -47,6 +47,7 @@ namespace AAEmu.Game.Models.Tasks
                     }
                 }
 
+                TeamManager.Instance.MemberRemoveFromTeam(_connection.ActiveChar, _connection.ActiveChar, Game.Team.RiskyAction.Leave);
                 ChatManager.Instance.LeaveAllChannels(_connection.ActiveChar);
 
                 if (_connection.ActiveChar.Family > 0)
