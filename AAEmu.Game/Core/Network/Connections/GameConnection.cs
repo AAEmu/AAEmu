@@ -228,14 +228,17 @@ namespace AAEmu.Game.Core.Network.Connections
                 SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
             }
         }
-
+        /// <summary>
+        /// Called when closing a connection
+        /// </summary>
         public void Save()
         {
             if (ActiveChar == null)
                 return;
 
             ActiveChar.Delete();
-            ObjectIdManager.Instance.ReleaseId(ActiveChar.ObjId);
+            // Removed ReleaseId here to try and fix party/raid disconnect and reconnect issues. Replaced with saving the data
+            //ObjectIdManager.Instance.ReleaseId(ActiveChar.ObjId);
 
             ActiveChar.Save();
         }
