@@ -292,10 +292,18 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
+            // Disband if only one member left in a Party (not raid)
+            if ((activeTeam.IsParty) && (activeTeam.MembersCount() <= 1))
+                isAutoDisband = true;
+
+            // If everybody is offline, also disband regardless of raid or party status
+            if (activeTeam.MembersOnlineCount() <= 0)
+                isAutoDisband = true;
+
             // TODO - NEED TO FIND WHY NEED THIS
             activeTeam.BroadcastPacket(new SCTeamAckRiskyActionPacket(teamId, targetId, riskyAction, 0, 0));
 
-            if (isAutoDisband || riskyAction == RiskyAction.Dismiss || activeTeam.MembersCount() <= 0)
+            if (isAutoDisband || riskyAction == RiskyAction.Dismiss)
             {
                 activeTeam.BroadcastPacket(new SCTeamDismissedPacket(teamId));
                 foreach (var member in activeTeam.Members)

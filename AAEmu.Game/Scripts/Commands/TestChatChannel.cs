@@ -16,7 +16,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "test_chat_channel", "testchatchannel" };
+            string[] name = { "testchatchannel", "test_chat_channel" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -27,7 +27,8 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "";
+            return "Command used to manually send join/leave channel packets to yourself used for testing\r" +
+                "You can also use list to show a list of all current chat channels, or clean to remove any non-system channel that has zero users in it.";
         }
 
         public void Execute(Character character, string[] args)

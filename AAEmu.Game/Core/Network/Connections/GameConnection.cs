@@ -50,6 +50,7 @@ namespace AAEmu.Game.Core.Network.Connections
             Characters = new Dictionary<uint, Character>();
             Houses = new Dictionary<uint, House>();
             Payment = new AccountPayment(this);
+            // AddAttribute("gmFlag", true);
         }
 
         public void SendPacket(GamePacket packet)

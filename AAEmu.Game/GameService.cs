@@ -110,6 +110,7 @@ namespace AAEmu.Game
 
             HousingManager.Instance.Save();
             MailManager.Instance.Save();
+            TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }
 
