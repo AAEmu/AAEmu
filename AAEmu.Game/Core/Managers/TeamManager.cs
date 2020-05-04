@@ -247,13 +247,16 @@ namespace AAEmu.Game.Core.Managers
 
         public void AskRiskyTeam(Character unit, uint teamId, uint targetId, RiskyAction riskyAction)
         {
+            // Get Team data
             var activeTeam = GetActiveTeam(teamId);
             if (activeTeam == null) return;
-            var isDisband = false;
+            var isAutoDisband = false;
 
+            // Check if action is allowed; Kick only by raid leader ; Leave only by self
             if (riskyAction == RiskyAction.Kick && activeTeam.OwnerId != unit.Id ||
                 riskyAction == RiskyAction.Leave && unit.Id != targetId) return;
 
+            // Remove from ChatManager channels
             if (!activeTeam.IsParty)
                 ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(unit);
             ChatManager.Instance.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
@@ -261,7 +264,7 @@ namespace AAEmu.Game.Core.Managers
 
             if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) && activeTeam.RemoveMember(targetId))
             {
-
+                // Check if person leaving is the leader, if so, find a new leader
                 if (targetId == activeTeam.OwnerId)
                 {
                     var newOwner = activeTeam.GetNewOwner();
@@ -272,11 +275,15 @@ namespace AAEmu.Game.Core.Managers
                     }
                     else
                     {
-                        isDisband = true;
+                        // couldn't find a new leader, only party will auto-disband, raids will keep the one remaining person in it
+                        if (activeTeam.IsParty)
+                            isAutoDisband = true;
                     }
                 }
 
+                // Send Leave info the team
                 activeTeam.BroadcastPacket(new SCTeamMemberLeavedPacket(teamId, targetId, riskyAction == RiskyAction.Kick));
+                // Find the target, and and send it's leave info
                 var target = WorldManager.Instance.GetCharacterById(targetId);
                 if (target != null)
                 {
@@ -288,19 +295,22 @@ namespace AAEmu.Game.Core.Managers
             // TODO - NEED TO FIND WHY NEED THIS
             activeTeam.BroadcastPacket(new SCTeamAckRiskyActionPacket(teamId, targetId, riskyAction, 0, 0));
 
-            if (isDisband || riskyAction == RiskyAction.Dismiss || activeTeam.MembersCount() <= 1)
+            if (isAutoDisband || riskyAction == RiskyAction.Dismiss || activeTeam.MembersCount() <= 0)
             {
                 activeTeam.BroadcastPacket(new SCTeamDismissedPacket(teamId));
                 foreach (var member in activeTeam.Members)
                 {
-                    if (member?.Character != null && member.Character.IsOnline)
+                    if (member?.Character != null)
                     {
                         if (!activeTeam.IsParty)
                             ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(member.Character);
                         ChatManager.Instance.GetPartyChat(activeTeam, member.Character).LeaveChannel(member.Character);
 
-                        member.Character.SendPacket(new SCLeavedTeamPacket(teamId, false, true));
-                        member.Character.InParty = false;
+                        if (member.Character.IsOnline)
+                        {
+                            member.Character.SendPacket(new SCLeavedTeamPacket(teamId, false, true));
+                            member.Character.InParty = false;
+                        }
                     }
                 }
 
