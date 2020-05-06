@@ -61,7 +61,7 @@ namespace AAEmu.Game.Scripts.Commands
                 var myY = character.Position.Y;
                 var myZ = character.Position.Z + 2f; // drop them slightly above you to avoid weird collision stuff
                 if (targetPlayer != character)
-                    targetPlayer.SendMessage("[Move] GM |cFFFFFFFF{0}|r has called upon your presence !", character.Name);
+                    targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r has called upon your presence !", character.Name);
                 targetPlayer.DisabledSetPosition = true;
                 targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, myX, myY, myZ, 0f));
                 character.SendMessage("[Move] Moved |cFFFFFFFF{0}|r to your location.", targetPlayer.Name);
@@ -82,7 +82,7 @@ namespace AAEmu.Game.Scripts.Commands
             if ((args.Length == firstarg + 3) && float.TryParse(args[firstarg + 0], out var newX) && float.TryParse(args[firstarg + 1], out var newY) && float.TryParse(args[firstarg + 2], out var newZ))
             {
                 if (targetPlayer != character)
-                    targetPlayer.SendMessage("[Move] GM |cFFFFFFFF{0}|r has moved you do position X: {1}, Y: {2}, Z: {3}", character.Name, newX, newY, newZ);
+                    targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r has moved you do position X: {1}, Y: {2}, Z: {3}", character.Name, newX, newY, newZ);
                 targetPlayer.DisabledSetPosition = true;
                 targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, newX, newY, newZ, 0f));
                 character.SendMessage("[Move] |cFFFFFFFF{0}|r moved to X: {1}, Y: {2}, Z: {3}", targetPlayer.Name, newX, newY, newZ);

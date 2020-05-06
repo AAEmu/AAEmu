@@ -22,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Repeats the provided arguments in chat";
+            return "Repeats the provided arguments in chat as raw text";
         }
 
         public void Execute(Character character, string[] args)

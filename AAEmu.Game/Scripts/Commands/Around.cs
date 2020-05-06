@@ -13,7 +13,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("around", this);
+            string[] name = { "around", "near" };
+            CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()

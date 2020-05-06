@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "add_xp", "addxp", "givexp", "xp" };
+            string[] name = { "addxp", "add_xp", "givexp", "xp" };
             CommandManager.Instance.Register(name, this);
         }
 
