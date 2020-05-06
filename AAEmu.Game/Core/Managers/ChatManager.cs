@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Managers
 
         public bool JoinChannel(Character character)
         {
-            character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
+            // character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
             for (var i = members.Count-1; i >= 0; i--)
             {
                 if (members[i].Id == character.Id)
@@ -50,8 +50,7 @@ namespace AAEmu.Game.Core.Managers
 
         public bool LeaveChannel(Character character)
         {
-            character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
-
+            // character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
             var res = 0;
             for (var i = members.Count - 1; i >= 0; i--)
             {
