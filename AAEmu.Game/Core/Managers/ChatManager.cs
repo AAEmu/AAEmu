@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -34,25 +33,24 @@ namespace AAEmu.Game.Core.Managers
 
         public bool JoinChannel(Character character)
         {
-            character.SendMessage(ChatType.System, "ChatManager.JoinChannel:{0} - {1} - {2}", chatType, internalId, internalName);
+            character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
             for (var i = members.Count-1; i >= 0; i--)
             {
                 if (members[i].Id == character.Id)
                 {
-                    members[i] = character; // override it
+                    members[i] = character; // override it just to be sure
                     return false;
                 }
             }
             members.Add(character);
             character.SendPacket(new SCJoinedChatChannelPacket(chatType, subType, faction));
 
-
             return true;
         }
 
         public bool LeaveChannel(Character character)
         {
-            character.SendMessage(ChatType.System, "ChatManager.LeaveChannel:{0} - {1} - {2}", chatType, internalId, internalName);
+            character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
 
             var res = 0;
             for (var i = members.Count - 1; i >= 0; i--)
@@ -71,10 +69,11 @@ namespace AAEmu.Game.Core.Managers
         /// <summary>
         /// Sends a message to all members of the channel
         /// </summary>
+        /// <param name="origin">Can be null or be the charater that is the origin of the message</param>
         /// <param name="msg">Text to send</param>
         /// <param name="ability"></param>
         /// <param name="languageType"></param>
-        /// <returns>Number of members it was sent to</returns>
+        /// <returns>Number of members the message was sent to</returns>
         public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
         {
             var res = 0;
@@ -86,6 +85,11 @@ namespace AAEmu.Game.Core.Managers
             return res;
         }
 
+        /// <summary>
+        /// Sends a GamePacket to all members of the chat channel
+        /// </summary>
+        /// <param name="packet">Packet to send</param>
+        /// <returns>Number of members the packet was sent to</returns>
         public int SendPacket(GamePacket packet)
         {
             var res = 0;
@@ -103,6 +107,9 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
+        /// <summary>
+        /// nullChannel is used as a fallback channel, do not use directly
+        /// </summary>
         private ChatChannel nullChannel;
         private ConcurrentDictionary<long, ChatChannel> _factionChannels;
         private ConcurrentDictionary<long, ChatChannel> _nationChannels;
@@ -127,15 +134,24 @@ namespace AAEmu.Game.Core.Managers
         public void Initialize()
         {
             _log.Info("Initializing Chat Manager...");
+            
             // Create Faction Channels
             AddFactionChannel(148, "Nuia");
             AddFactionChannel(149, "Haranya");
             AddFactionChannel(114, "Pirate");
+            // TODO: Player Factions ?
 
+            // Create Nation Channels
             AddNationChannel(Race.Nuian, 148, "Nuian-Elf-Dwarf");
             AddNationChannel(Race.Hariharan, 149, "Harani-Firran-Warborn");
+
+            // Zone, Party/Raid, Guild, Family channels are created on the fly
         }
 
+        /// <summary>
+        /// Used in GM command /testchatchannel list
+        /// </summary>
+        /// <returns>List of all chat channels currently loaded</returns>
         public List<ChatChannel> ListAllChannels()
         {
             var res = new List<ChatChannel>();
@@ -221,6 +237,11 @@ namespace AAEmu.Game.Core.Managers
                 return nullChannel;
         }
 
+        public ChatChannel GetFactionChat(Character character)
+        {
+            return GetFactionChat(character.Faction.MotherId);
+        }
+
         private bool AddNationChannel(Race race, uint factionDisplayId, string name)
         {
             var mRace = (((byte)race - 1) & 0xFC);
@@ -230,11 +251,18 @@ namespace AAEmu.Game.Core.Managers
 
         public ChatChannel GetNationChat(Race race)
         {
-            var mRace = (((byte)race - 1) & 0xFC); // some bit magic that makes raceId into some kind of birth continent id
+            // some bit magic that makes raceId into some kind of birth continent id
+            // If Fairy (for Nuia) and Returned (for Haranya) are ever added as a diffferent faction, we'll need to go and write some proper code for this
+            var mRace = (((byte)race - 1) & 0xFC);
             if (_nationChannels.TryGetValue(mRace, out var channel))
                 return channel;
             else
                 return nullChannel;
+        }
+
+        public ChatChannel GetNationChat(Character character)
+        {
+            return GetNationChat(character.Race);
         }
 
         private bool AddZoneChannel(uint zoneGroupId,string name)
@@ -300,7 +328,12 @@ namespace AAEmu.Game.Core.Managers
             return _partyChannels.TryAdd(partyId, channel);
         }
 
-
+        /// <summary>
+        /// Get or Creates a party chat channel for Character myChar
+        /// </summary>
+        /// <param name="party">Team(raid) you belong</param>
+        /// <param name="myChar">You</param>
+        /// <returns>ChatChannel based on your position inside a Raid</returns>
         public ChatChannel GetPartyChat(Team party, Character myChar)
         {
             uint partyId = party.Id << 6;
@@ -343,7 +376,11 @@ namespace AAEmu.Game.Core.Managers
             return _raidChannels.TryAdd(partyId, channel);
         }
 
-
+        /// <summary>
+        /// Get Raid channel for your Team
+        /// </summary>
+        /// <param name="party"></param>
+        /// <returns></returns>
         public ChatChannel GetRaidChat(Team party)
         {
             // create it if it's not there

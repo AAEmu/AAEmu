@@ -102,7 +102,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                         );
                     break;
                     */
-                case ChatType.Region: //nation (birth place/race, includes pirates ect)
+                case ChatType.Region: //nation (birth place/race, includes pirates etc)
                     ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendMessage(Connection.ActiveChar, message, ability, languageType);
                     break;
                 case ChatType.Ally: //faction (by current allegiance)
