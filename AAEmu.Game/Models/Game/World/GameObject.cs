@@ -80,12 +80,20 @@ namespace AAEmu.Game.Models.Game.World
                     var newZoneGroupId = (short)((newZone != null)?newZone.GroupId : 0);
                     if (lastZoneGroupId != newZoneGroupId)
                     {
+
+
                         // Ok, we actually changed zone groups, we'll leave to do some chat channel stuff
                         if (lastZoneGroupId != 0)
-                            thisChar.SendPacket(new SCLeavedChatChannelPacket(ChatType.Shout, lastZoneGroupId, 0));
+                        {
+                            ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(thisChar);
+                            //thisChar.SendPacket(new SCLeavedChatChannelPacket(ChatType.Shout, lastZoneGroupId, 0));
+                        }
 
                         if (newZoneGroupId != 0)
-                            thisChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Shout, newZoneGroupId, 0));
+                        {
+                            ChatManager.Instance.GetZoneChat(Position.ZoneId).JoinChannel(thisChar);
+                            //thisChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Shout, newZoneGroupId, 0));
+                        }
 
                         if ((newZone == null) || (newZone.Closed))
                         {
@@ -93,7 +101,7 @@ namespace AAEmu.Game.Models.Game.World
                             /*
                             if (!thisChar.isGM)
                             {
-                                // TODO: for non-GMs, add a timed task to kick them out (recall no last Nui)
+                                // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
                                 // TODO: Remove backpack immediatly
                             }
                             */

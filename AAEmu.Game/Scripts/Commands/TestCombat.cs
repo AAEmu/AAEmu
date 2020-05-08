@@ -15,12 +15,12 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "";
+            return "<engaged||cleared||first_hit||text>";
         }
 
         public string GetCommandHelpText()
         {
-            return "";
+            return "Command to test combat related packets. You can try to use cleared if you are stuck in combat for example.";
         }
 
         public void Execute(Character character, string[] args)

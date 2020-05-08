@@ -31,8 +31,9 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Rotate a npc or doodad using target unit as a template";
+            return "Rotate target unit towards you";
         }
+
         public void Execute(Character character, string[] args)
         {
             //if (args.Length < 2)
@@ -70,7 +71,7 @@ namespace AAEmu.Game.Scripts.Commands
                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
             }
             else
-                character.SendMessage("[Rotate] Take something to the target");
+                character.SendMessage("[Rotate] You need to target something first");
         }
     }
 }

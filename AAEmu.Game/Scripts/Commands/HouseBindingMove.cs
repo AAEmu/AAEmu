@@ -21,7 +21,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "";
+            return "Command used for testing and moving house binding points";
         }
 
         public void Execute(Character character, string[] args)

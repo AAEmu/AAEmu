@@ -30,7 +30,15 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
 
                 Connection.ActiveChar = character;
-                Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
+                if (Models.Game.Char.Character._usedCharacterObjIds.TryGetValue(character.Id, out uint oldObjId))
+                {
+                    Connection.ActiveChar.ObjId = oldObjId;
+                }
+                else
+                {
+                    Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
+                    Models.Game.Char.Character._usedCharacterObjIds.TryAdd(character.Id, character.ObjId);
+                }
 
                 Connection.ActiveChar.Simulation = new Simulation(character);
 

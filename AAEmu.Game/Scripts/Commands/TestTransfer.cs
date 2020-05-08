@@ -21,7 +21,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "";
+            return "Spawns a transportation vehicle";
         }
 
         public void Execute(Character character, string[] args)
