@@ -124,6 +124,7 @@ namespace AAEmu.Game.Core.Managers
             if (isArea)
             {
                 // TODO
+                _activeInvitations.Remove(target.Id);
                 return;
             }
 
@@ -136,6 +137,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 else
                 {
+                    _activeInvitations.Remove(target.Id);
                     // TODO - ERROR TEAM DO NOT EXISTS ANYMORE
                     return;
                 }
@@ -146,6 +148,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     // ERROR TEAM IS FULL
                     target.SendErrorMessage(Models.Game.Error.ErrorMessageType.TeamFull);
+                    _activeInvitations.Remove(activeInvitation.Target.Id);
                     return;
                 }
 
