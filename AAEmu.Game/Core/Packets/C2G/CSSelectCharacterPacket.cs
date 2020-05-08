@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -31,6 +32,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Connection.ActiveChar = character;
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
+
+                Connection.ActiveChar.Simulation = new Simulation(character);
 
                 Connection.SendPacket(new SCCharacterStatePacket(character));
                 Connection.SendPacket(new SCCharacterGamePointsPacket(character));

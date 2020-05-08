@@ -116,6 +116,13 @@ namespace AAEmu.Game.Models.Game.World
                     // turn on the motion of the visible NPC
                     if (t is Npc npc)
                     {
+                        // exclude Training Scarecrow from move objects and others NPC
+                        if (npc.TemplateId == 7512 || npc.TemplateId == 7513 || npc.TemplateId == 7511 ||
+                            npc.TemplateId == 9129 || npc.TemplateId == 9449)
+                        {
+                            // do nothing for these NPCs.
+                        }
+                        else
                         // We're gonna get the NPC's favorites on the road.
                         // Nui Forest keeper Arthur
                         if (npc.TemplateId == 11999)
@@ -124,9 +131,7 @@ namespace AAEmu.Game.Models.Game.World
                             {
                                 npc.IsInPatrol = true; // so as not to run the route a second time
                                 var path = new Simulation(npc);
-                                path.MoveFilesPath = @".\Data\Path\";             // location where the coordinate file is located
                                 path.MovePathFileName = @"NuiForestkeeperArthur"; // path file name
-                                path.MoveFileExt = @".path";                      // type of file
                                 path.ReadPath();
                                 path.GoToPath(npc, true);
                             }
@@ -142,14 +147,14 @@ namespace AAEmu.Game.Models.Game.World
                                 if (rnd > 300)
                                 {
                                     // NPCs are moving squarely
-                                    var square = new Square() { Interrupt = true, Loop = true, Abandon = false };
-                                    square.Degree = (short)Rand.Next(180, 360);
+                                    var square = new Square { Interrupt = true, Loop = true, Abandon = false };
+                                    square.Degree = 360; // (short)Rand.Next(180, 360); checking that they're not leaving their seats.
                                     patrol = square;
                                 }
                                 else if (rnd > 200)
                                 {
                                     // NPCs are moving around in a circle
-                                    patrol = new Circular() { Interrupt = true, Loop = true, Abandon = false };
+                                    patrol = new Circular { Interrupt = true, Loop = true, Abandon = false };
                                 }
                                 else if (rnd > 100)
                                 {
@@ -181,10 +186,11 @@ namespace AAEmu.Game.Models.Game.World
                             if (npc.Patrol == null)
                             {
                                 Patrol patrol = null;
-                                var rnd = Rand.Next(0, 800);
+                                var rnd = Rand.Next(0, 1000);
                                 if (rnd > 700)
                                 {
                                     // NPC stand still
+                                    // turned it off because the NPCs are leaving their seats.
                                     npc.Patrol = null;
                                     // NPC is moving slowly
                                     //var stirring = new Stirring() { Interrupt = true, Loop = true, Abandon = false };
@@ -195,7 +201,7 @@ namespace AAEmu.Game.Models.Game.World
                                 {
                                     // NPCs are moving squarely
                                     var square = new Square { Interrupt = true, Loop = true, Abandon = false };
-                                    square.Degree = (short)Rand.Next(180, 360);
+                                    square.Degree = 360; // (short)Rand.Next(180, 360); checking that they're not leaving their seats.
                                     patrol = square;
                                 }
                                 else if (rnd > 500)
@@ -206,6 +212,7 @@ namespace AAEmu.Game.Models.Game.World
                                 else if (rnd > 400)
                                 {
                                     // NPC stand still
+                                    // turned it off because the NPCs are leaving their seats.
                                     npc.Patrol = null;
                                     // NPCs are jerking around
                                     //var jerky = new Jerky { Interrupt = true, Loop = true, Abandon = false };
