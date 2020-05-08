@@ -17,11 +17,15 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public List<ExpeditionMember> Members { get; set; }
         public List<ExpeditionRolePolicy> Policies { get; set; }
 
+        public bool isDisbanded { get; set; }
+
+
         public Expedition()
         {
             _removedMembers = new List<uint>();
             Members = new List<ExpeditionMember>();
             Policies = new List<ExpeditionRolePolicy>();
+            isDisbanded = false;
         }
 
         public void RemoveMember(ExpeditionMember member)
@@ -118,27 +122,59 @@ namespace AAEmu.Game.Models.Game.Expeditions
                 _removedMembers.Clear();
             }
 
-            using (var command = connection.CreateCommand())
+            if (isDisbanded)
             {
-                command.Connection = connection;
-                command.Transaction = transaction;
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    command.CommandText = "DELETE FROM expeditions WHERE `id` = @id";
+                    command.Parameters.AddWithValue("@id", this.Id);
+                    command.ExecuteNonQuery();
+                }
 
-                command.CommandText =
-                    "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`) VALUES (@id, @owner, @owner_name, @name, @mother, @created_at)";
-                command.Parameters.AddWithValue("@id", this.Id);
-                command.Parameters.AddWithValue("@owner", this.OwnerId);
-                command.Parameters.AddWithValue("@owner_name", this.OwnerName);
-                command.Parameters.AddWithValue("@name", this.Name);
-                command.Parameters.AddWithValue("@mother", this.MotherId);
-                command.Parameters.AddWithValue("@created_at", this.Created);
-                command.ExecuteNonQuery();
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    command.CommandText = "DELETE FROM expedition_role_policies WHERE `expedition_id` = @id";
+                    command.Parameters.AddWithValue("@id", this.Id);
+                    command.ExecuteNonQuery();
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    command.CommandText = "DELETE FROM expedition_members WHERE `expedition_id` = @id";
+                    command.Parameters.AddWithValue("@id", this.Id);
+                    command.ExecuteNonQuery();
+                }
             }
+            else
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
 
-            foreach (var member in Members)
-                member.Save(connection, transaction);
+                    command.CommandText =
+                        "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`) VALUES (@id, @owner, @owner_name, @name, @mother, @created_at)";
+                    command.Parameters.AddWithValue("@id", this.Id);
+                    command.Parameters.AddWithValue("@owner", this.OwnerId);
+                    command.Parameters.AddWithValue("@owner_name", this.OwnerName);
+                    command.Parameters.AddWithValue("@name", this.Name);
+                    command.Parameters.AddWithValue("@mother", this.MotherId);
+                    command.Parameters.AddWithValue("@created_at", this.Created);
+                    command.ExecuteNonQuery();
+                }
 
-            foreach (var policy in Policies)
-                policy.Save(connection, transaction);
+                foreach (var member in Members)
+                    member.Save(connection, transaction);
+
+                foreach (var policy in Policies)
+                    policy.Save(connection, transaction);
+            }
         }
     }
 }

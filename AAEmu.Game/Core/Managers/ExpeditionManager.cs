@@ -453,6 +453,8 @@ namespace AAEmu.Game.Core.Managers
             newOwnerMember.Role = 255;
             ownerMember.Role = 0;
 
+            expedition.OwnerId = newOwnerId;
+
             expedition.SendPacket(
                 new SCExpeditionOwnerChangedPacket(
                     ownerMember.CharacterId,
@@ -469,13 +471,37 @@ namespace AAEmu.Game.Core.Managers
             Save(expedition);
         }
 
-        public void Disband(Character owner)
+        public bool Disband(Character owner)
         {
-            var ownerMember = owner.Expedition?.GetMember(owner);
-            if (ownerMember == null || ownerMember.Role != 255)
-                return;
-
-            // TODO : implement
+            var guild = owner.Expedition;
+            if (guild == null)
+            {
+                // Error, not in a guild
+                owner.SendErrorMessage(ErrorMessageType.OnlyExpeditionMember);
+                return false;
+            }
+            if (guild.OwnerId != owner.Id)
+            {
+                // Error, only guild owner can disband
+                owner.SendErrorMessage(ErrorMessageType.OnlyExpeditionOwner);
+                return false;
+            }
+            for (int i = guild.Members.Count - 1; i >= 0; i--)
+            {
+                var c = WorldManager.Instance.GetCharacterById(guild.Members[i].CharacterId);
+                if (c != null)
+                {
+                    if (c.IsOnline)
+                        c.SendPacket(new SCExpeditionDismissedPacket(guild.Id, true));
+                    c.Expedition = null;
+                }
+                guild.RemoveMember(guild.Members[i]);
+            }
+            guild.Name = "$deleted-guild-" + guild.Id;
+            guild.OwnerId = 0;
+            guild.isDisbanded = true;
+            Save(guild);
+            return true;
         }
 
         public void SendExpeditionInfo(Character character)
