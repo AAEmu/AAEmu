@@ -33,6 +33,7 @@ namespace AAEmu.Game
             TradeIdManager.Instance.Initialize();
 
             ItemIdManager.Instance.Initialize();
+            ChatManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
             FamilyIdManager.Instance.Initialize();
             ExpeditionIdManager.Instance.Initialize();
@@ -109,6 +110,7 @@ namespace AAEmu.Game
 
             HousingManager.Instance.Save();
             MailManager.Instance.Save();
+            TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }
 

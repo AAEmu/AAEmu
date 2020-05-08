@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -30,7 +31,17 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
 
                 Connection.ActiveChar = character;
-                Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
+                if (Models.Game.Char.Character._usedCharacterObjIds.TryGetValue(character.Id, out uint oldObjId))
+                {
+                    Connection.ActiveChar.ObjId = oldObjId;
+                }
+                else
+                {
+                    Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
+                    Models.Game.Char.Character._usedCharacterObjIds.TryAdd(character.Id, character.ObjId);
+                }
+
+                Connection.ActiveChar.Simulation = new Simulation(character);
 
                 Connection.ActiveChar.Simulation = new Simulation(character);
 

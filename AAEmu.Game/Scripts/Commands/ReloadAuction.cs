@@ -13,7 +13,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "reloadauction" };
+            string[] name = { "reloadauction", "reload_auction", "reloadah", "reload_ah" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -24,7 +24,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "";
+            return "Reloads the AuctionManager";
         }
         public void Execute(Character character, string[] args)
         {

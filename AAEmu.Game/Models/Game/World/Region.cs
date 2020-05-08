@@ -186,7 +186,7 @@ namespace AAEmu.Game.Models.Game.World
                             if (npc.Patrol == null)
                             {
                                 Patrol patrol = null;
-                                var rnd = Rand.Next(0, 2000);
+                                var rnd = Rand.Next(0, 1000);
                                 if (rnd > 700)
                                 {
                                     // NPC stand still

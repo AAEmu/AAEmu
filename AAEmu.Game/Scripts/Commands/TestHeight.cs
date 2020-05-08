@@ -20,7 +20,8 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("test_height_visualizer", this);
+            string[] names = { "testheightvisualizer", "test_height_visualizer" };
+            CommandManager.Instance.Register(names, this);
         }
 
         public string GetCommandLineHelp()

@@ -48,12 +48,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
         int oldTime, chkTime;
         float oldX, oldY, oldZ;
         //*******************************************************
-        public string RecordFilesPath = @"./data/path/"; // путь где хранятся наши файлы
-        public string RecordFileExt = @".path";          // расширение по умолчанию
-        public string MoveFilesPath = @"./data/path/";   // путь где хранятся наши файлы
-        public string MoveFileExt = @".path";            // расширение по умолчанию
-        public string MoveFileName = @"movefile";        // название файла для записи
-        //*******************************************************
+        public string RecordFilesPath = @"./bin/debug/netcoreapp2.2/Data/Path/";       // путь где хранятся наши файлы
+        public string RecordFileExt = @".path";       // расширение по умолчанию
+        public string MoveFilesPath = @"./bin/debug/netcoreapp2.2/Data/Path/";         // путь где хранятся наши файлы
+        public string MoveFileExt = @".path";         // расширение по умолчанию
+        public string MoveFileName = "";         // расширение по умолчанию
         private float MovingDistance = 0.25f; //0.3f;
         float RangeToCheckPoint = 0.5f; // дистанция до чекпоинта при которой считается , что мы достигли оного
         int MoveTrigerDelay = 1000;     // срабатывание таймера на движение  0,8 сек
@@ -196,14 +195,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
             if (SavePathEnabled) { return; }
             if (MoveToPathEnabled)
             {
-                //_log.Warn("во время следования по маршруту запись не возможна.");
-                //character.SendMessage("[MoveTo] во время следования по маршруту запись не возможна.");
+                _log.Warn("while following the route, recording is not possible.");
+                //character.SendMessage("[MoveTo] while following the route, recording is not possible.");
                 return;
             }
             RecordPath.Clear();
             PointsCount = 0;
-            //_log.Warn("начата запись маршрута...");
-            //character.SendMessage("[MoveTo] начата запись маршрута...");
+            _log.Warn("route recording started ...");
+            //character.SendMessage("[MoveTo] route recording started ...");
             SavePathEnabled = true;
             RepeatTo(ch, MoveTrigerDelay, sim);
         }
@@ -213,7 +212,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var s = "|" + ch.Position.X + "|" + ch.Position.Y + "|" + ch.Position.Z + "|";
             RecordPath.Add(s);
             PointsCount++;
-            //_log.Warn("добавлен чекпоинт # {0}", PointsCount);
+            _log.Warn("added checkpoint # {0}", PointsCount);
             //character.SendMessage("[MoveTo] добавлен чекпоинт #" + PointsCount);
             RepeatTo(ch, MoveTrigerDelay, sim);
         }
@@ -229,7 +228,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     sw.WriteLine(b.ToString());
                 }
             }
-            //_log.Warn("запись маршрута завершена.");
+            _log.Warn("Route recording completed.");
             //character.SendMessage("[MoveTo] запись маршрута завершена.");
             SavePathEnabled = false;
         }
@@ -281,7 +280,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 StopMove(npc);
                 return;
             }
-            //_log.Warn("найден ближайший чекпоинт #" + i + " бежим туда...");
+            _log.Warn("found nearest checkpoint # "+ i +" run there ...");
             //character.SendMessage("[MoveTo] найден ближайший чекпоинт #" + i + " бежим туда...");
             MoveToPathEnabled = true;
             MoveStepIndex = i;
@@ -545,7 +544,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     PauseMove(npc);
                     MoveToForward = false; // разворачиваем назад
                     MoveStepIndex--;
-                    //_log.Warn("бежим к #" + MoveStepIndex);
+                    //_log.Warn("walk to #" + MoveStepIndex);
                     //character.SendMessage("[MoveTo] бежим к #" + MoveStepIndex);
                     s = MovePath[MoveStepIndex];
                     Position.X = ExtractValue(s, 1);
@@ -563,7 +562,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 if (MoveStepIndex > 0)
                 {
                     MoveStepIndex--;
-                    //_log.Warn("мы достигли чекпоинта идем далее...");
+                    //_log.Warn("we reached checkpoint go further ...");
                     //character.SendMessage("[MoveTo] мы достигли чекпоинта идем далее...");
                 }
                 else
@@ -575,7 +574,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     PauseMove(npc);
                     MoveToForward = true; // разворачиваем назад
                     MoveStepIndex++;
-                    //_log.Warn("бежим к #" + MoveStepIndex);
+                    //_log.Warn("walk to #" + MoveStepIndex);
                     //character.SendMessage("[MoveTo] бежим к #" + MoveStepIndex);
                     s = MovePath[MoveStepIndex];
                     Position.X = ExtractValue(s, 1);
@@ -585,7 +584,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     return;
                 }
             }
-            //_log.Warn("бежим к #" + MoveStepIndex);
+            _log.Warn("walk to #" + MoveStepIndex);
             //character.SendMessage("[MoveTo] бежим к #" + MoveStepIndex);
             s = MovePath[MoveStepIndex];
             Position.X = ExtractValue(s, 1);
