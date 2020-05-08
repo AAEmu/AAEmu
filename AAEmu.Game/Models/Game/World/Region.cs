@@ -131,7 +131,7 @@ namespace AAEmu.Game.Models.Game.World
                             {
                                 npc.IsInPatrol = true; // so as not to run the route a second time
                                 var path = new Simulation(npc);
-                                path.MovePathFileName = @"NuiForestkeeperArthur"; // path file name
+                                path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
                                 path.ReadPath();
                                 path.GoToPath(npc, true);
                             }
