@@ -5,11 +5,16 @@
     "testslave": 100,
     "testtransfer": 100,
     "zonestate": 100,
+    "testheightvisualizer": 100,
+    "testchatchannel": 100,
+    "moveto": 100,
+    "reloadauction": 100,
     "announce": 50,
     "move": 50,
     "spawn": 50,
     "despawn": 50,
     "spawngrid": 50,
+    "invisible": 50,
     "fly": 0,
     "teleport": 0
 }

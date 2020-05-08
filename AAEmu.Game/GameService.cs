@@ -33,6 +33,7 @@ namespace AAEmu.Game
             TradeIdManager.Instance.Initialize();
 
             ItemIdManager.Instance.Initialize();
+            ChatManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
             FamilyIdManager.Instance.Initialize();
             ExpeditionIdManager.Instance.Initialize();
@@ -62,6 +63,8 @@ namespace AAEmu.Game
             MateManager.Instance.Load();
             SlaveManager.Instance.Load();
             TeamManager.Instance.Load();
+            AuctionManager.Instance.Load();
+            MailManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
@@ -106,6 +109,8 @@ namespace AAEmu.Game
             LoginNetwork.Instance.Stop();
 
             HousingManager.Instance.Save();
+            MailManager.Instance.Save();
+            TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }
 

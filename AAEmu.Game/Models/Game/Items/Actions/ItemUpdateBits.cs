@@ -23,6 +23,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write((byte)_item.Slot);
             stream.Write(_item.Id);
             stream.Write(_bits);
+            stream.Write((ulong)0);
             return stream;
         }
     }

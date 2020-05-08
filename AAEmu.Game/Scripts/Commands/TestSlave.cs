@@ -22,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "";
+            return "Spawns a test slave";
         }
 
         public void Execute(Character character, string[] args)

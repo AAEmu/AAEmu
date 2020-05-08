@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
@@ -46,6 +47,7 @@ namespace AAEmu.Game.Models.Game.Char
     public sealed class Character : Unit
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        public static Dictionary<uint, uint> _usedCharacterObjIds = new Dictionary<uint, uint>();
 
         private Dictionary<ushort, string> _options;
 
@@ -861,6 +863,11 @@ namespace AAEmu.Game.Models.Game.Char
             SendPacket(new SCChatMessagePacket(type, string.Format(message, parameters)));
         }
 
+        public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
+        {
+            SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
+        }
+
         public void SendPacket(GamePacket packet)
         {
             Connection?.SendPacket(packet);
@@ -1114,10 +1121,10 @@ namespace AAEmu.Game.Models.Game.Char
                 Blocked.Load(connection);
                 Quests = new CharacterQuests(this);
                 Quests.Load(connection);
-                Mails = new CharacterMails(this);
-                Mails.Load(connection);
                 Mates = new CharacterMates(this);
                 Mates.Load(connection);
+
+                
 
                 using (var command = connection.CreateCommand())
                 {
@@ -1141,6 +1148,9 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
             }
+
+            Mails = new CharacterMails(this);
+            MailManager.Instance.GetCurrentMailList(this, true); //Doesn't need a connection, but does need to load after the inventory
         }
 
         public bool Save()
@@ -1260,7 +1270,6 @@ namespace AAEmu.Game.Models.Game.Char
                         Blocked?.Save(connection, transaction);
                         Skills?.Save(connection, transaction);
                         Quests?.Save(connection, transaction);
-                        Mails?.Save(connection, transaction);
                         Mates?.Save(connection, transaction);
 
                         try

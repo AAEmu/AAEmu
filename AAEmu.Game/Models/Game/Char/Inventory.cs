@@ -96,6 +96,7 @@ namespace AAEmu.Game.Models.Game.Char
                         item.UnsecureTime = reader.GetDateTime("unsecure_time");
                         item.UnpackTime = reader.GetDateTime("unpack_time");
                         item.CreateTime = reader.GetDateTime("created_at");
+                        item.Bounded = reader.GetByte("bounded");
                         var details = (PacketStream)(byte[])reader.GetValue("details");
                         item.ReadDetails(details);
 
@@ -172,9 +173,9 @@ namespace AAEmu.Game.Models.Game.Char
                     item.WriteDetails(details);
 
                     command.CommandText = "REPLACE INTO " +
-                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`,`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`)" +
+                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`,`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `bounded`)" +
                                           " VALUES " +
-                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@made_unit_id,@unsecure_time,@unpack_time,@owner,@created_at,@grade)";
+                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@made_unit_id,@unsecure_time,@unpack_time,@owner,@created_at,@grade,@bounded)";
 
                     command.Parameters.AddWithValue("@id", item.Id);
                     command.Parameters.AddWithValue("@type", item.GetType().ToString());
@@ -190,6 +191,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@created_at", item.CreateTime);
                     command.Parameters.AddWithValue("@owner", Owner.Id);
                     command.Parameters.AddWithValue("@grade", item.Grade);
+                    command.Parameters.AddWithValue("@bounded", item.Bounded);
                     command.ExecuteNonQuery();
                     command.Parameters.Clear();
                 }
@@ -404,6 +406,12 @@ namespace AAEmu.Game.Models.Game.Char
             _freeSlot = CheckFreeSlot(SlotType.Inventory);
             _freeBankSlot = CheckFreeSlot(SlotType.Bank);
 
+            if (toItem != null && toItem.Template.BindId == 3 && toItem.Bounded != 1)
+            {
+                toItem.Bounded = 1;
+                tasks.Add(new ItemUpdateBits(toItem, toItem.Bounded));
+            }
+
             Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SwapItems, tasks, removingItems));
 
             if (fromType == SlotType.Equipment)
@@ -440,6 +448,14 @@ namespace AAEmu.Game.Models.Game.Char
                     return item;
             foreach (var item in Items)
                 if (item != null && item.Id == id)
+                    return item;
+            return null;
+        }
+
+        public Item GetItemBeItemId(ulong id)
+        {
+            foreach (var item in Items)
+                if (item != null && item.Template.Id == id)
                     return item;
             return null;
         }

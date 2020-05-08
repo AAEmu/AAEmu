@@ -20,8 +20,17 @@ namespace AAEmu.Game.Core.Packets.Proxy
             {
                 case 0:
                     Connection.SendPacket(new ChangeStatePacket(1));
-                    Connection.SendPacket(new SCHackGuardRetAddrsRequestPacket(true, false)); // HG_REQ? // TODO - config files
-                    Connection.SendPacket(new SetGameTypePacket("w_hanuimaru_1", 0, 1)); // TODO - level
+                    // Connection.SendPacket(new SCHackGuardRetAddrsRequestPacket(false, false)); // HG_REQ? // TODO - config files
+                    var levelname = string.Empty;
+                    if (Connection.ActiveChar != null)
+                    {
+                        levelname = ZoneManager.Instance.GetZoneByKey(Connection.ActiveChar.Position.ZoneId).Name;
+                    }
+                    else
+                    {
+                        levelname = "w_hanuimaru_1";
+                    }
+                    Connection.SendPacket(new SetGameTypePacket(levelname, 0, 1)); // TODO - level
                     Connection.SendPacket(new SCInitialConfigPacket());
                     Connection.SendPacket(new SCTrionConfigPacket(
                         true,

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -38,8 +39,6 @@ namespace AAEmu.Game.Models.Game.Units.Route
         //// movement data
         public List<string> MovePath;     //  the data we're going to be moving on at the moment
         public List<string> RecordPath;   //  данные для записи пути
-        public string RecordPathFileName = @"recordfile"; // название файла для записи
-        public string MovePathFileName = @"movefile";     // название файла для записи
         public int PointsCount { get; set; }              // кол-во поинтов в процессе записи пути
         public bool SavePathEnabled { get; set; }         // флаг записи пути
         public bool MoveToPathEnabled { get; set; }       // флаг движения по пути
@@ -235,12 +234,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
         //***************************************************************
         public string GetRecordFileName()
         {
-            var result = RecordFilesPath + RecordPathFileName + RecordFileExt;
+            var result = RecordFilesPath + MoveFileName + RecordFileExt;
             return result;
         }
         public string GetMoveFileName()
         {
-            var result = MoveFilesPath + MovePathFileName + MoveFileExt;
+            var result = MoveFilesPath + MoveFileName + MoveFileExt;
             return result;
         }
         //***************************************************************
@@ -406,18 +405,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             // Change the NPC coordinates
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
-            if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
-            {
-                moveType.Z = 98.5993f;
-            }
-            else if (npc.TemplateId == 13680) // shark
-            {
-                moveType.Z = 95.5993f;
-            }
-            else // other
-            {
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-            }
+            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             // looks in the direction of movement
             ////------------------взгляд_персонажа_будет(движение_куда<-движение_откуда)
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, TargetX, TargetY);
@@ -475,31 +463,20 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
-            if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
-            {
-                moveType.Z = 98.5993f;
-            }
-            else if (npc.TemplateId == 13680) // shark
-            {
-                moveType.Z = 95.5993f;
-            }
-            else // other
-            {
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-            }
+            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
-            moveType.Flags = 5;      // 5 - моб спокойно идет, 4 - бежит
+            moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint)Rand.Next(0, 10000);     // должно всё время увеличиваться, для нормального движения
+            moveType.Time = (uint)Rand.Next(0, 10000); // has to change all the time for normal motion.
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
             MoveToPathEnabled = false;
         }
@@ -510,31 +487,20 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
-            if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
-            {
-                moveType.Z = 98.5993f;
-            }
-            else if (npc.TemplateId == 13680) // shark
-            {
-                moveType.Z = 95.5993f;
-            }
-            else // other
-            {
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-            }
+            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
-            moveType.Flags = 5;      // 5 - моб спокойно идет, 4 - бежит
+            moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint)Rand.Next(0, 10000);     // должно всё время увеличиваться, для нормального движения
+            moveType.Time = (uint)Rand.Next(0, 10000); // has to change all the time for normal motion.
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
         }
 
@@ -548,7 +514,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             try
             {
-                MovePath.Count();// проверяем на существование объекта, при отладке всякое может быть
+                MovePath.Count(); // проверяем на существование объекта, при отладке всякое может быть
             }
             catch (Exception e)
             {

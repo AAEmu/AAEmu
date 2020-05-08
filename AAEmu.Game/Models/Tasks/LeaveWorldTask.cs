@@ -26,6 +26,7 @@ namespace AAEmu.Game.Models.Tasks
                 _connection.ActiveChar.IsOnline = false;
                 _connection.ActiveChar.LeaveTime = DateTime.Now;
 
+                // Handle mount stuff
                 var activeMate = MateManager.Instance.GetActiveMate(_connection.ActiveChar.ObjId);
                 if (activeMate != null)
                 {
@@ -47,22 +48,32 @@ namespace AAEmu.Game.Models.Tasks
                     }
                 }
 
+                // Remove from Team (raid/party)
+                TeamManager.Instance.MemberRemoveFromTeam(_connection.ActiveChar, _connection.ActiveChar, Game.Team.RiskyAction.Leave);
+                // Remove from all Chat
+                ChatManager.Instance.LeaveAllChannels(_connection.ActiveChar);
 
+                // Handle Family
                 if (_connection.ActiveChar.Family > 0)
                     FamilyManager.Instance.OnCharacterLogout(_connection.ActiveChar);
                 
+                // Handle Guild
                 _connection.ActiveChar.Expedition?.OnCharacterLogout(_connection.ActiveChar);
 
+                // Remove player from world (hides and release Id)
                 _connection.ActiveChar.Delete();
-                ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
+                // ObjectIdManager.Instance.ReleaseId(_connection.ActiveChar.ObjId);
 
+                // Cancel auto-regen
                 _connection.ActiveChar.StopRegen();
 
+                // Clear Buyback table
                 foreach (var item in _connection.ActiveChar.BuyBack)
                     if (item != null)
                         ItemIdManager.Instance.ReleaseId((uint)item.Id);
                 Array.Clear(_connection.ActiveChar.BuyBack, 0, _connection.ActiveChar.BuyBack.Length);
 
+                // Remove subscribers
                 foreach (var subscriber in _connection.ActiveChar.Subscribers)
                     subscriber.Dispose();
             }

@@ -533,6 +533,25 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         continue;
                     }
+                    if (casterCaster is SkillItem castItem) // TODO Clean up. 
+                    {
+
+                        var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
+                        var isRaegent = itemUsed.Template.UseSkillAsReagent;
+                        if(isRaegent) //if item is a raegent
+                        {
+                            if (caster is Character player)
+                            {
+                                var items = player.Inventory.RemoveItem(castItem.ItemTemplateId, effect.ConsumeItemCount);
+                                var tasks = new List<ItemTask>();
+                                foreach (var (item, count) in items)
+                                {
+                                    InventoryHelper.RemoveItemAndUpdateClient(player, item, count);
+                                }
+                            }
+                        }
+                        ItemIdManager.Instance.ReleaseId((uint)itemUsed.Id);
+                    }
                     if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
                     {
                         if (effect.ConsumeSourceItem)

@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS `housings`;
 CREATE TABLE IF NOT EXISTS `housings` (
   `id` int(11) NOT NULL,
   `account_id` int(10) UNSIGNED NOT NULL,

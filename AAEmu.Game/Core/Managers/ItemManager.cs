@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -26,6 +28,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, WearableSlot> _wearableSlots;
         private Dictionary<uint, AttributeModifiers> _modifiers;
         private Dictionary<uint, ItemTemplate> _templates;
+        private Dictionary<uint, ItemDoodadTemplate> _itemDoodadTemplates;
         private ItemConfig _config;
 
         // Grade Enchanting
@@ -247,6 +250,65 @@ namespace AAEmu.Game.Core.Managers
             return _modifiers[id];
         }
 
+        public List<uint> GetItemIdsFromDoodad(uint doodadID)
+        {
+            return _itemDoodadTemplates[doodadID].ItemIds;
+        }
+
+        public ItemTemplate GetItemTemplateFromItemId(uint itemId)
+        {
+            foreach (var item in _templates)
+            {
+                if(item.Value.Id == itemId)
+                {
+                    return item.Value;
+                }
+            }
+            return null;
+        }
+
+        public List<ItemTemplate> GetItemTemplates(AuctionSearchTemplate searchTemplate)
+        {
+            var templateList = new List<ItemTemplate>();
+            List<uint> itemIds = new List<uint>();
+
+            if (searchTemplate.ItemName != "")
+                itemIds = AuctionManager.Instance.GetItemIdsFromName(searchTemplate.ItemName);
+
+            if(itemIds.Count > 0)
+            {
+                for (int i = 0; i < itemIds.Count; i++)
+                {
+                    var query = from item in _templates.Values
+                                where ((itemIds[i] != 0) ? item.Id == itemIds[i] : true)
+                                where ((searchTemplate.CategoryA != 0) ? item.AuctionCategoryA == searchTemplate.CategoryA : true)
+                                where ((searchTemplate.CategoryB != 0) ? item.AuctionCategoryB == searchTemplate.CategoryB : true)
+                                where ((searchTemplate.CategoryC != 0) ? item.AuctionCategoryC == searchTemplate.CategoryC : true)
+                                select item;
+                    var _list = query.ToList<ItemTemplate>();
+
+                    foreach (var item in _list)
+                    {
+                        templateList.Add(item);
+                    }
+
+                }
+                return templateList;
+            }
+            else
+            {
+                var query = from item in _templates.Values
+                            where ((searchTemplate.CategoryA != 0) ? item.AuctionCategoryA == searchTemplate.CategoryA : true)
+                            where ((searchTemplate.CategoryB != 0) ? item.AuctionCategoryB == searchTemplate.CategoryB : true)
+                            where ((searchTemplate.CategoryC != 0) ? item.AuctionCategoryC == searchTemplate.CategoryC : true)
+                            select item;
+                templateList = query.ToList<ItemTemplate>();
+                return templateList;
+            }
+        }
+
+
+
         public Item Create(uint templateId, int count, byte grade, bool generateId = true)
         {
             var id = generateId ? ItemIdManager.Instance.GetNextId() : 0u;
@@ -267,6 +329,10 @@ namespace AAEmu.Game.Core.Managers
             }
 
             item.Grade = grade;
+            
+            if(item.Template.BindId == 2) // Bind on pickup. 
+                item.Bounded = 1;
+
             if (item.Template.FixedGrade >= 0)
                 item.Grade = (byte)item.Template.FixedGrade;
             item.CreateTime = DateTime.UtcNow;
@@ -290,6 +356,7 @@ namespace AAEmu.Game.Core.Managers
             _lootGroups = new Dictionary<uint, List<LootGroups>>();
             _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
             _lootDropItems = new Dictionary<uint, List<Item>>();
+            _itemDoodadTemplates = new Dictionary<uint, ItemDoodadTemplate>();
             _config = new ItemConfig();
             using (var connection = SQLite.CreateConnection())
             {
@@ -698,6 +765,7 @@ namespace AAEmu.Game.Core.Managers
                             template.MaxCount = reader.GetInt32("max_stack_size");
                             template.Sellable = reader.GetBoolean("sellable", true);
                             template.UseSkillId = reader.GetUInt32("use_skill_id");
+                            template.UseSkillAsReagent = reader.GetBoolean("use_skill_as_reagent", true);
                             template.BuffId = reader.GetUInt32("buff_id");
                             template.Gradable = reader.GetBoolean("gradable", true);
                             template.LootMulti = reader.GetBoolean("loot_multi", true);
@@ -707,6 +775,9 @@ namespace AAEmu.Game.Core.Managers
                             template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
                             template.ExpDate = reader.IsDBNull("exp_online_lifetime") ? reader.GetInt32("exp_date") : 0;
                             template.LevelRequirement = reader.GetInt32("level_requirement");
+                            template.AuctionCategoryA = reader.IsDBNull("auction_a_category_id") ? 0 : reader.GetInt32("auction_a_category_id");
+                            template.AuctionCategoryB = reader.IsDBNull("auction_b_category_id") ? 0 : reader.GetInt32("auction_b_category_id");
+                            template.AuctionCategoryC = reader.IsDBNull("auction_c_category_id") ? 0 : reader.GetInt32("auction_c_category_id");
                             template.LevelLimit = reader.GetInt32("level_limit");
                             template.FixedGrade = reader.GetInt32("fixed_grade");
                             template.LivingPointPrice = reader.GetInt32("living_point_price");
@@ -882,7 +953,35 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                _log.Info("Loaded {0} items", _templates.Count);
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_spawn_doodads";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new ItemDoodadTemplate();
+                            var key = reader.GetUInt32("doodad_id");
+                            if(_itemDoodadTemplates.ContainsKey(key))
+                            {
+                                var itemId = reader.GetUInt32("item_id");
+                                template = _itemDoodadTemplates[key];
+                                template.ItemIds.Add(itemId);
+                                _itemDoodadTemplates[key] = template;
+                            }
+                            else
+                            {
+                                template.ItemIds = new List<uint>();
+                                var itemId = reader.GetUInt32("item_id");
+                                template.ItemIds.Add(itemId);
+                                template.DoodadId = reader.GetUInt32("doodad_id");
+                                _itemDoodadTemplates.Add(template.DoodadId, template);
+                            }
+                        }
+                    }
+                }
+
             }
         }
     }

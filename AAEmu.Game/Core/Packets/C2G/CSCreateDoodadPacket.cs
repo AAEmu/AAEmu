@@ -2,6 +2,10 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.Items.Actions;
+using System.Collections.Generic;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -19,7 +23,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var z = stream.ReadSingle();
             var zRot = stream.ReadSingle();
             var scale = stream.ReadSingle();
-            var itemId = stream.ReadUInt64();
+            var itemId = stream.ReadInt64();
 
             _log.Warn("CreateDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
 
@@ -49,6 +53,19 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (scale > 0)
                     doodad.SetScale(scale);
                 doodad.Spawn();
+
+                var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
+
+                if(items.Count > 0)
+                {
+                    var player = Connection.ActiveChar;
+                    foreach (var item in items)
+                    {
+                        var itemToRemove = player.Inventory.GetItemBeItemId(item);
+                        if(itemToRemove != null)
+                            InventoryHelper.RemoveItemAndUpdateClient(player, itemToRemove, 1);
+                    }
+                }
             }
 
         }

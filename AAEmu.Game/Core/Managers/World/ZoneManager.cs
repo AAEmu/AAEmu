@@ -35,6 +35,15 @@ namespace AAEmu.Game.Core.Managers.World
             return _groups.ContainsKey(zoneId) ? _groups[zoneId] : null;
         }
 
+        public List<uint> GetZoneKeysInZoneGroupById(uint zoneGroupId)
+        {
+            var res = new List<uint>();
+            foreach (var z in _zones)
+                if (z.Value.GroupId == zoneGroupId)
+                    res.Add(z.Value.ZoneKey);
+            return res;
+        }
+
         public uint GetTargetIdByZoneId(uint zoneId)
         {
             var zone = GetZoneByKey(zoneId);
