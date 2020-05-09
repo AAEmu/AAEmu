@@ -54,6 +54,7 @@ namespace AAEmu.Game
 
             FormulaManager.Instance.Load();
             ExpirienceManager.Instance.Load();
+            ConfigurationManager.Instance.Load();
 
             TlIdManager.Instance.Initialize();
             ItemManager.Instance.Load();
