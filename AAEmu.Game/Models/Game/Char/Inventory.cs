@@ -26,6 +26,7 @@ namespace AAEmu.Game.Models.Game.Char
         public Item[] Equip { get; set; }
         public Item[] Items { get; set; }
         public Item[] Bank { get; set; }
+        public List<Item> MailItems { get; set; }
 
         public Inventory(Character owner)
         {
@@ -33,6 +34,7 @@ namespace AAEmu.Game.Models.Game.Char
             Equip = new Item[28];
             Items = new Item[Owner.NumInventorySlots];
             Bank = new Item[Owner.NumBankSlots];
+            MailItems = new List<Item>();
             _removedItems = new List<ulong>();
         }
 
@@ -111,6 +113,8 @@ namespace AAEmu.Game.Models.Game.Char
                             Items[item.Slot] = item;
                         else if (item.SlotType == SlotType.Bank)
                             Bank[item.Slot] = item;
+                        else if (item.SlotType == SlotType.Mail)
+                            MailItems.Add(item);
                     }
                 }
             }
@@ -156,6 +160,7 @@ namespace AAEmu.Game.Models.Game.Char
             SaveItems(connection, transaction, Equip);
             SaveItems(connection, transaction, Items);
             SaveItems(connection, transaction, Bank);
+            SaveItems(connection, transaction, MailItems.ToArray());
         }
 
         private void SaveItems(MySqlConnection connection, MySqlTransaction transaction, Item[] items)
@@ -609,5 +614,6 @@ namespace AAEmu.Game.Models.Game.Char
                 )
             );
         }
+
     }
 }

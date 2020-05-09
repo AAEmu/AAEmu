@@ -45,8 +45,11 @@ namespace AAEmu.Game.Core.Managers
 
             foreach (var item in items)
             {
-                if(item != null)
+                if (item != null)
+                {
+                    item.SlotType = SlotType.Mail;
                     allMailItems.Add(item.Id, (item, 0));
+                }
             }
 
             var mailBodyTemplate = new MailBody()
@@ -148,6 +151,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
+                /*
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM items WHERE `slot_type` = @slotType";
@@ -212,8 +216,12 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+                */
+                
+                
             }
-            _log.Info("Loaded {0} player mails & {1} player mail items", Instance.allPlayerMails.Count, Instance.allMailItems.Count);
+            _log.Info("Loaded {0} player mails", Instance.allPlayerMails.Count);
+            // _log.Info("Loaded {0} player mails & {1} player mail items", Instance.allPlayerMails.Count, Instance.allMailItems.Count);
         }
 
         public void Save()
@@ -277,21 +285,21 @@ namespace AAEmu.Game.Core.Managers
                         {
                             command.Connection = connection;
                             command.Transaction = transaction;
-                            command.CommandText = "INSERT INTO mails_items(`id`,`item0`,`item1`,`item2`,`item3`,`item4`,`item5`, " +
+                            command.CommandText = "INSERT INTO mails_items (`id`,`item0`,`item1`,`item2`,`item3`,`item4`,`item5`, " +
                                                   "`item6`,`item7`,`item8`,`item9`) VALUES (@id, @item0, @item1, @item2, @item3," +
                                                   " @item4, @item5, @item6, @item7, @item8, @item9)";
                             command.Prepare();
                             command.Parameters.AddWithValue("@id", mtbs.Value.Item1.Id);
-                            command.Parameters.AddWithValue("@item0", mtbs.Value.Item2.Items[0]);
-                            command.Parameters.AddWithValue("@item1", mtbs.Value.Item2.Items[1]);
-                            command.Parameters.AddWithValue("@item2", mtbs.Value.Item2.Items[2]);
-                            command.Parameters.AddWithValue("@item3", mtbs.Value.Item2.Items[3]);
-                            command.Parameters.AddWithValue("@item4", mtbs.Value.Item2.Items[4]);
-                            command.Parameters.AddWithValue("@item5", mtbs.Value.Item2.Items[5]);
-                            command.Parameters.AddWithValue("@item6", mtbs.Value.Item2.Items[6]);
-                            command.Parameters.AddWithValue("@item7", mtbs.Value.Item2.Items[7]);
-                            command.Parameters.AddWithValue("@item8", mtbs.Value.Item2.Items[8]);
-                            command.Parameters.AddWithValue("@item9", mtbs.Value.Item2.Items[9]);
+                            for(var i = 0; i < 10;i++)
+                            {
+                                if (i >= mtbs.Value.Item2.Items.Length)
+                                    command.Parameters.AddWithValue("@item" + i.ToString(), 0);
+                                else
+                                if (mtbs.Value.Item2.Items[i] != null)
+                                    command.Parameters.AddWithValue("@item" + i.ToString(), mtbs.Value.Item2.Items[i].Id);
+                                else
+                                    command.Parameters.AddWithValue("@item" + i.ToString(), 0);
+                            }
                             command.ExecuteNonQuery();
                         }
                     }
@@ -315,31 +323,25 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
+            
             if (!login) //Don't calculate items into the mail for the player on login since we only need to alert them of a new mail until they open the mailbox 
             {
-                var tempMailItemsID = allMailItemsId.Where(x => tempMail.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
-                foreach (var itemsIdArray in tempMailItemsID)
+                foreach (var mail in tempMail)
                 {
+                    // var tempMailItemsID = allMailItemsId.Where(x => tempMail.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
                     var mailItems = new List<Item>();
-                    foreach (var itemID in itemsIdArray.Value)
+                    foreach (var item in c.Inventory.MailItems)
                     {
-                        var tempItem = c.Inventory.GetItem(itemID);
-
-                        if (tempItem != null)
+                        if (item.SlotType == SlotType.Mail)
                         {
-                            if (tempItem.SlotType == SlotType.Mail)
-                            {
-                                mailItems.Add(tempItem);
-                                if (Instance.allMailItems.ContainsKey(tempItem.Id))
-                                    Instance.allMailItems[tempItem.Id] = (tempItem, c.AccountId);
-                            }
-                            else
-                                mailItems.Add(null);
+                            mailItems.Add(item);
+                            if (Instance.allMailItems.ContainsKey(item.Id))
+                                Instance.allMailItems[item.Id] = (item, c.AccountId);
                         }
                         else
                             mailItems.Add(null);
                     }
-                    tempMail[itemsIdArray.Key].Item2.Items = mailItems.ToArray();
+                    mail.Value.Item2.Items = mailItems.ToArray();
                 }
             }
             return tempMail;

@@ -86,7 +86,7 @@ namespace AAEmu.Game.Core.Managers
             if (string.IsNullOrWhiteSpace(newName) || newName.Length == 0 || !_nameRegex.IsMatch(newName)) return null;
             var mateInfo = GetActiveMate(owner.ObjId);
             if (mateInfo == null || mateInfo.TlId != tlId) return null;
-            mateInfo.Name = newName;
+            mateInfo.Name = newName.FirstCharToUpper();
             owner.BroadcastPacket(new SCUnitNameChangedPacket(mateInfo.ObjId, newName), true);
             return mateInfo;
         }

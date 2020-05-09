@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items;
 
@@ -34,6 +35,9 @@ namespace AAEmu.Game.Models.Game.Mails
             stream.Write(OpenDate);
             for (var i = 0; i < 10; i++)
             {
+                if (i >= Items.Length)
+                    stream.Write(0);
+                else
                 if (Items[i] == null)
                     stream.Write(0);
                 else

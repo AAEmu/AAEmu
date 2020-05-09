@@ -82,7 +82,11 @@ namespace AAEmu.Game.Models.Game.Char
                     var tempItem = Self.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2);
                     if (tempItem.SlotType == SlotType.Inventory)
                     {
-                        InventoryHelper.RemoveItemAndUpdateClient(Self, tempItem, tempItem.Count);
+                        InventoryHelper.RemoveItemForMailing(Self,tempItem);
+                        MailManager.Instance.allMailItems.Add(tempItem.Id, (tempItem, Self.AccountId));
+                        mailItems.Add(MailManager.Instance.allMailItems[tempItem.Id].Item1);
+                        /*
+                        InventoryHelper.RemoveItemAndUpdateClient(Self, tempItem, tempItem.Count,false);
                         if (Self.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2) == null)
                         {
                             tempItem.Slot = -1;
@@ -90,6 +94,7 @@ namespace AAEmu.Game.Models.Game.Char
                             MailManager.Instance.allMailItems.Add(tempItem.Id, (tempItem, Self.AccountId));
                             mailItems.Add(MailManager.Instance.allMailItems[tempItem.Id].Item1);
                         }
+                        */
                     }
                 }
                 else
