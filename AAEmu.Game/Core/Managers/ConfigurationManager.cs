@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 string data = File.ReadAllText("Configurations.json");
                 d = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
-                foreach (KeyValuePair<string, string> entry in d)
+                foreach (var entry in d)
                     _configurations.Add(entry.Key,entry.Value);
             }
             catch (Exception e ){
