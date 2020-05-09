@@ -727,7 +727,7 @@ namespace AAEmu.Game.Models.Game.Char
             Expirience += exp;
             if (shouldAddAbilityExp)
                 Abilities.AddActiveExp(exp); // TODO ... or all?
-            if (int.Parse(expMultiplier) > 0) exp = exp * int.Parse(expMultiplier);
+            if(int.Parse(expMultiplier) > 0) exp = exp * int.Parse(expMultiplier);
             SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));
             CheckLevelUp();
         }

@@ -1,12 +1,10 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Utils.DB;
+using Newtonsoft.Json;
 using NLog;
 using System;
 using System.IO;
-using ConfigurationInstance = AAEmu.Game.Models.Game.Configurations;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -14,41 +12,38 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<String, String> _configurations;
+        private Dictionary<string, string> _configurations;
 
         public void Load()
         {
             _log.Info("Loading ConfigurationManager...");
 
             #region FileManager
-            _configurations = new Dictionary<String, String>();
-            var pathFile = $"{FileManager.AppPath}Data/Configurations.json";
-            var contents = FileManager.GetFileContents(pathFile);
-            if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException($"File {pathFile} doesn't exists or is empty.");
-
-            if (JsonHelper.TryDeserializeObject(contents, out List<ConfigurationInstance> configurations, out _))
+            _configurations = new Dictionary<string, string>();
+            Dictionary<string, string> d = new Dictionary<string, string>();
+            try
             {
-                foreach (var config in configurations)
-                {
-                    _configurations.Add(config.Key,config.Value);
-                }
+                string data = File.ReadAllText("Configurations.json");
+                d = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
+                foreach (KeyValuePair<string, string> entry in d)
+                    _configurations.Add(entry.Key,entry.Value);
             }
-            else
-                throw new Exception($"ConfigurationManager: Parse {pathFile} file");
+            catch (Exception e ){
+                _log.Error(e.Message);
+            }           
             #endregion
         }
 
         public string GetConfiguration(string configName)
         {
-            if (configName == "") return "";
+            if (configName == "")
+            {
+                throw new Exception("ConfigurationManager - No string received");
+            }
             if (_configurations.ContainsKey(configName)) {
                 return _configurations[configName];
             }
-            else
-            {
-                return "";
-            }
+            return "";
         }
     }
 }
