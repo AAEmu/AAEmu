@@ -274,7 +274,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void UpdateAuctionHouse()
         {
-            _log.Info("Updating Auction House!");
+            _log.Debug("Updating Auction House!");
             foreach (var item in _auctionItems.ToList())
             {
                 var timeLeft = (ulong)(DateTime.Now - item.CreationTime).TotalSeconds;
@@ -301,10 +301,17 @@ namespace AAEmu.Game.Core.Managers
         public int[] ConvertMoneyToArray(int m)
         {
             int[] result = new int[3];
+            /*
             int copper = m % 100;
             m = (m - copper) / 100;
             int silver = m % 100;
             int gold = (m - silver) / 100;
+            */
+            int gold = m / 10000;
+            m = m % 10000;
+            int silver = m / 100;
+            int copper = m % 100;
+
             result[2] = copper;
             result[1] = silver;
             result[0] = gold;

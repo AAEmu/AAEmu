@@ -454,6 +454,12 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var item in Items)
                 if (item != null && item.Id == id)
                     return item;
+            foreach (var item in Bank)
+                if (item != null && item.Id == id)
+                    return item;
+            foreach (var item in MailItems)
+                if (item != null && item.Id == id)
+                    return item;
             return null;
         }
 

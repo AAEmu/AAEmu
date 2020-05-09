@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using Quartz.Impl.AdoJobStore;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
     public class MailBody : PacketMarshaler
     {
+        public static byte MaxMailAttachments = 10;
         public long Id { get; set; }
         public byte Type { get; set; }
         public string ReceiverName { get; set; }
@@ -18,7 +22,14 @@ namespace AAEmu.Game.Models.Game.Mails
         public DateTime SendDate { get; set; }
         public DateTime RecvDate { get; set; }
         public DateTime OpenDate { get; set; }
-        public Item[] Items { get; set; } // TODO max length 10
+        public List<ulong> AttachmentItemIds { get; set; } // TODO max length 10
+        public List<Item> Attachments { get; set; } // TODO max length 10
+
+        public MailBody()
+        {
+            AttachmentItemIds = new List<ulong>();
+            Attachments = new List<Item>();
+        }
 
         public override PacketStream Write(PacketStream stream)
         {
@@ -35,13 +46,10 @@ namespace AAEmu.Game.Models.Game.Mails
             stream.Write(OpenDate);
             for (var i = 0; i < 10; i++)
             {
-                if (i >= Items.Length)
+                if ((i >= Attachments.Count) || (Attachments[i] == null))
                     stream.Write(0);
                 else
-                if (Items[i] == null)
-                    stream.Write(0);
-                else
-                    stream.Write(Items[i]);
+                    stream.Write(Attachments[i]);
             }
 
             return stream;

@@ -14,6 +14,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -23,7 +24,6 @@ namespace AAEmu.Game.Core.Managers
 
         public Dictionary<long, Tuple<Mail, MailBody>> allPlayerMails;
         public Dictionary<long, ulong[]> allMailItemsId;
-        public Dictionary<ulong, (Item, uint)> allMailItems;
 
         public long highestMailID;
 
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Core.Managers
                 if (item != null)
                 {
                     item.SlotType = SlotType.Mail;
-                    allMailItems.Add(item.Id, (item, 0));
+                    //allMailItems.Add(item.Id, (item, 0));
                 }
             }
 
@@ -65,8 +65,17 @@ namespace AAEmu.Game.Core.Managers
                 SendDate = DateTime.UtcNow,
                 RecvDate = DateTime.UtcNow,
                 OpenDate = mailTemplate.OpenDate,
-                Items = items.ToArray()
+                //ItemIds = items.ToArray()
             };
+            var newOwnerId = NameManager.Instance.GetCharacterId(receiverName);
+            foreach (var i in items)
+            {
+                if (i != null)
+                {
+                    mailBodyTemplate.Attachments.Add(i);
+                }
+            }
+
             allPlayerMails.Add(highestMailID, new Tuple<Mail, MailBody>(mailTemplate, mailBodyTemplate));
             NotifyNewMailByNameIfOnline(mailTemplate, mailBodyTemplate, receiverName);
         }
@@ -77,7 +86,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loading player mails...");
             allPlayerMails = new Dictionary<long, Tuple<Mail, MailBody>>();
             allMailItemsId = new Dictionary<long, ulong[]>();
-            allMailItems = new Dictionary<ulong, (Item, uint)>();
+            //allMailItems = new Dictionary<ulong, (Item, uint)>();
             highestMailID = 0;
             using (var connection = MySQL.CreateConnection())
             {
@@ -115,12 +124,12 @@ namespace AAEmu.Game.Core.Managers
                                 SendDate = reader.GetDateTime("send_date"),
                                 RecvDate = reader.GetDateTime("received_date"),
                                 OpenDate = tempMail.OpenDate,
-                                Items = new Item[10] //TODO: Pull items from DB instead
+                                // ItemIds = new Item[10] //TODO: Pull items from DB instead
                             };
 
                             if (highestMailID < tempMail.Id)
                                 highestMailID = tempMail.Id;
-                            Instance.allPlayerMails.Add(tempMail.Id, new Tuple<Mail, MailBody>(tempMail, tempMailBody));
+                            allPlayerMails.Add(tempMail.Id, new Tuple<Mail, MailBody>(tempMail, tempMailBody));
                         }
                     }
                 }
@@ -134,6 +143,7 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var id = reader.GetInt64("id");
+
                             ulong[] itemIDs = new ulong[10];
                             for (int i = 0; i < 10; i++)
                             {
@@ -146,7 +156,15 @@ namespace AAEmu.Game.Core.Managers
                                     _log.Error(e);
                                 }
                             }
-                            Instance.allMailItemsId.Add(id, itemIDs);
+
+                            if (allPlayerMails.TryGetValue(id, out var targetMail))
+                            {
+                                foreach(var iId in itemIDs)
+                                    if (iId != 0)
+                                targetMail.Item2.AttachmentItemIds.Add(iId);
+                            }
+
+                            allMailItemsId.Add(id, itemIDs);
                         }
                     }
                 }
@@ -212,7 +230,7 @@ namespace AAEmu.Game.Core.Managers
                             var owner = reader.GetUInt32("owner");
 
                             if (item.SlotType == SlotType.Mail)
-                                Instance.allMailItems.Add(item.Id, (item, owner));
+                                allMailItems.Add(item.Id, (item, owner));
                         }
                     }
                 }
@@ -220,8 +238,8 @@ namespace AAEmu.Game.Core.Managers
                 
                 
             }
-            _log.Info("Loaded {0} player mails", Instance.allPlayerMails.Count);
-            // _log.Info("Loaded {0} player mails & {1} player mail items", Instance.allPlayerMails.Count, Instance.allMailItems.Count);
+            _log.Info("Loaded {0} player mails", allPlayerMails.Count);
+            // _log.Info("Loaded {0} player mails & {1} player mail items", allPlayerMails.Count, allMailItems.Count);
         }
 
         public void Save()
@@ -251,7 +269,7 @@ namespace AAEmu.Game.Core.Managers
                         command.ExecuteNonQuery();
                     }
                     _log.Info("Done deleting old mail data & starting inserting new data from memory");
-                    foreach (var mtbs in Instance.allPlayerMails)
+                    foreach (var mtbs in allPlayerMails)
                     {
                         using (var command = connection.CreateCommand())
                         {
@@ -292,13 +310,10 @@ namespace AAEmu.Game.Core.Managers
                             command.Parameters.AddWithValue("@id", mtbs.Value.Item1.Id);
                             for(var i = 0; i < 10;i++)
                             {
-                                if (i >= mtbs.Value.Item2.Items.Length)
+                                if (i >= mtbs.Value.Item2.Attachments.Count)
                                     command.Parameters.AddWithValue("@item" + i.ToString(), 0);
                                 else
-                                if (mtbs.Value.Item2.Items[i] != null)
-                                    command.Parameters.AddWithValue("@item" + i.ToString(), mtbs.Value.Item2.Items[i].Id);
-                                else
-                                    command.Parameters.AddWithValue("@item" + i.ToString(), 0);
+                                    command.Parameters.AddWithValue("@item" + i.ToString(), mtbs.Value.Item2.AttachmentItemIds[i]);
                             }
                             command.ExecuteNonQuery();
                         }
@@ -323,11 +338,18 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
-            
+
             if (!login) //Don't calculate items into the mail for the player on login since we only need to alert them of a new mail until they open the mailbox 
             {
                 foreach (var mail in tempMail)
                 {
+                    // get items from ItemIds
+                    mail.Value.Item2.Attachments.Clear();
+                    foreach (var itemId in mail.Value.Item2.AttachmentItemIds)
+                    {
+                        mail.Value.Item2.Attachments.Add(c.Inventory.GetItem(itemId));
+                    }
+                    /*
                     // var tempMailItemsID = allMailItemsId.Where(x => tempMail.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
                     var mailItems = new List<Item>();
                     foreach (var item in c.Inventory.MailItems)
@@ -335,13 +357,14 @@ namespace AAEmu.Game.Core.Managers
                         if (item.SlotType == SlotType.Mail)
                         {
                             mailItems.Add(item);
-                            if (Instance.allMailItems.ContainsKey(item.Id))
-                                Instance.allMailItems[item.Id] = (item, c.AccountId);
+                            if (allMailItems.ContainsKey(item.Id))
+                                allMailItems[item.Id] = (item, c.Id);
                         }
                         else
                             mailItems.Add(null);
                     }
-                    mail.Value.Item2.Items = mailItems.ToArray();
+                    mail.Value.Item2.Attachments = mailItems ;
+                    */
                 }
             }
             return tempMail;
