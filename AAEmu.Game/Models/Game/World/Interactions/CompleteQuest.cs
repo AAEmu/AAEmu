@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.World.Interactions
 {
-    public class OreMine : IWorldInteraction
+    public class CompleteQuest : IWorldInteraction
     {
         public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)

@@ -125,6 +125,8 @@ namespace AAEmu.Game.Models.Game.World
                         else
                         // We're gonna get the NPC's favorites on the road.
                         // Nui Forest keeper Arthur
+                        // We're gonna get the NPC's favorites on the road.
+                        // Nui Forest keeper Arthur
                         if (npc.TemplateId == 11999)
                         {
                             if (!npc.IsInPatrol)
@@ -132,6 +134,19 @@ namespace AAEmu.Game.Models.Game.World
                                 npc.IsInPatrol = true; // so as not to run the route a second time
                                 var path = new Simulation(npc);
                                 path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
+                                path.ReadPath();
+                                path.GoToPath(npc, true);
+                            }
+                        }
+                        else
+                            // Nui Woodcutter Solace
+                        if (npc.TemplateId == 12143)
+                        {
+                            if (!npc.IsInPatrol)
+                            {
+                                npc.IsInPatrol = true; // so as not to run the route a second time
+                                var path = new Simulation(npc);
+                                path.MoveFileName = @"NuiWoodcutterSolace"; // path file name
                                 path.ReadPath();
                                 path.GoToPath(npc, true);
                             }

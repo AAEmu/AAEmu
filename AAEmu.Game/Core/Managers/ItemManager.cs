@@ -252,7 +252,7 @@ namespace AAEmu.Game.Core.Managers
 
         public List<uint> GetItemIdsFromDoodad(uint doodadID)
         {
-            return _itemDoodadTemplates[doodadID].ItemIds;
+            return _itemDoodadTemplates.ContainsKey(doodadID) ? _itemDoodadTemplates[doodadID].ItemIds : new List<uint>();
         }
 
         public ItemTemplate GetItemTemplateFromItemId(uint itemId)
