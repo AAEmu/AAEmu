@@ -7,6 +7,10 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public virtual Type ClassType => typeof(Item);
 
         public uint Id { get; set; }
+        /// <summary>
+        /// Original Korean name is stored here, use LocalizationManager to get the names for other langauges
+        /// </summary>
+        public string Name { get; set; }
         public int Category_Id { get; set; }
         public int Level { get; set; }
         public int Price { get; set; }
@@ -33,5 +37,8 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int FixedGrade { get; set; }
         public int LivingPointPrice { get; set; }
         public byte CharGender { get; set; }
+
+        // Helpers
+        public string searchString { get; set; }
     }
 }

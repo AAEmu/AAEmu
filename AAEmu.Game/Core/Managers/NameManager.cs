@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
@@ -20,6 +20,12 @@ namespace AAEmu.Game.Core.Managers
             if (_characterNames.ContainsKey(characterId))
                 return _characterNames[characterId].FirstCharToUpper();
             return null;
+        }
+
+        public uint GetCharacterId(string characterName)
+        {
+            var res = (from x in _characterNames where (x.Value.ToLower() == characterName.ToLower()) select x.Key).FirstOrDefault();
+            return res ;
         }
 
         public NameManager()
