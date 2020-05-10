@@ -267,13 +267,24 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public List<ItemTemplate> GetItemTemplates(AuctionSearchTemplate searchTemplate)
+        public List<uint> GetItemIdsBySearchName(string searchString)
+        {
+            var res = new List<uint>();
+            foreach (var i in _templates)
+            {
+                if (i.Value.searchString.Contains(searchString))
+                    res.Add(i.Value.Id);
+            }
+            return res;
+        }
+
+        public List<ItemTemplate> GetItemTemplatesForAuctionSearch(AuctionSearchTemplate searchTemplate)
         {
             var templateList = new List<ItemTemplate>();
             List<uint> itemIds = new List<uint>();
 
             if (searchTemplate.ItemName != "")
-                itemIds = AuctionManager.Instance.GetItemIdsFromName(searchTemplate.ItemName);
+                itemIds = GetItemIdsBySearchName(searchTemplate.ItemName);
 
             if(itemIds.Count > 0)
             {
@@ -756,6 +767,7 @@ namespace AAEmu.Game.Core.Managers
                             var id = reader.GetUInt32("id");
                             var template = _templates.ContainsKey(id) ? _templates[id] : new ItemTemplate();
                             template.Id = id;
+                            template.Name = reader.IsDBNull("name") ? "" : reader.GetString("name");
                             template.Category_Id = reader.GetInt32("category_id");
                             template.Level = reader.GetInt32("level");
                             template.Price = reader.GetInt32("price");
@@ -782,6 +794,7 @@ namespace AAEmu.Game.Core.Managers
                             template.FixedGrade = reader.GetInt32("fixed_grade");
                             template.LivingPointPrice = reader.GetInt32("living_point_price");
                             template.CharGender = reader.GetByte("char_gender_id");
+
                             if (!_templates.ContainsKey(id))
                                 _templates.Add(template.Id, template);
                         }
@@ -981,6 +994,16 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+
+                // Search and Translation Help Items
+                foreach(var i in _templates)
+                {
+                    if (i.Value.Name == null)
+                        i.Value.Name = "invalid_item_" + i.Value.Id;
+                    i.Value.searchString = (i.Value.Name + " " + LocalizationManager.Instance.Get("items", "name", i.Value.Id)).ToLower();
+                }
+                
+
 
             }
         }

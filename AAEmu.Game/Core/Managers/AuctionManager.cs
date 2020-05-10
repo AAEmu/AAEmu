@@ -87,7 +87,7 @@ namespace AAEmu.Game.Core.Managers
                 var moneyToSend = new int[3];
                 moneyToSend[0] = (int)moneyAfterFee;
 
-                MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Succesfull Listing", $"{GetItemNameById(itemToRemove.ItemID)} sold!", 1, moneyToSend, 0, emptyItemList); //Send money to seller
+                MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Succesfull Listing", $"{GetLocalizedItemNameById(itemToRemove.ItemID)} sold!", 1, moneyToSend, 0, emptyItemList); //Send money to seller
                 MailManager.Instance.SendMail(0, buyer, "Auction House", "Succesfull Purchase", "See attached.", 1, emptyMoneyArray, 1, itemList); //Send items to buyer
                 _auctionItems.Remove(itemToRemove);
             }
@@ -194,7 +194,7 @@ namespace AAEmu.Game.Core.Managers
 
             if(!myListing)
             {
-                var itemTemplates = ItemManager.Instance.GetItemTemplates(searchTemplate);
+                var itemTemplates = ItemManager.Instance.GetItemTemplatesForAuctionSearch(searchTemplate);
 
                 foreach (var template in itemTemplates)
                 {
@@ -267,30 +267,14 @@ namespace AAEmu.Game.Core.Managers
             return auctionItemsFound;
         }
 
-        public List<uint> GetItemIdsFromName(string itemName)
+        public string GetLocalizedItemNameById(uint id)
         {
-            var query = from item in _en_localizations
-                        where (item.Value.Contains(itemName.ToLower()))
-                        select item.Key;
-
-            var itemIdList = query.ToList();
-
-            return itemIdList;
-        }
-
-        public string GetItemNameById(uint id)
-        {
-            foreach (var item in _en_localizations)
-            {
-                if (item.Key == id)
-                    return item.Value;
-            }
-            return "";
+            return LocalizationManager.Instance.Get("items", "name", id, ItemManager.Instance.GetTemplate(id).Name ?? "");
         }
 
         public void UpdateAuctionHouse()
         {
-            _log.Info("Updating Auction House!");
+            _log.Debug("Updating Auction House!");
             foreach (var item in _auctionItems.ToList())
             {
                 var timeLeft = (ulong)(DateTime.Now - item.CreationTime).TotalSeconds;
@@ -317,10 +301,17 @@ namespace AAEmu.Game.Core.Managers
         public int[] ConvertMoneyToArray(int m)
         {
             int[] result = new int[3];
+            /*
             int copper = m % 100;
             m = (m - copper) / 100;
             int silver = m % 100;
             int gold = (m - silver) / 100;
+            */
+            int gold = m / 10000;
+            m = m % 10000;
+            int silver = m / 100;
+            int copper = m % 100;
+
             result[2] = copper;
             result[1] = silver;
             result[0] = gold;
@@ -368,26 +359,6 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.BidMoney = reader.GetUInt32("bid_money");
                             auctionItem.Extra = reader.GetUInt32("extra");
                             _auctionItems.Add(auctionItem);
-                        }
-                    }
-                }
-            }
-            using (var connection = SQLite.CreateConnection())
-            {
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = $"SELECT * FROM localized_texts WHERE tbl_name='items' AND tbl_column_name='name'";
-                    command.Prepare();
-                    using (var sqlitereader = command.ExecuteReader())
-                    using (var reader = new SQLiteWrapperReader(sqlitereader))
-                    {
-                        while (reader.Read())
-                        {
-                            var _itemName = reader.GetString("en_us").ToLower();
-                            var _itemId = reader.GetUInt32("idx");
-
-                            if(_itemName != "" && _itemId != 0)
-                                _en_localizations.Add(_itemId, _itemName);
                         }
                     }
                 }

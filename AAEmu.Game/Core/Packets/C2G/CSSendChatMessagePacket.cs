@@ -35,10 +35,23 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 case ChatType.Whisper: //whisper
                     var target = WorldManager.Instance.GetCharacter(targetName);
-                    var packet = new SCChatMessagePacket(ChatType.Whisper, Connection.ActiveChar, message, ability, languageType);
-                    target?.SendPacket(packet);
-                    var packet_me = new SCChatMessagePacket(ChatType.Whispered, target, message, ability, languageType);
-                    Connection.SendPacket(packet_me);
+                    if ((target == null) || (!target.IsOnline))
+                    {
+                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.WhisperNoTarget);
+                    }
+                    else
+                    if (target.Faction.MotherId != Connection.ActiveChar.Faction.MotherId)
+                    {
+                        // TODO: proper hostile check
+                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatCannotWhisperToHostile);
+                    }
+                    else
+                    {
+                        var packet = new SCChatMessagePacket(ChatType.Whisper, Connection.ActiveChar, message, ability, languageType);
+                        target?.SendPacket(packet);
+                        var packet_me = new SCChatMessagePacket(ChatType.Whispered, target, message, ability, languageType);
+                        Connection.SendPacket(packet_me);
+                    }
                     break;
                 case ChatType.White: //say
                     Connection.ActiveChar.BroadcastPacket(
