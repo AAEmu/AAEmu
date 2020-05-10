@@ -326,7 +326,7 @@ namespace AAEmu.Game.Core.Managers
 
         public Item Create(uint templateId, int count, byte grade, bool generateId = true)
         {
-            var id = generateId ? ItemIdManager.Instance.GetNextId() : 0u;
+            var id = generateId ? ItemManager.Instance.GetNewId() : 0u;
             var template = GetTemplate(templateId);
             if (template == null)
                 return null;
@@ -1035,7 +1035,109 @@ namespace AAEmu.Game.Core.Managers
             else
                 return null;
         }
-    
+
+        public void Save()
+        {
+            var deleteCount = 0;
+            var updateCount = 0;
+            using (var connection = MySQL.CreateConnection())
+            {
+
+                using (var transaction = connection.BeginTransaction())
+                {
+                    _log.Info("Saving items data ...");
+
+                    // Read configuration related to item durability and the likes
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.Connection = connection;
+                        command.Transaction = transaction;
+                        // Handle removed items in DB
+                        lock (_removedItems)
+                        {
+                            if (_removedItems.Count > 0)
+                            {
+                                using (var deletecommand = connection.CreateCommand())
+                                {
+                                    deletecommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
+                                    deletecommand.Prepare();
+                                    deletecommand.ExecuteNonQuery();
+                                }
+                                deleteCount = _removedItems.Count();
+                                _removedItems.Clear();
+                            }
+                        }
+                        // Update items
+                    }
+
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.Connection = connection;
+                        command.Transaction = transaction;
+
+                        foreach (var entry in _allItems)
+                        {
+                            var item = entry.Value;
+                            if (item == null)
+                                continue;
+                            var details = new Commons.Network.PacketStream();
+                            item.WriteDetails(details);
+
+                            command.CommandText = "REPLACE INTO items (" +
+                                "`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
+                                "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `bounded`" +
+                                ") VALUES ( " +
+                                "@id, @type, @template_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
+                                "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@bounded" +
+                                ")";
+
+                            command.Parameters.AddWithValue("@id", item.Id);
+                            command.Parameters.AddWithValue("@type", item.GetType().ToString());
+                            command.Parameters.AddWithValue("@template_id", item.TemplateId);
+                            command.Parameters.AddWithValue("@slot_type", (byte)item.SlotType);
+                            command.Parameters.AddWithValue("@slot", item.Slot);
+                            command.Parameters.AddWithValue("@count", item.Count);
+                            command.Parameters.AddWithValue("@details", details.GetBytes());
+                            command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
+                            command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
+                            command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
+                            command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
+                            command.Parameters.AddWithValue("@created_at", item.CreateTime);
+                            command.Parameters.AddWithValue("@owner", item.OwnerId);
+                            command.Parameters.AddWithValue("@grade", item.Grade);
+                            command.Parameters.AddWithValue("@bounded", item.Bounded);
+                            command.ExecuteNonQuery();
+                            command.Parameters.Clear();
+                            updateCount++;
+                        }
+                    }
+
+                    try
+                    {
+                        transaction.Commit();
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error(e);
+                        try
+                        {
+                            transaction.Rollback();
+                        }
+                        catch (Exception eRollback)
+                        {
+                            updateCount = 0;
+                            deleteCount = 0;
+                            _log.Error(eRollback);
+                        }
+                    }
+
+                }
+            }
+            _log.Info("Updated {0} and deleted {1} items ...", updateCount, deleteCount);
+        }
+
+
+
         public void LoadUserItems()
         {
             _log.Info("Loading user items ...");
@@ -1105,7 +1207,7 @@ namespace AAEmu.Game.Core.Managers
                         // Add it to the global pool
                         if (!_allItems.TryAdd(item.Id, item))
                         {
-                            ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                            ReleaseId(item.Id);
                             _log.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
                         }
 
@@ -1115,19 +1217,41 @@ namespace AAEmu.Game.Core.Managers
 
         }
 
+        /// <summary>
+        /// Gets a new itemID for use on new items, will also remove it from the deleted itemIDs list. Use this instead of directly calling ItemIdManager.Instance.GetNextId();
+        /// </summary>
+        /// <returns>A new itemID</returns>
         public ulong GetNewId()
         {
             var itemId = ItemIdManager.Instance.GetNextId();
-            if ((itemId != 0) && _removedItems.Contains(itemId))
-                _removedItems.Remove(itemId);
+            lock (_removedItems)
+            {
+                if ((itemId != 0) && _removedItems.Contains(itemId))
+                    _removedItems.Remove(itemId);
+            }
             return itemId;
         }
 
+        /// <summary>
+        /// Releases a itemId for re-use, will also add it to the removed items list, use instead of ItemIdManager.Instance.ReleaseId();
+        /// </summary>
+        /// <param name="itemId">itemId of the item to be freed up</param>
         public void ReleaseId(ulong itemId)
         {
-            if ((itemId != 0) && !_removedItems.Contains(itemId))
-                _removedItems.Add(itemId);
+            lock (_removedItems)
+            {
+                if ((itemId != 0) && !_removedItems.Contains(itemId))
+                    _removedItems.Add(itemId);
+            }
             ItemIdManager.Instance.ReleaseId((uint)itemId);
         }
+
+
+        public List<Item> LoadPlayerInventory(Character character)
+        {
+            var res = (from i in _allItems where i.Value.OwnerId == character.Id select i.Value).ToList();
+            return res;
+        }
+
     }
 }

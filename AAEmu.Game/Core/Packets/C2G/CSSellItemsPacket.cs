@@ -68,7 +68,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 if (!res)
                 {
-                    ItemIdManager.Instance.ReleaseId((uint)Connection.ActiveChar.BuyBack[0].Id);
+                    ItemManager.Instance.ReleaseId(Connection.ActiveChar.BuyBack[0].Id);
                     var temp = new Item[20];
                     Array.Copy(Connection.ActiveChar.BuyBack, 1, temp, 0, 19);
                     temp[19] = item;

@@ -40,7 +40,9 @@ namespace AAEmu.Game.Core.Managers
         {
             var mailTemplate = new Mail();
             // TODO: get this from a ID manager ?
-            mailTemplate.Id = highestMailID += 1; 
+            mailTemplate.Id = highestMailID += 1;
+            var senderId = NameManager.Instance.GetCharacterId(senderName);
+            var receiverId = NameManager.Instance.GetCharacterId(receiverName);
 
             mailTemplate.Header = new MailHeader()
             {
@@ -48,8 +50,10 @@ namespace AAEmu.Game.Core.Managers
                 Type = type,
                 Status = (byte)0,
                 Title = title,
+                SenderId = senderId,
                 SenderName = senderName,
                 Attachments = attachments,
+                ReceiverId = receiverId,
                 ReceiverName = receiverName,
                 OpenDate = DateTime.MinValue,
                 Returned = (byte)0,
@@ -96,7 +100,11 @@ namespace AAEmu.Game.Core.Managers
 
         public bool DeleteMail(long id)
         {
-            _deletedMailIds.Add(id);
+            lock (_deletedMailIds)
+            {
+                if (!_deletedMailIds.Contains(id))
+                    _deletedMailIds.Add(id);
+            }
             return _allPlayerMails.Remove(id);
         }
 
@@ -132,7 +140,7 @@ namespace AAEmu.Game.Core.Managers
                                 Status = (byte)reader.GetInt32("status"),
                                 Title = reader.GetString("title"),
                                 SenderName = reader.GetString("sender_name"),
-                                Attachments = (byte)reader.GetInt32("attachments"),
+                                Attachments = (byte)reader.GetInt32("attachment_count"),
                                 ReceiverName = reader.GetString("receiver_name"),
                                 OpenDate = reader.GetDateTime("open_date"),
                                 Returned = (byte)reader.GetInt32("returned"),
@@ -198,46 +206,46 @@ namespace AAEmu.Game.Core.Managers
 
         public void Save()
         {
+            var deletedCount = 0;
+            var updatedCount = 0;
             using (var connection = MySQL.CreateConnection())
             {
                 using (var transaction = connection.BeginTransaction())
                 {
-                    _log.Info("Deleting old DB mail data");
-                    using (var command = connection.CreateCommand())
+                    _log.Info("Saving mail data ...");
+                    
+                    lock (_deletedMailIds)
                     {
-                        command.Connection = connection;
-                        command.Transaction = transaction;
-
-                        command.CommandText = "TRUNCATE TABLE mails";
-                        command.Prepare();
-                        command.ExecuteNonQuery();
+                        if (deletedCount > 0)
+                        {
+                            deletedCount = _deletedMailIds.Count;
+                            using (var command = connection.CreateCommand())
+                            {
+                                command.Connection = connection;
+                                command.Transaction = transaction;
+                                command.CommandText = "DELETE FROM mails WHERE `id` IN(" + string.Join(",", _deletedMailIds) + ")";
+                                command.Prepare();
+                                command.ExecuteNonQuery();
+                            }
+                            _deletedMailIds.Clear();
+                        }
                     }
 
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.Connection = connection;
-                        command.Transaction = transaction;
-
-                        command.CommandText = "TRUNCATE TABLE mails_items";
-                        command.Prepare();
-                        command.ExecuteNonQuery();
-                    }
-                    _log.Info("Done deleting old mail data & starting inserting new data from memory");
                     foreach (var mtbs in _allPlayerMails)
                     {
                         using (var command = connection.CreateCommand())
                         {
                             command.Connection = connection;
                             command.Transaction = transaction;
-                            command.CommandText = "INSERT INTO mails(" +
+                            command.CommandText = "REPLACE INTO mails(" +
                                 "`id`,`type`,`status`,`title`,`text`,`sender_id`,`sender_name`," +
-                                "`attachments`,`receiver_id`,`receiver_name`,`open_date`,`send_date`,`received_date`," +
+                                "`attachment_count`,`receiver_id`,`receiver_name`,`open_date`,`send_date`,`received_date`," +
                                 "`returned`,`extra`,`money_amount_1`,`money_amount_2`,`money_amount_3`," +
                                 "`attachment0`,`attachment1`,`attachment2`,`attachment3`,`attachment4`,`attachment5`," +
                                 "`attachment6`,`attachment7`,`attachment8`,`attachment9`" +
                                 ") VALUES (" +
                                 "@id, @type, @status, @title, @text, @senderId, @senderName, " +
-                                "@attachments, @receiverId, @receiverName, @openDate, @sendDate, @receivedDate, " +
+                                "@attachment_count, @receiverId, @receiverName, @openDate, @sendDate, @receivedDate, " +
                                 "@returned, @extra, @money1, @money2, @money3," +
                                 "@attachment0, @attachment1, @attachment2, @attachment3, @attachment4, @attachment5, " +
                                 "@attachment6, @attachment7, @attachment8, @attachment9" +
@@ -252,7 +260,7 @@ namespace AAEmu.Game.Core.Managers
                             command.Parameters.AddWithValue("@text", mtbs.Value.Body.Text);
                             command.Parameters.AddWithValue("@senderId", mtbs.Value.Header.SenderId);
                             command.Parameters.AddWithValue("@senderName", mtbs.Value.Header.SenderName);
-                            command.Parameters.AddWithValue("@attachments", mtbs.Value.Header.Attachments);
+                            command.Parameters.AddWithValue("@attachment_count", mtbs.Value.Header.Attachments);
                             command.Parameters.AddWithValue("@receiverId", mtbs.Value.Header.ReceiverId);
                             command.Parameters.AddWithValue("@receiverName", mtbs.Value.Header.ReceiverName);
                             command.Parameters.AddWithValue("@sendDate", mtbs.Value.Body.SendDate);
@@ -275,7 +283,27 @@ namespace AAEmu.Game.Core.Managers
                         }
 
                     }
-                    _log.Info("Done saving mails");
+                    updatedCount = _allPlayerMails.Count;
+
+                    try
+                    {
+                        transaction.Commit();
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error(e);
+                        try
+                        {
+                            transaction.Rollback();
+                        }
+                        catch (Exception eRollback)
+                        {
+                            deletedCount = 0;
+                            updatedCount = 0;
+                            _log.Error(eRollback);
+                        }
+                    }
+                    _log.Info("Done updating {0} and removing {1} mails ...", updatedCount, deletedCount);
                 }
             }
         }
@@ -284,7 +312,7 @@ namespace AAEmu.Game.Core.Managers
 
         public Dictionary<long, Mail> GetCurrentMailList(Character c)
         {
-            var tempMail = _allPlayerMails.Where(x => x.Value.Header.ReceiverName == c.Name || x.Value.Header.SenderName == c.Name).ToDictionary(x => x.Key, x => x.Value);
+            var tempMail = _allPlayerMails.Where(x => x.Value.Header.ReceiverId == c.Id || x.Value.Header.SenderId == c.Id).ToDictionary(x => x.Key, x => x.Value);
             c.Mails.unreadMailCount.Received = 0;
             foreach (var mail in tempMail)
             {

@@ -550,7 +550,7 @@ namespace AAEmu.Game.Models.Game.Skills
                                 }
                             }
                         }
-                        ItemIdManager.Instance.ReleaseId((uint)itemUsed.Id);
+                        ItemManager.Instance.ReleaseId(itemUsed.Id);
                     }
                     if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
                     {
@@ -560,7 +560,7 @@ namespace AAEmu.Game.Models.Game.Skills
                             var res = character.Inventory.AddItem(item);
                             if (res == null)
                             {
-                                ItemIdManager.Instance.ReleaseId((uint)res.Id);
+                                ItemManager.Instance.ReleaseId(res.Id);
                                 continue;
                             }
 

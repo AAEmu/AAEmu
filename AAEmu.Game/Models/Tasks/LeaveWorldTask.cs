@@ -70,7 +70,7 @@ namespace AAEmu.Game.Models.Tasks
                 // Clear Buyback table
                 foreach (var item in _connection.ActiveChar.BuyBack)
                     if (item != null)
-                        ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                        ItemManager.Instance.ReleaseId(item.Id);
                 Array.Clear(_connection.ActiveChar.BuyBack, 0, _connection.ActiveChar.BuyBack.Length);
 
                 // Remove subscribers

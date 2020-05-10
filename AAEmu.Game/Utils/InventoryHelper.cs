@@ -15,7 +15,7 @@ namespace AAEmu.Game.Utils
             var res = character.Inventory.AddItem(item);
             if (res == null)
             {
-                ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                ItemManager.Instance.ReleaseId(item.Id);
                 return false;
             }
 

@@ -128,7 +128,7 @@ namespace AAEmu.Game.Scripts.Commands
                     var res = targetPlayer.Inventory.AddItem(item);
                     if (res == null)
                     {
-                        ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                        ItemManager.Instance.ReleaseId(item.Id);
                         continue;
                     }
 

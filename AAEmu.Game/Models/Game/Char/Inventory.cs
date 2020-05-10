@@ -14,13 +14,40 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
 {
+    public class ItemContainer
+    {
+        public Character Owner { get; set; }
+        public SlotType ContainerType { get; set; }
+        public List<Item> Items { get; set; }
+        public int ContainerSize { get; set; }
+
+        public ItemContainer(Character owner, SlotType containerType)
+        {
+            Owner = owner;
+            ContainerType = containerType;
+            Items = new List<Item>();
+            ContainerSize = 10;
+        }
+
+        public void ReNumberSlots()
+        {
+            var c = 0;
+            foreach(var i in Items)
+            {
+                i.SlotType = ContainerType;
+                i.Slot = c;
+                c++;
+            }
+        }
+
+    }
+
     public class Inventory
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private int _freeSlot;
         private int _freeBankSlot;
-        private List<ulong> _removedItems;
 
         public readonly Character Owner;
         public Item[] Equip { get; set; }
@@ -35,13 +62,37 @@ namespace AAEmu.Game.Models.Game.Char
             Items = new Item[Owner.NumInventorySlots];
             Bank = new Item[Owner.NumBankSlots];
             MailItems = new List<Item>();
-            _removedItems = new List<ulong>();
         }
 
         #region Database
 
         public void Load(MySqlConnection connection, SlotType? slotType = null)
         {
+
+            var playeritems = ItemManager.Instance.LoadPlayerInventory(Owner);
+            foreach(var item in playeritems)
+            {
+                switch(item.SlotType)
+                {
+                    case SlotType.Equipment:
+                        Equip[item.Slot] = item;
+                        break;
+                    case SlotType.Inventory:
+                        Items[item.Slot] = item;
+                        break;
+                    case SlotType.Bank:
+                        Items[item.Slot] = item;
+                        break;
+                    case SlotType.Mail:
+                        MailItems.Add(item);
+                        break;
+                    default:
+                        _log.Warn("LoadInventory found unused itemId {0} for {1}", item.SlotType, Owner?.Name ?? "<system>");
+                        break;
+                }
+            }
+
+            /*
             using (var command = connection.CreateCommand())
             {
                 if (slotType == null)
@@ -118,6 +169,7 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
             }
+            */
 
             if (slotType == null || slotType == SlotType.Equipment)
                 foreach (var item in Equip.Where(x => x != null))
@@ -141,6 +193,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction)
         {
+            /*
             lock (_removedItems)
             {
                 if (_removedItems.Count > 0)
@@ -161,6 +214,7 @@ namespace AAEmu.Game.Models.Game.Char
             SaveItems(connection, transaction, Items);
             SaveItems(connection, transaction, Bank);
             SaveItems(connection, transaction, MailItems.ToArray());
+            */
         }
 
         private void SaveItems(MySqlConnection connection, MySqlTransaction transaction, Item[] items)
@@ -194,7 +248,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
                     command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
                     command.Parameters.AddWithValue("@created_at", item.CreateTime);
-                    command.Parameters.AddWithValue("@owner", Owner.Id);
+                    command.Parameters.AddWithValue("@owner", item.OwnerId);
                     command.Parameters.AddWithValue("@grade", item.Grade);
                     command.Parameters.AddWithValue("@bounded", item.Bounded);
                     command.ExecuteNonQuery();
@@ -231,7 +285,7 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     var fItem = Items[fItemIndex];
                     fItem.Count += item.Count;
-                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemManager.Instance.ReleaseId(item.Id);
                                         
                     if (item.Template.LootQuestId > 0)
                         Owner.Quests.OnItemGather(item, item.Count);
@@ -277,12 +331,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             if (release)
-                ItemIdManager.Instance.ReleaseId((uint)item.Id);
-            lock (_removedItems)
-            {
-                if (!_removedItems.Contains(item.Id))
-                    _removedItems.Add(item.Id);
-            }
+                ItemManager.Instance.ReleaseId(item.Id);
         }
 
         public List<(Item Item, int Count)> RemoveItem(uint templateId, int count)
@@ -302,12 +351,7 @@ namespace AAEmu.Game.Models.Game.Char
                         Items[item.Slot] = null;
                         if (_freeSlot == -1 || item.Slot < _freeSlot)
                             _freeSlot = item.Slot;
-                        ItemIdManager.Instance.ReleaseId((uint)item.Id);
-                        lock (_removedItems)
-                        {
-                            if (!_removedItems.Contains(item.Id))
-                                _removedItems.Add(item.Id);
-                        }
+                        ItemManager.Instance.ReleaseId(item.Id);
                     }
 
                     res.Add((item, itemCount - item.Count));

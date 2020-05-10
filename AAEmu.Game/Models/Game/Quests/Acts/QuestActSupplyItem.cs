@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                     backpackTemplate = (BackpackTemplate)item.Template;
                 var res = character.Inventory.AddItem(item);
                 if (res == null)
-                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemManager.Instance.ReleaseId(item.Id);
                 if (res.Id != item.Id)
                     tasks.Add(new ItemCountUpdate(res, item.Count));
                 else

@@ -91,7 +91,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var res = Connection.ActiveChar.Inventory.AddItem(item);
                 if (res == null)
                 {
-                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemManager.Instance.ReleaseId(item.Id);
                     return;
                 }
 
@@ -106,7 +106,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var res = Connection.ActiveChar.Inventory.AddItem(item);
                 if (res == null)
                 {
-                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemManager.Instance.ReleaseId(item.Id);
                     return;
                 }
 
