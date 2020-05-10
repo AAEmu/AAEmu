@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Items
     public class Item : PacketMarshaler
     {
         public byte WorldId { get; set; }
+        public ulong OwnerId { get; set; }
         public ulong Id { get; set; }
         public uint TemplateId { get; set; }
         public ItemTemplate Template { get; set; }
@@ -26,18 +27,21 @@ namespace AAEmu.Game.Models.Game.Items
         public Item()
         {
             WorldId = AppConfiguration.Instance.Id;
+            OwnerId = 0;
             Slot = -1;
         }
 
         public Item(byte worldId)
         {
             WorldId = worldId;
+            OwnerId = 0;
             Slot = -1;
         }
 
         public Item(ulong id, ItemTemplate template, int count)
         {
             WorldId = AppConfiguration.Instance.Id;
+            OwnerId = 0;
             Id = id;
             TemplateId = template.Id;
             Template = template;
@@ -48,6 +52,7 @@ namespace AAEmu.Game.Models.Game.Items
         public Item(byte worldId, ulong id, ItemTemplate template, int count)
         {
             WorldId = worldId;
+            OwnerId = 0;
             Id = id;
             TemplateId = template.Id;
             Template = template;

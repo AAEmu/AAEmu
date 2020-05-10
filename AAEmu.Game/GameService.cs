@@ -59,6 +59,7 @@ namespace AAEmu.Game
 
             TlIdManager.Instance.Initialize();
             ItemManager.Instance.Load();
+            ItemManager.Instance.LoadUserItems();
             PlotManager.Instance.Load();
             SkillManager.Instance.Load();
             CraftManager.Instance.Load();
