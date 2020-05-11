@@ -41,15 +41,11 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     character.BroadcastPacket(new SCLootableStatePacket(npcChar.ObjId, true), true);
                 }
-                npcChar.Hp = 0;
                 npcChar.DoDie(character);
-                npcChar.BroadcastPacket(new SCUnitDeathPacket(npcChar.ObjId, 1, null), true);
             }
             else if (playerTarget is Character)
             {
-                targetPlayer.Hp = 0;
-                targetPlayer.Mp = 0;
-                targetPlayer.BroadcastPacket(new SCUnitDeathPacket(targetPlayer.ObjId, 1, null), true);
+                targetPlayer.DoDie(character);
             }
             else
             {
