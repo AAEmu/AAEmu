@@ -3,14 +3,12 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
-using NLog;
 using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Scripts.Commands
 {
     public class Heal : ICommand
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
         public void OnLoad()
         {
             string[] name = { "heal" };

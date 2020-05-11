@@ -3,14 +3,11 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using NLog;
 
 namespace AAEmu.Game.Scripts.Commands
 {
     public class Revive : ICommand
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public void OnLoad()
         {
             string[] name = { "revive", "res", "resurrect" };
