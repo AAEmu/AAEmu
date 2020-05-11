@@ -128,7 +128,7 @@ namespace AAEmu.Game.Core.Managers
                             
                             var template = new QuestComponent();
                             template.Id = reader.GetUInt32("id");
-                            template.KindId = reader.GetByte("component_kind_id");
+                            template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
                             template.NextComponent = reader.GetUInt32("next_component", 0);
                             template.NpcAiId = reader.GetUInt32("npc_ai_id", 0);
                             template.NpcId = reader.GetUInt32("npc_id", 0);

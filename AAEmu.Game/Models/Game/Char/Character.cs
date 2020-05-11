@@ -721,13 +721,16 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void AddExp(int exp, bool shouldAddAbilityExp)
         {
-            var expMultiplier = ConfigurationManager.Instance.GetConfiguration("ExperienceMultiplier");
+            var expMultiplier = 1d;
             if (exp == 0)
                 return;
+            if (float.TryParse(ConfigurationManager.Instance.GetConfiguration("ExperienceMultiplierInPercent"), out var xpm))
+                expMultiplier = xpm / 100f;
+            var totalExp = Math.Round(expMultiplier * exp);
+            exp = (int)totalExp;
             Expirience += exp;
             if (shouldAddAbilityExp)
                 Abilities.AddActiveExp(exp); // TODO ... or all?
-            if(int.Parse(expMultiplier) > 0) exp = exp * int.Parse(expMultiplier);
             SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));
             CheckLevelUp();
         }

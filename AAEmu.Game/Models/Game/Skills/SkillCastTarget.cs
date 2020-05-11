@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Skills
         Unit = 0,
         Position = 1,
         Position2 = 2,
-        Unk3 = 3,
+        Item = 3,
         Doodad = 4,
         Position3 = 5
     }
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 case SkillCastTargetType.Position2:
                     obj = new SkillCastPosition2Target();
                     break;
-                case SkillCastTargetType.Unk3:
+                case SkillCastTargetType.Item:
                     obj = new SkillCastUnk3Target();
                     break;
                 case SkillCastTargetType.Doodad:

@@ -23,16 +23,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var (newX, newY) = MathUtil.AddDistanceToFront(1, character.Position.X, character.Position.Y, character.Position.RotationZ); //TODO расстояние вперед 1 м
 
                 // NPC spawn
-                var npcSpawner = new NpcSpawner();
-                npcSpawner.Id = 0;
-                npcSpawner.RespawnTime = 0; // не появляться после смерти
-                npcSpawner.UnitId = 7503; // Rat Id = 7503, FactionId = 3
-                npcSpawner.Position = character.Position.Clone();
+                var npcSpawner = new NpcSpawner
+                {
+                    Id = 0,
+                    RespawnTime = 0, // not appear after death
+                    UnitId = 7503,   // Rat Id = 7503
+                    Position = character.Position.Clone()
+                };
                 npcSpawner.Position.X = newX + Rand.Next(-2, 2);
                 npcSpawner.Position.Y = newY + Rand.Next(-2, 2);
-                npcSpawner.Position.Z = character.Position.Z;
-                // for work need enable geodata
-                //npcSpawner.Position.Z = WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y);
+                npcSpawner.Position.Z = AppConfiguration.Instance.HeightMapsEnable
+                    ? WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y)
+                    : npcSpawner.Position.Z;
                 // looks in the direction of the character
                 var angle = MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Position.X, character.Position.Y);
                 var rotZ = MathUtil.ConvertDegreeToDirection(angle);
@@ -40,7 +42,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 npcSpawner.Position.RotationY = 0;
                 npcSpawner.Position.RotationZ = rotZ;
                 var npc = npcSpawner.Spawn(0);
-                npc.Respawn = DateTime.MinValue; // не появляться после смерти
+                npc.Respawn = DateTime.MinValue; // not appear after death
 
 
                 var target = (BaseUnit)character;

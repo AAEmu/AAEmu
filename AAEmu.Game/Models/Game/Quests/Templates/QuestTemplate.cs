@@ -29,14 +29,14 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
             Components = new Dictionary<uint, QuestComponent>();
         }
 
-        public QuestComponent GetComponent(byte step)
+        public QuestComponent GetComponent(QuestComponentKind step)
         {
             foreach (var component in Components.Values)
                 if (component.KindId == step)
                     return component;
             return null;
         }
-        public QuestComponent[] GetComponents(byte step)
+        public QuestComponent[] GetComponents(QuestComponentKind step)
         {
             QuestComponent[] qcl = new QuestComponent[0];
             foreach (var component in Components.Values)

@@ -1,3 +1,4 @@
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -19,7 +20,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            _log.Debug("DoodadFuncClout");
+            _log.Debug("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}," +
+                       " ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}," +
+                       " TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}",
+                Duration, Tick, TargetRelationId, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
+
+            owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true); // TODO added to work destruction of barrels / boxes
         }
     }
 }
