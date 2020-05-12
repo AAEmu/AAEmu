@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public override UnitCustomModelParams ModelParams => Template.ModelParams;
         public override float Scale => Template.Scale;
 
-        public override byte RaceGender => (byte) (16 * Template.Gender + Template.Race);
+        public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
         #region Attributes
 
@@ -35,16 +35,16 @@ namespace AAEmu.Game.Models.Game.NPChar
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Str))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int) (res * bonus.Value / 100f);
+                        res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
                 }
@@ -61,15 +61,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.Dex))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Dex))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -86,15 +86,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.Sta))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Sta))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -111,15 +111,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.Int))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Int))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -136,15 +136,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.Spi))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Spi))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -161,15 +161,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.Fai))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Fai))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -192,15 +192,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.MaxHealth))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -223,16 +223,16 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
                 res += Spi / 10;
-                foreach(var bonus in GetBonuses(UnitAttribute.HealthRegen))
+                foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -256,15 +256,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -287,15 +287,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.MaxMana))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -318,16 +318,16 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
                 res += Spi / 10;
-                foreach(var bonus in GetBonuses(UnitAttribute.ManaRegen))
+                foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -351,15 +351,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -368,7 +368,33 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
-                public override int Dps
+        public override float LevelDps
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.LevelDps);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                parameters["str"] = Str;
+                parameters["dex"] = Dex;
+                parameters["sta"] = Sta;
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                parameters["fai"] = Fai;
+                parameters["ab_level"] = 0;
+                parameters["npc_template"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
+                parameters["npc_kind"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
+                parameters["npc_grade"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = formula.Evaluate(parameters);
+                return (float)res;
+            }
+        }
+
+        public override int Dps
         {
             get
             {
@@ -401,6 +427,12 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
+                parameters["npc_template"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
+                parameters["npc_kind"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
+                parameters["npc_grade"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
                 var res = formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
                 {
@@ -466,6 +498,12 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
+                parameters["npc_template"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
+                parameters["npc_kind"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
+                parameters["npc_grade"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
                 var res = formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDpsInc))
                 {
@@ -512,6 +550,12 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
+                parameters["npc_template"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
+                parameters["npc_kind"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
+                parameters["npc_grade"] =
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
                 var res = formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
                 {
@@ -539,15 +583,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.Armor))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Armor))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -570,15 +614,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
-                var res = (int) formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.MagicResist))
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MagicResist))
                 {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
@@ -603,15 +647,15 @@ namespace AAEmu.Game.Models.Game.NPChar
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 parameters["npc_template"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte) Template.NpcTemplateId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId);
                 parameters["npc_kind"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte) Template.NpcKindId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId);
                 parameters["npc_grade"] =
-                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte) Template.NpcGradeId);
+                    FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId);
                 var res = formula.Evaluate(parameters);
                 res *= Template.ExpMultiplier;
                 res += Template.ExpAdder;
-                return (int) res;
+                return (int)res;
             }
         }
 
@@ -656,7 +700,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
     }
 }
