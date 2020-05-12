@@ -47,7 +47,8 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 if (targetPlayer.Hp == 0)
                 {
-                    character.SendMessage("Cannot heal a dead target");
+                    // This check is needed otherwise the player will be kicked
+                    character.SendMessage("Cannot heal a dead target, use the revive command instead");
                 }
                 else
                 {

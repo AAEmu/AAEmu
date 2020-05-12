@@ -27,17 +27,18 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
+            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, null, out var _);
             var playerTarget = character.CurrentTarget;
             if (playerTarget is Npc)
             {
-                // Player is trying to heal an NPC
+                // Player is trying to kill an NPC/Monster
                 var npcChar = (Npc)character.CurrentTarget;
-                var lootDropItems = ItemManager.Instance.CreateLootDropItems(npcChar.ObjId);
-                if (lootDropItems.Count > 0)
-                {
-                    character.BroadcastPacket(new SCLootableStatePacket(npcChar.ObjId, true), true);
-                }
+                // We must broadcast this package because if character had initially attacked the mob and then executed kill
+                // the mob's "ghost" will still be attacking you and draining HP even though he doesn't exist in the world anymore
+                npcChar.CurrentTarget = null;
+                // HP must be set to 0 because if character engaged in battle and then ran kill command, after mob dies
+                // its hp will start regenerating
+                npcChar.Hp = 0;
                 npcChar.DoDie(character);
             }
             else if (playerTarget is Character)
@@ -48,6 +49,8 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 character.SendMessage("Cannot kill this target");
             }
+            character.IsInBattle = false; // In case the character gets stuck in battle mode after engaging a mob
+            character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
         }
     }
 }
