@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -54,6 +55,9 @@ namespace AAEmu.Game.Models.Game.Skills
             //        return;
             //    }
             //}
+            
+            // TODO : Add check for range
+            var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
 
             if (skillObject == null)
             {

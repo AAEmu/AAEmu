@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Commons", "AAEmu.Comm
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Game", "AAEmu.Game\AAEmu.Game.csproj", "{B17DD122-1843-4176-A0CB-8A4A8B434044}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAEmu.Tests", "AAEmu.Tests\AAEmu.Tests.csproj", "{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{B17DD122-1843-4176-A0CB-8A4A8B434044}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B17DD122-1843-4176-A0CB-8A4A8B434044}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B17DD122-1843-4176-A0CB-8A4A8B434044}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E614BCF-6BA2-4986-85DA-8A0AA9C57C6B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
