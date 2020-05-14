@@ -19,7 +19,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ItemGradeEnchanting : ISpecialEffect
     {
-        private enum GradeEnchantResult {
+        private enum GradeEnchantResult
+        {
             Break = 0,
             Downgrade = 1,
             Fail = 2,
@@ -27,42 +28,44 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             GreatSuccess = 4
         }
 
-        protected static Logger _log = LogManager.GetCurrentClassLogger(); 
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
 
         public void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, int Value1, int Value2, int Value3, int Value4)
         {
-            Character character = (Character) caster;
+            Character character = (Character)caster;
             if (character == null) return;
 
-            SkillItem scroll = (SkillItem) casterObj;
+            SkillItem scroll = (SkillItem)casterObj;
             if (scroll == null) return;
 
-            SkillCastUnk3Target itemTarget = (SkillCastUnk3Target) targetObj;
+            SkillCastItemTarget itemTarget = (SkillCastItemTarget)targetObj;
             if (itemTarget == null) return;
 
             var useCharm = false;
-            SkillObjectItemGradeEnchantingSupport charm = (SkillObjectItemGradeEnchantingSupport) skillObject;
+            SkillObjectItemGradeEnchantingSupport charm = (SkillObjectItemGradeEnchantingSupport)skillObject;
             if (charm != null && charm.SupportItemId != 0) useCharm = true;
-            
+
             bool isLucky = Value1 != 0;
             Item item = character.Inventory.GetItem(itemTarget.Id);
             var initialGrade = item.Grade;
             var gradeTemplate = ItemManager.Instance.GetGradeTemplate(item.Grade);
-            var tasks = new List<ItemTask>();
+            var tasksGrade = new List<ItemTask>();
+            var tasksRemove = new List<ItemTask>();
 
             int cost = GoldCost(gradeTemplate, item, Value3);
             if (cost == -1) return;
 
             if (character.Money < cost) return;
             character.Money -= cost;
-            tasks.Add(new MoneyChange(-cost));
+            tasksGrade.Add(new MoneyChange(-cost));
 
             if (!character.Inventory.CheckItems(scroll.ItemTemplateId, 1)) return;
             Item scrollItem = character.Inventory.GetItem(scroll.ItemId);
-            tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, scrollItem, 1));
-        
+            // tasksRemove.Add(InventoryHelper.GetTaskAndRemoveItem(character, scrollItem, 1));
+
             ItemGradeEnchantingSupport charmInfo = null;
-            if (useCharm) { 
+            if (useCharm)
+            {
                 Item charmItem = character.Inventory.GetItem(charm.SupportItemId);
                 if (charmItem == null) return;
 
@@ -71,22 +74,27 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 if (charmInfo.RequireGradeMin != -1 && item.Grade < charmInfo.RequireGradeMin) return;
                 if (charmInfo.RequireGradeMax != -1 && item.Grade > charmInfo.RequireGradeMax) return;
 
-                tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, charmItem, 1));
+                tasksGrade.Add(InventoryHelper.GetTaskAndRemoveItem(character, charmItem, 1));
             }
 
             var result = RollRegrade(gradeTemplate, item, isLucky, useCharm, charmInfo);
 
-            if (result == GradeEnchantResult.Break) {
-                tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, item, 1));
-            } else {
-                // TODO : make sure grade updates with itemupdate
-                tasks.Add(new ItemGradeChange(item, item.Grade));
+            if (result == GradeEnchantResult.Break)
+            {
+                tasksGrade.Add(InventoryHelper.GetTaskAndRemoveItem(character, item, 1));
             }
-            
-            character.SendPacket(new SCGradeEnchantResultPacket((byte)result, item, initialGrade, item.Grade));
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, tasks, new List<ulong>()));
+            else
+            {
+                // TODO : make sure grade updates with itemupdate
+                tasksGrade.Add(new ItemGradeChange(item, item.Grade));
+            }
 
-            if (item.Grade >= 8 && (result == GradeEnchantResult.Success || result == GradeEnchantResult.GreatSuccess)) {
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, tasksGrade, new List<ulong>()));
+            // character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, tasksRemove, new List<ulong>()));
+            character.SendPacket(new SCGradeEnchantResultPacket((byte)result, item, initialGrade, item.Grade));
+
+            if (item.Grade >= 8 && (result == GradeEnchantResult.Success || result == GradeEnchantResult.GreatSuccess))
+            {
                 WorldManager.Instance.BroadcastPacketToServer(new SCGradeEnchantBroadcastPacket(character.Name, (byte)result, item, initialGrade, item.Grade));
             }
         }
@@ -104,62 +112,76 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             var breakChance = useCharm ? GetCharmChance(gradeTemplate.EnchantBreakRatio, charmInfo.AddBreakRatio, charmInfo.AddBreakMul) : gradeTemplate.EnchantBreakRatio;
             var downgradeChance = useCharm ? GetCharmChance(gradeTemplate.EnchantDowngradeRatio, charmInfo.AddDowngradeRatio, charmInfo.AddDowngradeMul) : gradeTemplate.EnchantDowngradeRatio;
 
-            if (successRoll < successChance) {
-                if (isLucky && greatSuccessRoll < greatSuccessChance) {
+            if (successRoll < successChance)
+            {
+                if (isLucky && greatSuccessRoll < greatSuccessChance)
+                {
                     // TODO : Refactor
                     var increase = useCharm ? 2 + charmInfo.AddGreatSuccessGrade : 2;
-                    item.Grade = (byte) GetNextGrade(gradeTemplate, increase).Grade;
+                    item.Grade = (byte)GetNextGrade(gradeTemplate, increase).Grade;
                     return GradeEnchantResult.GreatSuccess;
-                } else {
-                    item.Grade = (byte) GetNextGrade(gradeTemplate, 1).Grade;
+                }
+                else
+                {
+                    item.Grade = (byte)GetNextGrade(gradeTemplate, 1).Grade;
                     return GradeEnchantResult.Success;
                 }
-            } else {
-                if (breakRoll < breakChance) {
+            }
+            else
+            {
+                if (breakRoll < breakChance)
+                {
                     return GradeEnchantResult.Break;
-                } else {
-                    if (downgradeRoll < downgradeChance) {
-                        var newGrade = (byte) Rand.Next(gradeTemplate.EnchantDowngradeMin, gradeTemplate.EnchantDowngradeMax);
+                }
+                else
+                {
+                    if (downgradeRoll < downgradeChance)
+                    {
+                        var newGrade = (byte)Rand.Next(gradeTemplate.EnchantDowngradeMin, gradeTemplate.EnchantDowngradeMax);
                         if (newGrade < 0) return GradeEnchantResult.Fail;
 
                         item.Grade = newGrade;
                         return GradeEnchantResult.Downgrade;
-                    } else {
+                    }
+                    else
+                    {
                         return GradeEnchantResult.Fail;
                     }
                 }
             }
         }
 
-        private int GoldCost(GradeTemplate gradeTemplate, Item item, int ItemType) {
+        private int GoldCost(GradeTemplate gradeTemplate, Item item, int ItemType)
+        {
             int cost = 0;
 
             uint slotTypeId = 0;
-            switch (ItemType) {
+            switch (ItemType)
+            {
                 case 1:
-                    WeaponTemplate weaponTemplate = (WeaponTemplate) item.Template;
+                    WeaponTemplate weaponTemplate = (WeaponTemplate)item.Template;
                     _log.Info(weaponTemplate.HoldableTemplate.SlotTypeId);
                     slotTypeId = weaponTemplate.HoldableTemplate.SlotTypeId;
                     break;
                 case 2:
-                    ArmorTemplate armorTemplate = (ArmorTemplate) item.Template;
+                    ArmorTemplate armorTemplate = (ArmorTemplate)item.Template;
                     _log.Info(armorTemplate.SlotTemplate.SlotTypeId);
                     slotTypeId = armorTemplate.SlotTemplate.SlotTypeId;
                     break;
                 case 24:
-                    AccessoryTemplate accessoryTemplate = (AccessoryTemplate) item.Template;
+                    AccessoryTemplate accessoryTemplate = (AccessoryTemplate)item.Template;
                     _log.Info(accessoryTemplate.SlotTemplate.SlotTypeId);
                     slotTypeId = accessoryTemplate.SlotTemplate.SlotTypeId;
                     break;
             }
-            
+
             if (slotTypeId == 0) return -1;
             EquipSlotEnchantingCost enchantingCost = ItemManager.Instance.GetEquipSlotEnchantingCost(slotTypeId);
-            
+
             int item_grade = gradeTemplate.EnchantCost;
             int item_level = item.Template.Level;
             int equip_slot_enchant_cost = enchantingCost.Cost;
-            
+
             Dictionary<string, double> parameters = new Dictionary<string, double>();
             parameters.Add("item_grade", item_grade);
             parameters.Add("item_level", item_level);
@@ -172,11 +194,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         }
 
         // This is required because XLGames are very smart! Instead of being logical and ordering the item_grades table, they added grade_order column...
-        private GradeTemplate GetNextGrade(GradeTemplate currentGrade, int gradeChange) {
+        private GradeTemplate GetNextGrade(GradeTemplate currentGrade, int gradeChange)
+        {
             return ItemManager.Instance.GetGradeTemplateByOrder(currentGrade.GradeOrder + gradeChange);
         }
 
-        private int GetCharmChance(int baseChance, int charmRatio, int charmMul) {
+        private int GetCharmChance(int baseChance, int charmRatio, int charmMul)
+        {
             return (baseChance + charmRatio) + (int)(baseChance * (charmMul / 100.0));
         }
     }
