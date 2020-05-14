@@ -323,7 +323,8 @@ namespace AAEmu.Game.Models.Game.Quests
                 Objectives[i] = 0;
             }
 
-            Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
+            if(update)
+                Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
             RemoveQuestItems();
         }
 
