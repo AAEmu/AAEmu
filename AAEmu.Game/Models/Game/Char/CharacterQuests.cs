@@ -99,18 +99,18 @@ namespace AAEmu.Game.Models.Game.Char
                 complete.Body.Set((int)(quest.TemplateId - completeId * 64), true);
                 var body = new byte[8];
                 complete.Body.CopyTo(body, 0);
-                Drop(questId);
+                Drop(questId, false);
                 Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
                 OnQuestComplete(questId);
             }
         }
 
-        public void Drop(uint questId)
+        public void Drop(uint questId, bool update)
         {
             if (!Quests.ContainsKey(questId))
                 return;
             var quest = Quests[questId];
-            quest.Drop();
+            quest.Drop(update);
             Quests.Remove(questId);
             _removed.Add(questId);
         }
