@@ -85,6 +85,18 @@ namespace AAEmu.Game.Models.Game.Units
             }
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
         }
+        
+        public virtual void ReduceCurrentMp(Unit unit, int value)
+        {
+            if (Hp == 0)
+                return;
+            Mp = Math.Max(Mp - value, 0);
+            if (Mp == 0)
+                StopRegen();
+            else
+                StartRegen();
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        }
 
         public virtual void DoDie(Unit killer)
         {

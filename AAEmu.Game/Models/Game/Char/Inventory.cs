@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -98,7 +99,7 @@ namespace AAEmu.Game.Models.Game.Char
                         item.UnsecureTime = reader.GetDateTime("unsecure_time");
                         item.UnpackTime = reader.GetDateTime("unpack_time");
                         item.CreateTime = reader.GetDateTime("created_at");
-                        item.Bounded = reader.GetByte("bounded");
+                        item.Flags = reader.GetByte("flags");
                         var details = (PacketStream)(byte[])reader.GetValue("details");
                         item.ReadDetails(details);
 
@@ -178,9 +179,9 @@ namespace AAEmu.Game.Models.Game.Char
                     item.WriteDetails(details);
 
                     command.CommandText = "REPLACE INTO " +
-                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`,`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `bounded`)" +
+                                          "items(`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`,`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `flags`)" +
                                           " VALUES " +
-                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@made_unit_id,@unsecure_time,@unpack_time,@owner,@created_at,@grade,@bounded)";
+                                          "(@id,@type,@template_id,@slot_type,@slot,@count,@details,@lifespan_mins,@made_unit_id,@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags)";
 
                     command.Parameters.AddWithValue("@id", item.Id);
                     command.Parameters.AddWithValue("@type", item.GetType().ToString());
@@ -196,7 +197,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@created_at", item.CreateTime);
                     command.Parameters.AddWithValue("@owner", Owner.Id);
                     command.Parameters.AddWithValue("@grade", item.Grade);
-                    command.Parameters.AddWithValue("@bounded", item.Bounded);
+                    command.Parameters.AddWithValue("@flags", item.Flags);
                     command.ExecuteNonQuery();
                     command.Parameters.Clear();
                 }
@@ -411,10 +412,10 @@ namespace AAEmu.Game.Models.Game.Char
             _freeSlot = CheckFreeSlot(SlotType.Inventory);
             _freeBankSlot = CheckFreeSlot(SlotType.Bank);
 
-            if (toItem != null && toItem.Template.BindId == 3 && toItem.Bounded != 1)
+            if (toItem != null && toItem.Template.BindType == ItemBindType.SoulboundEquip && !toItem.HasFlag(ItemFlag.SoulBound))
             {
-                toItem.Bounded = 1;
-                tasks.Add(new ItemUpdateBits(toItem, toItem.Bounded));
+                toItem.SetFlag(ItemFlag.SoulBound);
+                tasks.Add(new ItemUpdateBits(toItem));
             }
 
             Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SwapItems, tasks, removingItems));

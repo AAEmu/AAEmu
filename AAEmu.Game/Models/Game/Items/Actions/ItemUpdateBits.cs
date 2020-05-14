@@ -5,12 +5,10 @@ namespace AAEmu.Game.Models.Game.Items.Actions
     public class ItemUpdateBits : ItemTask
     {
         private readonly Item _item;
-        private readonly byte _bits;
 
-        public ItemUpdateBits(Item item, byte bits)
+        public ItemUpdateBits(Item item)
         {
             _item = item;
-            _bits = bits;
             _type = 0xA; // 10
             // 10 image
             // 20 unwrapp
@@ -22,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write((byte)_item.SlotType);
             stream.Write((byte)_item.Slot);
             stream.Write(_item.Id);
-            stream.Write(_bits);
+            stream.Write(_item.Flags);
             stream.Write((ulong)0);
             return stream;
         }

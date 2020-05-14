@@ -337,6 +337,18 @@ namespace AAEmu.Game.Models.Game.Units
         {
             _owner = owner == null ? null : new WeakReference(owner);
         }
+        
+        public void RemoveStealth()
+        {
+            var own = GetOwner();
+            if (own == null)
+                return;
+
+            foreach (var e in new List<Effect>(_effects))
+                if (e != null && (e.Template is BuffTemplate template && template.Stealth ||
+                                  e.Template is BuffEffect effect && effect.Buff.Stealth))
+                    e.Exit();
+        }
 
         private BaseUnit GetOwner()
         {

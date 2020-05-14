@@ -1177,7 +1177,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SpecialEffect();
                             template.Id = reader.GetUInt32("id");
-                            template.SpecialEffectTypeId = (SpecialEffectType)reader.GetInt32("special_effect_type_id");
+                            template.SpecialEffectTypeId = (SpecialType)reader.GetInt32("special_effect_type_id");
                             template.Value1 = reader.GetInt32("value1");
                             template.Value2 = reader.GetInt32("value2");
                             template.Value3 = reader.GetInt32("value3");
