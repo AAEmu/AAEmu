@@ -16,10 +16,26 @@ namespace AAEmu.Game.Models.Game.Char
 {
     public class ItemContainer
     {
+        private byte _containerSize ;
+        private byte _freeSlotCount ;
         public Character Owner { get; set; }
         public SlotType ContainerType { get; set; }
         public List<Item> Items { get; set; }
-        public int ContainerSize { get; set; }
+        public byte ContainerSize {
+            get {
+                return _containerSize;
+            }
+            set
+            {
+                _containerSize = value;
+                UpdateFreeSlotCount();
+            }
+        }
+        public byte FreeSlotCount { get
+            {
+                return _freeSlotCount;
+            }
+        }
 
         public ItemContainer(Character owner, SlotType containerType)
         {
@@ -40,6 +56,103 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        public void UpdateFreeSlotCount()
+        {
+            var usedSlots = from iSlot in Items select iSlot.Slot;
+            var res = 0;
+            for (int i = 0; i < ContainerSize; i++)
+            {
+                if (!usedSlots.Contains(i))
+                    res++;
+            }
+            res = res < byte.MaxValue ? res : byte.MaxValue;
+            _freeSlotCount = (byte)res;
+        }
+
+        private int GetUnusedSlot(int preferredSlot)
+        {
+            bool needNewSlot = false;
+            if (preferredSlot < 0)
+            {
+                needNewSlot = true;
+            }
+            else
+            {
+                foreach (var i in Items)
+                {
+                    if (i.Slot == preferredSlot)
+                    {
+                        needNewSlot = true;
+                        break;
+                    }
+                }
+            }
+            if (needNewSlot)
+            {
+                var usedSlots = from iSlot in Items where iSlot.Slot != preferredSlot select iSlot.Slot;
+                for(int i = 0; i < ContainerSize;i++)
+                {
+                    if (!usedSlots.Contains(i))
+                    {
+                        return i;
+                    }
+                }
+                // inventory container is full
+                return -1;
+            }
+            else
+            {
+                return preferredSlot;
+            }
+        }
+
+        public bool AddOrMoveItem(Item item, int preferredSlot = -1)
+        {
+            var sourceContainer = item._holdingContainer;
+            var newSlot = GetUnusedSlot(preferredSlot);
+            if (newSlot < 0)
+                return false; // Inventory Full
+            item.SlotType = ContainerType;
+            item.Slot = newSlot;
+            item._holdingContainer = this;
+            UpdateFreeSlotCount();
+            if (sourceContainer != null)
+                sourceContainer.UpdateFreeSlotCount();
+            return true;
+        }
+
+        public bool TryGetItemBySlot(int slot, out Item theItem)
+        {
+            foreach (var i in Items)
+                if (i.Slot == slot)
+                {
+                    theItem = i;
+                    return true;
+                }
+            theItem = null;
+            return false;
+        }
+
+        public bool TryGetItemByItemId(ulong item_id, out Item theItem)
+        {
+            foreach (var i in Items)
+                if (i.Id == item_id)
+                {
+                    theItem = i;
+                    return true;
+                }
+            theItem = null;
+            return false;
+        }
+
+        public bool RemoveItem(Item item,bool releaseIdAsWell)
+        {
+            bool res = item._holdingContainer.Items.Remove(item);
+            if (res && releaseIdAsWell)
+                ItemIdManager.Instance.ReleaseId((uint)item.Id);
+            return res;
+        }
+
     }
 
     public class Inventory
@@ -50,18 +163,50 @@ namespace AAEmu.Game.Models.Game.Char
         private int _freeBankSlot;
 
         public readonly Character Owner;
+
         public Item[] Equip { get; set; }
         public Item[] Items { get; set; }
         public Item[] Bank { get; set; }
-        public List<Item> MailItems { get; set; }
+
+        public Dictionary<SlotType, ItemContainer> _itemContainers { get; set; }
+        public ItemContainer Equipment { get; private set; }
+        public ItemContainer PlayerInventory { get; private set; }
+        public ItemContainer Warehouse { get; private set; }
+        public ItemContainer MailAttachments { get; private set; }
 
         public Inventory(Character owner)
         {
             Owner = owner;
+            // Create all container types
+            _itemContainers = new Dictionary<SlotType, ItemContainer>();
+
+            var SlotTypes = Enum.GetValues(typeof(SlotType));
+            foreach (var stv in SlotTypes)
+            {
+                SlotType st = (SlotType)stv;
+                var newContainer = new ItemContainer(owner, st);
+                _itemContainers.Add(st, newContainer);
+                switch(st)
+                {
+                    case SlotType.Equipment:
+                        Equipment = newContainer;
+                        break;
+                    case SlotType.Inventory:
+                        PlayerInventory = newContainer;
+                        break;
+                    case SlotType.Bank:
+                        Warehouse = newContainer;
+                        break;
+                    case SlotType.Mail:
+                        MailAttachments = newContainer;
+                        break;
+                }
+            }
+
+            
             Equip = new Item[28];
             Items = new Item[Owner.NumInventorySlots];
             Bank = new Item[Owner.NumBankSlots];
-            MailItems = new List<Item>();
         }
 
         #region Database
@@ -84,7 +229,7 @@ namespace AAEmu.Game.Models.Game.Char
                         Items[item.Slot] = item;
                         break;
                     case SlotType.Mail:
-                        MailItems.Add(item);
+                        MailAttachments.AddOrMoveItem(item);
                         break;
                     default:
                         _log.Warn("LoadInventory found unused itemId {0} for {1}", item.SlotType, Owner?.Name ?? "<system>");
@@ -501,7 +646,7 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var item in Bank)
                 if (item != null && item.Id == id)
                     return item;
-            foreach (var item in MailItems)
+            foreach (var item in MailAttachments.Items)
                 if (item != null && item.Id == id)
                     return item;
             return null;

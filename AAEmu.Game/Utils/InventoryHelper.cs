@@ -35,7 +35,7 @@ namespace AAEmu.Game.Utils
             character.Inventory.RemoveItem(item, false);
             item.SlotType = SlotType.Mail;
             item.Slot = -1;
-            character.Inventory.MailItems.Add(item);
+            character.Inventory.MailAttachments.AddOrMoveItem(item);
 
             character.SendPacket(
                 new SCItemTaskSuccessPacket(ItemTaskType.Destroy,

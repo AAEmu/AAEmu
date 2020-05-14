@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items
@@ -24,11 +25,15 @@ namespace AAEmu.Game.Models.Game.Items
 
         public virtual byte DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
+        // Helper
+        public ItemContainer _holdingContainer { get; set; }
+
         public Item()
         {
             WorldId = AppConfiguration.Instance.Id;
             OwnerId = 0;
             Slot = -1;
+            _holdingContainer = null;
         }
 
         public Item(byte worldId)
