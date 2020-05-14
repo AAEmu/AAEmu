@@ -382,7 +382,7 @@ CREATE TABLE `items` (
   `owner` int(11) unsigned NOT NULL,
   `grade` tinyint(1) DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
-  `flags` UNSIGNED tinyint(3) DEFAULT '0',
+  `flags` tinyint(3) unsigned DEFAULT '0',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `owner` (`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
