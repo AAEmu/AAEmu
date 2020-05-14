@@ -9,151 +9,12 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Utils.DB;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
 {
-    public class ItemContainer
-    {
-        private byte _containerSize ;
-        private byte _freeSlotCount ;
-        public Character Owner { get; set; }
-        public SlotType ContainerType { get; set; }
-        public List<Item> Items { get; set; }
-        public byte ContainerSize {
-            get {
-                return _containerSize;
-            }
-            set
-            {
-                _containerSize = value;
-                UpdateFreeSlotCount();
-            }
-        }
-        public byte FreeSlotCount { get
-            {
-                return _freeSlotCount;
-            }
-        }
-
-        public ItemContainer(Character owner, SlotType containerType)
-        {
-            Owner = owner;
-            ContainerType = containerType;
-            Items = new List<Item>();
-            ContainerSize = 10;
-        }
-
-        public void ReNumberSlots()
-        {
-            var c = 0;
-            foreach(var i in Items)
-            {
-                i.SlotType = ContainerType;
-                i.Slot = c;
-                c++;
-            }
-        }
-
-        public void UpdateFreeSlotCount()
-        {
-            var usedSlots = from iSlot in Items select iSlot.Slot;
-            var res = 0;
-            for (int i = 0; i < ContainerSize; i++)
-            {
-                if (!usedSlots.Contains(i))
-                    res++;
-            }
-            res = res < byte.MaxValue ? res : byte.MaxValue;
-            _freeSlotCount = (byte)res;
-        }
-
-        private int GetUnusedSlot(int preferredSlot)
-        {
-            bool needNewSlot = false;
-            if (preferredSlot < 0)
-            {
-                needNewSlot = true;
-            }
-            else
-            {
-                foreach (var i in Items)
-                {
-                    if (i.Slot == preferredSlot)
-                    {
-                        needNewSlot = true;
-                        break;
-                    }
-                }
-            }
-            if (needNewSlot)
-            {
-                var usedSlots = from iSlot in Items where iSlot.Slot != preferredSlot select iSlot.Slot;
-                for(int i = 0; i < ContainerSize;i++)
-                {
-                    if (!usedSlots.Contains(i))
-                    {
-                        return i;
-                    }
-                }
-                // inventory container is full
-                return -1;
-            }
-            else
-            {
-                return preferredSlot;
-            }
-        }
-
-        public bool AddOrMoveItem(Item item, int preferredSlot = -1)
-        {
-            var sourceContainer = item._holdingContainer;
-            var newSlot = GetUnusedSlot(preferredSlot);
-            if (newSlot < 0)
-                return false; // Inventory Full
-            item.SlotType = ContainerType;
-            item.Slot = newSlot;
-            item._holdingContainer = this;
-            UpdateFreeSlotCount();
-            if (sourceContainer != null)
-                sourceContainer.UpdateFreeSlotCount();
-            return true;
-        }
-
-        public bool TryGetItemBySlot(int slot, out Item theItem)
-        {
-            foreach (var i in Items)
-                if (i.Slot == slot)
-                {
-                    theItem = i;
-                    return true;
-                }
-            theItem = null;
-            return false;
-        }
-
-        public bool TryGetItemByItemId(ulong item_id, out Item theItem)
-        {
-            foreach (var i in Items)
-                if (i.Id == item_id)
-                {
-                    theItem = i;
-                    return true;
-                }
-            theItem = null;
-            return false;
-        }
-
-        public bool RemoveItem(Item item,bool releaseIdAsWell)
-        {
-            bool res = item._holdingContainer.Items.Remove(item);
-            if (res && releaseIdAsWell)
-                ItemIdManager.Instance.ReleaseId((uint)item.Id);
-            return res;
-        }
-
-    }
 
     public class Inventory
     {
@@ -164,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public readonly Character Owner;
 
-        public Item[] Equip { get; set; }
+        // public Item[] Equip { get; set; }
         public Item[] Items { get; set; }
         public Item[] Bank { get; set; }
 
@@ -184,17 +45,20 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var stv in SlotTypes)
             {
                 SlotType st = (SlotType)stv;
-                var newContainer = new ItemContainer(owner, st);
+                var newContainer = new ItemContainer(owner.Id, st);
                 _itemContainers.Add(st, newContainer);
                 switch(st)
                 {
                     case SlotType.Equipment:
+                        newContainer.ContainerSize = 28;
                         Equipment = newContainer;
                         break;
                     case SlotType.Inventory:
+                        newContainer.ContainerSize = Owner.NumInventorySlots;
                         PlayerInventory = newContainer;
                         break;
                     case SlotType.Bank:
+                        newContainer.ContainerSize = Owner.NumBankSlots;
                         Warehouse = newContainer;
                         break;
                     case SlotType.Mail:
@@ -202,9 +66,8 @@ namespace AAEmu.Game.Models.Game.Char
                         break;
                 }
             }
-
             
-            Equip = new Item[28];
+            //Equip = new Item[28];
             Items = new Item[Owner.NumInventorySlots];
             Bank = new Item[Owner.NumBankSlots];
         }
@@ -220,7 +83,8 @@ namespace AAEmu.Game.Models.Game.Char
                 switch(item.SlotType)
                 {
                     case SlotType.Equipment:
-                        Equip[item.Slot] = item;
+                        if (!Equipment.AddOrMoveItem(item, item.Slot))
+                            throw new Exception("Was unable to add player equipment to the correct slot.");
                         break;
                     case SlotType.Inventory:
                         Items[item.Slot] = item;
@@ -316,10 +180,11 @@ namespace AAEmu.Game.Models.Game.Char
             }
             */
 
+            /*
             if (slotType == null || slotType == SlotType.Equipment)
-                foreach (var item in Equip.Where(x => x != null))
+                foreach (var item in Equipment.Items.Where(x => x != null))
                     item.Template = ItemManager.Instance.GetTemplate(item.TemplateId);
-
+            */
             if (slotType == null || slotType == SlotType.Inventory)
             {
                 foreach (var item in Items.Where(x => x != null))
@@ -460,8 +325,15 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void RemoveItem(Item item, bool release)
         {
+            /*
             if (item.SlotType == SlotType.Equipment)
                 Equip[item.Slot] = null;
+            */
+            if (item.SlotType == SlotType.Equipment)
+            {
+                Equipment.RemoveItem(item, release);
+                return;
+            }
             else if (item.SlotType == SlotType.Inventory)
             {
                 Items[item.Slot] = null;
@@ -515,7 +387,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (slotType == SlotType.Inventory)
                 items = Items;
             else if (slotType == SlotType.Equipment)
-                items = Equip;
+                items = Equipment.Items.ToArray();
             else if (slotType == SlotType.Bank)
                 items = Bank;
 
@@ -572,14 +444,20 @@ namespace AAEmu.Game.Models.Game.Char
             tasks.Add(new ItemMove(fromType, fromSlot, fromItemId, toType, toSlot, toItemId));
 
             if (fromType == SlotType.Equipment)
-                Equip[fromSlot] = toItem;
+            {
+                Equipment.AddOrMoveItem(toItem, fromSlot);
+                //Equip[fromSlot] = toItem;
+            }
             else if (fromType == SlotType.Inventory)
                 Items[fromSlot] = toItem;
             else if (fromType == SlotType.Bank)
                 Bank[fromSlot] = toItem;
 
             if (toType == SlotType.Equipment)
-                Equip[toSlot] = fromItem;
+            {
+                Equipment.AddOrMoveItem(fromItem, toSlot);
+                // Equip[toSlot] = fromItem;
+            }
             else if (toType == SlotType.Inventory)
                 Items[toSlot] = fromItem;
             else if (toType == SlotType.Bank)
@@ -612,13 +490,13 @@ namespace AAEmu.Game.Models.Game.Char
                 Owner.BroadcastPacket(
                     new SCUnitEquipmentsChangedPacket(Owner.ObjId, new[]
                     {
-                        (fromSlot, Equip[fromSlot])
+                        (fromSlot, Equipment.GetItemBySlot(fromSlot))
                     }), false);
             if (toType == SlotType.Equipment)
                 Owner.BroadcastPacket(
                     new SCUnitEquipmentsChangedPacket(Owner.ObjId, new[]
                     {
-                        (toSlot, Equip[toSlot])
+                        (toSlot, Equipment.GetItemBySlot(toSlot))
                     }), false);
         }
 
@@ -637,7 +515,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public Item GetItem(ulong id)
         {
-            foreach (var item in Equip)
+            foreach (var item in Equipment.Items)
                 if (item != null && item.Id == id)
                     return item;
             foreach (var item in Items)
@@ -662,7 +540,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public Item GetItemByTemplateId(ulong templateId)
         {
-            foreach (var item in Equip)
+            foreach (var item in Equipment.Items)
                 if (item != null && item.TemplateId == templateId)
                     return item;
             foreach (var item in Items)
@@ -680,7 +558,7 @@ namespace AAEmu.Game.Models.Game.Char
                     // TODO ...
                     break;
                 case SlotType.Equipment:
-                    item = Equip[slot];
+                    item = Equipment.GetItemBySlot(slot);
                     break;
                 case SlotType.Inventory:
                     item = Items[slot];

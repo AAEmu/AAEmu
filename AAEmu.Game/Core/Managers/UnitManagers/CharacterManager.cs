@@ -564,10 +564,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 item = ItemManager.Instance.Create(templateId, 1, grade);
                 item.SlotType = SlotType.Equipment;
-                item.Slot = (int) slot;
+                item.Slot = (int)slot;
             }
 
-            inventory.Equip[(int) slot] = item;
+            inventory.Equipment.AddOrMoveItem(item, (int)slot);
+            //inventory.Equip[(int) slot] = item;
         }
     }
 }

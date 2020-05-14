@@ -132,7 +132,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             if (_unit is Character)
             {
                 var character = (Character)_unit;
-                foreach (var item in character.Inventory.Equip)
+                foreach (var item in character.Inventory.Equipment.GetSlottedItemsList())
                 {
                     if (item == null)
                         stream.Write(0);

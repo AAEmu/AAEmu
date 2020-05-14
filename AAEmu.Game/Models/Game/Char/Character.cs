@@ -162,7 +162,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var result = formula.Evaluate(parameters);
                 var res = (int)result;
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Str;
                 foreach (var bonus in GetBonuses(UnitAttribute.Str))
@@ -184,7 +184,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dex);
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Dex;
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
@@ -206,7 +206,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Sta);
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Sta;
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
@@ -228,7 +228,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Int);
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Int;
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
@@ -250,7 +250,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Spi);
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Spi;
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
@@ -474,7 +474,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon)Inventory.Equip[(int)EquipmentItemSlot.Mainhand];
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.Dps ?? 0;
                 res += Str / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
@@ -520,7 +520,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon)Inventory.Equip[(int)EquipmentItemSlot.Offhand];
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
                 var res = weapon?.Dps ?? 0;
                 res += Str / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.OffhandDps))
@@ -539,7 +539,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon)Inventory.Equip[(int)EquipmentItemSlot.Ranged];
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
                 var res = weapon?.Dps ?? 0;
                 res += Dex / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDps))
@@ -585,7 +585,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon)Inventory.Equip[(int)EquipmentItemSlot.Mainhand];
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.MDps ?? 0;
                 res += Int / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
@@ -641,7 +641,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                 {
                     switch (item)
                     {
@@ -684,7 +684,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                 {
                     switch (item)
                     {
@@ -1343,7 +1343,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Expedition?.Id ?? 0);
             stream.Write(Family);
 
-            foreach (var item in Inventory.Equip)
+            foreach(var item in Inventory.Equipment.GetSlottedItemsList())
             {
                 if (item == null)
                     stream.Write(0);
