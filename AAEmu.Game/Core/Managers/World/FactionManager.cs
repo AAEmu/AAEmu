@@ -49,7 +49,7 @@ namespace AAEmu.Game.Core.Managers.World
                             var faction = new SystemFaction
                             {
                                 Id = reader.GetUInt32("id"),
-                                Name = reader.GetString("name"),
+                                Name = LocalizationManager.Instance.Get("system_factions", "name", reader.GetUInt32("id")),
                                 OwnerName = reader.GetString("owner_name"),
                                 UnitOwnerType = (sbyte) reader.GetInt16("owner_type_id"),
                                 OwnerId = reader.GetUInt32("owner_id"),

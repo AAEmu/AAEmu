@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Managers
             newAuctionItem.ItemID = newItem.Template.Id;
             newAuctionItem.ObjectID = 0;
             newAuctionItem.Grade = newItem.Grade;
-            newAuctionItem.Flags = newItem.Bounded;
+            newAuctionItem.Flags = newItem.Flags;
             newAuctionItem.StackSize = (uint)newItem.Count;
             newAuctionItem.DetailType = 0;
             newAuctionItem.CreationTime = DateTime.Now;

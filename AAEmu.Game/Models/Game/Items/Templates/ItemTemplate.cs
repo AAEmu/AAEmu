@@ -2,6 +2,16 @@
 
 namespace AAEmu.Game.Models.Game.Items.Templates
 {
+    public enum ItemBindType
+    {
+        Normal = 1,
+        SoulboundPickup = 2,
+        SoulboundEquip = 3,
+        SoulboundUnpack = 4,
+        SoulboundPickupPack = 5,
+        SoulboundPickupAuctionWin = 6,
+    }
+    
     public class ItemTemplate
     {
         public virtual Type ClassType => typeof(Item);
@@ -15,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int Level { get; set; }
         public int Price { get; set; }
         public int Refund { get; set; }
-        public uint BindId { get; set; }
+        public ItemBindType BindType { get; set; }
         public int PickupLimit { get; set; }
         public int MaxCount { get; set; }
         public bool Sellable { get; set; }
