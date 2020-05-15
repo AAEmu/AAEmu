@@ -88,7 +88,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if(_skillTags.ContainsKey(skillId))
                 return _skillTags[skillId];
-            return null;
+            return new List<uint>();
         }
         
         public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
@@ -102,7 +102,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if(_skillModifiers.ContainsKey(id))
                 return _skillModifiers[id];
-            return null;
+            return new List<SkillModifier>();
         }
 
         public void Load()
