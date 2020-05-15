@@ -315,7 +315,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
         }
-        public void Drop()
+        public void Drop(bool update)
         {
             Status = QuestStatus.Dropped;
             for (var i = 0; i < 5; i++)

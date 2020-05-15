@@ -64,8 +64,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                              caster.LevelDps * levelMd + 0.5f);
             }
 
-            min += (int)((caster.MDps + caster.MDpsInc) * DpsMultiplier * 0.001f * unk2 + 0.5f);
-            max += (int)((caster.MDps + caster.MDpsInc) * DpsMultiplier * 0.001f * unk2 + 0.5f);
+            min += (int)((caster.HDps + caster.HDpsInc) * DpsMultiplier * 0.001f * unk2 + 0.5f);
+            max += (int)((caster.HDps + caster.HDpsInc) * DpsMultiplier * 0.001f * unk2 + 0.5f);
 
             var value = Rand.Next(min, max);
             trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, value), true);

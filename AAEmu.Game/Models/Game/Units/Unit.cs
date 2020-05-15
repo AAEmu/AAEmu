@@ -33,6 +33,8 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int RangedDpsInc { get; set; }
         public virtual int MDps { get; set; }
         public virtual int MDpsInc { get; set; }
+        public virtual int HDps { get; set; }
+        public virtual int HDpsInc { get; set; }
         public virtual int Armor { get; set; }
         public virtual int MagicResistance { get; set; }
         public BaseUnit CurrentTarget { get; set; }
@@ -84,6 +86,18 @@ namespace AAEmu.Game.Models.Game.Units
                 //StartRegen();
             }
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
+        }
+        
+        public virtual void ReduceCurrentMp(Unit unit, int value)
+        {
+            if (Hp == 0)
+                return;
+            Mp = Math.Max(Mp - value, 0);
+            if (Mp == 0)
+                StopRegen();
+            else
+                StartRegen();
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
         public virtual void DoDie(Unit killer)

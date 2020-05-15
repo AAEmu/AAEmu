@@ -4,6 +4,16 @@ using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items
 {
+    public enum ItemFlag {
+        None = 0x0,
+        SoulBound = 0x1,
+        HasUCC = 0x2,
+        Secure = 0x4,
+        Skinized = 0x8,
+        Unpacked = 0x10,
+        AuctionWin = 0x20
+    }
+    
     public class Item : PacketMarshaler
     {
         public byte WorldId { get; set; }
@@ -13,13 +23,14 @@ namespace AAEmu.Game.Models.Game.Items
         public SlotType SlotType { get; set; }
         public int Slot { get; set; }
         public byte Grade { get; set; }
-        public byte Bounded { get; set; }
         public int Count { get; set; }
         public int LifespanMins { get; set; }
         public uint MadeUnitId { get; set; }
         public DateTime CreateTime { get; set; }
         public DateTime UnsecureTime { get; set; }
         public DateTime UnpackTime { get; set; }
+        public byte Flags { get; set; }
+        public uint ImageItemTemplateId { get; set; }
 
         public virtual byte DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
@@ -67,7 +78,7 @@ namespace AAEmu.Game.Models.Game.Items
             //     return stream;
             stream.Write(Id);
             stream.Write(Grade);
-            stream.Write(Bounded); //bounded
+            stream.Write(Flags);
             stream.Write(Count);
             stream.Write(DetailType);
             WriteDetails(stream);
@@ -86,6 +97,18 @@ namespace AAEmu.Game.Models.Game.Items
 
         public virtual void WriteDetails(PacketStream stream)
         {
+        }
+        
+        public virtual bool HasFlag(ItemFlag flag) {
+            return (Flags & (byte)flag) == (byte)flag;
+        }
+
+        public virtual void SetFlag(ItemFlag flag) {
+            Flags |= (byte)flag;
+        }
+
+        public virtual void RemoveFlag(ItemFlag flag) {
+            Flags &= (byte)~flag;
         }
     }
 }

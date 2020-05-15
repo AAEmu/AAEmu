@@ -12,5 +12,6 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public uint RechargeBuffId { get; set; }
         public int ChargeLifetime { get; set; }
         public int ChargeCount { get; set; }
+        public ItemLookConvert ItemLookConvert { get; set; }
     }
 }

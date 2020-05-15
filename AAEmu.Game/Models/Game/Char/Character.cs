@@ -626,6 +626,50 @@ namespace AAEmu.Game.Models.Game.Char
                 return (int)res;
             }
         }
+        
+        public override int HDps
+        {
+            get
+            {
+                var weapon = (Weapon) Inventory.Equip[(int) EquipmentItemSlot.Mainhand];
+                var res = weapon?.HDps ?? 0;
+                res += Spi / 5f;
+                foreach(var bonus in GetBonuses(UnitAttribute.HealDps))
+                {
+                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int) (res * 1000);
+            }
+        }
+
+        public override int HDpsInc
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.HealDpsInc);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                parameters["str"] = Str;
+                parameters["dex"] = Dex;
+                parameters["sta"] = Sta;
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                parameters["fai"] = Fai;
+                var res = formula.Evaluate(parameters);
+                foreach(var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
+                {
+                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int) res;
+            }
+        }
 
         public override int Armor
         {
