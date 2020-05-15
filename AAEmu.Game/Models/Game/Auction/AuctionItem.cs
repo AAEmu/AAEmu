@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.Auction
     public class AuctionItem
     {
         public ulong ID { get; set; }
+        public string ItemName { get; set; };
         public byte Duration { get; set; }
         public uint ItemID { get; set; }
         public ulong ObjectID { get; set; }
