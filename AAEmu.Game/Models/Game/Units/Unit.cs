@@ -33,6 +33,8 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int RangedDpsInc { get; set; }
         public virtual int MDps { get; set; }
         public virtual int MDpsInc { get; set; }
+        public virtual int HDps { get; set; }
+        public virtual int HDpsInc { get; set; }
         public virtual int Armor { get; set; }
         public virtual int MagicResistance { get; set; }
         public BaseUnit CurrentTarget { get; set; }

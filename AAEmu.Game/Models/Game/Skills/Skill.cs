@@ -358,7 +358,9 @@ namespace AAEmu.Game.Models.Game.Skills
 
             var time = (ushort)(step.Flag != 0 ? step.Delay / 10 : 0);
             var unkId = step.Casting || step.Channeling ? caster.ObjId : 0;
-            caster.BroadcastPacket(new SCPlotEventPacket(TlId, step.Event.Id, Template.Id, caster.ObjId, target.ObjId, unkId, time, step.Flag), true);
+            var casterPlotObj = new PlotObject(caster);
+            var targetPlotObj = new PlotObject(target);
+            caster.BroadcastPacket(new SCPlotEventPacket(TlId, step.Event.Id, Template.Id, casterPlotObj, targetPlotObj, unkId, time, step.Flag), true);
 
             foreach (var st in step.Steps)
             {
