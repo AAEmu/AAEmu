@@ -1343,7 +1343,8 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Expedition?.Id ?? 0);
             stream.Write(Family);
 
-            foreach(var item in Inventory.Equipment.GetSlottedItemsList())
+            var items = Inventory.Equipment.GetSlottedItemsList();
+            foreach (var item in items)
             {
                 if (item == null)
                     stream.Write(0);

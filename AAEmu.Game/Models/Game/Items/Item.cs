@@ -27,6 +27,7 @@ namespace AAEmu.Game.Models.Game.Items
 
         // Helper
         public ItemContainer _holdingContainer { get; set; }
+        public static uint Coins = 500;
 
         public Item()
         {

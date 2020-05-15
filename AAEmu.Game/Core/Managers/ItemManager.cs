@@ -155,7 +155,7 @@ namespace AAEmu.Game.Core.Managers
             }
             var item2 = new Item
             {
-                TemplateId = 500,
+                TemplateId = Item.Coins,
                 WorldId = 1,
                 CreateTime = DateTime.Now,
                 Id = ++itemId,
@@ -184,7 +184,7 @@ namespace AAEmu.Game.Core.Managers
         public void TookLootDropItem(Character character,List<Item> lootDropItems, Item lootDropItem, int count)
         {
             var objId = (uint)(lootDropItem.Id >> 32);
-            if (lootDropItem.TemplateId == 500)
+            if (lootDropItem.TemplateId == Item.Coins)
             {
                 character.Money += lootDropItem.Count;
                 character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectGainItem,

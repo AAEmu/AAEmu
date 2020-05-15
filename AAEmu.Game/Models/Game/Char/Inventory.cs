@@ -78,6 +78,11 @@ namespace AAEmu.Game.Models.Game.Char
         {
 
             var playeritems = ItemManager.Instance.LoadPlayerInventory(Owner);
+            foreach (var container in _itemContainers)
+            {
+                container.Value.Items.Clear();
+                container.Value.UpdateFreeSlotCount();
+            }
             foreach(var item in playeritems)
             {
                 switch(item.SlotType)
@@ -87,9 +92,13 @@ namespace AAEmu.Game.Models.Game.Char
                             throw new Exception("Was unable to add player equipment to the correct slot.");
                         break;
                     case SlotType.Inventory:
+                        //if (!PlayerInventory.AddOrMoveItem(item, item.Slot))
+                        //    throw new Exception("Was unable to add item to player inventory using the defined slot.");
                         Items[item.Slot] = item;
                         break;
                     case SlotType.Bank:
+                        //if (!Warehouse.AddOrMoveItem(item, item.Slot))
+                        //    throw new Exception("Was unable to add item to player inventory using the defined slot.");
                         Items[item.Slot] = item;
                         break;
                     case SlotType.Mail:
@@ -387,7 +396,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (slotType == SlotType.Inventory)
                 items = Items;
             else if (slotType == SlotType.Equipment)
-                items = Equipment.Items.ToArray();
+                items = Equipment.GetSlottedItemsList().ToArray();
             else if (slotType == SlotType.Bank)
                 items = Bank;
 
@@ -502,7 +511,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public bool TakeoffBackpack()
         {
-            var backpack = GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+            var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
             if (backpack == null) return true;
 
             // Move to first available slot
@@ -547,6 +556,11 @@ namespace AAEmu.Game.Models.Game.Char
                 if (item != null && item.TemplateId == templateId)
                     return item;
             return null;
+        }
+
+        public Item GetEquippedBySlot(EquipmentItemSlot slot)
+        {
+            return Equipment.GetItemBySlot((byte)slot);
         }
 
         public Item GetItem(SlotType type, byte slot)

@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -37,11 +37,12 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (_craft.IsPack)
             {
-                var item = Owner.Inventory.GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+                var item = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
                 var backpackTemplate = (BackpackTemplate)item?.Template;
                 if (backpackTemplate != null && backpackTemplate.BackpackType != BackpackType.Glider)
                 {
-                    // TODO mb check to drop glider to inventory
+                    // mb check to drop glider to inventory
+                    //if (!Owner.Inventory.TakeoffBackpack())
                     CancelCraft();
                     return;
                 }
@@ -89,12 +90,19 @@ namespace AAEmu.Game.Models.Game.Char
                 else
                 {
                     // Remove player backpack
-                    Owner.Inventory.TakeoffBackpack();
-                    // Put tradepack in their backpack slot
-                    var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
-                    InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
-                    Owner.Inventory.Move(resultItem.Id, resultItem.SlotType, (byte)resultItem.Slot, 0,
-                        SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+                    if (Owner.Inventory.TakeoffBackpack())
+                    {
+                        // Put tradepack in their backpack slot
+                        var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
+                        InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
+                        Owner.Inventory.Move(resultItem.Id, resultItem.SlotType, (byte)resultItem.Slot, 0,
+                            SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+                    }
+                    else
+                    {
+                        CancelCraft();
+                        return;
+                    }
                 }
             }
 

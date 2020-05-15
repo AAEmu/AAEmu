@@ -87,7 +87,7 @@ namespace AAEmu.Game.Models.Game.Items
                 highestSlot++;
                 return preferredSlot > highestSlot ? preferredSlot : highestSlot;
             }
-            // Try to find
+            // Check the preferred slot to see if it's free, or if we need to assign a new one
             bool needNewSlot = false;
             if (preferredSlot < 0)
             {
@@ -104,6 +104,7 @@ namespace AAEmu.Game.Models.Game.Items
                     }
                 }
             }
+            // Find a new slot if needed
             if (needNewSlot)
             {
                 var usedSlots = from iSlot in Items where iSlot.Slot != preferredSlot select iSlot.Slot;
@@ -117,6 +118,7 @@ namespace AAEmu.Game.Models.Game.Items
                 // inventory container is full
                 return -1;
             }
+            // Otherwise just return the preferred slot
             else
             {
                 return preferredSlot;
@@ -125,7 +127,7 @@ namespace AAEmu.Game.Models.Game.Items
 
         public bool AddOrMoveItem(Item item, int preferredSlot = -1)
         {
-            ItemContainer sourceContainer = item._holdingContainer;
+            ItemContainer sourceContainer = item?._holdingContainer;
             var newSlot = GetUnusedSlot(preferredSlot);
             if (newSlot < 0)
                 return false; // Inventory Full
@@ -198,6 +200,7 @@ namespace AAEmu.Game.Models.Game.Items
                 res.Add(GetItemBySlot(i));
             return res;
         }
+
     }
 
 }

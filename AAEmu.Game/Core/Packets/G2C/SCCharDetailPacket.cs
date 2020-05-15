@@ -33,7 +33,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_character.Position.ZoneId);
             stream.Write(DateTime.Now); // lastWorldLeaveTime
 
-            foreach (var item in _character.Inventory.Equipment.GetSlottedItemsList())
+            var items = _character.Inventory.Equipment.GetSlottedItemsList();
+            foreach (var item in items)
             {
                 if (item == null)
                     stream.Write(0);
