@@ -192,6 +192,10 @@ namespace AAEmu.Game.Models.Game.Units
                 }
 
                 _effects.Add(effect);
+                
+                if (effect.Template.BuffId > 0)
+                    owner.Modifiers.AddModifiers(effect.Template.BuffId);
+                
                 if (effect.Duration > 0)
                     effect.SetInUse(true, false);
                 else
@@ -216,6 +220,7 @@ namespace AAEmu.Game.Models.Game.Units
 
                 effect.SetInUse(false, false);
                 _effects.Remove(effect);
+                own.Modifiers.RemoveModifiers(effect.Template.BuffId);
             }
         }
 
@@ -234,6 +239,7 @@ namespace AAEmu.Game.Models.Game.Units
                         e.Template.Dispel(e.Caster, e.Owner, e);
                         _effects.Remove(e);
                         e.SetInUse(false, false);
+                        own.Modifiers.RemoveModifiers(e.Template.BuffId);
                     }
                 }
             }
@@ -254,6 +260,7 @@ namespace AAEmu.Game.Models.Game.Units
                         e.Template.Dispel(e.Caster, e.Owner, e);
                         _effects.Remove(e);
                         e.SetInUse(false, false);
+                        own.Modifiers.RemoveModifiers(e.Template.BuffId);
                         break;
                     }
                 }
@@ -275,6 +282,7 @@ namespace AAEmu.Game.Models.Game.Units
                     e.Template.Dispel(e.Caster, e.Owner, e);
                     _effects.Remove(e);
                     e.SetInUse(false, false);
+                    own.Modifiers.RemoveModifiers(e.Template.BuffId);
                     break;
                 }
             }
@@ -328,6 +336,18 @@ namespace AAEmu.Game.Models.Game.Units
         public void SetOwner(BaseUnit owner)
         {
             _owner = owner == null ? null : new WeakReference(owner);
+        }
+        
+        public void RemoveStealth()
+        {
+            var own = GetOwner();
+            if (own == null)
+                return;
+
+            foreach (var e in new List<Effect>(_effects))
+                if (e != null && (e.Template is BuffTemplate template && template.Stealth ||
+                                  e.Template is BuffEffect effect && effect.Buff.Stealth))
+                    e.Exit();
         }
 
         private BaseUnit GetOwner()

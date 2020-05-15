@@ -28,10 +28,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (Delay > 0)
             {
                 owner.GrowthTime = DateTime.Now.AddMilliseconds(Delay); // TODO ... need here?
-                // выполняем действие
+                // perform action
                 owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true); // TODO door, windows with delay of this timer...
 
-                // планируем выполнение действия NextPhase
+                // plan the execution of NextPhase
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay));
             }

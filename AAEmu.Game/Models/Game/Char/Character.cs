@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
@@ -46,6 +47,7 @@ namespace AAEmu.Game.Models.Game.Char
     public sealed class Character : Unit
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        public static Dictionary<uint, uint> _usedCharacterObjIds = new Dictionary<uint, uint>();
 
         private Dictionary<ushort, string> _options;
 
@@ -719,8 +721,13 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void AddExp(int exp, bool shouldAddAbilityExp)
         {
+            var expMultiplier = 1d;
             if (exp == 0)
                 return;
+            if (float.TryParse(ConfigurationManager.Instance.GetConfiguration("ExperienceMultiplierInPercent"), out var xpm))
+                expMultiplier = xpm / 100f;
+            var totalExp = Math.Round(expMultiplier * exp);
+            exp = (int)totalExp;
             Expirience += exp;
             if (shouldAddAbilityExp)
                 Abilities.AddActiveExp(exp); // TODO ... or all?
@@ -859,6 +866,11 @@ namespace AAEmu.Game.Models.Game.Char
         public void SendMessage(ChatType type, string message, params object[] parameters)
         {
             SendPacket(new SCChatMessagePacket(type, string.Format(message, parameters)));
+        }
+
+        public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
+        {
+            SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
         }
 
         public void SendPacket(GamePacket packet)

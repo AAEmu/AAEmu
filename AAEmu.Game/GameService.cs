@@ -29,10 +29,12 @@ namespace AAEmu.Game
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
+            LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
 
             ItemIdManager.Instance.Initialize();
+            ChatManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
             FamilyIdManager.Instance.Initialize();
             ExpeditionIdManager.Instance.Initialize();
@@ -53,6 +55,7 @@ namespace AAEmu.Game
 
             FormulaManager.Instance.Load();
             ExpirienceManager.Instance.Load();
+            ConfigurationManager.Instance.Load();
 
             TlIdManager.Instance.Initialize();
             ItemManager.Instance.Load();
@@ -109,6 +112,7 @@ namespace AAEmu.Game
 
             HousingManager.Instance.Save();
             MailManager.Instance.Save();
+            TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }
 

@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -54,6 +55,9 @@ namespace AAEmu.Game.Models.Game.Skills
             //        return;
             //    }
             //}
+            
+            // TODO : Add check for range
+            var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
 
             if (skillObject == null)
             {
@@ -538,7 +542,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
                         var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
                         var isRaegent = itemUsed.Template.UseSkillAsReagent;
-                        if(isRaegent) //if item is a raegent
+                        if (isRaegent) //if item is a raegent
                         {
                             if (caster is Character player)
                             {
@@ -546,7 +550,7 @@ namespace AAEmu.Game.Models.Game.Skills
                                 var tasks = new List<ItemTask>();
                                 foreach (var (item, count) in items)
                                 {
-                                    InventoryHelper.RemoveItemAndUpdateClient(player, item, count);
+                                    InventoryHelper.RemoveItemAndUpdateClient(player, item, count, ItemTaskType.SkillReagents);
                                 }
                             }
                         }

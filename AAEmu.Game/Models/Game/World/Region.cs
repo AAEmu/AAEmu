@@ -117,12 +117,14 @@ namespace AAEmu.Game.Models.Game.World
                     if (t is Npc npc)
                     {
                         // exclude Training Scarecrow from move objects and others NPC
-                        if (npc.TemplateId != 7512 || npc.TemplateId != 7513 || npc.TemplateId != 7511 ||
-                            npc.TemplateId != 9129 || npc.TemplateId != 9449)
+                        if (npc.TemplateId == 7512 || npc.TemplateId == 7513 || npc.TemplateId == 7511 ||
+                            npc.TemplateId == 9129 || npc.TemplateId == 9449)
                         {
                             // do nothing for these NPCs.
                         }
                         else
+                        // We're gonna get the NPC's favorites on the road.
+                        // Nui Forest keeper Arthur
                         // We're gonna get the NPC's favorites on the road.
                         // Nui Forest keeper Arthur
                         if (npc.TemplateId == 11999)
@@ -132,6 +134,19 @@ namespace AAEmu.Game.Models.Game.World
                                 npc.IsInPatrol = true; // so as not to run the route a second time
                                 var path = new Simulation(npc);
                                 path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
+                                path.ReadPath();
+                                path.GoToPath(npc, true);
+                            }
+                        }
+                        else
+                            // Nui Woodcutter Solace
+                        if (npc.TemplateId == 12143)
+                        {
+                            if (!npc.IsInPatrol)
+                            {
+                                npc.IsInPatrol = true; // so as not to run the route a second time
+                                var path = new Simulation(npc);
+                                path.MoveFileName = @"NuiWoodcutterSolace"; // path file name
                                 path.ReadPath();
                                 path.GoToPath(npc, true);
                             }
@@ -186,7 +201,7 @@ namespace AAEmu.Game.Models.Game.World
                             if (npc.Patrol == null)
                             {
                                 Patrol patrol = null;
-                                var rnd = Rand.Next(0, 800);
+                                var rnd = Rand.Next(0, 1000);
                                 if (rnd > 700)
                                 {
                                     // NPC stand still

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -28,13 +29,31 @@ namespace AAEmu.Game.Utils
             return true;
         }
 
-        public static bool RemoveItemAndUpdateClient(Character character, Item item, int count)
+        public static bool RemoveItemForMailing(Character character, Item item)
+        {
+            // character.Inventory.Move(item.Id, SlotType.Inventory, (byte)item.Slot, item.Id, SlotType.Mail, 0);
+            character.Inventory.RemoveItem(item, false);
+            item.SlotType = SlotType.Mail;
+            item.Slot = -1;
+            character.Inventory.MailItems.Add(item);
+
+            character.SendPacket(
+                new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
+                    new List<ItemTask>
+                    {
+                        new ItemRemove(item)
+                    },
+                    new List<ulong>()));
+            return true;
+        }
+
+        public static bool RemoveItemAndUpdateClient(Character character, Item item, int count, ItemTaskType type = ItemTaskType.Destroy, bool releaseId = true)
         {
             if (item.Count > count)
             {
                 item.Count -= count;
                 character.SendPacket(
-                    new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
+                    new SCItemTaskSuccessPacket(type,
                         new List<ItemTask>
                         {
                             new ItemCountUpdate(item, -count)
@@ -45,9 +64,9 @@ namespace AAEmu.Game.Utils
             if (item.Count != count)
                 return false;
 
-            character.Inventory.RemoveItem(item, true);
+            character.Inventory.RemoveItem(item, releaseId);
             character.SendPacket(
-                new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
+                new SCItemTaskSuccessPacket(type,
                     new List<ItemTask>
                     {
                         new ItemRemove(item)

@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var questId = stream.ReadUInt32();
-            Connection.ActiveChar.Quests.Drop(questId);
+            Connection.ActiveChar.Quests.Drop(questId, true);
         }
     }
 }
