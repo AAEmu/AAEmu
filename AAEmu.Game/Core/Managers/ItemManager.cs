@@ -548,7 +548,8 @@ namespace AAEmu.Game.Core.Managers
                                 DurabilityRatio = reader.GetFloat("durability_ratio"),
                                 RenewCategory = reader.GetInt32("renew_category"),
                                 ItemProcId = reader.GetInt32("item_proc_id"),
-                                StatMultiplier = reader.GetInt32("stat_multiplier")
+                                StatMultiplier = reader.GetInt32("stat_multiplier"),
+                                FormulaHDps = new Formula(reader.GetString("formula_hdps"))
                             };
 
                             _holdables.Add(template.Id, template);

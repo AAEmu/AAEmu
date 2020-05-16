@@ -294,7 +294,6 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     var itemCount = item.Count;
                     var temp = Math.Min(count, itemCount);
-                    item.Count -= temp;
                     count -= temp;
                     if (count < 0)
                         count = 0;
@@ -311,7 +310,7 @@ namespace AAEmu.Game.Models.Game.Char
                         }
                     }
 
-                    res.Add((item, itemCount - item.Count));
+                    res.Add((item, itemCount - (item.Count - temp)));
                     if (count == 0)
                         break;
                 }
