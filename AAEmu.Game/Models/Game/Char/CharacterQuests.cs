@@ -45,7 +45,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (template == null)
                 return;
             var quest = new Quest(template);
-            quest.Id = Quests.Count + 1; // TODO временно, переделать
+            quest.Id = QuestIdManager.Instance.GetNextId();
             quest.Status = QuestStatus.Progress;
             quest.Owner = Owner;
             Quests.Add(quest.TemplateId, quest);
@@ -113,6 +113,7 @@ namespace AAEmu.Game.Models.Game.Char
             quest.Drop(update);
             Quests.Remove(questId);
             _removed.Add(questId);
+            QuestIdManager.Instance.ReleaseId((uint)quest.Id);
         }
 
         public void OnKill(Npc npc)
