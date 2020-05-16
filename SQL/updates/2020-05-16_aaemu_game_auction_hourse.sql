@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS `auction_house`;
 CREATE TABLE `auction_house` (
   `id` int NOT NULL AUTO_INCREMENT,
   `duration` tinyint NOT NULL,
