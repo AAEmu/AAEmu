@@ -113,6 +113,7 @@ namespace AAEmu.Game.Models.Game.Char
             quest.Drop(update);
             Quests.Remove(questId);
             _removed.Add(questId);
+            QuestIdManager.Instance.ReleaseId((uint)quest.Id);
         }
 
         public void OnKill(Npc npc)
