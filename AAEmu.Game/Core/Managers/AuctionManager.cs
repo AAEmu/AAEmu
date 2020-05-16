@@ -14,6 +14,7 @@ using NLog;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Packets.C2G;
+using AAEmu.Game.Core.Packets.G2L;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -100,6 +101,20 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
+        public void CancelAuctionItem(Character player, ulong auctionId)
+        {
+            var auctionItem = GetAuctionItemFromID(auctionId);
+
+            if(auctionItem != null)
+            {
+                player.SendPacket(new SCAuctionCanceledPacket(auctionItem));
+                var moneyToSubtract = auctionItem.DirectMoney * .01f;
+                player.ChangeMoney(SlotType.None, -(int)moneyToSubtract); //TODO not correct way to subtract money. 
+                //TODO Mail item to player.
+                _auctionItems.Remove(auctionItem);
+            }
+        }
+
         public AuctionItem GetAuctionItemFromID(ulong auctionId)
         {
             for (int i = 0; i < _auctionItems.Count; i++)
@@ -110,24 +125,23 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void BidOnAuctionItem(Character player, ulong auctionId, string biddersName, uint bidAmount)
+        public void BidOnAuctionItem(Character player, ulong auctionId, uint bidAmount)
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
             if(auctionItem != null)
             {
                 if (bidAmount >= auctionItem.BidMoney) //Buy now
-                    RemoveAuctionItemSold(auctionItem, biddersName, auctionItem.DirectMoney);
+                    RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
 
                 else if(bidAmount > auctionItem.BidMoney)
                 {
-                    if(auctionItem.BidderName != biddersName)
+                    if(auctionItem.BidderName != player.Name)
                     {
-
-                        auctionItem.BidderName = biddersName;
+                        auctionItem.BidderId = player.Id;
+                        auctionItem.BidderName = player.Name;
                         auctionItem.BidMoney = bidAmount;
-                        var biddingPlayer = WorldManager.Instance.GetCharacter(biddersName);
-                        biddingPlayer.ChangeMoney(SlotType.Inventory, -(int)bidAmount);
-                        biddingPlayer.SendPacket(new SCAuctionBidPacket(auctionItem));
+                        player.ChangeMoney(SlotType.Inventory, -(int)bidAmount);//TODO
+                        player.SendPacket(new SCAuctionBidPacket(auctionItem));
                     }
                 }
             }
@@ -317,7 +331,10 @@ namespace AAEmu.Game.Core.Managers
                 BidderId = 0,
                 BidderName = "",
                 BidMoney = 0,
-                Extra = 0
+                Extra = 0,
+                CategoryA = (uint)newItem.Template.AuctionCategoryA,
+                CategoryB = (uint)newItem.Template.AuctionCategoryB,
+                CategoryC = (uint)newItem.Template.AuctionCategoryC
             };
             return newAuctionItem;
         }
