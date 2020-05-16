@@ -1,14 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    class SCAuctionPostedPacket : GamePacket
+    class SCAuctionCanceledPacket : GamePacket
     {
         private readonly AuctionItem item;
-        public SCAuctionPostedPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionPostedPacket, 1)
+        public SCAuctionCanceledPacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionCanceledPacket,1)
         {
             item = auctionItem;
         }
@@ -34,9 +36,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(item.ClientName);
             stream.Write(item.StartMoney);
             stream.Write(item.DirectMoney);
-            var Random = new Random();
-            var offsett = item.TimeLeft + (ulong)Random.Next(0, 10);
-            stream.Write(offsett);
+            stream.Write(item.TimeLeft);
             stream.Write(item.BidWorldID);
             stream.Write(item.BidderId);
             stream.Write(item.BidderName);
