@@ -202,7 +202,7 @@ namespace AAEmu.Game.Models.Game.Items
             var sourceItemTasks = new List<ItemTask>();
 
             if ((item.SlotType == SlotType.Inventory) && (item.Template.LootQuestId > 0) && (sourceContainer?.Owner != Owner))
-                Owner?.Quests.OnItemGather(item, item.Count);
+                Owner?.Quests?.OnItemGather(item, item.Count);
 
             item.SlotType = ContainerType;
             item.Slot = newSlot;

@@ -1094,7 +1094,7 @@ namespace AAEmu.Game.Core.Managers
                             command.Parameters.AddWithValue("@id", item.Id);
                             command.Parameters.AddWithValue("@type", item.GetType().ToString());
                             command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                            command.Parameters.AddWithValue("@slot_type", (byte)item.SlotType);
+                            command.Parameters.AddWithValue("@slot_type", item.SlotType);
                             command.Parameters.AddWithValue("@slot", item.Slot);
                             command.Parameters.AddWithValue("@count", item.Count);
                             command.Parameters.AddWithValue("@details", details.GetBytes());
