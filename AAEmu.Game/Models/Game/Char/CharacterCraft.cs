@@ -28,11 +28,15 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var craftMaterial in craft.CraftMaterials)
             {
+                if (Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount)
+                    hasMaterials = false;
+                /*
                 var materialItem = Owner.Inventory.GetItemByTemplateId(craftMaterial.ItemId);
                 if (materialItem == null || materialItem.Count < craftMaterial.Amount)
                 {
                     hasMaterials = false;
                 }
+                */
             }
 
             if (_craft.IsPack)
@@ -71,21 +75,23 @@ namespace AAEmu.Game.Models.Game.Char
             if (_craft == null)
                 return;
 
-            if (Owner.Inventory.CountFreeSlots(SlotType.Inventory) < _craft.CraftProducts.Count)
+            if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < _craft.CraftProducts.Count)
                 return;
 
             foreach (var material in _craft.CraftMaterials)
             {
-                var materialItem = Owner.Inventory.GetItemByTemplateId(material.ItemId);
-                InventoryHelper.RemoveItemAndUpdateClient(Owner, materialItem, material.Amount);
+                Owner.Inventory.PlayerInventory.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount);
+                //var materialItem = Owner.Inventory.GetItemByTemplateId(material.ItemId);
+                //InventoryHelper.RemoveItemAndUpdateClient(Owner, materialItem, material.Amount);
             }
 
             foreach (var product in _craft.CraftProducts)
             {
                 if (!_craft.IsPack)
                 {
-                    var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
-                    InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
+                    Owner.Inventory.PlayerInventory.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
+                    //var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
+                    //InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
                 }
                 else
                 {
@@ -93,10 +99,10 @@ namespace AAEmu.Game.Models.Game.Char
                     if (Owner.Inventory.TakeoffBackpack())
                     {
                         // Put tradepack in their backpack slot
-                        var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
-                        InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
-                        Owner.Inventory.Move(resultItem.Id, resultItem.SlotType, (byte)resultItem.Slot, 0,
-                            SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+                        Owner.Inventory.Equipment.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
+                        // var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
+                        // InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
+                        // Owner.Inventory.Move(resultItem.Id, resultItem.SlotType, (byte)resultItem.Slot, 0, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
                     }
                     else
                     {

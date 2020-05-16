@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else if (skillCaster is SkillItem)
             {
-                var item = Connection.ActiveChar.Inventory.GetItem(((SkillItem)skillCaster).ItemId);
+                var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
                 if (item == null || skillId != item.Template.UseSkillId)
                     return;
                 Connection.ActiveChar.Quests.OnItemUse(item);

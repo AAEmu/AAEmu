@@ -88,7 +88,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var item = ItemManager.Instance.Create(itemId, count, grade);
                 if (item == null)
                     return;
-                var res = Connection.ActiveChar.Inventory.AddItem(item);
+                var res = Connection.ActiveChar.Inventory.AddItem(ItemTaskType.StoreBuy, item);
                 if (res == null)
                 {
                     ItemManager.Instance.ReleaseId(item.Id);
@@ -103,7 +103,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             foreach (var (item, index) in itemsBuyBack)
             {
-                var res = Connection.ActiveChar.Inventory.AddItem(item);
+                var res = Connection.ActiveChar.Inventory.AddItem(ItemTaskType.StoreBuy, item);
                 if (res == null)
                 {
                     ItemManager.Instance.ReleaseId(item.Id);

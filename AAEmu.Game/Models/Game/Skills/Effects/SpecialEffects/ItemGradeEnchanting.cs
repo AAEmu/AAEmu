@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -31,60 +31,95 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
         public void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, int Value1, int Value2, int Value3, int Value4)
         {
+            // Get player
             Character character = (Character) caster;
             if (character == null) return;
 
+            // Get Regrade Scroll Item
             SkillItem scroll = (SkillItem) casterObj;
             if (scroll == null) return;
 
+            // Get Item to upgrade
             SkillCastUnk3Target itemTarget = (SkillCastUnk3Target) targetObj;
             if (itemTarget == null) return;
 
+            // Using a charm / support ?
             var useCharm = false;
             SkillObjectItemGradeEnchantingSupport charm = (SkillObjectItemGradeEnchantingSupport) skillObject;
             if (charm != null && charm.SupportItemId != 0) useCharm = true;
             
+            // Get regrade stats
             bool isLucky = Value1 != 0;
-            Item item = character.Inventory.GetItem(itemTarget.Id);
+            Item item = character.Inventory.GetItemById(itemTarget.Id);
             var initialGrade = item.Grade;
             var gradeTemplate = ItemManager.Instance.GetGradeTemplate(item.Grade);
-            var tasks = new List<ItemTask>();
 
+            // var tasks = new List<ItemTask>();
+
+            // Check Money Cost
             int cost = GoldCost(gradeTemplate, item, Value3);
             if (cost == -1) return;
+            if (character.Money < cost)
+            {
+                character.SendErrorMessage(Error.ErrorMessageType.NotEnoughMoney);
+                return;
+            }
+            //character.Money -= cost;
+            //tasks.Add(new MoneyChange(-cost));
 
-            if (character.Money < cost) return;
-            character.Money -= cost;
-            tasks.Add(new MoneyChange(-cost));
+            // Check Scroll (does it still exist)
+            if (!character.Inventory.CheckItems(SlotType.Inventory, scroll.ItemTemplateId, 1))
+            {
+                character.SendErrorMessage(Error.ErrorMessageType.NotEnoughRequiredItem);  // TODO: should this be NotEnoughRequiredItem ?
+                return;
+            }
+            //Item scrollItem = character.Inventory.GetItem(scroll.ItemId);
+            //tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, scrollItem, 1));
 
-            if (!character.Inventory.CheckItems(scroll.ItemTemplateId, 1)) return;
-            Item scrollItem = character.Inventory.GetItem(scroll.ItemId);
-            tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, scrollItem, 1));
-        
+            // Check Charms
             ItemGradeEnchantingSupport charmInfo = null;
+            Item charmItem = null;
             if (useCharm) { 
-                Item charmItem = character.Inventory.GetItem(charm.SupportItemId);
+                charmItem = character.Inventory.GetItemById(charm.SupportItemId);
                 if (charmItem == null) return;
 
                 charmInfo = ItemManager.Instance.GetItemGradEnchantingSupportByItemId(charmItem.TemplateId);
 
-                if (charmInfo.RequireGradeMin != -1 && item.Grade < charmInfo.RequireGradeMin) return;
-                if (charmInfo.RequireGradeMax != -1 && item.Grade > charmInfo.RequireGradeMax) return;
-
-                tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, charmItem, 1));
+                if (charmInfo.RequireGradeMin != -1 && item.Grade < charmInfo.RequireGradeMin)
+                {
+                    character.SendErrorMessage(Error.ErrorMessageType.ItemCannotUse); // TODO: Not sure what to send as a error for charm too high
+                    return;
+                }
+                if (charmInfo.RequireGradeMax != -1 && item.Grade > charmInfo.RequireGradeMax)
+                {
+                    character.SendErrorMessage(Error.ErrorMessageType.GradeEnchantMax);
+                    return;
+                }
+                //tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, charmItem, 1));
             }
+
+            // OK, everything seems to be in order, let's regrade !
+            // Remove money and items
+            character.Money -= cost;
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, new List<ItemTask>() { new MoneyChange(-cost) }, new List<ulong>()));
+            character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, scroll.ItemTemplateId, 1);
+            if (useCharm)
+                character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, charmItem.TemplateId, 1);
 
             var result = RollRegrade(gradeTemplate, item, isLucky, useCharm, charmInfo);
 
-            if (result == GradeEnchantResult.Break) {
-                tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, item, 1));
+            if (result == GradeEnchantResult.Break) 
+            {
+                item._holdingContainer.RemoveItem(ItemTaskType.GradeEnchant, item, true);
+                //tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, item, 1));
             } else {
                 // TODO : make sure grade updates with itemupdate
-                tasks.Add(new ItemGradeChange(item, item.Grade));
+                // tasks.Add(new ItemGradeChange(item, item.Grade));
+                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, new List<ItemTask>() { new ItemGradeChange(item, item.Grade) }, new List<ulong>()));
             }
             
             character.SendPacket(new SCGradeEnchantResultPacket((byte)result, item, initialGrade, item.Grade));
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, tasks, new List<ulong>()));
+            //character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, tasks, new List<ulong>()));
 
             if (item.Grade >= 8 && (result == GradeEnchantResult.Success || result == GradeEnchantResult.GreatSuccess)) {
                 WorldManager.Instance.BroadcastPacketToServer(new SCGradeEnchantBroadcastPacket(character.Name, (byte)result, item, initialGrade, item.Grade));

@@ -134,7 +134,7 @@ namespace AAEmu.Game.Models.Game.Char
                 mailFee += 10 ;
             else if (mailTemplate.Header.Type == 2)
                 mailFee += 100 ;
-            Self.ChangeMoney(SlotType.Inventory, -mailFee);
+            Self.ChangeMoney(SlotType.None, SlotType.Inventory, -mailFee);
 
             MailManager.Instance.NotifyNewMailByNameIfOnline(mailTemplate, receiverName);
         }
@@ -146,7 +146,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var thisMail = MailManager.Instance._allPlayerMails[id];
                 if (thisMail.Body.MoneyAmount1 > 0 && money)
                 {
-                    Self.ChangeMoney(SlotType.Inventory, thisMail.Body.MoneyAmount1);
+                    Self.ChangeMoney(SlotType.None, SlotType.Inventory, thisMail.Body.MoneyAmount1);
                     thisMail.Body.MoneyAmount1 = 0;
                     thisMail.Header.Attachments -= 1;
                 }

@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         {
             _log.Debug("QuestActConAcceptItem: ItemId {0}", ItemId);
             // TODO Cleanup
-            return character.Inventory.CheckItems(ItemId, 1);
+            return character.Inventory.CheckItems(Items.SlotType.Inventory, ItemId, 1);
         }
     }
 }

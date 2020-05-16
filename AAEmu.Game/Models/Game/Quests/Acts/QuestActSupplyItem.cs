@@ -28,6 +28,16 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                 return true;
             else
             {
+                var template = ItemManager.Instance.GetTemplate(ItemId);
+                if (template is BackpackTemplate backpackTemplate)
+                {
+                    return character.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+                }
+                else
+                {
+                    return character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+                }
+                /*
                 var tasks = new List<ItemTask>();
                 var item = ItemManager.Instance.Create(ItemId, Count, GradeId);
                 if (item == null)
@@ -46,6 +56,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                 if (backpackTemplate != null && backpackTemplate.BackpackType == BackpackType.TradePack )
                     character.Inventory.Move(item.Id, item.SlotType, (byte)item.Slot, 0, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
                 return true;
+                */
             }
         }
     }

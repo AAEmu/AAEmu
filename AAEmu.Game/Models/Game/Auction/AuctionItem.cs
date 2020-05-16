@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Auction
 {
@@ -9,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Auction
         public uint ItemID { get; set; }
         public ulong ObjectID { get; set; }
         public byte Grade { get; set; }
-        public byte Flags { get; set; }
+        public ItemFlag Flags { get; set; }
         public uint StackSize { get; set; }
         public byte DetailType { get; set; }
         public DateTime CreationTime { get; set; }

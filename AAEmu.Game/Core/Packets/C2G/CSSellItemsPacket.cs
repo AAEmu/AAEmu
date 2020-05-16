@@ -41,7 +41,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (slotType == SlotType.Equipment)
                     item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
                 else if (slotType == SlotType.Inventory)
-                    item = Connection.ActiveChar.Inventory.Items[slot];
+                    item = Connection.ActiveChar.Inventory.PlayerInventory.GetItemBySlot(slot);
 //                else if (slotType == SlotType.Bank)
 //                    item = Connection.ActiveChar.Inventory.Bank[slot];
                 if (item != null && item.Id == itemId)
@@ -54,7 +54,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 if (!item.Template.Sellable)
                     continue;
-                Connection.ActiveChar.Inventory.RemoveItem(item, false);
+                Connection.ActiveChar.Inventory.RemoveItem(ItemTaskType.StoreSell, item, false);
                 var res = false;
                 for (var i = 0; i < 20; i++)
                 {

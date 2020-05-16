@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
             var lootGroups = ItemManager.Instance.GetLootGroups(LootPackId);
-            var lootPackItem = character.Inventory.GetItem(lootPack.ItemId);
+            var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
 
             _log.Debug("LootGroups {0}", lootGroups);
 
@@ -233,7 +233,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (character == null) return;
             var lootPack = (SkillItem)casterObj;
             if (lootPack == null) return;
-            var lootPackItem = character.Inventory.GetItem(lootPack.ItemId);
+            var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
+            character?.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillReagents, lootPackItem.TemplateId, consumeCount);
+            /*
             if (lootPackItem.Count > 1)
             {
                 lootPackItem.Count -= consumeCount;
@@ -255,6 +257,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         },
                         new List<ulong>()));
             }
+            */
         }
     }
 }

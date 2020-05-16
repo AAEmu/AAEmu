@@ -454,7 +454,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 foreach (var item in items.Supplies)
                 {
                     var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
-                    character.Inventory.AddItem(createdItem);
+                    character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
 
                     character.SetAction(slot, ActionSlotType.Item, item.Id);
                     slot++;
@@ -465,7 +465,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     foreach (var item in items.Supplies)
                     {
                         var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
-                        character.Inventory.AddItem(createdItem);
+                        character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
 
                         character.SetAction(slot, ActionSlotType.Item, item.Id);
                         slot++;
@@ -567,7 +567,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 item.Slot = (int)slot;
             }
 
-            inventory.Equipment.AddOrMoveItem(item, (int)slot);
+            inventory.Equipment.AddOrMoveExistingItem(0, item, (int)slot);
             //inventory.Equip[(int) slot] = item;
         }
     }

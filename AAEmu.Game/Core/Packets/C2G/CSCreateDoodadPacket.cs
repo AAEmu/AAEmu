@@ -61,9 +61,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var player = Connection.ActiveChar;
                     foreach (var item in items)
                     {
-                        var itemToRemove = player.Inventory.GetItemBeItemId(item);
+                        player.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.DoodadCreate, item, 1);
+                        /*
+                        var itemToRemove = player.Inventory.GetItemByItemId(item);
                         if(itemToRemove != null)
                             InventoryHelper.RemoveItemAndUpdateClient(player, itemToRemove, 1);
+                        */
                     }
                 }
             }

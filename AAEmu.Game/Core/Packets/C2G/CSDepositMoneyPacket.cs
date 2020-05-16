@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("DepositMoney: amount -> {0}, aa_point -> {1}", amount, aapoint);
 
-            Connection.ActiveChar.ChangeMoney(SlotType.Bank, amount);
+            Connection.ActiveChar.ChangeMoney(SlotType.Inventory, SlotType.Bank, amount);
         }
     }
 }

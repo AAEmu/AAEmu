@@ -5,7 +5,29 @@ using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items
 {
-    public class Item : PacketMarshaler
+    public enum ItemBindType : uint
+    {
+        Normal = 1,
+        BindOnPickup = 2,
+        BindOnEquip = 3,
+        BindOnUnwrap = 4,
+        BindOnPackPickup = 5,
+        BindOnAuctionWin = 6
+    }
+
+    [Flags]
+    public enum ItemFlag : byte
+    {
+        None = 0x00,
+        SoulBound = 0x01,
+        HasUCC = 0x02,
+        Secure = 0x04,
+        Skinized = 0x08,
+        Unpacked = 0x10,
+        AuctionWin = 0x20
+    }
+
+    public class Item : PacketMarshaler, IComparable<Item>
     {
         public byte WorldId { get; set; }
         public ulong OwnerId { get; set; }
@@ -15,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Items
         public SlotType SlotType { get; set; }
         public int Slot { get; set; }
         public byte Grade { get; set; }
-        public byte Bounded { get; set; }
+        public ItemFlag ItemFlags { get; set; }
         public int Count { get; set; }
         public int LifespanMins { get; set; }
         public uint MadeUnitId { get; set; }
@@ -28,6 +50,17 @@ namespace AAEmu.Game.Models.Game.Items
         // Helper
         public ItemContainer _holdingContainer { get; set; }
         public static uint Coins = 500;
+
+        /// <summary>
+        /// Sort will use itemSlot numbers
+        /// </summary>
+        /// <param name="otherItem"></param>
+        /// <returns></returns>
+        public int CompareTo(Item otherItem)
+        {
+            if (otherItem == null) return 1;
+            return this.Slot.CompareTo(otherItem.Slot);
+        }
 
         public Item()
         {
@@ -78,7 +111,7 @@ namespace AAEmu.Game.Models.Game.Items
             //     return stream;
             stream.Write(Id);
             stream.Write(Grade);
-            stream.Write(Bounded); //bounded
+            stream.Write((byte)ItemFlags); //bounded
             stream.Write(Count);
             stream.Write(DetailType);
             WriteDetails(stream);

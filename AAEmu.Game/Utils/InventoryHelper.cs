@@ -12,6 +12,8 @@ namespace AAEmu.Game.Utils
     {
         public static bool AddItemAndUpdateClient(Character character, Item item)
         {
+            return (character.Inventory.AddItem(ItemTaskType.Invalid, item) != null);
+            /*
             var res = character.Inventory.AddItem(item);
             if (res == null)
             {
@@ -27,16 +29,17 @@ namespace AAEmu.Game.Utils
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, tasks,
                 new List<ulong>()));
             return true;
+            */
         }
 
         public static bool RemoveItemForMailing(Character character, Item item)
         {
             // character.Inventory.Move(item.Id, SlotType.Inventory, (byte)item.Slot, item.Id, SlotType.Mail, 0);
-            character.Inventory.RemoveItem(item, false);
+            character.Inventory.RemoveItem(ItemTaskType.Mail, item, false);
             item.SlotType = SlotType.Mail;
             item.Slot = -1;
-            character.Inventory.MailAttachments.AddOrMoveItem(item);
-
+            return character.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
+            /*
             character.SendPacket(
                 new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
                     new List<ItemTask>
@@ -45,8 +48,10 @@ namespace AAEmu.Game.Utils
                     },
                     new List<ulong>()));
             return true;
+            */
         }
 
+        /*
         public static bool RemoveItemAndUpdateClient(Character character, Item item, int count, bool releaseId = true)
         {
             if (item.Count > count)
@@ -86,5 +91,6 @@ namespace AAEmu.Game.Utils
             character.Inventory.RemoveItem(item, true);
             return new ItemRemove(item);
         }
+        */
     }
 }

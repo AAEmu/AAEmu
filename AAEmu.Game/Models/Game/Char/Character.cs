@@ -768,48 +768,43 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void ChangeMoney(SlotType typeTo, int amount)
+        public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount)
         {
-            switch (typeTo)
+            var itemTasks = new List<ItemTask>();
+            switch(typeFrom)
             {
-                case SlotType.Bank:
-                    if ((Money - amount) >= 0)
-                    {
-                        Money -= amount;
-                        Money2 += amount;
-                        SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney,
-                            new List<ItemTask>
-                            {
-                                new MoneyChange(-amount),
-                                new MoneyChangeBank(amount)
-                            },
-                            new List<ulong>()));
-                    }
-                    else
-                        _log.Warn("Not Money in Inventory.");
-
-                    break;
                 case SlotType.Inventory:
-                    if ((Money2 - amount) >= 0)
+                    if (amount > Money)
                     {
-                        Money2 -= amount;
-                        Money += amount;
-                        SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.WithdrawMoney,
-                            new List<ItemTask>
-                            {
-                                new MoneyChange(amount),
-                                new MoneyChangeBank(-amount)
-                            },
-                            new List<ulong>()));
+                        SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                        return false;
                     }
-                    else
-                        _log.Warn("Not Money in Bank.");
-
+                    Money -= amount;
+                    itemTasks.Add(new MoneyChange(-amount));
                     break;
-                default:
-                    _log.Warn("Change Money!");
+                case SlotType.Bank:
+                    if (amount > Money2)
+                    {
+                        SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                        return false;
+                    }
+                    Money2 -= amount;
+                    itemTasks.Add(new MoneyChangeBank(-amount));
                     break;
             }
+            switch (typeTo)
+            {
+                case SlotType.Inventory:
+                    Money += amount;
+                    itemTasks.Add(new MoneyChange(amount));
+                    break;
+                case SlotType.Bank:
+                    Money2 += amount;
+                    itemTasks.Add(new MoneyChangeBank(amount));
+                    break;
+            }
+            SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney, itemTasks, new List<ulong>()));
+            return true;
         }
 
         public void ChangeLabor(short change, int actabilityId)

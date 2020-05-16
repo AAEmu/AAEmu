@@ -7,10 +7,10 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         private readonly Item _item;
         private readonly byte _bits;
 
-        public ItemUpdateBits(Item item, byte bits)
+        public ItemUpdateBits(Item item, ItemFlag bits)
         {
             _item = item;
-            _bits = bits;
+            _bits = (byte)bits;
             _type = 0xA; // 10
             // 10 image
             // 20 unwrapp

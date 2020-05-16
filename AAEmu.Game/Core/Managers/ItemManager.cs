@@ -345,8 +345,8 @@ namespace AAEmu.Game.Core.Managers
 
             item.Grade = grade;
             
-            if(item.Template.BindId == 2) // Bind on pickup. 
-                item.Bounded = 1;
+            if(item.Template.BindId == ItemBindType.BindOnPickup) // Bind on pickup. 
+                item.ItemFlags |= ItemFlag.SoulBound;
 
             if (item.Template.FixedGrade >= 0)
                 item.Grade = (byte)item.Template.FixedGrade;
@@ -836,7 +836,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Level = reader.GetInt32("level");
                             template.Price = reader.GetInt32("price");
                             template.Refund = reader.GetInt32("refund");
-                            template.BindId = reader.GetUInt32("bind_id");
+                            template.BindId = (ItemBindType)reader.GetUInt32("bind_id");
                             template.PickupLimit = reader.GetInt32("pickup_limit");
                             template.MaxCount = reader.GetInt32("max_stack_size");
                             template.Sellable = reader.GetBoolean("sellable", true);
@@ -1105,7 +1105,7 @@ namespace AAEmu.Game.Core.Managers
                             command.Parameters.AddWithValue("@created_at", item.CreateTime);
                             command.Parameters.AddWithValue("@owner", item.OwnerId);
                             command.Parameters.AddWithValue("@grade", item.Grade);
-                            command.Parameters.AddWithValue("@bounded", item.Bounded);
+                            command.Parameters.AddWithValue("@bounded", (byte)item.ItemFlags);
                             command.ExecuteNonQuery();
                             command.Parameters.Clear();
                             updateCount++;
@@ -1194,7 +1194,7 @@ namespace AAEmu.Game.Core.Managers
                         item.UnsecureTime = reader.GetDateTime("unsecure_time");
                         item.UnpackTime = reader.GetDateTime("unpack_time");
                         item.CreateTime = reader.GetDateTime("created_at");
-                        item.Bounded = reader.GetByte("bounded");
+                        item.ItemFlags = (ItemFlag)reader.GetByte("bounded");
                         var details = (Commons.Network.PacketStream)(byte[])reader.GetValue("details");
                         item.ReadDetails(details);
 

@@ -25,14 +25,14 @@ namespace AAEmu.Game.Core.Managers
 
         public void ListAuctionItem(Character player, ulong itemTeplateId, uint startPrice, uint buyoutPrice, byte duration)
         {
-            var newItem = player.Inventory.GetItem((uint)itemTeplateId);
+            var newItem = player.Inventory.GetItemById((uint)itemTeplateId);
             var newAuctionItem = new AuctionItem();
             newAuctionItem.ID = GetNextID();
             newAuctionItem.Duration = 5;
             newAuctionItem.ItemID = newItem.Template.Id;
             newAuctionItem.ObjectID = 0;
             newAuctionItem.Grade = newItem.Grade;
-            newAuctionItem.Flags = newItem.Bounded;
+            newAuctionItem.Flags = newItem.ItemFlags;
             newAuctionItem.StackSize = (uint)newItem.Count;
             newAuctionItem.DetailType = 0;
             newAuctionItem.CreationTime = DateTime.Now;
@@ -61,8 +61,13 @@ namespace AAEmu.Game.Core.Managers
             if (auctionFee > 1000000)//100 gold max fee
                 auctionFee = 1000000;
 
-            player.ChangeMoney(SlotType.Inventory, -(int)auctionFee);
-            InventoryHelper.RemoveItemAndUpdateClient(player, newItem, newItem.Count);
+            if (!player.ChangeMoney(SlotType.None, SlotType.Inventory, -(int)auctionFee))
+            {
+                player.SendErrorMessage(Models.Game.Error.ErrorMessageType.CanNotPutupMoney);
+                return;
+            }
+            player.Inventory.PlayerInventory.RemoveItem(Models.Game.Items.Actions.ItemTaskType.Auction, newItem, true);
+            // InventoryHelper.RemoveItemAndUpdateClient(player, newItem, newItem.Count);
             _auctionItems.Add(newAuctionItem);
             player.SendPacket(new SCAuctionPostedPacket(newAuctionItem));
         }
@@ -149,7 +154,7 @@ namespace AAEmu.Game.Core.Managers
                         auctionItem.BidderName = biddersName;
                         auctionItem.BidMoney = bidAmount;
                         var biddingPlayer = WorldManager.Instance.GetCharacter(biddersName);
-                        biddingPlayer.ChangeMoney(SlotType.Inventory, -(int)bidAmount);
+                        biddingPlayer.ChangeMoney(SlotType.None, SlotType.Inventory, -(int)bidAmount);
                         biddingPlayer.SendPacket(new SCAuctionBidPacket(auctionItem));
                         //TODO send mail back to player who is losing bid
                     }
@@ -338,7 +343,7 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.ItemID = reader.GetUInt32("item_id");
                             auctionItem.ObjectID = reader.GetUInt32("object_id");
                             auctionItem.Grade = reader.GetByte("grade");
-                            auctionItem.Flags = reader.GetByte("flags");
+                            auctionItem.Flags = (ItemFlag)reader.GetByte("flags");
                             auctionItem.StackSize = reader.GetUInt32("stack_size");
                             auctionItem.DetailType = reader.GetByte("detail_type");
                             auctionItem.CreationTime = reader.GetDateTime("creation_time");

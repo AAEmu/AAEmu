@@ -535,7 +535,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
                     if (casterCaster is SkillItem castItem) // TODO Clean up. 
                     {
-
+                        var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
+                        if ((castItemTemplate.UseSkillAsReagent) && (caster is Character player))
+                            player.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount);
+                        /*
                         var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
                         var isRaegent = itemUsed.Template.UseSkillAsReagent;
                         if(isRaegent) //if item is a raegent
@@ -551,13 +554,17 @@ namespace AAEmu.Game.Models.Game.Skills
                             }
                         }
                         ItemManager.Instance.ReleaseId(itemUsed.Id);
+                        */
                     }
                     if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
                     {
                         if (effect.ConsumeSourceItem)
                         {
+                            if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount))
+                                continue;
+                            /*
                             var item = ItemManager.Instance.Create(effect.ConsumeItemId, effect.ConsumeItemCount, 0);
-                            var res = character.Inventory.AddItem(item);
+                            var res = character.Inventory.AddItem(ItemTaskType.SkillEffectGainItem, item);
                             if (res == null)
                             {
                                 ItemManager.Instance.ReleaseId(res.Id);
@@ -574,6 +581,7 @@ namespace AAEmu.Game.Models.Game.Skills
                                 tasks.Add(new ItemAdd(item));
                             }
                             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectConsumption, tasks, new List<ulong>()));
+                            */
                         }
                         else
                         {
@@ -584,6 +592,13 @@ namespace AAEmu.Game.Models.Game.Skills
                                 continue;
                             }
 
+                            if (inventory)
+                                character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount);
+                            else 
+                            if (equipment)
+                                character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount);
+
+                            /*
                             var tasks = new List<ItemTask>();
 
                             if (inventory)
@@ -609,6 +624,7 @@ namespace AAEmu.Game.Models.Game.Skills
                             }
 
                             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectConsumption, tasks, new List<ulong>()));
+                            */
                         }
                     }
 

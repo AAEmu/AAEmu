@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int Level { get; set; }
         public int Price { get; set; }
         public int Refund { get; set; }
-        public uint BindId { get; set; }
+        public ItemBindType BindId { get; set; }
         public int PickupLimit { get; set; }
         public int MaxCount { get; set; }
         public bool Sellable { get; set; }

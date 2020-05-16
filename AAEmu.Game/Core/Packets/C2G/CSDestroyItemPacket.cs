@@ -40,7 +40,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else
             {
-                Connection.ActiveChar.Inventory.RemoveItem(item, true);
+                Connection.ActiveChar.Inventory.RemoveItem(ItemTaskType.Destroy, item, true);
                 Connection.SendPacket(
                     new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
                         new List<ItemTask>
