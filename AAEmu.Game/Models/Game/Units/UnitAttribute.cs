@@ -141,6 +141,7 @@ namespace AAEmu.Game.Models.Game.Units
         SpellDamageCriticalMul = 151,
         SpellDamageCriticalBonus = 152,
         RangedParry = 153,
-        RangedParryMul = 154
+        RangedParryMul = 154,
+        HealDps = 173
     }
 }
