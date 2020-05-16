@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Items;
 using NLog;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.C2G;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -25,12 +26,16 @@ namespace AAEmu.Game.Core.Managers
 
         public void ListAuctionItem(Character player, ulong itemTeplateId, uint startPrice, uint buyoutPrice, byte duration)
         {
-            var newAuctionItem = CreateAuctionItem(player, itemTeplateId, startPrice, buyoutPrice, duration);
+            var newItem = player.Inventory.GetItem((ulong)itemTeplateId);
+            var newAuctionItem = CreateAuctionItem(player, newItem, startPrice, buyoutPrice, duration);
 
             if (newAuctionItem == null) //TODO
                 return;
 
-            var auctionFee = newAuctionItem.DirectMoney * .01;
+            if (newItem == null) //TODO
+                return;
+
+            var auctionFee = (newAuctionItem.DirectMoney * .01) * (duration + 1);
 
             if (auctionFee > 1000000)//100 gold max fee
                 auctionFee = 1000000;
@@ -145,7 +150,7 @@ namespace AAEmu.Game.Core.Managers
                         var tempItemList = new List<AuctionItem>();
                         for (int i = startingItemNumber; i < endingitemNumber; i++)
                         {
-                            if (auctionItemsFound.ElementAtOrDefault(i) != null && auctionItemsFound[i].ClientName == searchTemplate.Player.Name)
+                            if (auctionItemsFound.ElementAtOrDefault(i) != null && auctionItemsFound[i].ClientId == searchTemplate.Player.Id)
                                 tempItemList.Add(auctionItemsFound[i]);
                         }
                         auctionItemsFound = tempItemList;
@@ -165,25 +170,14 @@ namespace AAEmu.Game.Core.Managers
 
             if(!myListing)
             {
-                var itemTemplates = ItemManager.Instance.GetItemTemplatesForAuctionSearch(searchTemplate);
-
-                for (int i = 0; i < itemTemplates.Count; i++)
-                {
-                    var query = from item in _auctionItems
-                                where ((searchTemplate.ItemName != "") ? itemTemplates[i].Id == item.ItemID : true)
-                                where ((searchTemplate.CategoryA != 0) ? itemTemplates[i].AuctionCategoryA == item.Type1 : true)
-                                where ((searchTemplate.CategoryB != 0) ? itemTemplates[i].AuctionCategoryB == item.Type2 : true)
-                                where ((searchTemplate.CategoryC != 0) ? itemTemplates[i].AuctionCategoryC == item.Type3 : true)
+                var query = from item in _auctionItems
+                                where ((searchTemplate.ItemName != "") ?  item.ItemName.Contains(searchTemplate.ItemName.ToLower()) : true)
+                                where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.CategoryA : true)
+                                where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.CategoryB : true)
+                                where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.CategoryC : true)
                                 select item;
 
-                    var foundItems = query.ToArray<AuctionItem>();
-
-                    for (int i = 0; i < foundItems.Length; i++)
-                    {
-                        if (auctionItemsFound.Contains(foundItems[i]))
-                            auctionItemsFound.Add(foundItems[i]);
-                    }
-                }
+                auctionItemsFound = query.ToList<AuctionItem>();
             }
 
             if (searchTemplate.SortKind == 1) //Price
@@ -234,7 +228,6 @@ namespace AAEmu.Game.Core.Managers
 
                 auctionItemsFound = tempList;
             }
-
             return auctionItemsFound;
         }
 
@@ -270,12 +263,32 @@ namespace AAEmu.Game.Core.Managers
             return nextId + 1;
         }
 
-        public AuctionItem CreateAuctionItem(Character player, ulong itemTeplateId, uint startPrice, uint buyoutPrice, byte duration)
+        public AuctionItem CreateAuctionItem(Character player, Item itemToList, uint startPrice, uint buyoutPrice, byte duration)
         {
-            var newItem = player.Inventory.GetItem((uint)itemTeplateId);
+            var newItem = itemToList;
 
             if (newItem == null) //TODO
                 return null;
+
+            ulong timeLeft;
+            switch (duration)
+            {
+                case 0:
+                    timeLeft = 21600; //6 hourse
+                    break;
+                case 1:
+                    timeLeft = 43200; //12 hours
+                    break;
+                case 2:
+                    timeLeft = 86400; //24 hours
+                    break;
+                case 3:
+                    timeLeft = 172800; //48 hours
+                    break;
+                default:
+                    timeLeft = 21600; //default to 6 hours
+                    break;
+            }
 
             var newAuctionItem = new AuctionItem
             {
@@ -290,18 +303,18 @@ namespace AAEmu.Game.Core.Managers
                 DetailType = 0,
                 CreationTime = DateTime.Now,
                 LifespanMins = 0,
-                Type1 = (uint)newItem.Template.AuctionCategoryA,
+                Type1 = 0,
                 WorldId = 0,
                 UnpackDateTIme = DateTime.Now,
                 UnsecureDateTime = DateTime.Now,
                 WorldId2 = 0,
-                Type2 = (uint)newItem.Template.AuctionCategoryB,
+                ClientId = player.Id,
                 ClientName = player.Name,
                 StartMoney = startPrice,
                 DirectMoney = buyoutPrice,
-                TimeLeft = 26000,
+                TimeLeft = timeLeft,
                 BidWorldID = 0,
-                Type3 = (uint)newItem.Template.AuctionCategoryC,
+                BidderId = 0,
                 BidderName = "",
                 BidMoney = 0,
                 Extra = 0
@@ -327,6 +340,7 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.ID = reader.GetUInt32("id");
                             auctionItem.Duration = reader.GetByte("duration"); //0 is 6 hours, 1 is 12 hours, 2 is 18 hours, 3 is 24 hours
                             auctionItem.ItemID = reader.GetUInt32("item_id");
+                            auctionItem.ItemName = reader.GetString("item_name").ToLower();
                             auctionItem.ObjectID = reader.GetUInt32("object_id");
                             auctionItem.Grade = reader.GetByte("grade");
                             auctionItem.Flags = reader.GetByte("flags");
@@ -339,16 +353,19 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.UnsecureDateTime = reader.GetDateTime("unsecure_date_time");
                             auctionItem.UnpackDateTIme = reader.GetDateTime("unpack_date_time");
                             auctionItem.WorldId2 = reader.GetByte("world_id_2");
-                            auctionItem.Type2 = reader.GetUInt32("type_2");
+                            auctionItem.ClientId = reader.GetUInt32("client_id");
                             auctionItem.ClientName = reader.GetString("client_name");
                             auctionItem.StartMoney = reader.GetUInt32("start_money");
                             auctionItem.DirectMoney = reader.GetUInt32("direct_money");
                             auctionItem.TimeLeft = reader.GetUInt32("time_left");
                             auctionItem.BidWorldID = reader.GetByte("bid_world_id");
-                            auctionItem.Type3 = reader.GetUInt32("type_3");
+                            auctionItem.BidderId = reader.GetUInt32("bidder_id");
                             auctionItem.BidderName = reader.GetString("bidder_name");
                             auctionItem.BidMoney = reader.GetUInt32("bid_money");
                             auctionItem.Extra = reader.GetUInt32("extra");
+                            auctionItem.CategoryA = reader.GetUInt32("category_a");
+                            auctionItem.CategoryB = reader.GetUInt32("category_b");
+                            auctionItem.CategoryC = reader.GetUInt32("category_c");
                             _auctionItems.Add(auctionItem);
                         }
                     }
