@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
@@ -57,6 +60,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint SkillId;
         public ushort TlId { get; set; }
         public Item[] Equip { get; set; }
+        public GameConnection Connection { get; set; }
 
         /// <summary>
         /// Unit巡逻
@@ -226,6 +230,15 @@ namespace AAEmu.Game.Models.Game.Units
                 }
             }
             return result;
+        }
+        public void SendPacket(GamePacket packet)
+        {
+            Connection?.SendPacket(packet);
+        }
+
+        public void SendErrorMessage(ErrorMessageType type)
+        {
+            SendPacket(new SCErrorMsgPacket(type, 0, true));
         }
     }
 }

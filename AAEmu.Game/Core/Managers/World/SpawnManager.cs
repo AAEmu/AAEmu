@@ -84,8 +84,34 @@ namespace AAEmu.Game.Core.Managers.World
                             $"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json file");
                 }
 
+                //contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json");
+                //if (string.IsNullOrWhiteSpace(contents))
+                //{
+                //    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json doesn't exists or is empty.");
+                //}
+                //else
+                //{
+                //    if (JsonHelper.TryDeserializeObject(contents, out List<TransferSpawner> spawners, out _))
+                //    {
+                //        foreach (var spawner in spawners.Where(spawner => TransferManager.Instance.Exist(spawner.UnitId)))
+                //        {
+                //            spawner.Position.WorldId = world.Id;
+                //            spawner.Position.ZoneId = WorldManager
+                //                .Instance
+                //                .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                //            transferSpawners.Add(spawner.Id, spawner);
+                //        }
+                //    }
+                //    else
+                //    {
+                //        throw new Exception($"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json file");
+                //    }
+                //}
+
                 _npcSpawners.Add((byte)world.Id, npcSpawners);
                 _doodadSpawners.Add((byte)world.Id, doodadSpawners);
+                //_transferSpawners.Add((byte)world.Id, transferSpawners);
+
             }
 
             var respawnThread = new Thread(CheckRespawns) {Name = "RespawnThread"};
@@ -101,6 +127,15 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var (worldId, worldSpawners) in _doodadSpawners)
             foreach (var spawner in worldSpawners.Values)
                 spawner.Spawn(0);
+
+            //foreach (var (worldId, worldSpawners) in _transferSpawners)
+            //{
+            //    foreach (var spawner in worldSpawners.Values)
+            //    {
+            //        spawner.SpawnAll();
+            //    }
+            //}
+
         }
 
         public void Stop()
