@@ -27,6 +27,14 @@ namespace AAEmu.Game.Models.Game.Items
         AuctionWin = 0x20
     }
 
+    public enum ShopCurrencyType : byte
+    {
+        Money = 0,
+        Honor = 1,
+        SiegeShop = 2,
+        VocationBadges = 3,
+    }
+
     public class Item : PacketMarshaler, IComparable<Item>
     {
         public byte WorldId { get; set; }

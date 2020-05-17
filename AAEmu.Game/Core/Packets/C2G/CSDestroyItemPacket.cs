@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
@@ -31,23 +32,22 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (item.Count > count)
             {
                 item.Count -= count;
-                Connection.SendPacket(
-                    new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
-                        new List<ItemTask>
-                        {
-                            new ItemCountUpdate(item, -count)
-                        }, new List<ulong>()));
+                Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemCountUpdate(item, -count) }, new List<ulong>()));
             }
             else
             {
-                Connection.ActiveChar.Inventory.RemoveItem(ItemTaskType.Destroy, item, true);
-                Connection.SendPacket(
-                    new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
-                        new List<ItemTask>
-                        {
-                            new ItemRemove(item)
-                        },
-                        new List<ulong>()));
+                // Sanity check in case we're destroying something we're not actually holding?
+                if (item._holdingContainer == null)
+                {
+                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
+                }
+                else
+                if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
+                {
+                    _log.Warn("DestroyItem: Failed to destroy item...");
+                }
+                // Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
             }
         }
     }

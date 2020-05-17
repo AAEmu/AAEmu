@@ -288,7 +288,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         var template = act.GetTemplate<QuestActSupplyItem>();
                         if (template.DestroyWhenDrop)
                         {
-                            Owner.Inventory.TakeoffBackpack();
+                            Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
                         }
 
                         Owner.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count);

@@ -96,7 +96,7 @@ namespace AAEmu.Game.Models.Game.Char
                 else
                 {
                     // Remove player backpack
-                    if (Owner.Inventory.TakeoffBackpack())
+                    if (Owner.Inventory.TakeoffBackpack(Items.Actions.ItemTaskType.CraftPickupProduct))
                     {
                         // Put tradepack in their backpack slot
                         Owner.Inventory.Equipment.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);

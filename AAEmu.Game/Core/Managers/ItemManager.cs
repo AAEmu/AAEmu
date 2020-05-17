@@ -1075,40 +1075,43 @@ namespace AAEmu.Game.Core.Managers
                         command.Connection = connection;
                         command.Transaction = transaction;
 
-                        foreach (var entry in _allItems)
+                        lock (_allItems)
                         {
-                            var item = entry.Value;
-                            if (item == null)
-                                continue;
-                            var details = new Commons.Network.PacketStream();
-                            item.WriteDetails(details);
+                            foreach (var entry in _allItems)
+                            {
+                                var item = entry.Value;
+                                if (item == null)
+                                    continue;
+                                var details = new Commons.Network.PacketStream();
+                                item.WriteDetails(details);
 
-                            command.CommandText = "REPLACE INTO items (" +
-                                "`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
-                                "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `bounded`" +
-                                ") VALUES ( " +
-                                "@id, @type, @template_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
-                                "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@bounded" +
-                                ")";
+                                command.CommandText = "REPLACE INTO items (" +
+                                    "`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
+                                    "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `bounded`" +
+                                    ") VALUES ( " +
+                                    "@id, @type, @template_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
+                                    "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@bounded" +
+                                    ")";
 
-                            command.Parameters.AddWithValue("@id", item.Id);
-                            command.Parameters.AddWithValue("@type", item.GetType().ToString());
-                            command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                            command.Parameters.AddWithValue("@slot_type", item.SlotType);
-                            command.Parameters.AddWithValue("@slot", item.Slot);
-                            command.Parameters.AddWithValue("@count", item.Count);
-                            command.Parameters.AddWithValue("@details", details.GetBytes());
-                            command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
-                            command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
-                            command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
-                            command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
-                            command.Parameters.AddWithValue("@created_at", item.CreateTime);
-                            command.Parameters.AddWithValue("@owner", item.OwnerId);
-                            command.Parameters.AddWithValue("@grade", item.Grade);
-                            command.Parameters.AddWithValue("@bounded", (byte)item.ItemFlags);
-                            command.ExecuteNonQuery();
-                            command.Parameters.Clear();
-                            updateCount++;
+                                command.Parameters.AddWithValue("@id", item.Id);
+                                command.Parameters.AddWithValue("@type", item.GetType().ToString());
+                                command.Parameters.AddWithValue("@template_id", item.TemplateId);
+                                command.Parameters.AddWithValue("@slot_type", item.SlotType);
+                                command.Parameters.AddWithValue("@slot", item.Slot);
+                                command.Parameters.AddWithValue("@count", item.Count);
+                                command.Parameters.AddWithValue("@details", details.GetBytes());
+                                command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
+                                command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
+                                command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
+                                command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
+                                command.Parameters.AddWithValue("@created_at", item.CreateTime);
+                                command.Parameters.AddWithValue("@owner", item.OwnerId);
+                                command.Parameters.AddWithValue("@grade", item.Grade);
+                                command.Parameters.AddWithValue("@bounded", (byte)item.ItemFlags);
+                                command.ExecuteNonQuery();
+                                command.Parameters.Clear();
+                                updateCount++;
+                            }
                         }
                     }
 
@@ -1242,6 +1245,11 @@ namespace AAEmu.Game.Core.Managers
             {
                 if ((itemId != 0) && !_removedItems.Contains(itemId))
                     _removedItems.Add(itemId);
+            }
+            lock (_allItems)
+            {
+                if (_allItems.ContainsKey(itemId))
+                    _allItems.Remove(itemId);
             }
             ItemIdManager.Instance.ReleaseId((uint)itemId);
         }

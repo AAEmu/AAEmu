@@ -48,12 +48,15 @@ namespace AAEmu.Game.Core.Packets.C2G
                     items.Add(item);
             }
 
-            var tasks = new List<ItemTask>();
+            //var tasks = new List<ItemTask>();
             var money = 0;
             foreach (var item in items)
             {
                 if (!item.Template.Sellable)
                     continue;
+
+                var res = Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item);
+                /*
                 Connection.ActiveChar.Inventory.RemoveItem(ItemTaskType.StoreSell, item, false);
                 var res = false;
                 for (var i = 0; i < 20; i++)
@@ -76,13 +79,17 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
 
                 tasks.Add(new ItemRemove(item));
+                */
                 money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
                          item.Count;
             }
 
+            Connection.ActiveChar.ChangeMoney(SlotType.None, SlotType.Inventory, money);
+            /*
             Connection.ActiveChar.Money += money;
             tasks.Add(new MoneyChange(money));
             Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreSell, tasks, new List<ulong>()));
+            */
         }
     }
 }

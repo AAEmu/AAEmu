@@ -180,6 +180,8 @@ namespace AAEmu.Game.Models.Game.Items
         /// <returns>Fails on Full Inventory</returns>
         public bool AddOrMoveExistingItem(ItemTaskType taskType, Item item, int preferredSlot = -1)
         {
+            if (item == null)
+                return false;
             ItemContainer sourceContainer = item?._holdingContainer;
 
             var newSlot = -1;
@@ -261,7 +263,7 @@ namespace AAEmu.Game.Models.Game.Items
             if (res && task != ItemTaskType.Invalid)
                 item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, new List<ItemTask> { new ItemRemoveSlot(item) }, new List<ulong>()));
             if (res && releaseIdAsWell)
-                ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                ItemManager.Instance.ReleaseId(item.Id);
             return res;
         }
 
@@ -287,7 +289,7 @@ namespace AAEmu.Game.Models.Game.Items
                 amountToConsume -= toRemove;
 
                 if (i.Count > 0)
-                    itemTasks.Add(new ItemCountUpdate(i, i.Count));
+                    itemTasks.Add(new ItemCountUpdate(i, -toRemove));
                 else
                     itemTasks.Add(new ItemRemoveSlot(i));
                 if (amountToConsume <= 0)
@@ -310,6 +312,22 @@ namespace AAEmu.Game.Models.Game.Items
         /// <returns></returns>
         public bool AcquireDefaultItem(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd = -1)
         {
+            return AcquireDefaultItemEx(taskType, templateId, amountToAdd, gradeToAdd, out _, out _);
+        }
+
+        /// <summary>
+        /// Adds items to container using templateId and gradeToAdd, if items aren't full stacks, those will be updated first, new items will be generated for the remaining amounts
+        /// </summary>
+        /// <param name="taskType"></param>
+        /// <param name="templateId">Item templateId use for adding</param>
+        /// <param name="amountToAdd">Number of item units to add</param>
+        /// <param name="gradeToAdd">Overrides default grade if possible</param>
+        /// <param name="updatedItemsList">A List of the newly added or updated items</param>
+        /// <returns></returns>
+        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList)
+        {
+            newItemsList = new List<Item>();
+            updatedItemsList = new List<Item>();
             if (amountToAdd <= 0)
                 return true;
 
@@ -338,7 +356,8 @@ namespace AAEmu.Game.Models.Game.Items
                     var addAmount = Math.Min(freeSpace, amountToAdd);
                     i.Count += addAmount;
                     amountToAdd -= addAmount;
-                    itemTasks.Add(new ItemCountUpdate(i, i.Count));
+                    itemTasks.Add(new ItemCountUpdate(i, addAmount));
+                    updatedItemsList.Add(i);
                 }
                 if (amountToAdd < 0)
                     break;
@@ -349,7 +368,10 @@ namespace AAEmu.Game.Models.Game.Items
                 var newItem = ItemManager.Instance.Create(templateId, addAmount, (byte)gradeToAdd, true);
                 amountToAdd -= addAmount;
                 if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem)) // Task set to invalid as we send our own packets inside this function
+                {
                     itemTasks.Add(new ItemAdd(newItem));
+                    newItemsList.Add(newItem);
+                }
                 else
                     throw new Exception("AcquireDefaultItem(); Unable to add new items"); // Inventory should have enough space, something went wrong
             }
@@ -388,6 +410,16 @@ namespace AAEmu.Game.Models.Game.Items
                     unitsOfItemFound += i.Count;
                 }
             return (foundItems.Count > 0);
+        }
+
+        /// <summary>
+        /// Removes and released all items
+        /// </summary>
+        public void Wipe()
+        {
+            while(Items.Count > 0)
+                RemoveItem(ItemTaskType.Invalid, Items[0], true);
+            UpdateFreeSlotCount();
         }
 
     }

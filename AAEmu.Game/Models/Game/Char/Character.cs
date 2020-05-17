@@ -104,7 +104,8 @@ namespace AAEmu.Game.Models.Game.Char
         public byte NumInventorySlots { get; set; }
         public short NumBankSlots { get; set; }
 
-        public Item[] BuyBack { get; set; }
+        // public Item[] BuyBack { get; set; }
+        public ItemContainer BuyBackItems { get; set; }
         public BondDoodad Bonding { get; set; }
         public CharacterQuests Quests { get; set; }
         public CharacterMails Mails { get; set; }
@@ -1094,7 +1095,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
             ModelId = template.ModelId;
-            BuyBack = new Item[20];
+            BuyBackItems = new ItemContainer(this, SlotType.None);
             Slots = new ActionSlot[85];
             for (var i = 0; i < Slots.Length; i++)
                 Slots[i] = new ActionSlot();

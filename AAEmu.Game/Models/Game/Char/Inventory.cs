@@ -5,13 +5,16 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MySql.Data.MySqlClient;
 using NLog;
+using NLog.Targets;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -331,10 +334,12 @@ namespace AAEmu.Game.Models.Game.Char
             */
         }
 
-        public void RemoveItem(ItemTaskType taskType, Item item, bool release)
+        public bool RemoveItem(ItemTaskType taskType, Item item, bool release)
         {
+            bool res = false;
             foreach (var c in _itemContainers)
-                c.Value.RemoveItem(taskType, item, release);
+                res |= c.Value.RemoveItem(taskType, item, release);
+            return res;
             /*
             if (item.SlotType == SlotType.Equipment)
                 Equip[item.Slot] = null;
@@ -461,6 +466,217 @@ namespace AAEmu.Game.Models.Game.Char
             return res;
         }
 
+        private enum SwapAction
+        {
+            doNothing,
+            doSwap,
+            doSplit,
+            doMerge,
+            doMoveAllToEmpty,
+        }
+
+        public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
+        {
+            var info = string.Format("SplitOrMoveItem({0} {1}:{2} => {3} {4}:{5} - {6})", fromItemId, fromType, fromSlot, toItemId, toType, toSlot, count);
+            _log.Info(info);
+            Owner.SendMessage(info); // Debug info
+            var fromItem = GetItemById(fromItemId);
+            var itemInTargetSlot = GetItemById(toItemId);
+            var action = SwapAction.doNothing;
+            if (count <= 0)
+                count = fromItem.Count;
+
+            // Grab target container for easy manipulation
+            ItemContainer targetContainer = PlayerInventory;
+            ItemContainer sourceContainer = fromItem?._holdingContainer ?? PlayerInventory;
+            if (_itemContainers.TryGetValue(toType, out targetContainer))
+            {
+                itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
+            }
+            if (itemInTargetSlot == null)
+                itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
+
+            // Check some conditions
+            if (fromItem == null)
+            {
+                _log.Error("SplitOrMoveItem didn't provide a source itemId");
+                return false;
+            }
+            if (fromItem?._holdingContainer?.ContainerType != fromType)
+            {
+                _log.Error("SplitOrMoveItem Source Item Container did not match what the client asked");
+                return false;
+            }
+            if (fromItem.Slot != fromSlot)
+            {
+                _log.Error("SplitOrMoveItem Source Item slot did not match what the client asked");
+                return false;
+            }
+            if (count > fromItem.Count)
+            {
+                _log.Error("SplitOrMoveItem Source Item has less item count than is requested to be moved");
+                return false;
+            }
+            if (itemInTargetSlot != null)
+            {
+                if (itemInTargetSlot.SlotType != toType)
+                {
+                    _log.Error("SplitOrMoveItem Target Item Type does not match");
+                    return false;
+                }
+                if (itemInTargetSlot.Slot != toSlot)
+                {
+                    _log.Error("SplitOrMoveItem Target Item Slot does not match");
+                    return false;
+                }
+                if ((itemInTargetSlot.TemplateId == fromItem.TemplateId) && (itemInTargetSlot.Count + count > fromItem.Template.MaxCount))
+                {
+                    _log.Error("SplitOrMoveItem Target Item stack does not have enough room to take source");
+                    return false;
+                }
+            }
+
+            // Decide what type of thing we need to do
+            if ((itemInTargetSlot == null) && (fromItem.Count > count))
+                action = SwapAction.doSplit;
+            else
+            if ((itemInTargetSlot == null) && (fromItem.Count == count))
+                action = SwapAction.doMoveAllToEmpty;
+            else
+            if ((itemInTargetSlot != null) && (itemInTargetSlot.TemplateId == fromItem.TemplateId))
+                action = SwapAction.doMerge;
+            else
+                action = SwapAction.doSwap;
+
+            // Actually execute what we need to do
+            var itemTasks = new List<ItemTask>();
+            switch (action)
+            {
+                case SwapAction.doSplit:
+                    fromItem.Count -= count;
+                    itemTasks.Add(new ItemCountUpdate(fromItem, -count));
+                    var ni = ItemManager.Instance.Create(fromItem.TemplateId, count, fromItem.Grade, true);
+                    ni.SlotType = toType;
+                    ni.Slot = toSlot;
+                    ni._holdingContainer = targetContainer;
+                    targetContainer.Items.Add(ni);
+                    itemTasks.Add(new ItemAdd(ni));
+                    if (targetContainer != sourceContainer)
+                        targetContainer.UpdateFreeSlotCount();
+                    else
+                        sourceContainer.UpdateFreeSlotCount();
+                    break;
+                case SwapAction.doMoveAllToEmpty:
+                    fromItem.SlotType = targetContainer.ContainerType;
+                    fromItem.Slot = toSlot;
+                    itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, toItemId));
+                    if (targetContainer != sourceContainer)
+                    {
+                        sourceContainer.Items.Remove(fromItem);
+                        targetContainer.Items.Add(fromItem);
+                        fromItem._holdingContainer = targetContainer;
+                        sourceContainer.UpdateFreeSlotCount();
+                        targetContainer.UpdateFreeSlotCount();
+                    }
+                    break;
+                case SwapAction.doMerge:
+                    // Merge x amount into target
+                    var toAddCount = Math.Min(count, itemInTargetSlot.Template.MaxCount - itemInTargetSlot.Count);
+                    if (toAddCount < count)
+                        _log.Info(string.Format("SplitOrMoveItem supplied more than target can take, changed {0} to {1}",count,toAddCount));
+                    itemInTargetSlot.Count += toAddCount;
+                    fromItem.Count -= toAddCount;
+                    itemTasks.Add(new ItemCountUpdate(itemInTargetSlot, toAddCount));
+                    if (fromItem.Count > 0)
+                    {
+                        itemTasks.Add(new ItemCountUpdate(fromItem, -toAddCount));
+                    }
+                    else
+                    {
+                        itemTasks.Add(new ItemRemoveSlot(fromItem));
+                        fromItem._holdingContainer.RemoveItem(ItemTaskType.Invalid, fromItem, true);
+                    }
+                    break;
+                case SwapAction.doSwap:
+                    // Swap both item slots
+                    itemTasks.Add(new ItemMove(fromType, fromSlot, fromItem.Id, toType, toSlot, itemInTargetSlot.Id));
+                    fromItem.SlotType = targetContainer.ContainerType;
+                    fromItem.Slot = toSlot;
+                    if (sourceContainer != targetContainer)
+                    {
+                        sourceContainer.Items.Remove(fromItem);
+                        targetContainer.Items.Add(fromItem);
+                        fromItem._holdingContainer = targetContainer;
+                        targetContainer.UpdateFreeSlotCount();
+                    }
+                    itemInTargetSlot.SlotType = sourceContainer.ContainerType;
+                    itemInTargetSlot.Slot = fromSlot;
+                    if (sourceContainer != targetContainer)
+                    {
+                        targetContainer.Items.Remove(itemInTargetSlot);
+                        sourceContainer.Items.Add(itemInTargetSlot);
+                        itemInTargetSlot._holdingContainer = sourceContainer;
+                        sourceContainer.UpdateFreeSlotCount();
+                    }
+                    break;
+                default:
+                    Owner.SendMessage("|cFFFF0000SplitOrMoveItem swap action not implemented " + action.ToString() + "|r");
+                    _log.Info("SplitOrMoveItem swap action not implemented " + action.ToString());
+                    break;
+            }
+            /*
+            if ((itemInTargetSlot != null) && (itemInTargetSlot.TemplateId != fromItem.TemplateId))
+            {
+                _log.Error("SplitOrMoveItem Target slot is already taken by a different item type");
+                return false;
+            }
+            if (itemInTargetSlot == null)
+            {
+                // Target is empty, just add it there
+                if (targetContainer.AcquireDefaultItemEx(taskType, fromItem.TemplateId, count,fromItem.Grade,out var newItems, out _))
+                {
+                    fromItem.Count -= count;
+                    // Uodate old count
+                    Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, new List<ItemTask>() { new ItemCountUpdate(fromItem, -count) }, new List<ulong>()));
+                    // Move new items to the wanted slot
+                    if (newItems.Count > 1)
+                        _log.Warn("SplitOrMoveItem created more than one new item, something is likely wrong");
+                    foreach (var ni in newItems)
+                    {
+                        Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, new List<ItemTask>() {
+                            new ItemMove(ni.SlotType,(byte)ni.Slot,ni.Id,ni.SlotType,toSlot,ni.Id)
+                        }, new List<ulong>()));
+                        ni.Slot = toSlot;
+                    }
+                }
+                else
+                {
+                    _log.Error("SplitOrMoveItem was unable to create new item stack");
+                    return false;
+                }
+            }
+            else
+            if (itemInTargetSlot.Count + count > itemInTargetSlot.Template.MaxCount)
+            {
+                _log.Error("SplitOrMoveItem target does not have enough room left for split");
+                return false;
+            }
+            else
+            {
+                // Target is the same type
+                itemInTargetSlot.Count += count;
+                fromItem.Count -= count;
+                var tasks = new List<ItemTask>();
+                tasks.Add(new ItemCountUpdate(fromItem, -count));
+                tasks.Add(new ItemCountUpdate(itemInTargetSlot, count));
+                Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, tasks, new List<ulong>()));
+            }
+            */
+            if (itemTasks.Count > 0)
+                Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            return (itemTasks.Count > 0);
+        }
+
         public void Move(ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
             // TODO: rewrite this
@@ -558,7 +774,7 @@ namespace AAEmu.Game.Models.Game.Char
                     }), false);
         }
 
-        public bool TakeoffBackpack()
+        public bool TakeoffBackpack(ItemTaskType taskType)
         {
             var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
             if (backpack == null) return true;
@@ -567,7 +783,8 @@ namespace AAEmu.Game.Models.Game.Char
             var slot = FreeSlotCount(SlotType.Inventory);
             if (slot == -1) return false;
 
-            Move(backpack.Id, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack, 0, SlotType.Inventory, (byte)slot, 1);
+            PlayerInventory.AddOrMoveExistingItem(taskType, backpack);
+            // Move(backpack.Id, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack, 0, SlotType.Inventory, (byte)slot, 1);
             return true;
         }
 
