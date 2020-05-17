@@ -245,14 +245,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step, callCounter);
                     }
                 }
-
-                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step);
-                if (!res)
-                {
-                    return;
-                }
-                TlIdManager.Instance.ReleaseId(TlId);
-                //TlId = 0;
+                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step); 
             }
             else
             {
@@ -343,6 +336,8 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void ParsePlot(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotStep step)
         {
+            _log.Warn("Plot: StepId {0}, Flag {1}, Delay {2}", step.Event.Id, step.Flag, step.Delay);
+
             if (step.Flag != 0)
             {
                 foreach (var eff in step.Event.Effects)
@@ -356,7 +351,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
-            var time = (ushort)(step.Flag != 0 ? step.Delay / 10 : 0);
+            var time = (ushort)(step.Flag != 0 ? step.Delay / 10 + 1 : 0); // TODO fixed the CSStopCastingPacket spam when using the "Chain Lightning" skill
             var unkId = step.Casting || step.Channeling ? caster.ObjId : 0;
             var casterPlotObj = new PlotObject(caster);
             var targetPlotObj = new PlotObject(target);

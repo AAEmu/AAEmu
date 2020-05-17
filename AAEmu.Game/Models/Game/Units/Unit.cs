@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks;
@@ -55,6 +56,7 @@ namespace AAEmu.Game.Models.Game.Units
         public bool IsAutoAttack = false;
         public uint SkillId;
         public ushort TlId { get; set; }
+        public Item[] Equip { get; set; }
 
         /// <summary>
         /// Unit巡逻

@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public uint TemplateId { get; set; }
         public NpcTemplate Template { get; set; }
-        public Item[] Equip { get; set; }
+        //public Item[] Equip { get; set; }
         public NpcSpawner Spawner { get; set; }
 
         public override UnitCustomModelParams ModelParams => Template.ModelParams;

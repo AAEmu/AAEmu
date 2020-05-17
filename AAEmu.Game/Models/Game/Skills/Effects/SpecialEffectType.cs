@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Skills.Effects
+﻿namespace AAEmu.Game.Models.Game.Skills.Effects
 {
     public enum SpecialType
     {
@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         SavePortal = 30,
         OpenPortal = 31,
         GainItemWithPosImprint = 32,
-        Skill = 33,
+        SkillUse = 33, // TODO renamed due to a conflict with skill.cs
         Anim = 34,
         FxGroup = 35,
         FxGroupAnim = 36,
