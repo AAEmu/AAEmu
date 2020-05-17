@@ -22,12 +22,10 @@ namespace AAEmu.Game.Models.Game.Mails
         public DateTime SendDate { get; set; }
         public DateTime RecvDate { get; set; }
         public DateTime OpenDate { get; set; }
-        public List<ulong> AttachmentItemIds { get; set; } // TODO max length 10
         public List<Item> Attachments { get; set; } // TODO max length 10
 
         public MailBody()
         {
-            AttachmentItemIds = new List<ulong>();
             Attachments = new List<Item>();
         }
 

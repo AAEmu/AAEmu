@@ -227,17 +227,18 @@ namespace AAEmu.Game.Models.Game.Items
 
                 if (item.ItemFlags.HasFlag(ItemFlag.SoulBound))
                 {
-                    // TODO: Update item bits task
+                    // Update item bits task
                     itemTasks.Add(new ItemUpdateBits(item, item.ItemFlags));
                 }
             }
 
-            // TODO: Add ItemTasks
+            // Item Tasks
             if ((sourceContainer != null) && (sourceContainer != this))
             {
                 sourceContainer.Items.Remove(item);
                 sourceContainer.UpdateFreeSlotCount();
-                sourceItemTasks.Add(new ItemRemoveSlot(item));
+                if (sourceContainer.ContainerType != SlotType.Mail)
+                    sourceItemTasks.Add(new ItemRemoveSlot(item));
             }
             // We use Invalid when doing internals, don't send to client
             if (taskType != ItemTaskType.Invalid)
@@ -333,7 +334,7 @@ namespace AAEmu.Game.Models.Game.Items
 
             GetAllItemsByTemplate(templateId, out var currentItems,out var currentTotalItemCount);
             var template = ItemManager.Instance.GetTemplate(templateId);
-            var TotalFreeSpaceForThisItem = currentTotalItemCount + (FreeSlotCount * template.MaxCount);
+            var TotalFreeSpaceForThisItem = (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
             // Trying to add too many item units to this container
             if (amountToAdd > TotalFreeSpaceForThisItem)
                 return false;

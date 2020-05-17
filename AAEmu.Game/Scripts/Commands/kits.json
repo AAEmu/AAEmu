@@ -203,35 +203,35 @@
             "names": [ "raw", "iron" ],
             "id": 8318,
             "grade": 0,
-            "count": 1000
+            "count": 100
         },
         {
             // Lumber
             "names": [ "raw", "wood" ],
             "id": 8337,
             "grade": 0,
-            "count": 1000
+            "count": 100
         },
         {
             // Stone Brick
             "names": [ "raw", "stone" ],
             "id": 8343,
             "grade": 0,
-            "count": 1000
+            "count": 100
         },
         {
             // Fabric
             "names": [ "raw", "fabric" ],
             "id": 8256,
             "grade": 0,
-            "count": 1000
+            "count": 100
         },
         {
             // Leather
             "names": [ "raw", "leather" ],
             "id": 16327,
             "grade": 0,
-            "count": 1000
+            "count": 100
         },
         // Mounts
         {

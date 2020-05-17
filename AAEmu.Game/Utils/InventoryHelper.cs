@@ -32,26 +32,12 @@ namespace AAEmu.Game.Utils
             */
         }
 
+        /*
         public static bool RemoveItemForMailing(Character character, Item item)
         {
-            // character.Inventory.Move(item.Id, SlotType.Inventory, (byte)item.Slot, item.Id, SlotType.Mail, 0);
-            character.Inventory.RemoveItem(ItemTaskType.Mail, item, false);
-            item.SlotType = SlotType.Mail;
-            item.Slot = -1;
-            return character.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
-            /*
-            character.SendPacket(
-                new SCItemTaskSuccessPacket(ItemTaskType.Destroy,
-                    new List<ItemTask>
-                    {
-                        new ItemRemove(item)
-                    },
-                    new List<ulong>()));
-            return true;
-            */
+            return character.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Mail, item);
         }
 
-        /*
         public static bool RemoveItemAndUpdateClient(Character character, Item item, int count, bool releaseId = true)
         {
             if (item.Count > count)

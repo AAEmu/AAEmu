@@ -5,6 +5,9 @@ using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Items.Actions;
+using System.Net.Mail;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -28,16 +31,26 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void OpenMailbox()
         {
+            var total = 0;
             foreach (var m in MailManager.Instance.GetCurrentMailList(Self))
             {
                 if (m.Value.Header.SenderId == Self.Id && m.Value.Header.ReceiverId == Self.Id)
+                {
                     Self.SendPacket(new SCMailListPacket(false, new MailHeader[] { m.Value.Header }));
+                    total++;
+                }
                 else if (m.Value.Header.SenderId == Self.Id)
+                {
                     Self.SendPacket(new SCMailListPacket(true, new MailHeader[] { m.Value.Header }));
+                    total++;
+                }
                 else if (m.Value.Header.ReceiverId == Self.Id)
+                {
                     Self.SendPacket(new SCMailListPacket(false, new MailHeader[] { m.Value.Header }));
+                    total++;
+                }
             }
-            Self.SendPacket(new SCMailListEndPacket(0, 0));
+            Self.SendPacket(new SCMailListEndPacket(total, 0));
         }
 
         public void ReadMail(bool isSent, long id)
@@ -52,7 +65,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
                 Self.SendPacket(new SCMailBodyPacket(false, isSent, MailManager.Instance._allPlayerMails[id].Body, true, unreadMailCount));
                 Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, MailManager.Instance._allPlayerMails[id].Header.Status));
-                //Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
+                Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
             }
         }
 
@@ -67,13 +80,13 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 mailId = mailTemplate.Id,
                 Type = type,
-                Status = (byte)0,
+                Status = 0,
                 Title = title,
                 SenderName = senderName,
                 Attachments = attachments,
                 ReceiverName = receiverName,
                 OpenDate = DateTime.MinValue,
-                Returned = (byte)0,
+                Returned = 0,
                 Extra = extra
             };
             if (senderName != "")
@@ -95,7 +108,8 @@ namespace AAEmu.Game.Models.Game.Char
                     var tempItem = Self.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2);
                     if (tempItem.SlotType == SlotType.Inventory)
                     {
-                        InventoryHelper.RemoveItemForMailing(Self,tempItem);
+                        Self.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, tempItem);
+                        Self.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Mail, new List<ItemTask>() { new ItemRemove(tempItem) }, new List<ulong>()));
                         mailItemIds.Add(tempItem.Id);
                     }
                 }
@@ -119,7 +133,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var i = ItemManager.Instance.GetItemByItemId(iId);
                 if (i != null)
                 {
-                    i.OwnerId = receiverId;
+                    // i.OwnerId = receiverId;
                     i.SlotType = SlotType.Mail;
                     i.Slot = mailTemplate.Body.Attachments.Count;
                     mailTemplate.Body.Attachments.Add(i);
@@ -129,50 +143,62 @@ namespace AAEmu.Game.Models.Game.Char
             MailManager.Instance._allPlayerMails.Add(MailManager.Instance.highestMailID, mailTemplate);
 
             Self.SendPacket(new SCMailSentPacket(mailTemplate.Header, itemSlots.ToArray()));
-            var mailFee = mailTemplate.Header.Attachments * 30;
-            if (mailTemplate.Header.Type == 1)
-                mailFee += 10 ;
-            else if (mailTemplate.Header.Type == 2)
+            var mailFee = 0;
+            if (mailTemplate.Header.Type == 1) // Normal
+                mailFee += 50 ;
+            else if (mailTemplate.Header.Type == 2) // Express
                 mailFee += 100 ;
+            mailFee += mailTemplate.Header.Attachments * 30;
+
             Self.ChangeMoney(SlotType.None, SlotType.Inventory, -mailFee);
 
             MailManager.Instance.NotifyNewMailByNameIfOnline(mailTemplate, receiverName);
         }
 
-        public void GetAttached(long id, bool money, bool items, bool takeAllSelected)
+        public void GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected)
         {
-            if (MailManager.Instance._allPlayerMails.ContainsKey(id))
+            if (MailManager.Instance._allPlayerMails.TryGetValue(mailId, out var thisMail))
             {
-                var thisMail = MailManager.Instance._allPlayerMails[id];
-                if (thisMail.Body.MoneyAmount1 > 0 && money)
+                if (thisMail.Body.MoneyAmount1 > 0 && takeMoney)
                 {
                     Self.ChangeMoney(SlotType.None, SlotType.Inventory, thisMail.Body.MoneyAmount1);
                     thisMail.Body.MoneyAmount1 = 0;
                     thisMail.Header.Attachments -= 1;
                 }
-                var itemIDList = new List<ulong>();
-                var itemSlotList = new List<(SlotType, byte)>();
-                if (items)
+                //var itemIDList = new List<ulong>();
+                //var itemSlotList = new List<(SlotType, byte)>();
+                var itemSlotList = new List<ItemIdAndLocation>();
+                if (takeItems)
                 {
-                    // TODO: Handle full inventory
+                    var toRemove = new List<Item>();
                     foreach (var itemAttachment in thisMail.Body.Attachments)
                     {
                         if (itemAttachment.Id != 0)
                         {
-                            itemSlotList.Add((itemAttachment.SlotType, (byte)itemAttachment.Slot));
-                            itemAttachment.OwnerId = Self.Id;
-                            itemAttachment.SlotType = SlotType.Inventory;
-                            itemAttachment.Slot = -1;
-                            InventoryHelper.AddItemAndUpdateClient(Self, itemAttachment);
-                            thisMail.Header.Attachments -= 1;
+                            if (Self.Inventory.PlayerInventory.FreeSlotCount > 0)
+                            {
+                                Self.Inventory.PlayerInventory.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment);
+                                var iial = new ItemIdAndLocation();
+                                iial.Id = itemAttachment.Id;
+                                iial.SlotType = itemAttachment.SlotType;
+                                iial.Slot = (byte)itemAttachment.Slot;
+                                itemSlotList.Add(iial);
+                                //itemSlotList.Add((itemAttachment.SlotType, (byte)itemAttachment.Slot));
+                                //itemIDList.Add(itemAttachment.Id);
+                                thisMail.Header.Attachments -= 1;
+                                toRemove.Add(itemAttachment);
+                            }
                         }
-                        else
-                            itemSlotList.Add((SlotType.None, (byte)0));
                     }
-                    thisMail.Body.Attachments.Clear();
+                    // thisMail.Body.Attachments.Clear();
+                    foreach (var ia in toRemove)
+                        thisMail.Body.Attachments.Remove(ia);
+                    
                 }
-                Self.SendPacket(new SCAttachmentTakenPacket(id, money, false, takeAllSelected, itemIDList.ToArray(), itemSlotList.ToArray()));
-                Self.SendPacket(new SCMailStatusUpdatedPacket(false, id, 1));
+                Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, itemSlotList));
+                // Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, itemIDList.ToArray(), itemSlotList.ToArray()));
+                Self.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, 1));
+                // TODO: if source player is online, update their mail info
             }
         }
 

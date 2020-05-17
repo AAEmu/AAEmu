@@ -1082,6 +1082,11 @@ namespace AAEmu.Game.Core.Managers
                                 var item = entry.Value;
                                 if (item == null)
                                     continue;
+                                if (item.SlotType == SlotType.None)
+                                {
+                                    _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}",item.Id,item.TemplateId));
+                                    continue;
+                                }
                                 var details = new Commons.Network.PacketStream();
                                 item.WriteDetails(details);
 

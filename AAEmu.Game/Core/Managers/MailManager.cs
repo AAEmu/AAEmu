@@ -139,8 +139,10 @@ namespace AAEmu.Game.Core.Managers
                                 Type = (byte)reader.GetInt32("type"),
                                 Status = (byte)reader.GetInt32("status"),
                                 Title = reader.GetString("title"),
+                                SenderId = reader.GetUInt32("sender_id"),
                                 SenderName = reader.GetString("sender_name"),
                                 Attachments = (byte)reader.GetInt32("attachment_count"),
+                                ReceiverId = reader.GetUInt32("receiver_id"),
                                 ReceiverName = reader.GetString("receiver_name"),
                                 OpenDate = reader.GetDateTime("open_date"),
                                 Returned = (byte)reader.GetInt32("returned"),
@@ -171,6 +173,7 @@ namespace AAEmu.Game.Core.Managers
                                     var item = ItemManager.Instance.GetItemByItemId(itemId);
                                     if (item != null)
                                     {
+                                        item.OwnerId = tempMail.Header.ReceiverId;
                                         tempMail.Body.Attachments.Add(item);
                                     }
                                     else

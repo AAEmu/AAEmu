@@ -250,7 +250,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@id", item.Id);
                     command.Parameters.AddWithValue("@type", item.GetType().ToString());
                     command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                    command.Parameters.AddWithValue("@slot_type", (byte)item.SlotType);
+                    command.Parameters.AddWithValue("@slot_type", item.SlotType);
                     command.Parameters.AddWithValue("@slot", item.Slot);
                     command.Parameters.AddWithValue("@count", item.Count);
                     command.Parameters.AddWithValue("@details", details.GetBytes());
@@ -677,6 +677,7 @@ namespace AAEmu.Game.Models.Game.Char
             return (itemTasks.Count > 0);
         }
 
+        /*
         public void Move(ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
             // TODO: rewrite this
@@ -773,6 +774,7 @@ namespace AAEmu.Game.Models.Game.Char
                         (toSlot, Equipment.GetItemBySlot(toSlot))
                     }), false);
         }
+        */
 
         public bool TakeoffBackpack(ItemTaskType taskType)
         {

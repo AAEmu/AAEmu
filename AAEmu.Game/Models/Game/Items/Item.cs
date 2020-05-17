@@ -35,6 +35,20 @@ namespace AAEmu.Game.Models.Game.Items
         VocationBadges = 3,
     }
 
+    public struct ItemLocation
+    {
+        public SlotType slotType;
+        public byte Slot;
+    }
+
+    public struct ItemIdAndLocation
+    {
+        public ulong Id;
+        public SlotType SlotType;
+        public byte Slot;
+    }
+
+
     public class Item : PacketMarshaler, IComparable<Item>
     {
         public byte WorldId { get; set; }
