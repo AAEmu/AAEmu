@@ -237,7 +237,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var lootPack = (SkillItem)casterObj;
             if (lootPack == null) return;
             var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
-            character?.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillReagents, lootPackItem.TemplateId, consumeCount);
+            character?.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillReagents, lootPackItem.TemplateId, consumeCount,null);
             /*
             if (lootPackItem.Count > 1)
             {

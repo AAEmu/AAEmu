@@ -61,7 +61,7 @@ namespace AAEmu.Game.Core.Managers
             if (auctionFee > 1000000)//100 gold max fee
                 auctionFee = 1000000;
 
-            if (!player.ChangeMoney(SlotType.None, SlotType.Inventory, -(int)auctionFee))
+            if (!player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
             {
                 player.SendErrorMessage(Models.Game.Error.ErrorMessageType.CanNotPutupMoney);
                 return;
@@ -154,7 +154,7 @@ namespace AAEmu.Game.Core.Managers
                         auctionItem.BidderName = biddersName;
                         auctionItem.BidMoney = bidAmount;
                         var biddingPlayer = WorldManager.Instance.GetCharacter(biddersName);
-                        biddingPlayer.ChangeMoney(SlotType.None, SlotType.Inventory, -(int)bidAmount);
+                        biddingPlayer.ChangeMoney(SlotType.Inventory, -(int)bidAmount);
                         biddingPlayer.SendPacket(new SCAuctionBidPacket(auctionItem));
                         //TODO send mail back to player who is losing bid
                     }

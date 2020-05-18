@@ -55,40 +55,19 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (!item.Template.Sellable)
                     continue;
 
-                var res = Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item);
-                /*
-                Connection.ActiveChar.Inventory.RemoveItem(ItemTaskType.StoreSell, item, false);
-                var res = false;
-                for (var i = 0; i < 20; i++)
+                if (!Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
                 {
-                    if (Connection.ActiveChar.BuyBack[i] == null)
-                    {
-                        Connection.ActiveChar.BuyBack[i] = item;
-                        res = true;
-                        break;
-                    }
+                    _log.Warn(string.Format("Failed to move sold itemId {0} to BuyBack ItemContainer for {1}",item.Id,Connection.ActiveChar.Name));
                 }
-
-                if (!res)
-                {
-                    ItemManager.Instance.ReleaseId(Connection.ActiveChar.BuyBack[0].Id);
-                    var temp = new Item[20];
-                    Array.Copy(Connection.ActiveChar.BuyBack, 1, temp, 0, 19);
-                    temp[19] = item;
-                    Connection.ActiveChar.BuyBack = temp;
-                }
-
-                tasks.Add(new ItemRemove(item));
-                */
                 money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
                          item.Count;
             }
 
-            Connection.ActiveChar.ChangeMoney(SlotType.None, SlotType.Inventory, money);
+            Connection.ActiveChar.ChangeMoney(SlotType.Inventory, money);
             /*
             Connection.ActiveChar.Money += money;
             tasks.Add(new MoneyChange(money));
-            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreSell, tasks, new List<ulong>()));
+            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreSell, itemTasks, new List<ulong>()));
             */
         }
     }

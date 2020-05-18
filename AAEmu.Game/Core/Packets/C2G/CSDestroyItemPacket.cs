@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -39,7 +40,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 // Sanity check in case we're destroying something we're not actually holding?
                 if (item._holdingContainer == null)
                 {
-                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemManager.Instance.ReleaseId(item.Id);
                     Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
                 }
                 else

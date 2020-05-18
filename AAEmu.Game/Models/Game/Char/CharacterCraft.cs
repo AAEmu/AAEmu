@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var material in _craft.CraftMaterials)
             {
-                Owner.Inventory.PlayerInventory.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount);
+                Owner.Inventory.PlayerInventory.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
                 //var materialItem = Owner.Inventory.GetItemByTemplateId(material.ItemId);
                 //InventoryHelper.RemoveItemAndUpdateClient(Owner, materialItem, material.Amount);
             }

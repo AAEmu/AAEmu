@@ -102,9 +102,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             // Remove money and items
             character.Money -= cost;
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, new List<ItemTask>() { new MoneyChange(-cost) }, new List<ulong>()));
-            character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, scroll.ItemTemplateId, 1);
+            character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, scroll.ItemTemplateId, 1,null);
             if (useCharm)
-                character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, charmItem.TemplateId, 1);
+                character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, charmItem.TemplateId, 1,null);
 
             var result = RollRegrade(gradeTemplate, item, isLucky, useCharm, charmInfo);
 

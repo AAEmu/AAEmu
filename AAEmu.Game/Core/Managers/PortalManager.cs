@@ -124,7 +124,7 @@ namespace AAEmu.Game.Core.Managers
         private static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
         {
             if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount)) return false;
-            owner.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.Teleport, itemId, amount);
+            owner.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.Teleport, itemId, amount,null);
             return true;
             /*
             var items = owner.Inventory.RemoveItem(itemId, amount);

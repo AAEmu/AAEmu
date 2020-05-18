@@ -1231,7 +1231,7 @@ namespace AAEmu.Game.Core.Managers
         /// Gets a new itemID for use on new items, will also remove it from the deleted itemIDs list. Use this instead of directly calling ItemIdManager.Instance.GetNextId();
         /// </summary>
         /// <returns>A new itemID</returns>
-        public ulong GetNewId()
+        private ulong GetNewId()
         {
             var itemId = ItemIdManager.Instance.GetNextId();
             lock (_removedItems)
@@ -1258,6 +1258,7 @@ namespace AAEmu.Game.Core.Managers
                 if (_allItems.ContainsKey(itemId))
                     _allItems.Remove(itemId);
             }
+            // This should be the only place where ItemId ReleaseId should be called directly
             ItemIdManager.Instance.ReleaseId((uint)itemId);
         }
 

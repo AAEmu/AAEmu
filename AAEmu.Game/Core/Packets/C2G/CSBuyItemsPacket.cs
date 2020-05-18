@@ -147,7 +147,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (money > 0)
             {
-                Connection.ActiveChar.ChangeMoney(SlotType.None, SlotType.Inventory, -money);
+                Connection.ActiveChar.ChangeMoney(SlotType.Inventory, -money);
                 /*
                 Connection.ActiveChar.Money -= money;
                 tasks.Add(new MoneyChange(-money));

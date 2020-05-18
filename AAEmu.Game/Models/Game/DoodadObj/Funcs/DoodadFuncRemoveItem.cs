@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             _log.Debug("DoodadFuncRemoveItem: ItemId {0}, Count {1}", ItemId, Count);
 
             var character = (Character)caster;
-            character?.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.DoodadRemove, ItemId, Count); // DoodadRemove right for this ?
+            character?.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.DoodadItemChanger, ItemId, Count,null); // DoodadItemChanger right for this ?
             //character?.Inventory.RemoveItem(ItemId, Count);
         }
     }

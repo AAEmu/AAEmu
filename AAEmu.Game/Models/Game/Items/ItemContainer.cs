@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Items
 {
@@ -182,7 +183,10 @@ namespace AAEmu.Game.Models.Game.Items
         {
             if (item == null)
                 return false;
+
             ItemContainer sourceContainer = item?._holdingContainer;
+            byte sourceSlot = (byte)item.Slot;
+            SlotType sourceSlotType = item.SlotType;
 
             var newSlot = -1;
             // When adding wearables to equipment container, for the slot numbers if needed
@@ -213,7 +217,9 @@ namespace AAEmu.Game.Models.Game.Items
 
             Items.Add(item);
             UpdateFreeSlotCount();
-            itemTasks.Add(new ItemAdd(item));
+            // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
+            if (this.ContainerType != SlotType.None)
+                itemTasks.Add(new ItemAdd(item));
 
             // Bind on ???
             if (!item.ItemFlags.HasFlag(ItemFlag.SoulBound) && (item.Template.BindId != ItemBindType.Normal))
@@ -238,7 +244,7 @@ namespace AAEmu.Game.Models.Game.Items
                 sourceContainer.Items.Remove(item);
                 sourceContainer.UpdateFreeSlotCount();
                 if (sourceContainer.ContainerType != SlotType.Mail)
-                    sourceItemTasks.Add(new ItemRemoveSlot(item));
+                    sourceItemTasks.Add(new ItemRemoveSlot(item.Id,sourceSlotType,sourceSlot));
             }
             // We use Invalid when doing internals, don't send to client
             if (taskType != ItemTaskType.Invalid)
@@ -274,13 +280,18 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="taskType"></param>
         /// <param name="templateId">Item templateId to search for</param>
         /// <param name="amountToConsume">Amount of item units to consume</param>
+        /// <param name="preferredItem">If not null, use this Item as primairy source for consume</param>
         /// <returns>True on success, False if there aren't enough item units or otherwise fails to update the container</returns>
-        public bool ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume)
+        public bool ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume,Item preferredItem)
         {
             if (!GetAllItemsByTemplate(templateId, out var foundItems, out var count))
                 return false; // Nothing found
             if (amountToConsume > count)
                 return false; // Not enough total
+
+            if ((preferredItem != null) && (templateId != preferredItem.TemplateId))
+                return false; // Preferred item template did not match the requested template
+            // TODO: implement use of preferredItem (required for using specific items when you have more than one stack)
 
             var itemTasks = new List<ItemTask>();
             foreach (var i in foundItems)

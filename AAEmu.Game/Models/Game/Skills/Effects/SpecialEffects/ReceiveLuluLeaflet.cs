@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (itemInfo == null || itemInfo.Count <= 0) return;
 
             // TODO: use the selected item instead of the item template
-            if (owner.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillReagents,skillData.ItemTemplateId,1))
+            if (owner.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillReagents,skillData.ItemTemplateId,1,itemInfo))
             {
                 // TODO: LOYALT IS ACCOUNT WIDE
                 owner.SendPacket(new SCBmPointPacket(owner.BmPoint));

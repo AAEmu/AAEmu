@@ -224,6 +224,11 @@ namespace AAEmu.Game.Models.Game.Char
             _log.Info(info);
             Owner.SendMessage(info); // Debug info
             var fromItem = GetItemById(fromItemId);
+            if (fromItem == null)
+            {
+                _log.Error(string.Format("SplitOrMoveItem - ItemId {0} no longer exists, possibly a phantom item.",fromItemId));
+                return false;
+            }
             var itemInTargetSlot = GetItemById(toItemId);
             var action = SwapAction.doNothing;
             if (count <= 0)
@@ -494,7 +499,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (expand.ItemId != 0 && expand.ItemCount != 0)
             {
-                PlayerInventory.ConsumeItem(isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag, expand.ItemId, expand.ItemCount);
+                PlayerInventory.ConsumeItem(isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag, expand.ItemId, expand.ItemCount,null);
             }
 
             if (isBank)

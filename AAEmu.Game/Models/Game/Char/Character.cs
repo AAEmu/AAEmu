@@ -769,6 +769,8 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        public bool ChangeMoney(SlotType moneylocation, int amount) => ChangeMoney(SlotType.None, moneylocation, amount);
+
         public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount)
         {
             var itemTasks = new List<ItemTask>();
@@ -807,6 +809,21 @@ namespace AAEmu.Game.Models.Game.Char
             SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney, itemTasks, new List<ulong>()));
             return true;
         }
+
+        public bool AddMoney(SlotType moneyLocation,int amount)
+        {
+            if (amount < 0)
+                return false;
+            return ChangeMoney(SlotType.None, moneyLocation, amount);
+        }
+
+        public bool SubtractMoney(SlotType moneyLocation, int amount)
+        {
+            if (amount < 0)
+                return false;
+            return ChangeMoney(SlotType.None, moneyLocation, -amount);
+        }
+
 
         public void ChangeLabor(short change, int actabilityId)
         {

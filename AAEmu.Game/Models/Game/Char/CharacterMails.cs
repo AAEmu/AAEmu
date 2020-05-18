@@ -69,12 +69,12 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void SendMail(byte type, string receiverName, string senderName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(Items.SlotType, byte)> itemSlots)
+        public bool SendMail(byte type, string receiverName, string senderName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(Items.SlotType, byte)> itemSlots)
         {
             var mailTemplate = new Mail();
             mailTemplate.Id = MailManager.Instance.highestMailID += 1;
-            uint senderId = 0;
-            uint receiverId = 0;
+            uint senderId ;
+            uint receiverId ;
 
             mailTemplate.Header = new MailHeader()
             {
@@ -98,6 +98,37 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 receiverId = NameManager.Instance.GetCharacterId(receiverName);
                 mailTemplate.Header.ReceiverId = receiverId;
+            }
+
+            // Calculate mail fee
+            var mailFee = 0;
+            var attachmentCost = 30;
+            var attachmentCountForFee = 0;
+            foreach (var mailSlots in itemSlots)
+            {
+                if (mailSlots.Item1 != 0)
+                    attachmentCountForFee++;
+            }
+
+            if (mailTemplate.Body.MoneyAmount1 > 0)
+                attachmentCountForFee++;
+
+            if (mailTemplate.Header.Type == 1) // Normal
+                mailFee += 50;
+            else if (mailTemplate.Header.Type == 2) // Express
+            {
+                mailFee += 100;
+                attachmentCost = 80;
+            }
+            if (attachmentCountForFee > 1)
+            {
+                mailFee += (attachmentCountForFee - 1) * attachmentCost;
+            }
+
+            if (mailFee > Self.Money)
+            {
+                Self.SendErrorMessage(Error.ErrorMessageType.MailNotEnoughMoney);
+                return false;
             }
 
             var mailItemIds = new List<ulong>();
@@ -140,19 +171,13 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            MailManager.Instance._allPlayerMails.Add(MailManager.Instance.highestMailID, mailTemplate);
 
+            Self.ChangeMoney(SlotType.Inventory, -mailFee);
+            MailManager.Instance._allPlayerMails.Add(mailTemplate.Id, mailTemplate);
             Self.SendPacket(new SCMailSentPacket(mailTemplate.Header, itemSlots.ToArray()));
-            var mailFee = 0;
-            if (mailTemplate.Header.Type == 1) // Normal
-                mailFee += 50 ;
-            else if (mailTemplate.Header.Type == 2) // Express
-                mailFee += 100 ;
-            mailFee += mailTemplate.Header.Attachments * 30;
-
-            Self.ChangeMoney(SlotType.None, SlotType.Inventory, -mailFee);
 
             MailManager.Instance.NotifyNewMailByNameIfOnline(mailTemplate, receiverName);
+            return true;
         }
 
         public void GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected)
@@ -161,7 +186,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (thisMail.Body.MoneyAmount1 > 0 && takeMoney)
                 {
-                    Self.ChangeMoney(SlotType.None, SlotType.Inventory, thisMail.Body.MoneyAmount1);
+                    Self.ChangeMoney(SlotType.Inventory, thisMail.Body.MoneyAmount1);
                     thisMail.Body.MoneyAmount1 = 0;
                     thisMail.Header.Attachments -= 1;
                 }

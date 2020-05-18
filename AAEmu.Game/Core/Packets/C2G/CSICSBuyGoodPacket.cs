@@ -43,19 +43,21 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             var receiverName = stream.ReadString();
 
-            var targetChar = WorldManager.Instance.GetCharacter(receiverName);
+            var targetChar = thisChar;
+            if (receiverName != string.Empty)
+                targetChar =  WorldManager.Instance.GetCharacter(receiverName);
             if (targetChar == null)
             {
                 // TODO: Add support for gifting (to offline players)
                 thisChar.SendMessage("Target player must be online to gift!");
-                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetChar.Name, 0));
+                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
 
             if (buyList.Count <= 0)
             {
                 thisChar.SendErrorMessage(ErrorMessageType.BuyCartEmpty);
-                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetChar.Name, 0));
+                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
 
@@ -63,7 +65,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (totalCost > thisCharAaPoints)
             {
                 thisChar.SendErrorMessage(ErrorMessageType.IngameShopNotEnoughAaPoint); // Not sure if this is the correct error
-                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetChar.Name, 0));
+                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
 
@@ -71,7 +73,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (targetChar.Inventory.PlayerInventory.FreeSlotCount < buyList.Count)
             {
                 thisChar.SendErrorMessage(ErrorMessageType.BagFull);
-                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, targetChar.Name, 0));
+                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
 
@@ -86,7 +88,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Warn("ICSBuyGood");
 
-            Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(true, buyMode, "Test", totalCost));
+            Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(true, buyMode, receiverName, totalCost));
         }
     }
 }

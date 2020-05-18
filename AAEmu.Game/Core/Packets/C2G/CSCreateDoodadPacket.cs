@@ -61,7 +61,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var player = Connection.ActiveChar;
                     foreach (var item in items)
                     {
-                        player.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.DoodadCreate, item, 1);
+                        player.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.DoodadCreate, item, 1,null);
                         /*
                         var itemToRemove = player.Inventory.GetItemByItemId(item);
                         if(itemToRemove != null)
