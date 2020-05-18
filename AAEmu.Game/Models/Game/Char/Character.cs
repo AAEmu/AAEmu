@@ -1262,7 +1262,7 @@ namespace AAEmu.Game.Models.Game.Char
                             }
                         }
 
-                        Inventory?.Save(connection, transaction);
+                        // Inventory?.Save(connection, transaction);
                         Abilities?.Save(connection, transaction);
                         Actability?.Save(connection, transaction);
                         Appellations?.Save(connection, transaction);
