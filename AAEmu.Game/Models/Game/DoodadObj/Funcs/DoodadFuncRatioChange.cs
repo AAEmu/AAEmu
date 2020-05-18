@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -33,16 +34,22 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var itemId = GetItemIdFromSkill(skillId);
                 if (itemId == 0) { return; }
 
-                var item = ItemManager.Instance.Create(itemId, count, 0);
-                InventoryHelper.AddItemAndUpdateClient(character, item);
+                if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.DoodadInteraction, itemId, count))
+                {
+                    // TODO: do proper handling of insufficient bag space
+                    character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                }
             }
             else
             {
                 //itemId = itemTemplate[0]; // there can be more than one id
                 foreach (var itemId in itemTemplate)
                 {
-                    var item = ItemManager.Instance.Create(itemId, count, 0);
-                    InventoryHelper.AddItemAndUpdateClient(character, item);
+                    if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
+                    {
+                        // TODO: do proper handling of insufficient bag space
+                        character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                    }
                 }
             }
         }

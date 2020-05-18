@@ -187,8 +187,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var character = (Character)caster;
             if (character == null) return;
             var amount = Rand.Next(minAmount, maxAmount);
-            var item = ItemManager.Instance.Create(itemId, amount, gradeId);
-            InventoryHelper.AddItemAndUpdateClient(character, item);
+            if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount))
+            {
+                // TODO: do proper handling of insufficient bag space
+                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+            }
         }
 
         private byte GetGradeDistributionId(byte gradeId)

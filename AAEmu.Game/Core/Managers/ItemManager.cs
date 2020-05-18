@@ -192,8 +192,10 @@ namespace AAEmu.Game.Core.Managers
             }
             else
             {
-                var item = Create(lootDropItem.TemplateId, count > lootDropItem.Count ? lootDropItem.Count : count, lootDropItem.Grade);
-                InventoryHelper.AddItemAndUpdateClient(character, item);
+                character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Loot, 
+                    lootDropItem.TemplateId, 
+                    count > lootDropItem.Count ? lootDropItem.Count : count, 
+                    lootDropItem.Grade);
             }
 
             lootDropItems.Remove(lootDropItem);
