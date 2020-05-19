@@ -301,9 +301,13 @@ namespace AAEmu.Game.Models.Game.Items
                 amountToConsume -= toRemove;
 
                 if (i.Count > 0)
+                {
                     itemTasks.Add(new ItemCountUpdate(i, -toRemove));
+                }
                 else
-                    itemTasks.Add(new ItemRemoveSlot(i));
+                {
+                    RemoveItem(taskType, i, true); // Normally, this can never fail
+                }
                 if (amountToConsume <= 0)
                     break; // We are done with the list, leave the rest as is
             }
@@ -345,6 +349,8 @@ namespace AAEmu.Game.Models.Game.Items
 
             GetAllItemsByTemplate(templateId, out var currentItems,out var currentTotalItemCount);
             var template = ItemManager.Instance.GetTemplate(templateId);
+            if (template == null)
+                return false; // Invalid item templateId
             var TotalFreeSpaceForThisItem = (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
             // Trying to add too many item units to this container
             if (amountToAdd > TotalFreeSpaceForThisItem)
@@ -379,7 +385,10 @@ namespace AAEmu.Game.Models.Game.Items
                 var addAmount = Math.Min(amountToAdd, template.MaxCount);
                 var newItem = ItemManager.Instance.Create(templateId, addAmount, (byte)gradeToAdd, true);
                 amountToAdd -= addAmount;
-                if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem)) // Task set to invalid as we send our own packets inside this function
+                var prefSlot = -1;
+                if ((newItem.Template is BackpackTemplate) && (ContainerType == SlotType.Equipment))
+                    prefSlot = (int)EquipmentItemSlot.Backpack;
+                if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem,prefSlot)) // Task set to invalid as we send our own packets inside this function
                 {
                     itemTasks.Add(new ItemAdd(newItem));
                     newItemsList.Add(newItem);

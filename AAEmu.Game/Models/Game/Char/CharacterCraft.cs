@@ -81,28 +81,29 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var material in _craft.CraftMaterials)
             {
                 Owner.Inventory.PlayerInventory.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
-                //var materialItem = Owner.Inventory.GetItemByTemplateId(material.ItemId);
-                //InventoryHelper.RemoveItemAndUpdateClient(Owner, materialItem, material.Amount);
             }
 
             foreach (var product in _craft.CraftProducts)
             {
-                if (!_craft.IsPack)
+                // Check if we're crafting a tradepack, if so, try to remove currently equipped backpack slot
+                bool isTradePack = false;
+                var productResultItemTemplate = ItemManager.Instance.GetTemplate(product.ItemId);
+                if ((productResultItemTemplate != null) && (productResultItemTemplate is BackpackTemplate bt))
+                {
+                    if (bt.BackpackType == BackpackType.TradePack)
+                        isTradePack = true;
+                }
+                if (isTradePack == false)
                 {
                     Owner.Inventory.PlayerInventory.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
-                    //var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
-                    //InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
                 }
                 else
                 {
                     // Remove player backpack
-                    if (Owner.Inventory.TakeoffBackpack(Items.Actions.ItemTaskType.CraftPickupProduct))
+                    if (Owner.Inventory.TakeoffBackpack(Items.Actions.ItemTaskType.CraftPickupProduct,true))
                     {
                         // Put tradepack in their backpack slot
                         Owner.Inventory.Equipment.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
-                        // var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
-                        // InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
-                        // Owner.Inventory.Move(resultItem.Id, resultItem.SlotType, (byte)resultItem.Slot, 0, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
                     }
                     else
                     {

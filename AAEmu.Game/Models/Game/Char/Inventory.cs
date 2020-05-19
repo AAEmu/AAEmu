@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -216,6 +217,7 @@ namespace AAEmu.Game.Models.Game.Char
             doSplit,
             doMerge,
             doMoveAllToEmpty,
+            doEquipInEmptySlot,
         }
 
         public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
@@ -224,14 +226,15 @@ namespace AAEmu.Game.Models.Game.Char
             _log.Info(info);
             Owner.SendMessage(info); // Debug info
             var fromItem = GetItemById(fromItemId);
-            if (fromItem == null)
+            if ((fromItem == null) && (fromItemId != 0))
             {
                 _log.Error(string.Format("SplitOrMoveItem - ItemId {0} no longer exists, possibly a phantom item.",fromItemId));
                 return false;
             }
+
             var itemInTargetSlot = GetItemById(toItemId);
             var action = SwapAction.doNothing;
-            if (count <= 0)
+            if ((count <= 0) && (fromItem != null))
                 count = fromItem.Count;
 
             // Grab target container for easy manipulation
@@ -244,27 +247,35 @@ namespace AAEmu.Game.Models.Game.Char
             if (itemInTargetSlot == null)
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
 
-            // Check some conditions
-            if (fromItem == null)
+            // Are we equipping into a empty slot ? For whatever reason the client will send FROM empty equipment slot => TO item to equip
+            if ((fromItemId == 0) && (fromType == SlotType.Equipment) && (toType != SlotType.Equipment) && (itemInTargetSlot != null))
+            {
+                action = SwapAction.doEquipInEmptySlot;
+                sourceContainer = Equipment;
+            }
+
+            // Check some conditions when we are not equipping into a empty slot
+            if ((action != SwapAction.doEquipInEmptySlot) && (fromItem == null))
             {
                 _log.Error("SplitOrMoveItem didn't provide a source itemId");
                 return false;
             }
-            if (fromItem?._holdingContainer?.ContainerType != fromType)
+            if ((action != SwapAction.doEquipInEmptySlot) && (fromItem?._holdingContainer?.ContainerType != fromType))
             {
                 _log.Error("SplitOrMoveItem Source Item Container did not match what the client asked");
                 return false;
             }
-            if (fromItem.Slot != fromSlot)
+            if ((action != SwapAction.doEquipInEmptySlot) && (fromItem.Slot != fromSlot))
             {
                 _log.Error("SplitOrMoveItem Source Item slot did not match what the client asked");
                 return false;
             }
-            if (count > fromItem.Count)
+            if ((action != SwapAction.doEquipInEmptySlot) && (count > fromItem.Count))
             {
                 _log.Error("SplitOrMoveItem Source Item has less item count than is requested to be moved");
                 return false;
             }
+            // Validate target Item stuff
             if (itemInTargetSlot != null)
             {
                 if (itemInTargetSlot.SlotType != toType)
@@ -277,7 +288,7 @@ namespace AAEmu.Game.Models.Game.Char
                     _log.Error("SplitOrMoveItem Target Item Slot does not match");
                     return false;
                 }
-                if ((itemInTargetSlot.TemplateId == fromItem.TemplateId) && (itemInTargetSlot.Count + count > fromItem.Template.MaxCount))
+                if ((action != SwapAction.doEquipInEmptySlot) && (itemInTargetSlot.TemplateId == fromItem.TemplateId) && (itemInTargetSlot.Count + count > fromItem.Template.MaxCount))
                 {
                     _log.Error("SplitOrMoveItem Target Item stack does not have enough room to take source");
                     return false;
@@ -285,21 +296,37 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             // Decide what type of thing we need to do
-            if ((itemInTargetSlot == null) && (fromItem.Count > count))
-                action = SwapAction.doSplit;
-            else
-            if ((itemInTargetSlot == null) && (fromItem.Count == count))
-                action = SwapAction.doMoveAllToEmpty;
-            else
-            if ((itemInTargetSlot != null) && (itemInTargetSlot.TemplateId == fromItem.TemplateId))
-                action = SwapAction.doMerge;
-            else
-                action = SwapAction.doSwap;
+            if (action != SwapAction.doEquipInEmptySlot)
+            {
+                if ((itemInTargetSlot == null) && (fromItem.Count > count))
+                    action = SwapAction.doSplit;
+                else
+                if ((itemInTargetSlot == null) && (fromItem.Count == count))
+                    action = SwapAction.doMoveAllToEmpty;
+                else
+                if ((itemInTargetSlot != null) && (itemInTargetSlot.TemplateId == fromItem.TemplateId))
+                    action = SwapAction.doMerge;
+                else
+                    action = SwapAction.doSwap;
+            }
 
             // Actually execute what we need to do
             var itemTasks = new List<ItemTask>();
             switch (action)
             {
+                case SwapAction.doEquipInEmptySlot:
+                    itemInTargetSlot.SlotType = sourceContainer.ContainerType;
+                    itemInTargetSlot.Slot = fromSlot;
+                    itemTasks.Add(new ItemMove(fromType, fromSlot, fromItemId, toType, toSlot, toItemId));
+                    if (targetContainer != sourceContainer)
+                    {
+                        sourceContainer.Items.Add(itemInTargetSlot);
+                        targetContainer.Items.Remove(itemInTargetSlot);
+                        itemInTargetSlot._holdingContainer = sourceContainer;
+                        sourceContainer.UpdateFreeSlotCount();
+                        targetContainer.UpdateFreeSlotCount();
+                    }
+                    break;
                 case SwapAction.doSplit:
                     fromItem.Count -= count;
                     itemTasks.Add(new ItemCountUpdate(fromItem, -count));
@@ -387,10 +414,14 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
 
-        public bool TakeoffBackpack(ItemTaskType taskType)
+        public bool TakeoffBackpack(ItemTaskType taskType,bool glidersOnly = false)
         {
             var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
             if (backpack == null) return true;
+
+            // Check glider if needed
+            if ((glidersOnly) && (backpack.Template is BackpackTemplate bt) && (bt.BackpackType != BackpackType.Glider))
+                return false;
 
             // Move to first available slot
             if (PlayerInventory.FreeSlotCount <= 0) 

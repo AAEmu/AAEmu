@@ -116,8 +116,8 @@ namespace AAEmu.Game.Scripts.Commands
 
                 //_log.Debug("kit.itemID: " + kit.itemID.ToString());
 
-                var item = ItemManager.Instance.Create(kit.itemId, kit.itemCount, kit.itemGrade, true);
-                if (item == null)
+                var itemTemplate = ItemManager.Instance.GetTemplate(kit.itemId);
+                if (itemTemplate == null)
                 {
                     character.SendMessage("|cFFFF0000Item could not be created, ID: {0} ! |r", kit.itemId);
                     _log.Error("itemId not found: " + kit.itemId.ToString());
