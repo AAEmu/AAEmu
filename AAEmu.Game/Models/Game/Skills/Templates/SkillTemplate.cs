@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.Animation;
 using AAEmu.Game.Models.Game.Skills.Plots;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
@@ -8,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public uint Id { get; set; }
         public int Cost { get; set; }
         public bool Show { get; set; }
-        public uint FireAnimId { get; set; }
+        public Anim FireAnim { get; set; }
         public byte AbilityId { get; set; }
         public int ManaCost { get; set; }
         public int TimingId { get; set; }
@@ -65,7 +66,9 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public uint DamageTypeId { get; set; }
         public bool AllowToPrisoner { get; set; }
         public uint MilestoneId { get; set; }
+        public bool MatchAnimation { get; set; }
         public Plot Plot { get; set; }
+        public bool UseAnimTime { get; set; }
         public int ConsumeLaborPower { get; set; }
         public bool SourceStun { get; set; }
         public bool TargetAlive { get; set; }

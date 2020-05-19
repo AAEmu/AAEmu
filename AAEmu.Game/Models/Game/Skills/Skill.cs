@@ -247,29 +247,26 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
                 ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step); 
             }
+            
+            if (Template.CastingTime > 0)
+            {
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+                caster.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
+                TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(Template.CastingTime));
+            }
+            else if (caster is Character && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
+            {
+                caster.IsAutoAttack = true; // enable auto attack
+                caster.SkillId = Id;
+                caster.TlId = TlId;
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+
+                caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
+                TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
+            }
             else
             {
-                if (Template.CastingTime > 0)
-                {
-                    caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
-                    caster.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
-
-                    TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(Template.CastingTime));
-                }
-                else if (caster is Character && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
-                {
-                    caster.IsAutoAttack = true; // enable auto attack
-                    caster.SkillId = Id;
-                    caster.TlId = TlId;
-                    caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
-
-                    caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
-                    TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
-                }
-                else
-                {
-                    Cast(caster, casterCaster, target, targetCaster, skillObject);
-                }
+                Cast(caster, casterCaster, target, targetCaster, skillObject);
             }
         }
 
@@ -460,11 +457,21 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.EffectDelay > 0)
             {
-                TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(Template.EffectDelay));
+                var totalDelay = Template.EffectDelay;
+                if (Template.MatchAnimation) totalDelay += Template.FireAnim.Duration;
+                else if (Template.UseAnimTime) totalDelay += Template.FireAnim.CombatSyncTime;
+                TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));
             }
             else
             {
-                Apply(caster, casterCaster, target, targetCaster, skillObject);
+                var totalDelay = 0;
+                if (Template.MatchAnimation || Template.UseAnimTime)
+                {
+                    if (Template.MatchAnimation) totalDelay += Template.FireAnim.CombatSyncTime;
+                    if (Template.UseAnimTime) totalDelay += Template.FireAnim.Duration;
+                    TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));
+                }
+                else Apply(caster, casterCaster, target, targetCaster, skillObject);
             }
         }
 
