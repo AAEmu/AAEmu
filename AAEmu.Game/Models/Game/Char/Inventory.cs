@@ -373,6 +373,14 @@ namespace AAEmu.Game.Models.Game.Char
                     break;
             }
 
+            // Handle Equipment Broadcasting
+            if (fromType == SlotType.Equipment)
+                Owner.BroadcastPacket(
+                    new SCUnitEquipmentsChangedPacket(Owner.ObjId,fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+            if (toType == SlotType.Equipment)
+                Owner.BroadcastPacket(
+                    new SCUnitEquipmentsChangedPacket(Owner.ObjId,toSlot, Equipment.GetItemBySlot(toSlot)), false);
+
             if (itemTasks.Count > 0)
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
             return (itemTasks.Count > 0);
