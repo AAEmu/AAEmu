@@ -45,95 +45,117 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
-            var character = (Character)caster;
-            if (character == null)
+            // Get Player
+            if ((!(caster is Character character)) || (character == null))
             {
                 return;
             }
 
-            var scroll = (SkillItem)casterObj;
-            if (scroll == null)
+            // Get Regrade Scroll Item
+            if ((!(casterObj is SkillItem scroll)) || (scroll == null))
             {
                 return;
             }
 
-            var itemTarget = (SkillCastItemTarget)targetObj;
-            if (itemTarget == null)
+            // Get Item to regrade
+            if ((!(targetObj is SkillCastItemTarget itemTarget)) || (itemTarget == null))
             {
                 return;
             }
 
+            // Check Charm
             var useCharm = false;
-            var charm = (SkillObjectItemGradeEnchantingSupport)skillObject;
-            if (charm != null && charm.SupportItemId != 0)
+            SkillObjectItemGradeEnchantingSupport charm = null;
+            if (skillObject is SkillObjectItemGradeEnchantingSupport)
             {
-                useCharm = true;
+                charm = (SkillObjectItemGradeEnchantingSupport)skillObject;
+                if ((charm != null) && (charm.SupportItemId != 0))
+                {
+                    useCharm = true;
+                }
             }
 
             var isLucky = value1 != 0;
-            var item = character.Inventory.GetItem(itemTarget.Id);
+            var item = character.Inventory.GetItemById(itemTarget.Id);
+            if (item == null)
+            {
+                // Invalid item
+                return;
+            }
             var initialGrade = item.Grade;
             var gradeTemplate = ItemManager.Instance.GetGradeTemplate(item.Grade);
+
             var tasks = new List<ItemTask>();
-            var tasksRemove = new List<ItemTask>();
 
             var cost = GoldCost(gradeTemplate, item, value3);
             if (cost == -1)
             {
+                // No gold on template, invalid ?
                 return;
             }
 
             if (character.Money < cost)
             {
+                character.SendErrorMessage(Error.ErrorMessageType.NotEnoughMoney);
                 return;
             }
 
-            character.Money -= cost;
-            tasks.Add(new MoneyChange(-cost));
-
-            if (!character.Inventory.CheckItems(scroll.ItemTemplateId, 1))
+            if (!character.Inventory.CheckItems(SlotType.Inventory,scroll.ItemTemplateId, 1))
             {
+                // No scroll
+                character.SendErrorMessage(Error.ErrorMessageType.NotEnoughRequiredItem);
                 return;
             }
 
             ItemGradeEnchantingSupport charmInfo = null;
+            Item charmItem = null;
             if (useCharm)
             {
-                var charmItem = character.Inventory.GetItem(charm.SupportItemId);
+                charmItem = character.Inventory.GetItemById(charm.SupportItemId);
                 if (charmItem == null)
                 {
                     return;
                 }
 
                 charmInfo = ItemManager.Instance.GetItemGradEnchantingSupportByItemId(charmItem.TemplateId);
-
                 if (charmInfo.RequireGradeMin != -1 && item.Grade < charmInfo.RequireGradeMin)
                 {
+                    character.SendErrorMessage(Error.ErrorMessageType.NotEnoughRequiredItem);
                     return;
                 }
 
                 if (charmInfo.RequireGradeMax != -1 && item.Grade > charmInfo.RequireGradeMax)
                 {
+                    character.SendErrorMessage(Error.ErrorMessageType.GradeEnchantMax);
                     return;
                 }
 
-                tasksRemove.Add(InventoryHelper.GetTaskAndRemoveItem(character, charmItem, 1));
+                // tasksRemove.Add(InventoryHelper.GetTaskAndRemoveItem(character, charmItem, 1));
             }
 
+            // All seems to be in order, roll item, consume items and send the results
             var result = RollRegrade(gradeTemplate, item, isLucky, useCharm, charmInfo);
-
             if (result == GradeEnchantResult.Break)
             {
-                tasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, item, 1));
+                // Poof
+                item._holdingContainer.RemoveItem(ItemTaskType.GradeEnchant, item, true);
             }
             else
             {
-                tasks.Add(new ItemGradeChange(item, item.Grade));
+                // No Poof
+                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, new List<ItemTask>() { new ItemGradeChange(item, item.Grade) }, new List<ulong>()));
             }
 
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GradeEnchant, tasks, new List<ulong>()));
+            // Consume
+            character.SubtractMoney(SlotType.Inventory, cost);
+            // TODO: Handled by skill already, do more tests
+            // character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, scroll.ItemTemplateId, 1, character.Inventory.GetItemById(scroll.ItemId));
+            if (useCharm)
+                character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.GradeEnchant, charmItem.TemplateId, 1, charmItem);
+
             character.SendPacket(new SCGradeEnchantResultPacket((byte)result, item, initialGrade, item.Grade));
 
+            // Let the world know if we got lucky enough
             if (item.Grade >= 8 && (result == GradeEnchantResult.Success || result == GradeEnchantResult.GreatSuccess))
             {
                 WorldManager.Instance.BroadcastPacketToServer(
@@ -201,8 +223,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
         private int GoldCost(GradeTemplate gradeTemplate, Item item, int ItemType)
         {
-            int cost = 0;
-
             uint slotTypeId = 0;
             switch (ItemType)
             {
@@ -237,7 +257,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             parameters.Add("equip_slot_enchant_cost", equipSlotEnchantCost);
             var formula = FormulaManager.Instance.GetFormula((uint)FormulaKind.GradeEnchantCost);
 
-            cost = (int)formula.Evaluate(parameters);
+            var cost = (int)formula.Evaluate(parameters);
 
             return cost;
         }

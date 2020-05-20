@@ -52,8 +52,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 return;
             }
 
-            var targetItem = owner.Inventory.GetItem(skillTargetItem.Id);
-            var temperItem = owner.Inventory.GetItem(temperSkillItem.ItemId);
+            var targetItem = owner.Inventory.GetItemById(skillTargetItem.Id);
+            var temperItem = owner.Inventory.GetItemById(temperSkillItem.ItemId);
 
             if (targetItem == null || temperItem == null)
             {
@@ -61,8 +61,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             }
 
             var equipItem = (EquipItem)targetItem;
-            var tasksTempering = new List<ItemTask>();
-            var tasksRemove = new List<ItemTask>();
 
             var itemCapScale = ItemManager.Instance.GetItemCapScale(skill.Id);
 
@@ -72,11 +70,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             equipItem.TemperPhysical = physicalScale;
             equipItem.TemperMagical = magicalScale;
 
-            tasksTempering.Add(new ItemUpdate(equipItem));
-            tasksRemove.Add(InventoryHelper.GetTaskAndRemoveItem(owner, temperItem, 1));
-
-            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, tasksTempering, new List<ulong>()));
-            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, tasksRemove, new List<ulong>()));
+            temperItem._holdingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
+            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));
         }
     }
 }
