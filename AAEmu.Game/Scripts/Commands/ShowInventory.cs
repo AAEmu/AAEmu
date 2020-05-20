@@ -10,22 +10,22 @@ using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
-    public class TestItemContainer : ICommand
+    public class ShowInventory : ICommand
     {
         public void OnLoad()
         {
-            string[] name = { "showinv", "show_inventory" };
+            string[] name = { "showinv", "show_inv", "showinventory", "show_inventory", "inventory" };
             CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
         {
-            return "(target) <containerId>";
+            return "(target) [containerId]";
         }
 
         public string GetCommandHelpText()
         {
-            return "Show content of target container.\rEquipment = 1, Inventory = 2, Bank = 3, Trade = 4, Mail = 5";
+            return "Show content of target's item container.\rEquipment = 1, Inventory = 2 (default), Bank = 3, Trade = 4, Mail = 5";
         }
 
         public void Execute(Character character, string[] args)
