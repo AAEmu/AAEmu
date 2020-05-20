@@ -147,7 +147,7 @@ namespace AAEmu.Game.Core.Managers
                     OwnerId = owner.Id,
                     PlantTime = DateTime.Now,
                     OwnerType = DoodadOwnerType.Slave,
-                    DbId = template.Id,
+                    DbHouseId = template.Id,
                     Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
                     Data = (byte)doodadBinding.AttachPointId
                 };

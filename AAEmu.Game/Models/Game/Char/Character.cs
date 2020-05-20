@@ -51,7 +51,6 @@ namespace AAEmu.Game.Models.Game.Char
 
         private Dictionary<ushort, string> _options;
 
-        public GameConnection Connection { get; set; }
         public List<IDisposable> Subscribers { get; set; }
 
         public uint Id { get; set; }
@@ -627,6 +626,50 @@ namespace AAEmu.Game.Models.Game.Char
                 return (int)res;
             }
         }
+        
+        public override int HDps
+        {
+            get
+            {
+                var weapon = (Weapon) Inventory.Equipment.GetItemBySlot((int) EquipmentItemSlot.Mainhand);
+                var res = weapon?.HDps ?? 0;
+                res += Spi / 5f;
+                foreach(var bonus in GetBonuses(UnitAttribute.HealDps))
+                {
+                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int) (res * 1000);
+            }
+        }
+
+        public override int HDpsInc
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.HealDpsInc);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                parameters["str"] = Str;
+                parameters["dex"] = Dex;
+                parameters["sta"] = Sta;
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                parameters["fai"] = Fai;
+                var res = formula.Evaluate(parameters);
+                foreach(var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
+                {
+                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int) res;
+            }
+        }
 
         public override int Armor
         {
@@ -884,11 +927,6 @@ namespace AAEmu.Game.Models.Game.Char
         public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
         {
             SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
-        }
-
-        public void SendPacket(GamePacket packet)
-        {
-            Connection?.SendPacket(packet);
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)

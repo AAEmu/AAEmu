@@ -5,16 +5,6 @@ using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items
 {
-    public enum ItemBindType : uint
-    {
-        Normal = 1,
-        BindOnPickup = 2,
-        BindOnEquip = 3,
-        BindOnUnwrap = 4,
-        BindOnPackPickup = 5,
-        BindOnAuctionWin = 6
-    }
-
     [Flags]
     public enum ItemFlag : byte
     {
@@ -66,6 +56,7 @@ namespace AAEmu.Game.Models.Game.Items
         public DateTime CreateTime { get; set; }
         public DateTime UnsecureTime { get; set; }
         public DateTime UnpackTime { get; set; }
+        public uint ImageItemTemplateId { get; set; }
 
         public virtual byte DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
@@ -152,6 +143,18 @@ namespace AAEmu.Game.Models.Game.Items
 
         public virtual void WriteDetails(PacketStream stream)
         {
+        }
+        
+        public virtual bool HasFlag(ItemFlag flag) {
+            return (ItemFlags & flag) == flag;
+        }
+
+        public virtual void SetFlag(ItemFlag flag) {
+            ItemFlags |= flag;
+        }
+
+        public virtual void RemoveFlag(ItemFlag flag) {
+            ItemFlags &= ~flag;
         }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
         public byte AttachPoint { get; set; }
-        public uint DbId { get; set; }
+        public uint DbHouseId { get; set; }
         public int Data { get; set; }
 
         public DoodadSpawner Spawner { get; set; }
@@ -105,7 +105,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(0); // family
             stream.Write(-1); // puzzleGroup
             stream.Write((byte)OwnerType); // ownerType
-            stream.Write(DbId); // dbHouseId
+            stream.Write(DbHouseId); // dbHouseId
             stream.Write(Data); // data
             return stream;
         }

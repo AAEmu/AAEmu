@@ -10,9 +10,8 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
-    public class ReceiveLuluLeaflet : ISpecialEffect
+    public class ReceiveLuluLeaflet : SpecialEffect
     {
-        protected static Logger _log = LogManager.GetCurrentClassLogger();
 
         public void Execute(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj, Skill skill, SkillObject skillObject, DateTime time, int Value1, int Value2, int Value3,

@@ -102,13 +102,6 @@ namespace AAEmu.Game.Models.Game.Char
         {
             // Nothing
         }
-
-        [Obsolete("This function is no longer used")]
-        private void SaveItems(MySqlConnection connection, MySqlTransaction transaction, Item[] items)
-        {
-            // Nothing
-        }
-
         #endregion
 
         public void Send()
@@ -145,37 +138,20 @@ namespace AAEmu.Game.Models.Game.Char
                 if (c.GetAllItemsByTemplate(templateId, out _, out int itemCount))
                     totalCount += itemCount;
             }
-            if (totalCount <= 0)
-                return false;
-
-
-            Item[] items = null;
-            if (slotType == SlotType.Inventory)
-                items = PlayerInventory.GetSlottedItemsList().ToArray();
-            else if (slotType == SlotType.Equipment)
-                items = Equipment.GetSlottedItemsList().ToArray();
-            else if (slotType == SlotType.Bank)
-                items = Warehouse.GetSlottedItemsList().ToArray();
-
-            if (items == null)
-                return false;
-
-            foreach (var item in items)
-                if (item != null && item.TemplateId == templateId)
-                {
-                    count -= item.Count;
-                    if (count < 0)
-                        count = 0;
-                    if (count == 0)
-                        break;
-                }
-
-            return count == 0;
+            return (totalCount >= count);
         }
 
         public int GetItemsCount(uint templateId)
         {
             if (GetAllItemsByTemplate(null, templateId, out var _, out var counted))
+                return counted;
+            else
+                return 0;
+        }
+
+        public int GetItemsCount(SlotType slotType, uint templateId)
+        {
+            if (GetAllItemsByTemplate(new SlotType[1] { slotType }, templateId, out var _, out var counted))
                 return counted;
             else
                 return 0;
@@ -410,6 +386,11 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (itemTasks.Count > 0)
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+
+            sourceContainer.ApplyBindRules(taskType);
+            if (targetContainer != sourceContainer)
+                targetContainer.ApplyBindRules(taskType);
+
             return (itemTasks.Count > 0);
         }
 

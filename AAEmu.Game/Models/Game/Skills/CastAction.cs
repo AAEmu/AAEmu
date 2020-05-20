@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
@@ -7,8 +7,8 @@ namespace AAEmu.Game.Models.Game.Skills
         Skill = 0,
         Plot = 1,
         Buff = 2,
-        Unk2 = 3,
-        Unk3 = 4
+        BuffTarget = 3,
+        DestroyTarget = 4
     }
 
     public abstract class CastAction : PacketMarshaler
@@ -96,7 +96,7 @@ namespace AAEmu.Game.Models.Game.Skills
     {
         public CastUnk2()
         {
-            Type = CastType.Unk2;
+            Type = CastType.BuffTarget;
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -113,7 +113,7 @@ namespace AAEmu.Game.Models.Game.Skills
     {
         public CastUnk3()
         {
-            Type = CastType.Unk3;
+            Type = CastType.DestroyTarget;
         }
 
         public override PacketStream Write(PacketStream stream)

@@ -321,7 +321,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
         }
-        public void Drop()
+        public void Drop(bool update)
         {
             Status = QuestStatus.Dropped;
             for (var i = 0; i < 5; i++)
@@ -329,7 +329,8 @@ namespace AAEmu.Game.Models.Game.Quests
                 Objectives[i] = 0;
             }
 
-            Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
+            if(update)
+                Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
             RemoveQuestItems();
         }
 

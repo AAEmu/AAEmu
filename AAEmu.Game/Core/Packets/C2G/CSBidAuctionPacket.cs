@@ -48,7 +48,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var bid = stream.ReadUInt32();
 
 
-            AuctionManager.Instance.BidOnAuctionItem(Connection.ActiveChar, auctionId, Connection.ActiveChar.Name, bid);
+            AuctionManager.Instance.BidOnAuctionItem(Connection.ActiveChar, auctionId, bid);
         }
     }
 }

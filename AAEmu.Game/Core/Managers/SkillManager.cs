@@ -3,6 +3,7 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -23,6 +24,9 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, EffectType> _types;
         private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
         private Dictionary<uint, List<uint>> _taggedBuffs;
+        private Dictionary<uint, List<uint>> _skillTags;
+
+        private Dictionary<uint, List<SkillModifier>> _skillModifiers;
 
         public SkillTemplate GetSkillTemplate(uint id)
         {
@@ -63,6 +67,9 @@ namespace AAEmu.Game.Core.Managers
             if(_types.ContainsKey(id))
             {
                 var type = _types[id];
+ 
+                _log.Info("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
+
                 return _effects[type.Type][type.ActualId];
             }
             return null;
@@ -70,6 +77,8 @@ namespace AAEmu.Game.Core.Managers
 
         public EffectTemplate GetEffectTemplate(uint id, string type)
         {
+            _log.Info("Get Effect Template: type = {0}, id = {1}", type, id);
+            
             return _effects[type][id];
         }
 
@@ -80,11 +89,25 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
+        public List<uint> GetSkillTags(uint skillId)
+        {
+            if(_skillTags.ContainsKey(skillId))
+                return _skillTags[skillId];
+            return new List<uint>();
+        }
+        
         public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
         {
             if(_passiveBuffs.ContainsKey(id))
                 return _passiveBuffs[id];
             return null;
+        }
+        
+        public List<SkillModifier> GetModifiersByOwnerId(uint id)
+        {
+            if(_skillModifiers.ContainsKey(id))
+                return _skillModifiers[id];
+            return new List<SkillModifier>();
         }
 
         public void Load()
@@ -140,6 +163,8 @@ namespace AAEmu.Game.Core.Managers
              */
 
             _taggedBuffs = new Dictionary<uint, List<uint>>();
+            _skillModifiers = new Dictionary<uint, List<SkillModifier>>();
+            _skillTags = new Dictionary<uint, List<uint>>();
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -239,7 +264,7 @@ namespace AAEmu.Game.Core.Managers
                                 reader.GetBoolean("level_rule_no_consideration", true);
                             template.UseWeaponCooldownTime = reader.GetBoolean("use_weapon_cooldown_time", true);
                             template.CombatDiceId = reader.GetInt32("combat_dice_id");
-                            template.CustonGcd = reader.GetInt32("custom_gcd");
+                            template.CustomGcd = reader.GetInt32("custom_gcd");
                             template.CancelOngoingBuffs = reader.GetBoolean("cancel_ongoing_buffs", true);
                             template.SourceCannotUseWhileWalk =
                                 reader.GetBoolean("source_cannot_use_while_walk", true);
@@ -1157,7 +1182,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SpecialEffect();
                             template.Id = reader.GetUInt32("id");
-                            template.SpecialEffectTypeId = (SpecialEffectType)reader.GetInt32("special_effect_type_id");
+                            template.SpecialEffectTypeId = (SpecialType)reader.GetInt32("special_effect_type_id");
                             template.Value1 = reader.GetInt32("value1");
                             template.Value2 = reader.GetInt32("value2");
                             template.Value3 = reader.GetInt32("value3");
@@ -1253,6 +1278,52 @@ namespace AAEmu.Game.Core.Managers
                             if (!_taggedBuffs.ContainsKey(tagId))
                                 _taggedBuffs.Add(tagId, new List<uint>());
                             _taggedBuffs[tagId].Add(buffId);
+                        }
+                    }
+                }
+                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM skill_modifiers";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new SkillModifier
+                            {
+                                Id = reader.GetUInt32("id"),
+                                OwnerId = reader.GetUInt32("owner_id"),
+                                OwnerType = reader.GetString("owner_type"),
+                                TagId = reader.GetUInt32("tag_id", 0),
+                                SkillAttribute = (SkillAttribute)reader.GetUInt32("skill_attribute_id"),
+                                UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
+                                Value = reader.GetInt32("value"),
+                                SkillId = reader.GetUInt32("skill_id", 0),
+                                Synergy = reader.GetBoolean("synergy"),
+                            };
+
+                            if (!_skillModifiers.ContainsKey(template.OwnerId))
+                                _skillModifiers.Add(template.OwnerId, new List<SkillModifier>());
+                            _skillModifiers[template.OwnerId].Add(template);
+                        }
+                    }
+                }
+                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM tagged_skills";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var tagId = reader.GetUInt32("tag_id");
+                            var skillId = reader.GetUInt32("skill_id");
+                            if (!_skillTags.ContainsKey(skillId))
+                                _skillTags.Add(skillId, new List<uint>());
+                            _skillTags[skillId].Add(tagId);
                         }
                     }
                 }

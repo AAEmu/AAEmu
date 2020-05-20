@@ -2215,7 +2215,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.ParentObjId = house.ObjId;
                 doodad.OwnerId = house.OwnerId;
                 doodad.OwnerType = DoodadOwnerType.Housing;
-                doodad.DbId = house.Id;
+                doodad.DbHouseId = house.Id;
             }
 
             doodad.FuncGroupId = doodad.GetGroupId(); // TODO look, using doodadFuncId

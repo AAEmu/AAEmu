@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -221,23 +222,6 @@ namespace AAEmu.Game.Models.Game.Items
             if (this.ContainerType != SlotType.None)
                 itemTasks.Add(new ItemAdd(item));
 
-            // Bind on ???
-            if (!item.ItemFlags.HasFlag(ItemFlag.SoulBound) && (item.Template.BindId != ItemBindType.Normal))
-            {
-                // Bind on pickup.
-                if ((ContainerType == SlotType.Inventory) && (item.Template.BindId == ItemBindType.BindOnPickup))
-                    item.ItemFlags |= ItemFlag.SoulBound;
-                // Bind on Equip
-                if ((ContainerType == SlotType.Equipment) && (item.Template.BindId == ItemBindType.BindOnEquip))
-                    item.ItemFlags |= ItemFlag.SoulBound;
-
-                if (item.ItemFlags.HasFlag(ItemFlag.SoulBound))
-                {
-                    // Update item bits task
-                    itemTasks.Add(new ItemUpdateBits(item, item.ItemFlags));
-                }
-            }
-
             // Item Tasks
             if ((sourceContainer != null) && (sourceContainer != this))
             {
@@ -254,6 +238,8 @@ namespace AAEmu.Game.Models.Game.Items
                 if (sourceItemTasks.Count > 0)
                     sourceContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, sourceItemTasks, new List<ulong>()));
             }
+
+            ApplyBindRules(taskType);
             return (itemTasks.Count > 0);
         }
 
@@ -347,13 +333,14 @@ namespace AAEmu.Game.Models.Game.Items
             if (amountToAdd <= 0)
                 return true;
 
-            GetAllItemsByTemplate(templateId, out var currentItems,out var currentTotalItemCount);
+            GetAllItemsByTemplate(templateId, out var currentItems, out var currentTotalItemCount);
             var template = ItemManager.Instance.GetTemplate(templateId);
             if (template == null)
                 return false; // Invalid item templateId
-            var TotalFreeSpaceForThisItem = (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
-            // Trying to add too many item units to this container
-            if (amountToAdd > TotalFreeSpaceForThisItem)
+            var totalFreeSpaceForThisItem = (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
+
+            // Trying to add too many item units to this container ?
+            if (amountToAdd > totalFreeSpaceForThisItem)
                 return false;
 
             // Calculate grade to actually add for new items
@@ -401,6 +388,16 @@ namespace AAEmu.Game.Models.Game.Items
             return (itemTasks.Count > 0);
         }
 
+        public int SpaceLeftForItem(uint templateId)
+        {
+            GetAllItemsByTemplate(templateId, out var currentItems, out var currentTotalItemCount);
+            var template = ItemManager.Instance.GetTemplate(templateId);
+            if (template == null)
+                return 0 ; // Invalid item templateId
+            return (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
+        }
+
+
         /// <summary>
         /// Returns a list of items in the order of their slot, unused slots return null
         /// </summary>
@@ -431,6 +428,29 @@ namespace AAEmu.Game.Models.Game.Items
                     unitsOfItemFound += i.Count;
                 }
             return (foundItems.Count > 0);
+        }
+
+        public void ApplyBindRules(ItemTaskType taskType)
+        {
+            var itemTasks = new List<ItemTask>();
+            foreach(var i in Items)
+            {
+                if (i.HasFlag(ItemFlag.SoulBound) == false)
+                {
+                    if ((ContainerType == SlotType.Inventory) && (i.Template.BindType == ItemBindType.BindOnPickup))
+                        i.SetFlag(ItemFlag.SoulBound);
+
+                    if ((ContainerType == SlotType.Equipment) && (i.Template.BindType == ItemBindType.BindOnEquip))
+                        i.SetFlag(ItemFlag.SoulBound);
+
+                    if (i.HasFlag(ItemFlag.SoulBound))
+                    {
+                        itemTasks.Add(new ItemUpdateBits(i));
+                    }
+                }
+            }
+            if (itemTasks.Count > 0)
+                Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
         }
 
         /// <summary>
