@@ -1,3 +1,6 @@
+CREATE DATABASE IF NOT EXISTS `aaemu_login`;
+USE aaemu_login;
+
 -- phpMyAdmin SQL Dump
 -- version 4.8.3
 -- https://www.phpmyadmin.net/

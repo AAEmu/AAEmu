@@ -5,6 +5,7 @@ namespace AAEmu.Login.Models
     public class AppConfiguration : Singleton<AppConfiguration>
     {
         public string SecretKey { get; set; }
+        public bool AutoAccount { get; set; }
         public DBConnections Connections { get; set; }
         public NetworkConfig InternalNetwork { get; set; }
         public NetworkConfig Network { get; set; }
