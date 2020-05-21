@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (npc == null || !npc.Template.Merchant)
                 return;
             Connection.ActiveChar.BuyBackItems.ReNumberSlots();
-            Connection.SendPacket(new SCSoldItemListPacket(Connection.ActiveChar.BuyBackItems.Items.ToArray()));
+            Connection.SendPacket(new SCSoldItemListPacket(Connection.ActiveChar.BuyBackItems.Items));
         }
     }
 }

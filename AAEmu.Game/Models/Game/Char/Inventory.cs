@@ -41,7 +41,7 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var stv in SlotTypes)
             {
                 SlotType st = (SlotType)stv;
-                var newContainer = new ItemContainer(owner, st);
+                var newContainer = new ItemContainer(owner, st, true);
                 _itemContainers.Add(st, newContainer);
                 switch (st)
                 {
@@ -80,17 +80,18 @@ namespace AAEmu.Game.Models.Game.Char
             // Place loaded items list in correct containers
             foreach (var item in playeritems)
             {
-                if (_itemContainers.TryGetValue(item.SlotType, out var container))
+                if ((item.SlotType != SlotType.None) && (_itemContainers.TryGetValue(item.SlotType, out var container)))
                 {
                     if (!container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                     {
-                        _log.Fatal("LoadInventory found unused item type for item, Id {0} for {1}", item.SlotType, Owner?.Name ?? "<system>");
-                        throw new Exception(string.Format("Was unable to add item {0} to container {1} for player {2} using the defined slot.", item?.Template.Name ?? item.TemplateId.ToString(), item.Slot.ToString(), Owner?.Name ?? "???"));
+                        item._holdingContainer?.RemoveItem(ItemTaskType.Invalid, item, true);
+                        _log.Error("LoadInventory found unused item type for item, Id {0} ({1}) at {2}:{3} for {1}", item.Id, item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:"+item.OwnerId.ToString());
+                        // throw new Exception(string.Format("Was unable to add item {0} to container {1} for player {2} using the defined slot.", item?.Template.Name ?? item.TemplateId.ToString(), item.Slot.ToString(), Owner?.Name ?? "???"));
                     }
                 }
                 else
                 {
-                    _log.Warn("LoadInventory found unused itemId {0} for {1}", item.SlotType, Owner?.Name ?? "<system>");
+                    _log.Warn("LoadInventory found unused itemId {0} ({1}) at {2}:{3} for {1}", item.Id, item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:" + item.OwnerId.ToString());
                 }
             }
 

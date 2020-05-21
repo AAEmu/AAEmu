@@ -18,9 +18,15 @@ namespace AAEmu.Game.Models.Game.Items
     {
         private int _containerSize;
         private int _freeSlotCount;
+        private bool _partOfPlayerInventory;
         public Character Owner { get; set; }
         public SlotType ContainerType { get; set; }
         public List<Item> Items { get; set; }
+        public bool PartOfPlayerInventory { get
+            {
+                return _partOfPlayerInventory;
+            }
+        }
         public int ContainerSize
         {
             get
@@ -41,22 +47,22 @@ namespace AAEmu.Game.Models.Game.Items
             }
         }
 
-        public ItemContainer(Character owner, SlotType containerType)
+        public ItemContainer(Character owner, SlotType containerType,bool isPartOfPlayerInventory)
         {
             Owner = owner;
             ContainerType = containerType;
             Items = new List<Item>();
             ContainerSize = -1; // Unlimited
+            _partOfPlayerInventory = isPartOfPlayerInventory;
         }
 
-        public void ReNumberSlots()
+        public void ReNumberSlots(bool reverse = false)
         {
-            var c = 0;
-            foreach (var i in Items)
+            for (var c = 0; c < Items.Count; c++)
             {
+                var i = Items[reverse?Items.Count-1-c:c];
                 i.SlotType = ContainerType;
                 i.Slot = c;
-                c++;
             }
         }
 
@@ -216,7 +222,8 @@ namespace AAEmu.Game.Models.Game.Items
             item._holdingContainer = this;
             item.OwnerId = this.Owner.Id;
 
-            Items.Add(item);
+            Items.Insert(0, item); // insert at front for easy buyback handling
+            //Items.Add(item);
             UpdateFreeSlotCount();
             // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
             if (this.ContainerType != SlotType.None)
@@ -240,7 +247,7 @@ namespace AAEmu.Game.Models.Game.Items
             }
 
             ApplyBindRules(taskType);
-            return (itemTasks.Count > 0);
+            return ((itemTasks.Count + sourceItemTasks.Count) > 0);
         }
 
         /// <summary>
@@ -256,7 +263,10 @@ namespace AAEmu.Game.Models.Game.Items
             if (res && task != ItemTaskType.Invalid)
                 item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, new List<ItemTask> { new ItemRemoveSlot(item) }, new List<ulong>()));
             if (res && releaseIdAsWell)
+            {
+                item._holdingContainer = null;
                 ItemManager.Instance.ReleaseId(item.Id);
+            }
             return res;
         }
 
