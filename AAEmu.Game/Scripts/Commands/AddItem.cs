@@ -50,7 +50,7 @@ namespace AAEmu.Game.Scripts.Commands
             if ((args.Length > firstarg + 2) && (byte.TryParse(args[firstarg + 2], out byte arggrade)))
                 grade = arggrade;
 
-            if (!targetPlayer.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Gm, itemId, count, grade))
+            if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, itemId, count, grade))
             {
                 character.SendMessage("|cFFFF0000Item could not be created!|r");
                 return;

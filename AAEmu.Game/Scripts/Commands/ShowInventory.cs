@@ -48,7 +48,7 @@ namespace AAEmu.Game.Scripts.Commands
                 }
             }
 
-            var targetContainer = targetPlayer.Inventory.PlayerInventory;
+            var targetContainer = targetPlayer.Inventory.Bag;
             if (targetPlayer.Inventory._itemContainers.TryGetValue(containerId, out targetContainer))
             {
                 foreach (var item in targetContainer.Items)

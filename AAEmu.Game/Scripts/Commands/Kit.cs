@@ -125,7 +125,7 @@ namespace AAEmu.Game.Scripts.Commands
                 }
                 else
                 {
-                    if (!targetPlayer.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Gm, kit.itemId, kit.itemCount, kit.itemGrade))
+                    if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, kit.itemId, kit.itemCount, kit.itemGrade))
                     {
                         character.SendMessage("|cFFFF0000Item could not be created!|r");
                         continue;
