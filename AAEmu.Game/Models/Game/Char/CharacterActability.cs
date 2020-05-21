@@ -88,7 +88,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (expand.ItemId != 0 && expand.ItemCount != 0)
             {
-                Owner.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.ExpandExpert, expand.ItemId, expand.ItemCount,null);
+                Owner.Inventory.Bag.ConsumeItem(ItemTaskType.ExpandExpert, expand.ItemId, expand.ItemCount,null);
                 /*
                 var items = Owner.Inventory.RemoveItem(expand.ItemId, expand.ItemCount);
 

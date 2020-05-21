@@ -46,7 +46,7 @@ namespace AAEmu.Game.Core.Managers
                 player.SendErrorMessage(Models.Game.Error.ErrorMessageType.CanNotPutupMoney);
                 return;
             }
-            player.Inventory.PlayerInventory.RemoveItem(Models.Game.Items.Actions.ItemTaskType.Auction, newItem, true);
+            player.Inventory.Bag.RemoveItem(Models.Game.Items.Actions.ItemTaskType.Auction, newItem, true);
             // InventoryHelper.RemoveItemAndUpdateClient(player, newItem, newItem.Count);
             _auctionItems.Add(newAuctionItem);
             player.SendPacket(new SCAuctionPostedPacket(newAuctionItem));

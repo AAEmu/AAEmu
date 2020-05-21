@@ -72,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     var template = acts[i].GetTemplate<QuestActObjItemGather>();
                                     // TODO: Check both inventory and warehouse
-                                    Owner.Inventory.PlayerInventory.GetAllItemsByTemplate(template.Id, out _, out var objectivesCounted);
+                                    Owner.Inventory.Bag.GetAllItemsByTemplate(template.Id, out _, out var objectivesCounted);
                                     Objectives[i] = objectivesCounted;
                                     //Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
                                     if (Objectives[i] > template.Count) // TODO check to overtime
@@ -291,7 +291,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
                         }
 
-                        Owner.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
+                        Owner.Inventory.Bag.ConsumeItem(ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
                         //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                     }
                     if (act.DetailType == "QuestActObjItemGather")
@@ -299,7 +299,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         var template = act.GetTemplate<QuestActObjItemGather>();
                         if (template.DestroyWhenDrop)
                         {
-                            Owner.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
+                            Owner.Inventory.Bag.ConsumeItem(ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
                             //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                         }
                     }

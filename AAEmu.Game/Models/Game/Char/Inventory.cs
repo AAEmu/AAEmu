@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public Dictionary<SlotType, ItemContainer> _itemContainers { get; private set; }
         public ItemContainer Equipment { get; private set; }
-        public ItemContainer PlayerInventory { get; private set; }
+        public ItemContainer Bag { get; private set; }
         public ItemContainer Warehouse { get; private set; }
         public ItemContainer MailAttachments { get; private set; }
 
@@ -51,7 +51,7 @@ namespace AAEmu.Game.Models.Game.Char
                         break;
                     case SlotType.Inventory:
                         newContainer.ContainerSize = Owner.NumInventorySlots;
-                        PlayerInventory = newContainer;
+                        Bag = newContainer;
                         break;
                     case SlotType.Bank:
                         newContainer.ContainerSize = Owner.NumBankSlots;
@@ -108,7 +108,7 @@ namespace AAEmu.Game.Models.Game.Char
         public void Send()
         {
             Owner.SendPacket(new SCCharacterInvenInitPacket(Owner.NumInventorySlots, (uint)Owner.NumBankSlots));
-            SendFragmentedInventory(SlotType.Inventory, Owner.NumInventorySlots, PlayerInventory.GetSlottedItemsList().ToArray());
+            SendFragmentedInventory(SlotType.Inventory, Owner.NumInventorySlots, Bag.GetSlottedItemsList().ToArray());
             SendFragmentedInventory(SlotType.Bank, (byte)Owner.NumBankSlots, Warehouse.GetSlottedItemsList().ToArray());
         }
 
@@ -215,8 +215,8 @@ namespace AAEmu.Game.Models.Game.Char
                 count = fromItem.Count;
 
             // Grab target container for easy manipulation
-            ItemContainer targetContainer = PlayerInventory;
-            ItemContainer sourceContainer = fromItem?._holdingContainer ?? PlayerInventory;
+            ItemContainer targetContainer = Bag;
+            ItemContainer sourceContainer = fromItem?._holdingContainer ?? Bag;
             if (_itemContainers.TryGetValue(toType, out targetContainer))
             {
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
@@ -406,10 +406,10 @@ namespace AAEmu.Game.Models.Game.Char
                 return false;
 
             // Move to first available slot
-            if (PlayerInventory.FreeSlotCount <= 0) 
+            if (Bag.FreeSlotCount <= 0) 
                 return false;
             
-            PlayerInventory.AddOrMoveExistingItem(taskType, backpack);
+            Bag.AddOrMoveExistingItem(taskType, backpack);
 
             return true;
         }
@@ -448,7 +448,7 @@ namespace AAEmu.Game.Models.Game.Char
                     item = Equipment.GetItemBySlot(slot);
                     break;
                 case SlotType.Inventory:
-                    item = PlayerInventory.GetItemBySlot(slot);
+                    item = Bag.GetItemBySlot(slot);
                     break;
                 case SlotType.Bank:
                     item = Warehouse.GetItemBySlot(slot);
@@ -520,7 +520,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (expand.ItemId != 0 && expand.ItemCount != 0)
             {
-                PlayerInventory.ConsumeItem(isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag, expand.ItemId, expand.ItemCount,null);
+                Bag.ConsumeItem(isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag, expand.ItemId, expand.ItemCount,null);
             }
 
             if (isBank)
@@ -531,7 +531,7 @@ namespace AAEmu.Game.Models.Game.Char
             else
             {
                 Owner.NumInventorySlots = (byte)(50 + 10 * (1 + step));
-                PlayerInventory.ContainerSize = Owner.NumInventorySlots;
+                Bag.ContainerSize = Owner.NumInventorySlots;
             }
 
             Owner.SendPacket(

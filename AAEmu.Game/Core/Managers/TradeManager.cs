@@ -350,7 +350,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 foreach (var item in tradeInfo.OwnerItems)
                 {
-                    target.Inventory.PlayerInventory.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
+                    target.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
                     //owner.Inventory.RemoveItem(item, false);
                     tasksOwner.Add(new ItemRemove(item));
                     //item.Slot = -1;
@@ -364,7 +364,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 foreach (var item in tradeInfo.TargetItems)
                 {
-                    owner.Inventory.PlayerInventory.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
+                    owner.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
                     //target.Inventory.RemoveItem(item, false);
                     tasksTarget.Add(new ItemRemove(item));
                     //item.Slot = -1;

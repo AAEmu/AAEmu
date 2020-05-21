@@ -24,19 +24,19 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (!(caster is Character character))
                 return;
 
-            if (character.Inventory.PlayerInventory.SpaceLeftForItem(ItemId) < Count)
+            if (character.Inventory.Bag.SpaceLeftForItem(ItemId) < Count)
             {
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
                 return;
             }
 
-            if (!character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.DoodadInteraction, CoinItemId, CoinCount, null))
+            if (!character.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadInteraction, CoinItemId, CoinCount, null))
             {
                 character.SendErrorMessage(Error.ErrorMessageType.NotEnoughItem);
                 return;
             }
 
-            if (character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.DoodadInteraction,ItemId,Count))
+            if (character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.DoodadInteraction,ItemId,Count))
             {
                 _log.Error(string.Format("DoodadFuncPurchase: Failed to create item {0} for player {1}",ItemId,character.Name));
                 return;

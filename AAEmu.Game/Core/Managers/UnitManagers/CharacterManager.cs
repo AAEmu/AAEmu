@@ -454,7 +454,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 byte slot = 10;
                 foreach (var item in items.Supplies)
                 {
-                    character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
+                    character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
                     //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
                     //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
 
@@ -466,7 +466,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 if (items != null)
                     foreach (var item in items.Supplies)
                     {
-                        character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
+                        character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
                         //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
                         //character.Inventory.AddItem(ItemTaskType.Invalid, createdItem);
 

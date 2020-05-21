@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             if (chance > obj.Percent) { return; }
             var count = Rand.Next(obj.CountMin, obj.CountMax);
 
-            if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Loot, itemId, count))
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, count))
             {
                 // TODO: do proper handling of insufficient bag space
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);

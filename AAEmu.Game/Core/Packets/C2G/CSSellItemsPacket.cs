@@ -41,7 +41,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (slotType == SlotType.Equipment)
                     item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
                 else if (slotType == SlotType.Inventory)
-                    item = Connection.ActiveChar.Inventory.PlayerInventory.GetItemBySlot(slot);
+                    item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
 //                else if (slotType == SlotType.Bank)
 //                    item = Connection.ActiveChar.Inventory.Bank[slot];
                 if (item != null && item.Id == itemId)

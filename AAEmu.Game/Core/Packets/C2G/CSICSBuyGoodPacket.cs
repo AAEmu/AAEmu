@@ -70,7 +70,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
 
             // TODO: Current hack to send item directly to inventory, this needs to be changed to MarketPlace Mail
-            if (targetChar.Inventory.PlayerInventory.FreeSlotCount < buyList.Count)
+            if (targetChar.Inventory.Bag.FreeSlotCount < buyList.Count)
             {
                 thisChar.SendErrorMessage(ErrorMessageType.BagFull);
                 Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
@@ -79,7 +79,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             foreach(var ci in buyList)
             {
-                if (!targetChar.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.StoreBuy, ci.ItemTemplateId, (int)(ci.BuyCount + ci.BonusCount)))
+                if (!targetChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, ci.ItemTemplateId, (int)(ci.BuyCount + ci.BonusCount)))
                 {
                     // Something went wrong here
                     targetChar.SendErrorMessage(ErrorMessageType.BagFull);

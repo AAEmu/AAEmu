@@ -187,7 +187,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var character = (Character)caster;
             if (character == null) return;
             var amount = Rand.Next(minAmount, maxAmount);
-            if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount))
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount))
             {
                 // TODO: do proper handling of insufficient bag space
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
@@ -237,7 +237,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var lootPack = (SkillItem)casterObj;
             if (lootPack == null) return;
             var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
-            character?.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillReagents, lootPackItem.TemplateId, consumeCount,null);
+            character?.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, lootPackItem.TemplateId, consumeCount,null);
             /*
             if (lootPackItem.Count > 1)
             {

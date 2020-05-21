@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var itemId = GetItemIdFromSkill(skillId);
                 if (itemId == 0) { return; }
 
-                if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.DoodadInteraction, itemId, count))
+                if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.DoodadInteraction, itemId, count))
                 {
                     // TODO: do proper handling of insufficient bag space
                     character.SendErrorMessage(Error.ErrorMessageType.BagFull);
@@ -45,7 +45,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //itemId = itemTemplate[0]; // there can be more than one id
                 foreach (var itemId in itemTemplate)
                 {
-                    if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
+                    if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
                     {
                         // TODO: do proper handling of insufficient bag space
                         character.SendErrorMessage(Error.ErrorMessageType.BagFull);

@@ -94,7 +94,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var tasks = new List<ItemTask>();
             foreach (var (itemId, grade, count) in itemsBuy)
             {
-                Connection.ActiveChar.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.StoreBuy, itemId, count, grade);
+                Connection.ActiveChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, itemId, count, grade);
                 /*
                 var item = ItemManager.Instance.Create(itemId, count, grade);
                 if (item == null)
@@ -115,7 +115,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             foreach (var (item, index) in itemsBuyBack)
             {
-                Connection.ActiveChar.Inventory.PlayerInventory.AddOrMoveExistingItem(ItemTaskType.StoreBuy, item);
+                Connection.ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.StoreBuy, item);
                 tasks.Add(new ItemBuyback(item));
                 /*
                 var res = Connection.ActiveChar.Inventory.AddItem(ItemTaskType.StoreBuy, item);

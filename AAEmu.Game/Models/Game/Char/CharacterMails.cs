@@ -200,9 +200,9 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         if (itemAttachment.Id != 0)
                         {
-                            if (Self.Inventory.PlayerInventory.FreeSlotCount > 0)
+                            if (Self.Inventory.Bag.FreeSlotCount > 0)
                             {
-                                Self.Inventory.PlayerInventory.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment);
+                                Self.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment);
                                 var iial = new ItemIdAndLocation();
                                 iial.Id = itemAttachment.Id;
                                 iial.SlotType = itemAttachment.SlotType;

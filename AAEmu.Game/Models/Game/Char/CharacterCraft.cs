@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var material in _craft.CraftMaterials)
             {
-                Owner.Inventory.PlayerInventory.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
+                Owner.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
             }
 
             foreach (var product in _craft.CraftProducts)
@@ -95,7 +95,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
                 if (isTradePack == false)
                 {
-                    Owner.Inventory.PlayerInventory.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
+                    Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
                 }
                 else
                 {

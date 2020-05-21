@@ -538,7 +538,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
                         if ((castItemTemplate.UseSkillAsReagent) && (caster is Character player))
-                            player.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount,null);
+                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount,null);
                         /*
                         var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
                         var isRaegent = itemUsed.Template.UseSkillAsReagent;
@@ -561,7 +561,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         if (effect.ConsumeSourceItem)
                         {
-                            if (!character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption, 
+                            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption, 
                                 effect.ConsumeItemId, effect.ConsumeItemCount))
                                 continue;
                         }
@@ -575,7 +575,7 @@ namespace AAEmu.Game.Models.Game.Skills
                             }
 
                             if (inventory)
-                                character.Inventory.PlayerInventory.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount,null);
+                                character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount,null);
                             else 
                             if (equipment)
                                 character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount,null);

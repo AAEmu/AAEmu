@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                 }
                 else
                 {
-                    return character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+                    return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
                 }
                 /*
                 var tasks = new List<ItemTask>();

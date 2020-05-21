@@ -201,7 +201,7 @@ namespace AAEmu.Game.Core.Managers
             }
             else
             {
-                character.Inventory.PlayerInventory.AcquireDefaultItem(ItemTaskType.Loot, 
+                character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, 
                     lootDropItem.TemplateId, 
                     count > lootDropItem.Count ? lootDropItem.Count : count, 
                     lootDropItem.Grade);
