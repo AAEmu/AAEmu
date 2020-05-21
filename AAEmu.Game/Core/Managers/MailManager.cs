@@ -219,9 +219,9 @@ namespace AAEmu.Game.Core.Managers
                     
                     lock (_deletedMailIds)
                     {
-                        if (deletedCount > 0)
+                        deletedCount = _deletedMailIds.Count;
+                        if (_deletedMailIds.Count > 0)
                         {
-                            deletedCount = _deletedMailIds.Count;
                             using (var command = connection.CreateCommand())
                             {
                                 command.Connection = connection;
@@ -283,14 +283,15 @@ namespace AAEmu.Game.Core.Managers
                             }
 
                             command.ExecuteNonQuery();
+                            updatedCount++;
                         }
 
                     }
-                    updatedCount = _allPlayerMails.Count;
 
                     try
                     {
                         transaction.Commit();
+                        _log.Info("Updated {0} and deleted {1} mails ...", updatedCount, deletedCount);
                     }
                     catch (Exception e)
                     {
@@ -301,12 +302,10 @@ namespace AAEmu.Game.Core.Managers
                         }
                         catch (Exception eRollback)
                         {
-                            deletedCount = 0;
-                            updatedCount = 0;
                             _log.Error(eRollback);
                         }
                     }
-                    _log.Info("Done updating {0} and removing {1} mails ...", updatedCount, deletedCount);
+                    
                 }
             }
         }

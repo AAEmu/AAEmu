@@ -1183,6 +1183,8 @@ namespace AAEmu.Game.Core.Managers
                                     _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}",item.Id,item.TemplateId));
                                     continue;
                                 }
+                                if (!item.IsDirty)
+                                    continue;
                                 var details = new Commons.Network.PacketStream();
                                 item.WriteDetails(details);
 
@@ -1211,6 +1213,7 @@ namespace AAEmu.Game.Core.Managers
                                 command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
                                 command.ExecuteNonQuery();
                                 command.Parameters.Clear();
+                                item.IsDirty = false;
                                 updateCount++;
                             }
                         }
@@ -1219,6 +1222,7 @@ namespace AAEmu.Game.Core.Managers
                     try
                     {
                         transaction.Commit();
+                        _log.Info("Updated {0} and deleted {1} items ...", updateCount, deleteCount);
                     }
                     catch (Exception e)
                     {
@@ -1229,15 +1233,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                         catch (Exception eRollback)
                         {
-                            updateCount = 0;
-                            deleteCount = 0;
                             _log.Error(eRollback);
                         }
                     }
 
                 }
             }
-            _log.Info("Updated {0} and deleted {1} items ...", updateCount, deleteCount);
+            
         }
 
 
@@ -1314,6 +1316,7 @@ namespace AAEmu.Game.Core.Managers
                             ReleaseId(item.Id);
                             _log.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
                         }
+                        item.IsDirty = false;
 
                     }
                 }

@@ -253,6 +253,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 using (var transaction = connection.BeginTransaction())
                 {
+                    var deleteCount = 0;
                     lock (_removedHousings)
                     {
                         if (_removedHousings.Count > 0)
@@ -263,6 +264,7 @@ namespace AAEmu.Game.Core.Managers
                                     $"DELETE FROM housings WHERE id IN({string.Join(",", _removedHousings)})";
                                 command.Prepare();
                                 command.ExecuteNonQuery();
+                                deleteCount++;
                             }
 
                             _removedHousings.Clear();
@@ -275,6 +277,7 @@ namespace AAEmu.Game.Core.Managers
                     try
                     {
                         transaction.Commit();
+                        _log.Info("Updated {0} and deleted {1} houses ...", _houses.Values.Count, deleteCount);
                     }
                     catch (Exception e)
                     {
