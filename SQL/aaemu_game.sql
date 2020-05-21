@@ -1,3 +1,5 @@
+CREATE DATABASE IF NOT EXISTS `aaemu_game`;
+USE aaemu_game;
 /*
 Navicat MySQL Data Transfer
 

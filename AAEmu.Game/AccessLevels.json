@@ -9,6 +9,7 @@
     "testchatchannel": 100,
     "moveto": 100,
     "reloadauction": 100,
+    "packet": 100,
     "announce": 50,
     "move": 50,
     "spawn": 50,
