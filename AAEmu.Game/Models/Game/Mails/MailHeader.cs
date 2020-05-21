@@ -1,16 +1,18 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
-    public class Mail : PacketMarshaler
+    public class MailHeader : PacketMarshaler
     {
-        public long Id { get; set; }
+        public long mailId { get; set; }
         public byte Type { get; set; }
         public byte Status { get; set; }
         public string Title { get; set; } // TODO max length 400
+        public uint SenderId { get; set; }
         public string SenderName { get; set; } // TODO max length 128
         public byte Attachments { get; set; }
+        public uint ReceiverId { get; set; }
         public string ReceiverName { get; set; } // TODO max length 128
         public DateTime OpenDate { get; set; }
         public byte Returned { get; set; }
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Mails
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(Id);
+            stream.Write(mailId);
             stream.Write(Type);
             stream.Write(Status);
             stream.Write(Title);

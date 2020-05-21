@@ -25,9 +25,9 @@ namespace AAEmu.Game.Core.Managers
         public List<AuctionItem> _auctionItems;
         public Dictionary<uint, string> _en_localizations;
 
-        public void ListAuctionItem(Character player, ulong itemTeplateId, uint startPrice, uint buyoutPrice, byte duration)
+        public void ListAuctionItem(Character player, ulong itemId, uint startPrice, uint buyoutPrice, byte duration)
         {
-            var newItem = player.Inventory.GetItem((ulong)itemTeplateId);
+            var newItem = player.Inventory.GetItemById(itemId);
             var newAuctionItem = CreateAuctionItem(player, newItem, startPrice, buyoutPrice, duration);
 
             if (newAuctionItem == null) //TODO
@@ -41,8 +41,13 @@ namespace AAEmu.Game.Core.Managers
             if (auctionFee > 1000000)//100 gold max fee
                 auctionFee = 1000000;
 
-            player.ChangeMoney(SlotType.Inventory, -(int)auctionFee);
-            InventoryHelper.RemoveItemAndUpdateClient(player, newItem, newItem.Count);
+            if (!player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
+            {
+                player.SendErrorMessage(Models.Game.Error.ErrorMessageType.CanNotPutupMoney);
+                return;
+            }
+            player.Inventory.Bag.RemoveItem(Models.Game.Items.Actions.ItemTaskType.Auction, newItem, true);
+            // InventoryHelper.RemoveItemAndUpdateClient(player, newItem, newItem.Count);
             _auctionItems.Add(newAuctionItem);
             player.SendPacket(new SCAuctionPostedPacket(newAuctionItem));
         }
@@ -312,7 +317,7 @@ namespace AAEmu.Game.Core.Managers
                 ItemName = GetLocalizedItemNameById(newItem.Template.Id),
                 ObjectID = 0,
                 Grade = newItem.Grade,
-                Flags = newItem.Flags,
+                Flags = newItem.ItemFlags,
                 StackSize = (uint)newItem.Count,
                 DetailType = 0,
                 CreationTime = DateTime.Now,
@@ -360,7 +365,7 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.ItemName = reader.GetString("item_name").ToLower();
                             auctionItem.ObjectID = reader.GetUInt32("object_id");
                             auctionItem.Grade = reader.GetByte("grade");
-                            auctionItem.Flags = reader.GetByte("flags");
+                            auctionItem.Flags = (ItemFlag)reader.GetByte("flags");
                             auctionItem.StackSize = reader.GetUInt32("stack_size");
                             auctionItem.DetailType = reader.GetByte("detail_type");
                             auctionItem.CreationTime = reader.GetDateTime("creation_time");

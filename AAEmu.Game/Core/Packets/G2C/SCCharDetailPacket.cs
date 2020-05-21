@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
@@ -33,7 +33,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_character.Position.ZoneId);
             stream.Write(DateTime.Now); // lastWorldLeaveTime
 
-            foreach (var item in _character.Inventory.Equip)
+            var items = _character.Inventory.Equipment.GetSlottedItemsList();
+            foreach (var item in items)
             {
                 if (item == null)
                     stream.Write(0);

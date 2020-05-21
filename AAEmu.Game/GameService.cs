@@ -60,6 +60,7 @@ namespace AAEmu.Game
 
             TlIdManager.Instance.Initialize();
             ItemManager.Instance.Load();
+            ItemManager.Instance.LoadUserItems();
             PlotManager.Instance.Load();
             SkillManager.Instance.Load();
             CraftManager.Instance.Load();
@@ -103,7 +104,7 @@ namespace AAEmu.Game
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _log.Info("Stopping daemon.");
+            _log.Info("Stopping daemon ...");
 
             SpawnManager.Instance.Stop();
             TaskManager.Instance.Stop();
@@ -113,13 +114,15 @@ namespace AAEmu.Game
 
             HousingManager.Instance.Save();
             MailManager.Instance.Save();
+            ItemManager.Instance.Save();
+
             TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }
 
         public void Dispose()
         {
-            _log.Info("Disposing....");
+            _log.Info("Disposing ...");
 
             LogManager.Flush();
         }

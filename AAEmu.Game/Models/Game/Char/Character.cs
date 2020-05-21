@@ -51,7 +51,6 @@ namespace AAEmu.Game.Models.Game.Char
 
         private Dictionary<ushort, string> _options;
 
-        public GameConnection Connection { get; set; }
         public List<IDisposable> Subscribers { get; set; }
 
         public uint Id { get; set; }
@@ -104,7 +103,8 @@ namespace AAEmu.Game.Models.Game.Char
         public byte NumInventorySlots { get; set; }
         public short NumBankSlots { get; set; }
 
-        public Item[] BuyBack { get; set; }
+        // public Item[] BuyBack { get; set; }
+        public ItemContainer BuyBackItems { get; set; }
         public BondDoodad Bonding { get; set; }
         public CharacterQuests Quests { get; set; }
         public CharacterMails Mails { get; set; }
@@ -162,7 +162,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var result = formula.Evaluate(parameters);
                 var res = (int)result;
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Str;
                 foreach (var bonus in GetBonuses(UnitAttribute.Str))
@@ -184,7 +184,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dex);
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Dex;
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
@@ -206,7 +206,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Sta);
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Sta;
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
@@ -228,7 +228,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Int);
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Int;
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
@@ -250,7 +250,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Spi);
                 var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Spi;
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
@@ -474,7 +474,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon)Inventory.Equip[(int)EquipmentItemSlot.Mainhand];
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.Dps ?? 0;
                 res += Str / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
@@ -520,7 +520,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon)Inventory.Equip[(int)EquipmentItemSlot.Offhand];
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
                 var res = weapon?.Dps ?? 0;
                 res += Str / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.OffhandDps))
@@ -539,7 +539,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon)Inventory.Equip[(int)EquipmentItemSlot.Ranged];
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
                 var res = weapon?.Dps ?? 0;
                 res += Dex / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDps))
@@ -585,7 +585,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon)Inventory.Equip[(int)EquipmentItemSlot.Mainhand];
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.MDps ?? 0;
                 res += Int / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
@@ -631,7 +631,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon) Inventory.Equip[(int) EquipmentItemSlot.Mainhand];
+                var weapon = (Weapon) Inventory.Equipment.GetItemBySlot((int) EquipmentItemSlot.Mainhand);
                 var res = weapon?.HDps ?? 0;
                 res += Spi / 5f;
                 foreach(var bonus in GetBonuses(UnitAttribute.HealDps))
@@ -685,7 +685,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                 {
                     switch (item)
                     {
@@ -728,7 +728,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var item in Inventory.Equip)
+                foreach (var item in Inventory.Equipment.Items)
                 {
                     switch (item)
                     {
@@ -812,49 +812,61 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void ChangeMoney(SlotType typeTo, int amount)
+        public bool ChangeMoney(SlotType moneylocation, int amount) => ChangeMoney(SlotType.None, moneylocation, amount);
+
+        public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount)
         {
-            switch (typeTo)
+            var itemTasks = new List<ItemTask>();
+            switch(typeFrom)
             {
-                case SlotType.Bank:
-                    if ((Money - amount) >= 0)
-                    {
-                        Money -= amount;
-                        Money2 += amount;
-                        SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney,
-                            new List<ItemTask>
-                            {
-                                new MoneyChange(-amount),
-                                new MoneyChangeBank(amount)
-                            },
-                            new List<ulong>()));
-                    }
-                    else
-                        _log.Warn("Not Money in Inventory.");
-
-                    break;
                 case SlotType.Inventory:
-                    if ((Money2 - amount) >= 0)
+                    if (amount > Money)
                     {
-                        Money2 -= amount;
-                        Money += amount;
-                        SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.WithdrawMoney,
-                            new List<ItemTask>
-                            {
-                                new MoneyChange(amount),
-                                new MoneyChangeBank(-amount)
-                            },
-                            new List<ulong>()));
+                        SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                        return false;
                     }
-                    else
-                        _log.Warn("Not Money in Bank.");
-
+                    Money -= amount;
+                    itemTasks.Add(new MoneyChange(-amount));
                     break;
-                default:
-                    _log.Warn("Change Money!");
+                case SlotType.Bank:
+                    if (amount > Money2)
+                    {
+                        SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                        return false;
+                    }
+                    Money2 -= amount;
+                    itemTasks.Add(new MoneyChangeBank(-amount));
                     break;
             }
+            switch (typeTo)
+            {
+                case SlotType.Inventory:
+                    Money += amount;
+                    itemTasks.Add(new MoneyChange(amount));
+                    break;
+                case SlotType.Bank:
+                    Money2 += amount;
+                    itemTasks.Add(new MoneyChangeBank(amount));
+                    break;
+            }
+            SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DepositMoney, itemTasks, new List<ulong>()));
+            return true;
         }
+
+        public bool AddMoney(SlotType moneyLocation,int amount)
+        {
+            if (amount < 0)
+                return false;
+            return ChangeMoney(SlotType.None, moneyLocation, amount);
+        }
+
+        public bool SubtractMoney(SlotType moneyLocation, int amount)
+        {
+            if (amount < 0)
+                return false;
+            return ChangeMoney(SlotType.None, moneyLocation, -amount);
+        }
+
 
         public void ChangeLabor(short change, int actabilityId)
         {
@@ -915,11 +927,6 @@ namespace AAEmu.Game.Models.Game.Char
         public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
         {
             SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
-        }
-
-        public void SendPacket(GamePacket packet)
-        {
-            Connection?.SendPacket(packet);
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)
@@ -1143,7 +1150,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
             ModelId = template.ModelId;
-            BuyBack = new Item[20];
+            BuyBackItems = new ItemContainer(this, SlotType.None,false);
             Slots = new ActionSlot[85];
             for (var i = 0; i < Slots.Length; i++)
                 Slots[i] = new ActionSlot();
@@ -1199,7 +1206,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             Mails = new CharacterMails(this);
-            MailManager.Instance.GetCurrentMailList(this, true); //Doesn't need a connection, but does need to load after the inventory
+            MailManager.Instance.GetCurrentMailList(this); //Doesn't need a connection, but does need to load after the inventory
         }
 
         public bool Save()
@@ -1310,7 +1317,7 @@ namespace AAEmu.Game.Models.Game.Char
                             }
                         }
 
-                        Inventory?.Save(connection, transaction);
+                        // Inventory?.Save(connection, transaction);
                         Abilities?.Save(connection, transaction);
                         Actability?.Save(connection, transaction);
                         Appellations?.Save(connection, transaction);
@@ -1387,7 +1394,8 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Expedition?.Id ?? 0);
             stream.Write(Family);
 
-            foreach (var item in Inventory.Equip)
+            var items = Inventory.Equipment.GetSlottedItemsList();
+            foreach (var item in items)
             {
                 if (item == null)
                     stream.Write(0);

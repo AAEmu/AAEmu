@@ -51,8 +51,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 return;
             }
 
-            var targetItem = owner.Inventory.GetItem(skillTargetItem.Id);
-            var gemItem = owner.Inventory.GetItem(gemSkillItem.ItemId);
+            var targetItem = owner.Inventory.GetItemById(skillTargetItem.Id);
+            var gemItem = owner.Inventory.GetItemById(gemSkillItem.ItemId);
 
             if (targetItem == null || gemItem == null)
             {

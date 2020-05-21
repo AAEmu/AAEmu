@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -9,10 +9,16 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _characterId;
         private readonly (byte slot, Item item)[] _items;
 
-        public SCUnitEquipmentsChangedPacket(uint characterId, (byte slot, Item item)[] items) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
+        public SCUnitEquipmentsChangedPacket(uint objectId, (byte slot, Item item)[] items) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
         {
-            _characterId = characterId;
+            _characterId = objectId;
             _items = items;
+        }
+
+        public SCUnitEquipmentsChangedPacket(uint objectId, byte slot, Item item) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
+        {
+            _characterId = objectId;
+            _items = new[] { (slot, item) };
         }
 
         public override PacketStream Write(PacketStream stream)

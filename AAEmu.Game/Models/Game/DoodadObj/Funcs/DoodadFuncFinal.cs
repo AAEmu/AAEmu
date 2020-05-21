@@ -35,8 +35,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 {
                     foreach (var itemId in itemTemplate)
                     {
-                        var item = ItemManager.Instance.Create(itemId, count, 0);
-                        InventoryHelper.AddItemAndUpdateClient(character, item);
+                        if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
+                        {
+                            // TODO: do proper handling of insufficient bag space
+                            character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                        }
                     }
                 }
             }

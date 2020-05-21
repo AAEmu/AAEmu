@@ -69,7 +69,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
             }
 
-            var item = Owner.Inventory.GetItem(skillData.ItemId);
+            var item = Owner.Inventory.GetItemById(skillData.ItemId);
             if (item == null) return;
 
             var itemTemplate = (SummonMateTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);

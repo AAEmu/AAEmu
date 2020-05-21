@@ -2,7 +2,9 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -22,9 +24,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var title = stream.ReadString();
             var text = stream.ReadString(); // TODO max length 1600
             var attachments = stream.ReadByte();
-            var moneyAmounts = new int[3];
-            for (var i = 0; i < 3; i++)
-                moneyAmounts[i] = stream.ReadInt32();
+            var money0 = stream.ReadInt32();
+            var money1 = stream.ReadInt32();
+            var money2 = stream.ReadInt32();
             var extra = stream.ReadInt64();
             var itemSlots = new List<(SlotType slotType, byte slot)>();
             for (var i = 0; i < 10; i++)
@@ -39,11 +41,27 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var doodadObjId = stream.ReadBc();
             var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-            if (doodad == null) // TODO validation || doodad.Template.GroupId == 6)
-                return;
 
-            Connection.ActiveChar.Mails.SendMail(type, receiverCharName, "", title, text, attachments, moneyAmounts, extra, itemSlots);
+            var mailCheckOK = true;
+            if (doodad != null)
+            {
+                // Doodad GroupID 6 is "Other - Mailboxes"
+                if (doodad.Template.GroupId == 6)
+                {
+                    var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Position, doodad.Position);
+                    if (dist > 5f)
+                        mailCheckOK = false;
+                }
+                else
+                    mailCheckOK = false;
+            }
+            else
+                mailCheckOK = false;
 
+            if (mailCheckOK)
+                Connection.ActiveChar.Mails.SendMail(type, receiverCharName, Connection.ActiveChar.Name, title, text, attachments, money0, money1, money2, extra, itemSlots);
+            else
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailFailMailboxNotFound);
         }
     }
 }

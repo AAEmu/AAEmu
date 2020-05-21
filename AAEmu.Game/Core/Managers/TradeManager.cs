@@ -300,8 +300,8 @@ namespace AAEmu.Game.Core.Managers
                 if (_trades[tradeId].OkOwner && _trades[tradeId].OkTarget)
                 {
                     // Check inventory space
-                    if (owner.Inventory.CheckFreeSlot(SlotType.Inventory) < _trades[tradeId].TargetItems.Count) CancelTrade(owner.ObjId, 0, tradeId);
-                    if (target.Inventory.CheckFreeSlot(SlotType.Inventory) < _trades[tradeId].OwnerItems.Count) CancelTrade(target.ObjId, 0, tradeId);
+                    if (owner.Inventory.FreeSlotCount(SlotType.Inventory) < _trades[tradeId].TargetItems.Count) CancelTrade(owner.ObjId, 0, tradeId);
+                    if (target.Inventory.FreeSlotCount(SlotType.Inventory) < _trades[tradeId].OwnerItems.Count) CancelTrade(target.ObjId, 0, tradeId);
 
                     // Finish trade
                     FinishTrade(owner, target, tradeId);
@@ -317,6 +317,8 @@ namespace AAEmu.Game.Core.Managers
         {
             var tradeInfo = _trades[tradeId];
 
+            // TODO: check if this actually works correctly with the items-rewrite with the way packets are handled
+
             /*
              * TODO -
              * try catch
@@ -325,7 +327,7 @@ namespace AAEmu.Game.Core.Managers
              */
             var tasksOwner = new List<ItemTask>();
             var tasksTarget = new List<ItemTask>();
-            // Handle Money
+            // Handle Money from Owner
             if (tradeInfo.OwnerMoneyPutup > 0)
             {
                 owner.Money -= tradeInfo.OwnerMoneyPutup;
@@ -333,6 +335,8 @@ namespace AAEmu.Game.Core.Managers
                 target.Money += tradeInfo.OwnerMoneyPutup;
                 tasksTarget.Add(new MoneyChange(tradeInfo.OwnerMoneyPutup));
             }
+
+            // Handle Money from Target
             if (tradeInfo.TargetMoneyPutup > 0)
             {
                 owner.Money += tradeInfo.TargetMoneyPutup;
@@ -340,27 +344,33 @@ namespace AAEmu.Game.Core.Managers
                 target.Money -= tradeInfo.TargetMoneyPutup;
                 tasksTarget.Add(new MoneyChange(-tradeInfo.TargetMoneyPutup));
             }
-            // Handle Items
+
+            // Handle Items from Owner
             if (tradeInfo.OwnerItems.Count > 0)
             {
                 foreach (var item in tradeInfo.OwnerItems)
                 {
-                    owner.Inventory.RemoveItem(item, false);
+                    target.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
+                    //owner.Inventory.RemoveItem(item, false);
                     tasksOwner.Add(new ItemRemove(item));
-                    item.Slot = -1;
-                    var newItem = target.Inventory.AddItem(item);
-                    tasksTarget.Add(new ItemAdd(newItem));
+                    //item.Slot = -1;
+                    //var newItem = target.Inventory.AddItem(item);
+                    //tasksTarget.Add(new ItemAdd(newItem));
+                    tasksTarget.Add(new ItemAdd(item));
                 }
             }
+            // Handle Items from Target
             if (tradeInfo.TargetItems.Count > 0)
             {
                 foreach (var item in tradeInfo.TargetItems)
                 {
-                    target.Inventory.RemoveItem(item, false);
+                    owner.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
+                    //target.Inventory.RemoveItem(item, false);
                     tasksTarget.Add(new ItemRemove(item));
-                    item.Slot = -1;
-                    var newItem = owner.Inventory.AddItem(item);
-                    tasksOwner.Add(new ItemAdd(newItem));
+                    //item.Slot = -1;
+                    //var newItem = owner.Inventory.AddItem(item);
+                    // tasksOwner.Add(new ItemAdd(newItem));
+                    tasksOwner.Add(new ItemAdd(item));
                 }
             }
 

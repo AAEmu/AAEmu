@@ -10,7 +10,6 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAuctionSearchPacket : GamePacket
     {
-        protected static Logger _log = LogManager.GetCurrentClassLogger();
 
         public CSAuctionSearchPacket() : base(0x0b8, 1)
         {

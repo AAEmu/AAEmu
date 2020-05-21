@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Chat;
 using NLog;
+using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -453,8 +454,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 byte slot = 10;
                 foreach (var item in items.Supplies)
                 {
-                    var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
-                    character.Inventory.AddItem(createdItem);
+                    character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
+                    //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
+                    //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
 
                     character.SetAction(slot, ActionSlotType.Item, item.Id);
                     slot++;
@@ -464,8 +466,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 if (items != null)
                     foreach (var item in items.Supplies)
                     {
-                        var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
-                        character.Inventory.AddItem(createdItem);
+                        character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
+                        //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
+                        //character.Inventory.AddItem(ItemTaskType.Invalid, createdItem);
 
                         character.SetAction(slot, ActionSlotType.Item, item.Id);
                         slot++;
@@ -564,10 +567,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 item = ItemManager.Instance.Create(templateId, 1, grade);
                 item.SlotType = SlotType.Equipment;
-                item.Slot = (int) slot;
+                item.Slot = (int)slot;
             }
 
-            inventory.Equip[(int) slot] = item;
+            inventory.Equipment.AddOrMoveExistingItem(0, item, (int)slot);
+            //inventory.Equip[(int) slot] = item;
         }
     }
 }

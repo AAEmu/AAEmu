@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -22,32 +22,30 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var character = Connection.ActiveChar;
 
-            Item toImage = character.Inventory.GetItem(baseId);
-            Item imageItem = character.Inventory.GetItem(lookId);
+            Item toImage = character.Inventory.GetItemById(baseId);
+            Item imageItem = character.Inventory.GetItemById(lookId);
 
             if (toImage == null || imageItem == null) return;
 
-            EquipItem itemToImage = (EquipItem)toImage;
+            if ((!(toImage is EquipItem itemToImage)) || (itemToImage == null))
+                return;
 
-            if (itemToImage == null) return;
+            if ((!(itemToImage.Template is EquipItemTemplate template)) || (template == null))
+                return;
 
-            EquipItemTemplate template = (EquipItemTemplate)itemToImage.Template;
-            if (template == null) return;
+            // Use powder
+            if (!character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents,template.ItemLookConvert.RequiredItemId,template.ItemLookConvert.RequiredItemCount,null))
+            {
+                // Not enough powder
+                return;
+            }
 
-            if (!character.Inventory.CheckItems(template.ItemLookConvert.RequiredItemId, template.ItemLookConvert.RequiredItemCount)) return;
-            Item powder = character.Inventory.GetItemByTemplateId(template.ItemLookConvert.RequiredItemId);
-
+            // Update item looks
             itemToImage.ImageItemTemplateId = imageItem.TemplateId;
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, new List<ItemTask>() { new ItemUpdate(toImage) }, new List<ulong>()));
 
-            var removeItemTasks = new List<ItemTask>();
-            var updateItemTasks = new List<ItemTask>();
-
-            updateItemTasks.Add(new ItemUpdate(toImage));
-            removeItemTasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, imageItem, 1));
-            removeItemTasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, powder, template.ItemLookConvert.RequiredItemCount));
-
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, removeItemTasks, new List<ulong>()));
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ConvertItemLook, updateItemTasks, new List<ulong>()));
+            // Remove image item
+            imageItem._holdingContainer.RemoveItem(ItemTaskType.ConvertItemLook, imageItem, true);
         }
     }
 }

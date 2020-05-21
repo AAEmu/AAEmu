@@ -31,31 +31,34 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
-            Character character = (Character)caster;
-            if (character == null)
+            if ((!(caster is Character character)) || (character == null))
             {
                 return;
             }
 
-            SkillCastItemTarget itemTarget = (SkillCastItemTarget)targetObj;
-            if (itemTarget == null)
+            if ((!(targetObj is SkillCastItemTarget itemTarget)) || (itemTarget == null))
             {
                 return;
             }
 
-            Item itemToImage = character.Inventory.GetItem(itemTarget.Id);
+            var itemToImage = character.Inventory.GetItemById(itemTarget.Id);
             if (itemToImage == null)
             {
                 return;
             }
 
-            SkillItem powderSkillItem = (SkillItem)casterObj;
-            if (powderSkillItem == null)
+            if (itemToImage.HasFlag(ItemFlag.Skinized))
+            {
+                // Already a image item
+                return;
+            }
+
+            if ((!(casterObj is SkillItem powderSkillItem)) || (powderSkillItem == null))
             {
                 return;
             }
 
-            Item powderItem = character.Inventory.GetItem(powderSkillItem.ItemId);
+            Item powderItem = character.Inventory.GetItemById(powderSkillItem.ItemId);
             if (powderItem == null)
             {
                 return;
@@ -66,16 +69,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 return;
             }
 
-            var removeItemTasks = new List<ItemTask>();
-            var updateItemTasks = new List<ItemTask>();
-
-            removeItemTasks.Add(InventoryHelper.GetTaskAndRemoveItem(character, powderItem, 1));
-
             itemToImage.SetFlag(ItemFlag.Skinized);
-            updateItemTasks.Add(new ItemUpdateBits(itemToImage));
-
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Sknize, updateItemTasks, new List<ulong>()));
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, removeItemTasks, new List<ulong>()));
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Sknize, new List<ItemTask>() { new ItemUpdateBits(itemToImage) } , new List<ulong>()));
+            powderItem._holdingContainer.ConsumeItem(ItemTaskType.Sknize, powderItem.TemplateId, 1, powderItem);
         }
     }
 }
