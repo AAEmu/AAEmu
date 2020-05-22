@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Managers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private const double Delay = 1; // TODO: 1 minute for debugging, should likely be more like 5 or 10 on production, maybe add to configuration ?
+        private double Delay = 1; // TODO: 1 minute for debugging, should likely be more like 5 or 10 on production, maybe add to configuration ?
         private bool _enabled;
         private bool _isSaving;
         private object _lock = new object();
@@ -32,6 +32,14 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Info("Initialising Save Manager...");
             _enabled = true;
+            if (double.TryParse(ConfigurationManager.Instance.GetConfiguration("AutoSaveInterval"),out var d))
+            {
+                Delay = d;
+            }
+            else
+            {
+                Delay = 5; // Default to 5 minutes
+            }
             SaveTickStart();
         }
 
