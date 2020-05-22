@@ -1209,7 +1209,7 @@ namespace AAEmu.Game.Models.Game.Char
             MailManager.Instance.GetCurrentMailList(this); //Doesn't need a connection, but does need to load after the inventory
         }
 
-        public bool Save()
+        public bool Save(MySqlConnection connection, MySqlTransaction transaction)
         {
             bool result;
             try
@@ -1224,132 +1224,103 @@ namespace AAEmu.Game.Models.Game.Char
                         slots.Write(slot.ActionId);
                 }
 
-                using (var connection = MySQL.CreateConnection())
+                using (var command = connection.CreateCommand())
                 {
-                    using (var transaction = connection.BeginTransaction())
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+
+                    // ----
+                    command.CommandText =
+                        "REPLACE INTO `characters` " +
+                        "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
+                        "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
+
+                    command.Parameters.AddWithValue("@id", Id);
+                    command.Parameters.AddWithValue("@account_id", AccountId);
+                    command.Parameters.AddWithValue("@name", Name);
+                    command.Parameters.AddWithValue("@access_level", AccessLevel);
+                    command.Parameters.AddWithValue("@race", (byte)Race);
+                    command.Parameters.AddWithValue("@gender", (byte)Gender);
+                    command.Parameters.AddWithValue("@unit_model_params", unitModelParams);
+                    command.Parameters.AddWithValue("@level", Level);
+                    command.Parameters.AddWithValue("@expirience", Expirience);
+                    command.Parameters.AddWithValue("@recoverable_exp", RecoverableExp);
+                    command.Parameters.AddWithValue("@hp", Hp);
+                    command.Parameters.AddWithValue("@mp", Mp);
+                    command.Parameters.AddWithValue("@labor_power", LaborPower);
+                    command.Parameters.AddWithValue("@labor_power_modified", LaborPowerModified);
+                    command.Parameters.AddWithValue("@consumed_lp", ConsumedLaborPower);
+                    command.Parameters.AddWithValue("@ability1", (byte)Ability1);
+                    command.Parameters.AddWithValue("@ability2", (byte)Ability2);
+                    command.Parameters.AddWithValue("@ability3", (byte)Ability3);
+                    command.Parameters.AddWithValue("@world_id", WorldPosition?.WorldId ?? Position.WorldId);
+                    command.Parameters.AddWithValue("@zone_id", WorldPosition?.ZoneId ?? Position.ZoneId);
+                    command.Parameters.AddWithValue("@x", WorldPosition?.X ?? Position.X);
+                    command.Parameters.AddWithValue("@y", WorldPosition?.Y ?? Position.Y);
+                    command.Parameters.AddWithValue("@z", WorldPosition?.Z ?? Position.Z);
+                    command.Parameters.AddWithValue("@rotation_x", WorldPosition?.RotationX ?? Position.RotationX);
+                    command.Parameters.AddWithValue("@rotation_y", WorldPosition?.RotationY ?? Position.RotationY);
+                    command.Parameters.AddWithValue("@rotation_z", WorldPosition?.RotationZ ?? Position.RotationZ);
+                    command.Parameters.AddWithValue("@faction_id", Faction.Id);
+                    command.Parameters.AddWithValue("@faction_name", FactionName);
+                    command.Parameters.AddWithValue("@expedition_id", Expedition?.Id ?? 0);
+                    command.Parameters.AddWithValue("@family", Family);
+                    command.Parameters.AddWithValue("@dead_count", DeadCount);
+                    command.Parameters.AddWithValue("@dead_time", DeadTime);
+                    command.Parameters.AddWithValue("@rez_wait_duration", RezWaitDuration);
+                    command.Parameters.AddWithValue("@rez_time", RezTime);
+                    command.Parameters.AddWithValue("@rez_penalty_duration", RezPenaltyDuration);
+                    command.Parameters.AddWithValue("@leave_time", LeaveTime);
+                    command.Parameters.AddWithValue("@money", Money);
+                    command.Parameters.AddWithValue("@money2", Money2);
+                    command.Parameters.AddWithValue("@honor_point", HonorPoint);
+                    command.Parameters.AddWithValue("@vocation_point", VocationPoint);
+                    command.Parameters.AddWithValue("@crime_point", CrimePoint);
+                    command.Parameters.AddWithValue("@crime_record", CrimeRecord);
+                    command.Parameters.AddWithValue("@delete_request_time", DeleteRequestTime);
+                    command.Parameters.AddWithValue("@transfer_request_time", TransferRequestTime);
+                    command.Parameters.AddWithValue("@delete_time", DeleteTime);
+                    command.Parameters.AddWithValue("@bm_point", BmPoint);
+                    command.Parameters.AddWithValue("@auto_use_aapoint", AutoUseAAPoint);
+                    command.Parameters.AddWithValue("@prev_point", PrevPoint);
+                    command.Parameters.AddWithValue("@point", Point);
+                    command.Parameters.AddWithValue("@gift", Gift);
+                    command.Parameters.AddWithValue("@num_inv_slot", NumInventorySlots);
+                    command.Parameters.AddWithValue("@num_bank_slot", NumBankSlots);
+                    command.Parameters.AddWithValue("@expanded_expert", ExpandedExpert);
+                    command.Parameters.AddWithValue("@slots", slots.GetBytes());
+                    command.Parameters.AddWithValue("@updated_at", Updated);
+                    command.ExecuteNonQuery();
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+
+                    foreach (var pair in _options)
                     {
-                        using (var command = connection.CreateCommand())
-                        {
-                            command.Connection = connection;
-                            command.Transaction = transaction;
-
-                            // ----
-                            command.CommandText =
-                                "REPLACE INTO `characters` " +
-                                "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
-                                "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
-
-                            command.Parameters.AddWithValue("@id", Id);
-                            command.Parameters.AddWithValue("@account_id", AccountId);
-                            command.Parameters.AddWithValue("@name", Name);
-                            command.Parameters.AddWithValue("@access_level", AccessLevel);
-                            command.Parameters.AddWithValue("@race", (byte)Race);
-                            command.Parameters.AddWithValue("@gender", (byte)Gender);
-                            command.Parameters.AddWithValue("@unit_model_params", unitModelParams);
-                            command.Parameters.AddWithValue("@level", Level);
-                            command.Parameters.AddWithValue("@expirience", Expirience);
-                            command.Parameters.AddWithValue("@recoverable_exp", RecoverableExp);
-                            command.Parameters.AddWithValue("@hp", Hp);
-                            command.Parameters.AddWithValue("@mp", Mp);
-                            command.Parameters.AddWithValue("@labor_power", LaborPower);
-                            command.Parameters.AddWithValue("@labor_power_modified", LaborPowerModified);
-                            command.Parameters.AddWithValue("@consumed_lp", ConsumedLaborPower);
-                            command.Parameters.AddWithValue("@ability1", (byte)Ability1);
-                            command.Parameters.AddWithValue("@ability2", (byte)Ability2);
-                            command.Parameters.AddWithValue("@ability3", (byte)Ability3);
-                            command.Parameters.AddWithValue("@world_id", WorldPosition?.WorldId ?? Position.WorldId);
-                            command.Parameters.AddWithValue("@zone_id", WorldPosition?.ZoneId ?? Position.ZoneId);
-                            command.Parameters.AddWithValue("@x", WorldPosition?.X ?? Position.X);
-                            command.Parameters.AddWithValue("@y", WorldPosition?.Y ?? Position.Y);
-                            command.Parameters.AddWithValue("@z", WorldPosition?.Z ?? Position.Z);
-                            command.Parameters.AddWithValue("@rotation_x",
-                                WorldPosition?.RotationX ?? Position.RotationX);
-                            command.Parameters.AddWithValue("@rotation_y",
-                                WorldPosition?.RotationY ?? Position.RotationY);
-                            command.Parameters.AddWithValue("@rotation_z",
-                                WorldPosition?.RotationZ ?? Position.RotationZ);
-                            command.Parameters.AddWithValue("@faction_id", Faction.Id);
-                            command.Parameters.AddWithValue("@faction_name", FactionName);
-                            command.Parameters.AddWithValue("@expedition_id", Expedition?.Id ?? 0);
-                            command.Parameters.AddWithValue("@family", Family);
-                            command.Parameters.AddWithValue("@dead_count", DeadCount);
-                            command.Parameters.AddWithValue("@dead_time", DeadTime);
-                            command.Parameters.AddWithValue("@rez_wait_duration", RezWaitDuration);
-                            command.Parameters.AddWithValue("@rez_time", RezTime);
-                            command.Parameters.AddWithValue("@rez_penalty_duration", RezPenaltyDuration);
-                            command.Parameters.AddWithValue("@leave_time", LeaveTime);
-                            command.Parameters.AddWithValue("@money", Money);
-                            command.Parameters.AddWithValue("@money2", Money2);
-                            command.Parameters.AddWithValue("@honor_point", HonorPoint);
-                            command.Parameters.AddWithValue("@vocation_point", VocationPoint);
-                            command.Parameters.AddWithValue("@crime_point", CrimePoint);
-                            command.Parameters.AddWithValue("@crime_record", CrimeRecord);
-                            command.Parameters.AddWithValue("@delete_request_time", DeleteRequestTime);
-                            command.Parameters.AddWithValue("@transfer_request_time", TransferRequestTime);
-                            command.Parameters.AddWithValue("@delete_time", DeleteTime);
-                            command.Parameters.AddWithValue("@bm_point", BmPoint);
-                            command.Parameters.AddWithValue("@auto_use_aapoint", AutoUseAAPoint);
-                            command.Parameters.AddWithValue("@prev_point", PrevPoint);
-                            command.Parameters.AddWithValue("@point", Point);
-                            command.Parameters.AddWithValue("@gift", Gift);
-                            command.Parameters.AddWithValue("@num_inv_slot", NumInventorySlots);
-                            command.Parameters.AddWithValue("@num_bank_slot", NumBankSlots);
-                            command.Parameters.AddWithValue("@expanded_expert", ExpandedExpert);
-                            command.Parameters.AddWithValue("@slots", slots.GetBytes());
-                            command.Parameters.AddWithValue("@updated_at", Updated);
-                            command.ExecuteNonQuery();
-                        }
-
-                        using (var command = connection.CreateCommand())
-                        {
-                            command.Connection = connection;
-                            command.Transaction = transaction;
-
-                            foreach (var pair in _options)
-                            {
-                                command.CommandText =
-                                    "REPLACE INTO `options` (`key`,`value`,`owner`) VALUES (@key,@value,@owner)";
-                                command.Parameters.AddWithValue("@key", pair.Key);
-                                command.Parameters.AddWithValue("@value", pair.Value);
-                                command.Parameters.AddWithValue("@owner", Id);
-                                command.ExecuteNonQuery();
-                                command.Parameters.Clear();
-                            }
-                        }
-
-                        // Inventory?.Save(connection, transaction);
-                        Abilities?.Save(connection, transaction);
-                        Actability?.Save(connection, transaction);
-                        Appellations?.Save(connection, transaction);
-                        Portals?.Save(connection, transaction);
-                        Friends?.Save(connection, transaction);
-                        Blocked?.Save(connection, transaction);
-                        Skills?.Save(connection, transaction);
-                        Quests?.Save(connection, transaction);
-                        Mates?.Save(connection, transaction);
-
-                        try
-                        {
-                            transaction.Commit();
-                            result = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.Error(ex);
-
-                            try
-                            {
-                                transaction.Rollback();
-                            }
-                            catch (Exception ex2)
-                            {
-                                _log.Error(ex2);
-                            }
-
-                            result = false;
-                        }
+                        command.CommandText =
+                            "REPLACE INTO `options` (`key`,`value`,`owner`) VALUES (@key,@value,@owner)";
+                        command.Parameters.AddWithValue("@key", pair.Key);
+                        command.Parameters.AddWithValue("@value", pair.Value);
+                        command.Parameters.AddWithValue("@owner", Id);
+                        command.ExecuteNonQuery();
+                        command.Parameters.Clear();
                     }
                 }
+
+                // Inventory?.Save(connection, transaction);
+                Abilities?.Save(connection, transaction);
+                Actability?.Save(connection, transaction);
+                Appellations?.Save(connection, transaction);
+                Portals?.Save(connection, transaction);
+                Friends?.Save(connection, transaction);
+                Blocked?.Save(connection, transaction);
+                Skills?.Save(connection, transaction);
+                Quests?.Save(connection, transaction);
+                Mates?.Save(connection, transaction);
+                result = true;
             }
             catch (Exception ex)
             {

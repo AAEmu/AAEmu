@@ -5,7 +5,9 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Tasks.SaveTask;
+using AAEmu.Game.Utils.DB;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -14,9 +16,11 @@ namespace AAEmu.Game.Core.Managers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private const double Delay = 1; // TODO: 1 minute for debugging, should likely be less on production, maybe add to configuration ?
+        private const double Delay = 1; // TODO: 1 minute for debugging, should likely be more like 5 or 10 on production, maybe add to configuration ?
         private bool _enabled;
         private bool _isSaving;
+        private object _lock = new object();
+        SaveTickStartTask saveTask ;
 
         public SaveManager()
         {
@@ -31,16 +35,26 @@ namespace AAEmu.Game.Core.Managers
             SaveTickStart();
         }
 
-        public void Stop()
+        public async void Stop()
         {
             _enabled = false;
+            if (saveTask == null)
+            {
+                return;
+            }
+            var result = await saveTask.Cancel();
+            if (result)
+            {
+                saveTask = null;
+            }
+            // Do one final save here
+            DoSave();
         }
 
         public void SaveTickStart()
         {
-            _log.Warn("SaveTickStart: Started");
-
-            var saveTask = new SaveTickStartTask();
+            // _log.Warn("SaveTickStart: Started");
+            saveTask = new SaveTickStartTask();
             TaskManager.Instance.Schedule(saveTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
         }
 
@@ -48,36 +62,85 @@ namespace AAEmu.Game.Core.Managers
         {
             if (_isSaving)
                 return false;
-            _isSaving = true;
-            var stopWatch = new Stopwatch();
-            stopWatch.Start();
-            bool saved = false;
-            try
+            var saved = false;
+            lock (_lock)
             {
-                // Save stuff
-                _log.Info("Saving DB ...");
-                HousingManager.Instance.Save();
-                MailManager.Instance.Save();
-                ItemManager.Instance.Save();
-                // Save Characters
-                var cCount = 0;
-                foreach (var c in WorldManager.Instance.GetAllCharacters())
+                _isSaving = true;
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
+                try
                 {
-                    if (c.Save())
-                        cCount++;
-                    else
-                        _log.Error("Failed to save character {0} - {1}", c.Id, c.Name);
+                    // Save stuff
+                    _log.Info("Saving DB ...");
+                    using (var connection = MySQL.CreateConnection())
+                    {
+                        using (var transaction = connection.BeginTransaction())
+                        {
+                            // Houses
+                            var savedHouses = HousingManager.Instance.Save(connection, transaction);
+                            // Mail
+                            var savedMails = MailManager.Instance.Save(connection, transaction);
+                            // Items
+                            var saveItems = ItemManager.Instance.Save(connection, transaction);
+
+                            // Characters
+                            var savedCharacters = 0;
+                            foreach (var c in WorldManager.Instance.GetAllCharacters())
+                            {
+                                if (c.Save(connection, transaction))
+                                    savedCharacters++;
+                                else
+                                    _log.Error("Failed to get save data for character {0} - {1}", c.Id, c.Name);
+                            }
+
+                            var totalCommits = 0;
+                            totalCommits += savedHouses.Item1 + savedHouses.Item2;
+                            totalCommits += savedMails.Item1 + savedMails.Item2;
+                            totalCommits += saveItems.Item1 + saveItems.Item2;
+                            totalCommits += savedCharacters;
+
+                            if (totalCommits <= 0)
+                            {
+                                _log.Info("No data to update ...");
+                                saved = true;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    transaction.Commit();
+                                    _log.Info("Updated {0} and deleted {1} houses ...", savedHouses.Item1, savedHouses.Item2);
+                                    _log.Info("Updated {0} and deleted {1} mails ...", savedMails.Item1, savedMails.Item2);
+                                    _log.Info("Updated {0} and deleted {1} items ...", saveItems.Item1, saveItems.Item2);
+                                    _log.Info("Updated {0} characters ...", savedCharacters);
+                                    saved = true;
+                                }
+                                catch (Exception e)
+                                {
+                                    _log.Error(e);
+                                    try
+                                    {
+                                        transaction.Rollback();
+                                    }
+                                    catch (Exception eRollback)
+                                    {
+                                        _log.Error(eRollback);
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
                 }
-                _log.Info("Update {0} characters ...",cCount);
-                saved = true;
-            }
-            catch (Exception e)
-            {
-                _log.Error(string.Format("DoSave - Exception: {0}", e.Message));
+                catch (Exception e)
+                {
+                    _log.Error(string.Format("DoSave Exception: {0}", e.Message));
+                }
+                stopWatch.Stop();
+                _log.Info("Saving data took {0}", stopWatch.Elapsed);
             }
             _isSaving = false;
-            stopWatch.Stop();
-            _log.Info("Saving data took {0}", stopWatch.Elapsed);
             return saved;
         }
 
@@ -86,7 +149,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if (!_enabled)
             {
-                _log.Warn("SaveTickStart: not enabled, skipping ...");
+                _log.Warn("Auto-Saving disabled, skipping ...");
                 return;
             }
             DoSave();

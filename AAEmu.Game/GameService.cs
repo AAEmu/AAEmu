@@ -116,7 +116,6 @@ namespace AAEmu.Game
             StreamNetwork.Instance.Stop();
             LoginNetwork.Instance.Stop();
 
-            SaveManager.Instance.DoSave();
             /*
             HousingManager.Instance.Save();
             MailManager.Instance.Save();

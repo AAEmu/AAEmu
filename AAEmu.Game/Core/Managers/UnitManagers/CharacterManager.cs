@@ -508,10 +508,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;
 
+                // Moved save to SaveManager
+                /*
                 if (character.Save())
                 {
+                */
                     connection.Characters.Add(character.Id, character);
                     connection.SendPacket(new SCCreateCharacterResponsePacket(character));
+                /*
                 }
                 else
                 {
@@ -520,6 +524,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     NameManager.Instance.RemoveCharacterName(characterId);
                     // TODO release items...
                 }
+                */
             }
             else
             {
