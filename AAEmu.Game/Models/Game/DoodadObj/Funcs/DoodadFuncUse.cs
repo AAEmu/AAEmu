@@ -12,18 +12,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
 
-            var func = DoodadManager.Instance.GetFunc(owner.FuncId, skillId);
+            var func = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
            
             if (func.NextPhase > 0)
             {
-                owner.FuncId = (uint)func.NextPhase;
+                owner.FuncGroupId = (uint)func.NextPhase;
                 owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), false); // FIX: added to work on/off lighting and destruction of drums/boxes
-                var nextfunc = DoodadManager.Instance.GetFunc(owner.FuncId, 0);
+                var nextfunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, 0);
                 if (nextfunc != null)
                     nextfunc.Use(caster, owner, skillId);
             }
 
-            _log.Debug("DoodadFuncUse");
+            _log.Warn("DoodadFuncUse");
         }
     }
 }

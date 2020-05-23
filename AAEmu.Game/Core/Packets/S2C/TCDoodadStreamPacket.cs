@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Packets.S2C
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationY));
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationZ));
                 stream.Write(doodad.Scale);
-                stream.Write(doodad.FuncId); // doodad_func_groups Id
+                stream.Write(doodad.FuncGroupId); // doodad_func_groups Id
                 stream.Write(doodad.TimeLeft); // growing
                 stream.Write(doodad.PlantTime); // plantTime
             }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Models;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -13,8 +13,7 @@ namespace AAEmu.Game.Utils.DB
         static MySQL()
         {
             var config = AppConfiguration.Instance.Connections.MySQLProvider;
-            ConnectionString =
-                $"server={config.Host};port={config.Port};user={config.User};password={config.Password};database={config.Database};Pooling=true;Min Pool Size=0;Max Pool Size=10;Connection Lifetime=600;charset=utf8;Allow Zero Datetime=true;Convert Zero Datetime=true;default command timeout=180;SslMode=none";
+            ConnectionString = $"server={config.Host};port={config.Port};user={config.User};password={config.Password};database={config.Database};Pooling=true;Min Pool Size=0;Max Pool Size=10;Connection Lifetime=600;charset=utf8;Allow Zero Datetime=true;Convert Zero Datetime=true;default command timeout=180;SslMode=Required";
         }
 
         public static MySqlConnection CreateConnection()

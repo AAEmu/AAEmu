@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, DoodadTemplate> _templates;
-        private Dictionary<uint, List<DoodadFunc>> _funcs;
+        private Dictionary<uint, List<DoodadFunc>> _funcsByGroups;
         private Dictionary<uint, List<DoodadFunc>> _phaseFuncs;
         private Dictionary<string, Dictionary<uint, DoodadFuncTemplate>> _funcTemplates;
 
@@ -35,7 +35,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         public void Load()
         {
             _templates = new Dictionary<uint, DoodadTemplate>();
-            _funcs = new Dictionary<uint, List<DoodadFunc>>();
+            _funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
             _phaseFuncs = new Dictionary<uint, List<DoodadFunc>>();
             _funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
             foreach (var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.DoodadObj.Funcs"))
@@ -123,6 +123,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         while (reader.Read())
                         {
                             var func = new DoodadFunc();
+                            func.FuncKey = reader.GetUInt32("id");
                             func.GroupId = reader.GetUInt32("doodad_func_group_id");
                             func.FuncId = reader.GetUInt32("actual_func_id");
                             func.FuncType = reader.GetString("actual_func_type");
@@ -131,16 +132,15 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.SkillId = reader.GetUInt32("func_skill_id", 0);
                             func.PermId = reader.GetUInt32("perm_id");
                             func.Count = reader.GetInt32("act_count", 0);
-                            List<DoodadFunc> list;
-                            if (_funcs.ContainsKey(func.GroupId))
-                                list = _funcs[func.GroupId];
+                            List<DoodadFunc> tempListGroups;
+                            if (_funcsByGroups.ContainsKey(func.GroupId))
+                                tempListGroups = _funcsByGroups[func.GroupId];
                             else
                             {
-                                list = new List<DoodadFunc>();
-                                _funcs.Add(func.GroupId, list);
+                                tempListGroups = new List<DoodadFunc>();
+                                _funcsByGroups.Add(func.GroupId, tempListGroups);
                             }
-
-                            list.Add(func);
+                            tempListGroups.Add(func);
                         }
                     }
                 }
@@ -2200,13 +2200,16 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.TemplateId = template.Id;
             doodad.Template = template;
             doodad.OwnerObjId = obj?.ObjId ?? 0;
-            doodad.FuncId = doodad.GetFuncId();
+            doodad.FuncGroupId = doodad.GetFuncGroupId();
             doodad.OwnerType = DoodadOwnerType.System;
-
+            
             if (obj is Character character)
             {
                 doodad.OwnerId = character.Id;
                 doodad.OwnerType = DoodadOwnerType.Character;
+                var task = new DoodadFuncTimer();
+                task.Delay = template.GrowthTime;
+                task.Use(character, doodad, 0);
             }
 
             if (obj is House house)
@@ -2217,21 +2220,20 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.DbId = house.Id;
             }
-            
             return doodad;
         }
 
         public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
         {
-            if (!_funcs.ContainsKey(funcGroupId))
+            if (!_funcsByGroups.ContainsKey(funcGroupId))
                 return null;
-            foreach (var func in _funcs[funcGroupId])
+            foreach (var func in _funcsByGroups[funcGroupId])
             {
                 if (func.SkillId == skillId)
                     return func;
             }
 
-            foreach (var func in _funcs[funcGroupId])
+            foreach (var func in _funcsByGroups[funcGroupId])
             {
                 if (func.SkillId == 0)
                     return func;

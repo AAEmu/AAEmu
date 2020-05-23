@@ -1,7 +1,8 @@
-using AAEmu.Game.Core.Managers.UnitManagers;
+﻿using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
+using NLog;
 
 namespace AAEmu.Game.Models.Tasks.Doodads
 {
@@ -17,10 +18,10 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         public override void Execute()
         {
             _owner.FuncTask = null;
-            _owner.FuncId = _nextPhase;
-            var funcs = DoodadManager.Instance.GetPhaseFunc(_owner.FuncId);
+            var funcs = DoodadManager.Instance.GetPhaseFunc(_owner.FuncGroupId);
             foreach (var func in funcs)
-                func.Use(_caster, _owner, _skillId);
+               func.Use(_caster, _owner, _skillId);
+
             _owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(_owner), true);
         }
     }

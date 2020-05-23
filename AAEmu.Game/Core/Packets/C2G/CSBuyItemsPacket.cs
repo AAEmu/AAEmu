@@ -45,7 +45,6 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var grade = stream.ReadByte();
                 var count = stream.ReadInt32();
                 var currency = stream.ReadByte();
-
                 if (!pack.Items.ContainsKey(itemId) || pack.Items[itemId].IndexOf(grade) < 0)
                     continue;
 

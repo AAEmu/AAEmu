@@ -21,7 +21,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint TemplateId { get; set; }
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
-        public uint FuncId { get; set; }
+        public uint FuncGroupId { get; set; }
+        public string FuncType { get; set; }
         public ulong ItemId { get; set; }
         public DateTime GrowthTime { get; set; }
         public DateTime PlantTime { get; set; }
@@ -53,7 +54,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _scale = scale;
         }
 
-        public uint GetFuncId()
+        public uint GetFuncGroupId()
         {   
             foreach (var funcGroup in Template.FuncGroups)
             {
@@ -86,8 +87,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public PacketStream Write(PacketStream stream)
         {
-
-
             stream.WriteBc(ObjId); //The object # in the list
             stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
             stream.WriteBc(OwnerObjId); //The creator of the object
@@ -99,7 +98,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
             stream.Write(Scale); //The size of the object
             stream.Write(false); // hasLootItem /hard false i guess
-            stream.Write(FuncId); // doodad_func_id
+            stream.Write(FuncGroupId); // doodad_func_id
             stream.Write(OwnerId); // characterId (Database relative)
             stream.Write(ItemId); // ?? must be ulong though (ItemId seems to be the only ulong)
             stream.Write(0u); //??type1

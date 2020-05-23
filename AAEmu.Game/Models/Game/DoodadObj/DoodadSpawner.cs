@@ -47,7 +47,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             return doodad;
         }
 
-        public override Doodad Spawn(uint objId)
+        public override Doodad Spawn(uint objId) //TODO clean this up so its just the one method handling everything
         {  
             var doodad = DoodadManager.Instance.Create(objId, UnitId, null);
             if (doodad == null)

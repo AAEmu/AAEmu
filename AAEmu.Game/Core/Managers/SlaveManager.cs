@@ -152,7 +152,7 @@ namespace AAEmu.Game.Core.Managers
                     Data = (byte)doodadBinding.AttachPointId
                 };
                 doodad.SetScale(doodadBinding.Scale);
-                doodad.FuncId = doodad.GetFuncId();
+                doodad.FuncGroupId = doodad.GetFuncGroupId(); 
                 owner.SendPacket(new SCDoodadCreatedPacket(doodad));
             }
 

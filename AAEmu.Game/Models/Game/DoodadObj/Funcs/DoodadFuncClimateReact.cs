@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers.UnitManagers;
+﻿using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -19,8 +19,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 owner.FuncTask = null;
             }
 
-            owner.FuncId = NextPhase;
-            var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncId);
+            //owner.FuncId = NextPhase;
+            var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
             foreach (var func in funcs)
                 func.Use(caster, owner, skillId);
             owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true);

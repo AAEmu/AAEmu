@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using ThreadTask = System.Threading.Tasks.Task;
@@ -51,8 +51,7 @@ namespace AAEmu.Game.Core.Managers
             task.Id = TaskIdManager.Instance.GetNextId();
             while (await _generalScheduler.CheckExists(new JobKey(task.Name + task.Id, task.Name)))
                 task.Id = TaskIdManager.Instance.GetNextId();
-            
-            var job = JobBuilder
+         var job = JobBuilder
                 .Create<TaskJob>()
                 .WithIdentity(task.Name + task.Id, task.Name)
                 .Build();
