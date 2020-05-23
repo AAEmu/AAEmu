@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,6 +15,9 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var id = stream.ReadUInt32();
 
+            var ratio = SpecialtyManager.Instance.GetRatioForSpecialty(Connection.ActiveChar, id);
+            Connection.ActiveChar.SendPacket(new SCSpecialtyRatioPacket((int)ratio));         
+            
             _log.Warn("SpecialtyRatio, Id: {0}", id);
         }
     }

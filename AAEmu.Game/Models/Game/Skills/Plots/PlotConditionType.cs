@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
     }
 
     // No clue what that shit does fam
-    // It's probably Param1 when PlotConditionType == Visible
+    // It's probably Param1 when PlotConditionType == Variable
     public enum PlotVariableType 
     {
         A = 1,

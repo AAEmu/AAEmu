@@ -59,6 +59,7 @@ namespace AAEmu.Game
             ConfigurationManager.Instance.Load();
 
             TlIdManager.Instance.Initialize();
+            SpecialtyManager.Instance.Load();
             ItemManager.Instance.Load();
             ItemManager.Instance.LoadUserItems();
             AnimationManager.Instance.Load();
