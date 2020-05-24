@@ -47,7 +47,6 @@ namespace AAEmu.Game.Core.Managers
                 return;
             }
             player.Inventory.Bag.RemoveItem(Models.Game.Items.Actions.ItemTaskType.Auction, newItem, true);
-            // InventoryHelper.RemoveItemAndUpdateClient(player, newItem, newItem.Count);
             _auctionItems.Add(newAuctionItem);
             player.SendPacket(new SCAuctionPostedPacket(newAuctionItem));
         }
@@ -112,11 +111,16 @@ namespace AAEmu.Game.Core.Managers
 
             if(auctionItem != null)
             {
-                player.SendPacket(new SCAuctionCanceledPacket(auctionItem));
-                var moneyToSubtract = auctionItem.DirectMoney * .01f;
-                player.ChangeMoney(SlotType.None, -(int)moneyToSubtract); //TODO not correct way to subtract money. 
-                //TODO Mail item to player.
+                var moneyToSubtract = auctionItem.DirectMoney * .1f;
+                var itemList = new Item[10].ToList();
+                var newItem = ItemManager.Instance.Create(auctionItem.ItemID, (int)auctionItem.StackSize, auctionItem.Grade);
+                itemList[0] = newItem;
+
+                player.ChangeMoney(SlotType.Inventory, -(int)moneyToSubtract);
+                MailManager.Instance.SendMail(0, auctionItem.ClientName, "AuctionHouse", "Cancelled Listing", "See attaached.", 1, new int[3], 0, itemList);
+
                 _auctionItems.Remove(auctionItem);
+                player.SendPacket(new SCAuctionCanceledPacket(auctionItem));
             }
         }
 
@@ -145,7 +149,7 @@ namespace AAEmu.Game.Core.Managers
                         auctionItem.BidderId = player.Id;
                         auctionItem.BidderName = player.Name;
                         auctionItem.BidMoney = bidAmount;
-                        player.ChangeMoney(SlotType.Inventory, -(int)bidAmount);//TODO
+                        player.ChangeMoney(SlotType.Inventory, -(int)bidAmount);
                         player.SendPacket(new SCAuctionBidPacket(auctionItem));
                     }
                 }
@@ -360,7 +364,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var auctionItem = new AuctionItem();
                             auctionItem.ID = reader.GetUInt32("id");
-                            auctionItem.Duration = reader.GetByte("duration"); //0 is 6 hours, 1 is 12 hours, 2 is 18 hours, 3 is 24 hours
+                            auctionItem.Duration = reader.GetByte("duration"); //0 is 6 hours, 1 is 12 hours, 2 is 24 hours, 3 is 48 hours
                             auctionItem.ItemID = reader.GetUInt32("item_id");
                             auctionItem.ItemName = reader.GetString("item_name").ToLower();
                             auctionItem.ObjectID = reader.GetUInt32("object_id");
