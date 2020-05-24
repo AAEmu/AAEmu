@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Units
         public Transfer()
         {
             Name = "";
-            Equip = new Item[28];
+            // Equip = new Item[28];
             AttachedDoodads = new List<Doodad>();
         }
 

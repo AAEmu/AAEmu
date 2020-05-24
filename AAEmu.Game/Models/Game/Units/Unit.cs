@@ -59,7 +59,7 @@ namespace AAEmu.Game.Models.Game.Units
         public bool IsAutoAttack = false;
         public uint SkillId;
         public ushort TlId { get; set; }
-        public Item[] Equip { get; set; }
+        public ItemContainer Equipment { get; set; }
         public GameConnection Connection { get; set; }
 
         /// <summary>
@@ -75,6 +75,8 @@ namespace AAEmu.Game.Models.Game.Units
         {
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
+            Equipment = new ItemContainer(null, SlotType.Equipment, true);
+            Equipment.ContainerSize = 28;
         }
 
         public virtual void ReduceCurrentHp(Unit attacker, int value)

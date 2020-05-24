@@ -18,15 +18,10 @@ namespace AAEmu.Game.Models.Game.Items
     {
         private int _containerSize;
         private int _freeSlotCount;
-        private bool _partOfPlayerInventory;
         public Character Owner { get; set; }
         public SlotType ContainerType { get; set; }
         public List<Item> Items { get; set; }
-        public bool PartOfPlayerInventory { get
-            {
-                return _partOfPlayerInventory;
-            }
-        }
+        public bool PartOfPlayerInventory { get ; set; }
         public int ContainerSize
         {
             get
@@ -53,7 +48,7 @@ namespace AAEmu.Game.Models.Game.Items
             ContainerType = containerType;
             Items = new List<Item>();
             ContainerSize = -1; // Unlimited
-            _partOfPlayerInventory = isPartOfPlayerInventory;
+            PartOfPlayerInventory = isPartOfPlayerInventory;
         }
 
         public void ReNumberSlots(bool reverse = false)
@@ -220,7 +215,10 @@ namespace AAEmu.Game.Models.Game.Items
             item.SlotType = ContainerType;
             item.Slot = newSlot;
             item._holdingContainer = this;
-            item.OwnerId = this.Owner.Id;
+            if (this.Owner != null)
+                item.OwnerId = this.Owner.Id;
+            else
+                item.OwnerId = 0;
 
             Items.Insert(0, item); // insert at front for easy buyback handling
             //Items.Add(item);
@@ -394,7 +392,7 @@ namespace AAEmu.Game.Models.Game.Items
                     throw new Exception("AcquireDefaultItem(); Unable to add new items"); // Inventory should have enough space, something went wrong
             }
             if (taskType != ItemTaskType.Invalid)
-                Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+                Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
             return (itemTasks.Count > 0);
         }
 

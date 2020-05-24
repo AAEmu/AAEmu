@@ -155,9 +155,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             else if (_unit is Npc)
             {
                 var npc = (Npc)_unit;
-                for (var i = 0; i < npc.Equip.Length; i++)
+                for (var i = 0; i < npc.Equipment.GetSlottedItemsList().Count; i++)
                 {
-                    var item = npc.Equip[i];
+                    var item = npc.Equipment.GetItemBySlot(i);
 
                     if (item is BodyPart)
                     {
