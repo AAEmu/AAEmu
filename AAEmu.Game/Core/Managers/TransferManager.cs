@@ -10,7 +10,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Faction;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -31,6 +30,7 @@ namespace AAEmu.Game.Core.Managers
         {
             return _templates.ContainsKey(templateId);
         }
+        
         public void SpawnAll()
         {
             foreach (var tr in _activeTransfers.Values)
@@ -85,151 +85,112 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void UnbindTransfer(GameConnection connection, uint tlId)
-        {
-            var unit = connection.ActiveChar;
-            var activeTransferInfo = GetActiveTransferByTlId(tlId);
-            if (activeTransferInfo == null) { return; }
-            unit.SendPacket(new SCUnitDetachedPacket(unit.ObjId, 5));
-        }
-
-        public void BindTransfer(GameConnection connection, uint tlId)
-        {
-            var unit = connection.ActiveChar;
-            var activeTransferInfo = GetActiveTransferByTlId(tlId);
-            if (activeTransferInfo == null)
-            {
-                return;
-            }
-            unit.SendPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, activeTransferInfo.ObjId));
-            unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, activeTransferInfo.ObjId), true);
-            unit.CurrentTarget = activeTransferInfo;
-            unit.SendPacket(new SCSlaveBoundPacket(unit.Id, activeTransferInfo.ObjId));
-        }
-
-        public void Delete(Character owner, uint objId)
-        {
-            var activeTransferInfo = GetActiveTransferByObjId(objId);
-            if (activeTransferInfo == null)
-            {
-                return;
-            }
-            owner.SendPacket(new SCSlaveDespawnPacket(objId));
-            owner.SendPacket(new SCSlaveRemovedPacket(owner.ObjId, activeTransferInfo.TlId));
-            _activeTransfers.Remove(owner.ObjId);
-            activeTransferInfo.Delete();
-        }
-
-        //public Transfer Create(uint objectId, uint id)
-        //{
-        //    if (!_templates.ContainsKey(id)) { return null; }
-
-        //    var template = _templates[id];
-        //    var transfer = new Transfer
-        //    {
-        //        ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId(),
-        //        TemplateId = id,
-        //        Template = template,
-        //        ModelId = template.ModelId,
-        //        Patrol = null
-        //    };
-        //    //transfer.TemplateId = 83; // Long sandbar hunting airship
-        //    //transfer.ModelId = 657;
-        //    transfer.ObjId = ObjectIdManager.Instance.GetNextId();
-        //    transfer.TlId = (ushort)TlIdManager.Instance.GetNextId();
-        //    transfer.Level = 50;
-        //    transfer.Position = new Point();
-        //    transfer.Hp = transfer.MaxHp = 19000;
-        //    transfer.Mp = transfer.MaxMp = 12000;
-        //    transfer.ModelParams = new UnitCustomModelParams();
-
-        //    return transfer;
-        //}
-
         public Transfer Create(uint objectId, uint templateId)
         {
             /*
-            * Последовательность пакетов при появлении повозки:
-            * (сама повозка состоит из двух частей и двух скамеек для сидения персонажей)
+            * A sequence of packets when a cart appears:
+            * (the wagon itself consists of two parts and two benches for the characters)
+            * "Salislead Peninsula ~ Liriot Hillside Loop Carriage"
             * SCUnitStatePacket(tlId0=GetNextId(), objId0=GetNextId(), templateId = 6, modelId = 654, attachPoint=255)
+            * "The wagon boarding part"
             * SCUnitStatePacket(tlId2= tlId0, objId2=GetNextId(), templateId = 46, modelId = 653, attachPoint=30, objId=objId0)
             * SCDoodadCreatedPacket(templateId = 5890, attachPoint=2, objId=objId2, x1y1z1)
             * SCDoodadCreatedPacket(templateId = 5890, attachPoint=3, objId=objId2, x2y2z2)
             */
 
             if (!Exist(templateId)) { return null; }
-            var Carriage = GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
 
+            // создаем кабину повозки
+            var Carriage = GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = objectId == 0 ? ObjectIdManager.Instance.GetNextId() : objectId;
-            var owner = new Transfer()
+            var owner = new Transfer();
+            owner.Name = "хоупфорд-лес";
+            owner.TlId = tlId;
+            owner.ObjId = objId;
+            owner.OwnerId = 0;
+            owner.TemplateId = Carriage.Id;   // templateId
+            owner.ModelId = Carriage.ModelId; // modelId
+            owner.Template = Carriage;
+            owner.Name = Carriage.Name;
+            //if (owner.Template.TransferBindings != null)
+            //{
+            //    owner.BondingObjId 
+            //}
+            owner.BondingObjId = 0;    // objId
+            owner.AttachPointId = 255; // point
+            owner.Level = 1;
+            owner.Hp = 19000;
+            owner.Mp = 12000;
+            owner.ModelParams = new UnitCustomModelParams();
+            owner.Position = new Point();
+            owner.Faction = new SystemFaction();
+            owner.Patrol = null;
+            owner.Faction = FactionManager.Instance.GetFaction(143);
+
+            // create Carriage like a normal object.
+            _activeTransfers.Add(owner.ObjId, owner);
+
+            if (Carriage.TransferBindings.Count > 0)
             {
-                TlId = tlId,
-                ObjId = objId,
-                TemplateId = Carriage.Id,   // templateId
-                ModelId = Carriage.ModelId, // modelId
-                Template = Carriage,
-                Name = "",
-                Level = 50,
-                Hp = 19000,
-                Mp = 12000,
-                ModelParams = new UnitCustomModelParams(),
-                Position = new Point(),
-                Faction = new SystemFaction(),
-                Patrol = null
-            };
-            // создаем Carriage, как обычный объект
-            //owner.SendPacket(new SCUnitStatePacket(owner));
-            //owner.Spawn();
+                var boardingPart = GetTransferTemplate(Carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
+                var tlId2 = (ushort)TlIdManager.Instance.GetNextId();
+                var objId2 = ObjectIdManager.Instance.GetNextId();
+                var transfer = new Transfer();
+                transfer.Name = "дилижанс";
+                transfer.TlId = tlId2;
+                transfer.ObjId = objId2;
+                transfer.OwnerId = 0;
+                transfer.TemplateId = boardingPart.Id;   // templateId
+                transfer.ModelId = boardingPart.ModelId; // modelId
+                transfer.Template = boardingPart;
+                transfer.Name = "";
+                transfer.Level = 1;
+                transfer.BondingObjId = tlId;
+                transfer.AttachPointId = owner.Template.TransferBindings[0].AttachPointId;
+                transfer.Hp = 19000;
+                transfer.Mp = 12000;
+                transfer.ModelParams = new UnitCustomModelParams();
+                transfer.Position = new Point();
+                transfer.Position.WorldId = 1;
+                transfer.Position.ZoneId = 179;
+                transfer.Position.X = 15565.78f;
+                transfer.Position.Y = 14841.25f;
+                transfer.Position.Z = 145.2947f;
+                transfer.Position.RotationZ = 63;
+                transfer.Faction = new SystemFaction();
+                transfer.Patrol = null;
+                transfer.Faction = FactionManager.Instance.GetFaction(143);
 
-            //_activeTransfers.Add(objId, owner);
+                //TODO  create a boardingPart and indicate that we attach to the Carriage object 
+                _activeTransfers.Add(transfer.ObjId, transfer);
 
-            var boardingPart = GetTransferTemplate(templateId); // 46 - The wagon boarding part
-            var tlId2 = (ushort)TlIdManager.Instance.GetNextId();
-            var objId2 = objectId == 0 ? ObjectIdManager.Instance.GetNextId() : objectId;
-            var transfer = new Transfer()
-            {
-                TlId = tlId2,
-                ObjId = objId2,
-                TemplateId = boardingPart.Id,   // templateId
-                ModelId = boardingPart.ModelId, // modelId
-                Template = boardingPart,
-                Name = "",
-                Level = 50,
-                Hp = 19000,
-                Mp = 12000,
-                ModelParams = new UnitCustomModelParams(),
-                Patrol = null
-            };
-            //transfer.Spawn();
 
-            //_activeTransfers.Add(objId, transfer);
-            //TODO  создаем boardingPart и указываем, что прикрепляем к Carriage объекту 
-            //owner.SendPacket(new SCUnitStatePacket(tlId, objId, transfer, (byte)transfer.Template.TransferBindings[0].AttachPointId));
-
-            foreach (var doodadBinding in owner.Template.TransferBindingDoodads)
-            {
-                var doodad = new Doodad
+                foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
                 {
-                    ObjId = ObjectIdManager.Instance.GetNextId(),
-                    TemplateId = doodadBinding.DoodadId,
-                    OwnerObjId = owner.ObjId,
-                    ParentObjId = 0,
-                    AttachPoint = (byte)doodadBinding.AttachPointId,
-                    Position = new Point(0f, 3.204f, 12588.96f, 0, 0, 0),
-                    OwnerId = doodadBinding.OwnerId,
-                    PlantTime = DateTime.Now,
-                    OwnerType = DoodadOwnerType.System,
-                    DbHouseId = 0,
-                    Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
-                    Data = (byte)doodadBinding.AttachPointId
-                };
-                doodad.SetScale(1f);
-                doodad.FuncGroupId = doodad.GetGroupId();
-                owner.SendPacket(new SCDoodadCreatedPacket(doodad));
-            }
+                    //var doodad = new Doodad();
+                    var doodad = DoodadManager.Instance.Create(0, doodadBinding.DoodadId, transfer);
+                    doodad.ObjId = ObjectIdManager.Instance.GetNextId();
+                    doodad.TemplateId = doodadBinding.DoodadId;
+                    doodad.OwnerObjId = objId2;
+                    doodad.ParentObjId = 0;
+                    doodad.AttachPoint = (byte)doodadBinding.AttachPointId;
+                    doodad.Position = new Point(0.00390625f, 5.785156f, 1.367f, 0, 0, 0);
+                    //doodad.Position = new Point(0.00390625f, 1.634766f, 1.367f, 0, 0, 0);
+                    doodad.OwnerId = 0;
+                    doodad.PlantTime = DateTime.Now;
+                    doodad.OwnerType = DoodadOwnerType.System;
+                    doodad.DbHouseId = 0;
+                    doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
+                    doodad.Data = (byte)doodadBinding.AttachPointId;
+                    doodad.SetScale(1f);
+                    doodad.FuncGroupId = doodad.GetGroupId();
 
-            _activeTransfers.Add(objId, owner);
+                    transfer.AttachedDoodads.Add(doodad);
+
+                    owner.SendPacket(new SCDoodadCreatedPacket(doodad));
+                }
+            }
 
             return owner;
         }
@@ -251,15 +212,15 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new TransferTemplate
-                            {
-                                Id = reader.GetUInt32("id"),
-                                Name = LocalizationManager.Instance.Get("transfer", "comment", reader.GetUInt32("id"), ItemManager.Instance.GetTemplate(reader.GetUInt32("id")).Name ?? ""),
-                                ModelId = reader.GetUInt32("model_id"),
-                                WaitTime = reader.GetFloat("wait_time"),
-                                Cyclic = reader.GetBoolean("cyclic"),
-                                PathSmoothing = reader.GetFloat("path_smoothing"),
-                            };
+                            var template = new TransferTemplate();
+
+                            template.Id = reader.GetUInt32("id"); // OwnerId
+                            template.Name = LocalizationManager.Instance.Get("transfer", "comment", reader.GetUInt32("id"));
+                            template.ModelId = reader.GetUInt32("model_id");
+                            template.WaitTime = reader.GetFloat("wait_time");
+                            template.Cyclic = reader.GetBoolean("cyclic");
+                            template.PathSmoothing = reader.GetFloat("path_smoothing");
+
                             _templates.Add(template.Id, template);
                         }
                     }
@@ -279,7 +240,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = reader.GetUInt32("attach_point_id"),
+                                AttachPointId = reader.GetByte("attach_point_id"),
                                 TransferId = reader.GetUInt32("transfer_id")
                             };
                             if (_templates.ContainsKey(template.OwnerId))
@@ -307,16 +268,9 @@ namespace AAEmu.Game.Core.Managers
                                 AttachPointId = reader.GetInt32("attach_point_id"),
                                 DoodadId = reader.GetUInt32("doodad_id"),
                             };
-
-                            foreach (var tmp in _templates)
+                            if (_templates.ContainsKey(template.OwnerId))
                             {
-                                foreach (var tmp2 in tmp.Value.TransferBindings)
-                                {
-                                    if (_templates.ContainsKey(tmp2.TransferId))
-                                    {
-                                        _templates[tmp2.TransferId].TransferBindingDoodads.Add(template);
-                                    }
-                                }
+                                _templates[template.OwnerId].TransferBindingDoodads.Add(template);
                             }
                         }
                     }

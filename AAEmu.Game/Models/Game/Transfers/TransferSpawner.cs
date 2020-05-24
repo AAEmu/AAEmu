@@ -45,7 +45,7 @@ namespace AAEmu.Game.Models.Game.Transfers
 
         public override Transfer Spawn(uint objId)
         {
-            Transfer transfer = TransferManager.Instance.Create(objId, UnitId);
+            var transfer = TransferManager.Instance.Create(objId, UnitId);
             if (transfer == null)
             {
                 _log.Warn("Transfer {0}, from spawn not exist at db", UnitId);
@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Transfers
             transfer.Position = Position.Clone();
             if (transfer.Position == null)
             {
-                _log.Error("Can't spawn Transfer {1} from spawn {0}", Id, UnitId);
+                _log.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
                 return null;
             }
 
