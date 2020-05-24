@@ -90,6 +90,8 @@ namespace AAEmu.Game.Core.Managers
                             var savedMails = MailManager.Instance.Save(connection, transaction);
                             // Items
                             var saveItems = ItemManager.Instance.Save(connection, transaction);
+                            //Auction House
+                            var savedAuctionHouse = AuctionManager.Instance.Save(connection, transaction);
 
                             // Characters
                             var savedCharacters = 0;
@@ -105,6 +107,7 @@ namespace AAEmu.Game.Core.Managers
                             totalCommits += savedHouses.Item1 + savedHouses.Item2;
                             totalCommits += savedMails.Item1 + savedMails.Item2;
                             totalCommits += saveItems.Item1 + saveItems.Item2;
+                            totalCommits += savedAuctionHouse.Item1 + savedAuctionHouse.Item2;
                             totalCommits += savedCharacters;
 
                             if (totalCommits <= 0)
@@ -120,6 +123,7 @@ namespace AAEmu.Game.Core.Managers
                                     _log.Info("Updated {0} and deleted {1} houses ...", savedHouses.Item1, savedHouses.Item2);
                                     _log.Info("Updated {0} and deleted {1} mails ...", savedMails.Item1, savedMails.Item2);
                                     _log.Info("Updated {0} and deleted {1} items ...", saveItems.Item1, saveItems.Item2);
+                                    _log.Info("Updated {0} and deleted {1} auction items ...", savedAuctionHouse.Item1, savedAuctionHouse.Item2);
                                     _log.Info("Updated {0} characters ...", savedCharacters);
                                     saved = true;
                                 }
