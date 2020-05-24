@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
@@ -11,10 +9,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Items;
 using NLog;
-using AAEmu.Game.Utils;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Core.Packets.C2G;
-using AAEmu.Game.Core.Packets.G2L;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -24,6 +20,7 @@ namespace AAEmu.Game.Core.Managers
 
         public List<AuctionItem> _auctionItems;
         public Dictionary<uint, string> _en_localizations;
+        public List<long> _deletedAuctionItemIds;
 
         public void ListAuctionItem(Character player, ulong itemId, uint startPrice, uint buyoutPrice, byte duration)
         {
@@ -69,6 +66,7 @@ namespace AAEmu.Game.Core.Managers
 
                 MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Succesfull Listing", $"{GetLocalizedItemNameById(itemToRemove.ItemID)} sold!", 1, moneyToSend, 0, emptyItemList); //Send money to seller
                 MailManager.Instance.SendMail(0, buyer, "Auction House", "Succesfull Purchase", "See attached.", 1, emptyMoneyArray, 1, itemList); //Send items to buyer
+                _deletedAuctionItemIds.Add((long)itemToRemove.ID);
                 _auctionItems.Remove(itemToRemove);
             }
         }
@@ -89,6 +87,7 @@ namespace AAEmu.Game.Core.Managers
                     var itemList = new Item[10].ToList();
                     itemList[0] = newItem;
                     MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Failed Listing", "See attached.", 1, new int[3], 0, itemList);
+                    _deletedAuctionItemIds.Add((long)itemToRemove.ID);
                     _auctionItems.Remove(itemToRemove);
                 }
             }
@@ -108,6 +107,7 @@ namespace AAEmu.Game.Core.Managers
                 player.ChangeMoney(SlotType.Inventory, -(int)moneyToSubtract);
                 MailManager.Instance.SendMail(0, auctionItem.ClientName, "AuctionHouse", "Cancelled Listing", "See attaached.", 1, new int[3], 0, itemList);
 
+                _deletedAuctionItemIds.Add((long)auctionItem.ID);
                 _auctionItems.Remove(auctionItem);
                 player.SendPacket(new SCAuctionCanceledPacket(auctionItem));
             }
@@ -128,7 +128,10 @@ namespace AAEmu.Game.Core.Managers
             if(auctionItem != null)
             {
                 if (bidAmount >= auctionItem.BidMoney) //Buy now
+                {
+                    player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
                     RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
+                }
 
                 else if(bidAmount > auctionItem.BidMoney) //Bid
                 {
@@ -153,40 +156,20 @@ namespace AAEmu.Game.Core.Managers
             List<AuctionItem> auctionItemsFound = new List<AuctionItem>();
             bool myListing = false;
 
-            if (searchTemplate.Type == 1)
+            if (searchTemplate.ItemName == "" && searchTemplate.CategoryA == 0 && searchTemplate.CategoryB == 0 && searchTemplate.CategoryC == 0)
             {
                 myListing = true;
-                if (searchTemplate.Page > 0)
-                {
-                    var startingItemNumber = (int)(searchTemplate.Page * 9);
-                    var endingitemNumber = (int)((searchTemplate.Page * 9) + 8);
-                    if (auctionItemsFound.Count > startingItemNumber)
-                    {
-                        var tempItemList = new List<AuctionItem>();
-                        for (int i = startingItemNumber; i < endingitemNumber; i++)
-                        {
-                            if (auctionItemsFound.ElementAtOrDefault(i) != null && auctionItemsFound[i].ClientId == searchTemplate.Player.Id)
-                                tempItemList.Add(auctionItemsFound[i]);
-                        }
-                        auctionItemsFound = tempItemList;
-                    }
-                    else
-                        searchTemplate.Page = 0;
-                }
-                else
-                {
-                    for (int i = 0; i < _auctionItems.Count; i++)
-                    {
-                        if (_auctionItems[i].ClientName == searchTemplate.Player.Name)
-                            auctionItemsFound.Add(_auctionItems[i]);
-                    }
-                }
+                var query = from item in _auctionItems
+                            where item.ClientName == searchTemplate.Player.Name
+                            select item;
+
+                auctionItemsFound = query.ToList<AuctionItem>();
             }
 
             if(!myListing)
             {
                 var query = from item in _auctionItems
-                                where ((searchTemplate.ItemName != "") ?  item.ItemName.Contains(searchTemplate.ItemName.ToLower()) : true)
+                                where ((searchTemplate.ItemName != "") ?  item.ItemName.ToLower().Contains(searchTemplate.ItemName.ToLower()) : true)
                                 where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.CategoryA : true)
                                 where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.CategoryB : true)
                                 where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.CategoryC : true)
@@ -342,7 +325,7 @@ namespace AAEmu.Game.Core.Managers
         public void Load()
         {
             _auctionItems = new List<AuctionItem>();
-            _en_localizations = new Dictionary<uint, string>();
+            _deletedAuctionItemIds = new List<long>();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -390,6 +373,85 @@ namespace AAEmu.Game.Core.Managers
             }
             var auctionTask = new AuctionHouseTask();
             TaskManager.Instance.Schedule(auctionTask, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+        }
+        public (int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
+        {
+            var deletedCount = 0;
+            var updatedCount = 0;
+
+            lock (_deletedAuctionItemIds)
+            {
+                deletedCount = _deletedAuctionItemIds.Count;
+                if (_deletedAuctionItemIds.Count > 0)
+                {
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.Connection = connection;
+                        command.Transaction = transaction;
+                        command.CommandText = "DELETE FROM auction_house WHERE `id` IN(" + string.Join(",", _deletedAuctionItemIds) + ")";
+                        command.Prepare();
+                        command.ExecuteNonQuery();
+                    }
+                    _deletedAuctionItemIds.Clear();
+                }
+            }
+
+            foreach (var mtbs in _auctionItems)
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    command.CommandText = "REPLACE INTO auction_house(" +
+                        "`id`, `duration`, `item_id`, `object_id`, `grade`, `flags`, `stack_size`, `detail_type`," +
+                        " `creation_time`, `lifespan_mins`, `type_1`, `world_id`, `unsecure_date_time`, `unpack_date_time`," +
+                        " `world_id_2`, `client_id`, `client_name`, `start_money`, `direct_money`, `time_left`, `bid_world_id`," +
+                        " `bidder_id`, `bidder_name`, `bid_money`, `extra`, `item_name`, `category_a`, `category_b`, `category_c`" +
+                        ") VALUES (" +
+                        "@id, @duration, @item_id, @object_id, @grade, @flags, @stack_size, @detail_type," +
+                        " @creation_time, @lifespan_mins, @type_1, @world_id, @unsecure_date_time, @unpack_date_time," +
+                        " @world_id_2, @client_id, @client_name, @start_money, @direct_money, @time_left, @bid_world_id," +
+                        " @bidder_id, @bidder_name, @bid_money, @extra, @item_name, @category_a, @category_b, @category_c)";
+
+                    command.Prepare();
+
+                    command.Parameters.AddWithValue("@id", mtbs.ID);
+                    command.Parameters.AddWithValue("@duration", mtbs.Duration);
+                    command.Parameters.AddWithValue("@item_id", mtbs.ItemID);
+                    command.Parameters.AddWithValue("@object_id", mtbs.ObjectID);
+                    command.Parameters.AddWithValue("@grade", mtbs.Grade);
+                    command.Parameters.AddWithValue("@flags", mtbs.Flags);
+                    command.Parameters.AddWithValue("@stack_size", mtbs.StackSize);
+                    command.Parameters.AddWithValue("@detail_type", mtbs.DetailType);
+                    command.Parameters.AddWithValue("@creation_time", mtbs.CreationTime);
+                    command.Parameters.AddWithValue("@lifespan_mins", mtbs.LifespanMins);
+                    command.Parameters.AddWithValue("@type_1", mtbs.Type1);
+                    command.Parameters.AddWithValue("@world_id", mtbs.WorldId);
+                    command.Parameters.AddWithValue("@unsecure_date_time", mtbs.UnsecureDateTime);
+                    command.Parameters.AddWithValue("@unpack_date_time", mtbs.UnpackDateTIme);
+                    command.Parameters.AddWithValue("@world_id_2", mtbs.WorldId2);
+                    command.Parameters.AddWithValue("@client_id", mtbs.ClientId);
+                    command.Parameters.AddWithValue("@client_name", mtbs.ClientName);
+                    command.Parameters.AddWithValue("@start_money", mtbs.StartMoney);
+                    command.Parameters.AddWithValue("@direct_money", mtbs.DirectMoney);
+                    command.Parameters.AddWithValue("@time_left", mtbs.TimeLeft);
+                    command.Parameters.AddWithValue("@bid_world_id", mtbs.BidWorldID);
+                    command.Parameters.AddWithValue("@bidder_id", mtbs.BidderId);
+                    command.Parameters.AddWithValue("@bidder_name", mtbs.BidderName);
+                    command.Parameters.AddWithValue("@bid_money", mtbs.BidMoney);
+                    command.Parameters.AddWithValue("@extra", mtbs.Extra);
+                    command.Parameters.AddWithValue("@item_name", mtbs.ItemName);
+                    command.Parameters.AddWithValue("@category_a", mtbs.CategoryA);
+                    command.Parameters.AddWithValue("@category_b", mtbs.CategoryB);
+                    command.Parameters.AddWithValue("@category_c", mtbs.CategoryC);
+
+                    command.ExecuteNonQuery();
+                    updatedCount++;
+                }
+
+            }
+
+            return (updatedCount, deletedCount);
         }
     }
 }
