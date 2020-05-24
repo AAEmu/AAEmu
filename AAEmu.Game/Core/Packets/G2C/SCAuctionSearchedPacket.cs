@@ -13,8 +13,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private List<AuctionItem> _auctionItems;
         private uint _page;
         private uint _count;
-        private ushort _errorMessage;
-        private ulong  _serverTIme;
+        //private ushort _errorMessage;
+        //private ulong  _serverTIme;
 
         public SCAuctionSearchedPacket(List<AuctionItem> auctionItems, uint page) : base(SCOffsets.SCAuctionSearchedPacket, 1)
         {
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(item.ItemID);
                     stream.Write(item.ObjectID);
                     stream.Write(item.Grade);
-                    stream.Write(item.Flags);
+                    stream.Write((byte)item.Flags);
                     stream.Write(item.StackSize);
                     stream.Write(item.DetailType);
                     stream.Write(DateTime.Now);

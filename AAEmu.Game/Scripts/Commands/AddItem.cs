@@ -50,26 +50,12 @@ namespace AAEmu.Game.Scripts.Commands
             if ((args.Length > firstarg + 2) && (byte.TryParse(args[firstarg + 2], out byte arggrade)))
                 grade = arggrade;
 
-            var item = ItemManager.Instance.Create(itemId, count, grade, true);
-            if (item == null)
+            if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, itemId, count, grade))
             {
                 character.SendMessage("|cFFFF0000Item could not be created!|r");
                 return;
             }
 
-            var res = targetPlayer.Inventory.AddItem(item);
-            if (res == null)
-            {
-                ItemIdManager.Instance.ReleaseId((uint) item.Id);
-                return;
-            }
-
-            var tasks = new List<ItemTask>();
-            if (res.Id != item.Id)
-                tasks.Add(new ItemCountUpdate(res, item.Count));
-            else
-                tasks.Add(new ItemAdd(item));
-            targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, tasks, new List<ulong>()));
             if (character.Id != targetPlayer.Id)
             {
                 character.SendMessage("[Items] added item {0} to {1}'s inventory", itemId, targetPlayer.Name);

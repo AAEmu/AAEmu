@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
             var lootGroups = ItemManager.Instance.GetLootGroups(LootPackId);
-            var lootPackItem = character.Inventory.GetItem(lootPack.ItemId);
+            var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
 
             _log.Debug("LootGroups {0}", lootGroups);
 
@@ -187,8 +187,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var character = (Character)caster;
             if (character == null) return;
             var amount = Rand.Next(minAmount, maxAmount);
-            var item = ItemManager.Instance.Create(itemId, amount, gradeId);
-            InventoryHelper.AddItemAndUpdateClient(character, item);
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount))
+            {
+                // TODO: do proper handling of insufficient bag space
+                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+            }
         }
 
         private byte GetGradeDistributionId(byte gradeId)
@@ -233,7 +236,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (character == null) return;
             var lootPack = (SkillItem)casterObj;
             if (lootPack == null) return;
-            var lootPackItem = character.Inventory.GetItem(lootPack.ItemId);
+            var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
+            character?.Inventory.ConsumeItem(null,ItemTaskType.SkillReagents, lootPackItem.TemplateId, consumeCount,null);
+            /*
             if (lootPackItem.Count > 1)
             {
                 lootPackItem.Count -= consumeCount;
@@ -255,6 +260,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         },
                         new List<ulong>()));
             }
+            */
         }
     }
 }

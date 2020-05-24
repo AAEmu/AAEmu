@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Faction;
+﻿using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.World;
@@ -10,7 +10,19 @@ namespace AAEmu.Game.Models.Game.Units
         Character = 0,
         Npc = 1,
         Slave = 2,
+        Housing = 3,
+        Transfer = 4,
+        Mate = 5,
+        Shipyard = 6
+    }
 
+    public enum ModelPostureType : byte
+    {
+        None = 0,
+        HouseState = 1,
+        ActorModelState = 4,
+        FarmfieldState = 7,
+        TurretState = 8
     }
 
     public class BaseUnit : GameObject

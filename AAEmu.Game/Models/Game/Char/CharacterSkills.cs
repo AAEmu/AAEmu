@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
@@ -118,6 +119,16 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var buff in PassiveBuffs.Values)
                 points += buff.Template.ReqPoints;
             return points;
+        }
+        
+        // TODO : Optimize this by storing a map of derivative skills and their matches
+        public bool IsVariantOfSkill(uint skillId)
+        {
+            var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
+
+            return Skills.Values.Any(skill =>
+                skill.Template.AbilityId == skillTemplate.AbilityId &&
+                skill.Template.AbilityLevel == skillTemplate.AbilityLevel);
         }
 
         public void Load(MySqlConnection connection)

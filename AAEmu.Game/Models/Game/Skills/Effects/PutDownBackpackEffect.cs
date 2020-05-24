@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
@@ -25,17 +25,18 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             SkillItem packItem = (SkillItem) casterObj;
             if (packItem == null) return;
 
-            Item item = character.Inventory.GetItem(packItem.ItemId);
+            Item item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
             if (item == null) return;
 
-            InventoryHelper.RemoveItemAndUpdateClient(character, item, 1);
-
-            // Spawn doodad
-            var doodadSpawner = new DoodadSpawner();
-            doodadSpawner.Id = 0;
-            doodadSpawner.UnitId = BackpackDoodadId;
-            doodadSpawner.Position = character.Position.Clone();
-            doodadSpawner.Spawn(0);
+            if (character.Inventory.Equipment.RemoveItem(Items.Actions.ItemTaskType.DropBackpack, item, true))
+            {
+                // Spawn doodad
+                var doodadSpawner = new DoodadSpawner();
+                doodadSpawner.Id = 0;
+                doodadSpawner.UnitId = BackpackDoodadId;
+                doodadSpawner.Position = character.Position.Clone();
+                doodadSpawner.Spawn(0);
+            }
         }
     }
 }

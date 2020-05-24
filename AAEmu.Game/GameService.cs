@@ -60,6 +60,7 @@ namespace AAEmu.Game
 
             TlIdManager.Instance.Initialize();
             ItemManager.Instance.Load();
+            ItemManager.Instance.LoadUserItems();
             PlotManager.Instance.Load();
             SkillManager.Instance.Load();
             CraftManager.Instance.Load();
@@ -80,10 +81,12 @@ namespace AAEmu.Game
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
             HousingManager.Instance.Load();
+            TransferManager.Instance.Load();
 
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();
             HousingManager.Instance.SpawnAll();
+            TransferManager.Instance.SpawnAll();
 
             AccessLevelManager.Instance.Load();
             CashShopManager.Instance.Load();
@@ -94,6 +97,8 @@ namespace AAEmu.Game
             GameNetwork.Instance.Start();
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();
+
+            SaveManager.Instance.Initialize();
             stopWatch.Stop();
 
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
@@ -103,7 +108,9 @@ namespace AAEmu.Game
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _log.Info("Stopping daemon.");
+            _log.Info("Stopping daemon ...");
+
+            SaveManager.Instance.Stop();
 
             SpawnManager.Instance.Stop();
             TaskManager.Instance.Stop();
@@ -111,15 +118,19 @@ namespace AAEmu.Game
             StreamNetwork.Instance.Stop();
             LoginNetwork.Instance.Stop();
 
+            /*
             HousingManager.Instance.Save();
             MailManager.Instance.Save();
+            ItemManager.Instance.Save();
+            */
+
             TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }
 
         public void Dispose()
         {
-            _log.Info("Disposing....");
+            _log.Info("Disposing ...");
 
             LogManager.Flush();
         }

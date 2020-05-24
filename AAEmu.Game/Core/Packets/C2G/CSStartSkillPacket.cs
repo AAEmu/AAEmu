@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else if (skillCaster is SkillItem)
             {
-                var item = Connection.ActiveChar.Inventory.GetItem(((SkillItem)skillCaster).ItemId);
+                var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
                 if (item == null || skillId != item.Template.UseSkillId)
                     return;
                 Connection.ActiveChar.Quests.OnItemUse(item);
@@ -45,6 +45,11 @@ namespace AAEmu.Game.Core.Packets.C2G
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
+            {
+                var skill = Connection.ActiveChar.Skills.Skills[skillId];
+                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            }
+            else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
             {
                 var skill = Connection.ActiveChar.Skills.Skills[skillId];
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);

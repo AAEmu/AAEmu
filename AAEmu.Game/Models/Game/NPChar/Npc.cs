@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public uint TemplateId { get; set; }
         public NpcTemplate Template { get; set; }
-        public Item[] Equip { get; set; }
+        //public Item[] Equip { get; set; }
         public NpcSpawner Spawner { get; set; }
 
         public override UnitCustomModelParams ModelParams => Template.ModelParams;
@@ -398,7 +398,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var weapon = (Weapon)Equip[(int)EquipmentItemSlot.Mainhand];
+                var weapon = (Weapon)Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.Dps ?? 0;
                 res += Str / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
@@ -450,7 +450,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var weapon = (Weapon)Equip[(int)EquipmentItemSlot.Offhand];
+                var weapon = (Weapon)Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
                 var res = weapon?.Dps ?? 0;
                 res += Str / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.OffhandDps))
@@ -469,7 +469,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var weapon = (Weapon)Equip[(int)EquipmentItemSlot.Ranged];
+                var weapon = (Weapon)Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
                 var res = weapon?.Dps ?? 0;
                 res += Dex / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDps))
@@ -521,7 +521,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var weapon = (Weapon)Equip[(int)EquipmentItemSlot.Mainhand];
+                var weapon = (Weapon)Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.MDps ?? 0;
                 res += Int / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
@@ -664,7 +664,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public Npc()
         {
             Name = "";
-            Equip = new Item[28];
+            //Equip = new Item[28];
         }
 
         public override void DoDie(Unit killer)
