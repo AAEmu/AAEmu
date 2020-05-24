@@ -97,6 +97,8 @@ namespace AAEmu.Game
             GameNetwork.Instance.Start();
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();
+
+            SaveManager.Instance.Initialize();
             stopWatch.Stop();
 
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
@@ -108,15 +110,19 @@ namespace AAEmu.Game
         {
             _log.Info("Stopping daemon ...");
 
+            SaveManager.Instance.Stop();
+
             SpawnManager.Instance.Stop();
             TaskManager.Instance.Stop();
             GameNetwork.Instance.Stop();
             StreamNetwork.Instance.Stop();
             LoginNetwork.Instance.Stop();
 
+            /*
             HousingManager.Instance.Save();
             MailManager.Instance.Save();
             ItemManager.Instance.Save();
+            */
 
             TimeManager.Instance.Stop();
             return Task.CompletedTask;

@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Tasks
                     subscriber.Dispose();
             }
 
-            _connection.Save();
+            _connection.SaveAndRemoveFromWorld();
             _connection.State = GameState.Lobby;
             _connection.LeaveTask = null;
             _connection.SendPacket(new SCLeaveWorldGrantedPacket(_target));

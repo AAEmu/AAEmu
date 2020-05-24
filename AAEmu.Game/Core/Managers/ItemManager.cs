@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -1132,112 +1133,89 @@ namespace AAEmu.Game.Core.Managers
                 return null;
         }
 
-        public void Save()
+        public (int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
         {
             var deleteCount = 0;
             var updateCount = 0;
-            using (var connection = MySQL.CreateConnection())
+            // _log.Info("Saving items data ...");
+
+            // Read configuration related to item durability and the likes
+            using (var command = connection.CreateCommand())
             {
-
-                using (var transaction = connection.BeginTransaction())
+                command.Connection = connection;
+                command.Transaction = transaction;
+                // Handle removed items in DB
+                lock (_removedItems)
                 {
-                    _log.Info("Saving items data ...");
-
-                    // Read configuration related to item durability and the likes
-                    using (var command = connection.CreateCommand())
+                    if (_removedItems.Count > 0)
                     {
-                        command.Connection = connection;
-                        command.Transaction = transaction;
-                        // Handle removed items in DB
-                        lock (_removedItems)
+                        using (var deletecommand = connection.CreateCommand())
                         {
-                            if (_removedItems.Count > 0)
-                            {
-                                using (var deletecommand = connection.CreateCommand())
-                                {
-                                    deletecommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
-                                    deletecommand.Prepare();
-                                    deletecommand.ExecuteNonQuery();
-                                }
-                                deleteCount = _removedItems.Count();
-                                _removedItems.Clear();
-                            }
+                            deletecommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
+                            deletecommand.Prepare();
+                            deletecommand.ExecuteNonQuery();
                         }
-                        // Update items
+                        deleteCount = _removedItems.Count();
+                        _removedItems.Clear();
                     }
+                }
+                // Update items
+            }
 
-                    using (var command = connection.CreateCommand())
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                command.Transaction = transaction;
+
+                lock (_allItems)
+                {
+                    foreach (var entry in _allItems)
                     {
-                        command.Connection = connection;
-                        command.Transaction = transaction;
-
-                        lock (_allItems)
+                        var item = entry.Value;
+                        if (item == null)
+                            continue;
+                        if (item.SlotType == SlotType.None)
                         {
-                            foreach (var entry in _allItems)
-                            {
-                                var item = entry.Value;
-                                if (item == null)
-                                    continue;
-                                if (item.SlotType == SlotType.None)
-                                {
-                                    _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}",item.Id,item.TemplateId));
-                                    continue;
-                                }
-                                var details = new Commons.Network.PacketStream();
-                                item.WriteDetails(details);
-
-                                command.CommandText = "REPLACE INTO items (" +
-                                    "`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
-                                    "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `flags`" +
-                                    ") VALUES ( " +
-                                    "@id, @type, @template_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
-                                    "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags" +
-                                    ")";
-
-                                command.Parameters.AddWithValue("@id", item.Id);
-                                command.Parameters.AddWithValue("@type", item.GetType().ToString());
-                                command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                                command.Parameters.AddWithValue("@slot_type", item.SlotType);
-                                command.Parameters.AddWithValue("@slot", item.Slot);
-                                command.Parameters.AddWithValue("@count", item.Count);
-                                command.Parameters.AddWithValue("@details", details.GetBytes());
-                                command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
-                                command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
-                                command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
-                                command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
-                                command.Parameters.AddWithValue("@created_at", item.CreateTime);
-                                command.Parameters.AddWithValue("@owner", item.OwnerId);
-                                command.Parameters.AddWithValue("@grade", item.Grade);
-                                command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
-                                command.ExecuteNonQuery();
-                                command.Parameters.Clear();
-                                updateCount++;
-                            }
+                            _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}", item.Id, item.TemplateId));
+                            continue;
                         }
-                    }
+                        if (!item.IsDirty)
+                            continue;
+                        var details = new Commons.Network.PacketStream();
+                        item.WriteDetails(details);
 
-                    try
-                    {
-                        transaction.Commit();
-                    }
-                    catch (Exception e)
-                    {
-                        _log.Error(e);
-                        try
-                        {
-                            transaction.Rollback();
-                        }
-                        catch (Exception eRollback)
-                        {
-                            updateCount = 0;
-                            deleteCount = 0;
-                            _log.Error(eRollback);
-                        }
-                    }
+                        command.CommandText = "REPLACE INTO items (" +
+                            "`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
+                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `flags`" +
+                            ") VALUES ( " +
+                            "@id, @type, @template_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
+                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags" +
+                            ")";
 
+                        command.Parameters.AddWithValue("@id", item.Id);
+                        command.Parameters.AddWithValue("@type", item.GetType().ToString());
+                        command.Parameters.AddWithValue("@template_id", item.TemplateId);
+                        command.Parameters.AddWithValue("@slot_type", item.SlotType);
+                        command.Parameters.AddWithValue("@slot", item.Slot);
+                        command.Parameters.AddWithValue("@count", item.Count);
+                        command.Parameters.AddWithValue("@details", details.GetBytes());
+                        command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
+                        command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
+                        command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
+                        command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
+                        command.Parameters.AddWithValue("@created_at", item.CreateTime);
+                        command.Parameters.AddWithValue("@owner", item.OwnerId);
+                        command.Parameters.AddWithValue("@grade", item.Grade);
+                        command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
+                        command.ExecuteNonQuery();
+                        command.Parameters.Clear();
+                        item.IsDirty = false;
+                        updateCount++;
+                    }
                 }
             }
-            _log.Info("Updated {0} and deleted {1} items ...", updateCount, deleteCount);
+
+            return (updateCount, deleteCount);
         }
 
 
@@ -1314,6 +1292,7 @@ namespace AAEmu.Game.Core.Managers
                             ReleaseId(item.Id);
                             _log.Error("Failed to load item with ID {0}, possible duplicate entries!", item.Id);
                         }
+                        item.IsDirty = false;
 
                     }
                 }

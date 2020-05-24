@@ -597,5 +597,10 @@ namespace AAEmu.Game.Core.Managers.World
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
         }
+
+        public List<Character> GetAllCharacters()
+        {
+            return _characters.Values.ToList();
+        }
     }
 }

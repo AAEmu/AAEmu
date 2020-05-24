@@ -278,7 +278,7 @@ namespace AAEmu.Game.Core.Managers
 
             ChatManager.Instance.GetGuildChat(expedition).JoinChannel(owner);
             SendExpeditionInfo(owner);
-            owner.Save();
+            // owner.Save(); // Moved to SaveMananger
 
             foreach(var m in validMembers)
             {
@@ -296,7 +296,7 @@ namespace AAEmu.Game.Core.Managers
                     true);
                 SendExpeditionInfo(invited);
                 expedition.OnCharacterLogin(invited);
-                invited.Save();
+                // invited.Save(); // Moved to SaveMananger
             }
             Save(expedition);
         }
@@ -337,7 +337,7 @@ namespace AAEmu.Game.Core.Managers
             SendExpeditionInfo(invited);
             expedition.OnCharacterLogin(invited);
             Save(expedition);
-            invited.Save();
+            // invited.Save(); // Moved to SaveMananger
         }
 
         public void ChangeExpeditionRolePolicy(GameConnection connection, ExpeditionRolePolicy policy)
@@ -382,7 +382,7 @@ namespace AAEmu.Game.Core.Managers
             character.BroadcastPacket(changedPacket, true);
             expedition.SendPacket(changedPacket);
             Save(expedition);
-            character.Save();
+            // character.Save(); // Moved to SaveMananger
         }
 
         public void Kick(GameConnection connection, uint kickedId)
@@ -409,7 +409,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 kickedChar.Expedition = null;
                 kickedChar?.BroadcastPacket(changedPacket, true);
-                kickedChar.Save();
+                // kickedChar.Save(); // Moved to SaveMananger
             }
             expedition.SendPacket(changedPacket);
 

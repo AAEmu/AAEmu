@@ -200,8 +200,7 @@ namespace AAEmu.Game.Models.Game.Char
         public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
             var info = string.Format("SplitOrMoveItem({0} {1}:{2} => {3} {4}:{5} - {6})", fromItemId, fromType, fromSlot, toItemId, toType, toSlot, count);
-            _log.Info(info);
-            Owner.SendMessage(info); // Debug info
+            _log.Debug(info);
             var fromItem = GetItemById(fromItemId);
             if ((fromItem == null) && (fromItemId != 0))
             {

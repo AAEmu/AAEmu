@@ -207,108 +207,84 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loaded {0} player mails", _allPlayerMails.Count);
         }
 
-        public void Save()
+        public (int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
         {
             var deletedCount = 0;
             var updatedCount = 0;
-            using (var connection = MySQL.CreateConnection())
+            // _log.Info("Saving mail data ...");
+
+            lock (_deletedMailIds)
             {
-                using (var transaction = connection.BeginTransaction())
+                deletedCount = _deletedMailIds.Count;
+                if (_deletedMailIds.Count > 0)
                 {
-                    _log.Info("Saving mail data ...");
-                    
-                    lock (_deletedMailIds)
+                    using (var command = connection.CreateCommand())
                     {
-                        if (deletedCount > 0)
-                        {
-                            deletedCount = _deletedMailIds.Count;
-                            using (var command = connection.CreateCommand())
-                            {
-                                command.Connection = connection;
-                                command.Transaction = transaction;
-                                command.CommandText = "DELETE FROM mails WHERE `id` IN(" + string.Join(",", _deletedMailIds) + ")";
-                                command.Prepare();
-                                command.ExecuteNonQuery();
-                            }
-                            _deletedMailIds.Clear();
-                        }
+                        command.Connection = connection;
+                        command.Transaction = transaction;
+                        command.CommandText = "DELETE FROM mails WHERE `id` IN(" + string.Join(",", _deletedMailIds) + ")";
+                        command.Prepare();
+                        command.ExecuteNonQuery();
                     }
-
-                    foreach (var mtbs in _allPlayerMails)
-                    {
-                        using (var command = connection.CreateCommand())
-                        {
-                            command.Connection = connection;
-                            command.Transaction = transaction;
-                            command.CommandText = "REPLACE INTO mails(" +
-                                "`id`,`type`,`status`,`title`,`text`,`sender_id`,`sender_name`," +
-                                "`attachment_count`,`receiver_id`,`receiver_name`,`open_date`,`send_date`,`received_date`," +
-                                "`returned`,`extra`,`money_amount_1`,`money_amount_2`,`money_amount_3`," +
-                                "`attachment0`,`attachment1`,`attachment2`,`attachment3`,`attachment4`,`attachment5`," +
-                                "`attachment6`,`attachment7`,`attachment8`,`attachment9`" +
-                                ") VALUES (" +
-                                "@id, @type, @status, @title, @text, @senderId, @senderName, " +
-                                "@attachment_count, @receiverId, @receiverName, @openDate, @sendDate, @receivedDate, " +
-                                "@returned, @extra, @money1, @money2, @money3," +
-                                "@attachment0, @attachment1, @attachment2, @attachment3, @attachment4, @attachment5, " +
-                                "@attachment6, @attachment7, @attachment8, @attachment9" +
-                                ")";
-
-                            command.Prepare();
-                            command.Parameters.AddWithValue("@id", mtbs.Value.Id);
-                            command.Parameters.AddWithValue("@openDate", mtbs.Value.Header.OpenDate);
-                            command.Parameters.AddWithValue("@type", mtbs.Value.Header.Type);
-                            command.Parameters.AddWithValue("@status", mtbs.Value.Header.Status);
-                            command.Parameters.AddWithValue("@title", mtbs.Value.Header.Title);
-                            command.Parameters.AddWithValue("@text", mtbs.Value.Body.Text);
-                            command.Parameters.AddWithValue("@senderId", mtbs.Value.Header.SenderId);
-                            command.Parameters.AddWithValue("@senderName", mtbs.Value.Header.SenderName);
-                            command.Parameters.AddWithValue("@attachment_count", mtbs.Value.Header.Attachments);
-                            command.Parameters.AddWithValue("@receiverId", mtbs.Value.Header.ReceiverId);
-                            command.Parameters.AddWithValue("@receiverName", mtbs.Value.Header.ReceiverName);
-                            command.Parameters.AddWithValue("@sendDate", mtbs.Value.Body.SendDate);
-                            command.Parameters.AddWithValue("@receivedDate", mtbs.Value.Body.RecvDate);
-                            command.Parameters.AddWithValue("@returned", mtbs.Value.Header.Returned);
-                            command.Parameters.AddWithValue("@extra", mtbs.Value.Header.Extra);
-                            command.Parameters.AddWithValue("@money1", mtbs.Value.Body.MoneyAmount1);
-                            command.Parameters.AddWithValue("@money2", mtbs.Value.Body.MoneyAmount2);
-                            command.Parameters.AddWithValue("@money3", mtbs.Value.Body.MoneyAmount3);
-
-                            for (var i = 0; i < MailBody.MaxMailAttachments; i++)
-                            {
-                                if (i >= mtbs.Value.Body.Attachments.Count)
-                                    command.Parameters.AddWithValue("@attachment" + i.ToString(), 0);
-                                else
-                                    command.Parameters.AddWithValue("@attachment" + i.ToString(), mtbs.Value.Body.Attachments[i].Id);
-                            }
-
-                            command.ExecuteNonQuery();
-                        }
-
-                    }
-                    updatedCount = _allPlayerMails.Count;
-
-                    try
-                    {
-                        transaction.Commit();
-                    }
-                    catch (Exception e)
-                    {
-                        _log.Error(e);
-                        try
-                        {
-                            transaction.Rollback();
-                        }
-                        catch (Exception eRollback)
-                        {
-                            deletedCount = 0;
-                            updatedCount = 0;
-                            _log.Error(eRollback);
-                        }
-                    }
-                    _log.Info("Done updating {0} and removing {1} mails ...", updatedCount, deletedCount);
+                    _deletedMailIds.Clear();
                 }
             }
+
+            foreach (var mtbs in _allPlayerMails)
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    command.CommandText = "REPLACE INTO mails(" +
+                        "`id`,`type`,`status`,`title`,`text`,`sender_id`,`sender_name`," +
+                        "`attachment_count`,`receiver_id`,`receiver_name`,`open_date`,`send_date`,`received_date`," +
+                        "`returned`,`extra`,`money_amount_1`,`money_amount_2`,`money_amount_3`," +
+                        "`attachment0`,`attachment1`,`attachment2`,`attachment3`,`attachment4`,`attachment5`," +
+                        "`attachment6`,`attachment7`,`attachment8`,`attachment9`" +
+                        ") VALUES (" +
+                        "@id, @type, @status, @title, @text, @senderId, @senderName, " +
+                        "@attachment_count, @receiverId, @receiverName, @openDate, @sendDate, @receivedDate, " +
+                        "@returned, @extra, @money1, @money2, @money3," +
+                        "@attachment0, @attachment1, @attachment2, @attachment3, @attachment4, @attachment5, " +
+                        "@attachment6, @attachment7, @attachment8, @attachment9" +
+                        ")";
+
+                    command.Prepare();
+                    command.Parameters.AddWithValue("@id", mtbs.Value.Id);
+                    command.Parameters.AddWithValue("@openDate", mtbs.Value.Header.OpenDate);
+                    command.Parameters.AddWithValue("@type", mtbs.Value.Header.Type);
+                    command.Parameters.AddWithValue("@status", mtbs.Value.Header.Status);
+                    command.Parameters.AddWithValue("@title", mtbs.Value.Header.Title);
+                    command.Parameters.AddWithValue("@text", mtbs.Value.Body.Text);
+                    command.Parameters.AddWithValue("@senderId", mtbs.Value.Header.SenderId);
+                    command.Parameters.AddWithValue("@senderName", mtbs.Value.Header.SenderName);
+                    command.Parameters.AddWithValue("@attachment_count", mtbs.Value.Header.Attachments);
+                    command.Parameters.AddWithValue("@receiverId", mtbs.Value.Header.ReceiverId);
+                    command.Parameters.AddWithValue("@receiverName", mtbs.Value.Header.ReceiverName);
+                    command.Parameters.AddWithValue("@sendDate", mtbs.Value.Body.SendDate);
+                    command.Parameters.AddWithValue("@receivedDate", mtbs.Value.Body.RecvDate);
+                    command.Parameters.AddWithValue("@returned", mtbs.Value.Header.Returned);
+                    command.Parameters.AddWithValue("@extra", mtbs.Value.Header.Extra);
+                    command.Parameters.AddWithValue("@money1", mtbs.Value.Body.MoneyAmount1);
+                    command.Parameters.AddWithValue("@money2", mtbs.Value.Body.MoneyAmount2);
+                    command.Parameters.AddWithValue("@money3", mtbs.Value.Body.MoneyAmount3);
+
+                    for (var i = 0; i < MailBody.MaxMailAttachments; i++)
+                    {
+                        if (i >= mtbs.Value.Body.Attachments.Count)
+                            command.Parameters.AddWithValue("@attachment" + i.ToString(), 0);
+                        else
+                            command.Parameters.AddWithValue("@attachment" + i.ToString(), mtbs.Value.Body.Attachments[i].Id);
+                    }
+
+                    command.ExecuteNonQuery();
+                    updatedCount++;
+                }
+
+            }
+
+            return (updatedCount, deletedCount);
         }
 
         #endregion
