@@ -89,6 +89,7 @@ namespace AAEmu.Game.Core.Managers
                     var itemList = new Item[10].ToList();
                     itemList[0] = newItem;
                     MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Failed Listing", "See attached.", 1, new int[3], 0, itemList);
+                    _auctionItems.Remove(itemToRemove);
                 }
             }
         }
