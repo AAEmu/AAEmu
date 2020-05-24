@@ -41,6 +41,15 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var stv in SlotTypes)
             {
                 SlotType st = (SlotType)stv;
+                // Take Equipment Container from Parent Unit's Equipment
+                if (st == SlotType.Equipment)
+                {
+                    Equipment = Owner.Equipment;
+                    Equipment.Owner = Owner;
+                    Equipment.PartOfPlayerInventory = true;
+                    _itemContainers.Add(st,Equipment);
+                    continue;
+                }
                 var newContainer = new ItemContainer(owner, st, true);
                 _itemContainers.Add(st, newContainer);
                 switch (st)
