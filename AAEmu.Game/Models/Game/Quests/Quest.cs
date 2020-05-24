@@ -291,7 +291,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
                         }
 
-                        Owner.Inventory.Bag.ConsumeItem(ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
+                        Owner.Inventory.ConsumeItem(null,ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
                         //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                     }
                     if (act.DetailType == "QuestActObjItemGather")
@@ -299,7 +299,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         var template = act.GetTemplate<QuestActObjItemGather>();
                         if (template.DestroyWhenDrop)
                         {
-                            Owner.Inventory.Bag.ConsumeItem(ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
+                            Owner.Inventory.ConsumeItem(null,ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
                             //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                         }
                     }

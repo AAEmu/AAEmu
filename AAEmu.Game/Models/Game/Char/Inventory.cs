@@ -140,6 +140,35 @@ namespace AAEmu.Game.Models.Game.Char
             return res;
         }
 
+        /// <summary>
+        /// Consumes a item in specified container list, if the list is null, Bag -> Warehouse -> Equipment order is used. This function does not verify the total item count and will consume as much as possible
+        /// </summary>
+        /// <param name="containersToCheck"></param>
+        /// <param name="taskType"></param>
+        /// <param name="templateId"></param>
+        /// <param name="amountToConsume"></param>
+        /// <param name="preferredItem"></param>
+        /// <returns></returns>
+        public int ConsumeItem(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
+        {
+            SlotType[] containerList;
+            if (containersToCheck != null)
+                containerList = containersToCheck;
+            else
+                containerList = new SlotType[3] { SlotType.Inventory, SlotType.Bank, SlotType.Equipment };
+            var res = 0;
+            foreach (var cli in containerList)
+            {
+                if (_itemContainers.TryGetValue(cli, out var c))
+                {
+                    var used = c.ConsumeItem(taskType, templateId, amountToConsume, preferredItem);
+                    res += used;
+                    amountToConsume -= used;
+                }
+            }
+            return res;
+        }
+
         public bool CheckItems(SlotType slotType, uint templateId, int count)
         {
             var totalCount = 0;
@@ -548,6 +577,32 @@ namespace AAEmu.Game.Models.Game.Char
                     isBank ? (byte)Owner.NumBankSlots : Owner.NumInventorySlots
                 )
             );
+        }
+
+        /// <summary>
+        /// Triggers whenever a new item is added to the player
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="count"></param>
+        /// <param name="onlyUpdatedCount"></param>
+        public void OnAcquiredItem(Item item,int count,bool onlyUpdatedCount = false)
+        {
+            // Quests
+            if ((item?.Template.LootQuestId > 0) && (count != 0))
+                Owner?.Quests?.OnItemGather(item, count);
+        }
+
+        /// <summary>
+        /// Triggers whenever a item (count) is removed
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="count"></param>
+        /// <param name="onlyUpdatedCount"></param>
+        public void OnConsumedItem(Item item, int count, bool onlyUpdatedCount = false)
+        {
+            // Quests
+            if ((item?.Template.LootQuestId > 0) && (count != 0))
+                Owner?.Quests?.OnItemGather(item, -count);
         }
 
     }

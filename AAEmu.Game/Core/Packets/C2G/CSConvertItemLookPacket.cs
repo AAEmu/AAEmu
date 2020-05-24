@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 return;
 
             // Use powder
-            if (!character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents,template.ItemLookConvert.RequiredItemId,template.ItemLookConvert.RequiredItemCount,null))
+            if (character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, template.ItemLookConvert.RequiredItemId, template.ItemLookConvert.RequiredItemCount, null) <= 0)
             {
                 // Not enough powder
                 return;

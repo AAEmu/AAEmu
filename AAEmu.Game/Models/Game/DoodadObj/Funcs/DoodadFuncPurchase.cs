@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 return;
             }
 
-            if (!character.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadInteraction, CoinItemId, CoinCount, null))
+            if (character.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadInteraction, CoinItemId, CoinCount, null) <= 0)
             {
                 character.SendErrorMessage(Error.ErrorMessageType.NotEnoughItem);
                 return;

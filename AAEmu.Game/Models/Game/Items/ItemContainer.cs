@@ -7,9 +7,11 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.S2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Items
@@ -209,8 +211,23 @@ namespace AAEmu.Game.Models.Game.Items
             var itemTasks = new List<ItemTask>();
             var sourceItemTasks = new List<ItemTask>();
 
-            if ((item.SlotType == SlotType.Inventory) && (item.Template.LootQuestId > 0) && (sourceContainer?.Owner != Owner))
-                Owner?.Quests?.OnItemGather(item, item.Count);
+            // Only trigger when moving between container with different owners with the exception of this being move to Mail container
+            if ((sourceContainer != this) && (item.OwnerId != Owner?.Id) && (this.ContainerType != SlotType.Mail))
+            {
+                Owner?.Inventory.OnAcquiredItem(item, item.Count);
+            }
+            else
+            // Got attachment from Mail
+            if ((item.SlotType == SlotType.Mail) && (this.ContainerType != SlotType.Mail))
+            {
+                Owner?.Inventory.OnAcquiredItem(item, item.Count);
+            }
+            else
+            // Adding mail attachment
+            if ((item.SlotType != SlotType.Mail) && (this.ContainerType == SlotType.Mail))
+            {
+                Owner?.Inventory.OnConsumedItem(item, item.Count);
+            }
 
             item.SlotType = ContainerType;
             item.Slot = newSlot;
@@ -257,6 +274,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <returns></returns>
         public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
         {
+            Owner?.Inventory.OnConsumedItem(item, item.Count);
             bool res = item._holdingContainer.Items.Remove(item);
             if (res && task != ItemTaskType.Invalid)
                 item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, new List<ItemTask> { new ItemRemoveSlot(item) }, new List<ulong>()));
@@ -276,17 +294,18 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="amountToConsume">Amount of item units to consume</param>
         /// <param name="preferredItem">If not null, use this Item as primairy source for consume</param>
         /// <returns>True on success, False if there aren't enough item units or otherwise fails to update the container</returns>
-        public bool ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume,Item preferredItem)
+        public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume,Item preferredItem)
         {
             if (!GetAllItemsByTemplate(templateId, out var foundItems, out var count))
-                return false; // Nothing found
+                return 0; // Nothing found
             if (amountToConsume > count)
-                return false; // Not enough total
+                return 0; // Not enough total
 
             if ((preferredItem != null) && (templateId != preferredItem.TemplateId))
-                return false; // Preferred item template did not match the requested template
+                return 0; // Preferred item template did not match the requested template
             // TODO: implement use of preferredItem (required for using specific items when you have more than one stack)
 
+            var totalConsumed = 0;
             var itemTasks = new List<ItemTask>();
             foreach (var i in foundItems)
             {
@@ -296,12 +315,14 @@ namespace AAEmu.Game.Models.Game.Items
 
                 if (i.Count > 0)
                 {
+                    Owner?.Inventory.OnConsumedItem(i, toRemove);
                     itemTasks.Add(new ItemCountUpdate(i, -toRemove));
                 }
                 else
                 {
                     RemoveItem(taskType, i, true); // Normally, this can never fail
                 }
+                totalConsumed += toRemove;
                 if (amountToConsume <= 0)
                     break; // We are done with the list, leave the rest as is
             }
@@ -309,7 +330,7 @@ namespace AAEmu.Game.Models.Game.Items
             if (taskType != ItemTaskType.Invalid)
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
             UpdateFreeSlotCount();
-            return true;
+            return totalConsumed;
         }
 
         /// <summary>
@@ -359,6 +380,7 @@ namespace AAEmu.Game.Models.Game.Items
             if (gradeToAdd < 0)
                 gradeToAdd = 0;
 
+
             // First try to add to existing item counts
             var itemTasks = new List<ItemTask>();
             foreach (var i in currentItems)
@@ -371,6 +393,7 @@ namespace AAEmu.Game.Models.Game.Items
                     amountToAdd -= addAmount;
                     itemTasks.Add(new ItemCountUpdate(i, addAmount));
                     updatedItemsList.Add(i);
+                    Owner?.Inventory.OnAcquiredItem(i, addAmount, true);
                 }
                 if (amountToAdd < 0)
                     break;

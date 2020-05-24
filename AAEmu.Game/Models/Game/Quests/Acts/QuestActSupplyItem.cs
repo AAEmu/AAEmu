@@ -31,7 +31,10 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                 var template = ItemManager.Instance.GetTemplate(ItemId);
                 if (template is BackpackTemplate backpackTemplate)
                 {
-                    return character.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+                    if (character.Inventory.TakeoffBackpack(ItemTaskType.QuestSupplyItems, true))
+                        return character.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+                    else
+                        return false;
                 }
                 else
                 {
