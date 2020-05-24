@@ -57,19 +57,15 @@ namespace AAEmu.Game.Core.Managers
             {
                 var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(itemToRemove.ItemID);
                 var newItem = ItemManager.Instance.Create(itemTemplate.Id, (int)itemToRemove.StackSize, itemToRemove.Grade);
-                var itemList = new List<Item>();
-                itemList.Add(newItem);
+                var itemList = new Item[10].ToList();
+                itemList[0] = newItem;
 
-                for (int i = 0; i < 9; i++)
-                {
-                    itemList.Add(null);
-                }
-
-                var emptyItemList = new Item[10].ToList();
-                var emptyMoneyArray = new int[3];
                 var moneyAfterFee = soldAmount * .9;
                 var moneyToSend = new int[3];
                 moneyToSend[0] = (int)moneyAfterFee;
+
+                var emptyItemList = new Item[10].ToList();
+                var emptyMoneyArray = new int[3];
 
                 MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Succesfull Listing", $"{GetLocalizedItemNameById(itemToRemove.ItemID)} sold!", 1, moneyToSend, 0, emptyItemList); //Send money to seller
                 MailManager.Instance.SendMail(0, buyer, "Auction House", "Succesfull Purchase", "See attached.", 1, emptyMoneyArray, 1, itemList); //Send items to buyer
@@ -79,28 +75,20 @@ namespace AAEmu.Game.Core.Managers
 
         public void RemoveAuctionItemFail(AuctionItem itemToRemove)
         {
-            if(_auctionItems.Contains(itemToRemove))
+            if (_auctionItems.Contains(itemToRemove))
             {
-                var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(itemToRemove.ItemID);
-                var newItem = ItemManager.Instance.Create(itemTemplate.Id, (int)itemToRemove.StackSize, itemToRemove.Grade);
-                var itemList = new List<Item>();
-                itemList.Add(newItem);
-
-                for (int i = 0; i < 9; i++)
-                {
-                    itemList.Add(null);
-                }
-                var moneyArray = new int[3];
-
-                if (itemToRemove.BidderName == "")//FailedListing
-                {
-
-                    MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Failed Listing", "See attached.", 1, moneyArray, 0, itemList);
-                    _auctionItems.Remove(itemToRemove);
-                }
-                else // Player won the bid
+                if (itemToRemove.BidderName != "") //Player won the bid. 
                 {
                     RemoveAuctionItemSold(itemToRemove, itemToRemove.BidderName, itemToRemove.BidMoney);
+                    return;
+                }
+                else //Item did not sell by end of the timer. 
+                {
+                    var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(itemToRemove.ItemID);
+                    var newItem = ItemManager.Instance.Create(itemTemplate.Id, (int)itemToRemove.StackSize, itemToRemove.Grade);
+                    var itemList = new Item[10].ToList();
+                    itemList[0] = newItem;
+                    MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Failed Listing", "See attached.", 1, new int[3], 0, itemList);
                 }
             }
         }
@@ -133,8 +121,7 @@ namespace AAEmu.Game.Core.Managers
             }
             return null;
         }
-
-        public void BidOnAuctionItem(Character player, ulong auctionId, uint bidAmount)
+        public void BidOnAuctionItem(Character player, ulong auctionId, string biddersName, uint bidAmount)
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
             if(auctionItem != null)
@@ -142,16 +129,20 @@ namespace AAEmu.Game.Core.Managers
                 if (bidAmount >= auctionItem.BidMoney) //Buy now
                     RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
 
-                else if(bidAmount > auctionItem.BidMoney)
+                else if(bidAmount > auctionItem.BidMoney) //Bid
                 {
-                    if(auctionItem.BidderName != player.Name)
-                    {
-                        auctionItem.BidderId = player.Id;
-                        auctionItem.BidderName = player.Name;
-                        auctionItem.BidMoney = bidAmount;
-                        player.ChangeMoney(SlotType.Inventory, -(int)bidAmount);
-                        player.SendPacket(new SCAuctionBidPacket(auctionItem));
-                    }
+                    //Send mail to old bidder. 
+                    var moneyArray = new int[3];
+                    moneyArray[0] = (int)auctionItem.BidMoney;
+                    MailManager.Instance.SendMail(0, auctionItem.BidderName, "Auction House", "OutBid Notice", "", 1, moneyArray, 0, new Item[10].ToList());
+
+                    //Set info to new bidders info
+                    auctionItem.BidderName = biddersName;
+                    auctionItem.BidMoney = bidAmount;
+
+                    var biddingPlayer = WorldManager.Instance.GetCharacter(biddersName);
+                    biddingPlayer.ChangeMoney(SlotType.Inventory, -(int)bidAmount);
+                    biddingPlayer.SendPacket(new SCAuctionBidPacket(auctionItem));
                 }
             }
         }
@@ -259,6 +250,16 @@ namespace AAEmu.Game.Core.Managers
             return LocalizationManager.Instance.Get("items", "name", id, ItemManager.Instance.GetTemplate(id).Name ?? "");
         }
 
+        public ulong GetNextId()
+        {
+            ulong nextId = 0;
+            foreach (var item in _auctionItems)
+            {
+                if (nextId < item.ID)
+                    nextId = item.ID;
+            }
+            return nextId + 1;
+        }
         public void UpdateAuctionHouse()
         {
             _log.Debug("Updating Auction House!");
@@ -273,17 +274,6 @@ namespace AAEmu.Game.Core.Managers
                     _auctionItems[i].TimeLeft -= 5;
                 }
             }
-        }
-
-        public ulong GetNextID()
-        {
-            ulong nextId = 0;
-            foreach (var item in _auctionItems)
-            {
-                if (nextId < item.ID)
-                    nextId = item.ID;
-            }
-            return nextId + 1;
         }
 
         public AuctionItem CreateAuctionItem(Character player, Item itemToList, uint startPrice, uint buyoutPrice, byte duration)
@@ -315,7 +305,7 @@ namespace AAEmu.Game.Core.Managers
 
             var newAuctionItem = new AuctionItem
             {
-                ID = GetNextID(),
+                ID = GetNextId(),
                 Duration = 5,
                 ItemID = newItem.Template.Id,
                 ItemName = GetLocalizedItemNameById(newItem.Template.Id),
