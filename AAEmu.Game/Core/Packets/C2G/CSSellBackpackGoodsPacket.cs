@@ -15,9 +15,9 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var objId = stream.ReadBc();
 
-            var price = SpecialtyManager.Instance.GetBasePriceForSpecialty(Connection.ActiveChar, objId);
+            SpecialtyManager.Instance.SellSpecialty(Connection.ActiveChar, objId);
             
-            _log.Warn("CSSellBackpackGoods, ObjId: {0}. BasePrice: {1}", objId, price);
+            _log.Warn("CSSellBackpackGoods, ObjId: {0}. BasePrice: {1}", objId);
         }
     }
 }

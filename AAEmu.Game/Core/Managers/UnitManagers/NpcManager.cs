@@ -180,6 +180,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.Repairman = reader.GetBoolean("repairman", true);
                             template.ActivateAiAlways = reader.GetBoolean("activate_ai_always", true);
                             template.Specialty = reader.GetBoolean("specialty", true);
+                            template.SpecialtyCoinId = reader.GetUInt32("specialty_coin_id", 0);
                             template.UseRangeMod = reader.GetBoolean("use_range_mod", true);
                             template.NpcPostureSetId = reader.GetInt32("npc_posture_set_id");
                             template.MateEquipSlotPackId = reader.GetInt32("mate_equip_slot_pack_id", 0);

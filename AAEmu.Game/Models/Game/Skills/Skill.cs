@@ -465,7 +465,7 @@ namespace AAEmu.Game.Models.Game.Skills
             else
             {
                 var totalDelay = 0;
-                if (Template.MatchAnimation || Template.UseAnimTime)
+                if ((Template.MatchAnimation || Template.UseAnimTime) && Template.FireAnim != null)
                 {
                     if (Template.MatchAnimation) totalDelay += Template.FireAnim.CombatSyncTime;
                     if (Template.UseAnimTime) totalDelay += Template.FireAnim.Duration;
