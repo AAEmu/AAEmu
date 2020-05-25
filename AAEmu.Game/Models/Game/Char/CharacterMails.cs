@@ -110,7 +110,7 @@ namespace AAEmu.Game.Models.Game.Char
                     attachmentCountForFee++;
             }
 
-            if (mailTemplate.Body.MoneyAmount1 > 0)
+            if (money0 > 0)
                 attachmentCountForFee++;
 
             if (mailTemplate.Header.Type == 1) // Normal
