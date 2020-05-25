@@ -22,7 +22,7 @@ namespace AAEmu.Game.Scripts.Commands
             [JsonProperty("names")]
             public List<string> kitnames { get; set; }
             [JsonProperty("id")]
-            public uint itemID { get; set; }
+            public uint itemId { get; set; }
             [JsonProperty("grade")]
             public byte itemGrade { get; set; }
             [JsonProperty("count")] 
@@ -31,7 +31,7 @@ namespace AAEmu.Game.Scripts.Commands
             public GMItemKitItem()
             {
                 kitnames = new List<string>();
-                itemID = 0;
+                itemId = 0;
                 itemGrade = 0;
                 itemCount = 1;
             }
@@ -40,7 +40,7 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 this.kitnames.Clear();
                 this.kitnames.Add(kit.ToLower());
-                this.itemID = id;
+                this.itemId = id;
                 this.itemGrade = grade;
                 this.itemCount = count;
             }
@@ -116,32 +116,24 @@ namespace AAEmu.Game.Scripts.Commands
 
                 //_log.Debug("kit.itemID: " + kit.itemID.ToString());
 
-                var item = ItemManager.Instance.Create(kit.itemID, kit.itemCount, kit.itemGrade, true);
-                if (item == null)
+                var itemTemplate = ItemManager.Instance.GetTemplate(kit.itemId);
+                if (itemTemplate == null)
                 {
-                    character.SendMessage("|cFFFF0000Item could not be created, ID: {0} ! |r", kit.itemID);
-                    _log.Error("itemId not found: " + kit.itemID.ToString());
+                    character.SendMessage("|cFFFF0000Item could not be created, ID: {0} ! |r", kit.itemId);
+                    _log.Error("itemId not found: " + kit.itemId.ToString());
                     continue;
                 }
                 else
                 {
-                    var res = targetPlayer.Inventory.AddItem(item);
-                    if (res == null)
+                    if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, kit.itemId, kit.itemCount, kit.itemGrade))
                     {
-                        ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                        character.SendMessage("|cFFFF0000Item could not be created!|r");
                         continue;
                     }
 
-                    var tasks = new List<ItemTask>();
-                    if (res.Id != item.Id)
-                        tasks.Add(new ItemCountUpdate(res, item.Count));
-                    else
-                        tasks.Add(new ItemAdd(item));
-
-                    targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem, tasks, new List<ulong>()));
                     if (character.Id != targetPlayer.Id)
                     {
-                        character.SendMessage("[Items] added item {0} to {1}'s inventory", kit.itemID, targetPlayer.Name);
+                        character.SendMessage("[Items] added item {0} to {1}'s inventory", kit.itemId, targetPlayer.Name);
                         targetPlayer.SendMessage("[GM] {0} has added a item to your inventory", character.Name);
                     }
                     itemsAdded++;

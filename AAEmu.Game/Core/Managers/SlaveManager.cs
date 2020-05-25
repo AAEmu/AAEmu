@@ -99,7 +99,7 @@ namespace AAEmu.Game.Core.Managers
                 return;
             }
 
-            var item = owner.Inventory.GetItem(skillData.ItemId);
+            var item = owner.Inventory.GetItemById(skillData.ItemId);
             if (item == null) return;
 
             var itemTemplate = (SummonSlaveTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
@@ -147,7 +147,7 @@ namespace AAEmu.Game.Core.Managers
                     OwnerId = owner.Id,
                     PlantTime = DateTime.Now,
                     OwnerType = DoodadOwnerType.Slave,
-                    DbId = template.Id,
+                    DbHouseId = template.Id,
                     Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
                     Data = (byte)doodadBinding.AttachPointId
                 };

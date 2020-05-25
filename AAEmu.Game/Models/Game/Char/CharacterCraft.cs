@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -28,20 +28,25 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var craftMaterial in craft.CraftMaterials)
             {
+                if (Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount)
+                    hasMaterials = false;
+                /*
                 var materialItem = Owner.Inventory.GetItemByTemplateId(craftMaterial.ItemId);
                 if (materialItem == null || materialItem.Count < craftMaterial.Amount)
                 {
                     hasMaterials = false;
                 }
+                */
             }
 
             if (_craft.IsPack)
             {
-                var item = Owner.Inventory.GetItem(SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+                var item = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
                 var backpackTemplate = (BackpackTemplate)item?.Template;
                 if (backpackTemplate != null && backpackTemplate.BackpackType != BackpackType.Glider)
                 {
-                    // TODO mb check to drop glider to inventory
+                    // mb check to drop glider to inventory
+                    //if (!Owner.Inventory.TakeoffBackpack())
                     CancelCraft();
                     return;
                 }
@@ -70,31 +75,41 @@ namespace AAEmu.Game.Models.Game.Char
             if (_craft == null)
                 return;
 
-            if (Owner.Inventory.CountFreeSlots(SlotType.Inventory) < _craft.CraftProducts.Count)
+            if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < _craft.CraftProducts.Count)
                 return;
 
             foreach (var material in _craft.CraftMaterials)
             {
-                var materialItem = Owner.Inventory.GetItemByTemplateId(material.ItemId);
-                InventoryHelper.RemoveItemAndUpdateClient(Owner, materialItem, material.Amount);
+                Owner.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
             }
 
             foreach (var product in _craft.CraftProducts)
             {
-                if (!_craft.IsPack)
+                // Check if we're crafting a tradepack, if so, try to remove currently equipped backpack slot
+                bool isTradePack = false;
+                var productResultItemTemplate = ItemManager.Instance.GetTemplate(product.ItemId);
+                if ((productResultItemTemplate != null) && (productResultItemTemplate is BackpackTemplate bt))
                 {
-                    var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
-                    InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
+                    if (bt.BackpackType == BackpackType.TradePack)
+                        isTradePack = true;
+                }
+                if (isTradePack == false)
+                {
+                    Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
                 }
                 else
                 {
                     // Remove player backpack
-                    Owner.Inventory.TakeoffBackpack();
-                    // Put tradepack in their backpack slot
-                    var resultItem = ItemManager.Instance.Create(product.ItemId, product.Amount, 0);
-                    InventoryHelper.AddItemAndUpdateClient(Owner, resultItem);
-                    Owner.Inventory.Move(resultItem.Id, resultItem.SlotType, (byte)resultItem.Slot, 0,
-                        SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
+                    if (Owner.Inventory.TakeoffBackpack(Items.Actions.ItemTaskType.CraftPickupProduct,true))
+                    {
+                        // Put tradepack in their backpack slot
+                        Owner.Inventory.Equipment.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
+                    }
+                    else
+                    {
+                        CancelCraft();
+                        return;
+                    }
                 }
             }
 

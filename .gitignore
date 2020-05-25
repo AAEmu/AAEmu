@@ -10,6 +10,8 @@ AAEmu.Game/bin/
 AAEmu.Stream/bin/
 AAEmu.Login/bin/
 AAEmu.Login/obj/
+AAEmu.Tests/bin/
+AAEmu.Tests/obj/
 AAEmu.Game/Data/compact.sqlite3
 AAEmu.Game/Data/Worlds/*/hmap.dat
 AAEmu.Game/Config.json
@@ -17,12 +19,5 @@ AAEmu.Login/Config.json
 publish/
 *.old
 *.bak
-/AAEmu.Commons/Properties/PublishProfiles
-/AAEmu.Commons/AAEmu.Commons.xml
-/AAEmu.Commons/AAEmu.Commons.csproj.user
-/AAEmu.Game/Documentation
-/AAEmu.Game/Properties/PublishProfiles
-/AAEmu.Game/AAEmu.Game.xml
-/AAEmu.Game/AAEmu.Game.csproj.user
-/AAEmu.Game/Data/Config.json
-/AAEmu.Login/AAEmu.Login.xml
+*.packet
+

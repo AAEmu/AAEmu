@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write(_item.TemplateId);
             stream.Write(_item.Id);
             stream.Write(_item.Grade);
-            stream.Write((byte)0); // bounded
+            stream.Write((byte)_item.ItemFlags); // bounded
             stream.Write(_item.Count); // stack
             var details = new PacketStream();
             details.Write(_item.DetailType);

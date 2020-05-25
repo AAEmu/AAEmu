@@ -2,10 +2,15 @@
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 
@@ -32,6 +37,8 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int RangedDpsInc { get; set; }
         public virtual int MDps { get; set; }
         public virtual int MDpsInc { get; set; }
+        public virtual int HDps { get; set; }
+        public virtual int HDpsInc { get; set; }
         public virtual int Armor { get; set; }
         public virtual int MagicResistance { get; set; }
         public BaseUnit CurrentTarget { get; set; }
@@ -46,12 +53,14 @@ namespace AAEmu.Game.Models.Game.Units
         public SkillTask AutoAttackTask { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public Expedition Expedition { get; set; }
-
         public bool IsInBattle { get; set; }
+        public bool IsInPatrol { get; set; } // so as not to run the route a second time
         public int SummarizeDamage { get; set; }
         public bool IsAutoAttack = false;
         public uint SkillId;
         public ushort TlId { get; set; }
+        public ItemContainer Equipment { get; set; }
+        public GameConnection Connection { get; set; }
 
         /// <summary>
         /// Unit巡逻
@@ -60,11 +69,14 @@ namespace AAEmu.Game.Models.Game.Units
         /// Indicates the route and speed of the Unit patrol, whether it is performing patrols, etc.
         /// </summary>
         public Patrol Patrol { get; set; }
+        public Simulation Simulation { get; set; }
 
         public Unit()
         {
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
+            Equipment = new ItemContainer(null, SlotType.Equipment, true);
+            Equipment.ContainerSize = 28;
         }
 
         public virtual void ReduceCurrentHp(Unit attacker, int value)
@@ -82,6 +94,18 @@ namespace AAEmu.Game.Models.Game.Units
                 //StartRegen();
             }
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
+        }
+        
+        public virtual void ReduceCurrentMp(Unit unit, int value)
+        {
+            if (Hp == 0)
+                return;
+            Mp = Math.Max(Mp - value, 0);
+            if (Mp == 0)
+                StopRegen();
+            else
+                StartRegen();
+            BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
         public virtual void DoDie(Unit killer)
@@ -208,6 +232,15 @@ namespace AAEmu.Game.Models.Game.Units
                 }
             }
             return result;
+        }
+        public void SendPacket(GamePacket packet)
+        {
+            Connection?.SendPacket(packet);
+        }
+
+        public void SendErrorMessage(ErrorMessageType type)
+        {
+            SendPacket(new SCErrorMsgPacket(type, 0, true));
         }
     }
 }

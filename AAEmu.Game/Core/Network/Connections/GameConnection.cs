@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Network.Connections
 {
@@ -50,6 +51,7 @@ namespace AAEmu.Game.Core.Network.Connections
             Characters = new Dictionary<uint, Character>();
             Houses = new Dictionary<uint, House>();
             Payment = new AccountPayment(this);
+            // AddAttribute("gmFlag", true);
         }
 
         public void SendPacket(GamePacket packet)
@@ -78,7 +80,7 @@ namespace AAEmu.Game.Core.Network.Connections
             foreach (var subscriber in Subscribers)
                 subscriber.Dispose();
 
-            Save();
+            SaveAndRemoveFromWorld();
         }
 
         public void Shutdown()
@@ -228,16 +230,22 @@ namespace AAEmu.Game.Core.Network.Connections
                 SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
             }
         }
-
-        public void Save()
+        /// <summary>
+        /// Called when closing a connection
+        /// </summary>
+        public void SaveAndRemoveFromWorld()
         {
+            // TODO: this needs a rewrite
             if (ActiveChar == null)
                 return;
 
             ActiveChar.Delete();
-            ObjectIdManager.Instance.ReleaseId(ActiveChar.ObjId);
+            // Removed ReleaseId here to try and fix party/raid disconnect and reconnect issues. Replaced with saving the data
+            //ObjectIdManager.Instance.ReleaseId(ActiveChar.ObjId);
 
-            ActiveChar.Save();
+            // Do a manual save here as it's no longer in _characters at this point
+            // TODO: might need a better option like saving this transaction for later to be used by the SaveMananger
+            ActiveChar.SaveDirectlyToDatabase();
         }
     }
 }

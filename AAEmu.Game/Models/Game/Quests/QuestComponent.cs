@@ -1,9 +1,9 @@
-namespace AAEmu.Game.Models.Game.Quests
+﻿namespace AAEmu.Game.Models.Game.Quests
 {
     public class QuestComponent
     {
         public uint Id { get; set; }
-        public byte KindId { get; set; }
+        public QuestComponentKind KindId { get; set; }
         public uint NextComponent { get; set; }
         public uint NpcAiId { get; set; }
         public uint NpcId { get; set; }

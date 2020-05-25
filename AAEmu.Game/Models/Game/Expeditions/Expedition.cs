@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -16,15 +17,21 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public List<ExpeditionMember> Members { get; set; }
         public List<ExpeditionRolePolicy> Policies { get; set; }
 
+        public bool isDisbanded { get; set; }
+
+
         public Expedition()
         {
             _removedMembers = new List<uint>();
             Members = new List<ExpeditionMember>();
             Policies = new List<ExpeditionRolePolicy>();
+            isDisbanded = false;
         }
 
         public void RemoveMember(ExpeditionMember member)
         {
+            var character = WorldManager.Instance.GetCharacterById(member.CharacterId);
+            ChatManager.Instance.GetGuildChat(this).LeaveChannel(character);
             Members.Remove(member);
             _removedMembers.Add(member.CharacterId);
         }
@@ -38,15 +45,20 @@ namespace AAEmu.Game.Models.Game.Expeditions
             member.Refresh(character);
 
             SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+            ChatManager.Instance.GetGuildChat(this).JoinChannel(character);
         }
 
         public void OnCharacterLogout(Character character)
         {
             var member = GetMember(character);
-            member.IsOnline = false;
-            member.LastWorldLeaveTime = DateTime.Now;
+            if (member != null)
+            {
+                member.IsOnline = false;
+                member.LastWorldLeaveTime = DateTime.Now;
 
-            SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+                SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+            }
+            ChatManager.Instance.GetGuildChat(this).LeaveChannel(character);
         }
 
         public ExpeditionRolePolicy GetPolicyByRole(byte role)
@@ -110,27 +122,59 @@ namespace AAEmu.Game.Models.Game.Expeditions
                 _removedMembers.Clear();
             }
 
-            using (var command = connection.CreateCommand())
+            if (isDisbanded)
             {
-                command.Connection = connection;
-                command.Transaction = transaction;
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    command.CommandText = "DELETE FROM expeditions WHERE `id` = @id";
+                    command.Parameters.AddWithValue("@id", this.Id);
+                    command.ExecuteNonQuery();
+                }
 
-                command.CommandText =
-                    "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`) VALUES (@id, @owner, @owner_name, @name, @mother, @created_at)";
-                command.Parameters.AddWithValue("@id", this.Id);
-                command.Parameters.AddWithValue("@owner", this.OwnerId);
-                command.Parameters.AddWithValue("@owner_name", this.OwnerName);
-                command.Parameters.AddWithValue("@name", this.Name);
-                command.Parameters.AddWithValue("@mother", this.MotherId);
-                command.Parameters.AddWithValue("@created_at", this.Created);
-                command.ExecuteNonQuery();
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    command.CommandText = "DELETE FROM expedition_role_policies WHERE `expedition_id` = @id";
+                    command.Parameters.AddWithValue("@id", this.Id);
+                    command.ExecuteNonQuery();
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    command.CommandText = "DELETE FROM expedition_members WHERE `expedition_id` = @id";
+                    command.Parameters.AddWithValue("@id", this.Id);
+                    command.ExecuteNonQuery();
+                }
             }
+            else
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.Connection = connection;
+                    command.Transaction = transaction;
 
-            foreach (var member in Members)
-                member.Save(connection, transaction);
+                    command.CommandText =
+                        "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`created_at`) VALUES (@id, @owner, @owner_name, @name, @mother, @created_at)";
+                    command.Parameters.AddWithValue("@id", this.Id);
+                    command.Parameters.AddWithValue("@owner", this.OwnerId);
+                    command.Parameters.AddWithValue("@owner_name", this.OwnerName);
+                    command.Parameters.AddWithValue("@name", this.Name);
+                    command.Parameters.AddWithValue("@mother", this.MotherId);
+                    command.Parameters.AddWithValue("@created_at", this.Created);
+                    command.ExecuteNonQuery();
+                }
 
-            foreach (var policy in Policies)
-                policy.Save(connection, transaction);
+                foreach (var member in Members)
+                    member.Save(connection, transaction);
+
+                foreach (var policy in Policies)
+                    policy.Save(connection, transaction);
+            }
         }
     }
 }

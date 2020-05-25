@@ -22,14 +22,14 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "";
+            return "Spawns a test slave";
         }
 
         public void Execute(Character character, string[] args)
         {
             var slave = new Slave();
-            slave.TemplateId = 54;
-            slave.ModelId = 952;
+            slave.TemplateId = 6;
+            slave.ModelId = 654;
             slave.ObjId = ObjectIdManager.Instance.GetNextId();
             slave.TlId = (ushort)TlIdManager.Instance.GetNextId();
             slave.Faction = FactionManager.Instance.GetFaction(143);

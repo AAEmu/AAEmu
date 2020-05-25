@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -43,6 +43,15 @@ namespace AAEmu.Game.Models.Game.Team
             var count = 0;
             foreach (var member in Members)
                 if (member?.Character != null)
+                    count++;
+            return count;
+        }
+
+        public int MembersOnlineCount()
+        {
+            var count = 0;
+            foreach (var member in Members)
+                if ((member?.Character != null) && (member.Character.IsOnline))
                     count++;
             return count;
         }

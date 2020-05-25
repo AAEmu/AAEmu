@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -54,6 +55,9 @@ namespace AAEmu.Game.Models.Game.Skills
             //        return;
             //    }
             //}
+            
+            // TODO : Add check for range
+            var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
 
             if (skillObject == null)
             {
@@ -241,14 +245,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step, callCounter);
                     }
                 }
-
-                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step);
-                if (!res)
-                {
-                    return;
-                }
-                TlIdManager.Instance.ReleaseId(TlId);
-                //TlId = 0;
+                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step); 
             }
             else
             {
@@ -339,6 +336,8 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void ParsePlot(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotStep step)
         {
+            _log.Warn("Plot: StepId {0}, Flag {1}, Delay {2}", step.Event.Id, step.Flag, step.Delay);
+
             if (step.Flag != 0)
             {
                 foreach (var eff in step.Event.Effects)
@@ -352,9 +351,11 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
-            var time = (ushort)(step.Flag != 0 ? step.Delay / 10 : 0);
+            var time = (ushort)(step.Flag != 0 ? step.Delay / 10 + 1 : 0); // TODO fixed the CSStopCastingPacket spam when using the "Chain Lightning" skill
             var unkId = step.Casting || step.Channeling ? caster.ObjId : 0;
-            caster.BroadcastPacket(new SCPlotEventPacket(TlId, step.Event.Id, Template.Id, caster.ObjId, target.ObjId, unkId, time, step.Flag), true);
+            var casterPlotObj = new PlotObject(caster);
+            var targetPlotObj = new PlotObject(target);
+            caster.BroadcastPacket(new SCPlotEventPacket(TlId, step.Event.Id, Template.Id, casterPlotObj, targetPlotObj, unkId, time, step.Flag), true);
 
             foreach (var st in step.Steps)
             {
@@ -533,28 +534,36 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         continue;
                     }
+                    if (casterCaster is SkillItem castItem) // TODO Clean up. 
+                    {
+                        var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
+                        if ((castItemTemplate.UseSkillAsReagent) && (caster is Character player))
+                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount,null);
+                        /*
+                        var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
+                        var isRaegent = itemUsed.Template.UseSkillAsReagent;
+                        if (isRaegent) //if item is a raegent
+                        {
+                            if (caster is Character player)
+                            {
+                                var items = player.Inventory.RemoveItem(castItem.ItemTemplateId, effect.ConsumeItemCount);
+                                var tasks = new List<ItemTask>();
+                                foreach (var (item, count) in items)
+                                {
+                                    InventoryHelper.RemoveItemAndUpdateClient(player, item, count, ItemTaskType.SkillReagents);
+                                }
+                            }
+                        }
+                        ItemManager.Instance.ReleaseId(itemUsed.Id);
+                        */
+                    }
                     if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
                     {
                         if (effect.ConsumeSourceItem)
                         {
-                            var item = ItemManager.Instance.Create(effect.ConsumeItemId, effect.ConsumeItemCount, 0);
-                            var res = character.Inventory.AddItem(item);
-                            if (res == null)
-                            {
-                                ItemIdManager.Instance.ReleaseId((uint)res.Id);
+                            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption, 
+                                effect.ConsumeItemId, effect.ConsumeItemCount))
                                 continue;
-                            }
-
-                            var tasks = new List<ItemTask>();
-                            if (res.Id != item.Id)
-                            {
-                                tasks.Add(new ItemCountUpdate(res, item.Count));
-                            }
-                            else
-                            {
-                                tasks.Add(new ItemAdd(item));
-                            }
-                            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectConsumption, tasks, new List<ulong>()));
                         }
                         else
                         {
@@ -565,31 +574,11 @@ namespace AAEmu.Game.Models.Game.Skills
                                 continue;
                             }
 
-                            var tasks = new List<ItemTask>();
-
                             if (inventory)
-                            {
-                                var items = character.Inventory.RemoveItem(effect.ConsumeItemId, effect.ConsumeItemCount);
-                                foreach (var (item, count) in items)
-                                {
-                                    if (item.Count == 0)
-                                    {
-                                        tasks.Add(new ItemRemove(item));
-                                    }
-                                    else
-                                    {
-                                        tasks.Add(new ItemCountUpdate(item, -count));
-                                    }
-                                }
-                            }
-                            else if (equipment)
-                            {
-                                var item = character.Inventory.GetItemByTemplateId(effect.ConsumeItemId);
-                                character.Inventory.RemoveItem(item, true);
-                                tasks.Add(new ItemRemove(item));
-                            }
-
-                            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectConsumption, tasks, new List<ulong>()));
+                                character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount,null);
+                            else 
+                            if (equipment)
+                                character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount,null);
                         }
                     }
 

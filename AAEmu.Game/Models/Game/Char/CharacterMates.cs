@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Mate;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
@@ -38,7 +39,7 @@ namespace AAEmu.Game.Models.Game.Char
             return _mates.ContainsKey(itemId) ? _mates[itemId] : null;
         }
 
-        private MateDb CreateNewMate(ulong itemId, string name)
+        private MateDb CreateNewMate(ulong itemId, NpcTemplate npctemplate)
         {
             if (_mates.ContainsKey(itemId)) return null;
             var template = new MateDb
@@ -46,13 +47,13 @@ namespace AAEmu.Game.Models.Game.Char
                 // TODO
                 Id = MateIdManager.Instance.GetNextId(),
                 ItemId = itemId,
-                Level = 50,
-                Name = name,
+                Level = npctemplate.Level,
+                Name = LocalizationManager.Instance.Get("npcs","name",npctemplate.Id,npctemplate.Name), // npctemplate.Name,
                 Owner = Owner.Id,
                 Mileage = 0,
                 Xp = ExpirienceManager.Instance.GetExpForLevel(50, true),
-                Hp = 999999,
-                Mp = 999999,
+                Hp = 9999,
+                Mp = 9999,
                 UpdatedAt = DateTime.Now,
                 CreatedAt = DateTime.Now
             };
@@ -68,7 +69,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
             }
 
-            var item = Owner.Inventory.GetItem(skillData.ItemId);
+            var item = Owner.Inventory.GetItemById(skillData.ItemId);
             if (item == null) return;
 
             var itemTemplate = (SummonMateTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
@@ -76,7 +77,7 @@ namespace AAEmu.Game.Models.Game.Char
             var template = NpcManager.Instance.GetTemplate(npcId);
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
-            var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template.Name); // TODO - new name
+            var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template); // TODO - new name
 
             var mount = new Mount
             {

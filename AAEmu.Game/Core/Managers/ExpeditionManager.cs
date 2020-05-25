@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,8 +13,10 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Utils.DB;
 using NLog;
+using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -174,30 +176,78 @@ namespace AAEmu.Game.Core.Managers
         {
             var owner = connection.ActiveChar;
             if (owner.Expedition != null)
+            {
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionAlreadyMember);
                 return;
+            }
+
+            if (name.Length > 32)
+            {
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionNameLength);
+                return;
+            }
 
             if (!_nameRegex.IsMatch(name))
+            {
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionNameCharacter);
                 return;
-            
+            }
+
             foreach (var exp in _expeditions.Values)
                 if (name.Equals(exp.Name))
+                {
+                    connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionNameExist);
                     return;
+                }
 
             // ----------------- Conditions, can change this...
             var team = TeamManager.Instance.GetActiveTeamByUnit(owner.Id);
-            if (team == null || team.IsParty) // TODO validate create expedition by party only...
+            if (team == null)// || !team.IsParty)
+            {
+                // We send the same error on number of party members when we don't have a party
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateMember);
                 return;
+            }
 
-            var membersCount = team.Members.Count(
-                x => x?.Character != null &&
-                     x.Character.Level >= _config.Create.Level &&
-                     x.Character.Expedition == null
-            );
-            if (membersCount < _config.Create.PartyMemberCount)
+            // Check the number of members in the party that meet the requirements
+            List<TeamMember> validMembers = new List<TeamMember>();
+            List<TeamMember> teamMembers = new List<TeamMember>();
+            teamMembers.AddRange(team.Members.ToList());
+
+            foreach (var m in teamMembers)
+            {
+                if (m?.Character == null)
+                    continue;
+
+                if (m.Character.Level < _config.Create.Level)
+                {
+                    connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateLevel);
+                    return;
+                }
+                if (m.Character.Expedition != null)
+                {
+                    connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateMemberExpedition);
+                    return;
+                }
+                if (m.Character.Faction.MotherId != owner.Faction.MotherId)
+                {
+                    connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateFaction);
+                    return;
+                }
+                validMembers.Add(m);
+            }
+
+            if (validMembers.Count < _config.Create.PartyMemberCount)
+            {
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateMember);
                 return;
+            }
 
             if (owner.Money < _config.Create.Cost)
+            {
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateMoney);
                 return;
+            }
 
             owner.Money -= _config.Create.Cost;
             owner.SendPacket(
@@ -217,7 +267,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Expedition = expedition;
 
             owner.SendPacket(
-                new SCFactionCreatedPacket(expedition, owner.ObjId, new[] {(owner.ObjId, owner.Id, owner.Name)})
+                new SCFactionCreatedPacket(expedition, owner.ObjId, new[] { (owner.ObjId, owner.Id, owner.Name) })
             );
 
             WorldManager.Instance.BroadcastPacketToServer(new SCFactionListPacket(expedition));
@@ -226,7 +276,28 @@ namespace AAEmu.Game.Core.Managers
                 true
             );
 
+            ChatManager.Instance.GetGuildChat(expedition).JoinChannel(owner);
             SendExpeditionInfo(owner);
+            // owner.Save(); // Moved to SaveMananger
+
+            foreach(var m in validMembers)
+            {
+                if (m.Character.Id == owner.Id)
+                    continue;
+
+                var invited = m.Character;
+                var newMember = GetMemberFromCharacter(expedition, invited, false);
+
+                invited.Expedition = expedition;
+                expedition.Members.Add(newMember);
+
+                invited.BroadcastPacket(
+                    new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, expedition.Id, false),
+                    true);
+                SendExpeditionInfo(invited);
+                expedition.OnCharacterLogin(invited);
+                // invited.Save(); // Moved to SaveMananger
+            }
             Save(expedition);
         }
 
@@ -266,6 +337,7 @@ namespace AAEmu.Game.Core.Managers
             SendExpeditionInfo(invited);
             expedition.OnCharacterLogin(invited);
             Save(expedition);
+            // invited.Save(); // Moved to SaveMananger
         }
 
         public void ChangeExpeditionRolePolicy(GameConnection connection, ExpeditionRolePolicy policy)
@@ -306,9 +378,11 @@ namespace AAEmu.Game.Core.Managers
                 0,
                 false
             );
+            character.Expedition = null;
             character.BroadcastPacket(changedPacket, true);
             expedition.SendPacket(changedPacket);
             Save(expedition);
+            // character.Save(); // Moved to SaveMananger
         }
 
         public void Kick(GameConnection connection, uint kickedId)
@@ -324,14 +398,19 @@ namespace AAEmu.Game.Core.Managers
             if (kicked == null)
                 return;
 
-            var kickedChar = WorldManager.Instance.GetCharacterById(kickedId);
-
             expedition.RemoveMember(kicked);
+
+            var kickedChar = WorldManager.Instance.GetCharacterById(kickedId);
 
             var changedPacket = new SCUnitExpeditionChangedPacket(kickedChar?.ObjId ?? 0,
                 kicked.CharacterId, character.Name, kicked.Name, expedition.Id, 0, true);
 
-            kickedChar?.BroadcastPacket(changedPacket, true);
+            if (kickedChar != null)
+            {
+                kickedChar.Expedition = null;
+                kickedChar?.BroadcastPacket(changedPacket, true);
+                // kickedChar.Save(); // Moved to SaveMananger
+            }
             expedition.SendPacket(changedPacket);
 
             Save(expedition);
@@ -374,6 +453,8 @@ namespace AAEmu.Game.Core.Managers
             newOwnerMember.Role = 255;
             ownerMember.Role = 0;
 
+            expedition.OwnerId = newOwnerId;
+
             expedition.SendPacket(
                 new SCExpeditionOwnerChangedPacket(
                     ownerMember.CharacterId,
@@ -390,13 +471,37 @@ namespace AAEmu.Game.Core.Managers
             Save(expedition);
         }
 
-        public void Disband(Character owner)
+        public bool Disband(Character owner)
         {
-            var ownerMember = owner.Expedition?.GetMember(owner);
-            if (ownerMember == null || ownerMember.Role != 255)
-                return;
-
-            // TODO : implement
+            var guild = owner.Expedition;
+            if (guild == null)
+            {
+                // Error, not in a guild
+                owner.SendErrorMessage(ErrorMessageType.OnlyExpeditionMember);
+                return false;
+            }
+            if (guild.OwnerId != owner.Id)
+            {
+                // Error, only guild owner can disband
+                owner.SendErrorMessage(ErrorMessageType.OnlyExpeditionOwner);
+                return false;
+            }
+            for (int i = guild.Members.Count - 1; i >= 0; i--)
+            {
+                var c = WorldManager.Instance.GetCharacterById(guild.Members[i].CharacterId);
+                if (c != null)
+                {
+                    if (c.IsOnline)
+                        c.SendPacket(new SCExpeditionDismissedPacket(guild.Id, true));
+                    c.Expedition = null;
+                }
+                guild.RemoveMember(guild.Members[i]);
+            }
+            guild.Name = "$deleted-guild-" + guild.Id;
+            guild.OwnerId = 0;
+            guild.isDisbanded = true;
+            Save(guild);
+            return true;
         }
 
         public void SendExpeditionInfo(Character character)
