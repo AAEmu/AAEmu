@@ -1,15 +1,16 @@
-
-﻿using AAEmu.Game.Models.Game.Skills;
+﻿
+using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Skills;
 
 using AAEmu.Game.Models.Game.Units;
-using NLog;
+
 
 namespace AAEmu.Game.Models.Game.World
 {
     public interface IWorldInteraction
     {
 
-        void Execute(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, uint skillId); 
+        void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType, uint skillId, uint doodadId, DoodadFuncTemplate objectFunc); 
 
     }
     

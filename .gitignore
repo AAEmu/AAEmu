@@ -21,3 +21,9 @@ publish/
 *.bak
 *.packet
 
+/AAEmu.Commons
+/AAEmu.Game/Data
+/AAEmu.Game/Properties/PublishProfiles
+/AAEmu.Game/AAEmu.Game.csproj.user
+/AAEmu.Game/AAEmu.Game.xml
+/AAEmu.Login

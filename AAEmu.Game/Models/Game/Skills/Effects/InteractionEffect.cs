@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -29,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             _log.Debug("InteractionEffect, Action: {0}", classType); // TODO help to debug...
 
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
-            action.Execute(caster, casterObj, target, targetObj, skill.Template.Id, DoodadId);
+            action.Execute(caster, casterObj, target, targetObj, skill.Template.Id, DoodadId, );
 
             // TODO do we need this call?
             if (caster is Character character)

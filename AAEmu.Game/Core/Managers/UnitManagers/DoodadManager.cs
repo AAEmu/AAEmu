@@ -85,24 +85,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
                             template.NoCollision = reader.GetBoolean("no_collision", true);
                             template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
-                            _templates.Add(template.Id, template);
-                        }
-                    }
-                }
 
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM doodad_func_groups";
-                    command.Prepare();
-                    using (var sqliteDataReader = command.ExecuteReader())
-                    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                    {
-                        while (reader.Read())
-                        {
-                            var templateId = reader.GetUInt32("doodad_almighty_id");
-                            if (_templates.ContainsKey(templateId))
+                            using (var commandChild = connection.CreateCommand())
                             {
-
                                 commandChild.CommandText = "SELECT * FROM doodad_func_groups WHERE doodad_almighty_id = @doodad_almighty_id";
                                 commandChild.Prepare();
                                 commandChild.Parameters.AddWithValue("doodad_almighty_id", template.Id);
@@ -121,6 +106,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                     }
                                 }
                             }
+
+                            _templates.Add(template.Id, template);
                         }
                     }
                 }
