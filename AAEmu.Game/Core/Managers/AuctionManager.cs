@@ -119,12 +119,12 @@ namespace AAEmu.Game.Core.Managers
             }
             return null;
         }
-        public void BidOnAuctionItem(Character player, ulong auctionId, string biddersName, uint bidAmount)
+        public void BidOnAuctionItem(Character player, ulong auctionId, uint bidAmount)
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
-            if(auctionItem != null)
+            if (auctionItem != null)
             {
-                if (bidAmount >= auctionItem.BidMoney) //Buy now
+                if (bidAmount >= auctionItem.DirectMoney) //Buy now
                 {
                     player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
                     RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
@@ -132,18 +132,19 @@ namespace AAEmu.Game.Core.Managers
 
                 else if(bidAmount > auctionItem.BidMoney) //Bid
                 {
-                    //Send mail to old bidder. 
-                    var moneyArray = new int[3];
-                    moneyArray[0] = (int)auctionItem.BidMoney;
-                    MailManager.Instance.SendMail(0, auctionItem.BidderName, "Auction House", "OutBid Notice", "", 1, moneyArray, 0, new Item[10].ToList());
+                    if(auctionItem.BidderName != "") //Send mail to old bidder. 
+                    {
+                        var moneyArray = new int[3];
+                        moneyArray[0] = (int)auctionItem.BidMoney;
+                        MailManager.Instance.SendMail(0, auctionItem.BidderName, "Auction House", "OutBid Notice", "", 1, moneyArray, 0, new Item[10].ToList());
+                    }
 
                     //Set info to new bidders info
-                    auctionItem.BidderName = biddersName;
+                    auctionItem.BidderName = player.Name;
                     auctionItem.BidMoney = bidAmount;
 
-                    var biddingPlayer = WorldManager.Instance.GetCharacter(biddersName);
-                    biddingPlayer.ChangeMoney(SlotType.Inventory, -(int)bidAmount);
-                    biddingPlayer.SendPacket(new SCAuctionBidPacket(auctionItem));
+                    player.SubtractMoney(SlotType.Inventory, (int)bidAmount);
+                    player.SendPacket(new SCAuctionBidPacket(auctionItem));
                 }
             }
         }
