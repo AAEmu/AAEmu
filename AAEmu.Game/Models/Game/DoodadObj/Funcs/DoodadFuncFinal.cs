@@ -34,17 +34,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             }
 
             Character character = WorldManager.Instance.GetCharacterByObjId(caster.ObjId);
-            if (character.Id != owner.OwnerId && owner.OwnerId != 0) //0 usually will belong to the system
+            if (character.Id != owner.OwnerId && owner.OwnerId != 0) //If the player is stealing something, create footprints
             {
                 var doodadSpawner = new DoodadSpawner();
                 doodadSpawner.Id = 0;
                 switch (caster.RaceGender)
                 {
                     case 17:
-                        doodadSpawner.UnitId = 3313;
+                        doodadSpawner.UnitId = 3313; //Male footprints
                     break;
                     case 33:
-                        doodadSpawner.UnitId = 3314;
+                        doodadSpawner.UnitId = 3314; //Female footprints
                     break;
                 }
                 doodadSpawner.Position = caster.Position.Clone();

@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
@@ -20,13 +19,10 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 
         public override void Execute()
         {
-            _log.Warn(_owner.ObjId + ": triggered a growth task");
+            _log.Debug(_owner.FuncGroupId + ": triggered a growth task");
             _owner.FuncTask = null;
             _owner.FuncGroupId = _nextPhase;
-            var funcs = DoodadManager.Instance.GetPhaseFunc(_owner.FuncGroupId);
-            foreach (var func in funcs)
-                func.Use(_caster, _owner, _skillId);
-            _owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(_owner), true);
+            DoodadManager.Instance.TriggerPhaseFunc(GetType().Name, _owner.FuncGroupId, _caster, _owner, _skillId);
         }
     }
 }

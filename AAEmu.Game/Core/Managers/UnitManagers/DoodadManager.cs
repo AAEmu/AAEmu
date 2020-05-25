@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -2207,8 +2208,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 doodad.OwnerId = character.Id;
                 doodad.OwnerType = DoodadOwnerType.Character;
+
                 var task = new DoodadFuncTimer();
-                task.Delay = template.GrowthTime;
+                task.Delay = template.GrowthTime;                
                 task.Use(character, doodad, 0);
             }
 
@@ -2257,6 +2259,25 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (funcs.ContainsKey(funcId))
                 return funcs[funcId];
             return null;
+        }
+        public void TriggerPhaseFunc(string className, uint nextPhase, Unit caster, Doodad owner, uint skillId)
+        {
+            var funcs = GetPhaseFunc(nextPhase);
+            foreach (var func in funcs)
+            {
+                _log.Warn(className + " is now calling " + func.FuncType);
+                func.Use(caster, owner, skillId);
+            }
+            owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true);
+        }
+        public void TriggerActionFunc(string className, Unit caster, Doodad doodad, uint skillId)
+        {
+            var nextfunc = GetFunc(doodad.FuncGroupId, skillId);
+            if (nextfunc != null)
+            {
+                _log.Warn(className + " is triggering a DoodadFunc");
+                nextfunc.Use(caster, doodad, skillId);
+            }
         }
     }
 }

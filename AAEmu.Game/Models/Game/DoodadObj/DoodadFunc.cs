@@ -1,6 +1,4 @@
-﻿using System;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
 
@@ -27,25 +25,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             if (template == null)
                 return;
-
+            _log.Debug("relaying to: " + FuncType);
             template.Use(caster, owner, skillId);
-
-            if (NextPhase > 0)
-            {
-                if (owner.FuncTask != null)
-                {
-                    await owner.FuncTask.Cancel();
-                    owner.FuncTask = null;
-                }
-
-                owner.FuncGroupId = (uint)NextPhase;
-
-                owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), false); // FIX: added to work on/off lighting and destruction of drums/boxes
-
-                var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
-                foreach (var func in funcs)
-                    func.Use(caster, owner, skillId);
-            }
         }
     }
 }

@@ -1,8 +1,6 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
@@ -20,22 +18,23 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            _log.Warn("DoodadFuncTimer : NextPhase {0}, SkillId {1}", NextPhase, skillId);
-            //var nextFunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
-            // if (nextFunc != null) nextFunc.Use(caster, owner, skillId);
-            if (Delay > 0)
+            if (NextPhase == 0 && Delay > 0) //This conditional is for doodads that "require" interaction to move on; without interaction
             {
-                owner.GrowthTime = DateTime.Now.AddMilliseconds(Delay); //I think this exists to allow certain doodads to morph/grow before the next phase
-
+                var nextFunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
+                if (nextFunc != null) //Handles examples like not watering a plant or feeding an animal in the given time-frame
+                {
+                    _log.Warn("DoodadFuncTimer is now calling" + nextFunc.FuncType);
+                    nextFunc.Use(caster, owner, skillId);
+                }
+                else
+                {
+                    DoodadManager.Instance.TriggerPhaseFunc(GetType().Name, owner.FuncGroupId, caster, owner, skillId);
+                }
+            }
+            else //Start the timers normally
+            {
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay));
-
-                //owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true); // TODO door, windows with delay of this timer...
-            }
-            else
-            {
-                owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
-                TaskManager.Instance.Schedule(owner.FuncTask, (owner.GrowthTime - DateTime.Now));
             }
         }
     }

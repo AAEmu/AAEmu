@@ -1,5 +1,6 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -30,8 +31,20 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             
             Item item = ItemManager.Instance.Create(ItemId, count, 0);
             InventoryHelper.AddItemAndUpdateClient(character, item);
-            
-            _log.Debug("DoodadFuncLootItem");
+
+            var nextfunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
+            owner.FuncGroupId = (uint)nextfunc.NextPhase;
+            nextfunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, nextfunc.SkillId);
+            if (nextfunc != null)
+            {
+                _log.Warn("DoodadFuncLootItem is now calling " + nextfunc.FuncType);
+                nextfunc.Use(caster, owner, skillId);
+            }
+            else //Doodad interaction is done, begin clean up
+            {
+                DoodadManager.Instance.TriggerPhaseFunc(GetType().Name, owner.FuncGroupId, caster, owner, skillId); 
+                //^ Notice the funcGroupID is already the next next phase
+            }
         }
     }
 }
