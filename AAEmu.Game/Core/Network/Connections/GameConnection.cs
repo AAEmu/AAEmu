@@ -245,31 +245,7 @@ namespace AAEmu.Game.Core.Network.Connections
 
             // Do a manual save here as it's no longer in _characters at this point
             // TODO: might need a better option like saving this transaction for later to be used by the SaveMananger
-            using (var connection = MySQL.CreateConnection())
-            {
-                using (var transaction = connection.BeginTransaction())
-                {
-                    ActiveChar.Save(connection, transaction);
-                    try
-                    {
-                        transaction.Commit();
-                        // _log.Info("Saving data for {0} characters ...", ActiveChar.Name);
-                    }
-                    catch (Exception)
-                    {
-                        // _log.Error(e);
-                        try
-                        {
-                            transaction.Rollback();
-                        }
-                        catch (Exception)
-                        {
-                            // _log.Error(eRollback);
-                        }
-                    }
-                }
-            }
-
+            ActiveChar.SaveDirectlyToDatabase();
         }
     }
 }

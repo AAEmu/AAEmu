@@ -7,12 +7,14 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+using Microsoft.CodeAnalysis.Text;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -177,44 +179,79 @@ namespace AAEmu.Game.Core.Managers
 
             return items;
         }
-        public void TookLootDropItems(Character character, uint id, bool lootAll)
+
+        /// <summary>
+        /// Initiate Loot item (loot all items / open loot selection window)
+        /// </summary>
+        /// <param name="character"></param>
+        /// <param name="id"></param>
+        /// <param name="lootAll"></param>
+        /// <returns>True if everything was looted, false if not all could be looted</returns>
+        public bool TookLootDropItems(Character character, uint id, bool lootAll)
         {
+            // TODO: Bug fix for the following; 
+            /*
+             * Have full inventory 
+             * -> Open Loot (G) 
+             * -> press (F) to lootall while open (fail, bag full) 
+             * -> free up bag space 
+             * -> click for manual loot doesn't trigger a new packet. so it won't loot
+             * Note: Re-opening the loot window lets you loot the remaining items
+            */
+            bool isDone = true;
             var lootDropItems = ItemManager.Instance.GetLootDropItems(id);
             if (lootAll)
             {
                 for (var i = lootDropItems.Count - 1; i >= 0; --i)
                 {
-                    TookLootDropItem(character, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
+                    isDone &= TookLootDropItem(character, lootDropItems, lootDropItems[i], lootDropItems[i].Count);
                 }
+                if (lootDropItems.Count > 0)
+                    character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
             }
             else
+            {
+                isDone = (lootDropItems.Count <= 0);
                 character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
+            }
+            return isDone;
         }
 
-        public void TookLootDropItem(Character character,List<Item> lootDropItems, Item lootDropItem, int count)
+        /// <summary>
+        /// Takes lootDropItem from LootDropItems and adds them to character's Bag
+        /// </summary>
+        /// <param name="character"></param>
+        /// <param name="lootDropItems"></param>
+        /// <param name="lootDropItem"></param>
+        /// <param name="count"></param>
+        /// <returns>Returns false if the item could not be picked up.</returns>
+        public bool TookLootDropItem(Character character,List<Item> lootDropItems, Item lootDropItem, int count)
         {
             var objId = (uint)(lootDropItem.Id >> 32);
             if (lootDropItem.TemplateId == Item.Coins)
             {
-                character.Money += lootDropItem.Count;
-                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectGainItem,
-                    new List<ItemTask> { new MoneyChange(lootDropItem.Count) }, new List<ulong>()));
+                character.AddMoney(SlotType.Inventory, lootDropItem.Count);
             }
             else
             {
-                character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, 
-                    lootDropItem.TemplateId, 
-                    count > lootDropItem.Count ? lootDropItem.Count : count, 
-                    lootDropItem.Grade);
+                if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, lootDropItem.TemplateId,
+                    count > lootDropItem.Count ? lootDropItem.Count : count, lootDropItem.Grade))
+                {
+                    // character.SendErrorMessage(ErrorMessageType.BagFull);
+                    character.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, lootDropItem.Id, lootDropItem.TemplateId));
+                    return false;
+                }
             }
 
             lootDropItems.Remove(lootDropItem);
+            character.SendPacket(new SCLootItemTookPacket(lootDropItem.TemplateId, lootDropItem.Id, lootDropItem.Count));
+
             if (lootDropItems.Count <= 0)
             {
                 RemoveLootDropItems(objId);
                 character.BroadcastPacket(new SCLootableStatePacket(objId, false), true);
             }
-            character.SendPacket(new SCLootItemTookPacket(500, lootDropItem.Id, lootDropItem.Count));
+            return true;
         }
         public GradeDistributions GetGradeDistributions(byte id)
         {

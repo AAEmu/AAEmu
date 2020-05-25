@@ -18,6 +18,7 @@ using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Chat;
 using NLog;
 using AAEmu.Game.Models.Game.Items.Actions;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -508,14 +509,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;
 
-                // Moved save to SaveManager
-                /*
-                if (character.Save())
+                if (character.SaveDirectlyToDatabase())
                 {
-                */
                     connection.Characters.Add(character.Id, character);
                     connection.SendPacket(new SCCreateCharacterResponsePacket(character));
-                /*
                 }
                 else
                 {
@@ -524,7 +521,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     NameManager.Instance.RemoveCharacterName(characterId);
                     // TODO release items...
                 }
-                */
+                
             }
             else
             {

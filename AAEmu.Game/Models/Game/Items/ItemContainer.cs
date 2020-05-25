@@ -283,6 +283,7 @@ namespace AAEmu.Game.Models.Game.Items
                 item._holdingContainer = null;
                 ItemManager.Instance.ReleaseId(item.Id);
             }
+            UpdateFreeSlotCount();
             return res;
         }
 

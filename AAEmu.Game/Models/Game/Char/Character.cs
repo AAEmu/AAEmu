@@ -1209,6 +1209,38 @@ namespace AAEmu.Game.Models.Game.Char
             MailManager.Instance.GetCurrentMailList(this); //Doesn't need a connection, but does need to load after the inventory
         }
 
+        public bool SaveDirectlyToDatabase()
+        {
+            // Try to save New Character
+            var saved = false;
+            using (var sqlConnection = MySQL.CreateConnection())
+            {
+                using (var transaction = sqlConnection.BeginTransaction())
+                {
+                    try
+                    {
+                        saved = Save(sqlConnection, transaction);
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        saved = false;
+                        _log.Error(string.Format("Character save failed for {0} - {1}",Id, Name));
+                        try
+                        {
+                            transaction.Rollback();
+                        }
+                        catch
+                        {
+                            // Really failed here
+                            _log.Fatal(string.Format("Character save rollback failed for {0} - {1}", Id, Name));
+                        }
+                    }
+                }
+            }
+            return saved;
+        }
+
         public bool Save(MySqlConnection connection, MySqlTransaction transaction)
         {
             bool result;

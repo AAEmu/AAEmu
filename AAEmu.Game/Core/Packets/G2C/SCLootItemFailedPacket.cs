@@ -1,6 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-
+using AAEmu.Game.Models.Game.Error;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -10,9 +10,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ulong _iId;
         private readonly uint _id;
 
-        public SCLootItemFailedPacket(int errorMessage, ulong iId, uint id) : base(SCOffsets.SCLootItemFailedPacket,1)
+        public SCLootItemFailedPacket(ErrorMessageType errorMessage, ulong iId, uint id) : base(SCOffsets.SCLootItemFailedPacket,1)
         {
-            _errorMessage = errorMessage;
+            _errorMessage = (int)errorMessage;
             _iId = iId;
             _id = id;
         }
