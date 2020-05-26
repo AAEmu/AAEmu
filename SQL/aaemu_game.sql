@@ -545,6 +545,7 @@ CREATE TABLE `auction_house` (
   `stack_size` int NOT NULL,
   `detail_type` tinyint(1) NOT NULL,
   `creation_time` datetime NOT NULL,
+  `end_time` datetime NOT NULL,
   `lifespan_mins` int NOT NULL,
   `type_1` int NOT NULL,
   `world_id` tinyint NOT NULL,

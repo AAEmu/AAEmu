@@ -44,7 +44,7 @@ namespace AAEmu.Game.Core.Managers
                 return;
             }
             player.Inventory.Bag.RemoveItem(Models.Game.Items.Actions.ItemTaskType.Auction, newItem, true);
-            _auctionItems.Add(newAuctionItem);
+            AddAuctionItem(newAuctionItem);
             player.SendPacket(new SCAuctionPostedPacket(newAuctionItem));
         }
 
@@ -66,8 +66,7 @@ namespace AAEmu.Game.Core.Managers
 
                 MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Succesfull Listing", $"{GetLocalizedItemNameById(itemToRemove.ItemID)} sold!", 1, moneyToSend, 0, emptyItemList); //Send money to seller
                 MailManager.Instance.SendMail(0, buyer, "Auction House", "Succesfull Purchase", "See attached.", 1, emptyMoneyArray, 1, itemList); //Send items to buyer
-                _deletedAuctionItemIds.Add((long)itemToRemove.ID);
-                _auctionItems.Remove(itemToRemove);
+                RemoveAuctionItem(itemToRemove);
             }
         }
 
@@ -87,8 +86,7 @@ namespace AAEmu.Game.Core.Managers
                     var itemList = new Item[10].ToList();
                     itemList[0] = newItem;
                     MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Failed Listing", "See attached.", 1, new int[3], 0, itemList);
-                    _deletedAuctionItemIds.Add((long)itemToRemove.ID);
-                    _auctionItems.Remove(itemToRemove);
+                    RemoveAuctionItem(itemToRemove);
                 }
             }
         }
@@ -107,8 +105,7 @@ namespace AAEmu.Game.Core.Managers
                 player.ChangeMoney(SlotType.Inventory, -(int)moneyToSubtract);
                 MailManager.Instance.SendMail(0, auctionItem.ClientName, "AuctionHouse", "Cancelled Listing", "See attaached.", 1, new int[3], 0, itemList);
 
-                _deletedAuctionItemIds.Add((long)auctionItem.ID);
-                _auctionItems.Remove(auctionItem);
+                RemoveAuctionItem(auctionItem);
                 player.SendPacket(new SCAuctionCanceledPacket(auctionItem));
             }
         }
@@ -122,12 +119,12 @@ namespace AAEmu.Game.Core.Managers
             }
             return null;
         }
-        public void BidOnAuctionItem(Character player, ulong auctionId, string biddersName, uint bidAmount)
+        public void BidOnAuctionItem(Character player, ulong auctionId, uint bidAmount)
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
-            if(auctionItem != null)
+            if (auctionItem != null)
             {
-                if (bidAmount >= auctionItem.BidMoney) //Buy now
+                if (bidAmount >= auctionItem.DirectMoney) //Buy now
                 {
                     player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
                     RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
@@ -135,18 +132,19 @@ namespace AAEmu.Game.Core.Managers
 
                 else if(bidAmount > auctionItem.BidMoney) //Bid
                 {
-                    //Send mail to old bidder. 
-                    var moneyArray = new int[3];
-                    moneyArray[0] = (int)auctionItem.BidMoney;
-                    MailManager.Instance.SendMail(0, auctionItem.BidderName, "Auction House", "OutBid Notice", "", 1, moneyArray, 0, new Item[10].ToList());
+                    if(auctionItem.BidderName != "") //Send mail to old bidder. 
+                    {
+                        var moneyArray = new int[3];
+                        moneyArray[0] = (int)auctionItem.BidMoney;
+                        MailManager.Instance.SendMail(0, auctionItem.BidderName, "Auction House", "OutBid Notice", "", 1, moneyArray, 0, new Item[10].ToList());
+                    }
 
                     //Set info to new bidders info
-                    auctionItem.BidderName = biddersName;
+                    auctionItem.BidderName = player.Name;
                     auctionItem.BidMoney = bidAmount;
 
-                    var biddingPlayer = WorldManager.Instance.GetCharacter(biddersName);
-                    biddingPlayer.ChangeMoney(SlotType.Inventory, -(int)bidAmount);
-                    biddingPlayer.SendPacket(new SCAuctionBidPacket(auctionItem));
+                    player.SubtractMoney(SlotType.Inventory, (int)bidAmount);
+                    player.SendPacket(new SCAuctionBidPacket(auctionItem));
                 }
             }
         }
@@ -244,18 +242,44 @@ namespace AAEmu.Game.Core.Managers
             }
             return nextId + 1;
         }
+
+        public void RemoveAuctionItem(AuctionItem itemToRemove)
+        {
+            lock (_auctionItems)
+            {
+                lock (_deletedAuctionItemIds)
+                {
+                    if (_auctionItems.Contains(itemToRemove))
+                    {
+                        _deletedAuctionItemIds.Add((long)itemToRemove.ID);
+                        _auctionItems.Remove(itemToRemove);
+                    }
+                }
+            }
+        }
+
+        public void AddAuctionItem(AuctionItem itemToAdd)
+        {
+            lock (_auctionItems)
+            {
+                _auctionItems.Add(itemToAdd);
+            }
+        }
+
         public void UpdateAuctionHouse()
         {
             _log.Debug("Updating Auction House!");
 
-            for (int i = 0; i < _auctionItems.Count; i++)
+            foreach (var item in _auctionItems)
             {
-                var timeLeft = (ulong)(DateTime.Now - _auctionItems[i].CreationTime).TotalSeconds;
-                if (timeLeft > _auctionItems[i].TimeLeft)
-                    RemoveAuctionItemFail(_auctionItems[i]);
+                if (DateTime.Now > item.EndTime)
+                {
+                    RemoveAuctionItem(item);
+                }
+
                 else
                 {
-                    _auctionItems[i].TimeLeft -= 5;
+                    item.TimeLeft -= 5;
                 }
             }
         }
@@ -299,6 +323,7 @@ namespace AAEmu.Game.Core.Managers
                 StackSize = (uint)newItem.Count,
                 DetailType = 0,
                 CreationTime = DateTime.Now,
+                EndTime = DateTime.Now.AddSeconds(timeLeft),
                 LifespanMins = 0,
                 Type1 = 0,
                 WorldId = 0,
@@ -347,6 +372,7 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.StackSize = reader.GetUInt32("stack_size");
                             auctionItem.DetailType = reader.GetByte("detail_type");
                             auctionItem.CreationTime = reader.GetDateTime("creation_time");
+                            auctionItem.EndTime = reader.GetDateTime("end_time");
                             auctionItem.LifespanMins = reader.GetUInt32("lifespan_mins");
                             auctionItem.Type1 = reader.GetUInt32("type_1");
                             auctionItem.WorldId = reader.GetByte("world_id");
@@ -366,7 +392,7 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.CategoryA = reader.GetUInt32("category_a");
                             auctionItem.CategoryB = reader.GetUInt32("category_b");
                             auctionItem.CategoryC = reader.GetUInt32("category_c");
-                            _auctionItems.Add(auctionItem);
+                            AddAuctionItem(auctionItem);
                         }
                     }
                 }
@@ -404,12 +430,12 @@ namespace AAEmu.Game.Core.Managers
                     command.Transaction = transaction;
                     command.CommandText = "REPLACE INTO auction_house(" +
                         "`id`, `duration`, `item_id`, `object_id`, `grade`, `flags`, `stack_size`, `detail_type`," +
-                        " `creation_time`, `lifespan_mins`, `type_1`, `world_id`, `unsecure_date_time`, `unpack_date_time`," +
+                        " `creation_time`,`end_time`, `lifespan_mins`, `type_1`, `world_id`, `unsecure_date_time`, `unpack_date_time`," +
                         " `world_id_2`, `client_id`, `client_name`, `start_money`, `direct_money`, `time_left`, `bid_world_id`," +
                         " `bidder_id`, `bidder_name`, `bid_money`, `extra`, `item_name`, `category_a`, `category_b`, `category_c`" +
                         ") VALUES (" +
                         "@id, @duration, @item_id, @object_id, @grade, @flags, @stack_size, @detail_type," +
-                        " @creation_time, @lifespan_mins, @type_1, @world_id, @unsecure_date_time, @unpack_date_time," +
+                        " @creation_time, @end_time, @lifespan_mins, @type_1, @world_id, @unsecure_date_time, @unpack_date_time," +
                         " @world_id_2, @client_id, @client_name, @start_money, @direct_money, @time_left, @bid_world_id," +
                         " @bidder_id, @bidder_name, @bid_money, @extra, @item_name, @category_a, @category_b, @category_c)";
 
@@ -424,6 +450,7 @@ namespace AAEmu.Game.Core.Managers
                     command.Parameters.AddWithValue("@stack_size", mtbs.StackSize);
                     command.Parameters.AddWithValue("@detail_type", mtbs.DetailType);
                     command.Parameters.AddWithValue("@creation_time", mtbs.CreationTime);
+                    command.Parameters.AddWithValue("@end_time",mtbs.EndTime);
                     command.Parameters.AddWithValue("@lifespan_mins", mtbs.LifespanMins);
                     command.Parameters.AddWithValue("@type_1", mtbs.Type1);
                     command.Parameters.AddWithValue("@world_id", mtbs.WorldId);

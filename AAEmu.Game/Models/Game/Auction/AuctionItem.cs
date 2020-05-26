@@ -16,6 +16,7 @@ namespace AAEmu.Game.Models.Game.Auction
         public uint StackSize { get; set; }
         public byte DetailType { get; set; }
         public DateTime CreationTime { get; set; }
+        public DateTime EndTime { get; set; }
         public uint LifespanMins { get; set; }
         public uint Type1 { get; set; }
         public byte WorldId { get; set; }
