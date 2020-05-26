@@ -14,22 +14,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             _log.Warn("DoodadFuncFakeUse : SkillId {0}, skillId {1}, FakeSkillId {2}, TargetParent {3}", SkillId, skillId, FakeSkillId, TargetParent);
-
-            //var sound = owner.Template.FuncGroups[(int)owner.FuncGroupId].SoundId;
-            var func = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
-            if (func?.SoundId > 0)
-            {
-                owner.BroadcastPacket(new SCDoodadSoundPacket(owner, func.SoundId), true); // добавил? так как у некоторых Doodad есть звук
-            }
-            // added by robert
-            if (func.NextPhase > 0)
-            {
-                owner.FuncGroupId = (uint)func.NextPhase;
-                owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), false); // FIX: added to work on/off lighting and destruction of drums/boxes
-                var nextfunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, 0);
-                if (nextfunc != null)
-                    nextfunc.Use(caster, owner, skillId);
-            }
+            DoodadManager.Instance.TriggerPhaseFunc(GetType().Name, owner.FuncGroupId, caster, owner, skillId);
 
         }
     }
