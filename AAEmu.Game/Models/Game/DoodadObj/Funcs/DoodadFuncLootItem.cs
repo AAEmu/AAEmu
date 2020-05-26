@@ -29,9 +29,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (chance > Percent) return;
 
             int count = Rand.Next(CountMin, CountMax);
-            
-            Item item = ItemManager.Instance.Create(ItemManager.Instance.GetTemplate(ItemId).Id, count, 0);
-            character.Inventory.AddItem(ItemTaskType.AutoLootDoodadItem, item);
+
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count);
 
             var nextfunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
             owner.FuncGroupId = (uint)nextfunc.NextPhase;

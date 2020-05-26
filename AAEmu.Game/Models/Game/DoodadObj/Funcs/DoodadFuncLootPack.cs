@@ -36,9 +36,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                 //TODO create dropRate chance
                 count = itemQuantity.Next(pack.MinAmount, pack.MaxAmount);
-
-                Item item = ItemManager.Instance.Create(pack.Id, count, pack.GradeId);
-                character.Inventory.AddItem(ItemTaskType.AutoLootDoodadItem, item);
+                character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, pack.ItemId, count);
             }
 
             var nextfunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);

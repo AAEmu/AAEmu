@@ -73,7 +73,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 doodadSpawner.Position.RotationX = caster.Position.RotationX;
                 doodadSpawner.Position.RotationY = caster.Position.RotationY;
                 doodadSpawner.Position.RotationZ = caster.Position.RotationZ;
-                var doodad = doodadSpawner.Spawn(0, 0, caster.ObjId);
+                _ = doodadSpawner.Spawn(0, 0, caster.ObjId);
             }
         }
     }
