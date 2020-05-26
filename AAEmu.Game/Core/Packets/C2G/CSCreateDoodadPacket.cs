@@ -39,7 +39,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             doodadSpawner.Position.RotationY = 0;
             doodadSpawner.Position.RotationZ = 0;
             doodadSpawner.Scale = scale;
-            var doodad = doodadSpawner.Spawn(0, itemId, Connection.ActiveChar.ObjId);
+            var doodad = doodadSpawner.Spawn(0, (ulong)itemId, Connection.ActiveChar.ObjId);
 
             if (doodad == null)
             {
@@ -53,7 +53,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (scale > 0)
                     doodad.SetScale(scale);
                 doodad.Spawn();*/
-
+                //^ Now gets handled in DoodadManager
 
 
                 var items = ItemManager.Instance.GetItemIdsFromDoodad(id);

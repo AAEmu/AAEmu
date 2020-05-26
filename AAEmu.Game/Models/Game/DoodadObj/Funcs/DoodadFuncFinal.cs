@@ -8,7 +8,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Tasks.Doodads;
-using AAEmu.Game.Utils;
+using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 skillId, After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
 
             var delay = Rand.Next(MinTime, MaxTime);
-            var character = (Character)caster;
+            Character character = WorldManager.Instance.GetCharacterByObjId(caster.ObjId);
             if (character != null)
             {
                 const int count = 1;
@@ -56,7 +56,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 owner.Delete();
             }
 
-            Character character = WorldManager.Instance.GetCharacterByObjId(caster.ObjId);
             if (character.Id != owner.OwnerId && owner.OwnerId != 0) //If the player is stealing something, create footprints
             {
                 var doodadSpawner = new DoodadSpawner();

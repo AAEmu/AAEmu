@@ -49,7 +49,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<LootGroups>> _lootGroups;
         private Dictionary<int, GradeDistributions> _itemGradeDistributions;
         private Dictionary<uint, List<Item>> _lootDropItems;
-        
+
         // ItemLookConvert
         private Dictionary<uint, ItemLookConvert> _itemLookConverts;
         private Dictionary<uint, uint> _holdableItemLookConverts;
@@ -225,7 +225,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="lootDropItem"></param>
         /// <param name="count"></param>
         /// <returns>Returns false if the item could not be picked up.</returns>
-        public bool TookLootDropItem(Character character,List<Item> lootDropItems, Item lootDropItem, int count)
+        public bool TookLootDropItem(Character character, List<Item> lootDropItems, Item lootDropItem, int count)
         {
             var objId = (uint)(lootDropItem.Id >> 32);
             if (lootDropItem.TemplateId == Item.Coins)
@@ -382,14 +382,14 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public ItemLookConvert GetWearableItemLookConvert(uint slotTypeId) 
+        public ItemLookConvert GetWearableItemLookConvert(uint slotTypeId)
         {
             if (_wearableItemLookConverts.ContainsKey(slotTypeId))
                 return _itemLookConverts[_wearableItemLookConverts[slotTypeId]];
             return null;
         }
 
-        public ItemLookConvert GetHoldableItemLookConvert(uint holdableId) 
+        public ItemLookConvert GetHoldableItemLookConvert(uint holdableId)
         {
             if (_holdableItemLookConverts.ContainsKey(holdableId))
                 return _itemLookConverts[_holdableItemLookConverts[holdableId]];
@@ -416,8 +416,8 @@ namespace AAEmu.Game.Core.Managers
             }
 
             item.Grade = grade;
-            
-            if(item.Template.BindType == ItemBindType.BindOnPickup) // Bind on pickup.
+
+            if (item.Template.BindType == ItemBindType.BindOnPickup) // Bind on pickup.
                 item.SetFlag(ItemFlag.SoulBound);
 
             if (item.Template.FixedGrade >= 0)
@@ -534,7 +534,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM item_grades";
@@ -1145,7 +1145,7 @@ namespace AAEmu.Game.Core.Managers
 
                 // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
                 var invalidItemCount = 0;
-                foreach(var i in _templates)
+                foreach (var i in _templates)
                 {
                     if (i.Value.Name == null)
                     {
@@ -1155,7 +1155,7 @@ namespace AAEmu.Game.Core.Managers
                     i.Value.searchString = (i.Value.Name + " " + LocalizationManager.Instance.Get("items", "name", i.Value.Id)).ToLower();
                 }
 
-                _log.Info("Loaded {0} item templates (with {1} unused) ...",_templates.Count(), invalidItemCount);
+                _log.Info("Loaded {0} item templates (with {1} unused) ...", _templates.Count(), invalidItemCount);
 
 
             }
@@ -1319,7 +1319,7 @@ namespace AAEmu.Game.Core.Managers
 
                         // Overwrite Fixed-grade items, just to make sure. Retail does not do this, but it just feels better if we do
                         if (item.Template.FixedGrade >= 0)
-                            item.Grade = (byte)item.Template.FixedGrade; 
+                            item.Grade = (byte)item.Template.FixedGrade;
                         else if (item.Template.Gradable)
                             item.Grade = reader.GetByte("grade"); // Load from our DB if the item is gradable
 

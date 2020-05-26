@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -17,6 +18,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Debug("DoodadFuncLootPack : LootPackId {0}, SkillId {1}", LootPackId, skillId);
 
+            Character character = (Character)caster;
             LootPacks[] lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
             Random itemQuantity = new Random();
             var count = 0;
@@ -34,8 +36,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                 //TODO create dropRate chance
                 count = itemQuantity.Next(pack.MinAmount, pack.MaxAmount);
-                Item item = ItemManager.Instance.Create(pack.ItemId, count, 0);
-                InventoryHelper.AddItemAndUpdateClient((Character)caster, item);
+
+                Item item = ItemManager.Instance.Create(pack.Id, count, pack.GradeId);
+                character.Inventory.AddItem(ItemTaskType.AutoLootDoodadItem, item);
             }
 
             var nextfunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, skillId);
@@ -43,7 +46,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             nextfunc = DoodadManager.Instance.GetFunc(owner.FuncGroupId, nextfunc.SkillId);
             if (nextfunc != null)
             {
-                _log.Warn("DoodadFuncLootPack is now calling " + nextfunc.FuncType);
+                _log.Debug("DoodadFuncLootPack is now calling " + nextfunc.FuncType);
                 nextfunc.Use(caster, owner, skillId);
             }
             else //Doodad interaction is done, begin clean up
