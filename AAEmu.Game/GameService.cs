@@ -101,6 +101,7 @@ namespace AAEmu.Game
             LoginNetwork.Instance.Start();
 
             SaveManager.Instance.Initialize();
+            SpecialtyManager.Instance.Initialize();
             stopWatch.Stop();
 
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
