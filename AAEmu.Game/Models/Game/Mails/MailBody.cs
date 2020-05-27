@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using Quartz.Impl.AdoJobStore;

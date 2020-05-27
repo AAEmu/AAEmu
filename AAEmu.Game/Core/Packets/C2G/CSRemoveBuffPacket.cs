@@ -1,8 +1,10 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -18,9 +20,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var buffId = stream.ReadUInt32();
             var reason = stream.ReadByte();
 
-            if (Connection.ActiveChar.ObjId != objId)
+            if (DbLoggerCategory.Database.Connection.ActiveChar.ObjId != objId)
                 return;
-            var effect = Connection.ActiveChar.Effects.GetEffectByIndex(buffId);
+            var effect = DbLoggerCategory.Database.Connection.ActiveChar.Effects.GetEffectByIndex(buffId);
             if (effect == null)
                 return;
             if (effect.Template is BuffTemplate template)

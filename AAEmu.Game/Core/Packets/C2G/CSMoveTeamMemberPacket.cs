@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -19,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var toIndex = stream.ReadByte();
 
             // _log.Warn("MoveTeamMember, TeamId: {0}, Id: {1}, {2}, Index: {3}, {4}", teamId, id, id2, memberIndex, otherIndex);
-            TeamManager.Instance.MoveTeamMember(Connection.ActiveChar, teamId, targetId, target2Id, fromIndex, toIndex);
+            TeamManager.Instance.MoveTeamMember(DbLoggerCategory.Database.Connection.ActiveChar, teamId, targetId, target2Id, fromIndex, toIndex);
         }
     }
 }

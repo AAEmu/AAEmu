@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -8,6 +9,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -70,7 +72,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             for (var i = 0; i < nBuyBack; i++)
             {
                 var index = stream.ReadInt32();
-                var item = Connection.ActiveChar.BuyBackItems.GetItemBySlot(index);
+                var item = DbLoggerCategory.Database.Connection.ActiveChar.BuyBackItems.GetItemBySlot(index);
                 /*
                 if (index >= Connection.ActiveChar.BuyBack.Length)
                     continue;
@@ -86,15 +88,15 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var useAAPoint = stream.ReadBoolean();
 
-            if (money > Connection.ActiveChar.Money && 
-                honor > Connection.ActiveChar.HonorPoint && 
-                living > Connection.ActiveChar.VocationPoint)
+            if (money > DbLoggerCategory.Database.Connection.ActiveChar.Money && 
+                honor > DbLoggerCategory.Database.Connection.ActiveChar.HonorPoint && 
+                living > DbLoggerCategory.Database.Connection.ActiveChar.VocationPoint)
                 return;
 
             var tasks = new List<ItemTask>();
             foreach (var (itemId, grade, count) in itemsBuy)
             {
-                Connection.ActiveChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, itemId, count, grade);
+                DbLoggerCategory.Database.Connection.ActiveChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, itemId, count, grade);
                 /*
                 var item = ItemManager.Instance.Create(itemId, count, grade);
                 if (item == null)
@@ -115,7 +117,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             foreach (var (item, index) in itemsBuyBack)
             {
-                Connection.ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.StoreBuy, item);
+                DbLoggerCategory.Database.Connection.ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.StoreBuy, item);
                 tasks.Add(new ItemBuyback(item));
                 /*
                 var res = Connection.ActiveChar.Inventory.AddItem(ItemTaskType.StoreBuy, item);
@@ -135,26 +137,26 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (honor > 0)
             {
-                Connection.ActiveChar.HonorPoint -= honor;
-                Connection.SendPacket(new SCGamePointChangedPacket(0, -honor));
+                DbLoggerCategory.Database.Connection.ActiveChar.HonorPoint -= honor;
+                DbLoggerCategory.Database.Connection.SendPacket(new SCGamePointChangedPacket(0, -honor));
             }
 
             if (living > 0)
             {
-                Connection.ActiveChar.VocationPoint -= living;
-                Connection.SendPacket(new SCGamePointChangedPacket(1, -living));
+                DbLoggerCategory.Database.Connection.ActiveChar.VocationPoint -= living;
+                DbLoggerCategory.Database.Connection.SendPacket(new SCGamePointChangedPacket(1, -living));
             }
 
             if (money > 0)
             {
-                Connection.ActiveChar.ChangeMoney(SlotType.Inventory, -money);
+                DbLoggerCategory.Database.Connection.ActiveChar.ChangeMoney(SlotType.Inventory, -money);
                 /*
                 Connection.ActiveChar.Money -= money;
                 tasks.Add(new MoneyChange(-money));
                 */
             }
 
-            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreBuy, tasks, new List<ulong>()));
+            DbLoggerCategory.Database.Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreBuy, tasks, new List<ulong>()));
         }
     }
 }

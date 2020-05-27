@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var moneyAmount = stream.ReadInt32();
 
             //_log.Warn("PutupTradeMoney, MoneyAmount: {0}", moneyAmount);
-            TradeManager.Instance.AddMoney(Connection.ActiveChar, moneyAmount);
+            TradeManager.Instance.AddMoney(DbLoggerCategory.Database.Connection.ActiveChar, moneyAmount);
         }
     }
 }

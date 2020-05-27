@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (subZoneId == 0) return;
 
             _log.Debug("Enter RegionId: {0} ", subZoneId);
-            Connection.ActiveChar.Portals.NotifySubZone(subZoneId);
+            DbLoggerCategory.Database.Connection.ActiveChar.Portals.NotifySubZone(subZoneId);
         }
     }
 }

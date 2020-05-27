@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -14,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var mailId = stream.ReadInt64();
 
             _log.Debug("ReturnMail, mailId: {0}", mailId);
-            Connection.ActiveChar.Mails.ReturnMail(mailId);
+            DbLoggerCategory.Database.Connection.ActiveChar.Mails.ReturnMail(mailId);
         }
     }
 }

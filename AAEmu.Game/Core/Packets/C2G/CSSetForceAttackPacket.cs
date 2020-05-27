@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -12,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var on = stream.ReadBoolean();
-            Connection.ActiveChar.SetForceAttack(on);
+            DbLoggerCategory.Database.Connection.ActiveChar.SetForceAttack(on);
         }
     }
 }

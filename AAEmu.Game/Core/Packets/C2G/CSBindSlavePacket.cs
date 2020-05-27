@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var tlId = stream.ReadUInt16();
 
             //_log.Debug("BindSlave, Tl: {0}", tlId);
-            SlaveManager.Instance.BindSlave(Connection, tlId);
+            SlaveManager.Instance.BindSlave(DbLoggerCategory.Database.Connection, tlId);
         }
     }
 }

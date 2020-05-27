@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var memberId = stream.ReadUInt32();
 
             // _log.Warn("MakeTeamOwner, TeamId: {0}, MemberId: {1}", teamId, memberId);
-            TeamManager.Instance.MakeTeamOwner(Connection.ActiveChar, teamId, memberId);
+            TeamManager.Instance.MakeTeamOwner(DbLoggerCategory.Database.Connection.ActiveChar, teamId, memberId);
         }
     }
 }

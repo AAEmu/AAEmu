@@ -1,7 +1,9 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var riskyAction = (RiskyAction)stream.ReadByte(); // ra
 
             // _log.Warn("AskRiskyTeamAction, TeamId: {0}, Id: {1}, RiskyAction: {2}", teamId, targetId, riskyAction);
-            TeamManager.Instance.AskRiskyTeam(Connection.ActiveChar, teamId, targetId, riskyAction);
+            TeamManager.Instance.AskRiskyTeam(DbLoggerCategory.Database.Connection.ActiveChar, teamId, targetId, riskyAction);
         }
     }
 }

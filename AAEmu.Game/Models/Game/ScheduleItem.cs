@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 
 namespace AAEmu.Game.Models.Game
 {

@@ -1,7 +1,9 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Managers;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -19,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var z = stream.ReadSingle();
 
             _log.Debug("ConstructHouseTax");
-            HousingManager.Instance.ConstructHouseTax(Connection, designId, x, y, z);
+            HousingManager.Instance.ConstructHouseTax(DbLoggerCategory.Database.Connection, designId, x, y, z);
         }
     }
 }

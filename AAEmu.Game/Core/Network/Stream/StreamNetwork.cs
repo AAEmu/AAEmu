@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Network.Type;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.C2S;

@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -20,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var baseId = stream.ReadUInt64();
             var lookId = stream.ReadUInt64();
 
-            var character = Connection.ActiveChar;
+            var character = DbLoggerCategory.Database.Connection.ActiveChar;
 
             Item toImage = character.Inventory.GetItemById(baseId);
             Item imageItem = character.Inventory.GetItemById(lookId);

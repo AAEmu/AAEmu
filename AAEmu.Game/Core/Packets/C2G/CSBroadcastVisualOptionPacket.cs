@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -12,10 +14,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            Connection.ActiveChar.VisualOptions.Read(stream);
+            DbLoggerCategory.Database.Connection.ActiveChar.VisualOptions.Read(stream);
 
-            Connection.ActiveChar.BroadcastPacket(
-                new SCUnitVisualOptionsPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.VisualOptions), true);
+            DbLoggerCategory.Database.Connection.ActiveChar.BroadcastPacket(
+                new SCUnitVisualOptionsPacket(DbLoggerCategory.Database.Connection.ActiveChar.ObjId, DbLoggerCategory.Database.Connection.ActiveChar.VisualOptions), true);
         }
     }
 }

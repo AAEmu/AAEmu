@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -48,7 +50,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var bid = stream.ReadUInt32();
 
 
-            AuctionManager.Instance.BidOnAuctionItem(Connection.ActiveChar, auctionId, bid);
+            AuctionManager.Instance.BidOnAuctionItem(DbLoggerCategory.Database.Connection.ActiveChar, auctionId, bid);
         }
     }
 }

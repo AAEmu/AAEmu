@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var id = stream.ReadUInt32(); // type(id)
 
             _log.Debug("ChangeExpeditionOwner, Id: {0}", id);
-            ExpeditionManager.Instance.ChangeOwner(Connection, id);
+            ExpeditionManager.Instance.ChangeOwner(DbLoggerCategory.Database.Connection, id);
         }
     }
 }

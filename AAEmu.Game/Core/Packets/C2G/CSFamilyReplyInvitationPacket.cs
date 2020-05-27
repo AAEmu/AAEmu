@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("FamilyReplyInvitation, invitorId: {0}, join: {1}, role: {2}", invitorId, join, role);
 
-            FamilyManager.Instance.ReplyToInvite(invitorId, Connection.ActiveChar, join, role);
+            FamilyManager.Instance.ReplyToInvite(invitorId, DbLoggerCategory.Database.Connection.ActiveChar, join, role);
         }
     }
 }

@@ -1,7 +1,9 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.CashShop;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -24,7 +26,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             detail.PTime = 720;
             detail.Price = 300;
 
-            Connection.SendPacket(new SCPremiumServiceListPacket(true, 1, detail, 0));
+            DbLoggerCategory.Database.Connection.SendPacket(new SCPremiumServiceListPacket(true, 1, detail, 0));
         }
     }
 }

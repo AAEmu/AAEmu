@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -8,6 +9,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -39,9 +41,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Item item = null;
                 if (slotType == SlotType.Equipment)
-                    item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
+                    item = DbLoggerCategory.Database.Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
                 else if (slotType == SlotType.Inventory)
-                    item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
+                    item = DbLoggerCategory.Database.Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
 //                else if (slotType == SlotType.Bank)
 //                    item = Connection.ActiveChar.Inventory.Bank[slot];
                 if (item != null && item.Id == itemId)
@@ -55,15 +57,15 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (!item.Template.Sellable)
                     continue;
 
-                if (!Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
+                if (!DbLoggerCategory.Database.Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
                 {
-                    _log.Warn(string.Format("Failed to move sold itemId {0} to BuyBack ItemContainer for {1}",item.Id,Connection.ActiveChar.Name));
+                    _log.Warn(string.Format("Failed to move sold itemId {0} to BuyBack ItemContainer for {1}",item.Id,DbLoggerCategory.Database.Connection.ActiveChar.Name));
                 }
                 money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
                          item.Count;
             }
 
-            Connection.ActiveChar.ChangeMoney(SlotType.Inventory, money);
+            DbLoggerCategory.Database.Connection.ActiveChar.ChangeMoney(SlotType.Inventory, money);
             /*
             Connection.ActiveChar.Money += money;
             tasks.Add(new MoneyChange(money));

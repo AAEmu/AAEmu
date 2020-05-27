@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var type = stream.ReadByte();
-            EnterWorldManager.Instance.Leave(Connection, type);
+            EnterWorldManager.Instance.Leave(DbLoggerCategory.Database.Connection, type);
         }
     }
 }

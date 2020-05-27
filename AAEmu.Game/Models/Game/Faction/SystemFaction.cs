@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 
 namespace AAEmu.Game.Models.Game.Faction
 {

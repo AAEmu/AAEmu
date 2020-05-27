@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             // Empty struct
             _log.Warn("ICSMenuList");
             
-            Connection.SendPacket(new SCICSMenuListPacket(1));
+            DbLoggerCategory.Database.Connection.SendPacket(new SCICSMenuListPacket(1));
         }
     }
 }

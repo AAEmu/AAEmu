@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -20,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("FamilyInviteMember, Name: {0}, Title: {1}", name, title);
 
-            FamilyManager.Instance.InviteToFamily(Connection.ActiveChar, name, title);
+            FamilyManager.Instance.InviteToFamily(DbLoggerCategory.Database.Connection.ActiveChar, name, title);
         }
     }
 }

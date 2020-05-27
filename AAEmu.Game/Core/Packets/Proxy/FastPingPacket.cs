@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.Proxy
 {
@@ -12,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
         public override void Read(PacketStream stream)
         {
             var sent = stream.ReadUInt32();
-            Connection.SendPacket(new FastPongPacket(sent));
+            DbLoggerCategory.Database.Connection.SendPacket(new FastPongPacket(sent));
         }
     }
 }

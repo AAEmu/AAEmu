@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,9 +17,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var uiDataType = stream.ReadUInt16();
             var id = stream.ReadUInt32();
 
-            if (Connection.Characters.ContainsKey(id))
-                Connection.SendPacket(
-                    new SCResponseUIDataPacket(id, uiDataType, Connection.Characters[id].GetOption(uiDataType))
+            if (DbLoggerCategory.Database.Connection.Characters.ContainsKey(id))
+                DbLoggerCategory.Database.Connection.SendPacket(
+                    new SCResponseUIDataPacket(id, uiDataType, DbLoggerCategory.Database.Connection.Characters[id].GetOption(uiDataType))
                 );
         }
     }

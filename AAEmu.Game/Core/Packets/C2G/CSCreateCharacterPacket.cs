@@ -1,7 +1,9 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -28,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var ability3 = stream.ReadByte();
             var level = stream.ReadByte();
 
-            CharacterManager.Instance.Create(Connection, name, race, gender, items, customModel, ability1);
+            CharacterManager.Instance.Create(DbLoggerCategory.Database.Connection, name, race, gender, items, customModel, ability1);
         }
     }
 }

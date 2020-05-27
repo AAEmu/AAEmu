@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             
             _log.Debug("UsePortal, ObjId: {0}, OnlyMyPortal: {1}", objId, onlyMyPortal);
 
-            PortalManager.Instance.UsePortal(Connection.ActiveChar, objId);
+            PortalManager.Instance.UsePortal(DbLoggerCategory.Database.Connection.ActiveChar, objId);
         }
     }
 }

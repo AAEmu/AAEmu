@@ -96,14 +96,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             if (character.Money < cost)
             {
-                character.SendErrorMessage(Error.ErrorMessageType.NotEnoughMoney);
+                character.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
                 return;
             }
 
             if (!character.Inventory.CheckItems(SlotType.Inventory,scroll.ItemTemplateId, 1))
             {
                 // No scroll
-                character.SendErrorMessage(Error.ErrorMessageType.NotEnoughRequiredItem);
+                character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
                 return;
             }
 
@@ -120,13 +120,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 charmInfo = ItemManager.Instance.GetItemGradEnchantingSupportByItemId(charmItem.TemplateId);
                 if (charmInfo.RequireGradeMin != -1 && item.Grade < charmInfo.RequireGradeMin)
                 {
-                    character.SendErrorMessage(Error.ErrorMessageType.NotEnoughRequiredItem);
+                    character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
                     return;
                 }
 
                 if (charmInfo.RequireGradeMax != -1 && item.Grade > charmInfo.RequireGradeMax)
                 {
-                    character.SendErrorMessage(Error.ErrorMessageType.GradeEnchantMax);
+                    character.SendErrorMessage(ErrorMessageType.GradeEnchantMax);
                     return;
                 }
 

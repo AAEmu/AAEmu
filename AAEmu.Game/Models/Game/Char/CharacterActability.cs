@@ -70,13 +70,13 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (expand.LifePoint > Owner.VocationPoint)
             {
-                Owner.SendErrorMessage(Error.ErrorMessageType.NotEnoughExpandItemAndMoney);
+                Owner.SendErrorMessage(ErrorMessageType.NotEnoughExpandItemAndMoney);
                 return; // TODO ... send msg error?
             }
 
             if (expand.ItemId != 0 && expand.ItemCount != 0 && !Owner.Inventory.CheckItems(Items.SlotType.Inventory, expand.ItemId, expand.ItemCount))
             {
-                Owner.SendErrorMessage(Error.ErrorMessageType.NotEnoughExpandItem);
+                Owner.SendErrorMessage(ErrorMessageType.NotEnoughExpandItem);
                 return; // TODO ... send msg error?
             }
 

@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Stream;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2S
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2S
             var accountId = stream.ReadUInt32();
             var cookie = stream.ReadUInt32();
 
-            StreamManager.Instance.Login(Connection, accountId, cookie);
+            StreamManager.Instance.Login(DbLoggerCategory.Database.Connection, accountId, cookie);
         }
     }
 }

@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var id = stream.ReadUInt32(); // type(id)
 
             _log.Debug("ChangeExpeditionMemberRole, Id: {0}, Role: {1}", id, role);
-            ExpeditionManager.Instance.ChangeMemberRole(Connection, role, id);
+            ExpeditionManager.Instance.ChangeMemberRole(DbLoggerCategory.Database.Connection, role, id);
         }
     }
 }

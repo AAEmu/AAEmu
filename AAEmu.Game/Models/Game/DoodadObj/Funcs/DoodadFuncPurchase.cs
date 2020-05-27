@@ -26,13 +26,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             if (character.Inventory.Bag.SpaceLeftForItem(ItemId) < Count)
             {
-                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                character.SendErrorMessage(ErrorMessageType.BagFull);
                 return;
             }
 
             if (character.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadInteraction, CoinItemId, CoinCount, null) <= 0)
             {
-                character.SendErrorMessage(Error.ErrorMessageType.NotEnoughItem);
+                character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
                 return;
             }
 

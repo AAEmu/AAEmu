@@ -2,6 +2,8 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using System.Collections.Generic;
+using AAEmu.Commons.Network.Core;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
 
             var max = stream.ReadUInt32();            
-            CharacterManager.Instance.PlayerRoll(Connection.ActiveChar, int.Parse(max.ToString()));          
+            CharacterManager.Instance.PlayerRoll(DbLoggerCategory.Database.Connection.ActiveChar, int.Parse(max.ToString()));          
            
         }
     }

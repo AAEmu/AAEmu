@@ -1,7 +1,9 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -29,7 +31,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Warn("CreateShipyard, Id: {0}, X: {1}, Y: {2}, Z: {3}, DesignItem: {4}", id, x, y, z, designItem);
 
-            ShipyardManager.Instance.Create(Connection.ActiveChar, id, x, y, z, (short)zRot, 0, 0, 0, 0);
+            ShipyardManager.Instance.Create(DbLoggerCategory.Database.Connection.ActiveChar, id, x, y, z, (short)zRot, 0, 0, 0, 0);
         }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -33,26 +35,26 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
             {
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
-                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                skill.Use(DbLoggerCategory.Database.Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else if (skillCaster is SkillItem)
             {
-                var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
+                var item = DbLoggerCategory.Database.Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
                 if (item == null || skillId != item.Template.UseSkillId)
                     return;
-                Connection.ActiveChar.Quests.OnItemUse(item);
+                DbLoggerCategory.Database.Connection.ActiveChar.Quests.OnItemUse(item);
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                skill.Use(DbLoggerCategory.Database.Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
-            else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
+            else if (DbLoggerCategory.Database.Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
             {
-                var skill = Connection.ActiveChar.Skills.Skills[skillId];
-                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                var skill = DbLoggerCategory.Database.Connection.ActiveChar.Skills.Skills[skillId];
+                skill.Use(DbLoggerCategory.Database.Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
-            else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
+            else if (skillId > 0 && DbLoggerCategory.Database.Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
             {
-                var skill = Connection.ActiveChar.Skills.Skills[skillId];
-                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                var skill = DbLoggerCategory.Database.Connection.ActiveChar.Skills.Skills[skillId];
+                skill.Use(DbLoggerCategory.Database.Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else
                 _log.Warn("StartSkill: Id {0}, undefined use type", skillId);

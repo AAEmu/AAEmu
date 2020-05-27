@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var name = stream.ReadString();
 
             //_log.Warn("ChangeMateName, TlId: {0}, Name: {1}", tlId, name);
-            MateManager.Instance.RenameMount(Connection, tlId, name);
+            MateManager.Instance.RenameMount(DbLoggerCategory.Database.Connection, tlId, name);
         }
     }
 }

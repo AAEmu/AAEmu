@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -40,7 +42,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var bidderName = stream.ReadString();
             var bidMoney = stream.ReadUInt32();
             var extra = stream.ReadUInt32();
-            var player = Connection.ActiveChar;
+            var player = DbLoggerCategory.Database.Connection.ActiveChar;
 
             AuctionManager.Instance.CancelAuctionItem(player, auctionId);
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Auction;
 

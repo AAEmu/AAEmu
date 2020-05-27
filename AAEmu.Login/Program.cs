@@ -1,86 +1,90 @@
 ﻿using System;
-using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
+using AAEmu.Commons.Configuration.Server;
+using AAEmu.Commons.DI;
 using AAEmu.Commons.IO;
 using AAEmu.Login.Models;
-using AAEmu.Login.Utils;
+using AAEmu.Login.Network.Message;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NLog;
-using NLog.Config;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
+using SlimMessageBus;
 
 namespace AAEmu.Login
 {
-    public static class Program
+   public static class Program
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-        private static Thread _thread = Thread.CurrentThread;
-        private static DateTime _startTime;
-        private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
-        private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
-
-        public static int UpTime => (int) (DateTime.Now - _startTime).TotalSeconds;
+#if DEBUG
+        private const string Title = "AAEmu: Authentication Server (DEBUG)";
+#else
+        private const string Title = "AAEmu: Authentication Server (RELEASE)";
+#endif
 
         public static async Task Main(string[] args)
         {
-            Initialization();
-
-            if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
-                Configuration(args);
-            else
-            {
-                _log.Error($"{FileManager.AppPath}Config.json doesn't exist!");
-                return;
-            }
-
-            _log.Info("{0} version {1}", Name, Version);
-
-            var connection = MySQL.Create();
-            if (connection == null)
-            {
-                LogManager.Flush();
-                return;
-            }
-
-            connection.Close();
-
+            Console.Title = Title;
             var builder = new HostBuilder()
-                .ConfigureAppConfiguration((hostingContext, config) =>
+                .ConfigureHostConfiguration(configBuilder =>
                 {
-                    config.AddEnvironmentVariables();
-
-                    if (args != null)
-                    {
-                        config.AddCommandLine(args);
-                    }
+                    configBuilder.SetBasePath(FileManager.AppPath);
+                    configBuilder.AddEnvironmentVariables(prefix: "EMU_");
+                    configBuilder.AddCommandLine(args);
                 })
-                .ConfigureServices((hostContext, services) =>
+                .ConfigureAppConfiguration((context, configBuilder) =>
                 {
-                    services.AddOptions();
-                    services.AddSingleton<IHostedService, LoginService>();
+                    configBuilder.SetBasePath(FileManager.AppPath);
+                    configBuilder.AddEnvironmentVariables(prefix: "EMU_");
+                    configBuilder.AddJsonFile($"Config.json", true, true);
+                    configBuilder.AddJsonFile($"Config.{context.HostingEnvironment.EnvironmentName}.json", true,
+                        true);
+                    configBuilder.AddCommandLine(args);
+                })
+                .ConfigureServices((context, services) =>
+                {
+                    var configuration = context.Configuration.Get<AuthServerConfiguration>();
+
+                    services.AddLogging();
+                    services.AddHostedService<LoginService>();
+                    services.Scan(scan => scan
+                        .FromExecutingAssembly()
+                        .FromApplicationDependencies()
+                        .AddClasses(classes => classes.AssignableTo<ITransientService>())
+                            .AsImplementedInterfaces()
+                            .WithTransientLifetime()
+                        .AddClasses(classes => classes.AssignableTo<IScopedService>())
+                            .As<IScopedService>()
+                            .WithScopedLifetime()
+                        .AddClasses(classes => classes.AssignableTo<ISingletonService>())
+                            .AsImplementedInterfaces()
+                            .WithSingletonLifetime()
+                        .AddClasses(classes => classes.AssignableTo(typeof(IRequestHandler<,>)))
+                            .AsSelf()
+                            .WithTransientLifetime()
+                        .AddClasses(classes => classes.AssignableTo<ILoginHandler>())
+                            .AsSelf()
+                            .WithTransientLifetime()
+                    );
+
+                    services.AddDbContext<AuthContext>(options =>
+                        options.UseNpgsql(configuration.ConnectionStrings.PostgresConnection)
+                    );
+
+                    services.AddSingleton(MessageBus.Build);
+                })
+                .ConfigureLogging((context, logger) =>
+                {
+                    logger.ClearProviders();
+                    logger.AddNLog("nlog.config");
+#if DEBUG
+                    logger.SetMinimumLevel(LogLevel.Debug);
+#endif
                 });
 
-            await builder.RunConsoleAsync();
-        }
-
-        private static void Initialization()
-        {
-            _thread.Name = "AA.LoginServer Base Thread";
-            _startTime = DateTime.Now;
-        }
-
-        private static void Configuration(string[] args)
-        {
-            var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile(FileManager.AppPath + "Config.json")
-                .AddCommandLine(args)
-                .Build();
-
-            configurationBuilder.Bind(AppConfiguration.Instance);
-
-            LogManager.Configuration = new XmlLoggingConfiguration(FileManager.AppPath + "NLog.config", false);
+            var host = builder.Build();
+            await host.RunAsync();
         }
     }
 }

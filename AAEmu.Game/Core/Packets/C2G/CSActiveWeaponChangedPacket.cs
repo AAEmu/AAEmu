@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,8 +15,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var activeWeapon = stream.ReadByte();
-            Connection.ActiveChar.ActiveWeapon = activeWeapon;
-            Connection.ActiveChar.BroadcastPacket(new SCActiveWeaponChangedPacket(Connection.ActiveChar.ObjId, activeWeapon), true);
+            DbLoggerCategory.Database.Connection.ActiveChar.ActiveWeapon = activeWeapon;
+            DbLoggerCategory.Database.Connection.ActiveChar.BroadcastPacket(new SCActiveWeaponChangedPacket(DbLoggerCategory.Database.Connection.ActiveChar.ObjId, activeWeapon), true);
         }
     }
 }

@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var targetName = stream.ReadString();
 
             // _log.Warn("CSInviteToTeam, TeamId: {0}, IsParty: {1}, Char: {2}", teamId, isParty, targetName);
-            TeamManager.Instance.AskToJoin(Connection.ActiveChar, targetName, teamId, isParty);
+            TeamManager.Instance.AskToJoin(DbLoggerCategory.Database.Connection.ActiveChar, targetName, teamId, isParty);
         }
     }
 }

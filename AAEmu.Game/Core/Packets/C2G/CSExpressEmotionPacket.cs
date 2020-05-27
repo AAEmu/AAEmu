@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             //_log.Warn("ExpressEmotion, ObjId: {0}, Obj2Id: {1}, EmotionId: {2}", objId, obj2Id, emotionId);
             // TODO - verify ids
-            Connection.ActiveChar.BroadcastPacket(new SCEmotionExpressedPacket(objId, obj2Id, emotionId), true);
+            DbLoggerCategory.Database.Connection.ActiveChar.BroadcastPacket(new SCEmotionExpressedPacket(objId, obj2Id, emotionId), true);
         }
     }
 }

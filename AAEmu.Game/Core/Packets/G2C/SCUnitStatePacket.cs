@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-
+using AAEmu.Commons.IO.Bits;
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;

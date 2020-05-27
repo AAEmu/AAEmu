@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -14,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var characterId = stream.ReadUInt32();
             var code = stream.ReadByte();
-            Connection.SendPacket(new SCResultRestrictCheckPacket(characterId, code, 0));
+            DbLoggerCategory.Database.Connection.SendPacket(new SCResultRestrictCheckPacket(characterId, code, 0));
         }
     }
 }

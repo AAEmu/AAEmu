@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("WithdrawMoney: amount -> {0}, aa_point -> {1}", amount, aapoint);
 
-            Connection.ActiveChar.ChangeMoney(SlotType.Bank, SlotType.Inventory, amount);
+            DbLoggerCategory.Database.Connection.ActiveChar.ChangeMoney(SlotType.Bank, SlotType.Inventory, amount);
         }
     }
 }

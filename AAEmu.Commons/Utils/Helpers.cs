@@ -77,7 +77,7 @@ namespace AAEmu.Commons.Utils
         [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
         public static float ConvertX(byte[] coords)
         {
-            return (float)Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
+            return (float)System.Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
         }
 
         [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
@@ -96,7 +96,7 @@ namespace AAEmu.Commons.Utils
         [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
         public static float ConvertY(byte[] coords)
         {
-            return (float)Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
+            return (float)System.Math.Round(coords[0] * 0.002f + coords[1] * 0.5f + coords[2] * 128, 4, MidpointRounding.ToEven);
         }
 
         [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
@@ -115,7 +115,7 @@ namespace AAEmu.Commons.Utils
         [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
         public static float ConvertZ(byte[] coords)
         {
-            return (float)Math.Round(coords[0] * 0.001f + coords[1] * 0.2561f + coords[2] * 65.5625f - 100, 4,
+            return (float)System.Math.Round(coords[0] * 0.001f + coords[1] * 0.2561f + coords[2] * 65.5625f - 100, 4,
                 MidpointRounding.ToEven);
         }
 
@@ -146,7 +146,7 @@ namespace AAEmu.Commons.Utils
 
             var resultX = ConvertLongX(resX);
             var resultY = ConvertLongY(resY);
-            var resultZ = (float)Math.Round(tempZ * 0.00000023841858 * 4196 - 100, 4, MidpointRounding.ToEven);
+            var resultZ = (float)System.Math.Round(tempZ * 0.00000023841858 * 4196 - 100, 4, MidpointRounding.ToEven);
 
             return (resultX, resultY, resultZ);
         }
@@ -161,7 +161,7 @@ namespace AAEmu.Commons.Utils
 
             var resultX = (preX ^ (longX + preX + (0 > preX ? 1 : 0))) >> 3;
             var resultY = (preY ^ (longY + preY + (0 > preY ? 1 : 0))) >> 3;
-            var resultZ = (long)Math.Floor((z + 100f) / 4196f * 4194304f + 0.5);
+            var resultZ = (long)System.Math.Floor((z + 100f) / 4196f * 4194304f + 0.5);
 
             var position = new byte[9];
             position[0] = (byte)(resultX >> 32);

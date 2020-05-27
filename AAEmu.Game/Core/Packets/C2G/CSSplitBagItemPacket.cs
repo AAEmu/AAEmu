@@ -1,7 +1,9 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -24,7 +26,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var count = stream.ReadInt32();
 
-            Connection.ActiveChar.Inventory.SplitOrMoveItem(ItemTaskType.SwapItems, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot, count);
+            DbLoggerCategory.Database.Connection.ActiveChar.Inventory.SplitOrMoveItem(ItemTaskType.SwapItems, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot, count);
             //Connection.ActiveChar.Inventory.Move(fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot, count);
         }
     }

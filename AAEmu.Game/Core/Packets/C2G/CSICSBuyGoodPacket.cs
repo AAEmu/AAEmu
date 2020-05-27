@@ -1,13 +1,15 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CashShop;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -21,7 +23,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var buyList = new List<CashShopItem>();
             var totalCost = 0;
-            var thisChar = Connection.ActiveChar;
+            var thisChar = DbLoggerCategory.Database.Connection.ActiveChar;
             byte buyMode = 1; // No idea what this means
             var cashShopItems = CashShopManager.Instance.GetCashShopItems();
             
@@ -50,14 +52,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 // TODO: Add support for gifting (to offline players)
                 thisChar.SendMessage("Target player must be online to gift!");
-                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
+                DbLoggerCategory.Database.Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
 
             if (buyList.Count <= 0)
             {
                 thisChar.SendErrorMessage(ErrorMessageType.BuyCartEmpty);
-                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
+                DbLoggerCategory.Database.Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
 
@@ -65,7 +67,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (totalCost > thisCharAaPoints)
             {
                 thisChar.SendErrorMessage(ErrorMessageType.IngameShopNotEnoughAaPoint); // Not sure if this is the correct error
-                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
+                DbLoggerCategory.Database.Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
 
@@ -73,7 +75,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (targetChar.Inventory.Bag.FreeSlotCount < buyList.Count)
             {
                 thisChar.SendErrorMessage(ErrorMessageType.BagFull);
-                Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
+                DbLoggerCategory.Database.Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
 
@@ -88,7 +90,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Warn("ICSBuyGood");
 
-            Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(true, buyMode, receiverName, totalCost));
+            DbLoggerCategory.Database.Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(true, buyMode, receiverName, totalCost));
         }
     }
 }

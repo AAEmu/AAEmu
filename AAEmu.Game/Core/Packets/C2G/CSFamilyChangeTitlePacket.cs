@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var memberId = stream.ReadUInt32();
             var title = stream.ReadString();
 
-            FamilyManager.Instance.ChangeTitle(Connection.ActiveChar, memberId, title);
+            FamilyManager.Instance.ChangeTitle(DbLoggerCategory.Database.Connection.ActiveChar, memberId, title);
 
             _log.Debug("FamilyChangeTitle, memberId: {0}, title: {1}", memberId, title);
         }

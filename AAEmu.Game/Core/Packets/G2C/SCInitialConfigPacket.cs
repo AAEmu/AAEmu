@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Features;
 

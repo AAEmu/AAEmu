@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                         if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
                         {
                             // TODO: do proper handling of insufficient bag space
-                            character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                            character.SendErrorMessage(ErrorMessageType.BagFull);
                         }
                     }
                 }

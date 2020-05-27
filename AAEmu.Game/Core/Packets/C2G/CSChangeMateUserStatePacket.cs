@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var userState = stream.ReadByte();
 
             //_log.Warn("ChangeMateUserState, TlId: {0}, UserState: {1}", tlId, userState);
-            MateManager.Instance.ChangeStateMate(Connection, tlId, userState);
+            MateManager.Instance.ChangeStateMate(DbLoggerCategory.Database.Connection, tlId, userState);
         }
     }
 }

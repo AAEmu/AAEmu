@@ -1,30 +1,21 @@
 {
-  "Id": 1,
-  "AdditionalesId": [],
-  "SecretKey": "test",
-  "Network": {
-    "Host": "127.0.0.1",
-    "Port": 1239,
-    "NumConnections": 10
-  },
-  "StreamNetwork": {
-    "Host": "127.0.0.1",
-    "Port": 1250
-  },
-  "LoginNetwork": {
-    "Host": "127.0.0.1",
-    "Port": 1234
-  },
-  "Connections": {
-    "MySQLProvider": {
-      "Host": "localhost",
-      "Port": "3306",
-      "User": "root",
-      "Password": "",
-      "Database": "aaemu_game"
-    }
-  },
-  "CharacterNameRegex": "^[a-zA-Z0-9а-яА-Я]{1,18}$",
-  "MaxConcurencyThreadPool": 8,
-  "HeightMapsEnable": false
+    "Id": 1,
+    "AdditionalIds": null,
+    "SecretKey": "test",
+    "Network": {
+        "Host": "127.0.0.1",
+        "Port": 1239
+    },
+    "StreamNetwork": {
+        "Host": "127.0.0.1",
+        "Port": 1250
+    },
+    "ConnectionStrings": {
+        "SqliteConnection": "DataSource=Data/compact.sqlite3",
+        "PostgresConnection": "Host=localhost;Port=5432;Database=Game;Username=postgres;Password=postgres",
+        "RedisConnection": "127.0.0.1:6379"
+    },
+    "CharacterNameRegex": "^[a-zA-Z0-9а-яА-Я]{1,18}$",
+    "MaxConcurencyThreadPool": 8,
+    "HeightMapsEnable": false
 }

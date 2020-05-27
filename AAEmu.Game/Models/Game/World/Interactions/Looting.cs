@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, count))
             {
                 // TODO: do proper handling of insufficient bag space
-                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                character.SendErrorMessage(ErrorMessageType.BagFull);
             }
 
         }

@@ -1,5 +1,6 @@
 using System;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using MySql.Data.MySqlClient;

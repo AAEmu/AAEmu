@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -19,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var buyoutPrice = stream.ReadUInt32();
             var duration = stream.ReadByte();
 
-            AuctionManager.Instance.ListAuctionItem(Connection.ActiveChar, itemId, startPrice, buyoutPrice, duration);
+            AuctionManager.Instance.ListAuctionItem(DbLoggerCategory.Database.Connection.ActiveChar, itemId, startPrice, buyoutPrice, duration);
         }
     }
 }

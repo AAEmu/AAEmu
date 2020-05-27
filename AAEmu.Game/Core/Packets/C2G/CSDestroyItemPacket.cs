@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -22,7 +24,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var slot = stream.ReadByte();
             var count = stream.ReadInt32();
 
-            var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);
+            var item = DbLoggerCategory.Database.Connection.ActiveChar.Inventory.GetItem(slotType, slot);
             if (item == null || item.Id != itemId || item.Count < count)
             {
                 _log.Warn("DestroyItem: Invalid item...");
@@ -33,7 +35,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (item.Count > count)
             {
                 item.Count -= count;
-                Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemCountUpdate(item, -count) }, new List<ulong>()));
+                DbLoggerCategory.Database.Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemCountUpdate(item, -count) }, new List<ulong>()));
             }
             else
             {
@@ -41,7 +43,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (item._holdingContainer == null)
                 {
                     ItemManager.Instance.ReleaseId(item.Id);
-                    Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
+                    DbLoggerCategory.Database.Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
                 }
                 else
                 if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))

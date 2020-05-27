@@ -1,9 +1,12 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -26,7 +29,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (message.StartsWith(CommandManager.CommandPrefix))
             {
-                if (CommandManager.Instance.Handle(Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim()))
+                if (CommandManager.Instance.Handle(DbLoggerCategory.Database.Connection.ActiveChar, message.Substring(CommandManager.CommandPrefix.Length).Trim()))
                     return;
             }
 
@@ -37,74 +40,74 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var target = WorldManager.Instance.GetCharacter(targetName);
                     if ((target == null) || (!target.IsOnline))
                     {
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.WhisperNoTarget);
+                        DbLoggerCategory.Database.Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
                     }
                     else
-                    if (target.Faction.MotherId != Connection.ActiveChar.Faction.MotherId)
+                    if (target.Faction.MotherId != DbLoggerCategory.Database.Connection.ActiveChar.Faction.MotherId)
                     {
                         // TODO: proper hostile check
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatCannotWhisperToHostile);
+                        DbLoggerCategory.Database.Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatCannotWhisperToHostile);
                     }
                     else
                     {
-                        var packet = new SCChatMessagePacket(ChatType.Whisper, Connection.ActiveChar, message, ability, languageType);
+                        var packet = new SCChatMessagePacket(ChatType.Whisper, DbLoggerCategory.Database.Connection.ActiveChar, message, ability, languageType);
                         target?.SendPacket(packet);
                         var packet_me = new SCChatMessagePacket(ChatType.Whispered, target, message, ability, languageType);
-                        Connection.SendPacket(packet_me);
+                        DbLoggerCategory.Database.Connection.SendPacket(packet_me);
                     }
                     break;
                 case ChatType.White: //say
-                    Connection.ActiveChar.BroadcastPacket(
-                        new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType), true);
+                    DbLoggerCategory.Database.Connection.ActiveChar.BroadcastPacket(
+                        new SCChatMessagePacket(type, DbLoggerCategory.Database.Connection.ActiveChar, message, ability, languageType), true);
                     break;
                 case ChatType.RaidLeader:
                 case ChatType.Raid:
-                    var teamRaid = TeamManager.Instance.GetActiveTeamByUnit(Connection.ActiveChar.Id);
+                    var teamRaid = TeamManager.Instance.GetActiveTeamByUnit(DbLoggerCategory.Database.Connection.ActiveChar.Id);
 
                     if (teamRaid != null)
                     {
-                        if ((type == ChatType.RaidLeader) && (teamRaid.OwnerId != Connection.ActiveChar.Id))
+                        if ((type == ChatType.RaidLeader) && (teamRaid.OwnerId != DbLoggerCategory.Database.Connection.ActiveChar.Id))
                         {
-                            Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotRaidOwner);
+                            DbLoggerCategory.Database.Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotRaidOwner);
                         }
                         else
                         {
-                            ChatManager.Instance.GetRaidChat(teamRaid).SendPacket(new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType));
+                            ChatManager.Instance.GetRaidChat(teamRaid).SendPacket(new SCChatMessagePacket(type, DbLoggerCategory.Database.Connection.ActiveChar, message, ability, languageType));
                         }
                     }
                     else
                     {
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInRaid);
+                        DbLoggerCategory.Database.Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInRaid);
                     }
                     break;
                 case ChatType.Party:
-                    var partyRaid = TeamManager.Instance.GetActiveTeamByUnit(Connection.ActiveChar.Id);
+                    var partyRaid = TeamManager.Instance.GetActiveTeamByUnit(DbLoggerCategory.Database.Connection.ActiveChar.Id);
                     if (partyRaid != null)
                     {
-                        ChatManager.Instance.GetPartyChat(partyRaid,Connection.ActiveChar).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                        ChatManager.Instance.GetPartyChat(partyRaid,DbLoggerCategory.Database.Connection.ActiveChar).SendMessage(DbLoggerCategory.Database.Connection.ActiveChar, message, ability, languageType);
                     }
                     else
                     {
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInParty);
+                        DbLoggerCategory.Database.Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInParty);
                     }
                     break;
                 case ChatType.Trade: //trade
                 case ChatType.GroupFind: //lfg
                 case ChatType.Shout: //shout
                     // We use SendPacket here so we can fake our way through the different channel types
-                    ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Position.ZoneId).SendPacket(
-                        new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
+                    ChatManager.Instance.GetZoneChat(DbLoggerCategory.Database.Connection.ActiveChar.Position.ZoneId).SendPacket(
+                        new SCChatMessagePacket(type, DbLoggerCategory.Database.Connection.ActiveChar, message, ability, languageType)
                         );
                     break;
                 case ChatType.Clan:
-                    if (Connection.ActiveChar.Expedition != null)
+                    if (DbLoggerCategory.Database.Connection.ActiveChar.Expedition != null)
                     {
-                        ChatManager.Instance.GetGuildChat(Connection.ActiveChar.Expedition).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                        ChatManager.Instance.GetGuildChat(DbLoggerCategory.Database.Connection.ActiveChar.Expedition).SendMessage(DbLoggerCategory.Database.Connection.ActiveChar, message, ability, languageType);
                     }
                     else
                     {
                         // Looks like the client blocks the chat even before it can get to the server, but let's intercept it anyway
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInExpedition);
+                        DbLoggerCategory.Database.Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInExpedition);
                     }
                     break;
                     /*
@@ -116,13 +119,13 @@ namespace AAEmu.Game.Core.Packets.C2G
                     break;
                     */
                 case ChatType.Region: //nation (birth place/race, includes pirates etc)
-                    ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                    ChatManager.Instance.GetNationChat(DbLoggerCategory.Database.Connection.ActiveChar.Race).SendMessage(DbLoggerCategory.Database.Connection.ActiveChar, message, ability, languageType);
                     break;
                 case ChatType.Ally: //faction (by current allegiance)
-                    ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                    ChatManager.Instance.GetFactionChat(DbLoggerCategory.Database.Connection.ActiveChar.Faction.MotherId).SendMessage(DbLoggerCategory.Database.Connection.ActiveChar, message, ability, languageType);
                     break;
                 default:
-                    _log.Warn("Unsupported chat type {0} from {1}", type, Connection.ActiveChar.Name);
+                    _log.Warn("Unsupported chat type {0} from {1}", type, DbLoggerCategory.Database.Connection.ActiveChar.Name);
                     break;
             }
         }

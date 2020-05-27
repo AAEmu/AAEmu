@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,11 +17,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             stream.ReadUInt16(); // tl; pid
             var objId = stream.ReadBc();
 
-            if (Connection.ActiveChar.ObjId != objId || Connection.ActiveChar.SkillTask == null ||
-                Connection.ActiveChar.SkillTask.Skill.TlId != tl)
+            if (DbLoggerCategory.Database.Connection.ActiveChar.ObjId != objId || DbLoggerCategory.Database.Connection.ActiveChar.SkillTask == null ||
+                DbLoggerCategory.Database.Connection.ActiveChar.SkillTask.Skill.TlId != tl)
                 return;
-            await Connection.ActiveChar.SkillTask.Cancel();
-            Connection.ActiveChar.SkillTask.Skill.Stop(Connection.ActiveChar);
+            await DbLoggerCategory.Database.Connection.ActiveChar.SkillTask.Cancel();
+            DbLoggerCategory.Database.Connection.ActiveChar.SkillTask.Skill.Stop(DbLoggerCategory.Database.Connection.ActiveChar);
         }
     }
 }

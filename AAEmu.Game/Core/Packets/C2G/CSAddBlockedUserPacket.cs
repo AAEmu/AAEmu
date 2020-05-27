@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var name = stream.ReadString();
             _log.Warn("AddBlockedUser, {0}", name);
-            Connection.ActiveChar.Blocked.AddBlockedUser(name);
+            DbLoggerCategory.Database.Connection.ActiveChar.Blocked.AddBlockedUser(name);
         }
     }
 }

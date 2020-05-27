@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Commons.Utils.Math;
 
 namespace AAEmu.Commons.Utils
 {

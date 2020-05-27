@@ -1,5 +1,6 @@
 using System.Net;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Packets.G2L;
 using AAEmu.Game.Models;

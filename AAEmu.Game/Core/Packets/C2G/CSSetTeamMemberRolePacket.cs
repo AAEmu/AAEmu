@@ -1,7 +1,9 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var role = (MemberRole)stream.ReadByte();
 
             // _log.Warn("SetTeamMemberRole, TeamId: {0}, MemberId: {1}, Role: {2}", teamId, memberId, role);
-            TeamManager.Instance.SetTeamMemberRole(Connection.ActiveChar, teamId, memberId, role);
+            TeamManager.Instance.SetTeamMemberRole(DbLoggerCategory.Database.Connection.ActiveChar, teamId, memberId, role);
         }
     }
 }

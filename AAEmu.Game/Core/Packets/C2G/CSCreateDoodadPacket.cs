@@ -6,6 +6,8 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Models.Game.Items.Actions;
 using System.Collections.Generic;
+using AAEmu.Commons.Network.Core;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -31,7 +33,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var doodadSpawner = new DoodadSpawner();
             doodadSpawner.Id = 0;
             doodadSpawner.UnitId = id;
-            doodadSpawner.Position = Connection.ActiveChar.Position.Clone();
+            doodadSpawner.Position = DbLoggerCategory.Database.Connection.ActiveChar.Position.Clone();
             doodadSpawner.Position.X = x;
             doodadSpawner.Position.Y = y;
             doodadSpawner.Position.Z = z;
@@ -47,8 +49,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             else
             {
                 doodad.OwnerType = DoodadOwnerType.Character;
-                doodad.OwnerId = Connection.ActiveChar.Id;
-                doodad.OwnerObjId = Connection.ActiveChar.ObjId;
+                doodad.OwnerId = DbLoggerCategory.Database.Connection.ActiveChar.Id;
+                doodad.OwnerObjId = DbLoggerCategory.Database.Connection.ActiveChar.ObjId;
                 //doodad.Position = new Models.Game.World.Point(Connection.ActiveChar.Position.WorldId, Connection.ActiveChar.Position.ZoneId, x, y, z, 0, 0, 0);
                 if (scale > 0)
                     doodad.SetScale(scale);
@@ -58,7 +60,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 if(items.Count > 0)
                 {
-                    var player = Connection.ActiveChar;
+                    var player = DbLoggerCategory.Database.Connection.ActiveChar;
                     foreach (var item in items)
                     {
                         player.Inventory.ConsumeItem(null,ItemTaskType.DoodadCreate, item, 1,null);

@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var objId = stream.ReadBc();
 
             //_log.Warn("ChangeMateTarget, TlId: {0}, ObjId: {1}", tlId, objId);
-            MateManager.Instance.ChangeTargetMate(Connection, tlId, objId);
+            MateManager.Instance.ChangeTargetMate(DbLoggerCategory.Database.Connection, tlId, objId);
         }
     }
 }

@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,29 +18,29 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("ResurrectCharacter, InPlace: {0}", inPlace);
 
-            Connection.ActiveChar.Hp = (int)(Connection.ActiveChar.MaxHp * 0.1);
-            Connection.ActiveChar.Mp = (int)(Connection.ActiveChar.MaxMp * 0.1);
+            DbLoggerCategory.Database.Connection.ActiveChar.Hp = (int)(DbLoggerCategory.Database.Connection.ActiveChar.MaxHp * 0.1);
+            DbLoggerCategory.Database.Connection.ActiveChar.Mp = (int)(DbLoggerCategory.Database.Connection.ActiveChar.MaxMp * 0.1);
 
-            Connection.ActiveChar.BroadcastPacket(
+            DbLoggerCategory.Database.Connection.ActiveChar.BroadcastPacket(
                 new SCCharacterResurrectedPacket(
-                    Connection.ActiveChar.ObjId,
-                    Connection.ActiveChar.Position.X,
-                    Connection.ActiveChar.Position.Y,
-                    Connection.ActiveChar.Position.Z,
+                    DbLoggerCategory.Database.Connection.ActiveChar.ObjId,
+                    DbLoggerCategory.Database.Connection.ActiveChar.Position.X,
+                    DbLoggerCategory.Database.Connection.ActiveChar.Position.Y,
+                    DbLoggerCategory.Database.Connection.ActiveChar.Position.Z,
                     0
                 ),
                 true
             );
 
-            Connection.ActiveChar.BroadcastPacket(
+            DbLoggerCategory.Database.Connection.ActiveChar.BroadcastPacket(
                 new SCUnitPointsPacket(
-                    Connection.ActiveChar.ObjId,
-                    Connection.ActiveChar.Hp,
-                    Connection.ActiveChar.Mp
+                    DbLoggerCategory.Database.Connection.ActiveChar.ObjId,
+                    DbLoggerCategory.Database.Connection.ActiveChar.Hp,
+                    DbLoggerCategory.Database.Connection.ActiveChar.Mp
                 ),
                 true
             );
-            Connection.ActiveChar.StartRegen();
+            DbLoggerCategory.Database.Connection.ActiveChar.StartRegen();
         }
     }
 }

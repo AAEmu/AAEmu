@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var id = stream.ReadUInt32(); // TODO character id?
             
             _log.Debug("CreateExpedition, name: {0}, id: {1}", name, id);
-            ExpeditionManager.Instance.CreateExpedition(name, Connection);
+            ExpeditionManager.Instance.CreateExpedition(name, DbLoggerCategory.Database.Connection);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -7,6 +8,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -19,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var objId = stream.ReadBc();
-            var myObjId = Connection.ActiveChar.ObjId;
+            var myObjId = DbLoggerCategory.Database.Connection.ActiveChar.ObjId;
             var type = (MoveTypeEnum)stream.ReadByte();
             var moveType = MoveType.GetType(type);
             stream.Read(moveType);
@@ -58,11 +60,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else
             {
-                RemoveEffects(Connection.ActiveChar, moveType);
-                Connection
+                RemoveEffects(DbLoggerCategory.Database.Connection.ActiveChar, moveType);
+                DbLoggerCategory.Database.Connection
                     .ActiveChar
                     .SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
+                DbLoggerCategory.Database.Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
             }
         }
 

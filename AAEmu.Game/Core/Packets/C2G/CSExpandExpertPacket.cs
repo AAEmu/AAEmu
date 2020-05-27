@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -14,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             // Empty struct
             _log.Debug("ExpandExpert");
 
-            Connection.ActiveChar.Actability.ExpandExpert();
+            DbLoggerCategory.Database.Connection.ActiveChar.Actability.ExpandExpert();
         }
     }
 }

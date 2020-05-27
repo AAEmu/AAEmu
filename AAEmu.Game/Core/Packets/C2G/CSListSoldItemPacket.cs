@@ -1,8 +1,10 @@
 ﻿using System.Linq;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -18,8 +20,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc == null || !npc.Template.Merchant)
                 return;
-            Connection.ActiveChar.BuyBackItems.ReNumberSlots();
-            Connection.SendPacket(new SCSoldItemListPacket(Connection.ActiveChar.BuyBackItems.Items));
+            DbLoggerCategory.Database.Connection.ActiveChar.BuyBackItems.ReNumberSlots();
+            DbLoggerCategory.Database.Connection.SendPacket(new SCSoldItemListPacket(DbLoggerCategory.Database.Connection.ActiveChar.BuyBackItems.Items));
         }
     }
 }

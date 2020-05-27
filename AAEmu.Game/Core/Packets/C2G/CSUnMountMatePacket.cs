@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var reason = stream.ReadByte();
             
             //_log.Warn("UnMountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
-            MateManager.Instance.UnMountMate(Connection.ActiveChar, tlId, ap, reason);
+            MateManager.Instance.UnMountMate(DbLoggerCategory.Database.Connection.ActiveChar, tlId, ap, reason);
         }
     }
 }

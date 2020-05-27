@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("DowngradeExpertLimit, id -> {0}, autoUseAAPoint -> {1}", id, autoUseAAPoint);
 
-            Connection.ActiveChar.Actability.Regrade(id, false);
+            DbLoggerCategory.Database.Connection.ActiveChar.Actability.Regrade(id, false);
         }
     }
 }

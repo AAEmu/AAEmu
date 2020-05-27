@@ -1,9 +1,11 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Auction.Templates;
+using Microsoft.EntityFrameworkCore;
 using NLog;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -19,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var _sTemplate = new AuctionSearchTemplate();
             var objId = stream.ReadBytes(6);
-            _sTemplate.Player = Connection.ActiveChar;
+            _sTemplate.Player = DbLoggerCategory.Database.Connection.ActiveChar;
             _sTemplate.ItemName = stream.ReadString();
             _sTemplate.ExactMatch = stream.ReadBoolean();
             _sTemplate.Grade = stream.ReadByte();
@@ -53,7 +55,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 $"SortKind: {_sTemplate.SortKind}, " +
                 $"SortOrder: {_sTemplate.SortKind}");
 
-            Connection.SendPacket(new SCAuctionSearchedPacket(foundItems, _sTemplate.Page));
+            DbLoggerCategory.Database.Connection.SendPacket(new SCAuctionSearchedPacket(foundItems, _sTemplate.Page));
         }
     }
 }

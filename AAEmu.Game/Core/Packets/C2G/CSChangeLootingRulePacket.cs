@@ -1,7 +1,9 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -22,7 +24,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             // _log.Warn("ChangeLootingRule, TeamId: {0}, Flag: {1}, Rule: {2}/{3}/{4}/{5}", teamId, changeFlags, lootingRule.LootMethod, lootingRule.Type,
             //     lootingRule.Id, lootingRule.RollForBop);
-            TeamManager.Instance.ChangeLootingRule(Connection.ActiveChar, teamId, lootingRule, changeFlags);
+            TeamManager.Instance.ChangeLootingRule(DbLoggerCategory.Database.Connection.ActiveChar, teamId, lootingRule, changeFlags);
         }
     }
 }

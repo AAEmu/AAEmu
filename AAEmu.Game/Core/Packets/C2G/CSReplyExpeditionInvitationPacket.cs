@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var join = stream.ReadBoolean();
 
             _log.Debug("ReplyExpeditionInvitation, Id: {0}, Id2: {1}, Join: {2}", id, id2, join);
-            ExpeditionManager.Instance.ReplyInvite(Connection, id, id2, join);
+            ExpeditionManager.Instance.ReplyInvite(DbLoggerCategory.Database.Connection, id, id2, join);
         }
     }
 }

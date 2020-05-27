@@ -1,10 +1,12 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -30,7 +32,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var position = new Point(x, y, z);
             HousingManager.Instance.Build(
-                Connection,
+                DbLoggerCategory.Database.Connection,
                 designId, position, zRot,
                 itemId, moneyAmount, ht, autoUseAaPoint
             );

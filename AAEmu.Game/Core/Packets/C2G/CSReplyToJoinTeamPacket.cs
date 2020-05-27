@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -20,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var isArea = stream.ReadBoolean();
 
             // _log.Warn("ReplyToJoinTeam, TeamId: {0}, Party: {1}, CharName: {2}, unkId: {3}, isReject: {4}, isArea: {5}", teamId, isParty, charName, ownerId, isReject, isArea);
-            TeamManager.Instance.ReplyToJoinTeam(Connection.ActiveChar, teamId, isParty, ownerId, isReject, charName, isArea);
+            TeamManager.Instance.ReplyToJoinTeam(DbLoggerCategory.Database.Connection.ActiveChar, teamId, isParty, ownerId, isReject, charName, isArea);
         }
     }
 }

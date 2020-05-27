@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             // Empty struct
             _log.Warn("CompletedCinema");
 
-            WorldManager.Instance.ResendVisibleObjectsToCharacter(Connection.ActiveChar);
+            WorldManager.Instance.ResendVisibleObjectsToCharacter(DbLoggerCategory.Database.Connection.ActiveChar);
         }
     }
 }

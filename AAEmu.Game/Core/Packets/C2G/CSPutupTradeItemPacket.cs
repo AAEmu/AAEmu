@@ -1,7 +1,9 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -18,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var amount = stream.ReadInt32();
 
             //_log.Warn("PutupTradeItem, SlotType: {0}, Slot: {1}, Amount: {2}", slotType, slot, amount);
-            TradeManager.Instance.AddItem(Connection.ActiveChar, slotType, slot, amount);
+            TradeManager.Instance.AddItem(DbLoggerCategory.Database.Connection.ActiveChar, slotType, slot, amount);
         }
     }
 }

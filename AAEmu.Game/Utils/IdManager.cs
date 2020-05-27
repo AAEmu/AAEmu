@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using AAEmu.Commons.IO.Bits;
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.Math;
 using AAEmu.Game.Utils.DB;
 using NLog;
 

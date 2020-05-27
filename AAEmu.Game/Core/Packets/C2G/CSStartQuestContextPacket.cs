@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,10 +19,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             var type = stream.ReadUInt32();
 
             if (objId > 0 &&
-                Connection.ActiveChar.CurrentTarget != null &&
-                Connection.ActiveChar.CurrentTarget.ObjId != objId)
+                DbLoggerCategory.Database.Connection.ActiveChar.CurrentTarget != null &&
+                DbLoggerCategory.Database.Connection.ActiveChar.CurrentTarget.ObjId != objId)
                 return;
-            Connection.ActiveChar.Quests.Add(questId);
+            DbLoggerCategory.Database.Connection.ActiveChar.Quests.Add(questId);
         }
     }
 }

@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("DeletePortal, PortalType: {0}, PortalId: {1}", portalType, portalId);
 
-            PortalManager.Instance.DeletePortal(Connection.ActiveChar, portalType, portalId);
+            PortalManager.Instance.DeletePortal(DbLoggerCategory.Database.Connection.ActiveChar, portalType, portalId);
         }
     }
 }

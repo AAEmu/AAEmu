@@ -10,6 +10,7 @@ using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Items;
 using NLog;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers
@@ -40,7 +41,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (!player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
             {
-                player.SendErrorMessage(Models.Game.Error.ErrorMessageType.CanNotPutupMoney);
+                player.SendErrorMessage(ErrorMessageType.CanNotPutupMoney);
                 return;
             }
             player.Inventory.Bag.RemoveItem(Models.Game.Items.Actions.ItemTaskType.Auction, newItem, true);

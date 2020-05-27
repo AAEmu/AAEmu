@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Stream;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2S
 {
@@ -17,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2S
             var y = stream.ReadInt32();
 
             _log.Warn("CTRequestCellPacket #.{0} ({1},{2})", instanceId, x, y);
-            StreamManager.Instance.RequestCell(Connection, instanceId, x, y);
+            StreamManager.Instance.RequestCell(DbLoggerCategory.Database.Connection, instanceId, x, y);
         }
     }
 }

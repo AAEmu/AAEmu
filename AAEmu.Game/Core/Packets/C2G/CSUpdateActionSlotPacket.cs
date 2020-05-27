@@ -1,6 +1,8 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -18,13 +20,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             switch (type)
             {
                 case ActionSlotType.None:
-                    Connection.ActiveChar.SetAction(slot, ActionSlotType.None, 0);
+                    DbLoggerCategory.Database.Connection.ActiveChar.SetAction(slot, ActionSlotType.None, 0);
                     break;
                 case ActionSlotType.Item:
                 case ActionSlotType.Skill:
                     // TODO убрать что бы найти что это ... case ActionSlotType.Unk5:
                     var actionId = stream.ReadUInt32();
-                    Connection.ActiveChar.SetAction(slot, type, actionId);
+                    DbLoggerCategory.Database.Connection.ActiveChar.SetAction(slot, type, actionId);
                     break;
                 case ActionSlotType.Unk4:
                     var itemId = stream.ReadUInt64();

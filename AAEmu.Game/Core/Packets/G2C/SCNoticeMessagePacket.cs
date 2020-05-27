@@ -1,7 +1,8 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Chat;
-using System.Drawing; 
+using System.Drawing;
+using AAEmu.Commons.Network.Core;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {

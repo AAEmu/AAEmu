@@ -1,40 +1,67 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using AAEmu.Login.Core.Controllers;
-using AAEmu.Login.Core.Network.Internal;
-using AAEmu.Login.Core.Network.Login;
+using AAEmu.Commons.Utils;
+using AAEmu.Login.Login;
+using AAEmu.Login.Models;
+using AAEmu.Login.Network;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using NLog;
+using Microsoft.Extensions.Logging;
+using SlimMessageBus;
 
 namespace AAEmu.Login
 {
-    public class LoginService : IHostedService, IDisposable
+    public class LoginService : IHostedService
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        private readonly ILogger<LoginService> _logger;
+        private readonly AuthContext _context;
+        private readonly IServerManager _manager;
+        private readonly ILoginNetwork _network;
+        private readonly IMessageBus _bus;
+
+        public IConfiguration Configuration { get; }
+
+        public LoginService(IConfiguration configuration, ILogger<LoginService> logger, AuthContext context,
+            IServerManager manager, ILoginNetwork network, IMessageBus bus)
+        {
+            Configuration = configuration;
+            _logger = logger;
+            _context = context;
+            _manager = manager;
+            _network = network;
+            _bus = bus;
+        }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _log.Info("Starting daemon: AAEmu.Login");
-            RequestController.Instance.Initialize();
-            GameController.Instance.Load();
-            LoginNetwork.Instance.Start();
-            InternalNetwork.Instance.Start();
-            return Task.CompletedTask;
+            try
+            {
+                _context.CanConnect();
+                _manager.Initialize();
+
+                _network.Start();
+
+                return Task.CompletedTask;
+            }
+            catch (Exception e)
+            {
+                return Task.FromException(e);
+            }
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _log.Info("Stopping daemon.");
-            LoginNetwork.Instance.Stop();
-            InternalNetwork.Instance.Stop();
-            return Task.CompletedTask;
-        }
+            try
+            {
+                _network.Stop();
 
-        public void Dispose()
-        {
-            _log.Info("Disposing....");
-            LogManager.Flush();
+                return Task.CompletedTask;
+            }
+            catch (Exception e)
+            {
+                return Task.FromException(e);
+            }
         }
     }
 }

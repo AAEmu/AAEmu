@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 

@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Packets.G2L;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.L2G
 {
@@ -21,7 +23,7 @@ namespace AAEmu.Game.Core.Packets.L2G
             var characters = accountId != 0
                 ? CharacterManager.Instance.LoadCharacters(accountId)
                 : new List<LoginCharacterInfo>();
-            Connection.SendPacket(new GLRequestInfoPacket(connectionId, requestId, characters));
+            DbLoggerCategory.Database.Connection.SendPacket(new GLRequestInfoPacket(connectionId, requestId, characters));
         }
     }
 }

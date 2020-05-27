@@ -1,5 +1,6 @@
 using System;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Core.Network.Login

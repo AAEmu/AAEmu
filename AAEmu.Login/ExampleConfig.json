@@ -1,22 +1,12 @@
 {
-  "SecretKey": "test",
-  "AutoAccount": false,
-  "InternalNetwork": {
-    "Host": "127.0.0.1",
-    "Port": 1234
-  },
-  "Network": {
-    "Host": "*",
-    "Port": 1237,
-    "NumConnections": 10
-  },
-  "Connections": {
-    "MySQLProvider": {
-      "Host": "localhost",
-      "Port": "3306",
-      "User": "root",
-      "Password": "",
-      "Database": "aaemu_login"
+    "SecretKey": "test",
+    "AutoAccount": false,
+    "Network": {
+        "Host": "127.0.0.1",
+        "Port": 1237
+    },
+    "ConnectionStrings": {
+        "PostgresConnection": "Host=localhost;Port=5432;Database=Auth;Username=postgres;Password=postgres",
+        "RedisConnection": "127.0.0.1:6379"
     }
-  }
 }

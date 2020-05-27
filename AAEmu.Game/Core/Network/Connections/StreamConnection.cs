@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models.Game.DoodadObj;
 

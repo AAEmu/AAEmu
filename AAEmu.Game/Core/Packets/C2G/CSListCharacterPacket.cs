@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Linq;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -18,19 +20,19 @@ namespace AAEmu.Game.Core.Packets.C2G
             var size = stream.ReadInt32(); // TODO max size 4096
             var data = stream.ReadBytes(); // TODO or string?
 
-            Connection.SendPacket(new SCGetSlotCountPacket(0));
-            Connection.SendPacket(
+            DbLoggerCategory.Database.Connection.SendPacket(new SCGetSlotCountPacket(0));
+            DbLoggerCategory.Database.Connection.SendPacket(
                 new SCAccountInfoPacket(
-                    (int)Connection.Payment.Method,
-                    Connection.Payment.Location,
-                    Connection.Payment.StartTime,
-                    Connection.Payment.EndTime
+                    (int)DbLoggerCategory.Database.Connection.Payment.Method,
+                    DbLoggerCategory.Database.Connection.Payment.Location,
+                    DbLoggerCategory.Database.Connection.Payment.StartTime,
+                    DbLoggerCategory.Database.Connection.Payment.EndTime
                 )
             );
 
-            Connection.LoadAccount();
+            DbLoggerCategory.Database.Connection.LoadAccount();
 
-            var characters = Connection.Characters.Values.ToArray();
+            var characters = DbLoggerCategory.Database.Connection.Characters.Values.ToArray();
 
 //            foreach (var character in characters)
 //            {
@@ -42,22 +44,22 @@ namespace AAEmu.Game.Core.Packets.C2G
 //                );
 //            }
 
-            Connection.SendPacket(new SCRaceCongestionPacket());
+            DbLoggerCategory.Database.Connection.SendPacket(new SCRaceCongestionPacket());
 
             if (characters.Length == 0)
-                Connection.SendPacket(new SCCharacterListPacket(true, characters));
+                DbLoggerCategory.Database.Connection.SendPacket(new SCCharacterListPacket(true, characters));
             else
                 for (var i = 0; i < characters.Length; i += 2)
                 {
                     var last = characters.Length - i <= 2;
                     var temp = new Character[last ? characters.Length - i : 2];
                     Array.Copy(characters, i, temp, 0, temp.Length);
-                    Connection.SendPacket(new SCCharacterListPacket(last, temp));
+                    DbLoggerCategory.Database.Connection.SendPacket(new SCCharacterListPacket(last, temp));
                 }
 
-            var houses = Connection.Houses.Values.ToArray();
+            var houses = DbLoggerCategory.Database.Connection.Houses.Values.ToArray();
             foreach (var house in houses)
-                Connection.SendPacket(new SCLoginCharInfoHouse(house.OwnerId, house));
+                DbLoggerCategory.Database.Connection.SendPacket(new SCLoginCharInfoHouse(house.OwnerId, house));
         }
     }
 }

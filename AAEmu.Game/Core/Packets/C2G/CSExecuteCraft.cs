@@ -1,8 +1,10 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Crafts;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -21,7 +23,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             _log.Debug("CSExecuteCraft, craftId : {0} , objId : {1}, count : {2}", craftId, objId, count);
         
             var craft = CraftManager.Instance.GetCraftById(craftId);
-            var character = Connection.ActiveChar;
+            var character = DbLoggerCategory.Database.Connection.ActiveChar;
             character.Craft.Craft(craft, count, objId);
         }
     }

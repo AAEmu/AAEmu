@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.Proxy
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
             var when = stream.ReadInt64(); // ping
             var local = stream.ReadUInt32();
 
-            Connection.SendPacket(new PongPacket(tm, when, local));
+            DbLoggerCategory.Database.Connection.SendPacket(new PongPacket(tm, when, local));
         }
     }
 }

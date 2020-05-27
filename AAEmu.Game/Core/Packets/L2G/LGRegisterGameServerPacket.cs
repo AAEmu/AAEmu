@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Login;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.L2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.L2G
             if (result != 0)
             {
                 _log.Error("Error registering on LoginServer");
-                Connection.Close(); // TODO or shutdown?
+                DbLoggerCategory.Database.Connection.Close(); // TODO or shutdown?
             }
             else
             {

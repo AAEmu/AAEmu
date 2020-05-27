@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -15,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var id = stream.ReadUInt32();
             var data = stream.ReadString();
 
-            Connection.ActiveChar.SetOption(uiDataType, data);
+            DbLoggerCategory.Database.Connection.ActiveChar.SetOption(uiDataType, data);
         }
     }
 }

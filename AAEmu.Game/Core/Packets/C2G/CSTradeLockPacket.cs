@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var _lock = stream.ReadBoolean();
-            TradeManager.Instance.LockTrade(Connection.ActiveChar, _lock);
+            TradeManager.Instance.LockTrade(DbLoggerCategory.Database.Connection.ActiveChar, _lock);
         }
     }
 }
