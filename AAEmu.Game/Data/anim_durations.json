@@ -1,0 +1,630 @@
+{
+    "all_co_sk_buff_launch_defense": {
+        "total_time": 867,
+        "combat_sync_time": 364
+    },
+    "all_co_sk_buff_launch_dragon": {
+        "total_time": 1000,
+        "combat_sync_time": 255
+    },
+    "all_co_sk_buff_launch_force": {
+        "total_time": 1000,
+        "combat_sync_time": 255
+    },
+    "all_co_sk_buff_launch_mana": {
+        "total_time": 667,
+        "combat_sync_time": 197
+    },
+    "all_co_sk_buff_launch_mental": {
+        "total_time": 667,
+        "combat_sync_time": 153
+    },
+    "all_co_sk_buff_launch_resist": {
+        "total_time": 1200,
+        "combat_sync_time": 483
+    },
+    "all_co_sk_buff_launch_special": {
+        "total_time": 667,
+        "combat_sync_time": 130
+    },
+    "all_co_sk_dashattack": {
+        "total_time": 1000,
+        "combat_sync_time": 400
+    },
+    "all_co_sk_dashattack_2": {
+        "total_time": 833,
+        "combat_sync_time": 308
+    },
+    "all_co_sk_flyingkick": {
+        "total_time": 1000,
+        "combat_sync_time": 500
+    },
+    "all_co_sk_holdthrow_launch": {
+        "total_time": 1467,
+        "combat_sync_time": 330
+    },
+    "all_co_sk_leapattack": {
+        "total_time": 1000,
+        "combat_sync_time": 600
+    },
+    "all_co_sk_leapattack_2": {
+        "total_time": 1033,
+        "combat_sync_time": 702
+    },
+    "all_co_sk_lowkick": {
+        "total_time": 1167,
+        "combat_sync_time": 336
+    },
+    "all_co_sk_shout": {
+        "total_time": 1000,
+        "combat_sync_time": 244
+    },
+    "all_co_sk_shout_2": {
+        "total_time": 1000,
+        "combat_sync_time": 244
+    },
+    "all_co_sk_spell_launch_all": {
+        "total_time": 800,
+        "combat_sync_time": 307
+    },
+    "all_co_sk_spell_launch_bless": {
+        "total_time": 1167,
+        "combat_sync_time": 254
+    },
+    "all_co_sk_spell_launch_cold": {
+        "total_time": 1333,
+        "combat_sync_time": 25
+    },
+    "all_co_sk_spell_launch_d": {
+        "total_time": 1000,
+        "combat_sync_time": 288
+    },
+    "all_co_sk_spell_launch_dead": {
+        "total_time": 1333,
+        "combat_sync_time": 23
+    },
+    "all_co_sk_spell_launch_dragonwind": {
+        "total_time": 867,
+        "combat_sync_time": 208
+    },
+    "all_co_sk_spell_launch_fepee": {
+        "total_time": 1133,
+        "combat_sync_time": 510
+    },
+    "all_co_sk_spell_launch_field": {
+        "total_time": 1000,
+        "combat_sync_time": 317
+    },
+    "all_co_sk_spell_launch_fireball": {
+        "total_time": 867,
+        "combat_sync_time": 156
+    },
+    "all_co_sk_spell_launch_fireball2": {
+        "total_time": 867,
+        "combat_sync_time": 156
+    },
+    "all_co_sk_spell_launch_fireball_2": {
+        "total_time": 1000,
+        "combat_sync_time": 260
+    },
+    "all_co_sk_spell_launch_fireball_3": {
+        "total_time": 1133,
+        "combat_sync_time": 283
+    },
+    "all_co_sk_spell_launch_flash": {
+        "total_time": 1333,
+        "combat_sync_time": 59
+    },
+    "all_co_sk_spell_launch_ground": {
+        "total_time": 1333,
+        "combat_sync_time": 600
+    },
+    "all_co_sk_spell_launch_l": {
+        "total_time": 333,
+        "combat_sync_time": 133
+    },
+    "all_co_sk_spell_launch_love": {
+        "total_time": 1600,
+        "combat_sync_time": 80
+    },
+    "all_co_sk_spell_launch_meteor": {
+        "total_time": 1667,
+        "combat_sync_time": 750
+    },
+    "all_co_sk_spell_launch_meteor_dragon": {
+        "total_time": 1667,
+        "combat_sync_time": 750
+    },
+    "all_co_sk_spell_launch_missile": {
+        "total_time": 1333,
+        "combat_sync_time": 197
+    },
+    "all_co_sk_spell_launch_nd": {
+        "total_time": 1333,
+        "combat_sync_time": 536
+    },
+    "all_co_sk_spell_launch_r": {
+        "total_time": 333,
+        "combat_sync_time": 133
+    },
+    "all_co_sk_spell_launch_rescue": {
+        "total_time": 1600,
+        "combat_sync_time": 567
+    },
+    "all_co_sk_spell_launch_shield": {
+        "total_time": 1167,
+        "combat_sync_time": 175
+    },
+    "all_co_sk_spell_launch_site": {
+        "total_time": 1500,
+        "combat_sync_time": 751
+    },
+    "all_co_sk_spell_launch_spear": {
+        "total_time": 1167,
+        "combat_sync_time": 52
+    },
+    "all_co_sk_spell_launch_spread": {
+        "total_time": 1000,
+        "combat_sync_time": 244
+    },
+    "all_co_sk_spell_launch_summon": {
+        "total_time": 2833,
+        "combat_sync_time": 1275
+    },
+    "all_co_sk_spell_launch_swich": {
+        "total_time": 967,
+        "combat_sync_time": 155
+    },
+    "all_co_sk_spell_launch_thunderbolt": {
+        "total_time": 1200,
+        "combat_sync_time": 240
+    },
+    "all_co_sk_spell_launch_thunderbolt_2": {
+        "total_time": 1133,
+        "combat_sync_time": 264
+    },
+    "all_co_sk_spell_launch_thunderbolt_3": {
+        "total_time": 1133,
+        "combat_sync_time": 491
+    },
+    "all_co_sk_spell_launch_thunderbolt_4": {
+        "total_time": 1000,
+        "combat_sync_time": 133
+    },
+    "all_co_sk_spell_launch_thunderbolt_5": {
+        "total_time": 1967,
+        "combat_sync_time": 639
+    },
+    "all_co_sk_spell_launch_union": {
+        "total_time": 1667,
+        "combat_sync_time": 231
+    },
+    "all_co_sk_spell_launch_vitality": {
+        "total_time": 1233,
+        "combat_sync_time": 196
+    },
+    "all_co_sk_trample": {
+        "total_time": 1233,
+        "combat_sync_time": 355
+    },
+    "all_co_sk_underthrow": {
+        "total_time": 1667,
+        "combat_sync_time": 467
+    },
+    "all_co_sk_whirlwind_launch": {
+        "total_time": 833,
+        "combat_sync_time": 12
+    },
+    "all_re_combat_critical": {
+        "total_time": 1000,
+        "combat_sync_time": 28
+    },
+    "all_re_combat_dodge": {
+        "total_time": 667,
+        "combat_sync_time": 189
+    },
+    "all_re_combat_hit": {
+        "total_time": 1000,
+        "combat_sync_time": 70
+    },
+    "bow_co_attack": {
+        "total_time": 1000,
+        "combat_sync_time": 358
+    },
+    "bow_co_sk_high_launch": {
+        "total_time": 833,
+        "combat_sync_time": 86
+    },
+    "bow_co_sk_launch": {
+        "total_time": 1000,
+        "combat_sync_time": 358
+    },
+    "bow_co_sk_launch_2": {
+        "total_time": 833,
+        "combat_sync_time": 71
+    },
+    "bow_co_sk_launch_3": {
+        "total_time": 833,
+        "combat_sync_time": 77
+    },
+    "bow_co_sk_launch_4": {
+        "total_time": 833,
+        "combat_sync_time": 68
+    },
+    "bow_co_sk_launch_5": {
+        "total_time": 1667,
+        "combat_sync_time": 344
+    },
+    "bow_co_sk_launch_skill_launch": {
+        "total_time": 3000,
+        "combat_sync_time": 974
+    },
+    "bow_co_sk_swim_high_launch_ub": {
+        "total_time": 833,
+        "combat_sync_time": 86
+    },
+    "fist_ac_capture_launch": {
+        "total_time": 1167,
+        "combat_sync_time": 108
+    },
+    "fist_ac_punishment_critical": {
+        "total_time": 1667,
+        "combat_sync_time": 276
+    },
+    "fist_ac_punishment_hit": {
+        "total_time": 1000,
+        "combat_sync_time": 273
+    },
+    "fist_ac_punishment_sit_critical": {
+        "total_time": 1667,
+        "combat_sync_time": 215
+    },
+    "fist_ac_punishment_sit_hit": {
+        "total_time": 1000,
+        "combat_sync_time": 122
+    },
+    "fist_ac_whipping": {
+        "total_time": 1400,
+        "combat_sync_time": 398
+    },
+    "fist_ac_whipping_2": {
+        "total_time": 1533,
+        "combat_sync_time": 436
+    },
+    "fist_co_attack_r": {
+        "total_time": 933,
+        "combat_sync_time": 269
+    },
+    "fist_co_attack_r_2": {
+        "total_time": 933,
+        "combat_sync_time": 269
+    },
+    "fist_co_sk_fistattack": {
+        "total_time": 1000,
+        "combat_sync_time": 244
+    },
+    "fist_co_sk_pierce": {
+        "total_time": 1333,
+        "combat_sync_time": 381
+    },
+    "fist_co_sk_uppercut": {
+        "total_time": 767,
+        "combat_sync_time": 180
+    },
+    "music_co_sk_drum_launch": {
+        "total_time": 1267,
+        "combat_sync_time": 362
+    },
+    "music_co_sk_drum_launch_2": {
+        "total_time": 1067,
+        "combat_sync_time": 323
+    },
+    "music_co_sk_lute_launch": {
+        "total_time": 1267,
+        "combat_sync_time": 380
+    },
+    "music_co_sk_lute_launch_2": {
+        "total_time": 1167,
+        "combat_sync_time": 456
+    },
+    "music_co_sk_pipe_launch": {
+        "total_time": 1600,
+        "combat_sync_time": 296
+    },
+    "music_co_sk_pipe_launch_2": {
+        "total_time": 1433,
+        "combat_sync_time": 521
+    },
+    "onehand_ac_holster_side_l": {
+        "total_time": 2700,
+        "combat_sync_time": 1156
+    },
+    "onehand_co_attack_l_blunt": {
+        "total_time": 1400,
+        "combat_sync_time": 465
+    },
+    "onehand_co_attack_l_blunt_2": {
+        "total_time": 1400,
+        "combat_sync_time": 465
+    },
+    "onehand_co_attack_l_pierce": {
+        "total_time": 1167,
+        "combat_sync_time": 396
+    },
+    "onehand_co_attack_l_pierce_2": {
+        "total_time": 1167,
+        "combat_sync_time": 396
+    },
+    "onehand_co_attack_l_slash": {
+        "total_time": 1500,
+        "combat_sync_time": 454
+    },
+    "onehand_co_attack_l_slash_2": {
+        "total_time": 1500,
+        "combat_sync_time": 454
+    },
+    "onehand_co_attack_r_blunt": {
+        "total_time": 1500,
+        "combat_sync_time": 493
+    },
+    "onehand_co_attack_r_blunt_2": {
+        "total_time": 1400,
+        "combat_sync_time": 367
+    },
+    "onehand_co_attack_r_pierce": {
+        "total_time": 1333,
+        "combat_sync_time": 399
+    },
+    "onehand_co_attack_r_pierce_2": {
+        "total_time": 1400,
+        "combat_sync_time": 351
+    },
+    "onehand_co_attack_r_slash": {
+        "total_time": 1500,
+        "combat_sync_time": 465
+    },
+    "onehand_co_attack_r_slash_2": {
+        "total_time": 1400,
+        "combat_sync_time": 346
+    },
+    "onehand_co_horse_attack_l_slash": {
+        "total_time": 1200,
+        "combat_sync_time": 421
+    },
+    "onehand_co_horse_attack_r_slash": {
+        "total_time": 1100,
+        "combat_sync_time": 382
+    },
+    "onehand_co_sk_fastattack_1": {
+        "total_time": 1267,
+        "combat_sync_time": 201
+    },
+    "onehand_co_sk_fastattack_2": {
+        "total_time": 1333,
+        "combat_sync_time": 266
+    },
+    "onehand_co_sk_fastattack_3": {
+        "total_time": 1133,
+        "combat_sync_time": 243
+    },
+    "onehand_co_sk_fastattack_4": {
+        "total_time": 1333,
+        "combat_sync_time": 300
+    },
+    "onehand_co_sk_shieldpush": {
+        "total_time": 2000,
+        "combat_sync_time": 369
+    },
+    "onehand_co_sk_shieldwield": {
+        "total_time": 2000,
+        "combat_sync_time": 399
+    },
+    "onehand_co_sk_streakattack_1": {
+        "total_time": 1600,
+        "combat_sync_time": 307
+    },
+    "onehand_co_sk_streakattack_2": {
+        "total_time": 1633,
+        "combat_sync_time": 301
+    },
+    "onehand_co_sk_streakattack_3": {
+        "total_time": 2333,
+        "combat_sync_time": 697
+    },
+    "onehand_co_sk_swim_streakattack_3_ub": {
+        "total_time": 2333,
+        "combat_sync_time": 792
+    },
+    "onehand_co_sk_throw": {
+        "total_time": 1167,
+        "combat_sync_time": 461
+    },
+    "onehand_co_sk_throwdagger": {
+        "total_time": 1767,
+        "combat_sync_time": 535
+    },
+    "onehand_co_sk_weapon_blunt": {
+        "total_time": 1500,
+        "combat_sync_time": 232
+    },
+    "onehand_co_sk_weapon_blunt_2": {
+        "total_time": 1933,
+        "combat_sync_time": 628
+    },
+    "onehand_co_sk_weapon_pierce": {
+        "total_time": 1833,
+        "combat_sync_time": 501
+    },
+    "onehand_co_sk_weapon_pierce_2": {
+        "total_time": 1333,
+        "combat_sync_time": 428
+    },
+    "onehand_co_sk_weapon_slash": {
+        "total_time": 1300,
+        "combat_sync_time": 235
+    },
+    "onehand_co_sk_weapon_slash_2": {
+        "total_time": 2000,
+        "combat_sync_time": 635
+    },
+    "onehand_co_sk_weapon_slash_3": {
+        "total_time": 1433,
+        "combat_sync_time": 153
+    },
+    "onehand_re_combat_parry": {
+        "total_time": 500,
+        "combat_sync_time": 70
+    },
+    "onehand_re_combat_shieldblock": {
+        "total_time": 733,
+        "combat_sync_time": 81
+    },
+    "staff_ac_holster_staff_l": {
+        "total_time": 1333,
+        "combat_sync_time": 601
+    },
+    "staff_co_attack": {
+        "total_time": 1333,
+        "combat_sync_time": 379
+    },
+    "staff_co_attack_2": {
+        "total_time": 1333,
+        "combat_sync_time": 379
+    },
+    "twohand_ac_holster_back_r": {
+        "total_time": 2733,
+        "combat_sync_time": 1099
+    },
+    "twohand_co_attack": {
+        "total_time": 1667,
+        "combat_sync_time": 664
+    },
+    "twohand_co_attack_2": {
+        "total_time": 1667,
+        "combat_sync_time": 664
+    },
+    "twohand_co_sk_fastattack_1": {
+        "total_time": 1267,
+        "combat_sync_time": 201
+    },
+    "twohand_co_sk_fastattack_2": {
+        "total_time": 1333,
+        "combat_sync_time": 310
+    },
+    "twohand_co_sk_fastattack_3": {
+        "total_time": 1133,
+        "combat_sync_time": 276
+    },
+    "twohand_co_sk_fastattack_4": {
+        "total_time": 1333,
+        "combat_sync_time": 335
+    },
+    "twohand_co_sk_streakattack_1": {
+        "total_time": 1600,
+        "combat_sync_time": 248
+    },
+    "twohand_co_sk_streakattack_2": {
+        "total_time": 1667,
+        "combat_sync_time": 314
+    },
+    "twohand_co_sk_streakattack_3": {
+        "total_time": 2500,
+        "combat_sync_time": 876
+    },
+    "twohand_co_sk_swim_fastattack_1_ub": {
+        "total_time": 1267,
+        "combat_sync_time": 304
+    },
+    "twohand_co_sk_swim_fastattack_2_ub": {
+        "total_time": 1333,
+        "combat_sync_time": 172
+    },
+    "twohand_co_sk_swim_fastattack_3_ub": {
+        "total_time": 1133,
+        "combat_sync_time": 184
+    },
+    "twohand_co_sk_swim_fastattack_4_ub": {
+        "total_time": 1333,
+        "combat_sync_time": 295
+    },
+    "twohand_co_sk_weapon_blunt": {
+        "total_time": 1267,
+        "combat_sync_time": 224
+    },
+    "twohand_co_sk_weapon_blunt_2": {
+        "total_time": 1933,
+        "combat_sync_time": 621
+    },
+    "twohand_co_sk_weapon_pierce": {
+        "total_time": 1833,
+        "combat_sync_time": 501
+    },
+    "twohand_co_sk_weapon_pierce_2": {
+        "total_time": 1333,
+        "combat_sync_time": 423
+    },
+    "twohand_co_sk_weapon_slash": {
+        "total_time": 1300,
+        "combat_sync_time": 235
+    },
+    "twohand_co_sk_weapon_slash_2": {
+        "total_time": 2000,
+        "combat_sync_time": 627
+    },
+    "twohand_co_sk_weapon_slash_3": {
+        "total_time": 1433,
+        "combat_sync_time": 148
+    },
+    "twohand_re_combat_parry": {
+        "total_time": 500,
+        "combat_sync_time": 92
+    },
+    "twoswords_co_sk_fastattack_1": {
+        "total_time": 1333,
+        "combat_sync_time": 300
+    },
+    "twoswords_co_sk_fastattack_2": {
+        "total_time": 1333,
+        "combat_sync_time": 295
+    },
+    "twoswords_co_sk_fastattack_3": {
+        "total_time": 1133,
+        "combat_sync_time": 258
+    },
+    "twoswords_co_sk_fastattack_4": {
+        "total_time": 1333,
+        "combat_sync_time": 362
+    },
+    "twoswords_co_sk_leapattack": {
+        "total_time": 1000,
+        "combat_sync_time": 600
+    },
+    "twoswords_co_sk_streakattack_1": {
+        "total_time": 1667,
+        "combat_sync_time": 357
+    },
+    "twoswords_co_sk_streakattack_2": {
+        "total_time": 1667,
+        "combat_sync_time": 295
+    },
+    "twoswords_co_sk_streakattack_3": {
+        "total_time": 2333,
+        "combat_sync_time": 740
+    },
+    "twoswords_co_sk_weapon_blunt": {
+        "total_time": 1500,
+        "combat_sync_time": 232
+    },
+    "twoswords_co_sk_weapon_pierce": {
+        "total_time": 1833,
+        "combat_sync_time": 440
+    },
+    "twoswords_co_sk_weapon_slash": {
+        "total_time": 1300,
+        "combat_sync_time": 235
+    },
+    "twoswords_co_sk_weapon_slash_3": {
+        "total_time": 1367,
+        "combat_sync_time": 146
+    }
+}

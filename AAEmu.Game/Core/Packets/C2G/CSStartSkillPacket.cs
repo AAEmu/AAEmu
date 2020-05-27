@@ -51,7 +51,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
             {
-                var skill = Connection.ActiveChar.Skills.Skills[skillId];
+                var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else

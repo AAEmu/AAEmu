@@ -70,7 +70,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((short)(_skill.Template.EffectDelay / 10 + 10)); // TODO +10 It became visible flying arrows
                 stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
                 stream.Write((byte)0); // f
-                stream.Write(_skill.Template.FireAnimId); // fire_anim_id 
+                stream.Write(_skill.Template.FireAnim?.Id ?? 0); // fire_anim_id 
             }
 
             stream.Write((byte)0); // flag

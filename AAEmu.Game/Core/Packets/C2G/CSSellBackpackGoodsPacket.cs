@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Trading;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,7 +15,9 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var objId = stream.ReadBc();
 
-            _log.Warn("CSSellBackpackGoods, ObjId: {0}", objId);
+            SpecialtyManager.Instance.SellSpecialty(Connection.ActiveChar, objId);
+            
+            _log.Warn("CSSellBackpackGoods, ObjId: {0}. BasePrice: {1}", objId);
         }
     }
 }
