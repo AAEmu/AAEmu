@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Auction.Templates
         public byte CategoryB { get; set; }
         public byte CategoryC { get; set; }
         public uint Page { get; set; }
-        public uint Type { get; set; }
+        public uint PlayerId { get; set; }
         public uint Filter { get; set; }
         public uint WorldID { get; set; }
         public byte MinItemLevel { get; set; }

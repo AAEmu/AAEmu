@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Models.Game.Skills.Plots;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
@@ -87,7 +87,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool LevelRuleNoConsideration { get; set; }
         public bool UseWeaponCooldownTime { get; set; }
         public int CombatDiceId { get; set; }
-        public int CustonGcd { get; set; }
+        public int CustomGcd { get; set; }
         public bool CancelOngoingBuffs { get; set; }
         public bool SourceCannotUseWhileWalk { get; set; }
         public bool SourceMountMate { get; set; }

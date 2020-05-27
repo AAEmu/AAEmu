@@ -1,0 +1,29 @@
+version: '3.1'
+
+services:
+    db:
+        image: mysql:8.0
+        restart: unless-stopped
+        command: --default_authentication_plugin=mysql_native_password
+        volumes:
+            - db-data:/var/lib/mysql
+            - ./SQL:/docker-entrypoint-initdb.d
+        environment:
+            MYSQL_ROOT_PASSWORD: password
+        ports:
+            - 3306:3306
+
+    adminer:
+        image: adminer
+        restart: unless-stopped
+        environment:
+            ADMINER_DEFAULT_DB_DRIVER: mysql
+            ADMINER_DEFAULT_DB_HOST: db
+            ADMINER_DESIGN: nette
+        ports:
+            - 8080:8080
+        depends_on:
+            - db
+
+volumes:
+    db-data:

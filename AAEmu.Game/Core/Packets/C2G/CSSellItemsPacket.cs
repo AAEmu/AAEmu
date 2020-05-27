@@ -39,50 +39,36 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Item item = null;
                 if (slotType == SlotType.Equipment)
-                    item = Connection.ActiveChar.Inventory.Equip[slot];
+                    item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
                 else if (slotType == SlotType.Inventory)
-                    item = Connection.ActiveChar.Inventory.Items[slot];
+                    item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
 //                else if (slotType == SlotType.Bank)
 //                    item = Connection.ActiveChar.Inventory.Bank[slot];
                 if (item != null && item.Id == itemId)
                     items.Add(item);
             }
 
-            var tasks = new List<ItemTask>();
+            //var tasks = new List<ItemTask>();
             var money = 0;
             foreach (var item in items)
             {
                 if (!item.Template.Sellable)
                     continue;
-                Connection.ActiveChar.Inventory.RemoveItem(item, false);
-                var res = false;
-                for (var i = 0; i < 20; i++)
-                {
-                    if (Connection.ActiveChar.BuyBack[i] == null)
-                    {
-                        Connection.ActiveChar.BuyBack[i] = item;
-                        res = true;
-                        break;
-                    }
-                }
 
-                if (!res)
+                if (!Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
                 {
-                    ItemIdManager.Instance.ReleaseId((uint)Connection.ActiveChar.BuyBack[0].Id);
-                    var temp = new Item[20];
-                    Array.Copy(Connection.ActiveChar.BuyBack, 1, temp, 0, 19);
-                    temp[19] = item;
-                    Connection.ActiveChar.BuyBack = temp;
+                    _log.Warn(string.Format("Failed to move sold itemId {0} to BuyBack ItemContainer for {1}",item.Id,Connection.ActiveChar.Name));
                 }
-
-                tasks.Add(new ItemRemove(item));
                 money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
                          item.Count;
             }
 
+            Connection.ActiveChar.ChangeMoney(SlotType.Inventory, money);
+            /*
             Connection.ActiveChar.Money += money;
             tasks.Add(new MoneyChange(money));
-            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreSell, tasks, new List<ulong>()));
+            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreSell, itemTasks, new List<ulong>()));
+            */
         }
     }
 }

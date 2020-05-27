@@ -5,11 +5,11 @@ namespace AAEmu.Game.Models.Game.Items.Templates
     public enum ItemBindType
     {
         Normal = 1,
-        SoulboundPickup = 2,
-        SoulboundEquip = 3,
-        SoulboundUnpack = 4,
-        SoulboundPickupPack = 5,
-        SoulboundPickupAuctionWin = 6,
+        BindOnPickup = 2,
+        BindOnEquip = 3,
+        BindOnUnpack = 4,
+        BindOnPickupPack = 5,
+        BindOnAuctionWin = 6,
     }
     
     public class ItemTemplate

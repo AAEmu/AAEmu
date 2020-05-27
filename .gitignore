@@ -19,3 +19,4 @@ AAEmu.Login/Config.json
 publish/
 *.old
 *.bak
+*.packet

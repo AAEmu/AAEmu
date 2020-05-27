@@ -6,13 +6,13 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCGotMailPacket : GamePacket
     {
-        private readonly Mail _mail;
+        private readonly MailHeader _mail;
         private readonly CountUnreadMail _count;
         private readonly bool _hasBody;
         private readonly MailBody _body;
         private readonly bool _isCancel;
 
-        public SCGotMailPacket(Mail mail, CountUnreadMail count, bool isCancel, MailBody body = null) : base(SCOffsets.SCGotMailPacket, 1)
+        public SCGotMailPacket(MailHeader mail, CountUnreadMail count, bool isCancel, MailBody body = null) : base(SCOffsets.SCGotMailPacket, 1)
         {
             _mail = mail;
             _count = count;

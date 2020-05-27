@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Mails
     public class MailBody : PacketMarshaler
     {
         public static byte MaxMailAttachments = 10;
-        public long Id { get; set; }
+        public long mailId { get; set; }
         public byte Type { get; set; }
         public string ReceiverName { get; set; }
         public string Title { get; set; }
@@ -22,18 +22,16 @@ namespace AAEmu.Game.Models.Game.Mails
         public DateTime SendDate { get; set; }
         public DateTime RecvDate { get; set; }
         public DateTime OpenDate { get; set; }
-        public List<ulong> AttachmentItemIds { get; set; } // TODO max length 10
         public List<Item> Attachments { get; set; } // TODO max length 10
 
         public MailBody()
         {
-            AttachmentItemIds = new List<ulong>();
             Attachments = new List<Item>();
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(Id);
+            stream.Write(mailId);
             stream.Write(Type);
             stream.Write(ReceiverName);
             stream.Write(Title);
@@ -44,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Mails
             stream.Write(SendDate);
             stream.Write(RecvDate);
             stream.Write(OpenDate);
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < MaxMailAttachments; i++)
             {
                 if ((i >= Attachments.Count) || (Attachments[i] == null))
                     stream.Write(0);

@@ -67,6 +67,9 @@ namespace AAEmu.Game.Core.Managers
             if(_types.ContainsKey(id))
             {
                 var type = _types[id];
+ 
+                _log.Info("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
+
                 return _effects[type.Type][type.ActualId];
             }
             return null;
@@ -74,6 +77,8 @@ namespace AAEmu.Game.Core.Managers
 
         public EffectTemplate GetEffectTemplate(uint id, string type)
         {
+            _log.Info("Get Effect Template: type = {0}, id = {1}", type, id);
+            
             return _effects[type][id];
         }
 
@@ -259,7 +264,7 @@ namespace AAEmu.Game.Core.Managers
                                 reader.GetBoolean("level_rule_no_consideration", true);
                             template.UseWeaponCooldownTime = reader.GetBoolean("use_weapon_cooldown_time", true);
                             template.CombatDiceId = reader.GetInt32("combat_dice_id");
-                            template.CustonGcd = reader.GetInt32("custom_gcd");
+                            template.CustomGcd = reader.GetInt32("custom_gcd");
                             template.CancelOngoingBuffs = reader.GetBoolean("cancel_ongoing_buffs", true);
                             template.SourceCannotUseWhileWalk =
                                 reader.GetBoolean("source_cannot_use_while_walk", true);
