@@ -69,11 +69,33 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 Owner.Ability2 = abilityId;
                 Abilities[abilityId].Order = 1;
+
+                //This sets are current ability level to match ability1 since its suppost to be in sync
+                if (oldAbilityId == AbilityType.None)
+                {
+                    Abilities[Owner.Ability2].Exp = Abilities[Owner.Ability1].Exp;
+                }
             }
             else if (Owner.Ability3 == oldAbilityId)
             {
                 Owner.Ability3 = abilityId;
                 Abilities[abilityId].Order = 2;
+
+                if(oldAbilityId == AbilityType.None)
+                {
+                    Abilities[Owner.Ability3].Exp = Abilities[Owner.Ability1].Exp;
+
+                    //every unchosen ability is default level 10 besides are selected ones since spillover exp can unsync character exp with skill exp
+                    var c = GetActiveAbilities();
+                    for (var i = 1; i < Abilities.Count; i++)
+                    {
+                        var id = (AbilityType)i;
+                        if (!c.Contains(Abilities[id].Id))
+                        {
+                            Abilities[id].Exp = 42000;
+                        }
+                    }
+                }
             }
 
             if (oldAbilityId != AbilityType.None)
