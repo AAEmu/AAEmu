@@ -200,6 +200,12 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void SellSpecialty(Character player, uint npcObjId)
         {
+            if (player.LaborPower < 60)
+            {
+                player.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
+                return;
+            }
+        
             var basePrice = GetBasePriceForSpecialty(player, npcObjId);
 
             if (basePrice == 0) // We had an error, no need to keep going
