@@ -1,8 +1,8 @@
-﻿﻿using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
-namespace AAEmu.Shared.Migrations
+namespace AAEmu.Login.Migrations
 {
     public partial class InitialPostgreMigration : Migration
     {
