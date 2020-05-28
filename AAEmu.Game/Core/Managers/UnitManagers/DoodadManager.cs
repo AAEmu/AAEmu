@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -9,6 +11,8 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
+using Quartz.Impl.AdoJobStore;
+using System;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -17,7 +21,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, DoodadTemplate> _templates;
-        private Dictionary<uint, List<DoodadFunc>> _funcs;
+        private Dictionary<uint, List<DoodadFunc>> _funcsByGroups;
         private Dictionary<uint, List<DoodadFunc>> _phaseFuncs;
         private Dictionary<string, Dictionary<uint, DoodadFuncTemplate>> _funcTemplates;
 
@@ -34,7 +38,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         public void Load()
         {
             _templates = new Dictionary<uint, DoodadTemplate>();
-            _funcs = new Dictionary<uint, List<DoodadFunc>>();
+            _funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
             _phaseFuncs = new Dictionary<uint, List<DoodadFunc>>();
             _funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
             foreach (var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.DoodadObj.Funcs"))
@@ -83,31 +87,29 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
                             template.NoCollision = reader.GetBoolean("no_collision", true);
                             template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
-                            _templates.Add(template.Id, template);
-                        }
-                    }
-                }
 
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM doodad_func_groups";
-                    command.Prepare();
-                    using (var sqliteDataReader = command.ExecuteReader())
-                    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                    {
-                        while (reader.Read())
-                        {
-                            var templateId = reader.GetUInt32("doodad_almighty_id");
-                            if (_templates.ContainsKey(templateId))
+                            using (var commandChild = connection.CreateCommand())
                             {
-                                var funcGroups = new DoodadFuncGroups
+                                commandChild.CommandText = "SELECT * FROM doodad_func_groups WHERE doodad_almighty_id = @doodad_almighty_id";
+                                commandChild.Prepare();
+                                commandChild.Parameters.AddWithValue("doodad_almighty_id", template.Id);
+                                using (var sqliteDataReaderChild = commandChild.ExecuteReader())
+                                using (var readerChild = new SQLiteWrapperReader(sqliteDataReaderChild))
                                 {
-                                    Id = reader.GetUInt32("id"),
-                                    GroupKindId = reader.GetUInt32("doodad_func_group_kind_id"),
-                                    SoundId = reader.IsDBNull("sound_id") ? 0 : reader.GetUInt32("sound_id")
-                                };
-                                _templates[templateId].FuncGroups.Add(funcGroups);
+                                    while (readerChild.Read())
+                                    {
+                                        var funcGroups = new DoodadFuncGroups();
+                                        funcGroups.Id = readerChild.GetUInt32("id");
+                                        funcGroups.almighty = readerChild.GetUInt32("doodad_almighty_id");
+                                        funcGroups.GroupKindId = readerChild.GetUInt32("doodad_func_group_kind_id");
+                                        funcGroups.SoundId = readerChild.IsDBNull("sound_id") ? 0 : readerChild.GetUInt32("sound_id");
+
+                                        template.FuncGroups.Add(funcGroups);
+                                    }
+                                }
                             }
+
+                            _templates.Add(template.Id, template);
                         }
                     }
                 }
@@ -124,6 +126,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         while (reader.Read())
                         {
                             var func = new DoodadFunc();
+                            func.FuncKey = reader.GetUInt32("id");
                             func.GroupId = reader.GetUInt32("doodad_func_group_id");
                             func.FuncId = reader.GetUInt32("actual_func_id");
                             func.FuncType = reader.GetString("actual_func_type");
@@ -132,16 +135,15 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.SkillId = reader.GetUInt32("func_skill_id", 0);
                             func.PermId = reader.GetUInt32("perm_id");
                             func.Count = reader.GetInt32("act_count", 0);
-                            List<DoodadFunc> list;
-                            if (_funcs.ContainsKey(func.GroupId))
-                                list = _funcs[func.GroupId];
+                            List<DoodadFunc> tempListGroups;
+                            if (_funcsByGroups.ContainsKey(func.GroupId))
+                                tempListGroups = _funcsByGroups[func.GroupId];
                             else
                             {
-                                list = new List<DoodadFunc>();
-                                _funcs.Add(func.GroupId, list);
+                                tempListGroups = new List<DoodadFunc>();
+                                _funcsByGroups.Add(func.GroupId, tempListGroups);
                             }
-
-                            list.Add(func);
+                            tempListGroups.Add(func);
                         }
                     }
                 }
@@ -2191,7 +2193,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
         }
 
-        public Doodad Create(uint bcId, uint id, Unit unit = null)
+        public Doodad Create(uint bcId, uint id, GameObject obj = null)
         {
             if (!_templates.ContainsKey(id))
                 return null;
@@ -2200,16 +2202,21 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
             doodad.TemplateId = template.Id;
             doodad.Template = template;
-            doodad.OwnerObjId = unit?.ObjId ?? 0;
-            doodad.OwnerId = 0;
+            doodad.OwnerObjId = obj?.ObjId ?? 0;
+            doodad.FuncGroupId = doodad.GetFuncGroupId();
+            doodad.OwnerType = DoodadOwnerType.System;
 
-            if (unit is Character character)
+            if (obj is Character character)
             {
                 doodad.OwnerId = character.Id;
                 doodad.OwnerType = DoodadOwnerType.Character;
+
+                var task = new DoodadFuncTimer();
+                task.Delay = template.GrowthTime;
+                task.Use(character, doodad, 0);
             }
 
-            if (unit is House house)
+            if (obj is House house)
             {
                 doodad.OwnerObjId = 0;
                 doodad.ParentObjId = house.ObjId;
@@ -2217,22 +2224,20 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.DbHouseId = house.Id;
             }
-
-            doodad.FuncGroupId = doodad.GetGroupId(); // TODO look, using doodadFuncId
             return doodad;
         }
 
         public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
         {
-            if (!_funcs.ContainsKey(funcGroupId))
+            if (!_funcsByGroups.ContainsKey(funcGroupId))
                 return null;
-            foreach (var func in _funcs[funcGroupId])
+            foreach (var func in _funcsByGroups[funcGroupId])
             {
                 if (func.SkillId == skillId)
                     return func;
             }
 
-            foreach (var func in _funcs[funcGroupId])
+            foreach (var func in _funcsByGroups[funcGroupId])
             {
                 if (func.SkillId == 0)
                     return func;
@@ -2256,6 +2261,35 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (funcs.ContainsKey(funcId))
                 return funcs[funcId];
             return null;
+        }
+
+        public void TriggerFunc(string className, Unit caster, Doodad doodad, uint skillId, uint nextPhase = 0)
+        {
+            var action = GetFunc(doodad.FuncGroupId, skillId);
+            if (action != null)
+            {
+                _log.Warn(className + " is Actioning " + action.FuncType);
+                doodad.FuncGroupId = (uint)action.NextPhase;
+                action.Use(caster, doodad, action.SkillId);
+            }
+            else
+            {
+                if (nextPhase > 0)
+                {
+                    doodad.FuncGroupId = nextPhase;
+                    doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+                }
+            }
+        }
+        public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
+        {
+            var phases = GetPhaseFunc(doodad.FuncGroupId);
+            foreach (var phase in phases)
+            {
+                _log.Warn(className + " is Phasing " + phase.FuncType);
+                phase.Use(caster, doodad, phase.SkillId);
+            }
+            doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
         }
     }
 }
