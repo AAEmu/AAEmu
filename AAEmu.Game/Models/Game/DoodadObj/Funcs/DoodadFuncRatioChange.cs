@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 //The odds of spawning a new doodad perhaps
             }
-            DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
+            DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId);
         }
     }
 }

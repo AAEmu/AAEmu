@@ -90,8 +90,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(ObjId); //The object # in the list
             stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
             stream.WriteBc(OwnerObjId); //The creator of the object
-            stream.WriteBc(ParentObjId); //Things like boats or cars
-            stream.Write(AttachPoint); // attachPoint, relative to the parentObj
+            stream.WriteBc(ParentObjId); //Things like boats or cars,
+            stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
             stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
             stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
             stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
