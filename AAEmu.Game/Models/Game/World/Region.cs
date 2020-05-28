@@ -266,10 +266,19 @@ namespace AAEmu.Game.Models.Game.World
                     }
                     else
                     {
-                        character1.SendPacket(new SCUnitStatePacket(t));
+                        
                         if (t is House house)
                         {
+                            character1.SendPacket(new SCUnitStatePacket(t));
                             character1.SendPacket(new SCHouseStatePacket(house));
+                        }
+                        else if (t is Slave slave)
+                        {
+                            slave.AddVisibleObject(character1);
+                        }
+                        else
+                        {
+                            character1.SendPacket(new SCUnitStatePacket(t));
                         }
                     }
                 }
