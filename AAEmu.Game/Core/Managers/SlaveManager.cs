@@ -86,8 +86,8 @@ namespace AAEmu.Game.Core.Managers
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
             if (activeSlaveInfo == null) return;
 
-            owner.SendPacket(new SCSlaveDespawnPacket(objId));
-            owner.SendPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId));
+            owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
+            owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
             activeSlaveInfo.Delete();
         }
@@ -119,7 +119,7 @@ namespace AAEmu.Game.Core.Managers
             spawnPos.Y += slaveTemplate.SpawnYOffset;
 
             // TODO
-            owner.SendPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name));
+            owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
             var template = new Slave
             {
                 TlId = tlId,
