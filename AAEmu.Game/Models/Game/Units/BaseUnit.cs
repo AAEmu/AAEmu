@@ -52,5 +52,15 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual double ApplySkillModifiers(Skill skill, SkillAttribute attribute, double baseValue) {
             return Modifiers.ApplyModifiers(skill, attribute, baseValue);
         }
+        
+        public virtual SkillTargetRelation GetRelationTo(BaseUnit other) {
+            RelationState relation = other.Faction.GetRelationState(this.Faction.Id);
+            if (relation == RelationState.Friendly)
+                return SkillTargetRelation.Friendly;
+            else if (relation == RelationState.Hostile)
+                return SkillTargetRelation.Hostile;
+            else
+                return SkillTargetRelation.Others;
+        }
     }
 }

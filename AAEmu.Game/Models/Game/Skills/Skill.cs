@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -477,19 +478,20 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
-            var targets = new List<BaseUnit>(); // TODO crutches
-            if (Template.TargetAreaRadius > 0)
-            {
-                var obj = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius);
-                targets.AddRange(obj);
-            }
-            else
-            {
-                targets.Add(targetSelf);
-            }
+            // var targets = new List<BaseUnit>(); // TODO crutches
+            // if (Template.TargetAreaRadius > 0)
+            // {
+            //     var obj = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius);
+            //     targets.AddRange(obj);
+            // }
+            // else
+            // {
+            //     targets.Add(targetSelf);
+            // }
 
             foreach (var effect in Template.Effects)
             {
+                var targets = GetTargets(caster, targetCaster, Template.TargetType, (SkillEffectApplicationMethod)effect.ApplicationMethodId);
                 foreach (var target in targets)
                 {
                     if (effect.StartLevel > caster.Level || effect.EndLevel < caster.Level)
@@ -624,6 +626,126 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.SkillTask = null;
             TlIdManager.Instance.ReleaseId(TlId);
             //TlId = 0;
+        }
+        
+        public List<BaseUnit> GetTargets(Unit caster, SkillCastTarget castTarget, SkillTargetType targetType,
+            SkillEffectApplicationMethod effectApplicationMethod)
+        {
+            var targets = new List<BaseUnit>();
+            var origin = (BaseUnit)caster;
+
+            // TODO : Check SkillTargetType
+
+            /*
+                SkillTargetSelection : Seems to pick the "Origin" of the effect.
+                This is general to the entire skill.
+            */
+
+            switch (Template.TargetSelection)
+            {
+                case SkillTargetSelection.Source:
+                    origin = caster;
+                    break;
+                case SkillTargetSelection.Target:
+                    //origin = castTarget.GetBaseUnit();
+                    if (castTarget is SkillCastUnitTarget unitTarget)
+                    {
+                        origin = WorldManager.Instance.GetBaseUnit(unitTarget.ObjId);
+                    }
+                    else if (castTarget is SkillCastPositionTarget posTarget)
+                    {
+                        origin = new BaseUnit
+                        {
+                            Position = new Point(posTarget.PosX, posTarget.PosY, posTarget.PosZ)
+                            {
+                                ZoneId = caster.Position.ZoneId,
+                                WorldId = caster.Position.WorldId
+                            },
+                            Region = caster.Region,
+                            Faction = caster.Faction
+                        };
+                    }
+                    else if (castTarget is SkillCastDoodadTarget doodadTarget)
+                    {
+                        origin = WorldManager.Instance.GetDoodad(doodadTarget.ObjId);
+                    }
+                    else
+                    {
+                        // TODO : There has to be a better way... god save my soul
+                        origin = caster.CurrentTarget;
+                    }
+
+                    break;
+                case SkillTargetSelection.Location:
+                    var positionTarget = (SkillCastPositionTarget)castTarget;
+                    origin = new BaseUnit
+                    {
+                        Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ)
+                        {
+                            ZoneId = caster.Position.ZoneId,
+                            WorldId = caster.Position.WorldId
+                        },
+                        Region = caster.Region,
+                        Faction = caster.Faction
+                    };
+                    break;
+                case SkillTargetSelection.Line:
+                    // TODO : Impl
+                    break;
+            }
+
+            /*
+                How can we work out skills like Thwart ?
+                - Target self for some effects (Buff)
+                - Target AoE enemies for other effects (Debuff)
+                SkillEffectApplicationMethod ?
+                
+                SourceToTarget = 1,
+                SourceToSource = 2,
+                SourceToSourceOnce = 3,
+                SourceToPos = 4
+            */
+
+            switch (effectApplicationMethod)
+            {
+                case SkillEffectApplicationMethod.SourceToSource:
+                    // Get self but more than once ? Idk man
+                    targets.Add(caster);
+                    break;
+                case SkillEffectApplicationMethod.SourceToPos:
+                // GetAOETargets around the caster's target area
+                case SkillEffectApplicationMethod.SourceToTarget:
+                    // GetAOETargets around the caster's target
+                    if (Template.TargetAreaRadius > 0)
+                    {
+                        var obj = WorldManager.Instance.GetAround<BaseUnit>(origin, Template.TargetAreaRadius, Template.TargetAreaCount); //AREA AROUND TARGET (will hit caster because target objId is excluded, not Caster's)
+                        obj = obj.Where(other => caster.GetRelationTo(other) == Template.TargetRelation).ToList();
+                        targets.AddRange(obj);
+                    }
+                    else
+                    {
+                        targets.Add(origin);
+                    }
+
+                    break;
+                case SkillEffectApplicationMethod.SourceToSourceOnce:
+                    // Seems like that's the idea lol
+                    targets.Add(caster);
+                    break;
+            }
+
+            /* if (Template.TargetAreaRadius > 0)
+            {
+                var obj = WorldManager.Instance.GetAround<BaseUnit>(origin, Template.TargetAreaRadius, Template.TargetAreaCount); //AREA AROUND TARGET (will hit caster because target objId is excluded, not Caster's)
+                obj = obj.Where(other => caster.GetRelationTo(other) == Template.TargetRelation).ToList();
+                targets.AddRange(obj);
+            }
+            else
+            {
+                targets.Add(origin);
+            } */
+
+            return targets;
         }
     }
 }
