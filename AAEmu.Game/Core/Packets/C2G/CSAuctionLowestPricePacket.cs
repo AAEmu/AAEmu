@@ -17,8 +17,6 @@ namespace AAEmu.Game.Core.Packets.C2G
             var itemTemplateId = stream.ReadUInt32();
             var itemGrade = stream.ReadByte();
 
-            _log.Warn("AuctionLowestPrice, NpcObjId: {0}, TemplateId: {1}, Grade: {2}", npcObjId, itemTemplateId, itemGrade);
-
             var cheapestItem = AuctionManager.Instance.GetCheapestAuctionItem(itemTemplateId);
 
             Connection.ActiveChar.SendPacket(new SCAuctionLowestPricePacket(cheapestItem));
