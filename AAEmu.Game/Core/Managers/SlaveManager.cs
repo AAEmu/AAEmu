@@ -86,9 +86,15 @@ namespace AAEmu.Game.Core.Managers
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
             if (activeSlaveInfo == null) return;
 
+            foreach (var doodad in activeSlaveInfo.AttachedDoodads)
+            {
+                doodad.Delete();
+            }
+
             owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
+            
             activeSlaveInfo.Delete();
         }
 
