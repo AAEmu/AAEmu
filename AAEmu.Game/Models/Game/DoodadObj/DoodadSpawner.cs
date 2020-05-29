@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             Character character = WorldManager.Instance.GetCharacterByObjId(charID);
             var doodad = DoodadManager.Instance.Create(objId, UnitId, character);
-            doodad.Name = character.Name;
+
             if (doodad == null)
             {
                 _log.Warn("Doodad {0}, from spawn not exist at db", UnitId);

@@ -98,7 +98,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
             stream.Write(Scale); //The size of the object
             stream.Write(false); // hasLootItem
-            stream.Write(FuncGroupId); // doodad_func_id
+            stream.Write(FuncGroupId); // doodad_func_group_id
             stream.Write(OwnerId); // characterId (Database relative)
             stream.Write(ItemId); // ?? must be ulong though (ItemId seems to be the only ulong)
             stream.Write(0u); //??type1

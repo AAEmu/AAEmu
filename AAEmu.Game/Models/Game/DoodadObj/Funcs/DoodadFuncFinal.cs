@@ -54,26 +54,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 owner.Delete();
             }
-            //Add footsteps if theft
-            if (character.Id != owner.OwnerId && owner.OwnerId != 0)
-            {
-                var doodadSpawner = new DoodadSpawner();
-                doodadSpawner.Id = 0;
-                switch (caster.RaceGender)
-                {
-                    case 17:
-                        doodadSpawner.UnitId = 3313; //Male footprints
-                    break;
-                    case 33:
-                        doodadSpawner.UnitId = 3314; //Female footprints
-                    break;
-                }
-                doodadSpawner.Position = caster.Position.Clone();
-                doodadSpawner.Position.RotationX = caster.Position.RotationX;
-                doodadSpawner.Position.RotationY = caster.Position.RotationY;
-                doodadSpawner.Position.RotationZ = caster.Position.RotationZ;
-                doodadSpawner.Spawn(0, 0, caster.ObjId);
-            }
         }
     }
 }
