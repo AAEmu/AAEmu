@@ -158,13 +158,13 @@ namespace AAEmu.Game.Core.Managers
                     OwnerObjId = owner.ObjId,
                     ParentObjId = template.ObjId,
                     AttachPoint = (byte)doodadBinding.AttachPointId,
-                    WorldPosition = template.Position.Clone(), // On slave unit move this needs updating
                     OwnerId = owner.Id,
                     PlantTime = DateTime.Now,
                     OwnerType = DoodadOwnerType.Slave,
                     DbHouseId = template.Id,
                     Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
-                    Data = (byte)doodadBinding.AttachPointId
+                    Data = (byte)doodadBinding.AttachPointId,
+                    ParentObj = template
                 };
 
                 doodad.SetScale(doodadBinding.Scale);
@@ -186,9 +186,6 @@ namespace AAEmu.Game.Core.Managers
                     doodad.Position = new Point(0f, 3.204f, 12588.96f, 0, 0, 0);
                     _log.Warn("Model id: {0} has no attach point information");
                 }
-
-                doodad.Position.WorldId = template.Position.WorldId;
-                doodad.Position.Relative = true;
 
                 template.AttachedDoodads.Add(doodad);
 
