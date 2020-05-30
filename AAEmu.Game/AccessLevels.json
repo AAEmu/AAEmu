@@ -16,5 +16,8 @@
     "spawngrid": 50,
     "invisible": 50,
     "fly": 0,
-    "teleport": 0
+    "teleport": 0,
+    "kill": 50,
+    "revive": 50,
+    "heal": 50
 }

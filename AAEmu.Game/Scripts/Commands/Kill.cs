@@ -33,17 +33,31 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 // Player is trying to kill an NPC/Monster
                 var npcChar = (Npc)character.CurrentTarget;
-                // We must broadcast this package because if character had initially attacked the mob and then executed kill
-                // the mob's "ghost" will still be attacking you and draining HP even though he doesn't exist in the world anymore
-                npcChar.CurrentTarget = null;
-                // HP must be set to 0 because if character engaged in battle and then ran kill command, after mob dies
-                // its hp will start regenerating
-                npcChar.Hp = 0;
-                npcChar.DoDie(character);
+                if (npcChar.Hp == 0)
+                {
+                    character.SendMessage("Target is already dead");
+                }
+                else
+                {
+                    // We must broadcast this package because if character had initially attacked the mob and then executed kill
+                    // the mob's "ghost" will still be attacking you and draining HP even though he doesn't exist in the world anymore
+                    npcChar.CurrentTarget = null;
+                    // HP must be set to 0 because if character engaged in battle and then ran kill command, after mob dies
+                    // its hp will start regenerating
+                    npcChar.Hp = 0;
+                    npcChar.DoDie(character);
+                }
             }
             else if (playerTarget is Character)
             {
-                targetPlayer.DoDie(character);
+                if (targetPlayer.Hp == 0)
+                {
+                    character.SendMessage("Target is already dead");
+                }
+                else
+                {
+                    targetPlayer.DoDie(character);
+                }
             }
             else
             {

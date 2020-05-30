@@ -10,7 +10,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "revive", "res", "resurrect" };
+            string[] name = { "revive" };
             CommandManager.Instance.Register(name, this);
         }
 
@@ -30,10 +30,17 @@ namespace AAEmu.Game.Scripts.Commands
             var playerTarget = character.CurrentTarget;
             if (playerTarget is Character)
             {
-                targetPlayer.Hp = targetPlayer.MaxHp;
-                targetPlayer.Mp = targetPlayer.MaxMp;
-                targetPlayer.BroadcastPacket(new SCCharacterResurrectedPacket(targetPlayer.ObjId, targetPlayer.Position.X, targetPlayer.Position.Y, targetPlayer.Position.Z, targetPlayer.Position.RotationZ), true);
-                targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                if(playerTarget.Hp == 0)
+                {
+                    targetPlayer.Hp = targetPlayer.MaxHp;
+                    targetPlayer.Mp = targetPlayer.MaxMp;
+                    targetPlayer.BroadcastPacket(new SCCharacterResurrectedPacket(targetPlayer.ObjId, targetPlayer.Position.X, targetPlayer.Position.Y, targetPlayer.Position.Z, targetPlayer.Position.RotationZ), true);
+                    targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                }
+                else
+                {
+                    character.SendMessage("Target is already alive");
+                }
             }
             else
             {
