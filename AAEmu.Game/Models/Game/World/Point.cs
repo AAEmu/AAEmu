@@ -10,8 +10,7 @@ namespace AAEmu.Game.Models.Game.World
         public sbyte RotationX { get; set; }
         public sbyte RotationY { get; set; }
         public sbyte RotationZ { get; set; }
-        public bool Relative { get; set; }
-
+        
         public Point()
         {
         }

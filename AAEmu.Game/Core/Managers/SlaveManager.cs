@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -25,6 +27,7 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<uint, SlaveTemplate> _slaveTemplates;
         private Dictionary<uint, Slave> _activeSlaves;
+        public Dictionary<uint, Dictionary<int, Point>> _attachPoints;
 
         private SlaveTemplate GetSlaveTemplate(uint id)
         {
@@ -83,9 +86,15 @@ namespace AAEmu.Game.Core.Managers
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
             if (activeSlaveInfo == null) return;
 
-            owner.SendPacket(new SCSlaveDespawnPacket(objId));
-            owner.SendPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId));
+            foreach (var doodad in activeSlaveInfo.AttachedDoodads)
+            {
+                doodad.Delete();
+            }
+
+            owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
+            owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
+            
             activeSlaveInfo.Delete();
         }
 
@@ -111,14 +120,18 @@ namespace AAEmu.Game.Core.Managers
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
 
+            var spawnPos = owner.Position.Clone();
+            spawnPos.X += slaveTemplate.SpawnXOffset;
+            spawnPos.Y += slaveTemplate.SpawnYOffset;
+
             // TODO
-            owner.SendPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name));
+            owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
             var template = new Slave
             {
                 TlId = tlId,
                 ObjId = objId,
                 TemplateId = slaveTemplate.Id,
-                Position = owner.Position.Clone(),
+                Position = spawnPos,
                 Name = slaveTemplate.Name,
                 Level = (byte)slaveTemplate.Level,
                 ModelId = slaveTemplate.ModelId,
@@ -127,12 +140,14 @@ namespace AAEmu.Game.Core.Managers
                 Mp = 10000,
                 ModelParams = new UnitCustomModelParams(),
                 Faction = owner.Faction,
-                Id = 10 // TODO
+                Id = 10, // TODO
+                Summoner = owner,
+                AttachedDoodads = new List<Doodad>()
             };
-            template.Position.X += 5.0f;
-            template.Position.Y += 5.0f;
+            
+
             template.Spawn();
-            owner.SendPacket(new SCSlaveStatePacket(objId, tlId, owner.Name, owner.Id, template.Id));
+            
             // TODO - DOODAD SERVER SIDE
             foreach (var doodadBinding in template.Template.DoodadBindings)
             {
@@ -143,17 +158,39 @@ namespace AAEmu.Game.Core.Managers
                     OwnerObjId = owner.ObjId,
                     ParentObjId = template.ObjId,
                     AttachPoint = (byte)doodadBinding.AttachPointId,
-                    Position = new Point(0f, 3.204f, 12588.96f, 0, 0, 0),
                     OwnerId = owner.Id,
                     PlantTime = DateTime.Now,
                     OwnerType = DoodadOwnerType.Slave,
                     DbHouseId = template.Id,
                     Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
-                    Data = (byte)doodadBinding.AttachPointId
+                    Data = (byte)doodadBinding.AttachPointId,
+                    ParentObj = template
                 };
+
                 doodad.SetScale(doodadBinding.Scale);
+
                 doodad.FuncGroupId = doodad.GetFuncGroupId();
-                owner.SendPacket(new SCDoodadCreatedPacket(doodad));
+
+                if (_attachPoints.ContainsKey(template.ModelId))
+                {
+                    if (_attachPoints[template.ModelId].ContainsKey(doodadBinding.AttachPointId))
+                    {
+                        doodad.Position = _attachPoints[template.ModelId][doodadBinding.AttachPointId];
+                    }
+                    else
+                    {
+                        _log.Warn("Model id: {0} incomplete attach point information");
+                    }                    
+                }
+                else
+                {
+                    doodad.Position = new Point(0f, 3.204f, 12588.96f, 0, 0, 0);
+                    _log.Warn("Model id: {0} has no attach point information");
+                }
+
+                template.AttachedDoodads.Add(doodad);
+
+                doodad.Spawn();
             }
 
             _activeSlaves.Add(owner.ObjId, template);
@@ -276,6 +313,32 @@ namespace AAEmu.Game.Core.Managers
             }
 
             #endregion
+
+
+            _log.Info("Loading Slave Model Attach Points...");
+
+            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/slave_attach_points.json");
+            if (string.IsNullOrWhiteSpace(contents))
+                throw new IOException(
+                    $"File {FileManager.AppPath}Data/slave_attach_points.json doesn't exists or is empty.");
+
+            List<SlaveModelAttachPoint> attachPoints;
+            if (JsonHelper.TryDeserializeObject(contents, out attachPoints, out _))
+                _log.Info("Slave model attach points loaded...");
+            else
+                _log.Warn("Slave model attach points not loaded...");
+            
+            _attachPoints = new Dictionary<uint, Dictionary<int, Point>>();
+            foreach (var set in attachPoints)
+            {
+                _attachPoints[set.ModelId] = set.AttachPoints;
+            }
         }
+    }
+
+    public class SlaveModelAttachPoint
+    {
+        public uint ModelId;
+        public Dictionary<int, Point> AttachPoints;
     }
 }
