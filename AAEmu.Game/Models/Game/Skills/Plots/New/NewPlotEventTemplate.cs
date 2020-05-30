@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
         public SortedList<uint, NewPlotEventCondition> Conditions { get; set; }
         public SortedList<uint, NewPlotEffect> Effects { get; set; }
 
-        public void Execute(PlotCaster caster, PlotTarget target)
+        public void Execute(PlotCaster caster, PlotTarget target, uint tlId)
         {
             var flag = 2;
             for (int i = 0; i < Tickets; i++)

@@ -1,3 +1,4 @@
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.New
@@ -11,6 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
 
         public void Execute(Unit caster, SkillCaster skillCaster, Unit target, SkillCastTarget skillCastTarget, SkillObject skillObject)
         {
+            var tlId = TlIdManager.Instance.GetNextId();
             var plotCaster = new PlotCaster()
             {
                 OriginalCaster = caster,
@@ -24,7 +26,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
             };
             
             // Run first event
-            FirstEvent.Execute(plotCaster, plotTarget);
+            FirstEvent.Execute(plotCaster, plotTarget, tlId);
+            // Send SCPlotEventEnd ?
         }
     }
 }
