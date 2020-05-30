@@ -1,6 +1,8 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+﻿using System.Collections.Generic;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Slaves;
+using AAEmu.Game.Models.Game.DoodadObj;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -10,17 +12,19 @@ namespace AAEmu.Game.Models.Game.Units
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         public uint Id { get; set; }
-        //public ushort TlId { get; set; }
         public uint TemplateId { get; set; }
         public uint BondingObjId { get; set; } = 0;
 
         public SlaveTemplate Template { get; set; }
         public Character Bounded { get; set; }
+        public Character Summoner { get; set; }
+        public List<Doodad> AttachedDoodads { get; set; }
 
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner.Name, Summoner.ObjId, Template.Id));
         }
 
         public override void RemoveVisibleObject(Character character)
