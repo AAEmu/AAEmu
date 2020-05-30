@@ -59,9 +59,21 @@ namespace AAEmu.Game.Core.Packets.C2G
             else
             {
                 RemoveEffects(Connection.ActiveChar, moveType);
-                Connection
-                    .ActiveChar
-                    .SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
+
+                // This will allow you to walk on a boat, but crashes other clients. Not sure why yet.
+                if ((moveType.Flags & 32) == 32 && (moveType is UnitMoveType mType))
+                {
+                    Connection
+                        .ActiveChar
+                        .SetPosition(mType.X2 + mType.X, mType.Y2 + mType.Y, mType.Z2 + mType.Z, mType.RotationX, mType.RotationY, mType.RotationZ);
+                }
+                else
+                {
+                    Connection
+                        .ActiveChar
+                        .SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
+                    
+                }
                 Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
             }
         }
