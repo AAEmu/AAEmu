@@ -155,6 +155,20 @@ namespace AAEmu.Game.Models.Game.Items
                 return formula.Evaluate(parameters);
             }
         }
+        
+        public double HDps
+        {
+            get
+            {
+                var template = (WeaponTemplate)Template;
+                var grade = ItemManager.Instance.GetGradeTemplate(Grade);
+                var formula = template.HoldableTemplate.FormulaHDps;
+                var parameters = new Dictionary<string, double>();
+                parameters["item_level"] = template.Level;
+                parameters["item_grade"] = grade.HoldableMagicDps;
+                return formula.Evaluate(parameters);
+            }
+        }
 
         public int Armor
         {

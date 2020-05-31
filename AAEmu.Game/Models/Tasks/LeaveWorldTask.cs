@@ -68,17 +68,14 @@ namespace AAEmu.Game.Models.Tasks
                 _connection.ActiveChar.StopRegen();
 
                 // Clear Buyback table
-                foreach (var item in _connection.ActiveChar.BuyBack)
-                    if (item != null)
-                        ItemIdManager.Instance.ReleaseId((uint)item.Id);
-                Array.Clear(_connection.ActiveChar.BuyBack, 0, _connection.ActiveChar.BuyBack.Length);
+                _connection.ActiveChar.BuyBackItems.Wipe();
 
                 // Remove subscribers
                 foreach (var subscriber in _connection.ActiveChar.Subscribers)
                     subscriber.Dispose();
             }
 
-            _connection.Save();
+            _connection.SaveAndRemoveFromWorld();
             _connection.State = GameState.Lobby;
             _connection.LeaveTask = null;
             _connection.SendPacket(new SCLeaveWorldGrantedPacket(_target));

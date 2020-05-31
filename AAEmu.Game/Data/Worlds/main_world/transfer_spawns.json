@@ -1,0 +1,16 @@
+[
+  {
+   "Count": 1,
+    "Id": 1,
+    "UnitId": 6,
+    "Position": {
+      "X": 13654.9,
+      "Y": 14673.0,
+      "Z": 114.1,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 79
+    },
+    "Scale": 0.0
+  }
+]

@@ -1,5 +1,6 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Units;
@@ -52,6 +53,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
             Skill.ParsePlot(_caster, _casterCaster, _target, _targetCaster, _skillObject, step);
             if (!res)
                 return;
+            _caster.BroadcastPacket(new SCPlotEndedPacket(Skill.TlId), true);
             TlIdManager.Instance.ReleaseId(Skill.TlId);
             Skill.TlId = 0;
         }

@@ -10,6 +10,8 @@ AAEmu.Game/bin/
 AAEmu.Stream/bin/
 AAEmu.Login/bin/
 AAEmu.Login/obj/
+AAEmu.Tests/bin/
+AAEmu.Tests/obj/
 AAEmu.Game/Data/compact.sqlite3
 AAEmu.Game/Data/Worlds/*/hmap.dat
 AAEmu.Game/Config.json
@@ -17,3 +19,5 @@ AAEmu.Login/Config.json
 publish/
 *.old
 *.bak
+*.packet
+*.aelcf

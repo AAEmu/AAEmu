@@ -13,8 +13,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private List<AuctionItem> _auctionItems;
         private uint _page;
         private uint _count;
-        private ushort _errorMessage;
-        private ulong  _serverTIme;
+        //private ushort _errorMessage;
+        //private ulong  _serverTIme;
 
         public SCAuctionSearchedPacket(List<AuctionItem> auctionItems, uint page) : base(SCOffsets.SCAuctionSearchedPacket, 1)
         {
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(item.ItemID);
                     stream.Write(item.ObjectID);
                     stream.Write(item.Grade);
-                    stream.Write(item.Flags);
+                    stream.Write((byte)item.Flags);
                     stream.Write(item.StackSize);
                     stream.Write(item.DetailType);
                     stream.Write(DateTime.Now);
@@ -47,15 +47,15 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(DateTime.Now);
                     stream.Write(DateTime.Now);
                     stream.Write(item.WorldId2);
-                    stream.Write(item.Type2);
+                    stream.Write(item.ClientId);
                     stream.Write(item.ClientName);
                     stream.Write(item.StartMoney);
                     stream.Write(item.DirectMoney);
-                    var Random = new Random();
-                    var offsett = item.TimeLeft + (ulong)Random.Next(0, 10);
-                    stream.Write(offsett);
+                    Random random = new Random();
+                    var offset = (ulong)random.Next(0, 10); //Adds offset to timeleft to prevent client from guessing it. 
+                    stream.Write(item.TimeLeft + offset);
                     stream.Write(item.BidWorldID);
-                    stream.Write(item.Type3);
+                    stream.Write(item.BidderId);
                     stream.Write(item.BidderName);
                     stream.Write(item.BidMoney);
                     stream.Write(item.Extra);

@@ -19,11 +19,10 @@ namespace AAEmu.Game.Models.Game.World
         public Point Position { get; set; }
         public Point WorldPosition { get; set; }
         public Region Region { get; set; }
-
         public DateTime Respawn { get; set; }
         public DateTime Despawn { get; set; }
-
         public virtual bool IsVisible { get; set; }
+        public GameObject ParentObj { get; set; }
 
         public virtual void SetPosition(Point pos)
         {

@@ -19,7 +19,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "Does script related actions. Allowed <action> are: reload, reboot";
+            return "Does script related actions. Allowed <action> are: reload, reboot, save";
         }
 
         public void Execute(Character character, string[] args)
@@ -38,6 +38,12 @@ namespace AAEmu.Game.Scripts.Commands
                     CommandManager.Instance.Clear();
                     ScriptCompiler.Compile();
                     character.SendMessage("[Scripts] Done");
+                    break;
+                case "save":
+                    if (SaveManager.Instance.DoSave())
+                        character.SendMessage("[Scripts] Done saving user database");
+                    else
+                        character.SendMessage("|cFFFF0000[Scripts] Failed saving user database, was possible already in the process of saving, please check server console for details.|r");
                     break;
                 default:
                     character.SendMessage("|cFFFF0000[Scripts] Undefined action...|r");

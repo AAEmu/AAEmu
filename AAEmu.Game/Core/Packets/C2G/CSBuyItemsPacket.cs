@@ -38,13 +38,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             var honor = 0;
             var living = 0;
 
+            // Get list of items to buy from the shop
             var itemsBuy = new List<(uint itemId, byte itemGrade, int itemCount)>();
             for (var i = 0; i < nBuy; i++)
             {
                 var itemId = stream.ReadUInt32();
                 var grade = stream.ReadByte();
                 var count = stream.ReadInt32();
-                var currency = stream.ReadByte();
+                var currency = (ShopCurrencyType)stream.ReadByte();
 
                 if (!pack.Items.ContainsKey(itemId) || pack.Items[itemId].IndexOf(grade) < 0)
                     continue;
@@ -52,22 +53,30 @@ namespace AAEmu.Game.Core.Packets.C2G
                 itemsBuy.Add((itemId, grade, count));
                 var template = ItemManager.Instance.GetTemplate(itemId);
 
-                if (currency == 0)
+                if (currency == ShopCurrencyType.Money)
                     money += template.Price * count;
-                else if (currency == 1)
+                else if (currency == ShopCurrencyType.Honor)
                     honor += template.HonorPrice * count;
-                else if (currency == 2)
+                else if (currency == ShopCurrencyType.VocationBadges)
                     living += template.LivingPointPrice * count;
+                else
+                {
+                    _log.Error("Unknown currency type");
+                }
             }
 
+            // Get a list of items to buy from the buyback window
             var itemsBuyBack = new Dictionary<Item, int>();
             for (var i = 0; i < nBuyBack; i++)
             {
                 var index = stream.ReadInt32();
+                var item = Connection.ActiveChar.BuyBackItems.GetItemBySlot(index);
+                /*
                 if (index >= Connection.ActiveChar.BuyBack.Length)
                     continue;
 
                 var item = Connection.ActiveChar.BuyBack[index];
+                */
                 if (item == null)
                     continue;
                 itemsBuyBack.Add(item, index);
@@ -85,13 +94,15 @@ namespace AAEmu.Game.Core.Packets.C2G
             var tasks = new List<ItemTask>();
             foreach (var (itemId, grade, count) in itemsBuy)
             {
+                Connection.ActiveChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, itemId, count, grade);
+                /*
                 var item = ItemManager.Instance.Create(itemId, count, grade);
                 if (item == null)
                     return;
-                var res = Connection.ActiveChar.Inventory.AddItem(item);
+                var res = Connection.ActiveChar.Inventory.AddItem(ItemTaskType.StoreBuy, item);
                 if (res == null)
                 {
-                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemManager.Instance.ReleaseId(item.Id);
                     return;
                 }
 
@@ -99,14 +110,18 @@ namespace AAEmu.Game.Core.Packets.C2G
                     tasks.Add(new ItemCountUpdate(res, item.Count));
                 else
                     tasks.Add(new ItemAdd(item));
+                */
             }
 
             foreach (var (item, index) in itemsBuyBack)
             {
-                var res = Connection.ActiveChar.Inventory.AddItem(item);
+                Connection.ActiveChar.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.StoreBuy, item);
+                tasks.Add(new ItemBuyback(item));
+                /*
+                var res = Connection.ActiveChar.Inventory.AddItem(ItemTaskType.StoreBuy, item);
                 if (res == null)
                 {
-                    ItemIdManager.Instance.ReleaseId((uint)item.Id);
+                    ItemManager.Instance.ReleaseId(item.Id);
                     return;
                 }
 
@@ -115,6 +130,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 else
                     tasks.Add(new ItemBuyback(item));
                 Connection.ActiveChar.BuyBack[index] = null;
+                */
             }
 
             if (honor > 0)
@@ -131,8 +147,11 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (money > 0)
             {
+                Connection.ActiveChar.ChangeMoney(SlotType.Inventory, -money);
+                /*
                 Connection.ActiveChar.Money -= money;
                 tasks.Add(new MoneyChange(-money));
+                */
             }
 
             Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.StoreBuy, tasks, new List<ulong>()));

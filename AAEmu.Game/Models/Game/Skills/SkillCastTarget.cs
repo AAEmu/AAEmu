@@ -40,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     obj = new SkillCastPosition2Target();
                     break;
                 case SkillCastTargetType.Item:
-                    obj = new SkillCastUnk3Target();
+                    obj = new SkillCastItemTarget();
                     break;
                 case SkillCastTargetType.Doodad:
                     obj = new SkillCastDoodadTarget();
@@ -161,7 +161,7 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillCastUnk3Target : SkillCastTarget
+    public class SkillCastItemTarget : SkillCastTarget
     {
         public ulong Id { get; set; }
         public uint Type1 { get; set; }

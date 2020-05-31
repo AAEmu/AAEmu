@@ -73,11 +73,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             SetEquipItemTemplate(npc, template.Items.Musical, EquipmentItemSlot.Musical);
             SetEquipItemTemplate(npc, template.Items.Cosplay, EquipmentItemSlot.Cosplay);
 
-            if (template.ModelParams != null)
-                SetEquipItemTemplate(npc, template.HairId, EquipmentItemSlot.Hair);
-
             for (var i = 0; i < 7; i++)
-                SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, (EquipmentItemSlot)(i + 19), 0, template.BodyItems[i].NpcOnly);
+            {
+                EquipmentItemSlot slot = (EquipmentItemSlot)(i + 19);
+                if ((slot == EquipmentItemSlot.Hair) && (template.ModelParams != null))
+                    SetEquipItemTemplate(npc, template.HairId, EquipmentItemSlot.Hair);
+                else
+                    SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, slot, 0, template.BodyItems[i].NpcOnly);
+            }
 
             foreach (var buffId in template.Buffs)
             {
@@ -177,6 +180,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.Repairman = reader.GetBoolean("repairman", true);
                             template.ActivateAiAlways = reader.GetBoolean("activate_ai_always", true);
                             template.Specialty = reader.GetBoolean("specialty", true);
+                            template.SpecialtyCoinId = reader.GetUInt32("specialty_coin_id", 0);
                             template.UseRangeMod = reader.GetBoolean("use_range_mod", true);
                             template.NpcPostureSetId = reader.GetInt32("npc_posture_set_id");
                             template.MateEquipSlotPackId = reader.GetInt32("mate_equip_slot_pack_id", 0);
@@ -501,7 +505,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         private void SetEquipItemTemplate(Npc npc, uint templateId, EquipmentItemSlot slot, byte grade = 0, bool npcOnly = false)
         {
-            if (npcOnly && npc.Equip[(int)slot] != null)
+            if (npcOnly && npc.Equipment.GetItemBySlot((int)slot) != null)
                 return;
 
             Item item = null;
@@ -512,7 +516,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 item.Slot = (int)slot;
             }
 
-            npc.Equip[(int)slot] = item;
+            // npc.Equip[(int)slot] = item;
+            npc.Equipment.AddOrMoveExistingItem(0, item, (int)slot);
         }
     }
 }

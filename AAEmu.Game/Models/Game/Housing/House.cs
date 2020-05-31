@@ -31,13 +31,26 @@ namespace AAEmu.Game.Models.Game.Housing
         private HousingTemplate _template;
         private int _currentStep;
         private int _allAction;
+        private uint _id;
+        private uint _accountId;
+        private uint _coOwnerId;
+        private uint _templateId;
         private int _baseAction;
-        
-        public uint Id { get; set; }
-        public uint AccountId { get; set; }
-        public uint CoOwnerId { get; set; }
+        private bool _isDirty;
+        private HousingPermission _permission;
+        private int _numAction;
+        private DateTime _placeDate;
+
+        /// <summary>
+        /// IsDirty flag for Houses, not all properties are taken into account here as most of the data that needs to be updated will never change
+        /// after it's initial addition to the table, like position/rotation. Therefore it's ok to only set the dirty marker on the other properties
+        /// </summary>
+        public bool IsDirty { get => _isDirty; set => _isDirty = value; }
+        public uint Id { get => _id; set { _id = value; _isDirty = true; } }
+        public uint AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
+        public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
         //public ushort TlId { get; set; }
-        public uint TemplateId { get; set; }
+        public uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
         public HousingTemplate Template
         {
             get => _template;
@@ -48,15 +61,17 @@ namespace AAEmu.Game.Models.Game.Housing
             }
         }
         public List<Doodad> AttachedDoodads { get; set; }
-        public int AllAction => _allAction;
-        public int CurrentAction => _baseAction + NumAction;
-        public int NumAction { get; set; }
+        public int AllAction { get => _allAction; set { _allAction = value; _isDirty = true; } }
+        private int BaseAction { get => _baseAction; set { _baseAction = value; _isDirty = true; } }
+        public int CurrentAction => BaseAction + NumAction;
+        public int NumAction { get => _numAction; set { _numAction = value; _isDirty = true; } }
         public int CurrentStep
         {
             get => _currentStep;
             set
             {
                 _currentStep = value;
+                _isDirty = true;
                 ModelId = _currentStep == -1 ? Template.MainModelId : Template.BuildSteps[_currentStep].ModelId;
                 if (_currentStep == -1) // TODO ...
                 {
@@ -65,8 +80,7 @@ namespace AAEmu.Game.Models.Game.Housing
                         var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this);
                         doodad.AttachPoint = (byte)bindingDoodad.AttachPointId;
                         doodad.Position = bindingDoodad.Position.Clone();
-                        doodad.Position.Relative = true;
-                        doodad.WorldPosition = Position.Clone();
+                        doodad.ParentObj = this;
 
                         AttachedDoodads.Add(doodad);
                     }
@@ -82,23 +96,24 @@ namespace AAEmu.Game.Models.Game.Housing
 
                 if (_currentStep > 0)
                 {
-                    _baseAction = 0;
+                    BaseAction = 0;
                     for (var i = 0; i < _currentStep; i++)
-                        _baseAction += Template.BuildSteps[i].NumActions;
+                        BaseAction += Template.BuildSteps[i].NumActions;
                 }
             }
         }
-        public DateTime PlaceDate { get; set; }
-        
+        public DateTime PlaceDate { get => _placeDate; set { _placeDate = value; _isDirty = true; } }
+
         public override int MaxHp => Template.Hp;
         public override UnitCustomModelParams ModelParams { get; set; }
-        public HousingPermission Permission { get; set; }
+        public HousingPermission Permission { get => _permission; set { _permission = value; _isDirty = true; } }
 
         public House()
         {
             Level = 1;
             ModelParams = new UnitCustomModelParams();
             AttachedDoodads = new List<Doodad>();
+            IsDirty = true;
         }
 
         public void AddBuildAction()
@@ -121,8 +136,9 @@ namespace AAEmu.Game.Models.Game.Housing
                     {
                         CurrentStep = -1;
 
-                        using (var connection = MySQL.CreateConnection())
-                            Save(connection);
+                        // Save moved to SaveManager
+                        //using (var connection = MySQL.CreateConnection())
+                        //    Save(connection);
                     }
                 }
             }
@@ -180,7 +196,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
 
             var doodadIds = new uint[AttachedDoodads.Count];
             for (var i = 0; i < AttachedDoodads.Count; i++)
@@ -198,8 +214,10 @@ namespace AAEmu.Game.Models.Game.Housing
         }
         #endregion
 
-        public void Save(MySqlConnection connection, MySqlTransaction transaction = null)
+        public bool Save(MySqlConnection connection, MySqlTransaction transaction = null)
         {
+            if (!IsDirty)
+                return false;
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -225,6 +243,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 command.Parameters.AddWithValue("@permission", (byte)Permission);
                 command.ExecuteNonQuery();
             }
+            return true;
         }
 
         public PacketStream Write(PacketStream stream)

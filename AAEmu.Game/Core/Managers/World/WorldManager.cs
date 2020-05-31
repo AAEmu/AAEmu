@@ -236,16 +236,22 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
+        private GameObject GetRootObj(GameObject obj)
+        {
+            if (obj.ParentObj == null)
+            {
+                return obj;
+            }
+            else
+            {
+                return GetRootObj(obj.ParentObj);
+            }
+        }
+
         public Region GetRegion(GameObject obj)
         {
-            InstanceWorld world;
-            if (obj.Position.Relative)
-            {
-                world = GetWorld(obj.WorldPosition.WorldId);
-                return GetRegion(world, obj.WorldPosition.X, obj.WorldPosition.Y);
-            }
-
-            world = GetWorld(obj.Position.WorldId);
+            obj = GetRootObj(obj);
+            InstanceWorld world = GetWorld(obj.Position.WorldId);
             return GetRegion(world, obj.Position.X, obj.Position.Y);
         }
 
@@ -596,6 +602,11 @@ namespace AAEmu.Game.Core.Managers.World
                 Array.Copy(doodads, i, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
+        }
+
+        public List<Character> GetAllCharacters()
+        {
+            return _characters.Values.ToList();
         }
     }
 }

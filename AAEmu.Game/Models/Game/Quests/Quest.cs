@@ -71,7 +71,10 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActObjItemGather":
                                 {
                                     var template = acts[i].GetTemplate<QuestActObjItemGather>();
-                                    Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                    // TODO: Check both inventory and warehouse
+                                    Owner.Inventory.Bag.GetAllItemsByTemplate(template.Id, out _, out var objectivesCounted);
+                                    Objectives[i] = objectivesCounted;
+                                    //Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
                                     if (Objectives[i] > template.Count) // TODO check to overtime
                                     {
                                         Objectives[i] = template.Count;
@@ -285,19 +288,22 @@ namespace AAEmu.Game.Models.Game.Quests
                         var template = act.GetTemplate<QuestActSupplyItem>();
                         if (template.DestroyWhenDrop)
                         {
-                            Owner.Inventory.TakeoffBackpack();
+                            Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
                         }
 
-                        items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+                        Owner.Inventory.ConsumeItem(null,ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
+                        //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                     }
                     if (act.DetailType == "QuestActObjItemGather")
                     {
                         var template = act.GetTemplate<QuestActObjItemGather>();
                         if (template.DestroyWhenDrop)
                         {
-                            items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+                            Owner.Inventory.ConsumeItem(null,ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
+                            //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                         }
                     }
+                    /*
                     var tasks = new List<ItemTask>();
                     foreach (var (item, count) in items)
                     {
@@ -310,12 +316,12 @@ namespace AAEmu.Game.Models.Game.Quests
                             tasks.Add(new ItemCountUpdate(item, -count));
                         }
                     }
-                    Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestRemoveSupplies, tasks, new List<ulong>())
-                    );
+                    Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestRemoveSupplies, tasks, new List<ulong>()));
+                    */
                 }
             }
         }
-        public void Drop()
+        public void Drop(bool update)
         {
             Status = QuestStatus.Dropped;
             for (var i = 0; i < 5; i++)
@@ -323,7 +329,8 @@ namespace AAEmu.Game.Models.Game.Quests
                 Objectives[i] = 0;
             }
 
-            Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
+            if(update)
+                Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
             RemoveQuestItems();
         }
 

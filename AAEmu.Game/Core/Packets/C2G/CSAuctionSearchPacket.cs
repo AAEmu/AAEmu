@@ -10,7 +10,6 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAuctionSearchPacket : GamePacket
     {
-        protected static Logger _log = LogManager.GetCurrentClassLogger();
 
         public CSAuctionSearchPacket() : base(0x0b8, 1)
         {
@@ -28,7 +27,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             _sTemplate.CategoryB = stream.ReadByte();
             _sTemplate.CategoryC = stream.ReadByte();
             _sTemplate.Page = stream.ReadUInt32();
-            _sTemplate.Type = stream.ReadUInt32();
+            _sTemplate.PlayerId = stream.ReadUInt32();
             _sTemplate.Filter = stream.ReadUInt32();
             _sTemplate.WorldID = stream.ReadByte();
             _sTemplate.MinItemLevel = stream.ReadByte();
@@ -46,7 +45,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 $"CategoryB: {_sTemplate.CategoryB}, " +
                 $"CategoryC: {_sTemplate.CategoryC}, " +
                 $"Page: {_sTemplate.Page}, " +
-                $"Type: {_sTemplate.Type}, " +
+                $"PlayerId: {_sTemplate.PlayerId}, " +
                 $"Filter: {_sTemplate.Filter}, " +
                 $"WorldID: {_sTemplate.WorldID}, " +
                 $"MinItemLevel: {_sTemplate.MinItemLevel}, " +

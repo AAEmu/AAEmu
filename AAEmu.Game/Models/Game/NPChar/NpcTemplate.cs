@@ -102,6 +102,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public bool Repairman { get; set; }
         public bool ActivateAiAlways { get; set; }
         public bool Specialty { get; set; }
+        public uint SpecialtyCoinId { get; set; }
         public bool UseRangeMod { get; set; }
         public int NpcPostureSetId { get; set; }
         public int MateEquipSlotPackId { get; set; }
