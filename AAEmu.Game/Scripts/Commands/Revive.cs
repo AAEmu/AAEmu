@@ -27,10 +27,9 @@ namespace AAEmu.Game.Scripts.Commands
         public void Execute(Character character, string[] args)
         {
             Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args.Length > 0 ? args[0] : null, out var _);
-            var playerTarget = character.CurrentTarget;
-            if (playerTarget is Character)
+            if (targetPlayer != null)
             {
-                if(playerTarget.Hp == 0)
+                if(targetPlayer.Hp == 0)
                 {
                     targetPlayer.Hp = targetPlayer.MaxHp;
                     targetPlayer.Mp = targetPlayer.MaxMp;
