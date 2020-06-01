@@ -168,7 +168,8 @@ namespace AAEmu.Game.Core.Managers
                 };
 
                 doodad.SetScale(doodadBinding.Scale);
-                doodad.FuncGroupId = doodad.GetGroupId();
+
+                doodad.FuncGroupId = doodad.GetFuncGroupId();
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {

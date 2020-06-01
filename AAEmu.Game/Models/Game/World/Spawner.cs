@@ -13,6 +13,11 @@
             return null;
         }
 
+        public virtual T Spawn(uint objId, ulong itemID, uint charID)
+        {
+            return null;
+        }
+
         public virtual void Respawn(T obj)
         {
             Spawn(0);

@@ -8,13 +8,12 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 {
     public class OreMine : IWorldInteraction
     {
-        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
-            uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
+        public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType, uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
         {
-            if (!(target is Doodad doodad)) { return; }
-
-            var func = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
-            func?.Use(caster, doodad, skillId);
+            if (target is Doodad doodad)
+            {
+                DoodadManager.Instance.TriggerFunc(GetType().Name, caster, doodad, skillId);
+            }
         }
     }
 }

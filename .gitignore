@@ -20,4 +20,7 @@ publish/
 *.old
 *.bak
 *.packet
+/AAEmu.Game/Properties/PublishProfiles
+/AAEmu.Game/AAEmu.Game.csproj.user
+/AAEmu.Game/AAEmu.Game.xml
 *.aelcf
