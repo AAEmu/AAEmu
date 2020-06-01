@@ -59,8 +59,10 @@ namespace AAEmu.Game
             ConfigurationManager.Instance.Load();
 
             TlIdManager.Instance.Initialize();
+            SpecialtyManager.Instance.Load();
             ItemManager.Instance.Load();
             ItemManager.Instance.LoadUserItems();
+            AnimationManager.Instance.Load();
             PlotManager.Instance.Load();
             SkillManager.Instance.Load();
             CraftManager.Instance.Load();
@@ -99,6 +101,7 @@ namespace AAEmu.Game
             LoginNetwork.Instance.Start();
 
             SaveManager.Instance.Initialize();
+            SpecialtyManager.Instance.Initialize();
             stopWatch.Stop();
 
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);

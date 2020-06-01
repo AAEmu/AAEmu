@@ -46,7 +46,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     }
                 case Slave _:
                     _baseUnitType = BaseUnitType.Slave;
-                    _modelPostureType = ModelPostureType.TurretState; // was TurretState = 8
+                    _modelPostureType = ModelPostureType.None; // was TurretState = 8
                     break;
                 case House _:
                     _baseUnitType = BaseUnitType.Housing;
@@ -91,7 +91,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(slave.Id);         // Id ?
                     stream.Write(slave.TlId);       // tl
                     stream.Write(slave.TemplateId); // templateId
-                    stream.Write(0u);               // ownerId
+                    stream.Write(slave.Summoner.ObjId); // ownerId
                     break;
                 case BaseUnitType.Housing:
                     var house = (House)_unit;

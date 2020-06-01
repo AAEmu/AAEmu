@@ -81,8 +81,7 @@ namespace AAEmu.Game.Models.Game.Housing
                         var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this);
                         doodad.AttachPoint = (byte)bindingDoodad.AttachPointId;
                         doodad.Position = bindingDoodad.Position.Clone();
-                        doodad.Position.Relative = true;
-                        doodad.WorldPosition = Position.Clone();
+                        doodad.ParentObj = this;
 
                         AttachedDoodads.Add(doodad);
                     }

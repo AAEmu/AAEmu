@@ -20,3 +20,4 @@ publish/
 *.old
 *.bak
 *.packet
+*.aelcf

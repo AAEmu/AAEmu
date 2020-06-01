@@ -23,74 +23,198 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             switch (Kind)
             {
                 case PlotConditionType.Level:
-                    // This one is complicated ay
-                    res = true;
+                    res = ConditionLevel(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3);
                     break;
                 case PlotConditionType.Relation:
-                    res = true;
+                    res = ConditionRelation(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3);
                     break;
                 case PlotConditionType.Direction:
-                    res = true;
+                    res = ConditionDirection(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3);
                     break;
                 case PlotConditionType.BuffTag:
-                    res = target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)Param1));
+                    res = ConditionBuffTag(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.WeaponEquipStatus:
-                    res = true; 
+                    res = ConditionWeaponEquipStatus(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3); 
                     break;
                 case PlotConditionType.Chance:
-                    var chance = Rand.Next(0, 100);
-                    res = chance <= Param1;
+                    res = ConditionChance(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.Dead:
-                    var unitTarget = (Unit)target;
-                    res = unitTarget.Hp == 0;
+                    res = ConditionDead(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.CombatDiceResult:
-                    res = false; // Every CombatDiceResult is a NotCondition -> false makes it true. 
+                    res = ConditionCombatDiceResult(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3); // Every CombatDiceResult is a NotCondition -> false makes it true. 
                     break;
                 case PlotConditionType.InstrumentType:
-                    res = true;
+                    res = ConditionInstrumentType(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.Range:
-                    var range = MathUtil.CalculateDistance(caster.Position, target.Position);
-                    res = range >= Param1 && range <= Param2;
+                    res = ConditionRange(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.Variable:
-                    res = true;
+                    res = ConditionVariable(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3);
                     break;
                 case PlotConditionType.UnitAttrib:
-                    res = true;
+                    res = ConditionUnitAttrib(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.Actability:
-                    res = true;
+                    res = ConditionActability(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.Stealth:
-                    // unsure if player or target
-                    // only used for Flamebolt for some reason.
-                    // Also always a "NotCondition" so will default to false (result will be True)
-                    res = false;
+                    res = ConditionStealth(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.Visible:
-                    // used for LOS ?
-                    res = true;
+                    res = ConditionVisible(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
                 case PlotConditionType.ABLevel:
-                    var level = caster.Level;
-                    // Unsure what Param1 is. Seems like a 3 bit flag
-                    // For Arc Lightning, we have a value of 7, using 3 different conditions
-                    // Need to find what the flags mean
-                    // Could be target/caster level ? 
-                    // 1 = caster
-                    // 2 = target
-                    // 4 = both ? idk 
-                    res = level >= Param2 && level <= Param3;
+                    res = ConditionABLevel(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
+                        Param3);
                     break;
             }
 
             _log.Debug("PlotCondition : {0} | Params : {1}, {2}, {3} | Result : {4}", Kind, Param1, Param2, Param3, NotCondition ? !res : res);            
 
             return NotCondition ? !res : res;
+        }
+
+        private static bool ConditionLevel(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int minLevel, int maxLevel, int unk3)
+        {
+            return caster.Level >= minLevel && caster.Level <= maxLevel;
+        }
+
+        private static bool ConditionRelation(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            // Param1 is either 1, 4 or 5
+            return true;
+        }
+
+        private static bool ConditionDirection(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            // No params on this
+            return true;
+        }
+
+        private static bool ConditionBuffTag(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int tagId, int unk2, int unk3)
+        {
+            return target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
+        }
+
+        private static bool ConditionWeaponEquipStatus(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int weaponEquipStatus, int unk2, int unk3)
+        {
+            // Weapon equip status can be :
+            // 1 = ?
+            // 2 = ?
+            // 3 = ?
+            return true;
+        }
+        
+        private static bool ConditionChance(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int chance, int unk2, int unk3)
+        {
+            // Param2 is only used once, and its value is "1"
+            var roll = Rand.Next(0, 100);
+            return roll <= chance;
+        }
+        
+        private static bool ConditionDead(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            var unitTarget = (Unit)target;
+            return unitTarget.Hp == 0;
+        }
+        
+        private static bool ConditionCombatDiceResult(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            return false; // Every CombatDiceResult is a NotCondition -> false makes it true.
+        }
+        
+        private static bool ConditionInstrumentType(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            // Param1 is either 21, 22 or 23
+            return true;
+        }
+        
+        private static bool ConditionRange(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int minRange, int maxRange, int unk3)
+        {
+            // Param1 = Min range
+            // Param2 = Max range
+            var range = MathUtil.CalculateDistance(caster.Position, target.Position);
+            return range >= minRange && range <= maxRange;
+        }
+        
+        private static bool ConditionVariable(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            // All 3 params used. No idea.
+            return true;
+        }
+        
+        private static bool ConditionUnitAttrib(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            // All 3 params used. No idea.
+            return true;
+        }
+
+        private static bool ConditionActability(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int actabilityId, int op, int level)
+        {
+            // Check actability level
+            // Param1 = Actability ID
+            // Param2 = Operator (2, 3, 5) for equal, less than and less than or equal
+            // Param3 = Actability Level
+            return true;
+        }
+        
+        private static bool ConditionStealth(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            // unsure if player or target
+            // only used for Flamebolt for some reason.
+            // Also always a "NotCondition" so will default to false (result will be True)
+            return false;
+        }
+        
+        private static bool ConditionVisible(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+        {
+            // used for LOS ?
+            return true;
+        }
+        private static bool ConditionABLevel(Unit caster, SkillCaster casterCaster, BaseUnit target,
+            SkillCastTarget targetCaster, SkillObject skillObject, int flag, int min, int max)
+        {
+            // Unsure what Param1 is. Seems like a 3 bit flag
+            // For Arc Lightning, we have a value of 7, using 3 different conditions
+            // Need to find what the flags mean
+            // Could be target/caster level ? 
+            // 1 = caster ?
+            // 2 = target ?
+            // 3 = caster+target
+            // 4 = ???
+            // 7 = caster+target+???
+            
+            var level = caster.Level;
+            return level >= min && level <= max;
         }
     }
 }

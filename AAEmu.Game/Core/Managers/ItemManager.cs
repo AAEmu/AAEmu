@@ -54,6 +54,9 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, ItemLookConvert> _itemLookConverts;
         private Dictionary<uint, uint> _holdableItemLookConverts;
         private Dictionary<uint, uint> _wearableItemLookConverts;
+        
+        // Events
+        public event EventHandler OnItemsLoaded;
 
         private Dictionary<ulong, Item> _allItems;
         private List<ulong> _removedItems;
@@ -1159,6 +1162,8 @@ namespace AAEmu.Game.Core.Managers
 
 
             }
+            
+            OnItemsLoaded?.Invoke(this, new EventArgs());
         }
 
 

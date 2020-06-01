@@ -228,6 +228,27 @@ namespace AAEmu.Game.Core.Managers
             return auctionItemsFound;
         }
 
+        public AuctionItem GetCheapestAuctionItem(ulong itemId)
+        {
+            var tempList = new List<AuctionItem>();
+
+            foreach (var item in _auctionItems)
+            {
+                if (item.ItemID == itemId)
+                    tempList.Add(item);
+            }
+
+            if (tempList.Count > 0)
+            {
+                tempList.OrderByDescending(x => x.DirectMoney);
+                return tempList[0];
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         public string GetLocalizedItemNameById(uint id)
         {
             return LocalizationManager.Instance.Get("items", "name", id, ItemManager.Instance.GetTemplate(id).Name ?? "");

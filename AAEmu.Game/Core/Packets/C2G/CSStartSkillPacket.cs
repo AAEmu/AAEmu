@@ -53,8 +53,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else if (skillId > 0 && DbLoggerCategory.Database.Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
             {
-                var skill = DbLoggerCategory.Database.Connection.ActiveChar.Skills.Skills[skillId];
-                skill.Use(DbLoggerCategory.Database.Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+                skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else
                 _log.Warn("StartSkill: Id {0}, undefined use type", skillId);
