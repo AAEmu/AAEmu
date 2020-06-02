@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Units;
 
@@ -6,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
 {
     public class NewPlotEventTemplate
     {
+        public uint Id { get; set; }
         public NewPlot Plot { get; set; }
         
         public int Tickets { get; set; }
@@ -29,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
         public SortedList<uint, NewPlotEventCondition> Conditions { get; set; }
         public SortedList<uint, NewPlotEffect> Effects { get; set; }
 
-        public void Execute(PlotCaster caster, PlotTarget target, uint tlId)
+        public void Execute(PlotCaster caster, PlotTarget target, ushort tlId, Skill skill)
         {
             var flag = 2;
             for (int i = 0; i < Tickets; i++)
@@ -55,13 +57,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
                 }
 
                 // Send event packet
+                caster.OriginalCaster.BroadcastPacket(new SCPlotEventPacket(tlId, Id, skill.Template.Id, new PlotObject(updatedSource), new PlotObject(updatedTarget), 0, 0, 0), true);
 
                 caster.PreviousCaster = updatedSource;
                 target.PreviousTarget = updatedTarget;
                 
                 foreach (var nextEvent in NextEvents)
                 {
-                    nextEvent.Execute(caster, target);
+                    nextEvent.Execute(caster, target, tlId, skill);
                 }
             }
         }

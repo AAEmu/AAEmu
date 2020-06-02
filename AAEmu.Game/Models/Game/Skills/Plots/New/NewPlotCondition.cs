@@ -11,7 +11,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
 
         public bool Execute()
         {
-            return false;
+            var result = true;
+            
+            return NotCondition ? !result : result;
         }
     }
 }
