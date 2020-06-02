@@ -1,3 +1,4 @@
+using AAEmu.Game.Core.Managers.World;
 using Xunit;
 
 namespace AAEmu.Tests
@@ -8,7 +9,7 @@ namespace AAEmu.Tests
         [Fact]
         public void SampleTest()
         {
-            Assert.Equal(1, 1);
+            Assert.Equal(1, SpecialtyManager.Instance.GetValueOfOne());
         }
     }
 }

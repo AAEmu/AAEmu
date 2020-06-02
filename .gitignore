@@ -24,3 +24,5 @@ publish/
 /AAEmu.Game/AAEmu.Game.csproj.user
 /AAEmu.Game/AAEmu.Game.xml
 *.aelcf
+
+AAEmu.Tests/TestResults/
