@@ -1,14 +1,14 @@
-using NUnit.Framework;
+using Xunit;
 
 namespace AAEmu.Tests
 {
     public class ExampleTests
     {
 
-        [Test]
+        [Fact]
         public void SampleTest()
         {
-            Assert.AreEqual(1, 1);
+            Assert.Equal(1, 1);
         }
     }
 }
