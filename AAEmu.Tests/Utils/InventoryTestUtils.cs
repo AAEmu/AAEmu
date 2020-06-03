@@ -5,9 +5,9 @@ namespace AAEmu.Tests.Utils
 {
     public class InventoryTestUtils
     {
-        public static ItemMock MockItem(uint templateId)
+        public static ItemMock MockItem(uint id, uint templateId)
         {
-            var id = ItemIdManager.Instance.GetNextId();
+            // var id = ItemIdManager.Instance.GetNextId();
             var template = new ItemTemplate()
             {
                 Id = templateId,
