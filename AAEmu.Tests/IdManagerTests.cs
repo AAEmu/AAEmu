@@ -13,9 +13,9 @@ namespace AAEmu.Tests
             var firstId = 0x00000001u;
             var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
-            id = ItemIdManager.Instance.GetNextId();
+            id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+1, id);
-            id = ItemIdManager.Instance.GetNextId();
+            id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+2, id);
         }
         
@@ -26,12 +26,12 @@ namespace AAEmu.Tests
             var firstId = 0x00000001u;
             var id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId, id);
-            id = ItemIdManager.Instance.GetNextId();
+            id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+1, id);
             
-            ItemIdManager.Instance.ReleaseId(id);;
+            ObjectIdManager.Instance.ReleaseId(id);;
             
-            id = ItemIdManager.Instance.GetNextId();
+            id = ObjectIdManager.Instance.GetNextId();
             Assert.Equal(firstId+1, id);
         }
 
