@@ -54,6 +54,8 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 if (doodad.TemplateId == unitId)
                 {
+                    doodad.FuncTask.Cancel();
+                    doodad.FuncTask.Execute();
                     tickedCount++;
                 }
             }

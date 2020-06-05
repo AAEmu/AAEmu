@@ -2279,6 +2279,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     doodad.FuncGroupId = nextPhase;
                     doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
                 }
+                else
+                    TriggerPhases(className, caster, doodad, skillId);
             }
         }
         public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
