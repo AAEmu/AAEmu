@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {   
             foreach (var funcGroup in Template.FuncGroups)
             {
-                if (funcGroup.GroupKindId == 1)
+                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
                     return funcGroup.Id;
             }
             return 0;

@@ -101,7 +101,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                         var funcGroups = new DoodadFuncGroups();
                                         funcGroups.Id = readerChild.GetUInt32("id");
                                         funcGroups.Almighty = readerChild.GetUInt32("doodad_almighty_id");
-                                        funcGroups.GroupKindId = readerChild.GetUInt32("doodad_func_group_kind_id");
+                                        funcGroups.GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)readerChild.GetUInt32("doodad_func_group_kind_id");
                                         funcGroups.SoundId = readerChild.IsDBNull("sound_id") ? 0 : readerChild.GetUInt32("sound_id");
 
                                         template.FuncGroups.Add(funcGroups);
