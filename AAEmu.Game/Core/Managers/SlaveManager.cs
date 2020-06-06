@@ -17,6 +17,8 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks;
+using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -35,7 +37,7 @@ namespace AAEmu.Game.Core.Managers
             return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
         }
 
-        private Slave GetActiveSlaveByOwnerObjId(uint objId)
+        public Slave GetActiveSlaveByOwnerObjId(uint objId)
         {
             return _activeSlaves.ContainsKey(objId) ? _activeSlaves[objId] : null;
         }
@@ -352,6 +354,21 @@ namespace AAEmu.Game.Core.Managers
             foreach (var set in attachPoints)
             {
                 _attachPoints[set.ModelId] = set.AttachPoints;
+            }
+        }
+
+        public void Initialize()
+        {
+            var sendMySlaveTask = new SendMySlaveTask();
+            TaskManager.Instance.Schedule(sendMySlaveTask, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        }
+    
+        public void SendMySlavePacketToAllOwners() {
+            foreach (var (ownerObjId, slave) in _activeSlaves)
+            {
+                var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
+                owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId, slave.Hp, slave.Mp,
+                    slave.Position.X, slave.Position.Y, slave.Position.Z));
             }
         }
     }

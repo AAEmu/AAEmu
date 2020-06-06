@@ -26,33 +26,47 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (objId != myObjId) // Can be mate
             {
-                var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(objId);
-                if (mateInfo == null) return;
-
-                RemoveEffects(mateInfo, moveType);
-                mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                mateInfo.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), myObjId);
-
-                if (mateInfo.Att1 > 0)
+                if (moveType is ShipRequestMoveType shipRequestMoveType)
                 {
-
-                    var owner = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att1);
-                    if (owner != null)
+                    var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(myObjId);
+                    if (slave != null)
                     {
-                        RemoveEffects(owner, moveType);
-                        owner.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                        owner.BroadcastPacket(new SCOneUnitMovementPacket(owner.ObjId, moveType), false);
+                        slave.RequestThrottle = shipRequestMoveType.Throttle;
                     }
                 }
-
-                if (mateInfo.Att2 > 0)
+                else
                 {
-                    var passenger = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att2);
-                    if (passenger != null)
+                    var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(objId);
+                    if (mateInfo == null) return;
+
+                    RemoveEffects(mateInfo, moveType);
+                    mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY,
+                        moveType.RotationZ);
+                    mateInfo.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), myObjId);
+
+                    if (mateInfo.Att1 > 0)
                     {
-                        RemoveEffects(passenger, moveType);
-                        passenger.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                        passenger.BroadcastPacket(new SCOneUnitMovementPacket(passenger.ObjId, moveType), false);
+
+                        var owner = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att1);
+                        if (owner != null)
+                        {
+                            RemoveEffects(owner, moveType);
+                            owner.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX,
+                                moveType.RotationY, moveType.RotationZ);
+                            owner.BroadcastPacket(new SCOneUnitMovementPacket(owner.ObjId, moveType), false);
+                        }
+                    }
+
+                    if (mateInfo.Att2 > 0)
+                    {
+                        var passenger = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att2);
+                        if (passenger != null)
+                        {
+                            RemoveEffects(passenger, moveType);
+                            passenger.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX,
+                                moveType.RotationY, moveType.RotationZ);
+                            passenger.BroadcastPacket(new SCOneUnitMovementPacket(passenger.ObjId, moveType), false);
+                        }
                     }
                 }
             }
