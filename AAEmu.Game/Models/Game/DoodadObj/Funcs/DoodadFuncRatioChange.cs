@@ -23,9 +23,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             Random ratioChange = new Random();
             var roll = ratioChange.Next(0, 10000); //Basing this off of Rumbling Archeum Trees (10% for a Thunderstruck)
             if (roll <= Ratio)
-                owner.cancelPhasing = true; //Since phases trigger all at once let the doodad know its okay to stop here
-
-            DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
+            {
+                DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
+                owner.cancelPhasing = true; //Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded
+            }
         }
     }
 }
