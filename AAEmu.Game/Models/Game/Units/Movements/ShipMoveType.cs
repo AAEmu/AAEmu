@@ -1,3 +1,4 @@
+using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
@@ -14,6 +15,26 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public sbyte Throttle { get; set; }
         public ushort ZoneId { get; set; }
         public bool Stuck { get; set; }
+
+        public void UseSlaveBase(Slave slave)
+        {
+            X = slave.Position.X;
+            Y = slave.Position.Y;
+            Z = slave.Position.Z;
+            RotationX = slave.Position.RotationX;
+            RotationY = slave.Position.RotationY;
+            RotationZ = slave.Position.RotationZ;
+            VelX = slave.VelX;
+            VelY = slave.VelY;
+            VelZ = slave.VelZ;
+            AngVelX = slave.AngVelX;
+            AngVelY = slave.AngVelY;
+            AngVelZ = slave.AngVelZ;
+            ZoneId = (ushort) slave.Position.ZoneId;
+            Time = (uint)(DateTime.Now - slave.SpawnTime).TotalMilliseconds;
+            Stuck = slave.Stuck;
+            Steering = slave.Steering;
+        }
 
         public override void Read(PacketStream stream)
         {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -58,6 +59,16 @@ namespace AAEmu.Game.Core.Managers
 
             return null;
         }
+        
+        public IEnumerable<Slave> GetActiveSlavesByKind(SlaveKind kind)
+        {
+            return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
+        }
+        
+        public IEnumerable<Slave> GetActiveSlavesByKinds(SlaveKind[] kinds)
+        {
+            return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind)).Select(s => s.Value);
+        }
 
         public void UnbindSlave(GameConnection connection, uint tlId)
         {
@@ -78,6 +89,12 @@ namespace AAEmu.Game.Core.Managers
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, activeSlaveInfo.ObjId), true);
             unit.CurrentTarget = activeSlaveInfo;
             unit.SendPacket(new SCSlaveBoundPacket(unit.Id, activeSlaveInfo.ObjId));
+        }
+        
+        public void BindSlave(Character character, uint objId)
+        {
+            character.SendPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId));
+            character.SendPacket(new SCSlaveBoundPacket(character.Id, objId));
         }
 
         // TODO - GameConnection connection
@@ -123,6 +140,8 @@ namespace AAEmu.Game.Core.Managers
             var spawnPos = owner.Position.Clone();
             spawnPos.X += slaveTemplate.SpawnXOffset;
             spawnPos.Y += slaveTemplate.SpawnYOffset;
+            // if boat
+            spawnPos.Z = 100f;
 
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
@@ -142,7 +161,8 @@ namespace AAEmu.Game.Core.Managers
                 Faction = owner.Faction,
                 Id = 10, // TODO
                 Summoner = owner,
-                AttachedDoodads = new List<Doodad>()
+                AttachedDoodads = new List<Doodad>(),
+                SpawnTime = DateTime.Now
             };
             
 
