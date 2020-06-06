@@ -33,13 +33,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public byte AttachPoint { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
-
         public uint QuestGlow { get; set; } //0 off // 1 on
 
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
 
         public uint TimeLeft => GrowthTime > DateTime.Now ? (uint)(GrowthTime - DateTime.Now).TotalMilliseconds : 0; // TODO formula time of phase
+        public bool cancelPhasing { get; set; }
 
         public Doodad()
         {

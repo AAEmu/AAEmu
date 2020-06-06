@@ -2288,9 +2288,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var phases = GetPhaseFunc(doodad.FuncGroupId);
             foreach (var phase in phases)
             {
-                _log.Warn(className + " is Phasing " + phase.FuncType);
-                phase.Use(caster, doodad, phase.SkillId);
+                if (!doodad.cancelPhasing)
+                {
+                    _log.Warn(className + " is Phasing " + phase.FuncType);
+                    phase.Use(caster, doodad, phase.SkillId);
+                }
             }
+            doodad.cancelPhasing = false;
             doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
         }
     }
