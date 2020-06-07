@@ -32,6 +32,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     if (slave != null)
                     {
                         slave.RequestThrottle = shipRequestMoveType.Throttle;
+                        slave.RequestSteering = shipRequestMoveType.Steering;
                     }
                 }
                 else

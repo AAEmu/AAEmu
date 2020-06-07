@@ -43,6 +43,18 @@ namespace AAEmu.Game.Utils
                 res = (sbyte)((degree - 360) / (360f / 128));
             return res;
         }
+        
+        public static short ConvertDegreeToDirectionShort(double degree)
+        {
+            if (degree < 0)
+                degree = 360 + degree;
+            degree -= 90;
+            var res = (short)(degree / (360f / 128));
+            if (res > 21930)
+                res = (short)((degree - 360) / (360f / 128));
+            return res;
+        }
+        
         public static sbyte ConvertDegreeToDoodadDirection(double degree)
         {
             while (degree < 0f)

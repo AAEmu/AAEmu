@@ -34,8 +34,12 @@ namespace AAEmu.Game.Models.Game.Units
         public sbyte Steering { get; set; }
         public sbyte Throttle { get; set; }
         public sbyte RequestThrottle { get; set; }
+        public sbyte RequestSteering { get; set; }
         public bool Stuck { get; set; }
         public float Speed { get; set; }
+        public float RotSpeed { get; set; }
+        public short RotationZ { get; set; }
+        public float RotationDegrees { get; set; }
 
         public override void BroadcastPacket(GamePacket packet, bool self)
         {

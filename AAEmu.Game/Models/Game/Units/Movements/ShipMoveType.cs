@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             Z = slave.Position.Z;
             RotationX = slave.Position.RotationX;
             RotationY = slave.Position.RotationY;
-            RotationZ = slave.Position.RotationZ;
+            RotationZ = slave.RotationZ;
             VelX = slave.VelX;
             VelY = slave.VelY;
             VelZ = slave.VelZ;
