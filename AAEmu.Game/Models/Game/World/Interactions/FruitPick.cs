@@ -14,7 +14,6 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             if (target is Doodad doodad)
             {
                 DoodadManager.Instance.TriggerFunc(GetType().Name, caster, doodad, skillId);
-
             }
         }
     }

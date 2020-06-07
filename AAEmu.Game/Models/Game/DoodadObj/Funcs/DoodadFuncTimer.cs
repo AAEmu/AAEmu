@@ -18,12 +18,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            _log.Debug("Delay " + Delay);
-            _log.Debug("NextPhase " + NextPhase);
-            _log.Debug("KeepRequester " + KeepRequester);
-            _log.Debug("ShowTip " + ShowTip);
-            _log.Debug("ShowEndTime " + ShowEndTime);
-            _log.Debug("Tip " + Tip);
+            //_log.Debug("Delay " + Delay);
+            //_log.Debug("NextPhase " + NextPhase);
+            //_log.Debug("KeepRequester " + KeepRequester);
+            //_log.Debug("ShowTip " + ShowTip);
+            //_log.Debug("ShowEndTime " + ShowEndTime);
+            //_log.Debug("Tip " + Tip);
             if (NextPhase > 0)
             {
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
