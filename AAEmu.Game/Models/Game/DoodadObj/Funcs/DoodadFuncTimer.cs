@@ -24,10 +24,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             //_log.Debug("ShowTip " + ShowTip);
             //_log.Debug("ShowEndTime " + ShowEndTime);
             //_log.Debug("Tip " + Tip);
+
+            owner.GrowthTime = DateTime.Now.AddMilliseconds(Delay + 1); // TODO need here
+
             if (NextPhase > 0)
             {
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
-                TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay));
+                TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay + 1));
             }
             else
             {
