@@ -2299,8 +2299,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     phase.Use(caster, doodad, phase.SkillId);
                 }
             }
+            if(phases.Length > 0)
+                doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
             doodad.cancelPhasing = false;
-            doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
         }
     }
 }
