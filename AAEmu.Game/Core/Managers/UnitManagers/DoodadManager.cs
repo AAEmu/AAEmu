@@ -88,13 +88,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.NoCollision = reader.GetBoolean("no_collision", true);
                             template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
 
-                            
+
 
                             _templates.Add(template.Id, template);
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_groups";
@@ -2294,16 +2294,17 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         }
         public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
         {
-            if (!doodad.cancelPhasing)
+            var phases = GetPhaseFunc(doodad.FuncGroupId);
+            foreach (var phase in phases)
             {
-                var phases = GetPhaseFunc(doodad.FuncGroupId);
-                foreach (var phase in phases)
+                if (!doodad.cancelPhasing)
                 {
                     //_log.Warn(className + " is Phasing " + phase.FuncType);
                     phase.Use(caster, doodad, phase.SkillId);
                 }
-                doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
             }
+            if (!doodad.cancelPhasing)
+                doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
             doodad.cancelPhasing = false;
         }
     }
