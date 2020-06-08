@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
@@ -146,6 +146,9 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void AddEffect(Effect effect)
         {
+            if (effect.Template == null)
+                return;
+                
             lock (_lock)
             {
                 var owner = GetOwner();
@@ -163,6 +166,12 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     effect.StartTime = DateTime.Now;
                     effect.EndTime = effect.StartTime.AddMilliseconds(effect.Duration);
+                }
+
+                // Special case for fear, which is negative somehow ??
+                if (effect.Duration < 0)
+                {
+                    effect.EndTime = effect.StartTime.AddMilliseconds(-effect.Duration);
                 }
 
                 switch (effect.Template)

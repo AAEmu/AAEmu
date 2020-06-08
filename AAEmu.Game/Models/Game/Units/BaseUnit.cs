@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Units
         public SystemFaction Faction { get; set; }
 
         public virtual float Scale => 1f;
-        
+
         public Effects Effects { get; set; }
         public SkillModifiers Modifiers { get; set; }
 
@@ -48,9 +48,29 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual void RemoveBonus(uint bonusIndex, UnitAttribute attribute)
         {
         }
-        
-        public virtual double ApplySkillModifiers(Skill skill, SkillAttribute attribute, double baseValue) {
+
+        public virtual double ApplySkillModifiers(Skill skill, SkillAttribute attribute, double baseValue)
+        {
             return Modifiers.ApplyModifiers(skill, attribute, baseValue);
+        }
+
+        public virtual SkillTargetRelation GetRelationTo(BaseUnit other)
+        {
+            if (Faction.Id == other.Faction.Id)
+                return SkillTargetRelation.Friendly;
+
+            var relation = other.Faction.GetRelationState(Faction.Id);
+            switch (relation)
+            {
+                case RelationState.Friendly:
+                    return SkillTargetRelation.Friendly;
+                case RelationState.Hostile:
+                    return SkillTargetRelation.Hostile;
+                case RelationState.Neutral:
+                    return SkillTargetRelation.Others;
+                default:
+                    return SkillTargetRelation.Others;
+            }
         }
     }
 }

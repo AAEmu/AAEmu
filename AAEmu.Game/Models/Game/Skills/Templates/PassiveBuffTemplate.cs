@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Skills.Templates
+﻿namespace AAEmu.Game.Models.Game.Skills.Templates
 {
     public class PassiveBuffTemplate
     {
@@ -8,5 +8,6 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public uint BuffId { get; set; }
         public int ReqPoints { get; set; }
         public bool Active { get; set; }
+        public PassiveBuffTemplate Template { get; set; }
     }
 }

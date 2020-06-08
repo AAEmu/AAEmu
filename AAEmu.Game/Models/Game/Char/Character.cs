@@ -124,6 +124,12 @@ namespace AAEmu.Game.Models.Game.Char
         public int AccessLevel { get; set;}
         public Point LocalPingPosition { get; set; } // added as a GM command helper
 
+        public uint WeaponTypeBuffId { get; set; }
+        public uint WeaponEquipSetBuffId { get; set; }
+        public uint ArmorKindBuffId { get; set; }
+        public uint ArmorGradeBuffId { get; set; }
+        public List<uint> ArmorSetBuffIds { get; set; }
+
         private bool _inParty;
         private bool _isOnline;
 
@@ -1023,6 +1029,11 @@ namespace AAEmu.Game.Models.Game.Char
                         character.NumBankSlots = reader.GetInt16("num_bank_slot");
                         character.ExpandedExpert = reader.GetByte("expanded_expert");
                         character.Updated = reader.GetDateTime("updated_at");
+                        character.WeaponTypeBuffId = 0;               //TODO: get from saved buffs
+                        character.WeaponEquipSetBuffId = 0;           //TODO: get from saved buffs
+                        character.ArmorKindBuffId = 0;                //TODO: get from saved buffs
+                        character.ArmorGradeBuffId = 0;               //TODO: get from saved buffs
+                        character.ArmorSetBuffIds = new List<uint>(); //TODO: get from saved buffs
 
                         character.Inventory = new Inventory(character);
 

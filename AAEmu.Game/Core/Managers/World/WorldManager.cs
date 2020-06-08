@@ -478,6 +478,21 @@ namespace AAEmu.Game.Core.Managers.World
             return result;
         }
 
+        public List<T> GetAround<T>(GameObject obj, float radius, int limit) where T : class
+        {
+            var result = new List<T>();
+            if (obj.Region == null)
+                return result;
+
+            foreach (var neighbor in obj.Region.GetNeighbors())
+                neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius);
+
+            if (result.Count > limit)
+                result.RemoveRange(limit - 1, result.Count - limit - 1);
+
+            return result;
+        }
+
         public List<T> GetInCell<T>(uint worldId, int x, int y) where T : class
         {
             var result = new List<T>();

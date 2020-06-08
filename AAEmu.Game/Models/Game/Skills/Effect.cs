@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -26,6 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public SkillCaster SkillCaster { get; set; }
         public BaseUnit Owner { get; set; }
         public EffectState State { get; set; }
+        public short AbLevel { get; set; }
         public bool InUse { get; set; }
         public int Duration { get; set; }
         public double Tick { get; set; }
@@ -38,6 +39,19 @@ namespace AAEmu.Game.Models.Game.Skills
             Caster = caster;
             SkillCaster = skillCaster;
             Template = template;
+            AbLevel = 1;
+            Skill = skill;
+            StartTime = time;
+            EndTime = DateTime.MinValue;
+        }
+
+        public Effect(BaseUnit owner, Unit caster, SkillCaster skillCaster, EffectTemplate template, Skill skill, DateTime time, short abLevel)
+        {
+            Owner = owner;
+            Caster = caster;
+            SkillCaster = skillCaster;
+            Template = template;
+            AbLevel = abLevel;
             Skill = skill;
             StartTime = time;
             EndTime = DateTime.MinValue;

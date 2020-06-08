@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
@@ -70,6 +71,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// </summary>
         public Patrol Patrol { get; set; }
         public Simulation Simulation { get; set; }
+        private readonly object _doDieLock = new object();
 
         public Unit()
         {
@@ -95,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
         }
-        
+
         public virtual void ReduceCurrentMp(Unit unit, int value)
         {
             if (Hp == 0)
@@ -110,37 +112,40 @@ namespace AAEmu.Game.Models.Game.Units
 
         public virtual void DoDie(Unit killer)
         {
-            Effects.RemoveEffectsOnDeath();
-            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
-            var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
-            if (lootDropItems.Count > 0)
+            lock (_doDieLock)
             {
-                killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
-            }
-
-            if (CurrentTarget != null)
-            {
-                killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
-                killer.SummarizeDamage = 0;
-
-                killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
-                killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
-                killer.StartRegen();
-                killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
-
-                if (killer is Character character)
+                Effects.RemoveEffectsOnDeath();
+                killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
+                var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
+                if (lootDropItems.Count > 0)
                 {
-                    character.StopAutoSkill(character);
-                    character.IsInBattle = false; // we need the character to be "not in battle"
-                }
-                else if (killer.CurrentTarget is Character character2)
-                {
-                    character2.StopAutoSkill(character2);
-                    character2.IsInBattle = false; // we need the character to be "not in battle"
-                    character2.DeadTime = DateTime.Now;
+                    killer.BroadcastPacket(new SCLootableStatePacket(ObjId, true), true);
                 }
 
-                killer.CurrentTarget = null;
+                if (CurrentTarget != null)
+                {
+                    killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
+                    killer.SummarizeDamage = 0;
+
+                    killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
+                    killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
+                    killer.StartRegen();
+                    killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
+
+                    if (killer is Character character)
+                    {
+                        character.StopAutoSkill(character);
+                        character.IsInBattle = false; // we need the character to be "not in battle"
+                    }
+                    else if (killer.CurrentTarget is Character character2)
+                    {
+                        character2.StopAutoSkill(character2);
+                        character2.IsInBattle = false; // we need the character to be "not in battle"
+                        character2.DeadTime = DateTime.Now;
+                    }
+
+                    killer.CurrentTarget = null;
+                }
             }
         }
 

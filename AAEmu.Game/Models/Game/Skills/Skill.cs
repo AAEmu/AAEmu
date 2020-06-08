@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -17,6 +19,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills
@@ -55,7 +58,7 @@ namespace AAEmu.Game.Models.Game.Skills
             //        return;
             //    }
             //}
-            
+
             // TODO : Add check for range
             var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
 
@@ -245,9 +248,9 @@ namespace AAEmu.Game.Models.Game.Skills
                         res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step, callCounter);
                     }
                 }
-                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step); 
+                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step);
             }
-            
+
             if (Template.CastingTime > 0)
             {
                 caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
@@ -458,8 +461,15 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.EffectDelay > 0)
             {
                 var totalDelay = Template.EffectDelay;
-                if (Template.MatchAnimation) totalDelay += Template.FireAnim.Duration;
-                else if (Template.UseAnimTime) totalDelay += Template.FireAnim.CombatSyncTime;
+                if (Template.MatchAnimation)
+                {
+                    totalDelay += Template.FireAnim.Duration;
+                }
+                else if (Template.UseAnimTime)
+                {
+                    totalDelay += Template.FireAnim.CombatSyncTime;
+                }
+
                 TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));
             }
             else
@@ -467,29 +477,34 @@ namespace AAEmu.Game.Models.Game.Skills
                 var totalDelay = 0;
                 if ((Template.MatchAnimation || Template.UseAnimTime) && Template.FireAnim != null)
                 {
-                    if (Template.MatchAnimation) totalDelay += Template.FireAnim.CombatSyncTime;
-                    if (Template.UseAnimTime) totalDelay += Template.FireAnim.Duration;
+                    if (Template.MatchAnimation)
+                    {
+                        totalDelay += Template.FireAnim.CombatSyncTime;
+                    }
+
+                    if (Template.UseAnimTime)
+                    {
+                        totalDelay += Template.FireAnim.Duration;
+                    }
+
                     TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));
                 }
-                else Apply(caster, casterCaster, target, targetCaster, skillObject);
+                else
+                {
+                    Apply(caster, casterCaster, target, targetCaster, skillObject);
+                }
             }
         }
 
         public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
-            var targets = new List<BaseUnit>(); // TODO crutches
-            if (Template.TargetAreaRadius > 0)
-            {
-                var obj = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius);
-                targets.AddRange(obj);
-            }
-            else
-            {
-                targets.Add(targetSelf);
-            }
-
+            var effectsToApply = new List<EffectToApply>();
             foreach (var effect in Template.Effects)
             {
+                var targets = GetTargets(caster, targetCaster, Template.TargetType, (SkillEffectApplicationMethod)effect.ApplicationMethodId);
+
+                _log.Warn(effect.Template?.ToString());
+
                 foreach (var target in targets)
                 {
                     if (effect.StartLevel > caster.Level || effect.EndLevel < caster.Level)
@@ -545,21 +560,23 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
                         if ((castItemTemplate.UseSkillAsReagent) && (caster is Character player))
-                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount,null);
+                        {
+                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, null);
+                        }
                         /*
                         var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
                         var isRaegent = itemUsed.Template.UseSkillAsReagent;
                         if (isRaegent) //if item is a raegent
                         {
-                            if (caster is Character player)
-                            {
-                                var items = player.Inventory.RemoveItem(castItem.ItemTemplateId, effect.ConsumeItemCount);
-                                var tasks = new List<ItemTask>();
-                                foreach (var (item, count) in items)
-                                {
-                                    InventoryHelper.RemoveItemAndUpdateClient(player, item, count, ItemTaskType.SkillReagents);
-                                }
-                            }
+                           if (caster is Character player)
+                           {
+                               var items = player.Inventory.RemoveItem(castItem.ItemTemplateId, effect.ConsumeItemCount);
+                               var tasks = new List<ItemTask>();
+                               foreach (var (item, count) in items)
+                               {
+                                   InventoryHelper.RemoveItemAndUpdateClient(player, item, count, ItemTaskType.SkillReagents);
+                               }
+                           }
                         }
                         ItemManager.Instance.ReleaseId(itemUsed.Id);
                         */
@@ -568,9 +585,11 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         if (effect.ConsumeSourceItem)
                         {
-                            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption, 
+                            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectConsumption,
                                 effect.ConsumeItemId, effect.ConsumeItemCount))
+                            {
                                 continue;
+                            }
                         }
                         else
                         {
@@ -582,15 +601,33 @@ namespace AAEmu.Game.Models.Game.Skills
                             }
 
                             if (inventory)
-                                character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount,null);
-                            else 
+                            {
+                                character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount, null);
+                            }
+                            else
                             if (equipment)
-                                character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount,null);
+                            {
+                                character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount, null);
+                            }
                         }
                     }
 
-                    effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
+                    //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
+                    if (effect.Template != null)
+                    {
+                        var effectToApply = new EffectToApply(effect.Template, caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject);
+                        effectsToApply.Add(effectToApply);
+                    }
                 }
+            }
+            foreach (var effect in effectsToApply)
+            {
+                effect.Apply();
+            }
+
+            if (Template.ConsumeLaborPower > 0 && caster is Character chr)
+            {
+                chr.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
             }
 
             if (Template.ConsumeLaborPower > 0 && caster is Character chart)
@@ -602,10 +639,107 @@ namespace AAEmu.Game.Models.Game.Skills
             TlIdManager.Instance.ReleaseId(TlId);
             //TlId = 0;
 
-            //if (Template.CastingTime > 0)
-            //{
-            //    caster.BroadcastPacket(new SCSkillStoppedPacket(caster.ObjId, Template.Id), true);
-            //}
+            if (Template.CastingTime > 0)
+            {
+                caster.BroadcastPacket(new SCSkillStoppedPacket(caster.ObjId, Template.Id), true);
+            }
+        }
+
+        public List<BaseUnit> GetTargets(Unit caster, SkillCastTarget castTarget, SkillTargetType targetType, SkillEffectApplicationMethod effectApplicationMethod)
+        {
+            var targets = new List<BaseUnit>();
+            var origin = (BaseUnit)caster;
+
+            // TODO : Check SkillTargetType
+
+            /*
+                SkillTargetSelection : Seems to pick the "Origin" of the effect.
+                This is general to the entire skill.
+            */
+
+            switch (Template.TargetSelection)
+            {
+                case SkillTargetSelection.Source:
+                    origin = caster;
+                    break;
+                case SkillTargetSelection.Target:
+                    //origin = castTarget.GetBaseUnit();
+                    if (castTarget is SkillCastUnitTarget unitTarget)
+                    {
+                        origin = WorldManager.Instance.GetBaseUnit(unitTarget.ObjId);
+                    }
+                    else if (castTarget is SkillCastPositionTarget posTarget)
+                    {
+                        origin = new BaseUnit
+                        {
+                            Position = new Point(posTarget.PosX, posTarget.PosY, posTarget.PosZ)
+                            {
+                                ZoneId = caster.Position.ZoneId,
+                                WorldId = caster.Position.WorldId
+                            },
+                            Region = caster.Region,
+                            Faction = caster.Faction
+                        };
+                    }
+                    else if (castTarget is SkillCastDoodadTarget doodadTarget)
+                    {
+                        origin = WorldManager.Instance.GetDoodad(doodadTarget.ObjId);
+                    }
+                    else
+                    {
+                        // TODO : There has to be a better way... god save my soul
+                        origin = caster.CurrentTarget;
+                    }
+
+                    break;
+                case SkillTargetSelection.Location:
+                    var positionTarget = (SkillCastPositionTarget)castTarget;
+                    origin = new BaseUnit
+                    {
+                        Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ)
+                        {
+                            ZoneId = caster.Position.ZoneId,
+                            WorldId = caster.Position.WorldId
+                        },
+                        Region = caster.Region,
+                        Faction = caster.Faction
+                    };
+                    break;
+                case SkillTargetSelection.Line:
+                    // TODO : Impl
+                    break;
+            }
+
+            switch (effectApplicationMethod)
+            {
+                case SkillEffectApplicationMethod.SourceToSource:
+                    // Get self but more than once ? Idk man
+                    targets.Add(caster);
+                    break;
+                case SkillEffectApplicationMethod.SourceToPos:
+                // GetAOETargets around the caster's target area
+                case SkillEffectApplicationMethod.SourceToTarget:
+                    // GetAOETargets around the caster's target
+                    if (Template.TargetAreaRadius > 0)
+                    {
+                        // AREA AROUND TARGET (will hit caster because target objId is excluded, not Caster's)
+                        var obj = WorldManager.Instance.GetAround<BaseUnit>(origin, Template.TargetAreaRadius, Template.TargetAreaCount);
+                        obj = obj.Where(other => caster.GetRelationTo(other) == Template.TargetRelation).ToList();
+                        targets.AddRange(obj);
+                    }
+                    else
+                    {
+                        targets.Add(origin);
+                    }
+
+                    break;
+                case SkillEffectApplicationMethod.SourceToSourceOnce:
+                    // Seems like that's the idea lol
+                    targets.Add(caster);
+                    break;
+            }
+
+            return targets;
         }
 
         public void Stop(Unit caster)

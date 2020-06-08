@@ -15,7 +15,16 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
           
             WorldManager.Instance.OnPlayerJoin(Connection.ActiveChar);
+
+            if (Connection.ActiveChar.Family > 0)
+            {
+                FamilyManager.Instance.OnCharacterLogin(Connection.ActiveChar);
+            }
+
+            Connection.ActiveChar.Inventory.UpdateEquipmentBuffs(); //Rebuild equipment buffs
+            Connection.ActiveChar.StartRegen();
             _log.Info("NotifyInGameCompleted");
+
         }
     }
 }

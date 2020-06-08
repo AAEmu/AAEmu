@@ -2272,6 +2272,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (action != null)
             {
                 _log.Warn(className + " is Actioning " + action.FuncType);
+                _log.Warn("NextPhase = " + action.NextPhase);
                 doodad.FuncGroupId = (uint)action.NextPhase;
                 action.Use(caster, doodad, action.SkillId);
             }
@@ -2290,6 +2291,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             foreach (var phase in phases)
             {
                 _log.Warn(className + " is Phasing " + phase.FuncType);
+                _log.Warn("NextPhase = " + phase.NextPhase);
                 phase.Use(caster, doodad, phase.SkillId);
             }
             doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);

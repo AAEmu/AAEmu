@@ -424,6 +424,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Ability3 = AbilityType.None;
                 character.ReturnDictrictId = template.ReturnDictrictId;
                 character.ResurrectionDictrictId = template.ResurrectionDictrictId;
+                character.WeaponTypeBuffId = 0;              //TODO: get from saved buffs
+                character.WeaponEquipSetBuffId = 0;          //TODO: get from saved buffs
+                character.ArmorKindBuffId = 0;               //TODO: get from saved buffs
+                character.ArmorGradeBuffId = 0;              //TODO: get from saved buffs
+                character.ArmorSetBuffIds = new List<uint>();//TODO: get from saved buffs
                 character.Slots = new ActionSlot[85];
                 for (var i = 0; i < character.Slots.Length; i++)
                     character.Slots[i] = new ActionSlot();

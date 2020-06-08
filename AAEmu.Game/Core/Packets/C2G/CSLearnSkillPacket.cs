@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -13,7 +13,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var skillId = stream.ReadUInt32();
 
-            Connection.ActiveChar.Skills.AddSkill(skillId);
+            //Connection.ActiveChar.Skills.AddSkill(skillId);
+            Connection.ActiveChar.Skills.AddSkill(skillId, true);
         }
     }
 }

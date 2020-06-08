@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -13,7 +13,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var buffId = stream.ReadUInt32();
             
-            Connection.ActiveChar.Skills.AddBuff(buffId);
+            //Connection.ActiveChar.Skills.AddBuff(buffId);
+            Connection.ActiveChar.Skills.AddPassive(buffId, true);
         }
     }
 }

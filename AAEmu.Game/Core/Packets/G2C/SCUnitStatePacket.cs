@@ -381,15 +381,15 @@ namespace AAEmu.Game.Core.Packets.G2C
                     flags.Set(13);
                 }
 
-                stream.WritePisc(0, 0); // очки чести полученные в PvP, кол-во убийств в PvP
+                stream.WritePisc(0, 0); // PvP honor points, number of murders in PvP
                 stream.Write(flags.ToByteArray()); // flags(ushort)
                 /*
-                 * 0x01 - 8bit - режим боя
-                 * 0x04 - 6bit - невидимость?
-                 * 0x08 - 5bit - дуэль
-                 * 0x40 - 2bit - gmmode, дополнительно 7 байт
-                 * 0x80 - 1bit - дополнительно tl(ushort), tl(ushort), tl(ushort), tl(ushort)
-                 * 0x0100 - 16bit - дополнительно 3 байт (bc), firstHitterTeamId(uint)
+                 * 0x01 - 8bit - combat mode
+                 * 0x04 - 6bit - invisibility?
+                 * 0x08 - 5bit - duel
+                 * 0x40 - 2bit - gmmode, 7 additional bytes
+                 * 0x80 - 1bit - additional tl(ushort), tl(ushort), tl(ushort), tl(ushort)
+                 * 0x0100 - 16bit - additional 3 байт (bc), firstHitterTeamId(uint)
                  * 0x0400 - 14bit - надпись "Отсутсвует" под именем
                  */
             }
@@ -454,16 +454,16 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(effect.Index);
                 stream.Write(effect.Template.BuffId);
                 stream.Write(effect.SkillCaster);
-                stream.Write(0u); // type(id)
-                stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)1); // sourceAbLevel
-                stream.Write(effect.Duration); // totalTime
+                stream.Write(0u);                      // type(id)
+                stream.Write(effect.Caster.Level);     // sourceLevel
+                stream.Write(effect.AbLevel);          // sourceAbLevel
+                stream.Write(effect.Duration);         // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write((uint)effect.Tick); // tickTime
-                stream.Write(0); // tickIndex
-                stream.Write(1); // stack
-                stream.Write(0); // charged
-                stream.Write(0u); // type(id) -> cooldownSkill
+                stream.Write((uint)effect.Tick);       // tickTime
+                stream.Write(0);                       // tickIndex
+                stream.Write(1);                       // stack
+                stream.Write(0);                       // charged
+                stream.Write(0u);                      // type(id) -> cooldownSkill
             }
 
             stream.Write((byte)badBuffs.Count); // TODO max 24
@@ -473,15 +473,15 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(effect.Template.BuffId);
                 stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
-                stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)1); // sourceAbLevel
-                stream.Write(effect.Duration); // totalTime
+                stream.Write(effect.Caster.Level);     // sourceLevel
+                stream.Write(effect.AbLevel);          // sourceAbLevel
+                stream.Write(effect.Duration);         // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write((uint)effect.Tick); // tickTime
-                stream.Write(0); // tickIndex
-                stream.Write(1); // stack
-                stream.Write(0); // charged
-                stream.Write(0u); // type(id) -> cooldownSkill
+                stream.Write((uint)effect.Tick);       // tickTime
+                stream.Write(0);                       // tickIndex
+                stream.Write(1);                       // stack
+                stream.Write(0);                       // charged
+                stream.Write(0u);                      // type(id) -> cooldownSkill
             }
 
             stream.Write((byte)hiddenBuffs.Count); // TODO max 24
@@ -490,19 +490,17 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(effect.Index);
                 stream.Write(effect.Template.BuffId);
                 stream.Write(effect.SkillCaster);
-                stream.Write(0u); // type(id)
-                stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)1); // sourceAbLevel
-                stream.Write(effect.Duration); // totalTime
+                stream.Write(0u);                      // type(id)
+                stream.Write(effect.Caster.Level);     // sourceLevel
+                stream.Write(effect.AbLevel);          // sourceAbLevel
+                stream.Write(effect.Duration);         // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write((uint)effect.Tick); // tickTime
-                stream.Write(0); // tickIndex
-                stream.Write(1); // stack
-                stream.Write(0); // charged
-                stream.Write(0u); // type(id) -> cooldownSkill
+                stream.Write((uint)effect.Tick);       // tickTime
+                stream.Write(0);                       // tickIndex
+                stream.Write(1);                       // stack
+                stream.Write(0);                       // charged
+                stream.Write(0u);                      // type(id) -> cooldownSkill
             }
-            //            for (var i = 0; i < 255; i++)
-            //                stream.Write(0);
 
             return stream;
         }

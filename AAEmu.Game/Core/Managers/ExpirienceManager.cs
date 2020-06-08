@@ -11,6 +11,7 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<byte, ExpirienceLevelTemplate> _levels;
+        public uint maxLevel = 55;
 
         public int GetExpForLevel(byte level, bool mate = false)
         {
@@ -26,7 +27,15 @@ namespace AAEmu.Game.Core.Managers
                 if (exp >= (mate ? _levels[lv].TotalMateExp : _levels[lv].TotalExp))
                     return lv;
             }
-            return 0;
+            return 1;
+        }
+        public int GetLevelFromExp(int exp)
+        {
+            for (var i = 1; i <= maxLevel; i++)
+                if (_levels[(byte)i].TotalExp <= exp && exp < _levels[(byte)(i + 1)].TotalExp)
+                    return i + 1;
+
+            return 1;
         }
 
         public int GetExpNeededToGivenLevel(int currentExp, byte targetLevel, bool mate = false)

@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Items
+﻿namespace AAEmu.Game.Models.Game.Items
 {
     public enum EquipmentItemSlot : byte
     {
@@ -65,5 +65,22 @@ namespace AAEmu.Game.Models.Game.Items
         Beard = 29,
         Backpack = 30,
         Cosplay = 31
+    }
+    public enum WeaponTypeBuff : uint
+    {
+        Shield = 8226,
+        TwoHanded = 8227,
+        DuelWield = 4899,
+        None = 0
+    }
+
+    public enum ArmorKindBuff : uint
+    {
+        Cloth4 = 713,
+        Cloth7 = 714,
+        Leather4 = 715,
+        Leather7 = 716,
+        Plate4 = 717,
+        Plate7 = 740
     }
 }

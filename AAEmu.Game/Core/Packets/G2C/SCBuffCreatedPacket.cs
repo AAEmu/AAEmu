@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
@@ -18,11 +18,11 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_effect.SkillCaster);
             stream.Write((_effect.Caster is Character character) ? character.Id : 0); // casterId
-            stream.WriteBc(_effect.Owner.ObjId); // targetBcId
+            stream.WriteBc(_effect.Owner.ObjId);           // targetBcId
             stream.Write(_effect.Index);
-            stream.Write(_effect.Template.BuffId); // buffId
-            stream.Write(_effect.Caster.Level); // sourceLevel
-            stream.Write((short) 1); // sourceAbLevel
+            stream.Write(_effect.Template.BuffId);         // buffId
+            stream.Write(_effect.Caster.Level);            // sourceLevel
+            stream.Write(_effect.AbLevel);                 // sourceAbLevel
             stream.Write(_effect.Skill?.Template.Id ?? 0); // skillId
             _effect.WriteData(stream);
             return stream;
