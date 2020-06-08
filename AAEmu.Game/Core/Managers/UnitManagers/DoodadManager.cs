@@ -2213,10 +2213,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 doodad.OwnerId = character.Id;
                 doodad.OwnerType = DoodadOwnerType.Character;
-
-                var task = new DoodadFuncTimer();
-                task.Delay = template.GrowthTime;
-                task.Use(character, doodad, 0);
             }
 
             if (obj is House house)
@@ -2227,6 +2223,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.DbHouseId = house.Id;
             }
+            if (template.GrowthTime > 0)
+            {
+                var task = new DoodadFuncTimer();
+                task.Delay = template.GrowthTime;
+                task.Use((Unit)obj, doodad, 0);
+            }
+
             return doodad;
         }
 
@@ -2282,6 +2285,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     doodad.FuncGroupId = nextPhase;
                     doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
                 }
+                TriggerPhases(className, caster, doodad, skillId);
             }
         }
         public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
@@ -2289,10 +2293,15 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var phases = GetPhaseFunc(doodad.FuncGroupId);
             foreach (var phase in phases)
             {
-                _log.Warn(className + " is Phasing " + phase.FuncType);
-                phase.Use(caster, doodad, phase.SkillId);
+                if (!doodad.cancelPhasing)
+                {
+                    _log.Warn(className + " is Phasing " + phase.FuncType);
+                    phase.Use(caster, doodad, phase.SkillId);
+                }
             }
-            doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+            if(phases.Length > 0)
+                doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+            doodad.cancelPhasing = false;
         }
     }
 }

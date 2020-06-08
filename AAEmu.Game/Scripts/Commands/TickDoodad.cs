@@ -54,7 +54,12 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 if (doodad.TemplateId == unitId)
                 {
-                    tickedCount++;
+                    if (doodad.FuncTask != null)
+                    {
+                        doodad.FuncTask.Cancel();
+                        doodad.FuncTask.Execute();
+                        tickedCount++;
+                    }
                 }
             }
             character.SendMessage("[tickdoodad] phased {0} Doodad(s) with TemplateID {1} - @DOODAD_NAME({1})", tickedCount, unitId);
