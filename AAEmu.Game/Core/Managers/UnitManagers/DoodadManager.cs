@@ -2274,8 +2274,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var action = GetFunc(doodad.FuncGroupId, skillId);
             if (action != null)
             {
-                _log.Warn(className + " is Actioning " + action.FuncType);
-                doodad.FuncGroupId = (uint)action.NextPhase;
+                //_log.Warn(className + " is Actioning " + action.FuncType);
+                if (action.NextPhase > 0)
+                    doodad.FuncGroupId = (uint)action.NextPhase;
+                else
+                    doodad.cancelPhasing = true; //If the next phase in the action doesn't exist, prevent the doodad from phasing any further
+
                 action.Use(caster, doodad, action.SkillId);
             }
             else
@@ -2290,17 +2294,16 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         }
         public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
         {
-            var phases = GetPhaseFunc(doodad.FuncGroupId);
-            foreach (var phase in phases)
+            if (!doodad.cancelPhasing)
             {
-                if (!doodad.cancelPhasing)
+                var phases = GetPhaseFunc(doodad.FuncGroupId);
+                foreach (var phase in phases)
                 {
-                    _log.Warn(className + " is Phasing " + phase.FuncType);
+                    //_log.Warn(className + " is Phasing " + phase.FuncType);
                     phase.Use(caster, doodad, phase.SkillId);
                 }
-            }
-            if(phases.Length > 0)
                 doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+            }
             doodad.cancelPhasing = false;
         }
     }
