@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -16,6 +17,8 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks;
+using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -34,7 +37,7 @@ namespace AAEmu.Game.Core.Managers
             return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
         }
 
-        private Slave GetActiveSlaveByOwnerObjId(uint objId)
+        public Slave GetActiveSlaveByOwnerObjId(uint objId)
         {
             return _activeSlaves.ContainsKey(objId) ? _activeSlaves[objId] : null;
         }
@@ -58,6 +61,16 @@ namespace AAEmu.Game.Core.Managers
 
             return null;
         }
+        
+        public IEnumerable<Slave> GetActiveSlavesByKind(SlaveKind kind)
+        {
+            return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
+        }
+        
+        public IEnumerable<Slave> GetActiveSlavesByKinds(SlaveKind[] kinds)
+        {
+            return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind)).Select(s => s.Value);
+        }
 
         public void UnbindSlave(GameConnection connection, uint tlId)
         {
@@ -78,6 +91,12 @@ namespace AAEmu.Game.Core.Managers
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, activeSlaveInfo.ObjId), true);
             unit.CurrentTarget = activeSlaveInfo;
             unit.SendPacket(new SCSlaveBoundPacket(unit.Id, activeSlaveInfo.ObjId));
+        }
+        
+        public void BindSlave(Character character, uint objId)
+        {
+            character.SendPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId));
+            character.SendPacket(new SCSlaveBoundPacket(character.Id, objId));
         }
 
         // TODO - GameConnection connection
@@ -123,6 +142,8 @@ namespace AAEmu.Game.Core.Managers
             var spawnPos = owner.Position.Clone();
             spawnPos.X += slaveTemplate.SpawnXOffset;
             spawnPos.Y += slaveTemplate.SpawnYOffset;
+            // if boat
+            spawnPos.Z = 100f;
 
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
@@ -142,7 +163,8 @@ namespace AAEmu.Game.Core.Managers
                 Faction = owner.Faction,
                 Id = 10, // TODO
                 Summoner = owner,
-                AttachedDoodads = new List<Doodad>()
+                AttachedDoodads = new List<Doodad>(),
+                SpawnTime = DateTime.Now
             };
             
 
@@ -332,6 +354,21 @@ namespace AAEmu.Game.Core.Managers
             foreach (var set in attachPoints)
             {
                 _attachPoints[set.ModelId] = set.AttachPoints;
+            }
+        }
+
+        public void Initialize()
+        {
+            var sendMySlaveTask = new SendMySlaveTask();
+            TaskManager.Instance.Schedule(sendMySlaveTask, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        }
+    
+        public void SendMySlavePacketToAllOwners() {
+            foreach (var (ownerObjId, slave) in _activeSlaves)
+            {
+                var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
+                owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId, slave.Hp, slave.Mp,
+                    slave.Position.X, slave.Position.Y, slave.Position.Z));
             }
         }
     }
