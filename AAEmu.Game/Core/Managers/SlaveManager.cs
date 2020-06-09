@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -92,10 +92,10 @@ namespace AAEmu.Game.Core.Managers
             unit.CurrentTarget = activeSlaveInfo;
             unit.SendPacket(new SCSlaveBoundPacket(unit.Id, activeSlaveInfo.ObjId));
         }
-        
-        public void BindSlave(Character character, uint objId)
+
+        public void BindSlave(Character character, uint objId, byte attachpoint, byte bondkind)
         {
-            character.SendPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId));
+            character.SendPacket(new SCUnitAttachedPacket(character.ObjId, attachpoint, bondkind, objId));
             character.SendPacket(new SCSlaveBoundPacket(character.Id, objId));
         }
 

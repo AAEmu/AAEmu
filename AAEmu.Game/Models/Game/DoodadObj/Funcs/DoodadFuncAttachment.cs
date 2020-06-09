@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -23,10 +23,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, 0);
                     character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
                 }
-                // Ships
+                // Ships / radar / potential other's
                 else
                 {
-                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId);
+                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId, (byte)(BondKindId + 6));
                 }
             }
         }
