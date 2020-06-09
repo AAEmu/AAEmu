@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             if (template == null)
                 return;
-            _log.Debug("relaying to: " + FuncType);
+            //_log.Debug("relaying to: " + FuncType);
             template.Use(caster, owner, skillId);
         }
     }

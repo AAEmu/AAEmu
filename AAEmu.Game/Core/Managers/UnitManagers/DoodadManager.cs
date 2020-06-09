@@ -88,13 +88,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.NoCollision = reader.GetBoolean("no_collision", true);
                             template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
 
-                            
+
 
                             _templates.Add(template.Id, template);
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_groups";
@@ -2274,8 +2274,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var action = GetFunc(doodad.FuncGroupId, skillId);
             if (action != null)
             {
-                _log.Warn(className + " is Actioning " + action.FuncType);
-                doodad.FuncGroupId = (uint)action.NextPhase;
+                //_log.Warn(className + " is Actioning " + action.FuncType);
+                if (action.NextPhase > 0)
+                    doodad.FuncGroupId = (uint)action.NextPhase;
+                else
+                    doodad.cancelPhasing = true; //If the next phase in the action doesn't exist, prevent the doodad from phasing any further
+
                 action.Use(caster, doodad, action.SkillId);
             }
             else
@@ -2295,11 +2299,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 if (!doodad.cancelPhasing)
                 {
-                    _log.Warn(className + " is Phasing " + phase.FuncType);
+                    //_log.Warn(className + " is Phasing " + phase.FuncType);
                     phase.Use(caster, doodad, phase.SkillId);
                 }
             }
-            if(phases.Length > 0)
+            if (!doodad.cancelPhasing)
                 doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
             doodad.cancelPhasing = false;
         }
