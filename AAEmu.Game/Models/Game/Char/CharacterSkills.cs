@@ -165,18 +165,20 @@ namespace AAEmu.Game.Models.Game.Char
             if (newlyLearned && activeSkillsInTree < template.ReqPoints)
                 return;
 
-            PassiveBuffs.Add(passiveId, template);
+            var buff = new PassiveBuffTemplate();
+            buff.Id = passiveId;
+            buff.Template = template;
+
+            PassiveBuffs.Add(passiveId, buff);
 
             if (newlyLearned)
                 Owner.SendPacket(new SCBuffLearnedPacket(Owner.ObjId, passiveId));
-
 
             if (!Owner.Effects.CheckBuff(template.BuffId))
             {
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(template.BuffId);
                 buffTemplate.Kind = BuffKind.Hidden; //TODO: change all passive buffs in SQLite db's (client && server) to be hidden so they don't appear on the buff bar
-                Owner.Effects.AddEffect(new Effect(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit),
-                    buffTemplate, null, DateTime.Now));
+                Owner.Effects.AddEffect(new Effect(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), buffTemplate, null, DateTime.Now));
             }
         }
 
