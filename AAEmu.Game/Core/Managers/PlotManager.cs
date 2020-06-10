@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.Skills.Plots.New;
+using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -14,10 +18,21 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, PlotEventTemplate> _eventTemplates;
         private Dictionary<uint, PlotCondition> _conditions;
 
+        private Dictionary<uint, NewPlot> _newPlots;
+        private Dictionary<uint, NewPlotEventTemplate> _newPlotEvents;
+        private Dictionary<uint, NewPlotCondition> _newPlotConditions;
+
         public Plot GetPlot(uint id)
         {
             if (_plots.ContainsKey(id))
                 return _plots[id];
+            return null;
+        }
+
+        public NewPlot GetNewPlot(uint id)
+        {
+            if (_newPlots.ContainsKey(id))
+                return _newPlots[id];
             return null;
         }
 
@@ -33,6 +48,11 @@ namespace AAEmu.Game.Core.Managers
             _plots = new Dictionary<uint, Plot>();
             _eventTemplates = new Dictionary<uint, PlotEventTemplate>();
             _conditions = new Dictionary<uint, PlotCondition>();
+            
+            _newPlots = new Dictionary<uint, NewPlot>();
+            _newPlotEvents = new Dictionary<uint, NewPlotEventTemplate>();
+            _newPlotConditions = new Dictionary<uint, NewPlotCondition>();
+            
             using (var connection = SQLite.CreateConnection())
             {
                 _log.Info("Loading plots...");
@@ -48,6 +68,14 @@ namespace AAEmu.Game.Core.Managers
                             template.Id = reader.GetUInt32("id");
                             template.TargetTypeId = reader.GetUInt32("target_type_id");
                             _plots.Add(template.Id, template);
+
+                            var newTemplate = new NewPlot
+                            {
+                                Id = reader.GetUInt32("id"),
+                                TargetTypeId = (SkillTargetType)reader.GetUInt32("target_type_id")
+                            };
+                            
+                            _newPlots.Add(newTemplate.Id, newTemplate);
                         }
                     }
                 }
@@ -84,6 +112,33 @@ namespace AAEmu.Game.Core.Managers
 
                             if (template.Position == 1 && _plots.ContainsKey(template.PlotId))
                                 _plots[template.PlotId].EventTemplate = template;
+
+                            var newTemplate = new NewPlotEventTemplate
+                            {
+                                Id = reader.GetUInt32("id"),
+                                Plot = _newPlots[reader.GetUInt32("plot_id")],
+                                Position = reader.GetInt32("position"),
+                                SourceUpdateMethod =
+                                    (PlotSourceUpdateMethodType)reader.GetUInt32("source_update_method_id"),
+                                TargetUpdateMethodType =
+                                    (PlotTargetUpdateMethodType)reader.GetUInt32("target_update_method_id"),
+                                TargetUpdateMethodParam1 = reader.GetInt32("target_update_method_param1"),
+                                TargetUpdateMethodParam2 = reader.GetInt32("target_update_method_param2"),
+                                TargetUpdateMethodParam3 = reader.GetInt32("target_update_method_param3"),
+                                TargetUpdateMethodParam4 = reader.GetInt32("target_update_method_param4"),
+                                TargetUpdateMethodParam5 = reader.GetInt32("target_update_method_param5"),
+                                TargetUpdateMethodParam6 = reader.GetInt32("target_update_method_param6"),
+                                TargetUpdateMethodParam7 = reader.GetInt32("target_update_method_param7"),
+                                TargetUpdateMethodParam8 = reader.GetInt32("target_update_method_param8"),
+                                TargetUpdateMethodParam9 = reader.GetInt32("target_update_method_param9"),
+                                Tickets = reader.GetInt32("tickets"),
+                                AoeDiminishing = reader.GetBoolean("aoe_diminishing", true),
+                            };
+                            
+                            _newPlotEvents.Add(newTemplate.Id, newTemplate);
+
+                            if (newTemplate.Position == 1)
+                                newTemplate.Plot.FirstEvent = newTemplate;
                         }
                     }
                 }
@@ -104,6 +159,17 @@ namespace AAEmu.Game.Core.Managers
                             template.Param2 = reader.GetInt32("param2");
                             template.Param3 = reader.GetInt32("param3");
                             _conditions.Add(template.Id, template);
+
+                            var newTemplate = new NewPlotCondition
+                            {
+                                Id = reader.GetUInt32("id"),
+                                NotCondition = reader.GetBoolean("not_condition", true),
+                                Kind = (PlotConditionType)reader.GetInt32("kind_id"),
+                                Param1 = reader.GetInt32("param1"),
+                                Param2 = reader.GetInt32("param2"),
+                                Param3 = reader.GetInt32("param3")
+                            };
+                            _newPlotConditions.Add(newTemplate.Id, newTemplate);
                         }
                     }
                 }
@@ -175,6 +241,18 @@ namespace AAEmu.Game.Core.Managers
                             }
                             else
                                 plotEvent.Conditions.AddFirst(template);
+                            
+                            var newTemplate = new NewPlotEventCondition()
+                            {
+                                Condition = _newPlotConditions[reader.GetUInt32("condition_id")],
+                                Event = _newPlotEvents[reader.GetUInt32("event_id")],
+                                Position = reader.GetUInt32("position"),
+                                Source = (PlotEffectSource) reader.GetUInt32("source_id"),
+                                Target = (PlotEffectSource) reader.GetUInt32("target_id"),
+                                NotifyFailure = reader.GetBoolean("notify_failure", true)
+                            };
+                            
+                            newTemplate.Event.Conditions.Add(newTemplate.Position, newTemplate);
                         }
                     }
                 }
@@ -211,6 +289,18 @@ namespace AAEmu.Game.Core.Managers
                             }
                             else
                                 evnt.Effects.AddFirst(template);
+                            
+                            var newTemplate = new NewPlotEffect()
+                            {
+                                Position = reader.GetUInt32("position"),
+                                Source = (PlotEffectSource) reader.GetUInt32("source_id"),
+                                Target = (PlotEffectSource) reader.GetUInt32("target_id"),
+                                EffectId = reader.GetUInt32("actual_id"),
+                                EffectType = reader.GetString("actual_type"),
+                                Event = _newPlotEvents[reader.GetUInt32("event_id")]
+                            };
+                            
+                            newTemplate.Event.Effects.Add(newTemplate.Position, newTemplate);
                         }
                     }
                 }
@@ -257,6 +347,27 @@ namespace AAEmu.Game.Core.Managers
                             }
                             else
                                 plotEvent.NextEvents.AddFirst(template);
+                            
+                            var newTemplate = new NewPlotNextEventTemplate()
+                            {
+                                Event = _newPlotEvents[reader.GetUInt32("event_id")],
+                                Position = reader.GetUInt32("position"),
+                                NextEvent = _newPlotEvents[reader.GetUInt32("next_event_id")],
+                                PerTarget = reader.GetBoolean("per_target", true),
+                                Casting = reader.GetBoolean("casting", true),
+                                Delay = reader.GetInt32("delay"),
+                                Speed = reader.GetInt32("speed"),
+                                Channeling = reader.GetBoolean("channeling", true),
+                                CastingInc = reader.GetInt32("casting_inc"),
+                                AddAnimCsTime = reader.GetBoolean("add_anim_cs_time", true),
+                                CastingDelayable = reader.GetBoolean("casting_delayable", true),
+                                CastingCancelable = reader.GetBoolean("casting_cancelable", true),
+                                CancelOnBigHit = reader.GetBoolean("cancel_on_big_hit", true),
+                                UseExeTime = reader.GetBoolean("use_exe_time", true),
+                                Fail = reader.GetBoolean("fail", true),
+                            };
+                            
+                            newTemplate.Event.NextEvents.Add(newTemplate.Position, newTemplate);
                         }
                     }
                 }

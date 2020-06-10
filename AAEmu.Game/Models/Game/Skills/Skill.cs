@@ -226,28 +226,11 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.Plot != null)
             {
-                var eventTemplate = Template.Plot.EventTemplate;
-                var step = new PlotStep();
-                step.Event = eventTemplate;
-                step.Flag = 2;
-
-                if (!eventTemplate.СheckСonditions(caster, casterCaster, target, targetCaster, skillObject))
-                {
-                    step.Flag = 0;
-                }
-
-                var res = true;
-                if (step.Flag != 0)
-                {
-                    var callCounter = new Dictionary<uint, int>();
-                    callCounter.Add(step.Event.Id, 1);
-                    foreach (var evnt in eventTemplate.NextEvents)
-                    {
-                        res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step, callCounter);
-                    }
-                }
-                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step); 
+                var plot = PlotManager.Instance.GetNewPlot(Template.Plot.Id);
+                plot.Execute(caster, casterCaster, (Unit) target, targetCaster, skillObject, this);
             }
+            
+            // if (Template.PlotOnly) skillend ?
             
             if (Template.CastingTime > 0)
             {

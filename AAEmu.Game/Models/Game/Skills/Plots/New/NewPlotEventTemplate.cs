@@ -27,9 +27,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
         public int TargetUpdateMethodParam8 { get; set; }
         public int TargetUpdateMethodParam9 { get; set; }
         
-        public List<NewPlotNextEventTemplate> NextEvents { get; set; }
+        public SortedList<uint, NewPlotNextEventTemplate> NextEvents { get; set; }
         public SortedList<uint, NewPlotEventCondition> Conditions { get; set; }
         public SortedList<uint, NewPlotEffect> Effects { get; set; }
+
+        public NewPlotEventTemplate()
+        {
+            Conditions = new SortedList<uint, NewPlotEventCondition>();
+            NextEvents = new SortedList<uint, NewPlotNextEventTemplate>();
+            Effects = new SortedList<uint, NewPlotEffect>();
+        }
 
         public void Execute(PlotCaster caster, PlotTarget target, ushort tlId, Skill skill)
         {
@@ -55,17 +62,18 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
                 {
                     effect.Apply();
                 }
-
-                // Send event packet
-                caster.OriginalCaster.BroadcastPacket(new SCPlotEventPacket(tlId, Id, skill.Template.Id, new PlotObject(updatedSource), new PlotObject(updatedTarget), 0, 0, 0), true);
-
+                
                 caster.PreviousCaster = updatedSource;
                 target.PreviousTarget = updatedTarget;
+            }
+
+            // Send event packet
+            caster.OriginalCaster.BroadcastPacket(new SCPlotEventPacket(tlId, Id, skill.Template.Id, new PlotObject(caster.OriginalCaster), new PlotObject(target.OriginalTarget), 0, 0, 0), true);
+
                 
-                foreach (var nextEvent in NextEvents)
-                {
-                    nextEvent.Execute(caster, target, tlId, skill);
-                }
+            foreach (var (pos, nextEvent) in NextEvents)
+            {
+                nextEvent.Execute(caster, target, tlId, skill);
             }
         }
 

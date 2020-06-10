@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
     public class NewPlotNextEventTemplate
     {
         public NewPlotEventTemplate Event { get; set; }
-        public int Position { get; set; }
+        public uint Position { get; set; }
         
         public NewPlotEventTemplate NextEvent { get; set; }
         
