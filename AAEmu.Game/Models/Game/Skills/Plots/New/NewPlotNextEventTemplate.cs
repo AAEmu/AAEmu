@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -25,10 +26,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
         public bool UseExeTime { get; set; }
         public bool Fail { get; set; }
 
-        public void Execute(PlotCaster caster, PlotTarget target, ushort tlId, Skill skill)
+        public void Execute(PlotCaster caster, SkillCaster skillCaster, PlotTarget target, SkillCastTarget skillCastTarget, SkillObject skillObject, ushort tlId, Skill skill, Dictionary<uint, int> callCounter)
         {
             // Get total delay to apply
-            var totalDelay = Delay;
+            var totalDelay = 0;
+            if (Delay > 0)
+            {
+                totalDelay = Delay;
+            }
 
             if (Speed > 0)
             {
@@ -36,6 +41,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
                 totalDelay += (int)(dist / Speed * 1000f);
             }
 
+            // Console.WriteLine("Plot next event! Event: {0}, NextEvent: {1}, Delay: {2}", this.Event.Id, this.NextEvent.Id, totalDelay);
+            
             // Create a task that will execute the NextEvent
             if (totalDelay > 0)
             {
@@ -46,7 +53,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
                     Target = target,
                     TlId = tlId,
                     EventTemplate = NextEvent,
-                    Skill = skill
+                    Skill = skill,
+                    SkillCaster = skillCaster,
+                    SkillCastTarget =  skillCastTarget,
+                    SkillObject = skillObject,
+                    Counter = callCounter
                 };
                 
                 TaskManager.Instance.Schedule(task, TimeSpan.FromMilliseconds(totalDelay));
@@ -54,7 +65,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
             // Or execute it directly
             else
             {
-                NextEvent.Execute(caster, target, tlId, skill);
+                NextEvent.Execute(caster, skillCaster, target, skillCastTarget, skillObject, tlId, skill, callCounter);
             }
         }
     }

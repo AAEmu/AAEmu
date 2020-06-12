@@ -229,12 +229,11 @@ namespace AAEmu.Game.Models.Game.Skills
                 var plot = PlotManager.Instance.GetNewPlot(Template.Plot.Id);
                 plot.Execute(caster, casterCaster, (Unit) target, targetCaster, skillObject, this);
             }
-            
-            // if (Template.PlotOnly) skillend ?
-            
+
             if (Template.CastingTime > 0)
             {
-                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+                caster.BroadcastPacket(
+                    new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
                 caster.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
                 TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(Template.CastingTime));
             }
@@ -243,10 +242,13 @@ namespace AAEmu.Game.Models.Game.Skills
                 caster.IsAutoAttack = true; // enable auto attack
                 caster.SkillId = Id;
                 caster.TlId = TlId;
-                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+                caster.BroadcastPacket(
+                    new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
 
-                caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
-                TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
+                caster.AutoAttackTask =
+                    new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
+                TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300),
+                    TimeSpan.FromMilliseconds(1300));
             }
             else
             {

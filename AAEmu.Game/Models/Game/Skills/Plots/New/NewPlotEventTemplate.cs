@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -38,18 +39,36 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
             Effects = new SortedList<uint, NewPlotEffect>();
         }
 
-        public void Execute(PlotCaster caster, PlotTarget target, ushort tlId, Skill skill)
+        public void Execute(PlotCaster caster, SkillCaster skillCaster, PlotTarget target, SkillCastTarget skillCastTarget, SkillObject skillObject, ushort tlId, Skill skill, Dictionary<uint, int> callCounter)
         {
             var flag = 2;
             for (int i = 0; i < Tickets; i++)
             {
+                if (callCounter.ContainsKey(Id))
+                {
+                    callCounter[Id] += 1;
+                    if (callCounter[Id] > Tickets)
+                        return;
+                }
+                else
+                {
+                    callCounter.Add(Id, 1);
+                }
+                
                 var updatedSource = UpdateSource(caster, target);
                 var updatedTarget = UpdateTarget(caster, target);
+                // Console.WriteLine("Plot {0}, step {1}, ticket {2}, updated source {3}, updated target {4}", this.Plot.Id, this.Id, i, updatedSource.Name, updatedTarget.Name);
 
                 foreach (var condition in Conditions.Values)
                 {
-                    if (condition.Execute())
+                    
+                    if (condition.Execute(updatedSource, skillCaster, updatedTarget, skillCastTarget, skillObject))
+                    {
+                        Console.WriteLine("Plot condition ev {0} type {1} result {2}", Id, condition.Condition.Kind, true);
                         continue;
+                    }
+                    
+                    Console.WriteLine("Plot condition ev {0} type {1} result {2}", Id, condition.Condition.Kind, false);
                     
                     flag = 0;
                     break;
@@ -60,7 +79,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
 
                 foreach (var effect in Effects.Values)
                 {
-                    effect.Apply();
+                    effect.Apply(updatedSource, skillCaster, updatedTarget, skillCastTarget, skillObject, tlId, skill);
                 }
                 
                 caster.PreviousCaster = updatedSource;
@@ -73,7 +92,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.New
                 
             foreach (var (pos, nextEvent) in NextEvents)
             {
-                nextEvent.Execute(caster, target, tlId, skill);
+                nextEvent.Execute(caster, skillCaster, target, skillCastTarget, skillObject, tlId, skill, callCounter);
             }
         }
 
