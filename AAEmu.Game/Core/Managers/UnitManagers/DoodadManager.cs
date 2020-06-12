@@ -65,7 +65,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.Percent = reader.GetInt32("percent", 0);
                             template.MinTime = reader.GetInt32("min_time", 0);
                             template.MaxTime = reader.GetInt32("max_time", 0);
-                            template.ModelKindId = reader.GetUInt32("model_kind_id");
+                            template.ModelKindId = (ModelKind)reader.GetUInt32("model_kind_id");
                             template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
                             template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
                             template.MilestoneId = reader.GetUInt32("milestone_id", 0);
@@ -222,7 +222,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncAttachment();
                             func.Id = reader.GetUInt32("id");
-                            func.AttachPointId = reader.GetByte("attach_point_id");
+                            func.AttachPointId = (AttachPoint)reader.GetByte("attach_point_id");
                             func.Space = reader.GetInt32("space");
                             func.BondKindId = reader.GetByte("bond_kind_id");
                             _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);

@@ -4,12 +4,12 @@
         "Id": 1,
         "UnitId": 6,
         "Position": {
-        "X": 15566.41,
-        "Y": 14850.22,
+        "X": 15566.3,
+        "Y": 14850.25,
         "Z": 140.5452,
         "RotationX": 0,
         "RotationY": 0,
-        "RotationZ": -64
+        "RotationZ": 63
         },
         "Scale": 0.0
     },

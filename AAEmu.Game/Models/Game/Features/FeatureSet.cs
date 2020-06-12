@@ -1,4 +1,5 @@
-using System.Text;
+﻿using System.Text;
+
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Features
@@ -6,11 +7,24 @@ namespace AAEmu.Game.Models.Game.Features
     class FeatureSet
     {
         //default fsets
-//        private byte[] _fset = { 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03 };
+        //private byte[] _fset = { 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03 };
         private byte[] _fset = { 0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a };
-        
+
         private const int PlayerLevelLimitIndex = 1;
         private const int MateLevelLimitIndex = 8;
+
+
+        public FeatureSet()
+        {
+            //You can set some values here or alter the default fset
+
+            //Disables Auction Button
+            //Set(Feature.hudAuctionButton, false);
+            //Enables family invites
+            Set(Feature.allowFamilyChanges, true);
+            //Disables Dwarf/Warborn character creation (0.5 only)
+            Set(Feature.dwarfWarborn, false);
+        }
 
         private (byte byteIndex, byte bitIndex) GetIndexes(Feature feature)
         {

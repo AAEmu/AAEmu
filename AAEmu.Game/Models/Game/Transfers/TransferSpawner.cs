@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -45,7 +44,7 @@ namespace AAEmu.Game.Models.Game.Transfers
 
         public override Transfer Spawn(uint objId)
         {
-            var transfer = TransferManager.Instance.Create(objId, UnitId);
+            var transfer = TransferManager.Instance.Create(objId, UnitId, this);
             if (transfer == null)
             {
                 _log.Warn("Transfer {0}, from spawn not exist at db", UnitId);
@@ -69,35 +68,20 @@ namespace AAEmu.Game.Models.Game.Transfers
             return transfer;
         }
 
-        public override void Despawn(Transfer transfer)
+        public override void Despawn(Transfer npc)
         {
-            transfer.Delete();
-            if (transfer.Respawn == DateTime.MinValue)
+            npc.Delete();
+            if (npc.Respawn == DateTime.MinValue)
             {
-                _spawned.Remove(transfer);
-                ObjectIdManager.Instance.ReleaseId(transfer.ObjId);
+                _spawned.Remove(npc);
+                ObjectIdManager.Instance.ReleaseId(npc.ObjId);
                 _spawnCount--;
             }
 
-            if (_lastSpawn == null || _lastSpawn.ObjId == transfer.ObjId)
+            if (_lastSpawn == null || _lastSpawn.ObjId == npc.ObjId)
             {
                 _lastSpawn = _spawned.Count != 0 ? _spawned[_spawned.Count - 1] : null;
             }
-        }
-
-        public void DecreaseCount(Transfer transfer)
-        {
-            _spawnCount--;
-            _spawned.Remove(transfer);
-            if (RespawnTime > 0 && (_spawnCount + _scheduledCount) < Count)
-            {
-                transfer.Respawn = DateTime.Now.AddSeconds(RespawnTime);
-                SpawnManager.Instance.AddRespawn(transfer);
-                _scheduledCount++;
-            }
-
-            transfer.Despawn = DateTime.Now.AddSeconds(DespawnTime);
-            SpawnManager.Instance.AddDespawn(transfer);
         }
     }
 }

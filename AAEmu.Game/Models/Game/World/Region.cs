@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -9,6 +11,7 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World
@@ -114,7 +117,12 @@ namespace AAEmu.Game.Models.Game.World
                 foreach (var t in units)
                 {
                     // turn on the motion of the visible NPC
-                    if (t is Npc npc)
+                    if (t is Transfer transfer)
+                    {
+                        TransferManager.Instance.SpawnAll(character1);
+                        //character1.SendPacket(new SCUnitStatePacket(transfer));
+                    }
+                    else if (t is Npc npc)
                     {
                         // exclude Training Scarecrow from move objects and others NPC
                         if (npc.TemplateId == 7512 || npc.TemplateId == 7513 || npc.TemplateId == 7511 ||
@@ -139,7 +147,7 @@ namespace AAEmu.Game.Models.Game.World
                             }
                         }
                         else
-                            // Nui Woodcutter Solace
+                        // Nui Woodcutter Solace
                         if (npc.TemplateId == 12143)
                         {
                             if (!npc.IsInPatrol)
@@ -266,7 +274,7 @@ namespace AAEmu.Game.Models.Game.World
                     }
                     else
                     {
-                        
+
                         if (t is House house)
                         {
                             character1.SendPacket(new SCUnitStatePacket(t));

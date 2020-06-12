@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncAttachment : DoodadFuncTemplate
     {
-        public byte AttachPointId { get; set; }
+        public AttachPoint AttachPointId { get; set; }
         public int Space { get; set; }
         public byte BondKindId { get; set; }
 
@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 // Chairs, beds etc.
                 if (BondKindId > 1)
                 {
-                    character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, 0);
+                    character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, 0); // spot = 0 sit left, =1 sit right on the bench
                     character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
                 }
                 // Ships

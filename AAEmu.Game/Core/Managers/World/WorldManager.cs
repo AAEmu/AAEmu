@@ -34,6 +34,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, Doodad> _doodads;
         private readonly ConcurrentDictionary<uint, Npc> _npcs;
         private readonly ConcurrentDictionary<uint, Character> _characters;
+        private readonly ConcurrentDictionary<uint, Transfer> _transfers;
 
         public const int REGION_SIZE = 64;
         public const int CELL_SIZE = 1024 / REGION_SIZE;
@@ -52,6 +53,7 @@ namespace AAEmu.Game.Core.Managers.World
             _doodads = new ConcurrentDictionary<uint, Doodad>();
             _npcs = new ConcurrentDictionary<uint, Npc>();
             _characters = new ConcurrentDictionary<uint, Character>();
+            _transfers = new ConcurrentDictionary<uint, Transfer>();
         }
 
         public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
@@ -361,6 +363,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _npcs.TryAdd(npc.ObjId, npc);
             if (obj is Character character)
                 _characters.TryAdd(character.ObjId, character);
+            if (obj is Transfer transfer)
+                _transfers.TryAdd(transfer.ObjId, transfer);
         }
 
         public void RemoveObject(GameObject obj)
@@ -380,6 +384,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _npcs.TryRemove(obj.ObjId, out _);
             if (obj is Character)
                 _characters.TryRemove(obj.ObjId, out _);
+            if (obj is Transfer)
+                _transfers.TryRemove(obj.ObjId, out _);
         }
 
         public void AddVisibleObject(GameObject obj)

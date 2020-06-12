@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
@@ -9,6 +10,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
@@ -55,7 +57,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         }
 
         public uint GetFuncGroupId()
-        {   
+        {
             foreach (var funcGroup in Template.FuncGroups)
             {
                 if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
@@ -82,7 +84,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 character.CurrentTarget = null;
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
-            character.SendPacket(new SCDoodadRemovedPacket( ObjId ));
+            character.SendPacket(new SCDoodadRemovedPacket(ObjId));
         }
 
         public PacketStream Write(PacketStream stream)

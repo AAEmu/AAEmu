@@ -28,6 +28,7 @@ namespace AAEmu.Game.Scripts.Commands
         public void Execute(Character character, string[] args)
         {
             var slave = new Slave();
+            slave.Summoner = character;
             slave.TemplateId = 6;
             slave.ModelId = 654;
             slave.ObjId = ObjectIdManager.Instance.GetNextId();

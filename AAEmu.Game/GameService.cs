@@ -88,7 +88,7 @@ namespace AAEmu.Game
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();
             HousingManager.Instance.SpawnAll();
-            TransferManager.Instance.SpawnAll();
+            //TransferManager.Instance.SpawnAll();
 
             AccessLevelManager.Instance.Load();
             CashShopManager.Instance.Load();
