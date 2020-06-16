@@ -1,11 +1,11 @@
-namespace AAEmu.Game.Models.Game.Features
+﻿namespace AAEmu.Game.Models.Game.Features
 {
     public enum Feature
     {
         //Don't mess with these values, ask the core team for questions.
-        //Refer to FsetConfig.GetIndexes to interpret
+        //Refer to FeatureSet.GetIndexes to interpret
         siege = 0,
-        allowFamilyChanges = 1, //Uncertain of official name on this one, related to fam maybe more?
+        allowFamilyChanges = 1,
         premium = 4,
         ranking = 36,
         ingamecashshop = 38,
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Features
         secondpass = 46,
         slave_customize = 48,
         beautyshopBypass = 52,
-        freeLpRaise = 53,
+        freeLpRaise = 53, //Might not exist for 0.5
         ingameshopSecondpass = 55,
         backpackProfitShare = 56,
         sensitiveOpeartion = 58,
@@ -24,6 +24,13 @@ namespace AAEmu.Game.Models.Game.Features
         achievement = 63,
         dwarfWarborn = 74,
         mailCoolTime = 75,
+
+        //These are different positions in 0.5 for some reason..
+        hudAuctionButton = 81,
+        auctionPostBuff = 83,
+        houseTaxPrepay = 84
+
+        /* 3503 Enum Only
         hudAuctionButton = 89,
         auctionPostBuff = 91,
         itemRepairInBag = 92,
@@ -89,5 +96,6 @@ namespace AAEmu.Game.Models.Game.Features
         specialtyTradeGoods = 194,
         reportBadWordUser = 195,
         residentweblink = 197
+        */
     }
 }

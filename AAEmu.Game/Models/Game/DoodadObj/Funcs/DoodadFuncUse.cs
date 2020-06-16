@@ -11,6 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, SkillId);
+            //TODO check skill refrences and consume items if items are required for skills
         }
     }
 }
