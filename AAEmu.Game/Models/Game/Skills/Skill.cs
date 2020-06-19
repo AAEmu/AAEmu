@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -225,7 +227,10 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.Plot != null)
             {
-                var eventTemplate = Template.Plot.EventTemplate;
+                var token = new CancellationTokenSource();
+                CancellationToken ct = token.Token;
+                var test = Template.Plot.Execute(caster, casterCaster, target, targetCaster, skillObject, this, ct);
+                /*var eventTemplate = Template.Plot.EventTemplate;
                 var step = new PlotStep();
                 step.Event = eventTemplate;
                 step.Flag = 2;
@@ -245,7 +250,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step, callCounter);
                     }
                 }
-                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step); 
+                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step); */
             }
             
             if (Template.CastingTime > 0)
@@ -349,6 +354,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
+            var time = (ushort)(step.Flag != 0 ? step.Delay / 10 + 1 : 0); // TODO fixed the CSStopCastingPacket spam when using the "Chain Lightning" skill
             var unkId = step.Casting || step.Channeling ? caster.ObjId : 0;
             var casterPlotObj = new PlotObject(caster);
             var targetPlotObj = new PlotObject(target);

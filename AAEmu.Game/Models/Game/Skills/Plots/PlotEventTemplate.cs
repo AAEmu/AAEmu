@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
@@ -77,6 +78,12 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 
         public async Task PlayEvent(PlotInstance instance)
         {
+            var skill = instance.ActiveSkill;
+            byte flag = 2;
+
+            var CNext = instance.CurrentNextEvent;
+            await Task.Delay(CNext?.Delay ?? 0);
+
             // Check Conditions
             if (!СheckСonditions(instance))
                 return;
@@ -87,11 +94,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                 var template = SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType);
                 if (template is BuffEffect)
                 {
-                    //Not sure how to implement flags here?
-                    //step.Flag = 6;
+                    flag = 6; //idk what this does?
                 }
 
-                var skill = instance.ActiveSkill;
                 template.Apply(
                     instance.Caster, 
                     instance.CasterCaster, 
@@ -101,12 +106,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             }
 
             //This is pasted from old code. not sure what to do here
-            var CNext = instance.CurrentNextEvent;
-            var time = (ushort)CNext.Delay / 10 + 1 : 0); // TODO fixed the CSStopCastingPacket spam when using the "Chain Lightning" skill
-            var unkId = CNext.Casting || CNext.Channeling ? CNext.ObjId : 0;
+            var unkId = ((CNext?.Casting ?? false) || (CNext?.Channeling ?? false)) ? instance.Caster.ObjId : 0;
             var casterPlotObj = new PlotObject(instance.Caster);
             var targetPlotObj = new PlotObject(instance.Target);
-            instance.Caster.BroadcastPacket(new SCPlotEventPacket(TlId, step.Event.Id, Template.Id, casterPlotObj, targetPlotObj, unkId, time, step.Flag), true);
+            instance.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, 0, flag), true);
 
             //Do tickets
             if (instance.Tickets.ContainsKey(Id))
