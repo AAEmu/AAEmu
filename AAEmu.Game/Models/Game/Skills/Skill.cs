@@ -275,7 +275,8 @@ namespace AAEmu.Game.Models.Game.Skills
             if (counter.ContainsKey(nextEvent.Event.Id))
             {
                 var nextCount = counter[nextEvent.Event.Id] + 1;
-                if (nextCount > nextEvent.Event.Tickets)
+                if (nextCount > nextEvent.Event.Tickets 
+                    && nextEvent.Event.Tickets > 1)
                 {
                     return true;
                 }
@@ -348,7 +349,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
-            var time = (ushort)(step.Flag != 0 ? step.Delay / 10 + 1 : 0); // TODO fixed the CSStopCastingPacket spam when using the "Chain Lightning" skill
             var unkId = step.Casting || step.Channeling ? caster.ObjId : 0;
             var casterPlotObj = new PlotObject(caster);
             var targetPlotObj = new PlotObject(target);
@@ -477,6 +477,9 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
+            if (Template.PlotOnly)
+                return;
+
             var targets = new List<BaseUnit>(); // TODO crutches
             if (Template.TargetAreaRadius > 0)
             {
