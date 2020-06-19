@@ -82,11 +82,12 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             byte flag = 2;
 
             var CNext = instance.CurrentNextEvent;
-            await Task.Delay(CNext?.Delay ?? 0);
 
             // Check Conditions
             if (!СheckСonditions(instance))
                 return;
+
+            await Task.Delay(CNext?.Delay ?? 0);
 
             // Apply Effects
             foreach (var eff in Effects)

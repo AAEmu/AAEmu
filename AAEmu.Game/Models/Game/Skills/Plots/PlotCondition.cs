@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
@@ -121,7 +121,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             // 1 = ?
             // 2 = ?
             // 3 = ?
-            return true;
+
+            //we need to check if the unit has 1h/2h/dual wield here
+            //TODO
+            //Just assume 1h for now..
+            if (weaponEquipStatus == 1)
+                return true;
+            else
+                return false;
         }
         
         private static bool ConditionChance(Unit caster, SkillCaster casterCaster, BaseUnit target,
