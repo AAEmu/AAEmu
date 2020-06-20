@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -76,41 +77,74 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return true;
         }
 
-        public async Task PlayEvent(PlotInstance instance)
+        public async Task ApplyDelay(PlotNextEvent nextEvent)
+        {
+            //TODO Apply Attack Speed / Speed / Cast Time / Etc
+            NLog.LogManager.GetCurrentClassLogger().
+                            Error($"PlotEvent: {Id} NextEvent: {nextEvent.Event.Id} Delay: {nextEvent.Delay}");
+            await Task.Delay(nextEvent.Delay);
+
+            if (nextEvent.AddAnimCsTime)
+            {
+                foreach(var effect in Effects)
+                {
+                    var template = SkillManager.Instance.GetEffectTemplate(effect.ActualId, effect.ActualType);
+                    if (template is SpecialEffect specialEffect)
+                    {
+                        if (specialEffect.SpecialEffectTypeId == SpecialType.Anim)
+                        {
+                            NLog.LogManager.GetCurrentClassLogger().
+                            Error($"PlotEvent: {Id} NextEvent: {nextEvent.Event.Id} AnimDelay: {specialEffect.Value1}");
+                            await Task.Delay(specialEffect.Value1);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void ApplyEffects(PlotInstance instance)
         {
             var skill = instance.ActiveSkill;
-            byte flag = 2;
-
-            var CNext = instance.CurrentNextEvent;
-
-            // Check Conditions
-            if (!СheckСonditions(instance))
-                return;
-
-            await Task.Delay(CNext?.Delay ?? 0);
-
-            // Apply Effects
             foreach (var eff in Effects)
             {
                 var template = SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType);
                 if (template is BuffEffect)
                 {
-                    flag = 6; //idk what this does?
+                    instance.Flag = 6; //idk what this does?
                 }
 
+                if (template is DamageEffect)
+                    NLog.LogManager.GetCurrentClassLogger().
+                    Error($"PlotEvent: {Id} ----------APPLIED DMG-------------");
+
                 template.Apply(
-                    instance.Caster, 
-                    instance.CasterCaster, 
-                    instance.Target, 
-                    instance.TargetCaster, 
+                    instance.Caster,
+                    instance.CasterCaster,
+                    instance.Target,
+                    instance.TargetCaster,
                     new CastPlot(PlotId, skill.TlId, Id, skill.Template.Id), skill, instance.SkillObject, DateTime.Now);
             }
+        }
+
+        public async Task PlayEvent(PlotInstance instance)
+        {
+            instance.Flag = 2;
+
+            var CNext = instance.CurrentNextEvent;
+
+            // Check Conditions
+            bool pass = СheckСonditions(instance);
+            if (pass)
+                ApplyEffects(instance);
+            else
+                instance.Flag = 0;
 
             //This is pasted from old code. not sure what to do here
+            var skill = instance.ActiveSkill;
             var unkId = ((CNext?.Casting ?? false) || (CNext?.Channeling ?? false)) ? instance.Caster.ObjId : 0;
             var casterPlotObj = new PlotObject(instance.Caster);
             var targetPlotObj = new PlotObject(instance.Target);
-            instance.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, 0, flag), true);
+            instance.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, 0, instance.Flag), true);
 
             //Do tickets
             if (instance.Tickets.ContainsKey(Id))
@@ -127,11 +161,17 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 
             // I think we apply delays here..
             // todo
-
+            NLog.LogManager.GetCurrentClassLogger().
+                Error($"PlotEvent: {Id} Pass: {pass}");
+            List<PlotNextEvent> backwards = new List<PlotNextEvent>();
             foreach (var nextEvent in NextEvents)
             {
-                instance.CurrentNextEvent = nextEvent;
-                await nextEvent.Event.PlayEvent(instance);
+                if ((pass && !nextEvent.Fail) || (!pass && nextEvent.Fail))
+                {
+                    instance.CurrentNextEvent = nextEvent;
+                    await ApplyDelay(nextEvent);
+                    await nextEvent.Event.PlayEvent(instance);
+                }
             }
         }
 

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Utils.DB;
@@ -247,16 +247,16 @@ namespace AAEmu.Game.Core.Managers
                                 for (var node = plotEvent.NextEvents.First; node != null; node = node.Next)
                                     if (node.Value.Position > template.Position)
                                     {
-                                        plotEvent.NextEvents.AddBefore(node, template);
+                                        plotEvent.NextEvents.AddAfter(node, template);
                                         res = true;
                                         break;
                                     }
 
                                 if (!res)
-                                    plotEvent.NextEvents.AddLast(template);
+                                    plotEvent.NextEvents.AddFirst(template);
                             }
                             else
-                                plotEvent.NextEvents.AddFirst(template);
+                                plotEvent.NextEvents.AddLast(template);
                         }
                     }
                 }

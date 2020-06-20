@@ -22,6 +22,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public SkillCastTarget TargetCaster { get; set; }
         public SkillObject SkillObject { get; set; }
 
+        public byte Flag { get; set; }
+
 
         public PlotInstance(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {
@@ -54,8 +56,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     return ConditionsCache.BuffTagCache[condition.Param1];
             }
 
-            NLog.LogManager.GetCurrentClassLogger().
-                Error($"PlotInstance.GetConditionCacheResult: Unsupported Condition Kind[{condition.Kind}].");
+            
             return false;
         }
         public void UpdateConditionCache(PlotCondition condition, bool result)
