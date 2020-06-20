@@ -208,6 +208,7 @@ namespace AAEmu.Game.Core.Network.Game
             //0xc9 CSAddFieldSlave
             RegisterPacket(0x0cb, 1, typeof(CSHangPacket));
             RegisterPacket(0x0cc, 1, typeof(CSUnhangPacket));
+            RegisterPacket(0x0cd, 1, typeof(CSUnbondDoodadPacket));
 
             RegisterPacket(0x0ce, 1, typeof(CSCompletedCinemaPacket));
             RegisterPacket(0x0cf, 1, typeof(CSStartedCinemaPacket));

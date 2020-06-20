@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
 {
@@ -17,10 +18,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
     {
         private float _scale;
 
+        private static Logger _log = LogManager.GetCurrentClassLogger();
         public uint TemplateId { get; set; }
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
         public uint FuncGroupId { get; set; }
+        public string FuncType { get; set; }
         public ulong ItemId { get; set; }
         public DateTime GrowthTime { get; set; }
         public DateTime PlantTime { get; set; }
@@ -31,11 +34,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public byte AttachPoint { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
+        public uint QuestGlow { get; set; } //0 off // 1 on
 
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
 
         public uint TimeLeft => GrowthTime > DateTime.Now ? (uint)(GrowthTime - DateTime.Now).TotalMilliseconds : 0; // TODO formula time of phase
+        public bool cancelPhasing { get; set; }
 
         public Doodad()
         {
@@ -50,14 +55,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _scale = scale;
         }
 
-        public uint GetGroupId()
-        {
+        public uint GetFuncGroupId()
+        {   
             foreach (var funcGroup in Template.FuncGroups)
             {
-                if (funcGroup.GroupKindId == 1)
+                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
                     return funcGroup.Id;
             }
-
             return 0;
         }
 
@@ -84,30 +88,31 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public PacketStream Write(PacketStream stream)
         {
-            stream.WriteBc(ObjId);
-            stream.Write(TemplateId);
-            stream.WriteBc(OwnerObjId);
-            stream.WriteBc(ParentObjId);
-            stream.Write(AttachPoint); // attachPoint
-            stream.WritePosition(Position.X, Position.Y, Position.Z);
-            stream.Write(Helpers.ConvertRotation(Position.RotationX));
-            stream.Write(Helpers.ConvertRotation(Position.RotationY));
-            stream.Write(Helpers.ConvertRotation(Position.RotationZ));
-            stream.Write(Scale);
+            stream.WriteBc(ObjId); //The object # in the list
+            stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
+            stream.WriteBc(OwnerObjId); //The creator of the object
+            stream.WriteBc(ParentObjId); //Things like boats or cars,
+            stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
+            stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
+            stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
+            stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
+            stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
+            stream.Write(Scale); //The size of the object
             stream.Write(false); // hasLootItem
-            stream.Write(FuncGroupId); // doodad_func_groups Id
-            stream.Write(OwnerId); // characterId
-            stream.Write(ItemId); // type(id)
-            stream.Write(0u); // item Id
-            stream.Write(0u); // type(id)
+            stream.Write(FuncGroupId); // doodad_func_group_id
+            stream.Write(OwnerId); // characterId (Database relative)
+            stream.Write(ItemId); // ?? must be ulong though (ItemId seems to be the only ulong)
+            stream.Write(0u); //??type1
+            stream.Write(0u); //??type2
             stream.Write(TimeLeft); // growing
-            stream.Write(PlantTime);
-            stream.Write(0); // quest glow id ?
-            stream.Write(0); // family
-            stream.Write(-1); // puzzleGroup
+            stream.Write(PlantTime); //Time stamp of when it was planted
+            stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
+            stream.Write(0); // family TODO
+            stream.Write(-1); // puzzleGroup /for instances maybe?
             stream.Write((byte)OwnerType); // ownerType
             stream.Write(DbHouseId); // dbHouseId
             stream.Write(Data); // data
+
             return stream;
         }
     }

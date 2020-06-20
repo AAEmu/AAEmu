@@ -1,6 +1,9 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -15,19 +18,10 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
             uint skillId, uint itemId, DoodadFuncTemplate objectFunc)
         {
-            var character = (Character)caster;
-            if (character == null) { return; }
-            var chance = Rand.Next(0, 10000);
-            if (!(objectFunc is DoodadFuncLootItem obj)) { return; }
-            if (chance > obj.Percent) { return; }
-            var count = Rand.Next(obj.CountMin, obj.CountMax);
-
-            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, count))
+            if (target is Doodad doodad)
             {
-                // TODO: do proper handling of insufficient bag space
-                character.SendErrorMessage(ErrorMessageType.BagFull);
+                DoodadManager.Instance.TriggerPhases(GetType().Name, caster, doodad, skillId);
             }
-
         }
     }
 }

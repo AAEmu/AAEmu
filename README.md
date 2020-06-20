@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/AAEmu/AAEmu/badge.svg?branch=develop)](https://coveralls.io/github/AAEmu/AAEmu?branch=develop)
+
 # AAEmu
 
 __Open source server software for ArcheAge written in .Net Core__

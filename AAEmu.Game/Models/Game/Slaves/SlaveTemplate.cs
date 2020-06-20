@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Slaves
         public uint FactionId { get; set; }
         public uint Level { get; set; }
         public int Cost { get; set; }
-        public uint SlaveKindId { get; set; }
+        public SlaveKind SlaveKind { get; set; }
         public uint SpawnValidAreaRance { get; set; }
         public uint SlaveInitialItemPackId { get; set; }
         public uint SlaveCustomizingId { get; set; }

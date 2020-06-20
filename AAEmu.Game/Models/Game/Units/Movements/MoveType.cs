@@ -66,10 +66,10 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                     mType = new VehicleMoveType();
                     break;
                 case MoveTypeEnum.Ship:
-                    // TODO ...
+                    mType = new ShipMoveType();
                     break;
                 case MoveTypeEnum.ShipRequest:
-                    // TODO ...
+                    mType = new ShipRequestMoveType();
                     break;
                 case MoveTypeEnum.Transfer:
                     // TODO ...

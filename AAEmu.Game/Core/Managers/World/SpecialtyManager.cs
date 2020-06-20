@@ -293,5 +293,11 @@ namespace AAEmu.Game.Core.Managers.World
             if (!_priceRatios[itemId].ContainsKey(zoneId))
                 _priceRatios[itemId].Add(zoneId, MAX_SPECIALTY_RATIO);
         }
+
+        // Dummy for tests
+        public int GetValueOfOne()
+        {
+            return 1;
+        }
     }
 }

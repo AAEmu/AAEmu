@@ -13,8 +13,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            _log.Debug("DoodadFuncFakeUse : skillId {0}, SkillId {1}, FakeSkillId {2}, TargetParent {3}",
-                skillId, SkillId, FakeSkillId, TargetParent);
+            DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, FakeSkillId);
         }
     }
 }
