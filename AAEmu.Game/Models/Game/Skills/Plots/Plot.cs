@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public async Task<bool> Execute(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill ,CancellationToken token)
         {
             PlotInstance instance = new PlotInstance(caster, casterCaster, target, targetCaster, skillObject, skill);
-            await EventTemplate.PlayEvent(instance);
+            await EventTemplate.PlayEvent(instance, null);
             return true;
         }
     }

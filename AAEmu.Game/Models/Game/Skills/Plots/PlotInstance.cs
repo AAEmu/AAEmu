@@ -7,8 +7,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 {
     public class PlotInstance
     {
-        public PlotNextEvent CurrentNextEvent { get; set; }
-
         public Dictionary<uint, int> Tickets { get; set; }
         public PlotConditionsCache ConditionsCache { get; set; }
         public List<int> Variables { get; set; }

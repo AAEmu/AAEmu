@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots
 {
@@ -93,9 +94,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     {
                         if (specialEffect.SpecialEffectTypeId == SpecialType.Anim)
                         {
-                            NLog.LogManager.GetCurrentClassLogger().
-                            Error($"PlotEvent: {Id} NextEvent: {nextEvent.Event.Id} AnimDelay: {specialEffect.Value1}");
-                            await Task.Delay(specialEffect.Value1);
+                            //TODO
+                            //We need to get animation time from combat_sync_event_list file here..
+                            await Task.Delay((int)(86));
                         }
                     }
                 }
@@ -113,10 +114,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     instance.Flag = 6; //idk what this does?
                 }
 
-                if (template is DamageEffect)
-                    NLog.LogManager.GetCurrentClassLogger().
-                    Error($"PlotEvent: {Id} ----------APPLIED DMG-------------");
-
                 template.Apply(
                     instance.Caster,
                     instance.CasterCaster,
@@ -126,11 +123,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             }
         }
 
-        public async Task PlayEvent(PlotInstance instance)
+        public async Task PlayEvent(PlotInstance instance, PlotNextEvent cNext)
         {
             instance.Flag = 2;
-
-            var CNext = instance.CurrentNextEvent;
 
             // Check Conditions
             bool pass = СheckСonditions(instance);
@@ -140,11 +135,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                 instance.Flag = 0;
 
             //This is pasted from old code. not sure what to do here
-            var skill = instance.ActiveSkill;
-            var unkId = ((CNext?.Casting ?? false) || (CNext?.Channeling ?? false)) ? instance.Caster.ObjId : 0;
-            var casterPlotObj = new PlotObject(instance.Caster);
-            var targetPlotObj = new PlotObject(instance.Target);
-            instance.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, 0, instance.Flag), true);
+            if (pass)
+            {
+                var skill = instance.ActiveSkill;
+                var unkId = ((cNext?.Casting ?? false) || (cNext?.Channeling ?? false)) ? instance.Caster.ObjId : 0;
+                var casterPlotObj = new PlotObject(instance.Caster);
+                var targetPlotObj = new PlotObject(instance.Target);
+                instance.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, 0, instance.Flag), true);
+            }
 
             //Do tickets
             if (instance.Tickets.ContainsKey(Id))
@@ -163,16 +161,29 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             // todo
             NLog.LogManager.GetCurrentClassLogger().
                 Error($"PlotEvent: {Id} Pass: {pass}");
-            List<PlotNextEvent> backwards = new List<PlotNextEvent>();
             foreach (var nextEvent in NextEvents)
             {
-                if ((pass && !nextEvent.Fail) || (!pass && nextEvent.Fail))
+                if (pass)
                 {
-                    instance.CurrentNextEvent = nextEvent;
                     await ApplyDelay(nextEvent);
-                    await nextEvent.Event.PlayEvent(instance);
+                    if (nextEvent.Speed > 0)
+                    {
+                        var dist = MathUtil.CalculateDistance(instance.Caster.Position, instance.Target.Position, true);
+                        //We want damage to be applied when the projectile hits target.
+                        var task = nextEvent.Event.PlayEvent(instance, nextEvent, (int)(dist / nextEvent.Speed));
+                    }
+                    else
+                    {
+                        await nextEvent.Event.PlayEvent(instance, nextEvent);
+                    }
                 }
             }
+        }
+
+        public async Task PlayEvent(PlotInstance instance, PlotNextEvent cNext ,int delay)
+        {
+            await Task.Delay(delay);
+            await PlayEvent(instance, cNext);
         }
 
         public virtual bool СheckСonditions(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)

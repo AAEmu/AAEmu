@@ -483,6 +483,8 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
+            //Without this some skills hit twice. I think we
+            // need to reproduce these steps in plots or....
             if (Template.PlotOnly)
                 return;
 
