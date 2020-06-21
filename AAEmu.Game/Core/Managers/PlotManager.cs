@@ -247,16 +247,16 @@ namespace AAEmu.Game.Core.Managers
                                 for (var node = plotEvent.NextEvents.First; node != null; node = node.Next)
                                     if (node.Value.Position > template.Position)
                                     {
-                                        plotEvent.NextEvents.AddAfter(node, template);
+                                        plotEvent.NextEvents.AddBefore(node, template);
                                         res = true;
                                         break;
                                     }
 
                                 if (!res)
-                                    plotEvent.NextEvents.AddFirst(template);
+                                    plotEvent.NextEvents.AddLast(template);
                             }
                             else
-                                plotEvent.NextEvents.AddLast(template);
+                                plotEvent.NextEvents.AddFirst(template);
                         }
                     }
                 }
