@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public SkillObject SkillObject { get; set; }
 
         public byte Flag { get; set; }
-
+        public readonly object ConditionLock = new object();
 
         public PlotInstance(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {

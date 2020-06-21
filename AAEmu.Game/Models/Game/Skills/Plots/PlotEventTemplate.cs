@@ -41,29 +41,32 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 
         private bool GetConditionResult(PlotInstance instance,PlotCondition condition)
         {
-            var not = condition.NotCondition;
-            //Check if condition was cached
-            if (instance.UseConditionCache(condition))
+            lock (instance.ConditionLock)
             {
-                var cacheResult = instance.GetConditionCacheResult(condition);
+                var not = condition.NotCondition;
+                //Check if condition was cached
+                if (instance.UseConditionCache(condition))
+                {
+                    var cacheResult = instance.GetConditionCacheResult(condition);
 
-                //Apply not condition
-                cacheResult = not ? !cacheResult : cacheResult;
+                    //Apply not condition
+                    cacheResult = not ? !cacheResult : cacheResult;
 
-                return cacheResult;
-            }
+                    return cacheResult;
+                }
 
-            //Check 
-            if (condition.Check(instance.Caster, instance.CasterCaster, instance.Target, instance.TargetCaster, instance.SkillObject))
-            {
-                //We need to undo the not condition to store in cache
-                instance.UpdateConditionCache(condition, not ? false : true);
-                return true;
-            }
-            else
-            {
-                instance.UpdateConditionCache(condition, not ? true : false);
-                return false;
+                //Check 
+                if (condition.Check(instance.Caster, instance.CasterCaster, instance.Target, instance.TargetCaster, instance.SkillObject))
+                {
+                    //We need to undo the not condition to store in cache
+                    instance.UpdateConditionCache(condition, not ? false : true);
+                    return true;
+                }
+                else
+                {
+                    instance.UpdateConditionCache(condition, not ? true : false);
+                    return false;
+                }
             }
         }
 
@@ -86,7 +89,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             {
                 var dist = MathUtil.CalculateDistance(caster.Position, target.Position, true);
                 //We want damage to be applied when the projectile hits target.
-                return (int)(dist / nextEvent.Speed);
+                return (int)Math.Round((dist / nextEvent.Speed) * 1000.0f);
             }
             return 0;
         }
