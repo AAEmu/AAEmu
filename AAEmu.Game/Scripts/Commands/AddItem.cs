@@ -50,6 +50,12 @@ namespace AAEmu.Game.Scripts.Commands
             if ((args.Length > firstarg + 2) && (byte.TryParse(args[firstarg + 2], out byte arggrade)))
                 grade = arggrade;
 
+            if (grade > (byte)ItemGrade.Mythic || grade < (byte)ItemGrade.Crude)
+            {
+                character.SendMessage("|cFFFF0000Item grade cannot be lower than {0} or exceed {1}!|r", (byte)ItemGrade.Crude, (byte)ItemGrade.Mythic);
+                return;
+            }
+
             if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, itemId, count, grade))
             {
                 character.SendMessage("|cFFFF0000Item could not be created!|r");
@@ -62,6 +68,22 @@ namespace AAEmu.Game.Scripts.Commands
                 targetPlayer.SendMessage("[GM] {0} has added a item to your inventory", character.Name);
             }
 
+        }
+
+        enum ItemGrade:byte
+        {
+            Crude = 0,
+            Basic = 1,
+            Grand = 2,
+            Rare = 3,
+            Arcane = 4,
+            Heroic = 5,
+            Unique = 6,
+            Celestial = 7,
+            Divine = 8,
+            Epic = 9,
+            Legendary = 10,
+            Mythic = 11
         }
     }
 }
