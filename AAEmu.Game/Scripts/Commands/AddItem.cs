@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.ItemGrade;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Core.Managers.World;
@@ -68,22 +69,6 @@ namespace AAEmu.Game.Scripts.Commands
                 targetPlayer.SendMessage("[GM] {0} has added a item to your inventory", character.Name);
             }
 
-        }
-
-        enum ItemGrade:byte
-        {
-            Crude = 0,
-            Basic = 1,
-            Grand = 2,
-            Rare = 3,
-            Arcane = 4,
-            Heroic = 5,
-            Unique = 6,
-            Celestial = 7,
-            Divine = 8,
-            Epic = 9,
-            Legendary = 10,
-            Mythic = 11
         }
     }
 }
