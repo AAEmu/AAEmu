@@ -61,7 +61,7 @@ namespace AAEmu.Game.Models.Game.Char
             return template;
         }
 
-        public void SpawnMount(SkillItem skillData)
+        public void SpawnMount(CasterEffectBuff skillData)
         {
             if (MateManager.Instance.GetActiveMate(Owner.ObjId) != null)
             {

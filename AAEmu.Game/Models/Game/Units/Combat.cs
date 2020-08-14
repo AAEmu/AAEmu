@@ -72,13 +72,16 @@ namespace AAEmu.Game.Models.Game.Units
                 }
                 else
                 {
-                    LoopDelay = 2000;
-                    var skillId = 2u;
-                    var skillCasterType = 0; // who uses
-                    var skillCaster = SkillCaster.GetByType((SkillCasterType)skillCasterType);
+                    LoopDelay = 2000;                             //npc.Template.BaseSkillDelay;
+                    var skillId = (uint)npc.Template.BaseSkillId; //2u
+                    //var skillCasterType = 0; // who uses
+                    //var skillCaster = SkillCaster.GetByType((EffectOriginType)skillCasterType);
+                    var skillCaster = SkillCaster.GetByType(EffectOriginType.Skill);
                     skillCaster.ObjId = npc.ObjId;
-                    var skillCastTargetType = 0; // who is being used
-                    var skillCastTarget = SkillCastTarget.GetByType((SkillCastTargetType)skillCastTargetType);
+                    //var skillCastTargetType = 0; // who is being used
+                    //var skillCastTarget = SkillCastTarget.GetByType((SkillCastTargetType)skillCastTargetType);
+                    var skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+
                     skillCastTarget.ObjId = npc.CurrentTarget.ObjId;
                     var flag = 0;
                     var flagType = flag & 15;
@@ -88,6 +91,10 @@ namespace AAEmu.Game.Models.Game.Units
                     LoopAuto(npc);
                 }
             }
+        }
+        public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
         }
     }
 }

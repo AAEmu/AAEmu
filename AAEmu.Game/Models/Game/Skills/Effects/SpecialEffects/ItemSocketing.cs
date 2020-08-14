@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
             var owner = (Character)caster;
-            var gemSkillItem = (SkillItem)casterObj;
+            var gemSkillItem = (CasterEffectBuff)casterObj;
             var skillTargetItem = (SkillCastItemTarget)targetObj;
 
             if (owner == null)

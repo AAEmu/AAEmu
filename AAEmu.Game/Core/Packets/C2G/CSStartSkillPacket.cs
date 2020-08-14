@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var skillId = stream.ReadUInt32();
 
             var skillCasterType = stream.ReadByte(); // кто применяет
-            var skillCaster = SkillCaster.GetByType((SkillCasterType)skillCasterType);
+            var skillCaster = SkillCaster.GetByType((EffectOriginType)skillCasterType);
             skillCaster.Read(stream);
 
             var skillCastTargetType = stream.ReadByte(); // на кого применяют
@@ -30,14 +30,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("StartSkill: Id {0}, flag {1}", skillId, flag);
 
-            if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
+            if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is CasterEffectBuff))
             {
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
-            else if (skillCaster is SkillItem)
+            else if (skillCaster is CasterEffectBuff)
             {
-                var item = Connection.ActiveChar.Inventory.GetItemById(((SkillItem)skillCaster).ItemId);
+                var item = Connection.ActiveChar.Inventory.GetItemById(((CasterEffectBuff)skillCaster).ItemId);
                 if (item == null || skillId != item.Template.UseSkillId)
                     return;
                 Connection.ActiveChar.Quests.OnItemUse(item);

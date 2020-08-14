@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Numerics;
+
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Utils
 {
-    public class MathUtil
+    public static class MathUtil
     {
         // Return degree value of object 2 to the horizontal line with object 1 being the origin
         public static double CalculateAngleFrom(GameObject obj1, GameObject obj2)
@@ -16,7 +18,10 @@ namespace AAEmu.Game.Utils
         {
             var angleTarget = RadianToDegree(Math.Atan2(obj2Y - obj1Y, obj2X - obj1X));
             if (angleTarget < 0)
+            {
                 angleTarget += 360;
+            }
+
             return angleTarget;
         }
 
@@ -29,42 +34,83 @@ namespace AAEmu.Game.Utils
         {
             var angle = direction * (360f / 128) + 90;
             if (angle < 0)
+            {
                 angle += 360;
+            }
+
             return angle;
         }
 
         public static sbyte ConvertDegreeToDirection(double degree)
         {
             if (degree < 0)
+            {
                 degree = 360 + degree;
+            }
+
             degree -= 90;
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
+            {
                 res = (sbyte)((degree - 360) / (360f / 128));
+            }
+
             return res;
         }
-        
-        public static short ConvertDegreeToDirectionShort(double degree)
+
+        public static short UpdateHeading(Vector3 point, Vector3 target)
         {
+            var rad = Math.Atan2(target.Y - point.Y, target.X - point.X);
+            rad -= Math.PI / 2; // 12 o'clock == 0°
+            var heading = (short)(rad * 32768 / Math.PI);
+
+            return heading;
+        }
+        public static short UpdateHeading(double radian)
+        {
+            radian -= Math.PI / 2; // 12 o'clock == 0°
+            var heading = (short)(radian * 32768 / Math.PI);
+
+            return heading;
+        }
+
+        public static sbyte ConvertDegreeToDirection2(double degree)
+        {
+            var rotateModifier = 1;
             if (degree < 0)
-                degree = 360 + degree;
-            degree -= 90;
-            var res = (short)(degree / (360f / 128));
-            if (res > 21930)
-                res = (short)((degree - 360) / (360f / 128));
+            {
+                //rotateModifier = -1;   // remember the sign of the angle
+                degree = 360 + degree; // working with positive angles
+            }
+            degree -= 90; // 12 o'clock == 0°
+            //if (degree > 180)
+            //{
+            //    degree = 360 - degree;  // we work only with angles up to 180 degrees
+            //}
+            var res = (sbyte)(degree / (180f / 127) * rotateModifier);
+            //if (res > 85)
+            //    res = (sbyte)((degree - 360) / (180f / 128) * rotateModifier);
             return res;
         }
-        
+
         public static sbyte ConvertDegreeToDoodadDirection(double degree)
         {
             while (degree < 0f)
+            {
                 degree += 360f;
+            }
+
             if ((degree > 90f) && (degree <= 180f))
-                return (sbyte)((((degree - 90f) / 90f * 37f) + 90f) * - 1); 
+            {
+                return (sbyte)((((degree - 90f) / 90f * 37f) + 90f) * -1);
+            }
+
             if (degree > 180f)
+            {
                 return (sbyte)((((degree - 270f) / 90f * 37f) - 90f) * -1);
+            }
             // When range is between -90 and 90, no rotation scaling is applied for doodads
-            return (sbyte)(degree * - 1);
+            return (sbyte)(degree * -1);
         }
         public static bool IsFront(GameObject obj1, GameObject obj2)
         {
@@ -73,7 +119,9 @@ namespace AAEmu.Game.Utils
             var diff = Math.Abs(degree - degree2);
 
             if (diff >= 90 && diff <= 270)
+            {
                 return true;
+            }
 
             return false;
         }
@@ -103,10 +151,16 @@ namespace AAEmu.Game.Utils
         {
             var degree = RadianToDegree(radian);
             if (degree < 0)
+            {
                 degree = 360 + degree;
+            }
+
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
+            {
                 res = (sbyte)((degree - 360) / (360f / 128));
+            }
+
             return res;
         }
 
@@ -122,6 +176,18 @@ namespace AAEmu.Game.Utils
             }
 
             return (float)Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        // linear interpolation
+        public static float Lerp(float s, float e, float t)
+        {
+            return s + (e - s) * t;
+        }
+
+        // bilinear interpolation
+        public static float Blerp(float cX0Y0, float cX1Y0, float cX0Y1, float cX1Y1, float tx, float ty)
+        {
+            return MathUtil.Lerp(MathUtil.Lerp(cX0Y0, cX1Y0, tx), MathUtil.Lerp(cX0Y1, cX1Y1, tx), ty);
         }
     }
 }

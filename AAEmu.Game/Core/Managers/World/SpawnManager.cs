@@ -6,6 +6,7 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Transfers;
@@ -48,8 +49,7 @@ namespace AAEmu.Game.Core.Managers.World
                 var contents =
                     FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
                 if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn(
-                        $"File {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json doesn't exists or is empty.");
+                    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json doesn't exists or is empty.");
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> spawners, out _))
@@ -91,7 +91,7 @@ namespace AAEmu.Game.Core.Managers.World
                 contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json");
                 if (string.IsNullOrWhiteSpace(contents))
                 {
-                    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json doesn't exists or is empty.");
+                    //_log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json doesn't exists or is empty.");
                 }
                 else
                 {
@@ -102,9 +102,13 @@ namespace AAEmu.Game.Core.Managers.World
                             if (!TransferManager.Instance.Exist(spawner.UnitId))
                                 continue;
                             spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager
-                                .Instance
-                                .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            if (Math.Abs(spawner.Position.Z) < 0.1f)
+                            {
+                                spawner.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(spawner.Position.ZoneId, spawner.Position.X, spawner.Position.Y) : spawner.Position.Z;
+                            }
+                            //spawner.Position.RotationZ = (sbyte)spawner.RotationZ;
+
                             transferSpawners.Add(spawner.Id, spawner);
                         }
                     }

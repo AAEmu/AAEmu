@@ -1,5 +1,7 @@
-﻿using AAEmu.Game.Core.Managers.World;
-using System;
+﻿using System;
+
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World
 {
@@ -21,19 +23,9 @@ namespace AAEmu.Game.Models.Game.World
         public float GetRawHeightMapHeight(int x, int y)
         {
             // This is the old GetHeight()
-            var sx = (int)(x / 2);
-            var sy = (int)(y / 2);
+            var sx = x / 2;
+            var sy = y / 2;
             return (float)(HeightMaps[sx, sy] / HeightMaxCoefficient);
-        }
-
-        private static float Lerp(float s, float e, float t)
-        {
-            return s + (e - s) * t;
-        }
-
-        private static float Blerp(float cX0Y0, float cX1Y0, float cX0Y1, float cX1Y1, float tx, float ty)
-        {
-            return Lerp(Lerp(cX0Y0, cX1Y0, tx), Lerp(cX0Y1, cX1Y1, tx), ty);
         }
 
         private System.Drawing.Rectangle FindNearestSignificantPoints(int x, int y)
@@ -55,20 +47,16 @@ namespace AAEmu.Game.Models.Game.World
             var heightBR = GetRawHeightMapHeight(border.Right, border.Bottom);
             var offX = (x - border.Left) / 2;
             var offY = (y - border.Top) / 2;
-            var height = Blerp(heightTL, heightTR, heightBL, heightBR, offX, offY); // bilinear interpolation
+            var height = MathUtil.Blerp(heightTL, heightTR, heightBL, heightBR, offX, offY); // bilinear interpolation
 
             return height;
         }
 
         public Region GetRegion(int x, int y)
         {
-            if (ValidRegion(x, y))
-                if (Regions[x, y] == null)
-                    return Regions[x, y] = new Region(Id, x, y);
-                else
-                    return Regions[x, y];
-
-            return null;
+            if (!ValidRegion(x, y)) { return null; }
+            if (Regions[x, y] == null) { return Regions[x, y] = new Region(Id, x, y); }
+            return Regions[x, y];
         }
 
         public bool ValidRegion(int x, int y)

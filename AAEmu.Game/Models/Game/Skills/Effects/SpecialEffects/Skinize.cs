@@ -53,7 +53,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 return;
             }
 
-            if ((!(casterObj is SkillItem powderSkillItem)) || (powderSkillItem == null))
+            if ((!(casterObj is CasterEffectBuff powderSkillItem)) || (powderSkillItem == null))
             {
                 return;
             }

@@ -18,10 +18,13 @@
     "CellY": 8,
 	"SpawnPosition": {
 		"ZoneId": 260,
-		"X": 3680.518,
-		"Y": 4572.221,
-		"Z": 156
-	}
+		"X": 3687.6,
+		"Y": 4549.3,
+		"Z": 149.4,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 83
+}
   },
   {
     "Id": 3,
@@ -35,8 +38,11 @@
 		"ZoneId": 236,
 		"X": 169,
 		"Y": 90.62,
-		"Z": 25.13
-	}
+		"Z": 25.13,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
+}
   },
   {
     "Id": 4,
@@ -50,7 +56,10 @@
 		"ZoneId": 264,
 		"X": 898.942,
 		"Y": 837.212,
-		"Z": 194.87
+		"Z": 194.87,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -65,7 +74,10 @@
 		"ZoneId": 262,
 		"X": 796.3,
 		"Y": 325.386,
-		"Z": 249.54
+		"Z": 249.54,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -80,7 +92,10 @@
 		"ZoneId": 241,
 		"X": 575.28,
 		"Y": 482.01,
-		"Z": 136.755
+		"Z": 136.755,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -95,7 +110,10 @@
 		"ZoneId": 265,
 		"X": 713.56,
 		"Y": 720.398,
-		"Z": 184.444
+		"Z": 184.444,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -110,7 +128,10 @@
 		"ZoneId": 280,
 		"X": 713.56,
 		"Y": 720.398,
-		"Z": 184.444
+		"Z": 184.444,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -125,7 +146,10 @@
 		"ZoneId": 285,
 		"X": 1712.18,
 		"Y": 1324.28,
-		"Z": 167.018
+		"Z": 167.018,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -140,7 +164,10 @@
 		"ZoneId": 290,
 		"X": 1712.18,
 		"Y": 1324.28,
-		"Z": 167.018
+		"Z": 167.018,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -155,7 +182,10 @@
 		"ZoneId": 296,
 		"X": 621.05,
 		"Y": 643.36,
-		"Z": 134.64
+		"Z": 134.64,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -170,7 +200,10 @@
 		"ZoneId": 278,
 		"X": 0,
 		"Y": 0,
-		"Z": 0
+		"Z": 0,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -185,7 +218,10 @@
 		"ZoneId": 292,
 		"X": 0,
 		"Y": 0,
-		"Z": 0
+		"Z": 0,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {
@@ -209,7 +245,10 @@
 		"ZoneId": 240,
 		"X": 431.406,
 		"Y": 300.08,
-		"Z": 154.036
+		"Z": 154.036,
+		"RotationX": 0,
+		"RotationY": 0,
+		"RotationZ": 0
 	}
   },
   {

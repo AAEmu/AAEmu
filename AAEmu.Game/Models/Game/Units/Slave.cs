@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Formulas;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -40,6 +42,298 @@ namespace AAEmu.Game.Models.Game.Units
         public float RotSpeed { get; set; }
         public short RotationZ { get; set; }
         public float RotationDegrees { get; set; }
+
+        #region Attributes
+
+        public int Str
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Str);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var result = formula.Evaluate(parameters);
+                var res = (int)result;
+                foreach (var bonus in GetBonuses(UnitAttribute.Str))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public int Dex
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Dex);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Dex))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public int Sta
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Sta);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Sta))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public int Int
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Int);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Int))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public int Spi
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Spi);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Spi))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public int Fai
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Fai);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Fai))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public override int MaxHp
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public override int HpRegen
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.HealthRegen);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                res += Spi / 10;
+                foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public override int PersistentHpRegen
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.PersistentHealthRegen);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                res /= 5; // TODO ...
+                foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public override int MaxMp
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxMana);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public override int MpRegen
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.ManaRegen);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                res += Spi / 10;
+                foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        public override int PersistentMpRegen
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.PersistentManaRegen);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai
+                };
+                var res = (int)formula.Evaluate(parameters);
+                res /= 5; // TODO ...
+                foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (int)(res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return res;
+            }
+        }
+
+        #endregion
+
 
         public override void BroadcastPacket(GamePacket packet, bool self)
         {

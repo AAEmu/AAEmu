@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                     mType = new ShipRequestMoveType();
                     break;
                 case MoveTypeEnum.Transfer:
-                    // TODO ...
+                    mType = new TransferMoveType();
                     break;
                 default:
                     mType = new DefaultMoveType();

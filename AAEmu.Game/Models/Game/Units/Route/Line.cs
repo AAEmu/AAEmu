@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
@@ -8,10 +9,10 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Route
 {
-    class Line : Patrol
+    internal class Line : Patrol
     {
-        float distance = 0f;
-        float MovingDistance = 0.27f;
+        private float distance = 0f;
+        private float MovingDistance = 0.27f;
         public Point Position { get; set; }
 
         public override void Execute(Npc npc)
@@ -30,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
             if (Math.Abs(x) > distance)
             {
-                if (Math.Abs(MaxXYZ - Math.Abs(x)) > tolerance)
+                if (Math.Abs(MaxXYZ - Math.Abs(x)) > Tolerance)
                 {
                     tempMovingDistance = Math.Abs(x) / (MaxXYZ / MovingDistance);
                     tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
@@ -56,7 +57,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             if (Math.Abs(y) > distance)
             {
-                if (Math.Abs(MaxXYZ - Math.Abs(y)) > tolerance)
+                if (Math.Abs(MaxXYZ - Math.Abs(y)) > Tolerance)
                 {
                     tempMovingDistance = Math.Abs(y) / (MaxXYZ / MovingDistance);
                     tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
@@ -81,7 +82,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             if (Math.Abs(z) > distance)
             {
-                if (Math.Abs(MaxXYZ - Math.Abs(z)) > tolerance)
+                if (Math.Abs(MaxXYZ - Math.Abs(z)) > Tolerance)
                 {
                     tempMovingDistance = Math.Abs(z) / (MaxXYZ / MovingDistance);
                     tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
@@ -127,6 +128,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
 
             // looks in the direction of movement
+            //--------------------------взгляд_NPC_будет(движение_откуда                     ->                      движение_куда)
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
             moveType.RotationX = 0;
@@ -158,6 +160,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 LoopAuto(npc);
             }
+        }
+        public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
         }
     }
 }

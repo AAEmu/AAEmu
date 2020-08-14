@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             Character character = (Character)caster;
             if (character == null) return;
 
-            SkillItem packItem = (SkillItem) casterObj;
+            CasterEffectBuff packItem = (CasterEffectBuff) casterObj;
             if (packItem == null) return;
 
             Item item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);

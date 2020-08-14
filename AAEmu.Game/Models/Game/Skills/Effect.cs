@@ -38,6 +38,7 @@ namespace AAEmu.Game.Models.Game.Skills
             Owner = owner;
             Caster = caster;
             SkillCaster = skillCaster;
+            SkillCaster.ObjId = Owner.ObjId; // add 10.08.2020
             Template = template;
             AbLevel = 1;
             Skill = skill;
@@ -50,6 +51,7 @@ namespace AAEmu.Game.Models.Game.Skills
             Owner = owner;
             Caster = caster;
             SkillCaster = skillCaster;
+            SkillCaster.ObjId = Owner.ObjId; // add 10.08.2020
             Template = template;
             AbLevel = abLevel;
             Skill = skill;

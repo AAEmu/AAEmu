@@ -52,7 +52,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             }
 
             // Get Regrade Scroll Item
-            if ((!(casterObj is SkillItem scroll)) || (scroll == null))
+            if ((!(casterObj is CasterEffectBuff scroll)) || (scroll == null))
             {
                 return;
             }

@@ -200,12 +200,12 @@ namespace AAEmu.Commons.Utils
 
         public static short ConvertRotation(sbyte rotation)
         {
-            return (short)(rotation * 0.0078740157f / 0.000030518509f);
+            return (short)(rotation * 0.0078740157f / 0.000030518509f); // rotation * 1/127 / 1/32767
         }
 
         public static sbyte ConvertRotation(short rotation)
         {
-            return (sbyte)(rotation * 0.000030518509f / 0.0078740157f);
+            return (sbyte)(rotation * 0.000030518509f / 0.0078740157f); // rotation * 1/32767 / 1/127
         }
 
         public static byte[] StringToByteArray(string hex)

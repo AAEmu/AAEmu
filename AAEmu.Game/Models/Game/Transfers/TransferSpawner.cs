@@ -17,7 +17,10 @@ namespace AAEmu.Game.Models.Game.Transfers
         private List<Transfer> _spawned;
         private Transfer _lastSpawn;
         private int _scheduledCount;
-        private int _spawnCount;
+        public int _spawnCount;
+        public short RotationX;
+        public short RotationY;
+        public short RotationZ;
 
         public uint Count { get; set; }
 
@@ -53,11 +56,14 @@ namespace AAEmu.Game.Models.Game.Transfers
 
             transfer.Spawner = this;
             transfer.Position = Position.Clone();
+            transfer.gameTime = DateTime.Now;
+            transfer.SpawnTime = DateTime.Now;
             if (transfer.Position == null)
             {
                 _log.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
                 return null;
             }
+            transfer.RotationZ = RotationZ;
 
             transfer.Spawn();
             _lastSpawn = transfer;
@@ -66,19 +72,48 @@ namespace AAEmu.Game.Models.Game.Transfers
             _spawnCount++;
 
             return transfer;
+            /*
+            // spawn all transports with this TemplateId
+            foreach (var tp in transfer.Template.TransferPaths)
+            {
+                var pathList = TransferManager.Instance.GetTransferPath(tp.PathName);
+                if (pathList == null) { continue; }
+                // take the original coordinates from the path file
+                if (transfer.Position == null)
+                {
+                    _log.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
+                    return null;
+                }
+                transfer.Position.X = pathList[0].X;
+                transfer.Position.Y = pathList[0].Y;
+                transfer.Position.Z = pathList[0].Z;
+                transfer.Position.WorldId = pathList[0].WorldId;
+                transfer.Position.ZoneId = pathList[0].ZoneId;
+                if (transfer.Position.X > 0 && transfer.Position.Y > 0)
+                {
+                    transfer.Spawner.Position = transfer.Position.Clone(); // заменим нулевые координаты координатами из файла пути
+                }
+                transfer.Spawn();
+                _lastSpawn = transfer;
+                _spawned.Add(transfer);
+                _scheduledCount--;
+                _spawnCount++;
+            }
+            return transfer;
+            */
         }
 
-        public override void Despawn(Transfer npc)
+        public override void Despawn(Transfer transfer)
         {
-            npc.Delete();
-            if (npc.Respawn == DateTime.MinValue)
+            transfer.Delete();
+            if (transfer.Respawn == DateTime.MinValue)
             {
-                _spawned.Remove(npc);
-                ObjectIdManager.Instance.ReleaseId(npc.ObjId);
+                _spawned.Remove(transfer);
+                ObjectIdManager.Instance.ReleaseId(transfer.ObjId);
                 _spawnCount--;
             }
 
-            if (_lastSpawn == null || _lastSpawn.ObjId == npc.ObjId)
+            if (_lastSpawn == null || _lastSpawn.ObjId == transfer.ObjId)
             {
                 _lastSpawn = _spawned.Count != 0 ? _spawned[_spawned.Count - 1] : null;
             }

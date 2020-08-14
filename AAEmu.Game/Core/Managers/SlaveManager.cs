@@ -1,26 +1,26 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Slave;
-using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Slave> _activeSlaves;
         public Dictionary<uint, Dictionary<int, Point>> _attachPoints;
 
-        private SlaveTemplate GetSlaveTemplate(uint id)
+        public SlaveTemplate GetSlaveTemplate(uint id)
         {
             return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
         }
@@ -46,7 +46,10 @@ namespace AAEmu.Game.Core.Managers
         {
             foreach (var slave in _activeSlaves.Values)
             {
-                if (slave.ObjId == objId) return slave;
+                if (slave.ObjId == objId)
+                {
+                    return slave;
+                }
             }
 
             return null;
@@ -56,17 +59,20 @@ namespace AAEmu.Game.Core.Managers
         {
             foreach (var slave in _activeSlaves.Values)
             {
-                if (slave.TlId == tlId) return slave;
+                if (slave.TlId == tlId)
+                {
+                    return slave;
+                }
             }
 
             return null;
         }
-        
+
         public IEnumerable<Slave> GetActiveSlavesByKind(SlaveKind kind)
         {
             return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
         }
-        
+
         public IEnumerable<Slave> GetActiveSlavesByKinds(SlaveKind[] kinds)
         {
             return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind)).Select(s => s.Value);
@@ -77,8 +83,12 @@ namespace AAEmu.Game.Core.Managers
             // TODO
             var unit = connection.ActiveChar;
             var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
-            if (activeSlaveInfo == null) return;
-            unit.SendPacket(new SCUnitDetachedPacket(unit.ObjId, 5));
+            if (activeSlaveInfo == null)
+            {
+                return;
+            }
+
+            unit.SendPacket(new SCUnitDetachedPacket(unit.ObjId, AttachUnitReason.SlaveBinding));
         }
 
         public void BindSlave(GameConnection connection, uint tlId)
@@ -86,16 +96,20 @@ namespace AAEmu.Game.Core.Managers
             // TODO
             var unit = connection.ActiveChar;
             var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
-            if (activeSlaveInfo == null) return;
-            unit.SendPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, activeSlaveInfo.ObjId));
+            if (activeSlaveInfo == null)
+            {
+                return;
+            }
+
+            unit.SendPacket(new SCUnitAttachedPacket(unit.ObjId, AttachPoint.Driver, AttachUnitReason.NewMaster, activeSlaveInfo.ObjId));
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, activeSlaveInfo.ObjId), true);
             unit.CurrentTarget = activeSlaveInfo;
             unit.SendPacket(new SCSlaveBoundPacket(unit.Id, activeSlaveInfo.ObjId));
         }
-        
+
         public void BindSlave(Character character, uint objId)
         {
-            character.SendPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId));
+            character.SendPacket(new SCUnitAttachedPacket(character.ObjId, AttachPoint.Driver, AttachUnitReason.NewMaster, objId));
             character.SendPacket(new SCSlaveBoundPacket(character.Id, objId));
         }
 
@@ -103,7 +117,10 @@ namespace AAEmu.Game.Core.Managers
         public void Delete(Character owner, uint objId)
         {
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
-            if (activeSlaveInfo == null) return;
+            if (activeSlaveInfo == null)
+            {
+                return;
+            }
 
             foreach (var doodad in activeSlaveInfo.AttachedDoodads)
             {
@@ -113,11 +130,11 @@ namespace AAEmu.Game.Core.Managers
             owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
-            
+
             activeSlaveInfo.Delete();
         }
 
-        public void Create(Character owner, SkillItem skillData)
+        public void Create(Character owner, CasterEffectBuff skillData)
         {
             var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
             if (activeSlaveInfo != null)
@@ -128,13 +145,22 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var item = owner.Inventory.GetItemById(skillData.ItemId);
-            if (item == null) return;
+            if (item == null)
+            {
+                return;
+            }
 
             var itemTemplate = (SummonSlaveTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
-            if (itemTemplate == null) return;
+            if (itemTemplate == null)
+            {
+                return;
+            }
 
             var slaveTemplate = GetSlaveTemplate(itemTemplate.SlaveId);
-            if (slaveTemplate == null) return;
+            if (slaveTemplate == null)
+            {
+                return;
+            }
 
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
@@ -166,10 +192,10 @@ namespace AAEmu.Game.Core.Managers
                 AttachedDoodads = new List<Doodad>(),
                 SpawnTime = DateTime.Now
             };
-            
+
 
             template.Spawn();
-            
+
             // TODO - DOODAD SERVER SIDE
             foreach (var doodadBinding in template.Template.DoodadBindings)
             {
@@ -202,7 +228,7 @@ namespace AAEmu.Game.Core.Managers
                     else
                     {
                         _log.Warn("Model id: {0} incomplete attach point information");
-                    }                    
+                    }
                 }
                 else
                 {
@@ -341,15 +367,21 @@ namespace AAEmu.Game.Core.Managers
 
             var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/slave_attach_points.json");
             if (string.IsNullOrWhiteSpace(contents))
+            {
                 throw new IOException(
                     $"File {FileManager.AppPath}Data/slave_attach_points.json doesn't exists or is empty.");
+            }
 
             List<SlaveModelAttachPoint> attachPoints;
             if (JsonHelper.TryDeserializeObject(contents, out attachPoints, out _))
+            {
                 _log.Info("Slave model attach points loaded...");
+            }
             else
+            {
                 _log.Warn("Slave model attach points not loaded...");
-            
+            }
+
             _attachPoints = new Dictionary<uint, Dictionary<int, Point>>();
             foreach (var set in attachPoints)
             {
@@ -362,8 +394,9 @@ namespace AAEmu.Game.Core.Managers
             var sendMySlaveTask = new SendMySlaveTask();
             TaskManager.Instance.Schedule(sendMySlaveTask, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
-    
-        public void SendMySlavePacketToAllOwners() {
+
+        public void SendMySlavePacketToAllOwners()
+        {
             foreach (var (ownerObjId, slave) in _activeSlaves)
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);

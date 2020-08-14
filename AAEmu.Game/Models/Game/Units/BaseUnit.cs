@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Units
         Shipyard = 6
     }
 
-    public enum ModelPostureType : byte
+    public enum UnitModelPostureType : byte
     {
         None = 0,
         HouseState = 1,

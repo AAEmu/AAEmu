@@ -13,6 +13,7 @@ using AAEmu.Game.Utils.DB;
 using NLog;
 using Quartz.Impl.AdoJobStore;
 using System;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {

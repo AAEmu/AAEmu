@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int Value4)
         {
             var owner = (Character)caster;
-            var skillData = (SkillItem)casterObj;
+            var skillData = (CasterEffectBuff)casterObj;
 
             var itemInfo = owner.Inventory.GetItemById(skillData.ItemId);
             if (itemInfo == null || itemInfo.Count <= 0) return;

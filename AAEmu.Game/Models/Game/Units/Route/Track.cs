@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 if (Math.Abs(x) > distance)
                 {
-                    if (Math.Abs(MaxXYZ - Math.Abs(x)) > tolerance)
+                    if (Math.Abs(MaxXYZ - Math.Abs(x)) > Tolerance)
                     {
                         tempMovingDistance = Math.Abs(x) / (MaxXYZ / MovingDistance);
                     }
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (Math.Abs(y) > distance)
                 {
-                    if (Math.Abs(MaxXYZ - Math.Abs(y)) > tolerance)
+                    if (Math.Abs(MaxXYZ - Math.Abs(y)) > Tolerance)
                     {
                         tempMovingDistance = Math.Abs(y) / (MaxXYZ / MovingDistance);
                     }
@@ -68,7 +68,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (Math.Abs(z) > distance)
                 {
-                    if (Math.Abs(MaxXYZ - Math.Abs(z)) > tolerance)
+                    if (Math.Abs(MaxXYZ - Math.Abs(z)) > Tolerance)
                     {
                         tempMovingDistance = Math.Abs(z) / (MaxXYZ / MovingDistance);
                     }
@@ -178,6 +178,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 line.Pause(npc);
                 LastPatrol = line;
             }
+        }
+        public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
         }
     }
 }

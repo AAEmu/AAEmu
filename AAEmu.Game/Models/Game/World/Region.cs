@@ -120,7 +120,47 @@ namespace AAEmu.Game.Models.Game.World
                     if (t is Transfer transfer)
                     {
                         TransferManager.Instance.SpawnAll(character1);
-                        //character1.SendPacket(new SCUnitStatePacket(transfer));
+                        //if (transfer.TemplateId != 46 && transfer.TemplateId != 4 && transfer.TemplateId != 122)
+                        if (transfer.TemplateId == 6)
+                        {
+                            //TransferManager.Instance.Spawn(character1, transfer);
+                            if (!transfer.IsInPatrol)
+                            {
+                                var path = new Simulation(transfer);
+                                //path.ReadPath(transfer.Template.TransferPaths[0].PathName); // пробую файлы от клиента
+                                path.ReadPath("solzreed_8"); // пробую файлы от клиента
+                                if (path.TransferPath != null)
+                                {
+                                    //_log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName);
+                                    _log.Warn("PathName: " + "solzreed_8");
+                                    _log.Warn("myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.RotationZ);
+                                    path.GoToPath(transfer, true);
+                                    transfer.IsInPatrol = true; // so as not to run the route a second time
+                                }
+                                else
+                                    _log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName + " not found!");
+                            }
+                        }
+                        if (transfer.TemplateId == 52)
+                        {
+                            //TransferManager.Instance.Spawn(character1, transfer);
+                            if (!transfer.IsInPatrol)
+                            {
+                                var path = new Simulation(transfer);
+                                //path.ReadPath(transfer.Template.TransferPaths[0].PathName); // пробую файлы от клиента
+                                path.ReadPath("gwe_out_goto_lilyut1"); // пробую файлы от клиента  // 1-solz_in2_solzrean, 2-gwe_in1
+                                if (path.TransferPath != null)
+                                {
+                                    //_log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName);
+                                    _log.Warn("PathName: " + "gwe_out_goto_lilyut1");
+                                    _log.Warn("myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.RotationZ);
+                                    path.GoToPath(transfer, true);
+                                    transfer.IsInPatrol = true; // so as not to run the route a second time
+                                }
+                                else
+                                    _log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName + " not found!");
+                            }
+                        }
                     }
                     else if (t is Npc npc)
                     {
@@ -133,31 +173,29 @@ namespace AAEmu.Game.Models.Game.World
                         else
                         // We're gonna get the NPC's favorites on the road.
                         // Nui Forest keeper Arthur
-                        // We're gonna get the NPC's favorites on the road.
-                        // Nui Forest keeper Arthur
                         if (npc.TemplateId == 11999)
                         {
-                            if (!npc.IsInPatrol)
-                            {
-                                npc.IsInPatrol = true; // so as not to run the route a second time
-                                var path = new Simulation(npc);
-                                path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
-                                path.ReadPath();
-                                path.GoToPath(npc, true);
-                            }
+                            //if (!npc.IsInPatrol)
+                            //{
+                            //    npc.IsInPatrol = true; // so as not to run the route a second time
+                            //    var path = new Simulation(npc);
+                            //    path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
+                            //    path.ReadPath();
+                            //    path.GoToPath(npc, true);
+                            //}
                         }
                         else
                         // Nui Woodcutter Solace
                         if (npc.TemplateId == 12143)
                         {
-                            if (!npc.IsInPatrol)
-                            {
-                                npc.IsInPatrol = true; // so as not to run the route a second time
-                                var path = new Simulation(npc);
-                                path.MoveFileName = @"NuiWoodcutterSolace"; // path file name
-                                path.ReadPath();
-                                path.GoToPath(npc, true);
-                            }
+                            //if (!npc.IsInPatrol)
+                            //{
+                            //    npc.IsInPatrol = true; // so as not to run the route a second time
+                            //    var path = new Simulation(npc);
+                            //    path.MoveFileName = @"NuiWoodcutterSolace"; // path file name
+                            //    path.ReadPath();
+                            //    path.GoToPath(npc, true);
+                            //}
                         }
                         else
                         //                    deer                         swimmers
@@ -186,13 +224,14 @@ namespace AAEmu.Game.Models.Game.World
                                     quill.Degree = (short)Rand.Next(180, 360);
                                     patrol = quill;
                                 }
-                                else if (rnd <= 100)
+                                else
                                 {
                                     // NPC move along the weaving shuttle in the X-axis.
                                     var quill = new QuillX { Interrupt = true, Loop = true, Abandon = false };
                                     quill.Degree = (short)Rand.Next(180, 360);
                                     patrol = quill;
                                 }
+
                                 if (patrol != null)
                                 {
                                     patrol.Pause(npc);
@@ -256,11 +295,12 @@ namespace AAEmu.Game.Models.Game.World
                                     quill.Degree = (short)Rand.Next(180, 360);
                                     patrol = quill;
                                 }
-                                else if (rnd <= 200) // the bulk of the NPC is in place to reduce server load
+                                else
                                 {
                                     // NPC stand still
                                     npc.Patrol = null;
                                 }
+
                                 if (patrol != null)
                                 {
                                     patrol.Pause(npc);
@@ -319,15 +359,30 @@ namespace AAEmu.Game.Models.Game.World
                 var units = GetList(new List<Unit>(), character1.ObjId);
                 foreach (var t in units)
                 {
+                    if (t is Transfer transfer)
+                    {
+                        if (transfer.TemplateId != 46 && transfer.TemplateId != 4 && transfer.TemplateId != 122)
+                        {
+                            // Stop Transfer that players don't see
+                            transfer.IsInPatrol = false;
+                            transfer.Patrol = null;
+                        }
+                        else
+                        {
+                            transfer.Patrol = null; // Stop Transfer that players don't see
+                        }
+                    }
                     if (t is Npc npc)
                     {
                         if (npc.TemplateId == 11999)
                         {
-                            // leave the NPC on the way
+                            // Stop NPCs that players don't see
+                            npc.IsInPatrol = false;
+                            npc.Patrol = null;
                         }
                         else
                         {
-                            npc.Patrol = null; // Stop NPCs that players don 't see
+                            npc.Patrol = null; // Stop NPCs that players don't see
                         }
                     }
                 }

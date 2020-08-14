@@ -1,0 +1,34 @@
+<Objects>
+ <Transfer Name="TransferPath_221_1" Type="0" cellX="1" cellY="1">
+  <Points>
+   <Point Pos="1990.382,1094.064,100"/>
+   <Point Pos="2353.1265,989.987,100.00003"/>
+   <Point Pos="3196.5396,982.52258,100.00006"/>
+   <Point Pos="3875.2107,1007.7219,100"/>
+  </Points>
+ </Transfer>
+ <Transfer Name="TransferPath_221_2" Type="0" cellX="3" cellY="0">
+  <Points>
+   <Point Pos="3875.4456,1006.1854,100"/>
+   <Point Pos="3198.8972,979.10034,99.999969"/>
+   <Point Pos="2352.8899,988.35468,99.999969"/>
+   <Point Pos="1990.5538,1091.6598,99.999969"/>
+  </Points>
+ </Transfer>
+ <Transfer Name="air_garang_cross_2" Type="0" cellX="1" cellY="1">
+  <Points>
+   <Point Pos="1211.6128,1409.4498,271.34592"/>
+   <Point Pos="1231.4475,1343.0929,270.43527"/>
+   <Point Pos="1284.2493,1180.0994,272.16779"/>
+   <Point Pos="1604.1237,142.31311,259.57523"/>
+  </Points>
+ </Transfer>
+ <Transfer Name="air_garang_cross_11" Type="0" cellX="1" cellY="0">
+  <Points>
+   <Point Pos="1603.6038,140.58887,259.57523"/>
+   <Point Pos="1283.7294,1178.3751,272.16779"/>
+   <Point Pos="1230.9276,1341.3687,270.43527"/>
+   <Point Pos="1211.0929,1407.7256,271.34592"/>
+  </Points>
+ </Transfer>
+</Objects>

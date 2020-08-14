@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mate;
@@ -14,15 +15,14 @@ namespace AAEmu.Game.Models.Game.Units
 {
     public sealed class Mount : Unit
     {
-        //public ushort TlId { get; set; }
         public uint TemplateId { get; set; }
         public NpcTemplate Template { get; set; }
 
         public uint OwnerObjId { get; set; }
         public uint Att1 { get; set; }
-        public byte Reason1 { get; set; }
+        public AttachUnitReason Reason1 { get; set; }
         public uint Att2 { get; set; }
-        public byte Reason2 { get; set; }
+        public AttachUnitReason Reason2 { get; set; }
 
         public override float Scale => Template.Scale;
 
@@ -346,9 +346,9 @@ namespace AAEmu.Game.Models.Game.Units
             ModelParams = new UnitCustomModelParams();
             Skills = new List<uint>();
             Att1 = 0u;
-            Reason1 = 0;
+            Reason1 = AttachUnitReason.None;
             Att2 = 0u;
-            Reason2 = 0;
+            Reason2 = AttachUnitReason.None;
         }
 
         public override void AddVisibleObject(Character character)
@@ -360,13 +360,13 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(Att1);
                 if (owner != null)
-                    character.SendPacket(new SCUnitAttachedPacket(owner.ObjId, 1, Reason1, ObjId));
+                    character.SendPacket(new SCUnitAttachedPacket(owner.ObjId, AttachPoint.Driver, Reason1, ObjId));
             }
             if (Att2 > 0)
             {
                 var passenger = WorldManager.Instance.GetCharacterByObjId(Att1);
                 if (passenger != null)
-                    character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, 2, Reason2, ObjId));
+                    character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, AttachPoint.Passenger0, Reason2, ObjId));
             }
         }
 

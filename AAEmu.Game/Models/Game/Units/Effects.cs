@@ -213,6 +213,8 @@ namespace AAEmu.Game.Models.Game.Units
                     effect.State = EffectState.Acting;
                     effect.Template.Start(effect.Caster, owner, effect); // TODO поменять на target
                 }
+
+                //effect.SkillCaster.ObjId = owner.ObjId; // add 10.08.2020
             }
         }
 

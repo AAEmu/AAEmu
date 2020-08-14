@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var character = (Character)caster;
             if (character == null) return;
 
-            var lootPack = (SkillItem)casterObj;
+            var lootPack = (CasterEffectBuff)casterObj;
             if (lootPack == null) return;
 
             var lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
@@ -234,7 +234,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         {
             var character = (Character)caster;
             if (character == null) return;
-            var lootPack = (SkillItem)casterObj;
+            var lootPack = (CasterEffectBuff)casterObj;
             if (lootPack == null) return;
             var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
             character?.Inventory.ConsumeItem(null,ItemTaskType.SkillReagents, lootPackItem.TemplateId, consumeCount,null);

@@ -556,7 +556,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         continue;
                     }
-                    if (casterCaster is SkillItem castItem) // TODO Clean up. 
+                    if (casterCaster is CasterEffectBuff castItem) // TODO Clean up. 
                     {
                         var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
                         if ((castItemTemplate.UseSkillAsReagent) && (caster is Character player))

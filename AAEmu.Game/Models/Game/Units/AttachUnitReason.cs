@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.Game.Units
 {
-    public enum AttachUnitReason : int
+    public enum AttachUnitReason : byte
     {
         None = 0,
         MountMateLeft = 1,

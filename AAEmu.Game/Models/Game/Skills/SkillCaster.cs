@@ -1,20 +1,20 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
-    public enum SkillCasterType : byte
+    public enum EffectOriginType : byte
     {
-        Unit = 0,
-        Unk1 = 1,
-        Item = 2,
-        Unk3 = 3, // TODO mountSkillType
+        Skill = 0,
+        Plot = 1,
+        Buff = 2,
+        Passive = 3,
         Doodad = 4
     }
 
     public abstract class SkillCaster : PacketMarshaler
     {
-        public SkillCasterType Type { get; set; }
+        public EffectOriginType Type { get; set; }
         public uint ObjId { get; set; }
 
         public override void Read(PacketStream stream)
@@ -29,25 +29,25 @@ namespace AAEmu.Game.Models.Game.Skills
             return stream;
         }
 
-        public static SkillCaster GetByType(SkillCasterType type)
+        public static SkillCaster GetByType(EffectOriginType type)
         {
             SkillCaster obj;
             switch (type)
             {
-                case SkillCasterType.Unit:
+                case EffectOriginType.Skill:
                     obj = new SkillCasterUnit();
                     break;
-                case SkillCasterType.Unk1:
-                    obj = new SkillCasterUnk1();
+                case EffectOriginType.Plot:
+                    obj = new CasterEffectPlot();
                     break;
-                case SkillCasterType.Item:
-                    obj = new SkillItem();
+                case EffectOriginType.Buff:
+                    obj = new CasterEffectBuff();
                     break;
-                case SkillCasterType.Unk3:
-                    obj = new SkillCasterUnk3();
+                case EffectOriginType.Passive:
+                    obj = new CasterEffectPassive();
                     break;
-                case SkillCasterType.Doodad:
-                    obj = new SkillDoodad();
+                case EffectOriginType.Doodad:
+                    obj = new CasterEffectDoodad();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
@@ -66,38 +66,38 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public SkillCasterUnit(uint objId)
         {
-            Type = SkillCasterType.Unit;
+            Type = EffectOriginType.Skill;
             ObjId = objId;
         }
     }
 
-    public class SkillCasterUnk1 : SkillCaster
+    public class CasterEffectPlot : SkillCaster
     {
-        public SkillCasterUnk1()
+        public CasterEffectPlot()
         {
         }
 
-        public SkillCasterUnk1(uint objId)
+        public CasterEffectPlot(uint objId)
         {
-            Type = SkillCasterType.Unk1;
+            Type = EffectOriginType.Plot;
             ObjId = objId;
         }
     }
 
-    public class SkillItem : SkillCaster
+    public class CasterEffectBuff : SkillCaster
     {
         public ulong ItemId { get; set; }
         public uint ItemTemplateId { get; set; }
         public byte Type1 { get; set; }
         public uint Type2 { get; set; }
 
-        public SkillItem()
+        public CasterEffectBuff()
         {
         }
 
-        public SkillItem(uint objId, ulong itemId, uint itemTemplateId)
+        public CasterEffectBuff(uint objId, ulong itemId, uint itemTemplateId)
         {
-            Type = SkillCasterType.Item;
+            Type = EffectOriginType.Buff;
             ObjId = objId;
             ItemId = itemId;
             ItemTemplateId = itemTemplateId;
@@ -123,17 +123,17 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillCasterUnk3 : SkillCaster
+    public class CasterEffectPassive : SkillCaster
     {
         public uint MountSkillTemplateId { get; set; }
 
-        public SkillCasterUnk3()
+        public CasterEffectPassive()
         {
         }
 
-        public SkillCasterUnk3(uint objId)
+        public CasterEffectPassive(uint objId)
         {
-            Type = SkillCasterType.Unk3;
+            Type = EffectOriginType.Passive;
             ObjId = objId;
         }
 
@@ -151,15 +151,15 @@ namespace AAEmu.Game.Models.Game.Skills
         }
     }
 
-    public class SkillDoodad : SkillCaster
+    public class CasterEffectDoodad : SkillCaster
     {
-        public SkillDoodad()
+        public CasterEffectDoodad()
         {
         }
 
-        public SkillDoodad(uint objId)
+        public CasterEffectDoodad(uint objId)
         {
-            Type = SkillCasterType.Doodad;
+            Type = EffectOriginType.Doodad;
             ObjId = objId;
         }
     }

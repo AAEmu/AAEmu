@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 IsCrafting = true;
 
-                var caster = SkillCaster.GetByType(SkillCasterType.Unit);
+                var caster = SkillCaster.GetByType(EffectOriginType.Skill);
                 caster.ObjId = Owner.ObjId;
 
                 var target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Templates
 {

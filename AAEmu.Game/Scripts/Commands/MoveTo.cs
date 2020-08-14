@@ -103,7 +103,7 @@ namespace AAEmu.Game.Scripts.Commands
                         break;
                     case "run":
                         character.SendMessage("[MoveTo] turned on running mode...");
-                        moveTo.runningMode = run;
+                        moveTo.RunningMode = run;
                         break;
                     //case "walk":
                     //    character.SendMessage("[MoveTo] turned off running mode...");

@@ -109,5 +109,9 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 TaskManager.Instance.Schedule(new UnitMovePause(this, npc), TimeSpan.FromSeconds(time));
             }
         }
+        public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

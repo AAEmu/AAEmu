@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
@@ -50,6 +51,52 @@ namespace AAEmu.Game.Core.Managers.World
             if (zone == null) return 0;
             var zoneGroup = GetZoneGroupById(zone.GroupId);
             return zoneGroup?.TargetId ?? 0;
+        }
+
+        public (float, float, float) ConvertCoordFromZoneKey(uint zoneId, float x, float y, float z)
+        {
+            //if (Instance.GetZoneByKey(zoneId) == null)
+            //{
+            //    return (x, y, z); // если не нашли зону, вернем координаты
+            //}
+            //var zonegroup = Instance.GetZoneGroupById(Instance.GetZoneByKey(zoneId).GroupId);
+            //var newX = zonegroup.X + x;
+            //var newY = zonegroup.Y + y;
+            //var newZ = z;
+            var zone = GetZoneByKey(zoneId);
+            if (zone == null)
+                return (x, y, z); // если не нашли зону, вернем координаты
+
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+            var newX = zoneGroup.X + x + 2412f; // w_solzreed id=5, x=11925.0, y=13266.0
+            var newY = zoneGroup.Y + y + 46f;
+            var newZ = z;
+            //var newX = x; //для теста, берём координаты из файла
+            //var newY = y;
+            //var newZ = z;
+
+            return (newX, newY, newZ);
+        }
+
+        public (float, float, float) ConvertCoordFromZoneKey(uint zoneId, Vector3 position)
+        {
+            var zone = GetZoneByKey(zoneId);
+            if (zone == null)
+                return (position.X, position.Y, position.Z); // если не нашли зону, вернем координаты
+
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+
+            var a = (32768 + position.Z) / 27.712812f + 1f;
+            var b = (32768 + position.X) / 32f + 0.5f;
+            var c = a * 0.5f + b;
+            var d = c - a * 2f;
+            var e = (float)(d * 0.33333334d + 0.0000099999997d);
+
+            var newX = e * 2f + a;
+            var newY = a * 0.5f;
+            var newZ = position.Z;
+
+            return (newX, newY, newZ);
         }
 
         public void Load()

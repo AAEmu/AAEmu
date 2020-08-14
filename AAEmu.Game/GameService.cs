@@ -18,6 +18,8 @@ namespace AAEmu.Game
     public class GameService : IHostedService, IDisposable
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        public static DateTime StartTime { get; set; }
+        public static DateTime EndTime { get; set; }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -107,6 +109,8 @@ namespace AAEmu.Game
             stopWatch.Stop();
 
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
+
+            StartTime = DateTime.Now;
 
             return Task.CompletedTask;
         }
