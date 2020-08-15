@@ -43,8 +43,8 @@ namespace AAEmu.Game.Scripts.Commands
             slave.Position.X += 5f; // spawn_x_offset
             slave.Position.Y += 5f; // spawn_Y_offset
             slave.Position.Z += 100f; // spawn_Z_offset
-            slave.Hp = 190;
-            slave.Mp = 120;
+            slave.Hp = slave.MaxHp;
+            slave.Mp = slave.MaxMp;
             slave.ModelParams = new UnitCustomModelParams();
             slave.Effects.AddEffect(new Effect(slave, slave, SkillCaster.GetByType(EffectOriginType.Skill), SkillManager.Instance.GetBuffTemplate(545), null, DateTime.Now));
             slave.Spawn();

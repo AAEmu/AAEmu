@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -17,12 +18,9 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public uint TemplateId { get; set; }
         public NpcTemplate Template { get; set; }
-        //public Item[] Equip { get; set; }
         public NpcSpawner Spawner { get; set; }
-
         public override UnitCustomModelParams ModelParams => Template.ModelParams;
         public override float Scale => Template.Scale;
-
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
         #region Attributes
@@ -664,19 +662,18 @@ namespace AAEmu.Game.Models.Game.NPChar
         public Npc()
         {
             Name = "";
-            //Equip = new Item[28];
+            Ai = new UnitAi(this, 100f); //Template.AggroLinkHelpDist);
+            UnitType = BaseUnitType.Npc;
         }
 
         public override void DoDie(Unit killer)
         {
             base.DoDie(killer);
 
-            if (killer is Character character)
-            {
-                character.AddExp(KillExp, true);
-                character.Quests.OnKill(this);
-            }
+            if (!(killer is Character character)) { return; }
 
+            character.AddExp(KillExp, true);
+            character.Quests.OnKill(this);
             Spawner?.DecreaseCount(this);
         }
 

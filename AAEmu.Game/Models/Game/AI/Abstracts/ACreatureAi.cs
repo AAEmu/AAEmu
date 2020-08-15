@@ -1,24 +1,26 @@
-﻿//using AAEmu.Game.Models.Game.Char.Templates;
+﻿using System.Numerics;
 
-///*
-//   Author:Sagara
-//*/
-//namespace AAEmu.Game.Models.Game.AI.Abstracts
-//{
-//    public abstract class ACreatureAi : AVisibleObjectAi
-//    {
-//        protected ACreatureAi(ABdoObject owner, float visibleRange) : base(owner, visibleRange)
-//        {
-//        }
+using AAEmu.Game.Models.Game.World;
 
-//        protected override sealed bool CanSee(ABdoObject target)
-//        {
-//            return true;
-//        }
+/*
+   Author:Sagara
+*/
+namespace AAEmu.Game.Models.Game.AI.Abstracts
+{
+    public abstract class ACreatureAi : AVisibleObjectAi
+    {
+        protected ACreatureAi(GameObject owner, float visibleRange) : base(owner, visibleRange)
+        {
+        }
 
-//        protected virtual void Rotate(CharacterTemplateConfig.Position target, int time)
-//        {
+        protected sealed override bool CanSee(GameObject target)
+        {
+            return true;
+        }
 
-//        }
-//    }
-//}
+        protected virtual void Rotate(Vector3 target, int time)
+        {
+
+        }
+    }
+}

@@ -58,8 +58,8 @@ namespace AAEmu.Game.Scripts.Commands
             transfer.Position.RotationY = 0;
             transfer.Position.RotationZ = 63;
 
-            transfer.MaxHp = transfer.Hp = 19000;
-            transfer.MaxMp = transfer.Mp = 12000;
+            transfer.MaxHp = transfer.Hp;
+            transfer.MaxMp = transfer.Mp;
 
             transfer.Spawn();
         }

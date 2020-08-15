@@ -1,12 +1,13 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.Abstracts;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Error;
-using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.World
 {
@@ -23,6 +24,19 @@ namespace AAEmu.Game.Models.Game.World
         public DateTime Despawn { get; set; }
         public virtual bool IsVisible { get; set; }
         public GameObject ParentObj { get; set; }
+
+        /// <summary>
+        /// Object AI
+        /// </summary>
+        public ACreatureAi Ai { get; protected set; }
+        /// <summary>
+        /// Cast object AI as Visible AI
+        /// </summary>
+        public AVisibleObjectAi VisibleAi => Ai;
+        /// <summary>
+        /// Object family
+        /// </summary>
+        public BaseUnitType UnitType { get; set; }
 
         public virtual void SetPosition(Point pos)
         {

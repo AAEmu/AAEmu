@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -55,6 +56,22 @@ namespace AAEmu.Game.Scripts.Commands
                     targetPlayer.Hp = targetPlayer.MaxHp;
                     targetPlayer.Mp = targetPlayer.MaxMp;
                     targetPlayer.BroadcastPacket(new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                }
+            }
+            else if (playerTarget is Transfer)
+            {
+                // Player is trying to heal an Transfer
+                var npcChar = (Transfer)character.CurrentTarget;
+                if (npcChar.Hp == 0)
+                {
+                    character.SendMessage("Cannot heal a dead target");
+                    npcChar.Hp = npcChar.MaxHp;
+                    npcChar.BroadcastPacket(new SCUnitPointsPacket(npcChar.ObjId, npcChar.Hp, npcChar.Mp), true);
+                }
+                else
+                {
+                    npcChar.Hp = npcChar.MaxHp;
+                    npcChar.BroadcastPacket(new SCUnitPointsPacket(npcChar.ObjId, npcChar.Hp, npcChar.Mp), true);
                 }
             }
         }

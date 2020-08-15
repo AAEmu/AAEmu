@@ -7,6 +7,8 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Geo.Basic;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -24,6 +26,17 @@ namespace AAEmu.Game.Core.Packets.C2G
             var moveType = MoveType.GetType(type);
             stream.Read(moveType);
 
+            // ---- test Ai ----
+            var movementAction = new MovementAction(
+                new Point(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ),
+                new Point(0, 0, 0),
+                moveType.RotationZ,
+                3,
+                MoveTypeEnum.Unit
+                );
+            Connection.ActiveChar.VisibleAi.OwnerMoved(movementAction);
+            // ---- test Ai ----
+
             if (objId != myObjId) // Can be mate
             {
                 if (moveType is ShipRequestMoveType shipRequestMoveType)
@@ -38,11 +51,13 @@ namespace AAEmu.Game.Core.Packets.C2G
                 else
                 {
                     var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(objId);
-                    if (mateInfo == null) return;
+                    if (mateInfo == null)
+                    {
+                        return;
+                    }
 
                     RemoveEffects(mateInfo, moveType);
-                    mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY,
-                        moveType.RotationZ);
+                    mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
                     mateInfo.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), myObjId);
 
                     if (mateInfo.Att1 > 0)
@@ -87,7 +102,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     Connection
                         .ActiveChar
                         .SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                    
+
                 }
                 Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
             }
@@ -99,12 +114,21 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 var effects = unit.Effects.GetEffectsByType(typeof(BuffTemplate));
                 foreach (var effect in effects)
+                {
                     if (((BuffTemplate)effect.Template).RemoveOnMove)
+                    {
                         effect.Exit();
+                    }
+                }
+
                 effects = unit.Effects.GetEffectsByType(typeof(BuffEffect));
                 foreach (var effect in effects)
+                {
                     if (((BuffEffect)effect.Template).Buff.RemoveOnMove)
+                    {
                         effect.Exit();
+                    }
+                }
             }
         }
     }

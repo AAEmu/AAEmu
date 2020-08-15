@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -793,12 +793,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     angle = (float)Math.Clamp(angle, angleTmp, 0f);
                 }
                 //var rotZ = MathUtil2.ConvertDegreeToDirectionShort(angle);
-                var rotZ = MathUtil.UpdateHeading(rad);
-
-                _log.Warn("Rad={0}, angle={1}, rotZ={2}", rad, angle, rotZ);
-
+                //var rotZ = MathUtil.UpdateHeading(angle);
+                transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(angle);
+                var rotZ = Helpers.ConvertRotation(transfer.Position.RotationZ);
                 //transfer.AngVelZ += angVel;
                 transfer.RotationZ = rotZ;
+                //_log.Warn("Rad={0}, angle={1}, rotZ={2}", rad, angle, rotZ);
 
                 //despawnCross(spawnCrossList);
                 DespawnFlag(spwnFlag);

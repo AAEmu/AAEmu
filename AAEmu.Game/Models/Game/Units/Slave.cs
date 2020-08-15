@@ -43,6 +43,11 @@ namespace AAEmu.Game.Models.Game.Units
         public short RotationZ { get; set; }
         public float RotationDegrees { get; set; }
 
+        public Slave()
+        {
+            UnitType = BaseUnitType.Slave;
+        }
+
         #region Attributes
 
         public int Str

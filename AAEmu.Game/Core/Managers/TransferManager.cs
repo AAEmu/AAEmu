@@ -162,8 +162,8 @@ namespace AAEmu.Game.Core.Managers
             owner.BondingObjId = 0;    // objId
             owner.AttachPointId = 255; // point
             owner.Level = 1;
-            owner.Hp = 190;
-            owner.Mp = 120;
+            owner.Hp = owner.MaxHp;
+            owner.Mp = owner.MaxMp;
             owner.ModelParams = new UnitCustomModelParams();
             owner.Position = spawner.Position.Clone();
             //owner.RotationZ = spawner.RotationZ;
@@ -193,8 +193,8 @@ namespace AAEmu.Game.Core.Managers
             transfer.Level = 1;
             transfer.BondingObjId = owner.ObjId;
             transfer.AttachPointId = owner.Template.TransferBindings[0].AttachPointId;
-            transfer.Hp = transfer.MaxHp = 190;
-            transfer.Mp = transfer.MaxMp = 120;
+            transfer.Hp = transfer.MaxHp;
+            transfer.Mp = transfer.MaxMp;
             transfer.ModelParams = new UnitCustomModelParams();
             transfer.Position = spawner.Position.Clone();
             transfer.Faction = FactionManager.Instance.GetFaction(143);

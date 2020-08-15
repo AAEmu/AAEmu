@@ -349,6 +349,7 @@ namespace AAEmu.Game.Models.Game.Units
             Reason1 = AttachUnitReason.None;
             Att2 = 0u;
             Reason2 = AttachUnitReason.None;
+            UnitType = BaseUnitType.Mate;
         }
 
         public override void AddVisibleObject(Character character)

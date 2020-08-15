@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.Abstracts;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -145,6 +146,14 @@ namespace AAEmu.Game.Models.Game.Units
                     }
 
                     killer.CurrentTarget = null;
+                }
+                else
+                {
+                    killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
+                    killer.SummarizeDamage = 0;
+                    killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
+                    killer.StartRegen();
+                    killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
                 }
             }
         }

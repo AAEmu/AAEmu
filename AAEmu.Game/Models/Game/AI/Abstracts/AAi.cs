@@ -1,15 +1,19 @@
-﻿using AAEmu.Game.Models.Game.Units;
+﻿using AAEmu.Game.Models.Game.World;
+
 using NLog;
 
+/*
+   Author:Sagara
+*/
 namespace AAEmu.Game.Models.Game.AI.Abstracts
 {
     public abstract class AAi
     {
         protected static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-        public Unit Owner { get; private set; }
+        protected GameObject Owner { get; set; }
 
-        protected AAi(Unit owner)
+        protected AAi(GameObject owner)
         {
             Owner = owner;
         }

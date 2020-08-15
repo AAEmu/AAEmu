@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             return _zones.ContainsKey(zoneKey) ? _zones[zoneKey] : null;
         }
-        
+
         public ZoneGroup GetZoneGroupById(uint zoneId)
         {
             return _groups.ContainsKey(zoneId) ? _groups[zoneId] : null;
@@ -42,6 +42,7 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var z in _zones)
                 if (z.Value.GroupId == zoneGroupId)
                     res.Add(z.Value.ZoneKey);
+
             return res;
         }
 
@@ -175,7 +176,7 @@ namespace AAEmu.Game.Core.Managers.World
                             {
                                 var template = new ZoneConflict(_groups[zoneGroupId]);
                                 template.ZoneGroupId = zoneGroupId;
-                                
+
                                 for (var i = 0; i < 5; i++)
                                 {
                                     template.NumKills[i] = reader.GetInt32($"num_kills_{i}");

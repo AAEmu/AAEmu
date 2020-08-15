@@ -148,6 +148,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
                 if (npc.Patrol == null || npc.Patrol.PauseAuto(npc))
                 {
+                    npc.IsInBattle = true;
                     npc.CurrentTarget = caster;
                     npc.BroadcastPacket(new SCCombatEngagedPacket(caster.ObjId), true); // caster
                     npc.BroadcastPacket(new SCCombatEngagedPacket(npc.ObjId), true);    // target

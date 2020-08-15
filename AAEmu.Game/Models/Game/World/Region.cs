@@ -71,6 +71,7 @@ namespace AAEmu.Game.Models.Game.World
         {
             if (obj == null)
                 return;
+
             lock (_objectsLock)
             {
                 if (_objects == null || _objectsSize == 0)
@@ -148,11 +149,11 @@ namespace AAEmu.Game.Models.Game.World
                             {
                                 var path = new Simulation(transfer);
                                 //path.ReadPath(transfer.Template.TransferPaths[0].PathName); // пробую файлы от клиента
-                                path.ReadPath("gwe_out_goto_lilyut1"); // пробую файлы от клиента  // 1-solz_in2_solzrean, 2-gwe_in1
+                                path.ReadPath("solz_in2_solzrean"); // пробую файлы от клиента  // 1-solz_in2_solzrean, 2-gwe_in1
                                 if (path.TransferPath != null)
                                 {
                                     //_log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName);
-                                    _log.Warn("PathName: " + "gwe_out_goto_lilyut1");
+                                    _log.Warn("PathName: " + "solz_in2_solzrean");
                                     _log.Warn("myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.RotationZ);
                                     path.GoToPath(transfer, true);
                                     transfer.IsInPatrol = true; // so as not to run the route a second time
@@ -175,27 +176,27 @@ namespace AAEmu.Game.Models.Game.World
                         // Nui Forest keeper Arthur
                         if (npc.TemplateId == 11999)
                         {
-                            //if (!npc.IsInPatrol)
-                            //{
-                            //    npc.IsInPatrol = true; // so as not to run the route a second time
-                            //    var path = new Simulation(npc);
-                            //    path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
-                            //    path.ReadPath();
-                            //    path.GoToPath(npc, true);
-                            //}
+                            if (!npc.IsInPatrol)
+                            {
+                                npc.IsInPatrol = true; // so as not to run the route a second time
+                                var path = new Simulation(npc);
+                                path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
+                                path.ReadPath();
+                                path.GoToPath(npc, true);
+                            }
                         }
                         else
                         // Nui Woodcutter Solace
                         if (npc.TemplateId == 12143)
                         {
-                            //if (!npc.IsInPatrol)
-                            //{
-                            //    npc.IsInPatrol = true; // so as not to run the route a second time
-                            //    var path = new Simulation(npc);
-                            //    path.MoveFileName = @"NuiWoodcutterSolace"; // path file name
-                            //    path.ReadPath();
-                            //    path.GoToPath(npc, true);
-                            //}
+                            if (!npc.IsInPatrol)
+                            {
+                                npc.IsInPatrol = true; // so as not to run the route a second time
+                                var path = new Simulation(npc);
+                                path.MoveFileName = @"NuiWoodcutterSolace"; // path file name
+                                path.ReadPath();
+                                path.GoToPath(npc, true);
+                            }
                         }
                         else
                         //                    deer                         swimmers
@@ -241,80 +242,10 @@ namespace AAEmu.Game.Models.Game.World
                                 }
                             }
                         }
-                        else
-                        // here the NPCs you can hunt, check that they are not protected by Guards
-                        if (npc.Faction.GuardHelp == false)
-                        {
-                            if (npc.Patrol == null)
-                            {
-                                Patrol patrol = null;
-                                var rnd = Rand.Next(0, 1000);
-                                if (rnd > 700)
-                                {
-                                    // NPC stand still
-                                    // turned it off because the NPCs are leaving their seats.
-                                    npc.Patrol = null;
-                                    // NPC is moving slowly
-                                    //var stirring = new Stirring() { Interrupt = true, Loop = true, Abandon = false };
-                                    //stirring.Degree = (short)Rand.Next(180, 360);
-                                    //patrol = stirring;
-                                }
-                                else if (rnd > 600)
-                                {
-                                    // NPCs are moving squarely
-                                    var square = new Square { Interrupt = true, Loop = true, Abandon = false };
-                                    square.Degree = 360; // (short)Rand.Next(180, 360); checking that they're not leaving their seats.
-                                    patrol = square;
-                                }
-                                else if (rnd > 500)
-                                {
-                                    // NPCs are moving around in a circle
-                                    patrol = new Circular { Interrupt = true, Loop = true, Abandon = false };
-                                }
-                                else if (rnd > 400)
-                                {
-                                    // NPC stand still
-                                    // turned it off because the NPCs are leaving their seats.
-                                    npc.Patrol = null;
-                                    // NPCs are jerking around
-                                    //var jerky = new Jerky { Interrupt = true, Loop = true, Abandon = false };
-                                    //jerky.Degree = (short)Rand.Next(180, 360);
-                                    //patrol = jerky;
-                                }
-                                else if (rnd > 300)
-                                {
-                                    // NPC move along the weaving shuttle in the Y-axis.
-                                    var quill = new QuillY { Interrupt = true, Loop = true, Abandon = false };
-                                    quill.Degree = (short)Rand.Next(180, 360);
-                                    patrol = quill;
-                                }
-                                else if (rnd > 200)
-                                {
-                                    // NPC move along the weaving shuttle in the X-axis.
-                                    var quill = new QuillX { Interrupt = true, Loop = true, Abandon = false };
-                                    quill.Degree = (short)Rand.Next(180, 360);
-                                    patrol = quill;
-                                }
-                                else
-                                {
-                                    // NPC stand still
-                                    npc.Patrol = null;
-                                }
-
-                                if (patrol != null)
-                                {
-                                    patrol.Pause(npc);
-                                    npc.Patrol = patrol;
-                                    npc.Patrol.LastPatrol = patrol;
-                                    patrol.Recovery(npc);
-                                }
-                            }
-                        }
                         character1.SendPacket(new SCUnitStatePacket(npc));
                     }
                     else
                     {
-
                         if (t is House house)
                         {
                             character1.SendPacket(new SCUnitStatePacket(t));
@@ -369,21 +300,23 @@ namespace AAEmu.Game.Models.Game.World
                         }
                         else
                         {
+                            transfer.IsInPatrol = false;
                             transfer.Patrol = null; // Stop Transfer that players don't see
                         }
                     }
                     if (t is Npc npc)
                     {
-                        if (npc.TemplateId == 11999)
-                        {
-                            // Stop NPCs that players don't see
-                            npc.IsInPatrol = false;
-                            npc.Patrol = null;
-                        }
-                        else
-                        {
-                            npc.Patrol = null; // Stop NPCs that players don't see
-                        }
+                        //if (npc.TemplateId == 11999)
+                        //{
+                        //    // Stop NPCs that players don't see
+                        //    npc.IsInPatrol = false;
+                        //    npc.Patrol = null;
+                        //}
+                        //else
+                        //{
+                        npc.IsInPatrol = false;
+                        npc.Patrol = null; // Stop NPCs that players don't see
+                        //}
                     }
                 }
 
@@ -411,6 +344,10 @@ namespace AAEmu.Game.Models.Game.World
             {
                 obj.RemoveVisibleObject(character);
             }
+
+            // удалить не нужные объекты
+            GC.Collect(GC.MaxGeneration);
+            GC.WaitForPendingFinalizers();
         }
 
         public Region[] GetNeighbors()

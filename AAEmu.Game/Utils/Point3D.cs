@@ -1,14 +1,15 @@
 ﻿using System;
+using AAEmu.Game.Models.Game.World;
 
-namespace BDCommon.Structures.World
+namespace AAEmu.Game.Utils
 {
-    public class Point3D
+    public class Point3D : Point
     {
-        public float X;
+        //public float X;
 
-        public float Y;
+        //public float Y;
 
-        public float Z;
+        //public float Z;
 
         public Point3D(float x, float y, float z)
         {
@@ -91,15 +92,15 @@ namespace BDCommon.Structures.World
 
         public Point3D GetNormal()
         {
-            float len = (float)GetLength();
+            var len = (float)GetLength();
             return len.Equals(0)
                        ? new Point3D()
                        : new Point3D(X / len, Y / len, Z / len);
         }
-        public Point3D Clone()
-        {
-            return new Point3D(X, Y, Z);
-        }
+        //public Point3D Clone()
+        //{
+        //    return new Point3D(X, Y, Z);
+        //}
 
         public Point3D Revert()
         {
@@ -112,19 +113,23 @@ namespace BDCommon.Structures.World
         public bool Equals(Point3D p)
         {
             if (ReferenceEquals(null, p))
+            {
                 return false;
+            }
 
             if (ReferenceEquals(this, p))
+            {
                 return true;
+            }
 
             return p.X.Equals(X) && p.Y.Equals(Y) && p.Z.Equals(Z);
         }
 
         public Point3D Rotate(short angle)
         {
-            float a = (float)(angle / 180f * Math.PI);
+            var a = (float)(angle / 180f * Math.PI);
 
-            double r = Math.Sqrt(X * X + Y * Y);
+            var r = Math.Sqrt(X * X + Y * Y);
 
             X = (float)(r * Math.Cos(a));
             Y = (float)(r * Math.Sin(a));
@@ -134,7 +139,7 @@ namespace BDCommon.Structures.World
 
         public Point3D RotateRight90()
         {
-            float x = X;
+            var x = X;
 
             X = Y;
             Y = -x;
@@ -144,7 +149,7 @@ namespace BDCommon.Structures.World
 
         public Point3D RotateLeft90()
         {
-            float x = X;
+            var x = X;
 
             X = -Y;
             Y = x;

@@ -107,8 +107,7 @@ namespace AAEmu.Game.Core.Managers.World
                             {
                                 spawner.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(spawner.Position.ZoneId, spawner.Position.X, spawner.Position.Y) : spawner.Position.Z;
                             }
-                            //spawner.Position.RotationZ = (sbyte)spawner.RotationZ;
-
+                            spawner.RotationZ = Helpers.ConvertRotation(spawner.Position.RotationZ);
                             transferSpawners.Add(spawner.Id, spawner);
                         }
                     }

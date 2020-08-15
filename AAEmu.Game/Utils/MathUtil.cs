@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Numerics;
 
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Geo;
 
 namespace AAEmu.Game.Utils
 {
@@ -50,7 +52,7 @@ namespace AAEmu.Game.Utils
 
             degree -= 90;
             var res = (sbyte)(degree / (360f / 128));
-            if (res > 85)
+            if (res > 64) // 85
             {
                 res = (sbyte)((degree - 360) / (360f / 128));
             }
@@ -62,14 +64,23 @@ namespace AAEmu.Game.Utils
         {
             var rad = Math.Atan2(target.Y - point.Y, target.X - point.X);
             rad -= Math.PI / 2; // 12 o'clock == 0°
-            var heading = (short)(rad * 32768 / Math.PI);
+            var heading = (short)(rad * 32767 / Math.PI);
 
             return heading;
         }
-        public static short UpdateHeading(double radian)
+        public static short UpdateHeading(double degree, bool radian = false)
         {
-            radian -= Math.PI / 2; // 12 o'clock == 0°
-            var heading = (short)(radian * 32768 / Math.PI);
+            short heading;
+            if (radian)
+            {
+                degree -= Math.PI / 2; // 12 o'clock == 0°
+                heading = (short)(degree * 32767 / Math.PI);
+            }
+            else
+            {
+                degree -= 90; // 12 o'clock == 0°
+                heading = (short)(degree * 32767 / 180);
+            }
 
             return heading;
         }
@@ -89,7 +100,7 @@ namespace AAEmu.Game.Utils
             //}
             var res = (sbyte)(degree / (180f / 127) * rotateModifier);
             //if (res > 85)
-            //    res = (sbyte)((degree - 360) / (180f / 128) * rotateModifier);
+            //    res = (sbyte)((degree - 360) / (180f / 127) * rotateModifier);
             return res;
         }
 
@@ -188,6 +199,16 @@ namespace AAEmu.Game.Utils
         public static float Blerp(float cX0Y0, float cX1Y0, float cX0Y1, float cX1Y1, float tx, float ty)
         {
             return MathUtil.Lerp(MathUtil.Lerp(cX0Y0, cX1Y0, tx), MathUtil.Lerp(cX0Y1, cX1Y1, tx), ty);
+        }
+
+        public static double Distance(GameObject obj, Point target)
+        {
+            return new Vector3(obj.Position.X, obj.Position.Y, obj.Position.Z).Distance(new Vector3(target.X, target.Y, target.Z));
+        }
+
+        public static short UpdateHeading(Unit obj, Vector3 target)
+        {
+            return (short)(Math.Atan2(target.Y - obj.Position.Y, target.X - obj.Position.X) * 32768 / Math.PI);
         }
     }
 }

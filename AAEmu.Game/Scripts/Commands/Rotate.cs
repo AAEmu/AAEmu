@@ -46,7 +46,7 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 character.SendMessage("[Rotate] Unit: {0}, ObjId: {1}", character.CurrentTarget.Name, character.CurrentTarget.ObjId);
 
-                var Seq = (uint)Rand.Next(0, 10000);
+                var Seq = (uint)(DateTime.Now - GameService.StartTime).TotalMilliseconds;
                 var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
                 
                 moveType.X = character.CurrentTarget.Position.X;
