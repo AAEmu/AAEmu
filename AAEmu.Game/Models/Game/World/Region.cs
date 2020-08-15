@@ -345,9 +345,9 @@ namespace AAEmu.Game.Models.Game.World
                 obj.RemoveVisibleObject(character);
             }
 
-            // удалить не нужные объекты
-            GC.Collect(GC.MaxGeneration);
-            GC.WaitForPendingFinalizers();
+            //// удалить не нужные объекты
+            //GC.Collect(GC.MaxGeneration);
+            //GC.WaitForPendingFinalizers();
         }
 
         public Region[] GetNeighbors()
