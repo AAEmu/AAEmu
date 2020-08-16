@@ -152,7 +152,7 @@ namespace AAEmu.Game.Models.Game.Units
             // If the last cruise is not null
             if (LastPatrol != null && Running == false)
             {
-                if (npc.Position.X == LastPatrol.PausePosition.X && npc.Position.Y == LastPatrol.PausePosition.Y && npc.Position.Z == LastPatrol.PausePosition.Z)
+                if (Math.Abs(npc.Position.X - LastPatrol.PausePosition.X) < Tolerance && Math.Abs(npc.Position.Y - LastPatrol.PausePosition.Y) < Tolerance && Math.Abs(npc.Position.Z - LastPatrol.PausePosition.Z) < Tolerance)
                 {
                     LastPatrol.Running = true;
                     npc.Patrol = LastPatrol;
