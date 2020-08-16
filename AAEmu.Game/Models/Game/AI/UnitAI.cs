@@ -43,12 +43,13 @@ namespace AAEmu.Game.Models.Game.AI
                             //npc.Patrol.Pause(npc);
                             //npc.Patrol.LastPatrol = null;
                             //npc.Patrol.Recovery(npc);
+                            // AiAggro(ai_commands = 4065, count=0)
+                            chr.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, chr.ObjId), true);
                             chr.BroadcastPacket(new SCAiAggroPacket(npc.ObjId, 1, chr.ObjId), true);
                             chr.BroadcastPacket(new SCCombatEngagedPacket(npc.ObjId), true); // caster
-                            chr.BroadcastPacket(new SCCombatEngagedPacket(chr.ObjId), true); // target
-                            chr.BroadcastPacket(new SCCombatFirstHitPacket(chr.ObjId, npc.ObjId, 0), true);
+                            //chr.BroadcastPacket(new SCCombatEngagedPacket(chr.ObjId), true); // target
+                            //chr.BroadcastPacket(new SCCombatFirstHitPacket(chr.ObjId, npc.ObjId, 0), true);
                             chr.BroadcastPacket(new SCAggroTargetChangedPacket(npc.ObjId, chr.ObjId), true);
-                            chr.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, chr.ObjId), true);
                             npc.CurrentTarget = target;
                             //TaskManager.Instance.Schedule(new UnitMove(new Track(), npc), TimeSpan.FromMilliseconds(1000));
                             npc.SetForceAttack(true);
@@ -323,12 +324,13 @@ namespace AAEmu.Game.Models.Game.AI
                             //npc.Patrol.Pause(npc);
                             //npc.Patrol.LastPatrol = null;
                             //npc.Patrol.Recovery(npc);
+                            // AiAggro(ai_commands = 4065, count=0)
+                            chr.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, chr.ObjId), true);
                             chr.BroadcastPacket(new SCAiAggroPacket(npc.ObjId, 1, chr.ObjId), true);
                             chr.BroadcastPacket(new SCCombatEngagedPacket(npc.ObjId), true); // caster
-                            chr.BroadcastPacket(new SCCombatEngagedPacket(chr.ObjId), true); // target
-                            chr.BroadcastPacket(new SCCombatFirstHitPacket(chr.ObjId, npc.ObjId, 0), true);
+                            //chr.BroadcastPacket(new SCCombatEngagedPacket(chr.ObjId), true); // target
+                            //chr.BroadcastPacket(new SCCombatFirstHitPacket(chr.ObjId, npc.ObjId, 0), true);
                             chr.BroadcastPacket(new SCAggroTargetChangedPacket(npc.ObjId, chr.ObjId), true);
-                            chr.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, chr.ObjId), true);
                             npc.CurrentTarget = target;
                             //TaskManager.Instance.Schedule(new UnitMove(new Track(), npc), TimeSpan.FromMilliseconds(1000));
                             npc.SetForceAttack(true);
