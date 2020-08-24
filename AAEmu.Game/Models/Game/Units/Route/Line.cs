@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
@@ -15,14 +16,19 @@ namespace AAEmu.Game.Models.Game.Units.Route
         private float MovingDistance = 0.27f;
         public Point Position { get; set; }
 
-        public override void Execute(Npc npc)
+        public override void Execute(BaseUnit unit)
         {
+            var npc = unit as Npc;
+
+            if (npc == null) { return; }
+            
             if (Position == null)
             {
-                Stop(npc);
+                Stop(unit);
                 return;
             }
             var move = false;
+
             var x = npc.Position.X - Position.X;
             var y = npc.Position.Y - Position.Y;
             var z = npc.Position.Z - Position.Z;
@@ -150,7 +156,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 // broadcast mobile status
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 LoopDelay = 500;
-                Repeat(npc);
+                Repeat(unit);
             }
             else
             {
@@ -158,10 +164,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 // stop moving
                 moveType.DeltaMovement[1] = 0;
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
-                LoopAuto(npc);
+                LoopAuto(unit);
             }
         }
         public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(Gimmick gimmick)
         {
             throw new NotImplementedException();
         }

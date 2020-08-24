@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Formulas;
@@ -19,8 +20,6 @@ namespace AAEmu.Game.Models.Game.Units
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         public uint Id { get; set; }
-        //public new int MaxHp { get; set; }
-        //public new int MaxMp { get; set; }
         public uint TemplateId { get; set; }
         public uint BondingObjId { get; set; } = 0;
         public byte AttachPointId { get; set; } = 0;
@@ -31,16 +30,19 @@ namespace AAEmu.Game.Models.Game.Units
         public List<Doodad> AttachedDoodads { get; set; }
         public DateTime SpawnTime { get; set; }
         public DateTime gameTime { get; set; }
+        public float RotationDegrees { get; set; }
         public short RotationX { get; set; }
         public short RotationY { get; set; }
-        public short RotationZ { get; set; }
-        public float RotationDegrees { get; set; }
+        public ushort RotationZ { get; set; }
         public short VelX { get; set; }
         public short VelY { get; set; }
         public short VelZ { get; set; }
         public float AngVelX { get; set; }
         public float AngVelY { get; set; }
         public float AngVelZ { get; set; }
+        //public Vector3 Vel { get; set; }
+        //public Vector3 AngVel { get; set; }
+        //public Quaternion Rotation { get; set; }
         public int Steering { get; set; } = 1;
         public sbyte Throttle { get; set; } // ?
         public int PathPointIndex { get; set; }
@@ -392,6 +394,7 @@ namespace AAEmu.Game.Models.Game.Units
         public Transfer()
         {
             AttachedDoodads = new List<Doodad>();
+            Ai = new TransferAi(this, 500f);
             UnitType = BaseUnitType.Transfer;
         }
 

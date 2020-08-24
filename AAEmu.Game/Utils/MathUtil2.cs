@@ -201,7 +201,7 @@ namespace AAEmu.Game.Utils
 
             return rad;
         }
-        public static short ConvertDegreeToDirectionShort(double degree)
+        public static ushort ConvertDegreeToDirectionShort(double degree)
         {
             var rotateModifier = 1;
 
@@ -221,25 +221,25 @@ namespace AAEmu.Game.Utils
             //    degree = 360 + degree; // working with positive angles
             }
             double direction = 0f;
-            //if (Math.Abs(degree) > 135 && Math.Abs(degree) < 225)
-            //{
-            //    direction = Math.Abs(degree) * 205.6814814814815; //182.0444444444444;
-            //    direction = Math.Clamp(direction, -32767d, 32767d);
-            //}
-            //else if (Math.Abs(degree) > 90 && Math.Abs(degree) <= 135 || Math.Abs(degree) < 270 && Math.Abs(degree) >= 225)
-            //{
-            //    direction = Math.Abs(degree) * 205.6814814814815;
-            //}
-            //else if (Math.Abs(degree) >= 0 && Math.Abs(degree) <= 90 || Math.Abs(degree) <= 360 && Math.Abs(degree) >= 270)
-            //{
-            //    direction = Math.Abs(degree) * 252.9777777777778;
-            //}
+            if (Math.Abs(degree) > 135 && Math.Abs(degree) < 225)
+            {
+                direction = Math.Abs(degree) * 205.6814814814815; //182.0444444444444;
+                direction = Math.Clamp(direction, -32767d, 32767d);
+            }
+            else if (Math.Abs(degree) > 90 && Math.Abs(degree) <= 135 || Math.Abs(degree) < 270 && Math.Abs(degree) >= 225)
+            {
+                direction = Math.Abs(degree) * 205.6814814814815;
+            }
+            else if (Math.Abs(degree) >= 0 && Math.Abs(degree) <= 90 || Math.Abs(degree) <= 360 && Math.Abs(degree) >= 270)
+            {
+                direction = Math.Abs(degree) * 252.9777777777778;
+            }
             //_log.Warn("Degree={0}, Direction={1}", degree, direction);
-            
-            direction = Math.Abs(degree) * 252.9777777777778;
-            direction = Math.Clamp(direction, -32767d, 32767d);
 
-            return (short)(direction * rotateModifier);
+            //direction = Math.Abs(degree) * 252.9777777777778;
+            //direction = Math.Clamp(direction, -32767d, 32767d);
+
+            return (ushort)(direction * rotateModifier);
         }
 
         public static double GetAngle(Vector3 origin, Vector3 target)

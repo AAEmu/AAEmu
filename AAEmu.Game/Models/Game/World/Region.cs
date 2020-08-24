@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
@@ -112,153 +113,43 @@ namespace AAEmu.Game.Models.Game.World
                 return;
 
             // show the player all the facilities in the region
-            if (obj is Character character1)
+            if (obj is Character character)
             {
                 var units = GetList(new List<Unit>(), obj.ObjId);
                 foreach (var t in units)
                 {
-                    // turn on the motion of the visible NPC
-                    if (t is Transfer transfer)
+                    switch (t)
                     {
-                        TransferManager.Instance.SpawnAll(character1);
-                        //if (transfer.TemplateId != 46 && transfer.TemplateId != 4 && transfer.TemplateId != 122)
-                        if (transfer.TemplateId == 6)
-                        {
-                            //TransferManager.Instance.Spawn(character1, transfer);
-                            if (!transfer.IsInPatrol)
+                        case Npc npc:
+                            character.SendPacket(new SCUnitStatePacket(npc));
+                            break;
+                        case House house:
+                            character.SendPacket(new SCUnitStatePacket(t));
+                            character.SendPacket(new SCHouseStatePacket(house));
+                            break;
+                        case Slave slave:
+                            slave.AddVisibleObject(character);
+                            break;
+                        case Gimmick gimmick:
+                            // Gimmick move along the weaving shuttle in the Z-axis.
+                            
+                            gimmick.AddVisibleObject(character);
+                            
+                            Patrol patrol;
+                            if (gimmick.Patrol == null)
                             {
-                                var path = new Simulation(transfer);
-                                //path.ReadPath(transfer.Template.TransferPaths[0].PathName); // пробую файлы от клиента
-                                path.ReadPath("solzreed_8"); // пробую файлы от клиента
-                                if (path.TransferPath != null)
-                                {
-                                    //_log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName);
-                                    _log.Warn("PathName: " + "solzreed_8");
-                                    _log.Warn("myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.RotationZ);
-                                    path.GoToPath(transfer, true);
-                                    transfer.IsInPatrol = true; // so as not to run the route a second time
-                                }
-                                else
-                                    _log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName + " not found!");
+                                var quill = new QuillZ { Interrupt = false, Loop = true, Abandon = false, Degree = 360 };
+                                patrol = quill;
+                                patrol.Pause(gimmick);
+                                gimmick.Patrol = patrol;
+                                gimmick.Patrol.LastPatrol = patrol;
+                                patrol.Recovery(gimmick);
+                                //gimmick.isRunning = true;
                             }
-                        }
-                        if (transfer.TemplateId == 52)
-                        {
-                            //TransferManager.Instance.Spawn(character1, transfer);
-                            if (!transfer.IsInPatrol)
-                            {
-                                var path = new Simulation(transfer);
-                                //path.ReadPath(transfer.Template.TransferPaths[0].PathName); // пробую файлы от клиента
-                                path.ReadPath("solz_in2_solzrean"); // пробую файлы от клиента  // 1-solz_in2_solzrean, 2-gwe_in1
-                                if (path.TransferPath != null)
-                                {
-                                    //_log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName);
-                                    _log.Warn("PathName: " + "solz_in2_solzrean");
-                                    _log.Warn("myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.RotationZ);
-                                    path.GoToPath(transfer, true);
-                                    transfer.IsInPatrol = true; // so as not to run the route a second time
-                                }
-                                else
-                                    _log.Warn("PathName: " + transfer.Template.TransferPaths[0].PathName + " not found!");
-                            }
-                        }
-                    }
-                    else if (t is Npc npc)
-                    {
-                        // exclude Training Scarecrow from move objects and others NPC
-                        if (npc.TemplateId == 7512 || npc.TemplateId == 7513 || npc.TemplateId == 7511 ||
-                            npc.TemplateId == 9129 || npc.TemplateId == 9449)
-                        {
-                            // do nothing for these NPCs.
-                        }
-                        else
-                        // We're gonna get the NPC's favorites on the road.
-                        // Nui Forest keeper Arthur
-                        if (npc.TemplateId == 11999)
-                        {
-                            if (!npc.IsInPatrol)
-                            {
-                                npc.IsInPatrol = true; // so as not to run the route a second time
-                                var path = new Simulation(npc);
-                                path.MoveFileName = @"NuiForestkeeperArthur"; // path file name
-                                path.ReadPath();
-                                path.GoToPath(npc, true);
-                            }
-                        }
-                        else
-                        // Nui Woodcutter Solace
-                        if (npc.TemplateId == 12143)
-                        {
-                            if (!npc.IsInPatrol)
-                            {
-                                npc.IsInPatrol = true; // so as not to run the route a second time
-                                var path = new Simulation(npc);
-                                path.MoveFileName = @"NuiWoodcutterSolace"; // path file name
-                                path.ReadPath();
-                                path.GoToPath(npc, true);
-                            }
-                        }
-                        else
-                        //                    deer                         swimmers
-                        if (npc.TemplateId == 4200 || npc.TemplateId == 13677 || npc.TemplateId == 13676)
-                        {
-                            if (npc.Patrol == null)
-                            {
-                                Patrol patrol = null;
-                                var rnd = Rand.Next(0, 400);
-                                if (rnd > 300)
-                                {
-                                    // NPCs are moving squarely
-                                    var square = new Square { Interrupt = true, Loop = true, Abandon = false };
-                                    square.Degree = 360; // (short)Rand.Next(180, 360); checking that they're not leaving their seats.
-                                    patrol = square;
-                                }
-                                else if (rnd > 200)
-                                {
-                                    // NPCs are moving around in a circle
-                                    patrol = new Circular { Interrupt = true, Loop = true, Abandon = false };
-                                }
-                                else if (rnd > 100)
-                                {
-                                    // NPC move along the weaving shuttle in the Y-axis.
-                                    var quill = new QuillY { Interrupt = true, Loop = true, Abandon = false };
-                                    quill.Degree = (short)Rand.Next(180, 360);
-                                    patrol = quill;
-                                }
-                                else
-                                {
-                                    // NPC move along the weaving shuttle in the X-axis.
-                                    var quill = new QuillX { Interrupt = true, Loop = true, Abandon = false };
-                                    quill.Degree = (short)Rand.Next(180, 360);
-                                    patrol = quill;
-                                }
-
-                                if (patrol != null)
-                                {
-                                    patrol.Pause(npc);
-                                    npc.Patrol = patrol;
-                                    npc.Patrol.LastPatrol = null;
-                                    patrol.Recovery(npc);
-                                }
-                            }
-                        }
-                        character1.SendPacket(new SCUnitStatePacket(npc));
-                    }
-                    else
-                    {
-                        if (t is House house)
-                        {
-                            character1.SendPacket(new SCUnitStatePacket(t));
-                            character1.SendPacket(new SCHouseStatePacket(house));
-                        }
-                        else if (t is Slave slave)
-                        {
-                            slave.AddVisibleObject(character1);
-                        }
-                        else
-                        {
-                            character1.SendPacket(new SCUnitStatePacket(t));
-                        }
+                            break;
+                        default:
+                            character.SendPacket(new SCUnitStatePacket(t));
+                            break;
                     }
                 }
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
@@ -267,13 +158,25 @@ namespace AAEmu.Game.Models.Game.World
                     var count = doodads.Length - i;
                     var temp = new Doodad[count <= 30 ? count : 30];
                     Array.Copy(doodads, i, temp, 0, temp.Length);
-                    character1.SendPacket(new SCDoodadsCreatedPacket(temp));
+                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
+                }
+                // TODO ...others types...
+                var gimmicks = GetList(new List<Gimmick>(), obj.ObjId).ToArray();
+                for (var i = 0; i < gimmicks.Length; i += 30)
+                {
+                    var count = gimmicks.Length - i;
+                    var temp = new Gimmick[count <= 30 ? count : 30];
+                    Array.Copy(gimmicks, i, temp, 0, temp.Length);
+                    character.SendPacket(new SCGimmicksCreatedPacket(temp));
+                    temp = new Gimmick[0];
+                    character.SendPacket(new SCGimmickJointsBrokenPacket(temp));
+
                 }
             }
             // show the object to all players in the region
-            foreach (var character in GetList(new List<Character>(), obj.ObjId))
+            foreach (var chr in GetList(new List<Character>(), obj.ObjId))
             {
-                obj.AddVisibleObject(character);
+                obj.AddVisibleObject(chr);
             }
         }
 
@@ -283,40 +186,18 @@ namespace AAEmu.Game.Models.Game.World
                 return;
 
             // remove all visible objects in the region from the player
-            if (obj is Character character1)
+            if (obj is Character character)
             {
                 //var unitIds = GetListId<Unit>(new List<uint>(), obj.ObjId).ToArray();
-                var unitIds = GetListId<Unit>(new List<uint>(), character1.ObjId).ToArray();
-                var units = GetList(new List<Unit>(), character1.ObjId);
+                var unitIds = GetListId<Unit>(new List<uint>(), character.ObjId).ToArray();
+                var units = GetList(new List<Unit>(), character.ObjId);
                 foreach (var t in units)
                 {
-                    if (t is Transfer transfer)
-                    {
-                        if (transfer.TemplateId != 46 && transfer.TemplateId != 4 && transfer.TemplateId != 122)
-                        {
-                            // Stop Transfer that players don't see
-                            transfer.IsInPatrol = false;
-                            transfer.Patrol = null;
-                        }
-                        else
-                        {
-                            transfer.IsInPatrol = false;
-                            transfer.Patrol = null; // Stop Transfer that players don't see
-                        }
-                    }
                     if (t is Npc npc)
                     {
-                        //if (npc.TemplateId == 11999)
-                        //{
-                        //    // Stop NPCs that players don't see
-                        //    npc.IsInPatrol = false;
-                        //    npc.Patrol = null;
-                        //}
-                        //else
-                        //{
+                        // Stop NPCs that players don't see
                         npc.IsInPatrol = false;
-                        npc.Patrol = null; // Stop NPCs that players don't see
-                        //}
+                        npc.Patrol = null;
                     }
                 }
 
@@ -325,29 +206,35 @@ namespace AAEmu.Game.Models.Game.World
                     var length = unitIds.Length - offset;
                     var temp = new uint[length > 500 ? 500 : length];
                     Array.Copy(unitIds, offset, temp, 0, temp.Length);
-                    character1.SendPacket(new SCUnitsRemovedPacket(temp));
+                    character.SendPacket(new SCUnitsRemovedPacket(temp));
                 }
-                var doodadIds = GetListId<Doodad>(new List<uint>(), character1.ObjId).ToArray();
+                var doodadIds = GetListId<Doodad>(new List<uint>(), character.ObjId).ToArray();
                 for (var offset = 0; offset < doodadIds.Length; offset += 400)
                 {
                     var length = doodadIds.Length - offset;
                     var last = length <= 400;
                     var temp = new uint[last ? length : 400];
                     Array.Copy(doodadIds, offset, temp, 0, temp.Length);
-                    character1.SendPacket(new SCDoodadsRemovedPacket(last, temp));
+                    character.SendPacket(new SCDoodadsRemovedPacket(last, temp));
                 }
                 // TODO ... others types...
+
+                var gimmickIds = GetListId<Gimmick>(new List<uint>(), character.ObjId).ToArray();
+                for (var offset = 0; offset < gimmickIds.Length; offset += 500)
+                {
+                    var length = gimmickIds.Length - offset;
+                    var last = length <= 500;
+                    var temp = new uint[last ? length : 500];
+                    Array.Copy(gimmickIds, offset, temp, 0, temp.Length);
+                    character.SendPacket(new SCGimmicksRemovedPacket(temp));
+                }
             }
 
             // remove the object from all players in the region
-            foreach (var character in GetList(new List<Character>(), obj.ObjId))
+            foreach (var chr in GetList(new List<Character>(), obj.ObjId))
             {
-                obj.RemoveVisibleObject(character);
+                obj.RemoveVisibleObject(chr);
             }
-
-            //// удалить не нужные объекты
-            //GC.Collect(GC.MaxGeneration);
-            //GC.WaitForPendingFinalizers();
         }
 
         public Region[] GetNeighbors()

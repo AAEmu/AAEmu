@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Transfers
         public int _spawnCount;
         public short RotationX;
         public short RotationY;
-        public short RotationZ;
+        public ushort RotationZ;
 
         public uint Count { get; set; }
 

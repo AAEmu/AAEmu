@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<uint, ShipyardsTemplate> _shipyards;
 
-        public void Create(Character owner, uint id, float x, float y, float z, short zrot, uint type1, uint type2, uint type3, int step)
+        public void Create(Character owner, uint id, float x, float y, float z, ushort zrot, uint type1, uint type2, uint type3, int step)
         {
             var pos = owner.Position.Clone();
             pos.X = x;

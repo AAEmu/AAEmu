@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
@@ -12,13 +13,16 @@ namespace AAEmu.Game.Models.Game.Units.Route
     {
         float distance = 1.5f;
         float MovingDistance = 0.27f;
-        public override void Execute(Npc npc)
+        public override void Execute(BaseUnit unit)
         {
+            var npc = unit as Npc;
+
+            if (npc == null) { return; }
+
             Interrupt = false;
             var move = false;
             if (npc.CurrentTarget != null)
             {
-
                 var x = npc.Position.X - npc.CurrentTarget.Position.X;
                 var y = npc.Position.Y - npc.CurrentTarget.Position.Y;
                 var z = npc.Position.Z - npc.CurrentTarget.Position.Z;
@@ -172,7 +176,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 var line = new Line();
                 // 不可中断，不受外力及攻击影响 类似于处于脱战状态
                 // Uninterruptible, unaffected by external forces and attacks Similar to being in an off-war situation
-                line.Interrupt = true;
+                line.Interrupt = false;
                 line.Loop = false;
                 line.Abandon = false;
                 line.Pause(npc);
@@ -180,6 +184,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
         }
         public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(Gimmick gimmick)
         {
             throw new NotImplementedException();
         }

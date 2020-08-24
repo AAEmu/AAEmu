@@ -1,18 +1,1 @@
-<Objects>
- <Transfer Name="TransferPath_218_gahee624_3" Type="0" cellX="3" cellY="4">
-  <Points>
-   <Point Pos="3794.24,4862.0938,100.1"/>
-   <Point Pos="3785.6897,4553.9585,100.09997"/>
-   <Point Pos="3839.7043,4465.6807,100.10003"/>
-   <Point Pos="3906.8948,4469.1963,100.10003"/>
-  </Points>
- </Transfer>
- <Transfer Name="TransferPath_218_gahee624_2" Type="0" cellX="3" cellY="4">
-  <Points>
-   <Point Pos="3909.3469,4463.8594,100"/>
-   <Point Pos="3837.6875,4462.0391,100"/>
-   <Point Pos="3781.6062,4553.9072,100.00003"/>
-   <Point Pos="3789.7883,4861.603,100"/>
-  </Points>
- </Transfer>
-</Objects>
+<Objects />

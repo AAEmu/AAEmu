@@ -198,12 +198,12 @@ namespace AAEmu.Commons.Utils
             return (long)(y * 4096) << 32;
         }
 
-        public static short ConvertRotation(sbyte rotation)
+        public static ushort ConvertRotation(sbyte rotation)
         {
-            return (short)(rotation * 0.0078740157f / 0.000030518509f); // rotation * 1/127 / 1/32767
+            return (ushort)(rotation * 0.0078740157f / 0.000030518509f); // rotation * 1/127 / 1/32767
         }
 
-        public static sbyte ConvertRotation(short rotation)
+        public static sbyte ConvertRotation(ushort rotation)
         {
             return (sbyte)(rotation * 0.000030518509f / 0.0078740157f); // rotation * 1/32767 / 1/127
         }

@@ -40,7 +40,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 return;
             }
 
-            // Update item looks
+            // NextPathOrPointInPath item looks
             itemToImage.ImageItemTemplateId = imageItem.TemplateId;
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, new List<ItemTask>() { new ItemUpdate(toImage) }, new List<ulong>()));
 

@@ -89,9 +89,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             else
             {
                 RemoveEffects(Connection.ActiveChar, moveType);
-
                 // This will allow you to walk on a boat, but crashes other clients. Not sure why yet.
-                if ((moveType.Flags & 32) == 32 && (moveType is UnitMoveType mType))
+                if ((
+                        (moveType.Flags & 32) == 32 // предположительно, мы на корабле
+                     || 
+                        (moveType.Flags & 36) == 36 // предположительно, мы на дилижансе
+                     )
+                    && moveType is UnitMoveType mType)
                 {
                     Connection
                         .ActiveChar

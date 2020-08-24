@@ -1,18 +1,12 @@
 ﻿using System;
 
-using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.Abstracts;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Geo.Basic;
-using AAEmu.Game.Utils;
 
 /*
-   Author:Sagara
+   Author:Sagara, NLObP
 */
 namespace AAEmu.Game.Models.Game.AI
 {

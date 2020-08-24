@@ -3,6 +3,7 @@ using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Char

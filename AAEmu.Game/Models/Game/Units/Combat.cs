@@ -2,21 +2,22 @@
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 
 namespace AAEmu.Game.Models.Game.Units
 {
-    class Combat : Patrol
+    internal class Combat : Patrol
     {
-        readonly float _distance = 1.5f;
-        public override void Execute(Npc npc)
+        private readonly float _distance = 1.5f;
+        public override void Execute(BaseUnit unit)
         {
-            if (npc == null)
-            {
-                return;
-            }
+            var npc = unit as Unit;
+
+            if (npc == null) { return; }
 
             // If we are killed, the NPC goes to the place of spawn
             var trg = (Unit)npc.CurrentTarget;
@@ -35,7 +36,7 @@ namespace AAEmu.Game.Models.Game.Units
                 // Uninterruptible, unaffected by external forces and attacks, similar to being out of combat
                 var line = new Line
                 {
-                    Interrupt = true,
+                    Interrupt = false,
                     Loop = false,
                     Abandon = false
                 };
@@ -45,7 +46,7 @@ namespace AAEmu.Game.Models.Game.Units
             else
             {
                 // 先判断距离
-                // First judge the distance
+                // First, estimate the distance
                 //var move = false;
                 float maxXYZ;
                 if (trg != null)
@@ -73,11 +74,14 @@ namespace AAEmu.Game.Models.Game.Units
                 else
                 {
                     LoopDelay = 2000;                             //npc.Template.BaseSkillDelay;
-                    var skillId = (uint)npc.Template.BaseSkillId; //2u
+
+                    if (!(npc is Npc npc2)) { return; }
+
+                    var skillId = (uint)npc2.Template.BaseSkillId;
                     //var skillCasterType = 0; // who uses
                     //var skillCaster = SkillCaster.GetByType((EffectOriginType)skillCasterType);
                     var skillCaster = SkillCaster.GetByType(EffectOriginType.Skill);
-                    skillCaster.ObjId = npc.ObjId;
+                    skillCaster.ObjId = npc2.ObjId;
                     //var skillCastTargetType = 0; // who is being used
                     //var skillCastTarget = SkillCastTarget.GetByType((SkillCastTargetType)skillCastTargetType);
                     var skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
@@ -87,12 +91,17 @@ namespace AAEmu.Game.Models.Game.Units
                     var flagType = flag & 15;
                     var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
                     var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
-                    skill.Use(npc, skillCaster, skillCastTarget, skillObject);
-                    LoopAuto(npc);
+                    skill.Use(npc2, skillCaster, skillCastTarget, skillObject);
+
+                    LoopAuto(npc2);
                 }
             }
         }
         public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(Gimmick gimmick)
         {
             throw new NotImplementedException();
         }

@@ -52,7 +52,7 @@ namespace AAEmu.Game.Utils
 
             degree -= 90;
             var res = (sbyte)(degree / (360f / 128));
-            if (res > 64) // 85
+            if (res > 85)
             {
                 res = (sbyte)((degree - 360) / (360f / 128));
             }
@@ -68,19 +68,22 @@ namespace AAEmu.Game.Utils
 
             return heading;
         }
-        public static short UpdateHeading(double degree, bool radian = false)
+        public static ushort UpdateHeading(double degree, bool radian = false)
         {
-            short heading;
+            ushort heading;
             if (radian)
             {
                 degree -= Math.PI / 2; // 12 o'clock == 0°
-                heading = (short)(degree * 32767 / Math.PI);
+                heading = (ushort)(degree * 32767 / Math.PI);
             }
             else
             {
                 degree -= 90; // 12 o'clock == 0°
-                heading = (short)(degree * 32767 / 180);
+                heading = (ushort)(degree * 32767 / 180);
             }
+            //    52 - 0.00371041
+            //     1 - 0.000071353925
+            // 65536 - 4.6762582646153846153846153846154
 
             return heading;
         }
@@ -195,7 +198,7 @@ namespace AAEmu.Game.Utils
             return s + (e - s) * t;
         }
 
-        // bilinear interpolation
+        // box linear interpolation
         public static float Blerp(float cX0Y0, float cX1Y0, float cX0Y1, float cX1Y1, float tx, float ty)
         {
             return MathUtil.Lerp(MathUtil.Lerp(cX0Y0, cX1Y0, tx), MathUtil.Lerp(cX0Y1, cX1Y1, tx), ty);
@@ -209,6 +212,91 @@ namespace AAEmu.Game.Utils
         public static short UpdateHeading(Unit obj, Vector3 target)
         {
             return (short)(Math.Atan2(target.Y - obj.Position.Y, target.X - obj.Position.X) * 32768 / Math.PI);
+        }
+
+        // ===========================================================================================================
+        /*
+         create a unit quaternion rotating by axis angle representation
+        */
+        public static Quaternion unitFromAxisAngle(Vector3 axis, float angle)
+        {
+            var v = Vector3.Normalize(axis);
+            var halfAngle = angle * 0.5f;
+            var sinA = (float)Math.Sin(halfAngle);
+            var quaternion = new Quaternion(v.X * sinA, v.Y * sinA, v.Z * sinA, (float)Math.Cos(halfAngle));
+            return quaternion;
+        }
+        //-----------------------------------
+        /*
+          convert a quaternion to axis angle representation, 
+          preserve the axis direction and angle from -PI to +PI
+        */
+        public static (Vector3, float) toAxisAngle(float x, float y, float z, float w = 1.0f)
+        {
+            Vector3 axis;
+            float angle;
+
+            var vl = (float)Math.Sqrt(x * x + y * y + z * z);
+
+            if (vl > 0.99993801 || vl < 0.000062000123)
+            {
+                axis = new Vector3(0, 0, 0);
+                angle = 1.0f;
+            }
+            else
+            {
+                var ivl = 1.0f / vl;
+                axis = new Vector3(x * ivl, y * ivl, z * ivl);
+                if (w < 0)
+                {
+                    angle = 2.0f * (float)Math.Atan2(-vl, -w); // -PI, 0
+                }
+                else
+                {
+                    angle = 2.0f * (float)Math.Atan2(vl, w);   //   0, PI
+                }
+            }
+
+            return (axis, angle);
+        }
+        //-----------------------------------
+        /*
+        С помощью "Shortest arc" можно ориентировать ракету в направлении полета, причем ее повороты будут выглядеть естественно
+        (разворот по кратчайшей дуге). Алгоритм очень прост, на каждом шаге берем предыдущий вектор направления. Строим "Shortest
+        arc" от него к текущему направлению и поворачиваем объект на получившийся кватернион. Если мы применим повороты с помощью
+        "Shortest arc" при движении по непрерывной кривой (например, по сплайну), мы реализуем очень полезный метод "parallel
+        transport frame". Этот метод дает нам как бы ориентацию каната протянутого по этой кривой и минимизирует скручивание
+        "twist" каната. Это особенно полезно для создания объектов по заданному трафарету и профилю кривой.
+         Для решения задачи инверсной кинематики, когда по заданному направлению надо найти необходимый поворот
+        "Shortest arc" придется как нельзя кстати.
+        */
+
+        /*
+        the shortest arc quaternion that will rotate one vector to another.
+        create rotation from -> to, for any length vectors
+        */
+        public static Quaternion shortestArc(Vector3 from, Vector3 to)
+        {
+            var q2 = new Quaternion(0, 0, 0, 1);
+            var crossV = Vector3.Cross(from, to);
+            var q = new Quaternion(crossV.X, crossV.Y, crossV.Z, Vector3.Dot(from, to));
+            q = Quaternion.Normalize(q);    // if "from" or "to" is not unit, normalize it
+
+            // contains quaternion of "double angle" rotation from to. can be non unit.
+            q.W += 1.0f;               // reducing angle to half angle
+            if (q.W <= 0.000062000123) // angle close to PI
+            {
+                if ((from.Z * from.Z) > (from.X * from.X))
+                {
+                    q2 = new Quaternion(0, from.Z, -from.Y, q.W); // from * vector3(1,0,0) 
+                }
+                else
+                {
+                    q2 = new Quaternion(from.Y, -from.X, 0, q.W); // from * vector3(0,0,1) 
+                }
+            }
+            q2 = Quaternion.Normalize(q2);
+            return q2;
         }
     }
 }

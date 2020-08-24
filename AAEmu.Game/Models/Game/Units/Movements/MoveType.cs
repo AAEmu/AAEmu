@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Numerics;
+using AAEmu.Commons.Network;
+using NLog.LayoutRenderers;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -55,7 +57,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
 
         public static MoveType GetType(MoveTypeEnum type)
         {
-            MoveType mType = null;
+            MoveType mType;
             switch (type)
             {
                 case MoveTypeEnum.Unit:

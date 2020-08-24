@@ -1,16 +1,1 @@
-<Objects>
- <Transfer Name="TransferPath_211_1" Type="0" cellX="0" cellY="0">
-  <Points>
-   <Point Pos="975.55511,203.51202,100"/>
-   <Point Pos="1458.543,227.01756,100.00005"/>
-   <Point Pos="1902.4033,333.89777,99.999924"/>
-  </Points>
- </Transfer>
- <Transfer Name="TransferPath_211_2" Type="0" cellX="1" cellY="0">
-  <Points>
-   <Point Pos="1905.9572,330.4248,100"/>
-   <Point Pos="1460.7579,222.98972,100"/>
-   <Point Pos="975.67273,200.43069,99.999939"/>
-  </Points>
- </Transfer>
-</Objects>
+<Objects />

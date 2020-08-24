@@ -1311,7 +1311,7 @@ namespace AAEmu.Game.Core.Managers
                         _removedItems.Clear();
                     }
                 }
-                // Update items
+                // NextPathOrPointInPath items
             }
 
             using (var command = connection.CreateCommand())

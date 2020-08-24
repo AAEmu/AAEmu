@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Numerics;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
@@ -8,10 +8,13 @@ namespace AAEmu.Game.Models.Game.Units.Movements
     {
         public new short RotationX { get; set; }
         public new short RotationY { get; set; }
-        public new short RotationZ { get; set; }
+        public new ushort RotationZ { get; set; }
         public float AngVelX { get; set; }
         public float AngVelY { get; set; }
         public float AngVelZ { get; set; }
+        //public Vector3 Vel { get; set; }
+        //public Vector3 AngVel { get; set; }
+        //public Quaternion Rotation { get; set; }
         public int Steering { get; set; }
         public int PathPointIndex { get; set; }
         public float Speed { get; set; }
@@ -54,7 +57,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             VelZ = stream.ReadInt16();
             RotationX = stream.ReadInt16();
             RotationY = stream.ReadInt16();
-            RotationZ = stream.ReadInt16();
+            RotationZ = stream.ReadUInt16();
 
             AngVelX = stream.ReadSingle();
             AngVelY = stream.ReadSingle();

@@ -89,12 +89,10 @@ namespace AAEmu.Game.Models.Game.World
                     // We switched zonekeys, we need to do some checks
                     var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
                     var newZone = ZoneManager.Instance.GetZoneByKey(Position.ZoneId);
-                    var lastZoneGroupId = (short)((lastZone != null)?lastZone.GroupId : 0);
-                    var newZoneGroupId = (short)((newZone != null)?newZone.GroupId : 0);
+                    var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
+                    var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
                     if (lastZoneGroupId != newZoneGroupId)
                     {
-
-
                         // Ok, we actually changed zone groups, we'll leave to do some chat channel stuff
                         if (lastZoneGroupId != 0)
                         {

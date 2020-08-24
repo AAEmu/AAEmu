@@ -173,7 +173,7 @@ namespace AAEmu.Game.Core.Managers
                 Y = portalInfo.Y,
                 Z = portalInfo.Z,
                 ZoneId = portalInfo.ZoneId,
-                RotationZ = Helpers.ConvertRotation(Convert.ToInt16(portalInfo.ZRot)),
+                RotationZ = Helpers.ConvertRotation(Convert.ToUInt16(portalInfo.ZRot)),
                 WorldId = WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id
             };
             var portalPointLocation = new Point

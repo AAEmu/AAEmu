@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Models.Game.Animation;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.Skills.Static;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
 {

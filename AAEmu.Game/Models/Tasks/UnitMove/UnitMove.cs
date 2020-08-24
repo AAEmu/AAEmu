@@ -1,12 +1,14 @@
-﻿using AAEmu.Game.Models.Game.NPChar;
+﻿using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+using SQLitePCL;
 
 namespace AAEmu.Game.Models.Tasks.UnitMove
 {
     public class UnitMove : Task
     {
         private readonly Patrol _patrol;
-        private readonly Npc _npc;
+        private readonly BaseUnit _unit;
 
         /// <summary>
         /// 初始化任务
@@ -14,10 +16,10 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         /// </summary>
         /// <param name="patrol"></param>
         /// <param name="npc"></param>
-        public UnitMove(Patrol patrol, Npc npc)
+        public UnitMove(Patrol patrol, BaseUnit unit)
         {
             _patrol = patrol;
-            _npc = npc;
+            _unit = unit;
         }
 
         /// <summary>
@@ -26,10 +28,21 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         /// </summary>
         public override void Execute()
         {
-            if (_npc.Hp > 0)
+            if (_unit is Npc npc)
             {
-                _patrol?.Apply(_npc);
+                _patrol?.Apply(npc);
             }
+
+            if (_unit is Gimmick gimmick)
+            {
+                _patrol?.Apply(gimmick);
+            }
+
+            if (_unit is Transfer transfer)
+            {
+                _patrol?.Apply(transfer);
+            }
+
         }
     }
 }

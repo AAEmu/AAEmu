@@ -2224,6 +2224,16 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.DbHouseId = house.Id;
             }
+
+            if (obj is Transfer transfer)
+            {
+                doodad.OwnerObjId = 0;
+                doodad.ParentObjId = transfer.ObjId;
+                doodad.OwnerId = transfer.OwnerId;
+                doodad.OwnerType = DoodadOwnerType.System;
+                doodad.DbHouseId = transfer.Id;
+            }
+            
             if (template.GrowthTime > 0)
             {
                 var task = new DoodadFuncTimer();

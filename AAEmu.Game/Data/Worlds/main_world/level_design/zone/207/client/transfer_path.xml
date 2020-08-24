@@ -311,7 +311,7 @@
  </Transfer>
  <Transfer Name="air_mari_long_5" Type="0" cellX="1" cellY="1">
   <Points>
-   <Point Pos="1849.0721,1906.6929,299.44839"/>
+   <Point Pos="1860.8206,1964.7299,299.44839"/>
    <Point Pos="1686.9093,1308.2393,273.29614"/>
    <Point Pos="1598.3141,1137.8898,292.54266"/>
   </Points>
@@ -320,7 +320,7 @@
   <Points>
    <Point Pos="1600.1842,1136.5911,292.54266"/>
    <Point Pos="1690.3179,1305.3438,273.29614"/>
-   <Point Pos="1842.7229,1906.3506,299.44839"/>
+   <Point Pos="1859.6047,1964.074,299.44839"/>
   </Points>
  </Transfer>
  <Transfer Name="mari_golden_in1" Type="0" cellX="1" cellY="1">

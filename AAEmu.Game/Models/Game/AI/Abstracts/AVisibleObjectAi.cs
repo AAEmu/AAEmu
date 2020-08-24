@@ -95,7 +95,8 @@ namespace AAEmu.Game.Models.Game.AI.Abstracts
 
             var allCreatures = WorldManager.Instance.GetAround<Unit>(Owner, MaximalVisibleRange);
 
-            foreach (var aVisibleObject in allCreatures.Where(aVisibleObject => aVisibleObject is Npc || aVisibleObject is Character))
+            //foreach (var aVisibleObject in allCreatures.Where(aVisibleObject => aVisibleObject is Npc || aVisibleObject is Character))
+            foreach (var aVisibleObject in allCreatures)
             {
                 if (CanSeeObject(aVisibleObject))
                 {

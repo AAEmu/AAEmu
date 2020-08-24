@@ -210,7 +210,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     return; //TODO отправлять ошибку?
                 }
             }
-            else if (Template.TargetType == SkillTargetType.Building)
+            else if (Template.TargetType == SkillTargetType.GeneralUnit)
             {
                 if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
                 {

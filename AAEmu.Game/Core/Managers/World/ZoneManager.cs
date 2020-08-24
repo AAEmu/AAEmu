@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -54,29 +57,111 @@ namespace AAEmu.Game.Core.Managers.World
             return zoneGroup?.TargetId ?? 0;
         }
 
-        public (float, float, float) ConvertCoordFromZoneKey(uint zoneId, float x, float y, float z)
+        /// <summary>
+        /// Переведём локальные координаты в мировые в зависимости от zoneId
+        /// </summary>
+        /// <param name="zoneId"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        /// <returns></returns>
+        public (float, float, float) ConvertCoord(uint zoneId, float x, float y, float z)
         {
-            //if (Instance.GetZoneByKey(zoneId) == null)
-            //{
-            //    return (x, y, z); // если не нашли зону, вернем координаты
-            //}
-            //var zonegroup = Instance.GetZoneGroupById(Instance.GetZoneByKey(zoneId).GroupId);
-            //var newX = zonegroup.X + x;
-            //var newY = zonegroup.Y + y;
-            //var newZ = z;
             var zone = GetZoneByKey(zoneId);
             if (zone == null)
                 return (x, y, z); // если не нашли зону, вернем координаты
 
             var zoneGroup = GetZoneGroupById(zone.GroupId);
-            var newX = zoneGroup.X + x + 2412f; // w_solzreed id=5, x=11925.0, y=13266.0
-            var newY = zoneGroup.Y + y + 46f;
-            var newZ = z;
-            //var newX = x; //для теста, берём координаты из файла
-            //var newY = y;
-            //var newZ = z;
+            var newX = zoneGroup.X + x; // w_solzreed id=5, x=11925.0, y=13266.0
+            var newY = zoneGroup.Y + y;
 
-            return (newX, newY, newZ);
+            return (newX, newY, z);
+        }
+        public (float, float, float) ConvertCoord1(uint zoneId, Vector3 point)
+        {
+            Vector2 coefficient = new Vector2();
+            var zone = GetZoneByKey(zoneId);
+            if (zone == null)
+                return (point.X, point.Y, point.Z); // если не нашли зону, вернем координаты
+
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+            switch (zoneGroup.Id)
+            {
+                case 5:
+                    coefficient = new Vector2(2411f, 46f);
+                    break;
+                case 6:
+                    coefficient = new Vector2(12609f, 15359f);
+                    break;
+            }
+
+
+            var newX = zoneGroup.X + point.X + coefficient.X; // w_solzreed id=5, x=11925.0, y=13266.0
+            var newY = zoneGroup.Y + point.Y + coefficient.Y;
+
+            return (newX, newY, point.Z);
+        }
+        /// <summary>
+        /// Переведём локальные координаты в мировые с использованием константы зависимой от zoneId
+        /// </summary>
+        /// <param name="zoneId"></param>
+        /// <param name="point"></param>
+        /// <param name="coefficient"></param>
+        /// <returns></returns>
+        public (float, float, float) ConvertCoord2(uint zoneId, Vector3 point, Vector2 coefficient)
+        {
+            var zone = GetZoneByKey(zoneId);
+            if (zone == null)
+                return (point.X, point.Y, point.Z); // если не нашли зону, вернем координаты
+
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+
+            var newX = coefficient.X + point.X + zoneGroup.X;
+            var newY = coefficient.Y + point.Y + zoneGroup.Y;
+
+            return (newX, newY, point.Z);
+        }
+
+        /// <summary>
+        /// Найти коэффициент для перевода локальных координат в мировые координаты
+        /// </summary>
+        /// <param name="zoneId"></param>
+        /// <param name="point">точка возле остановки с мировыми координатами</param>
+        /// <param name="target">нулевая точка начального участка пути из файла</param>
+        /// <returns></returns>
+        public Vector2 GetCoefficients0(uint zoneId, Vector3 point, Vector3 target)
+        {
+            var coefficient = new Vector2();
+            var zone = GetZoneByKey(zoneId);
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+            coefficient.X = point.X - zoneGroup.X - target.X;
+            coefficient.Y = point.Y - zoneGroup.Y - target.Y;
+            return coefficient;
+        }
+        /// <summary>
+        /// Найти коэффициент для перевода локальных координат в мировые координаты
+        /// </summary>
+        /// <param name="zoneId"></param>
+        /// <param name="target">нулевая точка начального участка пути из файла</param>
+        /// <returns></returns>
+        public Vector2 GetCoefficients(uint zoneId, Vector3 target)
+        {
+            var coefficient = new Vector2();
+            Vector3 tmp;
+            var zone = GetZoneByKey(zoneId);
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+            switch (zoneGroup.Id)
+            {
+                case 5:
+                    tmp = new Vector3(15663f, 15020f, 0);
+                    coefficient = GetCoefficients0(zoneId, tmp, target);
+                    break;
+                case 6:
+                    tmp = new Vector3(12609f, 15359f, 0);
+                    coefficient = GetCoefficients0(zoneGroup.Id, tmp, target);
+                    break;
+            }
+            return coefficient;
         }
 
         public (float, float, float) ConvertCoordFromZoneKey(uint zoneId, Vector3 position)
@@ -145,7 +230,7 @@ namespace AAEmu.Game.Core.Managers.World
                         {
                             var template = new ZoneGroup();
                             template.Id = reader.GetUInt32("id");
-                            template.Name = (string) reader.GetValue("name");
+                            template.Name = (string)reader.GetValue("name");
                             template.X = reader.GetFloat("x");
                             template.Y = reader.GetFloat("y");
                             template.Width = reader.GetFloat("w");
@@ -192,7 +277,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 template.HariharaReturnPointId = reader.GetUInt32("harihara_return_point_id", 0);
                                 template.WarTowerDefId = reader.GetUInt32("war_tower_def_id", 0);
                                 // TODO 1.2 // template.PeaceTowerDefId = reader.GetUInt32("peace_tower_def_id", 0);
-                                template.Closed = reader.GetBoolean("closed",true);
+                                template.Closed = reader.GetBoolean("closed", true);
 
                                 _groups[zoneGroupId].Conflict = template;
                                 _conflicts.Add(zoneGroupId, template);

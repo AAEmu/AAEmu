@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.Char.Templates;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {

@@ -83,15 +83,6 @@
    <Point Pos="1786.3867,1566.3949,258.4595"/>
   </Points>
  </Transfer>
- <Transfer Name="TransferPath_186_gahee624_two_in" Type="0" cellX="0" cellY="0">
-  <Points>
-   <Point Pos="725.09351,899.94318,99.986092"/>
-   <Point Pos="729.48553,1091.0662,99.986092"/>
-   <Point Pos="757.77875,1194.7014,99.986122"/>
-   <Point Pos="775.70087,1242.0585,99.993179"/>
-   <Point Pos="792.94495,1254.4548,99.986122"/>
-  </Points>
- </Transfer>
  <Transfer Name="crwon_2" Type="0" cellX="0" cellY="1">
   <Points>
    <Point Pos="671,1787,148.10001"/>
@@ -113,22 +104,6 @@
    <Point Pos="1055.488,1504.4343,155.03699"/>
    <Point Pos="1056.5603,1506.3521,155.12917"/>
    <Point Pos="1056.3405,1509.0652,155.20564"/>
-  </Points>
- </Transfer>
- <Transfer Name="TransferPath_186_gahee624_two_out" Type="0" cellX="0" cellY="1">
-  <Points>
-   <Point Pos="805.75757,1260.5214,99.926292"/>
-   <Point Pos="834.08984,1260.8031,99.966499"/>
-   <Point Pos="854.56561,1261.5278,100"/>
-   <Point Pos="872.2854,1267.0836,100.00002"/>
-   <Point Pos="889.63855,1258.244,100"/>
-   <Point Pos="893.43127,1237.8411,100"/>
-   <Point Pos="881.35498,1222.2893,100.00002"/>
-   <Point Pos="849.69427,1217.7904,100.00002"/>
-   <Point Pos="802.94946,1185.9496,99.997787"/>
-   <Point Pos="786.57294,1170.4535,100"/>
-   <Point Pos="730.09052,1090.8937,100"/>
-   <Point Pos="726.25031,899.26202,100"/>
   </Points>
  </Transfer>
  <Transfer Name="air_long_two_5" Type="0" cellX="0" cellY="0">

@@ -1,5 +1,6 @@
-using AAEmu.Game.Core.Managers.Id;
+﻿using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.New

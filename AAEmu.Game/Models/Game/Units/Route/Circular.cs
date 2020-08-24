@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Tasks.UnitMove;
@@ -24,8 +25,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public sbyte Radius { get; set; } = 2; //5;
         public short Degree { get; set; } = 180;
 
-        public override void Execute(Npc npc)
+        public override void Execute(BaseUnit unit)
         {
+            var npc = unit as Npc;
+
+            if (npc == null) { return; }
+
             var x = npc.Position.X;
             var y = npc.Position.Y;
             // debug by Yanlongli date 2019.04.18
@@ -102,6 +107,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
         }
         public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(Gimmick gimmick)
         {
             throw new NotImplementedException();
         }

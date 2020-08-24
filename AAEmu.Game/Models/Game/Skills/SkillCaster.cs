@@ -1,17 +1,9 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Skills.Static;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
-    public enum EffectOriginType : byte
-    {
-        Skill = 0,
-        Plot = 1,
-        Buff = 2,
-        Passive = 3,
-        Doodad = 4
-    }
-
     public abstract class SkillCaster : PacketMarshaler
     {
         public EffectOriginType Type { get; set; }

@@ -1,0 +1,44 @@
+[
+    {
+        "Count": 1,
+        "Id": 1,
+        "UnitId": 1,
+        "Position": {
+        "X": 15358.14,
+        "Y": 13971.28,
+        "Z": 162.69,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0
+        },
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 2,
+        "UnitId": 2,
+        "Position": {
+        "X": 10435.48,
+        "Y": 15097.45,
+        "Z": 252.3784,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0
+        },
+        "Scale": 1.0
+    },
+    {
+        "Count": 3,
+        "Id": 13,
+        "UnitId": 2,
+        "Position": {
+        "X": 12859.0,
+        "Y": 14359.61,
+        "Z": 146.93,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0
+        },
+        "Scale": 1.0
+    }
+]

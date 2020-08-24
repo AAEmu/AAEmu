@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Tasks.UnitMove;
@@ -20,22 +21,16 @@ namespace AAEmu.Game.Models.Game.Units.Route
         /// <summary>
         /// QuillX Н-axis movement
         /// </summary>
-        /// <param name="caster">Trigger role</param>
-        /// <param name="npc">NPC</param>
-        /// <param name="degree">Default angle 360 degrees</param>
-        public override void Execute(Npc npc)
+        /// <param name="unit"></param>
+        public override void Execute(BaseUnit unit)
         {
+            var npc = unit as Npc;
+
+            if (npc == null) { return; }
+
             var x = npc.Position.X;
             var y = npc.Position.Y;
 
-            //if (Count < Degree / 2)
-            //{
-            //    npc.Position.X += (float)0.1;
-            //}
-            //else if (Count < Degree)
-            //{
-            //    npc.Position.X -= (float)0.1;
-            //}
             if (Count < Degree / 4 || Count > Degree / 4 + Degree / 2 && Count < Degree)
             {
                 npc.Position.Y += (float)0.1;
@@ -85,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             // If the number of executions is less than the angle, continue adding tasks or stop moving
             if (Count < Degree)
             {
-                Repeat(npc);
+                Repeat(unit);
             }
             else
             {
@@ -99,6 +94,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
         }
         public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(Gimmick gimmick)
         {
             throw new NotImplementedException();
         }

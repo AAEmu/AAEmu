@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Tasks.UnitMove;
@@ -27,11 +28,13 @@ namespace AAEmu.Game.Models.Game.Units.Route
         /// <summary>
         /// 正方形巡航 / Square Cruise
         /// </summary>
-        /// <param name="caster">触发角色 / Trigger role</param>
-        /// <param name="npc">NPC</param>
-        /// <param name="degree">角度 默认360度 / Default angle 360 degrees</param>
-        public override void Execute(Npc npc)
+        /// <param name="unit"></param>
+        public override void Execute(BaseUnit unit)
         {
+            var npc = unit as Npc;
+
+            if (npc == null) { return; }
+
             var x = npc.Position.X;
             var y = npc.Position.Y;
 
@@ -113,6 +116,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
         }
         public override void Execute(Transfer transfer)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(Gimmick gimmick)
         {
             throw new NotImplementedException();
         }

@@ -86,6 +86,7 @@ namespace AAEmu.Game
             DoodadManager.Instance.Load();
             HousingManager.Instance.Load();
             TransferManager.Instance.Load();
+            GimmickManager.Instance.Load();
 
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();

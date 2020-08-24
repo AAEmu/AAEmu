@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
@@ -64,100 +65,93 @@ namespace AAEmu.Game.Models.Game.Units
         /// <summary>
         /// Perform patrol missions
         /// </summary>
-        /// <param name="npc"></param>
-        public void Apply(Npc npc)
+        /// <param name="unit"></param>
+        public void Apply(BaseUnit unit)
         {
             // If NPC does not exist or is not in cruise mode or the current number of executions is not zero
-            if (npc.Patrol == null || (npc.Patrol.Running == false && this != npc.Patrol) || (npc.Patrol.Running == true && this == npc.Patrol))
+            if (unit.Patrol == null || (unit.Patrol.Running == false && this != unit.Patrol) || (unit.Patrol.Running && this == unit.Patrol))
             {
                 // If the last cruise mode is suspended, save the last cruise mode
-                if (npc.Patrol != null && npc.Patrol != this && !npc.Patrol.Abandon)
+                if (unit.Patrol != null && unit.Patrol != this && !unit.Patrol.Abandon)
                 {
-                    LastPatrol = npc.Patrol;
+                    LastPatrol = unit.Patrol;
                 }
                 ++Count;
                 Seq = (uint)(DateTime.Now - GameService.StartTime).TotalMilliseconds;
                 Running = true;
-                npc.Patrol = this;
-                Execute(npc);
+                unit.Patrol = this;
+                Execute(unit);
             }
         }
 
-        public abstract void Execute(Npc npc);
+        public abstract void Execute(BaseUnit unit);
         public abstract void Execute(Transfer transfer);
-
-        /// <summary>
-        /// Perform the task again
-        /// </summary>
-        /// <param name="npc"></param>
-        /// <param name="time"></param>
-        /// <param name="patrol"></param>
-        public void Repet(Npc npc, double time = 100, Patrol patrol = null)
-        {
-            if (!(patrol ?? this).Abandon)
-            {
-                TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, npc), TimeSpan.FromMilliseconds(time));
-            }
-
-        }
+        public abstract void Execute(Gimmick gimmick);
 
         /// <summary>
         /// 再次执行任务
         /// Perform the task again
         /// </summary>
-        /// <param name="npc"></param>
+        /// <param name="unit"></param>
         /// <param name="time"></param>
         /// <param name="patrol"></param>
-        public void Repeat(Npc npc, double time = 100, Patrol patrol = null)
+        public void Repeat(BaseUnit unit, double time = 100, Patrol patrol = null)
         {
-            if (!(patrol ?? this).Abandon)
+            switch (unit)
             {
-                TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, npc), TimeSpan.FromMilliseconds(time));
+                case Npc npc:
+                    if (!(patrol ?? this).Abandon)
+                        TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, npc), TimeSpan.FromMilliseconds(time));
+                    break;
+                case Gimmick gimmick:
+                    if (!(patrol ?? this).Abandon)
+                        TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, gimmick), TimeSpan.FromMilliseconds(time));
+                    break;
             }
         }
 
-        public bool PauseAuto(Npc npc)
+        public bool PauseAuto(BaseUnit unit)
         {
-            if (Interrupt || !npc.Patrol.Running)
+            if (Interrupt || !unit.Patrol.Running)
             {
-                Pause(npc);
+                Pause(unit);
                 return true;
             }
             return false;
         }
 
-        public void Pause(Npc npc)
+        public void Pause(BaseUnit unit)
         {
             Running = false;
-            PausePosition = npc.Position.Clone();
+            PausePosition = unit.Position.Clone();
         }
 
-        public void Stop(Npc npc)
+        public void Stop(BaseUnit unit)
         {
             Running = false;
             Abandon = true;
 
-            Recovery(npc);
+            Recovery(unit);
         }
 
-        public void Recovery(Npc npc)
+        public void Recovery(BaseUnit unit)
         {
             // Resume current cruise if current cruise is paused
             if (!Abandon && Running == false)
             {
-                npc.Patrol.Running = true;
-                Repet(npc);
+                unit.Patrol.Running = true;
+                Repeat(unit);
                 return;
             }
             // If the last cruise is not null
             if (LastPatrol != null && Running == false)
             {
-                if (Math.Abs(npc.Position.X - LastPatrol.PausePosition.X) < Tolerance && Math.Abs(npc.Position.Y - LastPatrol.PausePosition.Y) < Tolerance && Math.Abs(npc.Position.Z - LastPatrol.PausePosition.Z) < Tolerance)
+                if (Math.Abs(unit.Position.X - LastPatrol.PausePosition.X) < Tolerance && Math.Abs(unit.Position.Y - LastPatrol.PausePosition.Y) < Tolerance && Math.Abs(unit.Position.Z - LastPatrol.PausePosition.Z) < Tolerance)
                 {
                     LastPatrol.Running = true;
-                    npc.Patrol = LastPatrol;
+                    unit.Patrol = LastPatrol;
                     // Resume last cruise
-                    Repet(npc, 500, LastPatrol);
+                    Repeat(unit, 500, LastPatrol);
                 }
                 else
                 {
@@ -170,23 +164,23 @@ namespace AAEmu.Game.Models.Game.Units
                     // Specify target point
                     line.Position = LastPatrol.PausePosition;
                     // Resume last cruise
-                    Repet(npc, 500, line);
+                    Repeat(unit, 500, line);
                 }
             }
         }
 
-        public void LoopAuto(Npc npc)
+        public void LoopAuto(BaseUnit unit)
         {
             if (Loop)
             {
                 Count = 0;
-                Seq = 0;
-                Repet(npc, LoopDelay);
+                Seq = (uint)(DateTime.Now - GameService.StartTime).TotalMilliseconds;
+                Repeat(unit, LoopDelay);
             }
             else
             {
                 // Acyclic tasks terminate this task and attempt to resume the last task
-                Stop(npc);
+                Stop(unit);
             }
         }
     }

@@ -662,7 +662,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public Npc()
         {
             Name = "";
-            Ai = new UnitAi(this, 100f); //Template.AggroLinkHelpDist);
+            Ai = new NpcAi(this, 100f); //Template.AggroLinkHelpDist);
             UnitType = BaseUnitType.Npc;
         }
 

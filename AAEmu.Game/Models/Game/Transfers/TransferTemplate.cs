@@ -13,12 +13,15 @@ namespace AAEmu.Game.Models.Game.Transfers
         public List<TransferBindings> TransferBindings { get; }             // selection by owner_id
         public List<TransferPaths> TransferPaths { get; }                   // selection by owner_id
         public List<TransferBindingDoodads> TransferBindingDoodads { get; } // selection by owner_id
+        //                  v--TemplateId
+        public Dictionary<uint, List<TransferRoads>> TransferRoads { get; }  // непосредственно список точек всех путей
 
         public TransferTemplate()
         {
             TransferBindings = new List<TransferBindings>();
             TransferPaths = new List<TransferPaths>();
             TransferBindingDoodads = new List<TransferBindingDoodads>();
+            TransferRoads = new Dictionary<uint, List<TransferRoads>>();
         }
     }
 }
