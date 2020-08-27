@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.AI
                             path.Routes.TryAdd(1, path.LoadPath("solzreed_4"));
                             path.Routes.TryAdd(2, path.LoadPath("solzreed_5"));
                             path.Routes.TryAdd(3, path.LoadPath("solzreed_6"));
-                            if (path.Routes != null)
+                            if (path.Routes[0] != null)
                             {
                                 _log.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.RotationZ + " rotationZ=" + transfer.Position.RotationZ);
                                 transfer.IsInPatrol = true; // so as not to run the route a second time

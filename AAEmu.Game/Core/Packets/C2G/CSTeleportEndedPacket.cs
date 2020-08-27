@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
@@ -25,7 +26,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var rotate = new Quaternion(rotx, roty, rotz, rotw);
 
             Connection.ActiveChar.DisabledSetPosition = false;
-            _log.Warn("TeleportEnded, X: {0}, Y: {1}, Z: {2}", x, y, z);
+            _log.Warn("TeleportEnded, X: {0}, Y: {1}, Z: {2}, rotX: {3}, rotY: {4}, rotZ: {5}, rotW: {6}", 
+                x, y, z, rotx, roty, rotz, rotw);
 
             WorldManager.Instance.ResendVisibleObjectsToCharacter(Connection.ActiveChar);
         }
