@@ -131,28 +131,17 @@ namespace AAEmu.Game.Models.Game.World
                             slave.AddVisibleObject(character);
                             break;
                         case Gimmick gimmick:
-                            // Gimmick move along the weaving shuttle in the Z-axis.
-                            
                             gimmick.AddVisibleObject(character);
-                            
-                            Patrol patrol;
-                            if (gimmick.Patrol == null)
-                            {
-                                var quill = new QuillZ { Interrupt = false, Loop = true, Abandon = false, Degree = 360 };
-                                patrol = quill;
-                                patrol.Pause(gimmick);
-                                gimmick.Patrol = patrol;
-                                gimmick.Patrol.LastPatrol = patrol;
-                                patrol.Recovery(gimmick);
-                                //gimmick.isRunning = true;
-                            }
+                            break;
+                        case Transfer transfer:
+                            transfer.AddVisibleObject(character);
                             break;
                         default:
                             character.SendPacket(new SCUnitStatePacket(t));
                             break;
                     }
                 }
-                var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
+                var doodads = GetList(new List<Doodad>(), character.ObjId).ToArray();
                 for (var i = 0; i < doodads.Length; i += 30)
                 {
                     var count = doodads.Length - i;
@@ -161,17 +150,6 @@ namespace AAEmu.Game.Models.Game.World
                     character.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }
                 // TODO ...others types...
-                var gimmicks = GetList(new List<Gimmick>(), obj.ObjId).ToArray();
-                for (var i = 0; i < gimmicks.Length; i += 30)
-                {
-                    var count = gimmicks.Length - i;
-                    var temp = new Gimmick[count <= 30 ? count : 30];
-                    Array.Copy(gimmicks, i, temp, 0, temp.Length);
-                    character.SendPacket(new SCGimmicksCreatedPacket(temp));
-                    temp = new Gimmick[0];
-                    character.SendPacket(new SCGimmickJointsBrokenPacket(temp));
-
-                }
             }
             // show the object to all players in the region
             foreach (var chr in GetList(new List<Character>(), obj.ObjId))
@@ -186,21 +164,29 @@ namespace AAEmu.Game.Models.Game.World
                 return;
 
             // remove all visible objects in the region from the player
-            if (obj is Character character)
+            if (obj is Character)
             {
-                //var unitIds = GetListId<Unit>(new List<uint>(), obj.ObjId).ToArray();
-                var unitIds = GetListId<Unit>(new List<uint>(), character.ObjId).ToArray();
+                var character = (Character)obj;
+
+                var unitIds = GetListId<Unit>(new List<uint>(), obj.ObjId).ToArray();
                 var units = GetList(new List<Unit>(), character.ObjId);
                 foreach (var t in units)
                 {
-                    if (t is Npc npc)
+                    switch (t)
                     {
-                        // Stop NPCs that players don't see
-                        npc.IsInPatrol = false;
-                        npc.Patrol = null;
+                        case Npc npc:
+                            // Stop NPCs that players don't see
+                            npc.IsInPatrol = false;
+                            npc.Patrol = null;
+                            break;
+                        case Gimmick gimmick:
+                            gimmick.RemoveVisibleObject(character);
+                            break;
+                        case Transfer transfer:
+                            transfer.RemoveVisibleObject(character);
+                            break;
                     }
                 }
-
                 for (var offset = 0; offset < unitIds.Length; offset += 500)
                 {
                     var length = unitIds.Length - offset;
@@ -208,7 +194,8 @@ namespace AAEmu.Game.Models.Game.World
                     Array.Copy(unitIds, offset, temp, 0, temp.Length);
                     character.SendPacket(new SCUnitsRemovedPacket(temp));
                 }
-                var doodadIds = GetListId<Doodad>(new List<uint>(), character.ObjId).ToArray();
+
+                var doodadIds = GetListId<Doodad>(new List<uint>(), obj.ObjId).ToArray();
                 for (var offset = 0; offset < doodadIds.Length; offset += 400)
                 {
                     var length = doodadIds.Length - offset;
@@ -217,24 +204,13 @@ namespace AAEmu.Game.Models.Game.World
                     Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                     character.SendPacket(new SCDoodadsRemovedPacket(last, temp));
                 }
-                // TODO ... others types...
 
-                var gimmickIds = GetListId<Gimmick>(new List<uint>(), character.ObjId).ToArray();
-                for (var offset = 0; offset < gimmickIds.Length; offset += 500)
-                {
-                    var length = gimmickIds.Length - offset;
-                    var last = length <= 500;
-                    var temp = new uint[last ? length : 500];
-                    Array.Copy(gimmickIds, offset, temp, 0, temp.Length);
-                    character.SendPacket(new SCGimmicksRemovedPacket(temp));
-                }
+                // TODO ... others types...
             }
 
             // remove the object from all players in the region
-            foreach (var chr in GetList(new List<Character>(), obj.ObjId))
-            {
-                obj.RemoveVisibleObject(chr);
-            }
+            foreach (var character in GetList(new List<Character>(), obj.ObjId))
+                obj.RemoveVisibleObject(character);
         }
 
         public Region[] GetNeighbors()

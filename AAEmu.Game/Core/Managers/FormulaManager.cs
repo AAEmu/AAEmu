@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using AAEmu.Commons.Utils;
@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<FormulaOwnerType, Dictionary<UnitFormulaKind, UnitFormula>> _unitFormulas;
+        private Dictionary<UnitOwnerType, Dictionary<UnitFormulaKind, UnitFormula>> _unitFormulas;
         private Dictionary<WearableFormulaType, WearableFormula> _wearableFormulas;
         private Dictionary<uint, Formula> _formulas;
 
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Managers
 
         public CalculationEngine CalculationEngine { get; private set; }
 
-        public UnitFormula GetUnitFormula(FormulaOwnerType owner, UnitFormulaKind kind)
+        public UnitFormula GetUnitFormula(UnitOwnerType owner, UnitFormulaKind kind)
         {
             if (_unitFormulas.ContainsKey(owner) && _unitFormulas[owner].ContainsKey(kind))
                 return _unitFormulas[owner][kind];
@@ -56,9 +56,9 @@ namespace AAEmu.Game.Core.Managers
             CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);
             CalculationEngine.AddFunction("if_zero", (a, b, c) => a == 0 ? b : c);
 
-            _unitFormulas = new Dictionary<FormulaOwnerType, Dictionary<UnitFormulaKind, UnitFormula>>();
-            foreach (var owner in Enum.GetValues(typeof(FormulaOwnerType)))
-                _unitFormulas.Add((FormulaOwnerType) owner, new Dictionary<UnitFormulaKind, UnitFormula>());
+            _unitFormulas = new Dictionary<UnitOwnerType, Dictionary<UnitFormulaKind, UnitFormula>>();
+            foreach (var owner in Enum.GetValues(typeof(UnitOwnerType)))
+                _unitFormulas.Add((UnitOwnerType) owner, new Dictionary<UnitFormulaKind, UnitFormula>());
             _wearableFormulas = new Dictionary<WearableFormulaType, WearableFormula>();
             _unitVariables =
                 new Dictionary<uint, Dictionary<UnitFormulaVariableType, Dictionary<uint, UnitFormulaVariable>>>();
@@ -81,7 +81,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 TextFormula = reader.GetString("formula"),
                                 Kind = (UnitFormulaKind) reader.GetByte("kind_id"),
-                                Owner = (FormulaOwnerType) reader.GetByte("owner_type_id")
+                                Owner = (UnitOwnerType) reader.GetByte("owner_type_id")
                             };
                             if (formula.Prepare())
                                 _unitFormulas[formula.Owner].Add(formula.Kind, formula);

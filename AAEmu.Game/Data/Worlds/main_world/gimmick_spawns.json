@@ -1,44 +1,249 @@
-[
-    {
+[     // entities.xml Group="elevator_airport" MultiPlayer="ServerOnly"
+    { // 007_008 Pos="976.58679,1003.4581,261.76044" Rotate="-0.34201983,0,0,0.93969274"
         "Count": 1,
         "Id": 1,
         "UnitId": 1,
         "Position": {
-        "X": 15358.14,
-        "Y": 13971.28,
-        "Z": 162.69,
+            "X": 153.14,
+            "Y": 139.28,
+            "Z": 261.76044
+        },
+        "TopZ": 294.17,
+        "BottomZ": 261.73,
         "RotationX": 0,
         "RotationY": 0,
-        "RotationZ": 0
-        },
-        "Scale": 1.0
+        "RotationZ": 0.93969274,
+        "RotationW": -0.34201983,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x4a0da1f4d8420a38
     },
-    {
+    { // 009_012 Pos="533.30371,394.60645,169.23213" Rotate="-0.48480943,0,0,0.87461978"
         "Count": 1,
         "Id": 2,
         "UnitId": 2,
         "Position": {
-        "X": 10435.48,
-        "Y": 15097.45,
-        "Z": 252.3784,
+            "X": 153.14,
+            "Y": 139.28,
+            "Z": 169.23213
+        },
+        "TopZ": 201.6,
+        "BottomZ": 169.19,
         "RotationX": 0,
         "RotationY": 0,
-        "RotationZ": 0
-        },
-        "Scale": 1.0
+        "RotationZ": 0.87461978,
+        "RotationW": -0.48480943,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x471ae7d3001e9790
     },
-    {
-        "Count": 3,
-        "Id": 13,
-        "UnitId": 2,
+    { // 010_009 Pos="752.3551,279.93774,133.54599" Rotate="-0.38268316,0,0,0.92387962"
+        "Count": 1,
+        "Id": 3,
+        "UnitId": 3,
         "Position": {
-        "X": 12859.0,
-        "Y": 14359.61,
-        "Z": 146.93,
+            "X": 153.14,
+            "Y": 139.28,
+            "Z": 133.54599
+        },
+        "TopZ": 165.92,
+        "BottomZ": 133.55,
         "RotationX": 0,
         "RotationY": 0,
-        "RotationZ": 0
+        "RotationZ": 0.92387962,
+        "RotationW": -0.38268316,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x4544d8da3e1056a6
+    },
+    {   // +++010_014 Pos="195.48071,761.45361,219.90991" Rotate="0.87035567,0,0,0.49242359"
+        "Count": 1,
+        "Id": 4,
+        "UnitId": 4,
+        "Position": {
+            "X": 10435.48,
+            "Y": 15097.45,
+            "Z": 219.90991
         },
-        "Scale": 1.0
+        "TopZ": 264.25,
+        "BottomZ": 219.9,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.49242359,
+        "RotationW": 0.87035567,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x4d0d3b1cb1b03be4
+    },
+    {   // 010_016 Pos="269.23926,865.03809,197.57091" Rotate="0.52249831,0,0,0.85264033"
+        "Count": 1,
+        "Id": 5,
+        "UnitId": 5,
+        "Position": {
+            "X": 104.48,
+            "Y": 150.45,
+            "Z": 197.57091
+        },
+        "TopZ": 241.94,
+        "BottomZ": 197.57,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.85264033,
+        "RotationW": 0.52249831,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x4dcc70d922951eac
+    },
+    {   // 011_011 Pos="166.64209,917.79944,124.05001" Rotate="0.0784593,0,0,0.99691731" 
+        "Count": 1,
+        "Id": 6,
+        "UnitId": 6,
+        "Position": {
+            "X": 104.48,
+            "Y": 150.45,
+            "Z": 124.05001
+        },
+        "TopZ": 156.37,
+        "BottomZ": 124.05,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.99691731,
+        "RotationW": 0.0784593,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x466c35479c017118
+    },
+    {   // +++012_014 Pos="571.0144,23.621826,146.94051" Rotate="0.62932038,0,0,0.77714598"
+        "Count": 1,
+        "Id": 7,
+        "UnitId": 7,
+        "Position": {
+            "X": 12859.0,
+            "Y": 14359.61,
+            "Z": 146.94051
+        },
+        "TopZ": 179.34,
+        "BottomZ": 146.93,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.77714598,
+        "RotationW": 0.62932038,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x47336e17db760ff5
+    },
+    {   // 012_015 Pos="460.49707,956.85693,345.03934" Rotate="0.8062374,0,0,-0.59159213"
+        "Count": 1,
+        "Id": 8,
+        "UnitId": 8,
+        "Position": {
+            "X": 104.48,
+            "Y": 150.45,
+            "Z": 345.03934
+        },
+        "TopZ": 375.06,
+        "BottomZ": 345.04,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.59159213,
+        "RotationW": 0.8062374,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x4a9ff2e547e8065e
+    },
+    {   // 013_010 Pos="15.510254,25.301514,141.69865" Rotate="0.95630485,0,0,0.29237148"
+        "Count": 1,
+        "Id": 9,
+        "UnitId": 9,
+        "Position": {
+            "X": 104.48,
+            "Y": 150.45,
+            "Z": 141.69865
+        },
+        "TopZ": 174.07,
+        "BottomZ": 141.69,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.29237148,
+        "RotationW": 0.95630485,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x47c633e4b79e6468
+    },
+    {   // +++ 014_013 Pos="1022.16,659.31738,162.69951" Rotate="0.70710659,0,0,-0.70710695"
+        "Count": 1,
+        "Id": 10,
+        "UnitId": 10,
+        "Position": {
+            "X": 15358.14,
+            "Y": 13971.28,
+            "Z": 162.69951
+        },
+        "TopZ": 195.04,
+        "BottomZ": 162.69,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.70710695,
+        "RotationW": 0.70710659,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x4f1568a324f08da9
+    },
+    {   // 015_011 Pos="130.44128,98.970215,123.00732" Rotate="2.5232765e-007,0,0,1"
+        "Count": 1,
+        "Id": 11,
+        "UnitId": 11,
+        "Position": {
+            "X": 104.48,
+            "Y": 150.45,
+            "Z": 123.00732
+        },
+        "TopZ": 155.4,
+        "BottomZ": 122.96,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 1,
+        "RotationW": 2.5232765e-007,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x429a826e1cff8680
+    },
+    {   // 020_013 Pos="322.44568,7.5283203,114.18185" Rotate="0.70090902,0,0,-0.7132507"
+        "Count": 1,
+        "Id": 12,
+        "UnitId": 12,
+        "Position": {
+            "X": 104.48,
+            "Y": 150.45,
+            "Z": 114.18185
+        },
+        "TopZ": 145.56,
+        "BottomZ": 114.19,
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7132507,
+        "RotationW": 0.70090902,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x4892cd3dfde02423
+    },
+    {   // 029_008 Pos="316.89673,578.90845,488.57962" Rotate="0.97576416,0,0,-0.21882479"
+        "Count": 1,
+        "Id": 13,
+        "UnitId": 13,
+        "Position": {
+            "X": 128.0,
+            "Y": 143.61,
+            "Z": 488.57962
+        },
+        "TopZ": 537.9,
+        "BottomZ": 488.58, // 447.17
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.21882479,
+        "RotationW": 0.97576416,
+        "WaitTime": 6.0,
+        "Scale": 1.0,
+        "EntityGuid": 0x487ed8984ffb47f1
     }
 ]

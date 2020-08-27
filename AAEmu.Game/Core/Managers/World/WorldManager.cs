@@ -17,6 +17,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Shipyard;
 
 namespace AAEmu.Game.Core.Managers.World
 {
@@ -608,11 +609,27 @@ namespace AAEmu.Game.Core.Managers.World
             var stuffs = WorldManager.Instance.GetAround<Unit>(character, 1000f);
             foreach (var stuff in stuffs)
             {
-                if (stuff is House)
-                    character.SendPacket(new SCHouseStatePacket((House)stuff));
-                else
-                if (stuff is Unit)
-                    character.SendPacket(new SCUnitStatePacket((Unit)stuff));
+                switch (stuff)
+                {
+                    case Character chr:
+                        character.SendPacket(new SCUnitStatePacket(chr));
+                        break;
+                    case Slave slave:
+                        character.SendPacket(new SCUnitStatePacket(slave));
+                        break;
+                    case House house:
+                        character.SendPacket(new SCHouseStatePacket(house));
+                        break;
+                    case Transfer transfer:
+                        character.SendPacket(new SCUnitStatePacket(transfer));
+                        break;
+                    case Mount mount:
+                        character.SendPacket(new SCUnitStatePacket(mount));
+                        break;
+                    case Shipyard shipyard:
+                        character.SendPacket(new SCUnitStatePacket(shipyard));
+                        break;
+                }
             }
 
             var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();

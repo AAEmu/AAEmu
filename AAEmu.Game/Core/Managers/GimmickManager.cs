@@ -5,6 +5,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -30,24 +31,60 @@ namespace AAEmu.Game.Core.Managers
             return _templates.ContainsKey(id) ? _templates[id] : null;
         }
 
-        public Gimmick Create(uint bcId, uint id, GameObject obj = null)
+        //public Gimmick Create(uint bcId, uint id, GameObject obj = null)
+        //{
+        //    if (!_templates.ContainsKey(id))
+        //    {
+        //        return null;
+        //    }
+
+        //    var template = _templates[id];
+        //    var gimmick = new Gimmick();
+        //    gimmick.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
+        //    gimmick.Template = template;
+        //    gimmick.Id = 0;
+        //    gimmick.TemplateId = template.Id;
+        //    gimmick.Faction = new SystemFaction();
+        //    gimmick.ModelPath = template.ModelPath;
+        //    gimmick.Patrol = null;
+        //    //gimmick.Position = spawner.Position.Clone();
+        //    gimmick.Vel = new Vector3(0f, 0f, 4.5f);
+        //    gimmick.Rotation = new Quaternion(0f, 0f, -0.7071069f, 0.7071069f);
+        //    gimmick.ModelParams = new UnitCustomModelParams();
+
+        //    gimmick.Spawn();
+        //    _activeGimmicks.Add(gimmick.ObjId, gimmick);
+
+        //    return gimmick;
+        //}
+
+        public Gimmick Create(uint objectId, uint templateId, GimmickSpawner spawner)
         {
-            if (!_templates.ContainsKey(id))
+            if (!_templates.ContainsKey(templateId))
             {
                 return null;
             }
 
-            var template = _templates[id];
+            var template = _templates[templateId];
+            //var template = GetGimmickTemplate(templateId);
+
             var gimmick = new Gimmick();
-            gimmick.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
+            gimmick.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
+            gimmick.Spawner = spawner;
             gimmick.Template = template;
             gimmick.Id = 0;
             gimmick.TemplateId = template.Id;
             gimmick.Faction = new SystemFaction();
             gimmick.ModelPath = template.ModelPath;
             gimmick.Patrol = null;
-            gimmick.Vel = new Vector3(0f, 0f, 4.5f);
-            gimmick.Rotation = new Quaternion(0f, 0f, -0.7071069f, 0.7071069f);
+            gimmick.Position = spawner.Position.Clone();
+            gimmick.Vel = new Vector3(0f, 0f, 0f);
+            gimmick.Rotation = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
+            gimmick.ModelParams = new UnitCustomModelParams();
+
+            gimmick.Spawn();
+            _activeGimmicks.Add(gimmick.ObjId, gimmick);
+
             return gimmick;
         }
 

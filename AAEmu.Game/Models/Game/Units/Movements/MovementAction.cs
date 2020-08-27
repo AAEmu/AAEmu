@@ -2,10 +2,9 @@
    Author:Sagara
 */
 
-using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
 
-namespace AAEmu.Game.Models.Geo.Basic
+namespace AAEmu.Game.Models.Game.Units.Movements
 {
     public class MovementAction
     {

@@ -5,7 +5,7 @@ using System.Numerics;
 /*
   Some parts used from League.Sharp framework
 */
-namespace AAEmu.Game.Models.Geo
+namespace AAEmu.Game.Utils
 {
     public static class Geom
     {

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         /// Initialization task
         /// </summary>
         /// <param name="patrol"></param>
-        /// <param name="npc"></param>
+        /// <param name="unit"></param>
         public UnitMove(Patrol patrol, BaseUnit unit)
         {
             _patrol = patrol;
@@ -28,21 +28,18 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
         /// </summary>
         public override void Execute()
         {
-            if (_unit is Npc npc)
+            switch (_unit)
             {
-                _patrol?.Apply(npc);
+                case Npc npc:
+                    _patrol?.Apply(npc);
+                    break;
+                case Gimmick gimmick:
+                    _patrol?.Apply(gimmick);
+                    break;
+                case Transfer transfer:
+                    _patrol?.Apply(transfer);
+                    break;
             }
-
-            if (_unit is Gimmick gimmick)
-            {
-                _patrol?.Apply(gimmick);
-            }
-
-            if (_unit is Transfer transfer)
-            {
-                _patrol?.Apply(transfer);
-            }
-
         }
     }
 }

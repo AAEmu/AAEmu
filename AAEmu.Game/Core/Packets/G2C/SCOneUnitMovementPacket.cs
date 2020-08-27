@@ -4,7 +4,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Geo.Basic;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {

@@ -57,6 +57,31 @@ namespace AAEmu.Game.Core.Managers.World
             return zoneGroup?.TargetId ?? 0;
         }
 
+        public (float, float, float) ConvertCoordFromZoneKey(uint zoneId, float x, float y, float z)
+        {
+            //if (Instance.GetZoneByKey(zoneId) == null)
+            //{
+            //    return (x, y, z); // если не нашли зону, вернем координаты
+            //}
+            //var zonegroup = Instance.GetZoneGroupById(Instance.GetZoneByKey(zoneId).GroupId);
+            //var newX = zonegroup.X + x;
+            //var newY = zonegroup.Y + y;
+            //var newZ = z;
+            var zone = GetZoneByKey(zoneId);
+            if (zone == null)
+                return (x, y, z); // если не нашли зону, вернем координаты
+
+            var zoneGroup = GetZoneGroupById(zone.GroupId);
+            var newX = zoneGroup.X + x + 2412f; //2411.19535f; // w_solzreed id=5, x=11925, y=13266
+            var newY = zoneGroup.Y + y + 46f;
+            var newZ = z;
+            //var newX = x; //для теста, берём координаты из файла
+            //var newY = y;
+            //var newZ = z;
+
+            return (newX, newY, newZ);
+        }
+
         /// <summary>
         /// Переведём локальные координаты в мировые в зависимости от zoneId
         /// </summary>

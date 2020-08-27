@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.Str);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.Str);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var result = formula.Evaluate(parameters);
                 var res = (int)result;
@@ -82,7 +82,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.Dex);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.Dex);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
@@ -105,7 +105,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.Sta);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.Sta);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
@@ -128,7 +128,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.Int);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.Int);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
@@ -151,7 +151,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.Spi);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.Spi);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
@@ -174,7 +174,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.Fai);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.Fai);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Fai))
@@ -197,7 +197,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.MaxHealth);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.MaxHealth);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -229,7 +229,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.HealthRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.HealthRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -262,7 +262,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.PersistentHealthRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.PersistentHealthRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -295,7 +295,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.MaxMana);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.MaxMana);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -327,7 +327,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.ManaRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.ManaRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -360,7 +360,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Transfer, UnitFormulaKind.PersistentManaRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Transfer, UnitFormulaKind.PersistentManaRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,

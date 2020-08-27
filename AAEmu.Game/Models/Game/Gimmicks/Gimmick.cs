@@ -61,7 +61,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         */
         public uint Id { get; set; }
         public uint TemplateId { get; set; }
-        //public Guid EntityGuid { get; set; } // TODO Guid есть в GameObject
+        public long EntityGuid { get; set; } // TODO Guid есть в GameObject
         //public SystemFaction Faction { get; set; } // TODO Guid есть в GameObject
         public GimmickTemplate Template { get; set; }
         public uint SpawnerUnitId { get; set; }
@@ -83,6 +83,8 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         {
             Ai = new GimmickAi(this, 50f);
             UnitType = BaseUnitType.Transfer; // TODO какое на самом деле?
+
+            //EntityGuid = BitConverter.ToInt64(Guid.ToByteArray(), 0);
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)
@@ -95,81 +97,14 @@ namespace AAEmu.Game.Models.Game.Gimmicks
 
         public override void AddVisibleObject(Character character)
         {
-            var gimmicks = GetList(new List<Gimmick>(), this.ObjId).ToArray();
-            for (var i = 0; i < gimmicks.Length; i += 30)
-            {
-                var count = gimmicks.Length - i;
-                var temp = new Gimmick[count <= 30 ? count : 30];
-                Array.Copy(gimmicks, i, temp, 0, temp.Length);
-                character.SendPacket(new SCGimmicksCreatedPacket(temp));
-            }
-        }
-
-        private List<T> GetList<T>(List<T> result, uint exclude) where T : class
-        {
-            GameObject[] temp;
-            lock (_objectsLock)
-            {
-                if (_objects == null || _objectsSize == 0)
-                    return result;
-                temp = new GameObject[_objectsSize];
-                Array.Copy(_objects, 0, temp, 0, _objectsSize);
-            }
-            foreach (var obj in temp)
-            {
-                var item = obj as T;
-                if (item != null && obj.ObjId != exclude)
-                    result.Add(item);
-            }
-
-            return result;
+            character.SendPacket(new SCGimmicksCreatedPacket(new[] { this }));
+            var temp = new Gimmick[0];
+            character.SendPacket(new SCGimmickJointsBrokenPacket(temp));
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
-
-            var gimmickIds = GetListId<Gimmick>(new List<uint>(), character.ObjId).ToArray();
-            for (var offset = 0; offset < gimmickIds.Length; offset += 500)
-            {
-                var length = gimmickIds.Length - offset;
-                var last = length <= 500;
-                var temp = new uint[last ? length : 500];
-                Array.Copy(gimmickIds, offset, temp, 0, temp.Length);
-                character.SendPacket(new SCGimmicksRemovedPacket(temp));
-            }
-        }
-
-        private readonly object _objectsLock = new object();
-        private GameObject[] _objects;
-        private int _objectsSize;
-        private List<uint> GetListId<T>(List<uint> result, uint exclude) where T : class
-        {
-            GameObject[] temp;
-            lock (_objectsLock)
-            {
-                if (_objects == null || _objectsSize == 0)
-                {
-                    return result;
-                }
-
-                temp = new GameObject[_objectsSize];
-                Array.Copy(_objects, 0, temp, 0, _objectsSize);
-            }
-
-            foreach (var obj in temp)
-            {
-                if (obj is T && obj.ObjId != exclude)
-                {
-                    result.Add(obj.ObjId);
-                }
-            }
-
-            return result;
+            character.SendPacket(new SCGimmicksRemovedPacket(new[] { ObjId }));
         }
 
         private float _scale;
@@ -182,12 +117,12 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         {
             stream.Write(TemplateId); // GimmickId
             stream.Write(0);          // type
-            stream.Write((long)123);  // entityGUID
+            stream.Write(EntityGuid);  // entityGUID = 0x4227234CE506AFDB box
             stream.Write(0);          // type
             stream.Write(SpawnerUnitId);
             stream.Write(GrasperUnitId);
             stream.Write(Position.ZoneId);
-            stream.Write(ModelPath);
+            stream.Write((short)0); // ModelPath
 
             stream.Write(Helpers.ConvertLongX(Position.X));  // WorldPos
             stream.Write(Helpers.ConvertLongX(Position.Y));

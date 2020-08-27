@@ -8,7 +8,6 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Geo.Basic;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {

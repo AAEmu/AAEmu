@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.Str);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.Str);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
@@ -55,7 +55,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.Dex);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.Dex);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.Sta);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.Sta);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
@@ -105,7 +105,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.Int);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.Int);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
@@ -130,7 +130,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.Spi);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.Spi);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
@@ -155,7 +155,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.Fai);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.Fai);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["npc_template"] =
@@ -180,7 +180,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.MaxHealth);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.MaxHealth);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -211,7 +211,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.HealthRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.HealthRegen);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -244,7 +244,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             get
             {
                 var formula =
-                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.PersistentHealthRegen);
+                    FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.PersistentHealthRegen);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -275,7 +275,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.MaxMana);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.MaxMana);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -306,7 +306,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.ManaRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.ManaRegen);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -339,7 +339,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             get
             {
                 var formula =
-                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.PersistentManaRegen);
+                    FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.PersistentManaRegen);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -371,7 +371,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             get
             {
                 var formula =
-                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.LevelDps);
+                    FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.LevelDps);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -416,7 +416,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             get
             {
                 var formula =
-                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.MeleeDpsInc);
+                    FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.MeleeDpsInc);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -487,7 +487,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             get
             {
                 var formula =
-                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.RangedDpsInc);
+                    FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.RangedDpsInc);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -539,7 +539,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             get
             {
                 var formula =
-                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.SpellDpsInc);
+                    FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.SpellDpsInc);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -571,7 +571,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.Armor);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.Armor);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -602,7 +602,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.MagicResist);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.MagicResist);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;
@@ -635,7 +635,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             {
                 if (Template.NoExp)
                     return 0;
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, UnitFormulaKind.KillExp);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Npc, UnitFormulaKind.KillExp);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 parameters["str"] = Str;

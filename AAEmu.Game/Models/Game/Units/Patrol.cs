@@ -69,18 +69,33 @@ namespace AAEmu.Game.Models.Game.Units
         public void Apply(BaseUnit unit)
         {
             // If NPC does not exist or is not in cruise mode or the current number of executions is not zero
-            if (unit.Patrol == null || (unit.Patrol.Running == false && this != unit.Patrol) || (unit.Patrol.Running && this == unit.Patrol))
+            if (unit.Patrol != null && 
+               (unit.Patrol.Running || this == unit.Patrol) &&
+               (!unit.Patrol.Running || this != unit.Patrol))
             {
-                // If the last cruise mode is suspended, save the last cruise mode
-                if (unit.Patrol != null && unit.Patrol != this && !unit.Patrol.Abandon)
-                {
-                    LastPatrol = unit.Patrol;
-                }
-                ++Count;
-                Seq = (uint)(DateTime.Now - GameService.StartTime).TotalMilliseconds;
-                Running = true;
-                unit.Patrol = this;
-                Execute(unit);
+                return;
+            }
+
+            // If the last cruise mode is suspended, save the last cruise mode
+            if (unit.Patrol != null && unit.Patrol != this && !unit.Patrol.Abandon)
+            {
+                LastPatrol = unit.Patrol;
+            }
+            ++Count;
+            Seq = (uint)(DateTime.Now - GameService.StartTime).TotalMilliseconds;
+            Running = true;
+            unit.Patrol = this;
+            switch (unit)
+            {
+                case Gimmick gimmick:
+                    Execute(gimmick);
+                    break;
+                case Transfer transfer:
+                    Execute(transfer);
+                    break;
+                default:
+                    Execute(unit);
+                    break;
             }
         }
 
@@ -107,17 +122,19 @@ namespace AAEmu.Game.Models.Game.Units
                     if (!(patrol ?? this).Abandon)
                         TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, gimmick), TimeSpan.FromMilliseconds(time));
                     break;
+                case Transfer transfer:
+                    if (!(patrol ?? this).Abandon)
+                        TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, transfer), TimeSpan.FromMilliseconds(time));
+                    break;
             }
         }
 
         public bool PauseAuto(BaseUnit unit)
         {
-            if (Interrupt || !unit.Patrol.Running)
-            {
-                Pause(unit);
-                return true;
-            }
-            return false;
+            if (!Interrupt && unit.Patrol.Running) { return false; }
+
+            Pause(unit);
+            return true;
         }
 
         public void Pause(BaseUnit unit)
@@ -144,28 +161,27 @@ namespace AAEmu.Game.Models.Game.Units
                 return;
             }
             // If the last cruise is not null
-            if (LastPatrol != null && Running == false)
+            if (LastPatrol == null || Running) { return; }
+
+            if (Math.Abs(unit.Position.X - LastPatrol.PausePosition.X) < Tolerance && Math.Abs(unit.Position.Y - LastPatrol.PausePosition.Y) < Tolerance && Math.Abs(unit.Position.Z - LastPatrol.PausePosition.Z) < Tolerance)
             {
-                if (Math.Abs(unit.Position.X - LastPatrol.PausePosition.X) < Tolerance && Math.Abs(unit.Position.Y - LastPatrol.PausePosition.Y) < Tolerance && Math.Abs(unit.Position.Z - LastPatrol.PausePosition.Z) < Tolerance)
-                {
-                    LastPatrol.Running = true;
-                    unit.Patrol = LastPatrol;
-                    // Resume last cruise
-                    Repeat(unit, 500, LastPatrol);
-                }
-                else
-                {
-                    // Create a straight cruise to return to the last cruise pause
-                    var line = new Line();
-                    // Uninterrupted, unaffected by external forces and attacks
-                    line.Interrupt = false;
-                    line.Loop = false;
-                    line.LastPatrol = LastPatrol;
-                    // Specify target point
-                    line.Position = LastPatrol.PausePosition;
-                    // Resume last cruise
-                    Repeat(unit, 500, line);
-                }
+                LastPatrol.Running = true;
+                unit.Patrol = LastPatrol;
+                // Resume last cruise
+                Repeat(unit, 500, LastPatrol);
+            }
+            else
+            {
+                // Create a straight cruise to return to the last cruise pause
+                var line = new Line();
+                // Uninterrupted, unaffected by external forces and attacks
+                line.Interrupt = false;
+                line.Loop = false;
+                line.LastPatrol = LastPatrol;
+                // Specify target point
+                line.Position = LastPatrol.PausePosition;
+                // Resume last cruise
+                Repeat(unit, 500, line);
             }
         }
 

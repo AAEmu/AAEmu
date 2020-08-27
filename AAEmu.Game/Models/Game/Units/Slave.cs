@@ -54,7 +54,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Str);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.Str);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var result = formula.Evaluate(parameters);
                 var res = (int)result;
@@ -74,7 +74,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Dex);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.Dex);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
@@ -93,7 +93,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Sta);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.Sta);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
@@ -112,7 +112,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Int);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.Int);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
@@ -131,7 +131,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Spi);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.Spi);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
@@ -150,7 +150,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.Fai);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.Fai);
                 var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Fai))
@@ -169,7 +169,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxHealth);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.MaxHealth);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -197,7 +197,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.HealthRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.HealthRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -226,7 +226,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.PersistentHealthRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.PersistentHealthRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -255,7 +255,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.MaxMana);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.MaxMana);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -283,7 +283,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.ManaRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.ManaRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -312,7 +312,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Slave, UnitFormulaKind.PersistentManaRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(UnitOwnerType.Slave, UnitFormulaKind.PersistentManaRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,

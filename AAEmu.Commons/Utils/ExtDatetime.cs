@@ -1,9 +1,10 @@
 ﻿using System;
+
 /*
   That file part of Code Monsters framework.
   Cerium Unity 2015 © 
 */
-namespace Commons.Utils
+namespace AAEmu.Commons.Utils
 {
     public static class ExtDatetime
     {
