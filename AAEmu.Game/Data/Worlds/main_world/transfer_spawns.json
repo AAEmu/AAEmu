@@ -1,47 +1,128 @@
 [
     {
         "Count": 1,
-        "Id": 1,
+        "Id": 10,
         "UnitId": 6,
         "Position": {
-        "X": 15265.9,
-        "Y": 14049.2,
-        "Z": 143.8,
+        "X": 12609.47,
+        "Y": 15359.19,
+        "Z": 158.2
+        },
         "RotationX": 0,
         "RotationY": 0,
-        "RotationZ": 20,
-        "Relative": false
-        },
+        "RotationZ": 1.5831, // 90, угол в радианах, был 22768,
         "Scale": 1.0
     },
     {
         "Count": 1,
-        "Id": 2,
-        "UnitId": 6,
+        "Id": 20,
+        "UnitId": 8,
         "Position": {
-        "X": 13659.2,
-        "Y": 14659.2,
-        "Z": 113.2,
+        "X": 12600.47,
+        "Y": 15350.19,
+        "Z": 158.2
+        },
         "RotationX": 0,
         "RotationY": 0,
-        "RotationZ": 32,
-        "Relative": false
-        },
+        "RotationZ": 1.57, // 90, угол в радианах, был 22768,
         "Scale": 1.0
     },
     {
         "Count": 1,
-        "Id": 3,
+        "Id": 30,
+        "UnitId": 10,
+        "Position": {
+        "X": 9941.062,
+        "Y": 12710.54,
+        "Z": 158.2
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 1.73,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 40,
+        "UnitId": 49,
+        "Position": {
+        "X": 10501.75,
+        "Y": 15121.53,
+        "Z": 279.70001
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 45,
+        "UnitId": 50,
+        "Position": {
+        "X": 9677.802,
+        "Y": 12677.02,
+        "Z": 206.442
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 6.18,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 50,
         "UnitId": 52,
         "Position": {
-        "X": 15357.94,
-        "Y": 14023.00,
-        "Z": 211.69934,
+        "X": 10501.75,
+        "Y": 15121.53,
+        "Z": 279.70001
+        },
         "RotationX": 0,
         "RotationY": 0,
-        "RotationZ": -32,
-        "Relative": false
+        "RotationZ": 0.9,  // 45, угол в радианах, был 6494,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 60,
+        "UnitId": 65,
+        "Position": {
+        "X": 9777.504, // 12867.9,
+        "Y": 12725.31, //14306.34,
+        "Z": 228.33594 //222.28185
         },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 2.35, // 135, угол в радианах, был 24914,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 65,
+        "UnitId": 103,
+        "Position": {
+        "X": 12336.92,
+        "Y": 13905.52,
+        "Z": 128.464
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 1.93,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 70,
+        "UnitId": 114,
+        "Position": {
+        "X": 11005.79,
+        "Y": 12676.86,
+        "Z": 228.33594
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0,
         "Scale": 1.0
     }
 ]

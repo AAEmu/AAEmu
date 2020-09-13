@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Tasks
                     var isMounted = MateManager.Instance.GetIsMounted(_connection.ActiveChar.ObjId);
                     if (isMounted != null)
                     {
-                        if (isMounted.Att2 == _connection.ActiveChar.ObjId)
+                        if (isMounted.Attached2 == _connection.ActiveChar.ObjId)
                         {
                             MateManager.Instance.UnMountMate(_connection.ActiveChar, isMounted.TlId, AttachPoint.Passenger0, AttachUnitReason.SlaveBinding);
                         }

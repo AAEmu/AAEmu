@@ -21,55 +21,16 @@ namespace AAEmu.Game.Models.Game.Gimmicks
     {
         private static Logger s_log = LogManager.GetCurrentClassLogger();
 
-        /*
-           // ----------------------------------------------------------------
-           struct Vec3_tpl<float>
-           {
-           float x;
-           float y;
-           float z;
-           };
-           // ----------------------------------------------------------------
-           struct Quat_tpl<float>
-           {
-           Vec3_tpl<float> v;
-           float w;
-           };
-           // ----------------------------------------------------------------
-           struct __declspec(align(8)) WorldPos
-           {  
-           __int64 x;
-           __int64 y;
-           float z;
-           };   
-           // ----------------------------------------------------------------
-           X2::DescType<X2::GimmickIdTag, unsigned int, X2::DS3> id; 
-           X2::DescType<X2::GimmickDesc, unsigned int, X2::DSF> type; 
-           unsigned __int64 entityGUID; 
-           X2::DescType<X2::SystemFactionDesc,unsigned int, X2::DSF> faction; 
-           X2::DescType<X2::UnitIdTag, unsigned int, X2::DS3> spawnerUnitId; 
-           X2::DescType<X2::UnitIdTag, unsigned int, X2::DS3> grasperUnitId; 
-           int staticZoneId; 
-           char modelPath[100]; 
-           WorldPos pos; 
-           Quat_tpl<float> rot; 
-           float scale; 
-           Vec3_tpl<float> vel; 
-           Vec3_tpl<float> angVel; 
-           float scaleVel; 
-           // ----------------------------------------------------------------
-        */
-        public uint Id { get; set; }
+        public uint GimmickId { get; set; } // obj
         public uint TemplateId { get; set; }
-        public long EntityGuid { get; set; } // TODO Guid есть в GameObject
+        public long EntityGuid { get; set; } // TODO это не Guid в GameObject
         //public SystemFaction Faction { get; set; } // TODO Guid есть в GameObject
         public GimmickTemplate Template { get; set; }
         public uint SpawnerUnitId { get; set; }
         public uint GrasperUnitId { get; set; }
         public string ModelPath { get; set; }
         //public int StaticZoneId { get; set; } // TODO есть ZoneId в Position в GameObject
-        //public WorldPos Pos { get; set; } // TODO есть Position в GameObject
-        public Quaternion Rotation { get; set; }
+        public Quaternion Rot { get; set; } // углы должны быть в радианах
         //public float Scale { get; set; } // TODO есть Scale в BaseUnit
         public Vector3 Vel { get; set; }
         public Vector3 AngVel { get; set; }
@@ -83,6 +44,8 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         {
             Ai = new GimmickAi(this, 50f);
             UnitType = BaseUnitType.Transfer; // TODO какое на самом деле?
+            Position = new Point();
+            WorldPos = new WorldPos();
 
             //EntityGuid = BitConverter.ToInt64(Guid.ToByteArray(), 0);
         }
@@ -104,7 +67,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks
 
         public override void RemoveVisibleObject(Character character)
         {
-            character.SendPacket(new SCGimmicksRemovedPacket(new[] { ObjId }));
+            character.SendPacket(new SCGimmicksRemovedPacket(new[] { GimmickId }));
         }
 
         private float _scale;
@@ -115,31 +78,20 @@ namespace AAEmu.Game.Models.Game.Gimmicks
 
         public PacketStream Write(PacketStream stream)
         {
-            stream.Write(TemplateId); // GimmickId
-            stream.Write(0);          // type
-            stream.Write(EntityGuid);  // entityGUID = 0x4227234CE506AFDB box
-            stream.Write(0);          // type
+            stream.Write(GimmickId);  // GimmickId
+            stream.Write(0);          // TemplateId
+            stream.Write(EntityGuid); // entityGUID = 0x4227234CE506AFDB box
+            stream.Write(0);          // Faction
             stream.Write(SpawnerUnitId);
             stream.Write(GrasperUnitId);
             stream.Write(Position.ZoneId);
-            stream.Write((short)0); // ModelPath
-
-            stream.Write(Helpers.ConvertLongX(Position.X));  // WorldPos
-            stream.Write(Helpers.ConvertLongX(Position.Y));
-            stream.Write(Position.Z);
-
-            stream.Write(Rotation.X); // Quaternion Rotation
-            stream.Write(Rotation.Y);
-            stream.Write(Rotation.Z);
-            stream.Write(Rotation.W);
-
+            stream.Write((short)0);   // ModelPath
+            stream.WriteWorldPosition(Position.X, Position.Y, Position.Z); // WorldPos
+            stream.WriteQuaternionSingle(Rot, true); // Quaternion Rotation
             stream.Write(Scale);
-            stream.Write(Vel.X);
-            stream.Write(Vel.Y);
-            stream.Write(Vel.Z);
-            stream.Write(AngVel.X);
-            stream.Write(AngVel.Y);
-            stream.Write(AngVel.Z);
+            stream.WriteVector3Single(Vel);
+            stream.WriteVector3Single(AngVel);
+
             stream.Write(ScaleVel);
 
             return stream;

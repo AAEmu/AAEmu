@@ -17,10 +17,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var id = stream.ReadUInt32();
-            var x = Helpers.ConvertLongX(stream.ReadInt64());
-            var y = Helpers.ConvertLongY(stream.ReadInt64());
-            var z = stream.ReadSingle();
+            var id = stream.ReadUInt32();                         // DoodadAlmightyDesc dtype
+            var x = Helpers.ConvertLongX(stream.ReadInt64());    // WorldPos long X
+            var y = Helpers.ConvertLongY(stream.ReadInt64());    // WorldPos long Y
+            var z = stream.ReadSingle();                         // WorldPos float z
             var zRot = stream.ReadSingle();
             var scale = stream.ReadSingle();
             var itemId = stream.ReadInt64();

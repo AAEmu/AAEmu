@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -8,6 +9,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Formulas;
+using AAEmu.Game.Models.Game.World;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -25,14 +27,18 @@ namespace AAEmu.Game.Models.Game.Units
         public Character Summoner { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
         public DateTime SpawnTime { get; set; }
-        
+
         // Ships
-        public float AngVelX { get; set; }
-        public float AngVelY { get; set; }
-        public float AngVelZ { get; set; }
-        public short VelX { get; set; }
-        public short VelY { get; set; }
-        public short VelZ { get; set; }
+        public Vector3 AngVel { get; set; }
+        //public float AngVelX { get; set; }
+        //public float AngVelY { get; set; }
+        //public float AngVelZ { get; set; }
+
+        public Vector3 Velocity { get; set; }
+        //public short VelX { get; set; }
+        //public short VelY { get; set; }
+        //public short VelZ { get; set; }
+
         public sbyte Steering { get; set; }
         public sbyte Throttle { get; set; }
         public sbyte RequestThrottle { get; set; }
@@ -40,12 +46,16 @@ namespace AAEmu.Game.Models.Game.Units
         public bool Stuck { get; set; }
         public float Speed { get; set; }
         public float RotSpeed { get; set; }
-        public short RotationZ { get; set; }
+
+        public Quaternion Rot { get; set; } // углы должны быть в радианах
+        //public short RotationZ { get; set; }
         public float RotationDegrees { get; set; }
 
         public Slave()
         {
             UnitType = BaseUnitType.Slave;
+            WorldPos = new WorldPos();
+            Position = new Point();
         }
 
         #region Attributes

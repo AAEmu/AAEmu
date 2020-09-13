@@ -1,5 +1,6 @@
 ﻿using System;
-
+using System.Numerics;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -19,6 +20,7 @@ namespace AAEmu.Game.Models.Game.World
         public bool DisabledSetPosition { get; set; }
         public Point Position { get; set; }
         public Point WorldPosition { get; set; }
+        public WorldPos WorldPos { get; set; }
         public Region Region { get; set; }
         public DateTime Respawn { get; set; }
         public DateTime Despawn { get; set; }
@@ -38,26 +40,6 @@ namespace AAEmu.Game.Models.Game.World
         /// </summary>
         public BaseUnitType UnitType { get; set; }
 
-        public virtual void SetPosition(Point pos)
-        {
-            if (DisabledSetPosition)
-                return;
-
-            Position = pos.Clone();
-            WorldManager.Instance.AddVisibleObject(this);
-        }
-
-        public virtual void SetPosition(float x, float y, float z)
-        {
-            if (DisabledSetPosition)
-                return;
-
-            Position.X = x;
-            Position.Y = y;
-            Position.Z = z;
-            WorldManager.Instance.AddVisibleObject(this);
-        }
-
         public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {
             if (DisabledSetPosition)
@@ -71,6 +53,10 @@ namespace AAEmu.Game.Models.Game.World
                     charMoved = true;
             }
 
+            WorldPos.X = Helpers.ConvertLongX(x);
+            WorldPos.Y = Helpers.ConvertLongY(y);
+            WorldPos.Z = z;
+
             Position.X = x;
             Position.Y = y;
             Position.Z = z;
@@ -79,9 +65,9 @@ namespace AAEmu.Game.Models.Game.World
             Position.RotationZ = rotationZ;
             WorldManager.Instance.AddVisibleObject(this);
 
-            if ((charMoved) && (this is Character))
+            if (charMoved && this is Character)
             {
-                var thisChar = ((Character)this);
+                var thisChar = (Character)this;
                 TeamManager.Instance.UpdatePosition(thisChar.Id);
                 // ZoneId was updated in AddVisibleObject, so we can check against it here
                 if (Position.ZoneId != lastZoneKey)

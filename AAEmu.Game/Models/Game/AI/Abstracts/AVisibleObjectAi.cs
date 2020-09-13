@@ -1,9 +1,6 @@
-﻿using System.Linq;
-using AAEmu.Commons.Generics;
+﻿using AAEmu.Commons.Generics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;

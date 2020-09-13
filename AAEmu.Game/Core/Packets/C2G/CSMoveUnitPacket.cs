@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -21,24 +22,24 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var objId = stream.ReadBc();
             var myObjId = Connection.ActiveChar.ObjId;
-            var type = (MoveTypeEnum)stream.ReadByte();
-            var moveType = MoveType.GetType(type);
+            var type = (UnitMovementType)stream.ReadByte();
+            var moveType = UnitMovement.GetType(type);
             stream.Read(moveType);
 
             // ---- test Ai ----
             var movementAction = new MovementAction(
-                new Point(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ),
+                new Point(moveType.X, moveType.Y, moveType.Z, (sbyte)moveType.Rot.X, (sbyte)moveType.Rot.Y, (sbyte)moveType.Rot.Z),
                 new Point(0, 0, 0),
-                moveType.RotationZ,
+                (sbyte)moveType.Rot.Z,
                 3,
-                MoveTypeEnum.Unit
+                UnitMovementType.Actor
                 );
             Connection.ActiveChar.VisibleAi.OwnerMoved(movementAction);
             // ---- test Ai ----
 
             if (objId != myObjId) // Can be mate
             {
-                if (moveType is ShipRequestMoveType shipRequestMoveType)
+                if (moveType is ShipInput shipRequestMoveType)
                 {
                     var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(myObjId);
                     if (slave != null)
@@ -56,30 +57,29 @@ namespace AAEmu.Game.Core.Packets.C2G
                     }
 
                     RemoveEffects(mateInfo, moveType);
-                    mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
+                    //mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
+                    mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, (sbyte)moveType.Rot.X, (sbyte)moveType.Rot.Y, (sbyte)moveType.Rot.Z);
                     mateInfo.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), myObjId);
 
-                    if (mateInfo.Att1 > 0)
+                    if (mateInfo.Attached1 > 0)
                     {
 
-                        var owner = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att1);
+                        var owner = WorldManager.Instance.GetCharacterByObjId(mateInfo.Attached1);
                         if (owner != null)
                         {
                             RemoveEffects(owner, moveType);
-                            owner.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX,
-                                moveType.RotationY, moveType.RotationZ);
+                            owner.SetPosition(moveType.X, moveType.Y, moveType.Z, (sbyte)moveType.Rot.X, (sbyte)moveType.Rot.Y, (sbyte)moveType.Rot.Z);
                             owner.BroadcastPacket(new SCOneUnitMovementPacket(owner.ObjId, moveType), false);
                         }
                     }
 
-                    if (mateInfo.Att2 > 0)
+                    if (mateInfo.Attached2 > 0)
                     {
-                        var passenger = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att2);
+                        var passenger = WorldManager.Instance.GetCharacterByObjId(mateInfo.Attached2);
                         if (passenger != null)
                         {
                             RemoveEffects(passenger, moveType);
-                            passenger.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX,
-                                moveType.RotationY, moveType.RotationZ);
+                            passenger.SetPosition(moveType.X, moveType.Y, moveType.Z, (sbyte)moveType.Rot.X, (sbyte)moveType.Rot.Y, (sbyte)moveType.Rot.Z);
                             passenger.BroadcastPacket(new SCOneUnitMovementPacket(passenger.ObjId, moveType), false);
                         }
                     }
@@ -94,26 +94,30 @@ namespace AAEmu.Game.Core.Packets.C2G
                      || 
                         (moveType.Flags & 36) == 36 // предположительно, мы на дилижансе
                      )
-                    && moveType is UnitMoveType mType)
+                    && moveType is ActorData mType)
                 {
                     Connection
                         .ActiveChar
-                        .SetPosition(mType.X2 + mType.X, mType.Y2 + mType.Y, mType.Z2 + mType.Z, mType.RotationX, mType.RotationY, mType.RotationZ);
+                        .SetPosition(mType.X2 + mType.X, mType.Y2 + mType.Y, mType.Z2 + mType.Z, (sbyte)mType.Rot.X, (sbyte)mType.Rot.Y, (sbyte)mType.Rot.Z);
+
+                    //  .SetPosition(mType.GcWorldPos.X + mType.X, mType.GcWorldPos.Y + mType.Y, mType.GcWorldPos.Z + mType.Z, (sbyte)mType.Rot.X, (sbyte)mType.Rot.Y, (sbyte)mType.Rot.Z);
+
                 }
                 else
                 {
                     Connection
                         .ActiveChar
-                        .SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
+                        .SetPosition(moveType.X, moveType.Y, moveType.Z, (sbyte)moveType.Rot.X, (sbyte)moveType.Rot.Y, (sbyte)moveType.Rot.Z);
 
                 }
                 Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
             }
         }
 
-        private static void RemoveEffects(BaseUnit unit, MoveType moveType)
+        private static void RemoveEffects(BaseUnit unit, UnitMovement unitMovement)
         {
-            if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
+            // снять эффекты при начале движения персонажа
+            if (Math.Abs(unitMovement.Velocity.X) > 0 || Math.Abs(unitMovement.Velocity.Y) > 0 || Math.Abs(unitMovement.Velocity.Z) > 0)
             {
                 var effects = unit.Effects.GetEffectsByType(typeof(BuffTemplate));
                 foreach (var effect in effects)

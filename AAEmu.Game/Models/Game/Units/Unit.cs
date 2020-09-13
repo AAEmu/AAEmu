@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 
@@ -72,6 +73,8 @@ namespace AAEmu.Game.Models.Game.Units
             IsInBattle = false;
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
             Equipment.ContainerSize = 28;
+            WorldPos = new WorldPos();
+            Position = new Point();
         }
 
         public virtual void ReduceCurrentHp(Unit attacker, int value)

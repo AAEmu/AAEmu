@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -16,33 +18,88 @@ namespace AAEmu.Game.Models.Game.Units.Route
     /// </summary>
     public class QuillX : Patrol
     {
-        public short Degree { get; set; } = 360;
+        private bool move;
+        private Vector3 newPosition;
+        private float diffX;
+        private float diffY;
+        private float newx;
+        private float newy;
+        private float newz;
+        private float x;
+        private float y;
+        private float z;
+        private sbyte rotZ;
 
         /// <summary>
         /// QuillX X-axis movement
         /// </summary>
-        /// <param name="unit"></param>
-        public override void Execute(BaseUnit unit)
+        /// <param name="npc"></param>
+        public override void Execute(Npc npc)
         {
-            var npc = unit as Npc;
-
             if (npc == null) { return; }
 
-            var x = npc.Position.X;
-            var y = npc.Position.Y;
+            move = false;
+            x = npc.Position.X;
+            y = npc.Position.Y;
+            z = npc.Position.Z;
+            vPosition = new Vector3(x, y, z);
 
-            if (Count < Degree / 2)
+            if (!InPatrol)
             {
-                npc.Position.X += (float)0.1;
+                var mov = (float)Rand.Next(2, 5);
+                rotZ = (sbyte)Rand.Next(0, 127);
+                (newx, newy) = MathUtil.AddDistanceToFront(mov, x, y, rotZ); // 0 на север
+                newz = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, newx, newy) : npc.Position.Z;
+                vEndPoint = new Vector3(newx, newy, newz);
+                vBeginPoint = new Vector3(x, y, z);
+                Distance = MathUtil.GetDistance(vBeginPoint, vEndPoint);
+                InPatrol = true;
             }
-            else if (Count < Degree)
+            if (!GoBack)
             {
-                npc.Position.X -= (float)0.1;
+                Time += DeltaTime;
+                Time = Math.Clamp(Time, 0, 1);
+                newPosition = Vector3.Lerp(vBeginPoint, vEndPoint, Time);
+                diffX = newPosition.X - npc.Position.X;
+                diffY = newPosition.Y - npc.Position.Y;
+                npc.Position.X = newPosition.X;
+                npc.Position.Y = newPosition.Y;
+                if (Math.Abs(diffX) > 0 || Math.Abs(diffY) > 0) { move = true; }
+                if (Math.Abs(vDistance.X) < diffX) { npc.Position.X = vEndPoint.X; }
+                if (Math.Abs(vDistance.Y) < diffY) { npc.Position.Y = vEndPoint.Y; }
+                if (!(Math.Abs(diffX) > 0) && !(Math.Abs(diffY) > 0))
+                {
+                    GoBack = true;
+                    move = false;
+                    Time = 0f;
+                }
+                Angle = MathUtil.CalculateAngleFrom(vBeginPoint.X, vBeginPoint.Y, vEndPoint.X, vEndPoint.Y);
+                Angle = MathUtil.DegreeToRadian(Angle);
             }
-
+            else
+            {
+                Time += DeltaTime;
+                Time = Math.Clamp(Time, 0, 1);
+                newPosition = Vector3.Lerp(vEndPoint, vBeginPoint, Time);
+                diffX = newPosition.X - npc.Position.X;
+                diffY = newPosition.Y - npc.Position.Y;
+                npc.Position.X = newPosition.X;
+                npc.Position.Y = newPosition.Y;
+                if (Math.Abs(diffX) > 0 || Math.Abs(diffY) > 0) { move = true; }
+                if (Math.Abs(vDistance.X) < diffX) { npc.Position.X = vBeginPoint.X; }
+                if (Math.Abs(vDistance.Y) < diffY) { npc.Position.Y = vBeginPoint.Y; }
+                Angle = MathUtil.CalculateAngleFrom(vEndPoint.X, vEndPoint.Y, vBeginPoint.X, vBeginPoint.Y);
+                Angle = MathUtil.DegreeToRadian(Angle);
+                if (!(Math.Abs(diffX) > 0) && !(Math.Abs(diffY) > 0))
+                {
+                    GoBack = false;
+                    move = false;
+                    Time = 0f;
+                    InPatrol = false;
+                }
+            }
             // Simulated unit
-            var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-
+            moveType = (ActorData)UnitMovement.GetType(UnitMovementType.Actor);
             // Change NPC coordinates
             moveType.X = npc.Position.X;
             moveType.Y = npc.Position.Y;
@@ -56,40 +113,38 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             else // other
             {
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                newz = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             }
+            moveType.Z = newz;
+            // looks in the direction of movement
+            rotZ = MathUtil.ConvertDegreeToDirection(Angle);
 
-            var angle = MathUtil.CalculateAngleFrom(x, y, npc.Position.X, npc.Position.Y);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-            moveType.RotationX = 0;
-            moveType.RotationY = 0;
-            moveType.RotationZ = rotZ;
+            //moveType.Rot = new Quaternion(0f, 0f, rotZ, 1f);
+            moveType.Rot = new Quaternion(0f, 0f, Helpers.ConvertDirectionToRadian(rotZ), 1f);
+
+            npc.Rot = moveType.Rot;
+            //moveType.DeltaMovement = new Vector3(0, 127, 0);
+            moveType.DeltaMovement = new Vector3(0, 1.0f, 0);
 
             moveType.Flags = 5;     // 5-walk, 4-run, 3-stand still
-            moveType.DeltaMovement = new sbyte[3];
-            moveType.DeltaMovement[0] = 0;
-            moveType.DeltaMovement[1] = 127; // 88.. 118
-            moveType.DeltaMovement[2] = 0;
             moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = Seq;    // has to change all the time for normal motion.
-
-            // Broadcasting Mobile State
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
 
             // If the number of executions is less than the angle, continue adding tasks or stop moving
-            if (Count < Degree)
+            if (move)
             {
-                Repeat(unit);
+                Repeat(npc);
             }
             else
             {
                 // Stop moving
-                moveType.DeltaMovement[1] = 0;
+                moveType.DeltaMovement = new Vector3();
+                moveType.Velocity = new Vector3();
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
-                //LoopAuto(npc);
                 // остановиться в вершине на time секунд
-                double time = (uint)Rand.Next(10, 25);
+                double time = (uint)Rand.Next(5, 15);
                 TaskManager.Instance.Schedule(new UnitMovePause(this, npc), TimeSpan.FromSeconds(time));
             }
         }
@@ -98,6 +153,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             throw new NotImplementedException();
         }
         public override void Execute(Gimmick gimmick)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(BaseUnit unit)
         {
             throw new NotImplementedException();
         }

@@ -54,7 +54,7 @@ namespace AAEmu.Game.Core.Managers
         {
             foreach (var mate in _activeMates.Values)
             {
-                if (mate.Att1 == objId || mate.Att2 == objId) return mate;
+                if (mate.Attached1 == objId || mate.Attached2 == objId) return mate;
             }
 
             return null;
@@ -100,20 +100,20 @@ namespace AAEmu.Game.Core.Managers
 
             if (mateInfo.OwnerObjId != character.ObjId)
             {
-                if (mateInfo.Att2 > 0) return;
+                if (mateInfo.Attached2 > 0) return;
                 character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, ap, reason, mateInfo.ObjId), true);
-                mateInfo.Att2 = character.ObjId;
+                mateInfo.Attached2 = character.ObjId;
                 mateInfo.Reason2 = reason;
             }
             else
             {
-                if (mateInfo.Att1 > 0) return;
+                if (mateInfo.Attached1 > 0) return;
                 character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, ap, reason, mateInfo.ObjId), true);
-                mateInfo.Att1 = character.ObjId;
+                mateInfo.Attached1 = character.ObjId;
                 mateInfo.Reason1 = reason;
             }
 
-            _log.Debug("MountMate. mountTlId: {0}, att1: {1}, att2 {2}, attachPoint{3}, reason: {4}", mateInfo.TlId, mateInfo.Att1, mateInfo.Att2, ap, reason);
+            _log.Debug("MountMate. mountTlId: {0}, att1: {1}, att2 {2}, attachPoint{3}, reason: {4}", mateInfo.TlId, mateInfo.Attached1, mateInfo.Attached2, ap, reason);
         }
 
         public void UnMountMate(Character character, uint tlId, AttachPoint ap, AttachUnitReason reason)
@@ -123,18 +123,18 @@ namespace AAEmu.Game.Core.Managers
 
             var unMounted = 0;
             Character targetObj = null;
-            if (mateInfo.Att1 == character.ObjId && ap == AttachPoint.Driver)
+            if (mateInfo.Attached1 == character.ObjId && ap == AttachPoint.Driver)
             {
                 targetObj = character;
-                mateInfo.Att1 = 0;
+                mateInfo.Attached1 = 0;
                 mateInfo.Reason1 = 0;
                 unMounted = 1;
             }
             else if (ap == AttachPoint.Passenger0)
             {
-                targetObj = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att2);
+                targetObj = WorldManager.Instance.GetCharacterByObjId(mateInfo.Attached2);
                 mateInfo.Reason2 = 0;
-                mateInfo.Att2 = 0;
+                mateInfo.Attached2 = 0;
                 unMounted = 2;
             }
 
@@ -168,8 +168,8 @@ namespace AAEmu.Game.Core.Managers
             var mateInfo = _activeMates[owner.ObjId];
             if (mateInfo.TlId != tlId) return;
 
-            if (mateInfo.Att1 > 0) UnMountMate((Character)WorldManager.Instance.GetUnit(mateInfo.Att1), tlId, AttachPoint.Driver, AttachUnitReason.MountMateLeft); // TODO reason unmount
-            if (mateInfo.Att2 > 0) UnMountMate((Character)WorldManager.Instance.GetUnit(mateInfo.Att2), tlId, AttachPoint.Passenger0, AttachUnitReason.MountMateLeft); // TODO reason unmount
+            if (mateInfo.Attached1 > 0) UnMountMate((Character)WorldManager.Instance.GetUnit(mateInfo.Attached1), tlId, AttachPoint.Driver, AttachUnitReason.MountMateLeft); // TODO reason unmount
+            if (mateInfo.Attached2 > 0) UnMountMate((Character)WorldManager.Instance.GetUnit(mateInfo.Attached2), tlId, AttachPoint.Passenger0, AttachUnitReason.MountMateLeft); // TODO reason unmount
             _activeMates[owner.ObjId].Delete();
             _activeMates.Remove(owner.ObjId);
             ObjectIdManager.Instance.ReleaseId(mateInfo.ObjId);

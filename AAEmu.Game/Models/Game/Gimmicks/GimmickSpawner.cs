@@ -1,9 +1,10 @@
 ﻿using System;
-
+using System.Collections.Generic;
+using System.Numerics;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World;
 
 using NLog;
@@ -19,12 +20,21 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         public float BottomZ { get; set; }
         public float RotationX { get; set; }
         public float RotationY { get; set; }
-        public float RotationZ { get; set; } // yaw
-        public float RotationW { get; set; } // scalar
+        public float RotationZ { get; set; }
+        public float RotationW { get; set; }
+        //public Quaternion Rot { get; set; }
         public float Scale { get; set; }
         public Gimmick Last { get; set; }
+        private List<Gimmick> _spawned;
+        public uint Count { get; set; }
 
-        public override Gimmick Spawn(uint objId) //TODO clean up each Gimmick uses the same call
+        public GimmickSpawner()
+        {
+            _spawned = new List<Gimmick>();
+            Count = 1;
+        }
+
+        public override Gimmick Spawn(uint objId)
         {
             //var gimmick = GimmickManager.Instance.Create(objId, UnitId, null);
             var gimmick = GimmickManager.Instance.Create(objId, UnitId, this);
@@ -36,6 +46,13 @@ namespace AAEmu.Game.Models.Game.Gimmicks
 
             gimmick.Spawner = this;
             gimmick.Position = Position.Clone();
+
+            gimmick.WorldPos.X = Helpers.ConvertLongY(gimmick.Position.X);
+            gimmick.WorldPos.Y = Helpers.ConvertLongY(gimmick.Position.Y);
+            gimmick.WorldPos.Z = gimmick.Position.Z;
+            
+
+
             gimmick.EntityGuid = EntityGuid;
             if (Scale > 0)
             {
@@ -64,19 +81,19 @@ namespace AAEmu.Game.Models.Game.Gimmicks
             Last = null;
         }
 
-        public void DecreaseCount(Doodad doodad)
+        public void DecreaseCount(Gimmick gimmick)
         {
             if (RespawnTime > 0)
             {
-                doodad.Respawn = DateTime.Now.AddSeconds(RespawnTime);
-                SpawnManager.Instance.AddRespawn(doodad);
+                gimmick.Respawn = DateTime.Now.AddSeconds(RespawnTime);
+                SpawnManager.Instance.AddRespawn(gimmick);
             }
             else
             {
                 Last = null;
             }
 
-            doodad.Delete();
+            gimmick.Delete();
         }
     }
 }

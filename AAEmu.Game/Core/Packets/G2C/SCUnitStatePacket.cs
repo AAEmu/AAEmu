@@ -127,7 +127,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write("");
             }
 
-            stream.WritePosition(_unit.Position.X, _unit.Position.Y, _unit.Position.Z); // posXYZ
+            stream.WritePositionBc(_unit.Position.X, _unit.Position.Y, _unit.Position.Z); // posXYZ
             stream.Write(_unit.Scale);   // scale
             stream.Write(_unit.Level);   // level
             stream.Write(_unit.ModelId); // modelRef
@@ -192,8 +192,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(0);
             stream.Write(_unit.Hp * 100); // preciseHealth
             stream.Write(_unit.Mp * 100); // preciseMana
-                                          //stream.Write(_attachPoint);   // point
-                                          //_unitModelPostureType = UnitModelPostureType.None;
 
             #region AttachPoint1
             if (_unit is Transfer)
@@ -250,14 +248,13 @@ namespace AAEmu.Game.Core.Packets.G2C
                 if (_unit is Npc npc)
                 {
                     // TODO UnitModelPosture
-                    if (npc.Faction.GuardHelp)
+                    if (npc.Faction.Id != 115 || npc.Faction.Id != 3) // npc.Faction.GuardHelp не аггрессивные мобы
                     {
                         stream.Write((byte)_unitModelPostureType); // type // оставим это для того, чтобы NPC могли заниматься своими делами
                     }
                     else
                     {
-                        _unitModelPostureType = 0; // type //для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно)
-                        stream.Write((byte)_unitModelPostureType);
+                        stream.Write((byte)UnitModelPostureType.None); // type //для NPC на которых можно напасть и чтобы они шевелили ногами (для людей особенно)
                     }
                 }
             }
@@ -442,19 +439,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             // TODO: Fix the patron and auction house license buff issue
             if (_unit is Character)
             {
-                if (!_unit.Effects.CheckBuff(8000001)) //TODO Wrong place
-                {
-                    _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(EffectOriginType.Skill), SkillManager.Instance.GetBuffTemplate(8000001), null, System.DateTime.Now));
-                }
-                if (!_unit.Effects.CheckBuff(8226)) //TODO Wrong place
-                {
-                    _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(EffectOriginType.Buff), SkillManager.Instance.GetBuffTemplate(8226), null, System.DateTime.Now));
-                }
-                if (!_unit.Effects.CheckBuff(8298)) //TODO Wrong place
-                {
-                    _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(EffectOriginType.Passive), SkillManager.Instance.GetBuffTemplate(8298), null, System.DateTime.Now));
-                }
-
                 if (!_unit.Effects.CheckBuff(8000011)) //TODO Wrong place
                 {
                     _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(EffectOriginType.Skill), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
@@ -463,13 +447,6 @@ namespace AAEmu.Game.Core.Packets.G2C
                 if (!_unit.Effects.CheckBuff(8000012)) //TODO Wrong place
                 {
                     _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(EffectOriginType.Skill), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
-                }
-            }
-            if (_unit is Transfer)
-            {
-                if (!_unit.Effects.CheckBuff(545)) //TODO Wrong place
-                {
-                    _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(EffectOriginType.Skill), SkillManager.Instance.GetBuffTemplate(545), null, System.DateTime.Now));
                 }
             }
 

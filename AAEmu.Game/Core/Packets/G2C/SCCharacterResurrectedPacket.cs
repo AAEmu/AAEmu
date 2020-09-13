@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(_unitId);
-            stream.WritePosition(_x, _y, _z);
+            stream.WritePositionBc(_x, _y, _z);
             stream.Write(_zRot);
             return stream;
         }

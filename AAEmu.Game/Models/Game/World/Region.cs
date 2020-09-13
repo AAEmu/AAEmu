@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
-using AAEmu.Commons.Utils;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -11,8 +10,7 @@ using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Route;
-
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World
@@ -40,7 +38,10 @@ namespace AAEmu.Game.Models.Game.World
         public void AddObject(GameObject obj)
         {
             if (obj == null)
+            {
                 return;
+            }
+
             lock (_objectsLock)
             {
                 if (_objects == null)
@@ -61,32 +62,42 @@ namespace AAEmu.Game.Models.Game.World
                 obj.Position.WorldId = _worldId;
                 var zoneId = WorldManager.Instance.GetZoneId(_worldId, obj.Position.X, obj.Position.Y);
                 if (zoneId > 0)
+                {
                     obj.Position.ZoneId = zoneId;
+                }
 
                 if (obj is Character)
+                {
                     _charactersSize++;
+                }
             }
         }
 
         public void RemoveObject(GameObject obj) // TODO Нужно доделать =_+
         {
             if (obj == null)
+            {
                 return;
+            }
 
             lock (_objectsLock)
             {
                 if (_objects == null || _objectsSize == 0)
+                {
                     return;
+                }
 
                 if (_objectsSize > 1)
                 {
                     var index = -1;
                     for (var i = 0; i < _objects.Length; i++)
+                    {
                         if (_objects[i] == obj)
                         {
                             index = i;
                             break;
                         }
+                    }
 
                     if (index > -1)
                     {
@@ -103,14 +114,18 @@ namespace AAEmu.Game.Models.Game.World
                 }
 
                 if (obj is Character)
+                {
                     _charactersSize--;
+                }
             }
         }
 
         public void AddToCharacters(GameObject obj)
         {
             if (_objects == null)
+            {
                 return;
+            }
 
             // show the player all the facilities in the region
             if (obj is Character character)
@@ -151,6 +166,7 @@ namespace AAEmu.Game.Models.Game.World
                 }
                 // TODO ...others types...
             }
+
             // show the object to all players in the region
             foreach (var chr in GetList(new List<Character>(), obj.ObjId))
             {
@@ -161,7 +177,9 @@ namespace AAEmu.Game.Models.Game.World
         public void RemoveFromCharacters(GameObject obj)
         {
             if (_objects == null)
+            {
                 return;
+            }
 
             // remove all visible objects in the region from the player
             if (obj is Character)
@@ -178,14 +196,29 @@ namespace AAEmu.Game.Models.Game.World
                             // Stop NPCs that players don't see
                             npc.IsInPatrol = false;
                             npc.Patrol = null;
+                            //npc.RemoveVisibleObject(character);
                             break;
                         case Gimmick gimmick:
                             gimmick.RemoveVisibleObject(character);
                             break;
                         case Transfer transfer:
-                            transfer.RemoveVisibleObject(character);
+                            var chr = new Vector3(character.Position.X, character.Position.Y, character.Position.Z);
+                            var trs = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
+                            var distance = MathUtil.GetDistance(chr, trs);
+                            if (distance > 500f)
+                            {
+                                transfer.RemoveVisibleObject(character);
+                            }
                             break;
                     }
+
+                    if (character.CurrentTarget == null || character.CurrentTarget != t)
+                    {
+                        continue;
+                    }
+
+                    character.CurrentTarget = null;
+                    character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
                 }
                 for (var offset = 0; offset < unitIds.Length; offset += 500)
                 {
@@ -210,7 +243,9 @@ namespace AAEmu.Game.Models.Game.World
 
             // remove the object from all players in the region
             foreach (var character in GetList(new List<Character>(), obj.ObjId))
+            {
                 obj.RemoveVisibleObject(character);
+            }
         }
 
         public Region[] GetNeighbors()
@@ -221,10 +256,18 @@ namespace AAEmu.Game.Models.Game.World
         public bool AreNeighborsEmpty()
         {
             if (!IsEmpty())
+            {
                 return false;
+            }
+
             foreach (var neighbor in GetNeighbors())
+            {
                 if (!neighbor.IsEmpty())
+                {
                     return false;
+                }
+            }
+
             return true;
         }
 
@@ -239,14 +282,22 @@ namespace AAEmu.Game.Models.Game.World
             lock (_objectsLock)
             {
                 if (_objects == null || _objectsSize == 0)
+                {
                     return result;
+                }
+
                 temp = new GameObject[_objectsSize];
                 Array.Copy(_objects, 0, temp, 0, _objectsSize);
             }
 
             foreach (var obj in temp)
+            {
                 if (obj.ObjId != exclude)
+                {
                     result.Add(obj.ObjId);
+                }
+            }
+
             return result;
         }
 
@@ -256,14 +307,22 @@ namespace AAEmu.Game.Models.Game.World
             lock (_objectsLock)
             {
                 if (_objects == null || _objectsSize == 0)
+                {
                     return result;
+                }
+
                 temp = new GameObject[_objectsSize];
                 Array.Copy(_objects, 0, temp, 0, _objectsSize);
             }
 
             foreach (var obj in temp)
+            {
                 if (obj != null && obj.ObjId != exclude)
+                {
                     result.Add(obj);
+                }
+            }
+
             return result;
         }
 
@@ -273,14 +332,21 @@ namespace AAEmu.Game.Models.Game.World
             lock (_objectsLock)
             {
                 if (_objects == null || _objectsSize == 0)
+                {
                     return result;
+                }
+
                 temp = new GameObject[_objectsSize];
                 Array.Copy(_objects, 0, temp, 0, _objectsSize);
             }
 
             foreach (var obj in temp)
+            {
                 if (obj is T && obj.ObjId != exclude)
+                {
                     result.Add(obj.ObjId);
+                }
+            }
 
             return result;
         }
@@ -291,7 +357,10 @@ namespace AAEmu.Game.Models.Game.World
             lock (_objectsLock)
             {
                 if (_objects == null || _objectsSize == 0)
+                {
                     return result;
+                }
+
                 temp = new GameObject[_objectsSize];
                 Array.Copy(_objects, 0, temp, 0, _objectsSize);
             }
@@ -300,7 +369,9 @@ namespace AAEmu.Game.Models.Game.World
             {
                 var item = obj as T;
                 if (item != null && obj.ObjId != exclude)
+                {
                     result.Add(item);
+                }
             }
 
             return result;
@@ -312,7 +383,10 @@ namespace AAEmu.Game.Models.Game.World
             lock (_objectsLock)
             {
                 if (_objects == null || _objectsSize == 0)
+                {
                     return result;
+                }
+
                 temp = new GameObject[_objectsSize];
                 Array.Copy(_objects, 0, temp, 0, _objectsSize);
             }
@@ -321,15 +395,23 @@ namespace AAEmu.Game.Models.Game.World
             {
                 var item = obj as T;
                 if (item == null || obj.ObjId == exclude)
+                {
                     continue;
+                }
+
                 var dx = obj.Position.X - x;
                 dx *= dx;
                 if (dx > sqrad)
+                {
                     continue;
+                }
+
                 var dy = obj.Position.Y - y;
                 dy *= dy;
                 if (dx + dy < sqrad)
+                {
                     result.Add(item);
+                }
             }
 
             return result;
@@ -338,9 +420,15 @@ namespace AAEmu.Game.Models.Game.World
         public override bool Equals(object obj)
         {
             if (obj == null)
+            {
                 return false;
+            }
+
             if (obj.GetType() != typeof(Region))
+            {
                 return false;
+            }
+
             var other = (Region)obj;
             return other._worldId == _worldId && other.X == X && other.Y == Y;
         }

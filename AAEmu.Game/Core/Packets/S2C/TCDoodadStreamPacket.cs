@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Core.Packets.S2C
             {
                 stream.WriteBc(doodad.ObjId);
                 stream.Write(doodad.TemplateId);
-                stream.WritePosition(doodad.Position.X, doodad.Position.Y, doodad.Position.Z);
+                stream.WritePositionBc(doodad.Position.X, doodad.Position.Y, doodad.Position.Z);
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationX));
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationY));
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationZ));

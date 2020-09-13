@@ -6,8 +6,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Route;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -72,14 +70,19 @@ namespace AAEmu.Game.Core.Managers
             gimmick.ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId();
             gimmick.Spawner = spawner;
             gimmick.Template = template;
-            gimmick.Id = 0;
+            gimmick.GimmickId = gimmick.ObjId;
             gimmick.TemplateId = template.Id;
             gimmick.Faction = new SystemFaction();
             gimmick.ModelPath = template.ModelPath;
             gimmick.Patrol = null;
             gimmick.Position = spawner.Position.Clone();
+
+            gimmick.WorldPos.X = Helpers.ConvertLongY(gimmick.Position.X);
+            gimmick.WorldPos.Y = Helpers.ConvertLongY(gimmick.Position.Y);
+            gimmick.WorldPos.Z = gimmick.Position.Z;
+
             gimmick.Vel = new Vector3(0f, 0f, 0f);
-            gimmick.Rotation = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
+            gimmick.Rot = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
             gimmick.ModelParams = new UnitCustomModelParams();
 
             gimmick.Spawn();

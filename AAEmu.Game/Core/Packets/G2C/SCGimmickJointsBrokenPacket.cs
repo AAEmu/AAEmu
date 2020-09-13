@@ -18,9 +18,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((byte)_gimmick.Length); // TODO max length 200
             foreach (var gimmick in _gimmick)
             {
-                stream.Write(gimmick.TemplateId); // gimmickId
-                stream.Write(0);                  // jointId
-                stream.Write(0);                  // epicentr
+                stream.Write(gimmick.GimmickId); // gimmickId
+                stream.Write(0);                 // jointId
+                stream.Write(0);                 // epicentr
             }
 
             return stream;

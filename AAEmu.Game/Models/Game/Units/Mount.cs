@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -19,9 +20,9 @@ namespace AAEmu.Game.Models.Game.Units
         public NpcTemplate Template { get; set; }
 
         public uint OwnerObjId { get; set; }
-        public uint Att1 { get; set; }
+        public uint Attached1 { get; set; }
         public AttachUnitReason Reason1 { get; set; }
-        public uint Att2 { get; set; }
+        public uint Attached2 { get; set; }
         public AttachUnitReason Reason2 { get; set; }
 
         public override float Scale => Template.Scale;
@@ -345,11 +346,13 @@ namespace AAEmu.Game.Models.Game.Units
         {
             ModelParams = new UnitCustomModelParams();
             Skills = new List<uint>();
-            Att1 = 0u;
+            Attached1 = 0u;
             Reason1 = AttachUnitReason.None;
-            Att2 = 0u;
+            Attached2 = 0u;
             Reason2 = AttachUnitReason.None;
             UnitType = BaseUnitType.Mate;
+            WorldPos = new WorldPos();
+            Position = new Point();
         }
 
         public override void AddVisibleObject(Character character)
@@ -357,15 +360,15 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCMateStatePacket(ObjId));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
-            if (Att1 > 0)
+            if (Attached1 > 0)
             {
-                var owner = WorldManager.Instance.GetCharacterByObjId(Att1);
+                var owner = WorldManager.Instance.GetCharacterByObjId(Attached1);
                 if (owner != null)
                     character.SendPacket(new SCUnitAttachedPacket(owner.ObjId, AttachPoint.Driver, Reason1, ObjId));
             }
-            if (Att2 > 0)
+            if (Attached2 > 0)
             {
-                var passenger = WorldManager.Instance.GetCharacterByObjId(Att1);
+                var passenger = WorldManager.Instance.GetCharacterByObjId(Attached1);
                 if (passenger != null)
                     character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, AttachPoint.Passenger0, Reason2, ObjId));
             }

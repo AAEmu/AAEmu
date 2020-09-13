@@ -2,7 +2,7 @@ using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
-    public class ShipRequestMoveType : MoveType
+    public class ShipInput : UnitMovement
     {
         public sbyte Throttle { get; set; }
         public sbyte Steering { get; set; }

@@ -51,7 +51,7 @@ namespace AAEmu.Game.Models.Game.Char
                 if (VisitedDistricts.ContainsKey(portal.SubZoneId) && VisitedDistricts.Remove(portal.SubZoneId))
                 {
                     _removedVisitedDistricts.Add(portal.SubZoneId);
-                    //Owner.SendMessage("Default Portal deleted.");
+                    //Owner.SendMessage("None Portal deleted.");
                 }
             }
         }

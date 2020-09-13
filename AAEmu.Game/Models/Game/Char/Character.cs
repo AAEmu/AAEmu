@@ -980,6 +980,7 @@ namespace AAEmu.Game.Models.Game.Char
 
                         character = new Character(modelParams);
                         character.Position = new Point();
+                        character.WorldPos = new WorldPos();
                         character.AccountId = accountId;
                         character.Id = reader.GetUInt32("id");
                         character.Name = reader.GetString("name");
@@ -1090,6 +1091,7 @@ namespace AAEmu.Game.Models.Game.Char
 
                         character = new Character(modelParams);
                         character.Position = new Point();
+                        character.WorldPos = new WorldPos();
                         character.Id = reader.GetUInt32("id");
                         character.AccountId = reader.GetUInt32("account_id");
                         character.Name = reader.GetString("name");

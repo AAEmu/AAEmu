@@ -42,10 +42,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_eventId); // eventId
             stream.Write(_skillId); // skillId
             stream.Write(_caster);  // PlotObj
-                                    // type(b) Unit | Position
+                                    // type(b) Actor | Position
                                     // casterId(bc) | XYZ
             stream.Write(_target);  // PlotObj
-                                    // type(b) Unit | Position
+                                    // type(b) Actor | Position
                                     // targetId(bc) | XYZ
             stream.Write(_itemId);  // itemObjId
             stream.WriteBc(_objId); // обычно 0, но иногда нужно вставлять casterId(bc)

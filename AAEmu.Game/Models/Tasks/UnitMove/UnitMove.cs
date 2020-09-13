@@ -39,6 +39,9 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
                 case Transfer transfer:
                     _patrol?.Apply(transfer);
                     break;
+                default:
+                    _patrol?.Apply(_unit);
+                    break;
             }
         }
     }

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils;
@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.Team
             stream.Write(Character.MaxHp);
             stream.Write(Character.Mp);
             stream.Write(Character.MaxMp);
-            stream.WritePosition(Character.Position.X, Character.Position.Y, Character.Position.Z);
+            stream.WritePositionBc(Character.Position.X, Character.Position.Y, Character.Position.Z);
             stream.Write(MathUtil.ConvertDirectionToDegree(Character.Position.RotationZ)); // angZ
             stream.Write((byte)Character.Ability1);
             stream.Write((byte)Character.Ability2);

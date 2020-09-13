@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var stv in SlotTypes)
             {
                 SlotType st = (SlotType)stv;
-                // Take Equipment Container from Parent Unit's Equipment
+                // Take Equipment Container from Parent Actor's Equipment
                 if (st == SlotType.Equipment)
                 {
                     Equipment = Owner.Equipment;
@@ -320,7 +320,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (itemInTargetSlot.SlotType != toType)
                 {
-                    _log.Error("SplitOrMoveItem Target Item Type does not match");
+                    _log.Error("SplitOrMoveItem Target Item ScType does not match");
                     return false;
                 }
                 if (itemInTargetSlot.Slot != toSlot)

@@ -13,6 +13,7 @@ using AAEmu.Game.Utils;
 using AAEmu.Commons.Utils;
 using NLog;
 using System;
+using System.Numerics;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -47,23 +48,30 @@ namespace AAEmu.Game.Scripts.Commands
                 character.SendMessage("[Rotate] Unit: {0}, ObjId: {1}", character.CurrentTarget.Name, character.CurrentTarget.ObjId);
 
                 var Seq = (uint)(DateTime.Now - GameService.StartTime).TotalMilliseconds;
-                var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-                
+                var moveType = (ActorData)UnitMovement.GetType(UnitMovementType.Actor);
+
                 moveType.X = character.CurrentTarget.Position.X;
                 moveType.Y = character.CurrentTarget.Position.Y;
                 moveType.Z = character.CurrentTarget.Position.Z;
 
                 var angle = MathUtil.CalculateAngleFrom(character.CurrentTarget, character);
                 var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-                moveType.RotationX = 0;
-                moveType.RotationY = 0;
-                moveType.RotationZ = rotZ;
 
+                //var direction = new Vector3();
+                //if (vDistance != Vector3.Zero)
+                //    direction = Vector3.Normalize(vDistance);
+                ////var rotation = (float)Math.Atan2(direction.Y, direction.X);
+
+                //moveType.Rot = Quaternion.CreateFromAxisAngle(direction, rotZ);
+                moveType.Rot = new Quaternion(0f, 0f, Helpers.ConvertDirectionToRadian(rotZ), 1f);
                 moveType.Flags = 5;
-                moveType.DeltaMovement = new sbyte[3];
-                moveType.DeltaMovement[0] = 0;
-                moveType.DeltaMovement[1] = 0;
-                moveType.DeltaMovement[2] = 0;
+
+                //moveType.DeltaMovement = new sbyte[3];
+                //moveType.DeltaMovement[0] = 0;
+                //moveType.DeltaMovement[1] = 0;
+                //moveType.DeltaMovement[2] = 0;
+                moveType.DeltaMovement = Vector3.Zero;
+
                 moveType.Stance = 1; //combat=0, idle=1
                 moveType.Alertness = 0; //idle=0, combat=2
                 moveType.Time = Seq;

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_reason);
             stream.Write(_errorMessage);
-            stream.WritePosition(_x, _y, _z);
+            stream.WritePositionBc(_x, _y, _z);
             stream.Write(_z2);
             return stream;
         }

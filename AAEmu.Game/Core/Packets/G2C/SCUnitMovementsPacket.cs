@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.NPChar;
@@ -9,9 +10,9 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCUnitMovementsPacket : GamePacket // TODO ... SCOneUnitMovementPacket
     {
-        private (uint id, MoveType type)[] _movements;
+        private (uint id, UnitMovement type)[] _movements;
 
-        public SCUnitMovementsPacket((uint id, MoveType type)[] movements) : base(SCOffsets.SCUnitMovementsPacket, 1)
+        public SCUnitMovementsPacket((uint id, UnitMovement type)[] movements) : base(SCOffsets.SCUnitMovementsPacket, 1)
         {
             _movements = movements;
         }
@@ -22,18 +23,14 @@ namespace AAEmu.Game.Core.Packets.G2C
             foreach (var (id, type) in _movements)
             {
                 // ---- test Ai ----
-                var unit = WorldManager.Instance.GetUnit(id);
-                if (unit is Npc npc)
-                {
-                    var movementAction = new MovementAction(
-                        new Point(type.X, type.Y, type.Z, type.RotationX, type.RotationY, type.RotationZ),
-                        new Point(0, 0, 0),
-                        type.RotationZ,
-                        3,
-                        MoveTypeEnum.Unit
-                    );
-                    npc.VisibleAi.OwnerMoved(movementAction);
-                }
+                var movementAction = new MovementAction(
+                    new Point(type.X, type.Y, type.Z, Helpers.ConvertRadianToSbyteDirection(type.Rot.X), Helpers.ConvertRadianToSbyteDirection(type.Rot.Y), Helpers.ConvertRadianToSbyteDirection(type.Rot.Z)),
+                    new Point(0, 0, 0),
+                    (sbyte)type.Rot.Z,
+                    3,
+                    UnitMovementType.Actor
+                );
+                Connection.ActiveChar.VisibleAi.OwnerMoved(movementAction);
                 // ---- test Ai ----
 
                 stream.WriteBc(id);

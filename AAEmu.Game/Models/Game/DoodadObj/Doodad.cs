@@ -47,6 +47,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             _scale = 1f;
             Position = new Point();
+            WorldPos = new WorldPos();
             PlantTime = DateTime.MinValue;
             AttachPoint = 255;
         }
@@ -94,7 +95,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
-            stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
+            stream.WritePositionBc(Position.X, Position.Y, Position.Z); //self explanatory
             stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
             stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
             stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''

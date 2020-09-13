@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Numerics;
 using System.Threading;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
@@ -60,7 +61,9 @@ namespace AAEmu.Game.Core.Managers.World
             
             
             slave.Position.RotationZ = MathUtil.ConvertDegreeToDirection(-slave.RotationDegrees);
-            slave.RotationZ = (short) (slave.Position.RotationZ * 1024);
+            var rotationZ = (short) (slave.Position.RotationZ * 1024);
+            slave.Rot = new Quaternion(0,0, Helpers.ConvertDirectionToRadian(rotationZ), 1f); // TODO проверить
+
             var (newX, newY) = MathUtil.AddDistanceToFront(-(slave.Speed / 20f), slave.Position.X, slave.Position.Y,
                 slave.Position.RotationZ);
             
@@ -73,12 +76,12 @@ namespace AAEmu.Game.Core.Managers.World
             slave.RotationDegrees -= slave.RotSpeed;
             slave.RotationDegrees %= 360f;
             
-            slave.VelX = (short) (diffX * 21900);
-            slave.VelY = (short) (diffY * 21900);
+            var velX = (short) (diffX * 21900);
+            var velY = (short) (diffY * 21900);
+            var velZ = slave.RotSpeed;
+            slave.AngVel = new Vector3(velX, velY, velZ); // TODO проверить
 
-            slave.AngVelZ = slave.RotSpeed;
-
-            var moveType = (ShipMoveType)MoveType.GetType(MoveTypeEnum.Ship);
+            var moveType = (Ship)UnitMovement.GetType(UnitMovementType.Ship);
             moveType.UseSlaveBase(slave);
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
         }

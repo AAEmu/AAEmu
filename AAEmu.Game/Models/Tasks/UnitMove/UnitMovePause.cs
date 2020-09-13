@@ -36,6 +36,9 @@ namespace AAEmu.Game.Models.Tasks.UnitMove
                 case Gimmick _gimmick:
                     _patrol?.LoopAuto(_gimmick);
                     break;
+                case Transfer _transfer:
+                    _patrol?.LoopAuto(_transfer);
+                    break;
             }
         }
     }

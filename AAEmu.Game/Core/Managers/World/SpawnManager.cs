@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Threading;
 
 using AAEmu.Commons.IO;
@@ -7,12 +8,15 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 
 using NLog;
 
@@ -114,8 +118,7 @@ namespace AAEmu.Game.Core.Managers.World
                                         spawner.Position.Y)
                                     : spawner.Position.Z;
                             }
-
-                            spawner.RotationZ = Helpers.ConvertRotation(spawner.Position.RotationZ);
+                            spawner.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
                             transferSpawners.Add(spawner.Id, spawner);
                         }
                     }

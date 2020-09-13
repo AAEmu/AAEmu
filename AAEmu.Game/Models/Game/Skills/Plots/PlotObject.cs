@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     stream.WriteBc(UnitId);
                     break;
                 case PlotObjectType.POSITION:
-                    stream.WritePosition(Position.X, Position.Y, Position.Z);
+                    stream.WritePositionBc(Position.X, Position.Y, Position.Z);
                     stream.Write(Position.RotationX);
                     stream.Write(Position.RotationY);
                     stream.Write(Position.RotationZ); 

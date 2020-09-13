@@ -28,13 +28,13 @@ namespace AAEmu.Game.Core.Packets.C2G
          *
               if ( a2->Reader->field_1C() )
               {
-                a2->Reader->ReadByte("scType", &v7 + 3, 0);
+                a2->Reader->ReadByte("ScType", &v7 + 3, 0);
                 v2[1] = HIBYTE(v7);
               }
               else
               {
                 HIBYTE(v7) = *(v2 + 4);
-                a2->Reader->ReadByte("scType", &v7 + 3, 0);
+                a2->Reader->ReadByte("ScType", &v7 + 3, 0);
               }
               if ( !v2[1] )
               {

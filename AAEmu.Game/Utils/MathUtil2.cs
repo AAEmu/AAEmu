@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Numerics;
-
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World;
+using NLog;
 
 namespace AAEmu.Game.Utils
 {
     public static class MathUtil2
     {
+        static Logger _log = LogManager.GetCurrentClassLogger();
+        
         // Return degree value of object 2 to the horizontal line with object 1 being the origin
         public static double CalculateAngleFrom(GameObject obj1, GameObject obj2)
         {
@@ -201,45 +204,97 @@ namespace AAEmu.Game.Utils
 
             return rad;
         }
-        public static ushort ConvertDegreeToDirectionShort(double degree)
+        public static double CalculateDirectionZ(Vector3 obj1, Vector3 obj2)
         {
-            var rotateModifier = 1;
+            var rad = Math.Atan2(obj2.Y - obj1.Y, obj2.Z - obj1.Z);
 
+            return rad;
+        }
+        public static short ConvertDegreeToDirectionShort(double degree)
+        {
+            var tmp = degree;
+            var rotateModifier = Math.Sign(degree);
             if (degree < 0)
             {
                 rotateModifier = -1;   // remember the sign of the angle
                 degree = 360 + degree; // working with positive angles
+                degree -= 90; // 12 o'clock == 0°
+                if (Math.Abs(degree) > 180)
+                {
+                    degree = 360 - degree; // we work only with angles up to 180 degrees
+                }
             }
-            //if (degree > 180)
-            //{
-            //    degree = 360 - degree;  // we work only with angles up to 180 degrees
-            //}
-            degree -= 90; // 12 o'clock == 0°
-            if (degree < 0)
+            else
             {
-                rotateModifier = -1;   // remember the sign of the angle
-            //    degree = 360 + degree; // working with positive angles
+                degree -= 90; // 12 o'clock == 0°
+                if (Math.Abs(degree) > 180)
+                {
+                    degree = 360 - degree; // we work only with angles up to 180 degrees
+                    rotateModifier = -1;  // change the angle sign to the opposite
+                }
             }
+
             double direction = 0f;
-            if (Math.Abs(degree) > 135 && Math.Abs(degree) < 225)
+            if (Math.Abs(degree) > 135 && Math.Abs(degree) <= 180)
             {
-                direction = Math.Abs(degree) * 205.6814814814815; //182.0444444444444;
-                direction = Math.Clamp(direction, -32767d, 32767d);
+                direction = degree * 182.0389;
             }
             else if (Math.Abs(degree) > 90 && Math.Abs(degree) <= 135 || Math.Abs(degree) < 270 && Math.Abs(degree) >= 225)
             {
-                direction = Math.Abs(degree) * 205.6814814814815;
+                direction = degree * 205.6814814814815;
             }
             else if (Math.Abs(degree) >= 0 && Math.Abs(degree) <= 90 || Math.Abs(degree) <= 360 && Math.Abs(degree) >= 270)
             {
-                direction = Math.Abs(degree) * 252.9777777777778;
+                direction = degree * 252.9777777777778;
             }
-            //_log.Warn("Degree={0}, Direction={1}", degree, direction);
+            //_log.Warn("Degree0={0}, Degree1={1}, Direction={2}", tmp, degree, direction);
 
-            //direction = Math.Abs(degree) * 252.9777777777778;
-            //direction = Math.Clamp(direction, -32767d, 32767d);
+            return (short)(direction * rotateModifier);
+        }
 
-            return (ushort)(direction * rotateModifier);
+        public static float ConvertToDirection(double radian)
+        {
+            var degree = MathUtil.RadianToDegree(radian);
+            var tmp = degree;
+            var rotateModifier = Math.Sign(degree);
+            if (degree < 0)
+            {
+                rotateModifier = -1;   // remember the sign of the angle
+                degree = 360 + degree; // working with positive angles
+                degree -= 90; // 12 o'clock == 0°
+                if (Math.Abs(degree) > 180)
+                {
+                    degree = 360 - degree; // we work only with angles up to 180 degrees
+                }
+            }
+            else
+            {
+                degree -= 90; // 12 o'clock == 0°
+                if (Math.Abs(degree) > 180)
+                {
+                    degree = 360 - degree; // we work only with angles up to 180 degrees
+                    rotateModifier = -1;  // change the angle sign to the opposite
+                }
+            }
+
+            double direction = 0f;
+            if (Math.Abs(degree) > 135 && Math.Abs(degree) <= 180)
+            {
+                direction = degree * 182.0389;
+            }
+            else if (Math.Abs(degree) > 90 && Math.Abs(degree) <= 135 || Math.Abs(degree) < 270 && Math.Abs(degree) >= 225)
+            {
+                direction = degree * 205.6814814814815;
+            }
+            else if (Math.Abs(degree) >= 0 && Math.Abs(degree) <= 90 || Math.Abs(degree) <= 360 && Math.Abs(degree) >= 270)
+            {
+                direction = degree * 252.9777777777778;
+            }
+            //_log.Warn("Degree0={0}, Degree1={1}, Direction={2}", tmp, degree, direction);
+
+            var tmpZ =  (short)(direction * rotateModifier);
+
+            return Helpers.ConvertDirectionToRadian(tmpZ);
         }
 
         public static double GetAngle(Vector3 origin, Vector3 target)

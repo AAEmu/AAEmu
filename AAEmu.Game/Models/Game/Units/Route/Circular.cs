@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -25,20 +27,19 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public sbyte Radius { get; set; } = 2; //5;
         public short Degree { get; set; } = 180;
 
-        public override void Execute(BaseUnit unit)
+        public override void Execute(Npc npc)
         {
-            var npc = unit as Npc;
-
             if (npc == null) { return; }
 
             var x = npc.Position.X;
             var y = npc.Position.Y;
+            var z = npc.Position.Z;
             // debug by Yanlongli date 2019.04.18
             // 将自己的移动赋予选择的对象 跟随自己一起移动
             // Give your own movement to the selected object, move with yourself
             // 模拟unit
             // Simulated unit
-            var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+            moveType = (ActorData)UnitMovement.GetType(UnitMovementType.Actor);
 
             if (npc.Position.RotationX < 127)
             {
@@ -51,21 +52,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
             // 改变NPC坐标
             // Changing NPC coordinates
-            moveType.Flags = 5;     // 5-walk, 4-run, 3-stand still
-            //moveType.VelZ = VelZ;
-            moveType.DeltaMovement = new sbyte[3];
-            moveType.DeltaMovement[0] = 0;
-            moveType.DeltaMovement[1] = 127; // 88.. 118
-            moveType.DeltaMovement[2] = 0;
-            moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
-            moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = Seq;    // has to change all the time for normal motion.
-
             // 圆形巡航
             // Round cruising
             var hudu = 4 * Math.PI / 360 * Count;
             moveType.X = npc.Position.X = npc.Spawner.Position.X + (float)Math.Sin(hudu) * Radius;
             moveType.Y = npc.Position.Y = npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
+            var tmpZ = npc.Position.Z; //просто инициализируем
 
             if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
             {
@@ -77,13 +69,43 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             else // other
             {
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                tmpZ = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             }
+            moveType.Z = tmpZ;
+
+            // looks in the direction of movement
             var angle = MathUtil.CalculateAngleFrom(x, y, npc.Position.X, npc.Position.Y);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-            moveType.RotationX = 0;
-            moveType.RotationY = 0;
-            moveType.RotationZ = rotZ;
+            //AngleTmp = MathUtil.CalculateAngleFrom(x, y, npc.Position.X, npc.Position.Y);
+            // slowly turn to the desired angle
+            if (AngleTmp > 0)
+            {
+                Angle += AngVelocity;
+                Angle = (float)Math.Clamp(Angle, 0f, AngleTmp);
+            }
+            else
+            {
+                Angle -= AngVelocity;
+                Angle = (float)Math.Clamp(Angle, AngleTmp, 0f);
+            }
+            //var rotZ = MathUtil.ConvertDegreeToDirection(Angle);
+            vPosition = new Vector3(x, y, z);
+            vTarget = new Vector3(npc.Position.X, npc.Position.Y, npc.Position.Z);
+            vDistance = vPosition - vTarget; // dx, dy, dz
+            var direction = new Vector3();
+            if (vDistance != Vector3.Zero)
+            {
+                direction = Vector3.Normalize(vDistance);
+            }
+            moveType.Rot = new Quaternion(0f, 0f, Helpers.ConvertDirectionToRadian(rotZ), 1f);
+            npc.Rot = moveType.Rot;
+
+            moveType.DeltaMovement = new Vector3(0, 1.0f, 0);
+
+            moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
+            moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Time = Seq;    // has to change all the time for normal motion.
 
             // 广播移动状态
             // Broadcasting Mobile State
@@ -98,7 +120,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 // 停止移动
                 // Stop moving
-                moveType.DeltaMovement[1] = 0;
+                //moveType.DeltaMovement[1] = 0;
+                moveType.DeltaMovement = new Vector3();
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 //LoopAuto(npc);
                 // stop at the top for time seconds
@@ -111,6 +134,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             throw new NotImplementedException();
         }
         public override void Execute(Gimmick gimmick)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(BaseUnit unit)
         {
             throw new NotImplementedException();
         }

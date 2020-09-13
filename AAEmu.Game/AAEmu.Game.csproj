@@ -35,6 +35,10 @@
         <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
         <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <Compile Remove="Utils\MathUtil2.cs" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Jace" Version="0.9.2" />

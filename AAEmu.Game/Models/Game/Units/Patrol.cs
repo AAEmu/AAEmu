@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.UnitMove;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -14,6 +17,38 @@ namespace AAEmu.Game.Models.Game.Units
     /// </summary>
     public abstract class Patrol
     {
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
+        
+        public bool GoBack { get; set; }
+        public bool InPatrol { get; set; }
+        public short Degree { get; set; } = 360;
+        public float Time { get; set; }
+        public float DeltaTime { get; set; } = 0.1f;
+        public ActorData moveType { get; set; }
+        public double Angle { get; set; }
+        public float Distance { get; set; }
+        public float MovingDistance { get; set; } = 0.27f;
+        public double AngleTmp { get; set; }
+        public float AngVelocity { get; set; } = 5.0f;
+        public float MaxVelocityForward { get; set; } = 5.4f;
+        public float MaxVelocityBackward { get; set; } = 0f;
+        public float VelAccel { get; set; } = 1.0f;
+        public Vector3 vBeginPoint { get; set; }
+        public Vector3 vEndPoint { get; set; }
+        public Vector3 vMovingDistance { get; set; }
+        public Vector3 vMaxVelocityForwardRun { get; set; } = new Vector3(5.4f, 5.4f, 5.4f);
+        public Vector3 vMaxVelocityBackRun { get; set; } = new Vector3(-5.4f, -5.4f, -5.4f);
+        public Vector3 vMaxVelocityForwardWalk { get; set; } = new Vector3(1.8f, 1.8f, 1.8f);
+        public Vector3 vMaxVelocityBackWalk { get; set; } = new Vector3(-1.8f, -1.8f, -1.8f);
+        public Vector3 vVelocity { get; set; }
+        public Vector3 vVelAccel { get; set; } = new Vector3(1.8f, 1.8f, 1.8f);
+        public Vector3 vPosition { get; set; }
+        public Vector3 vPausePosition { get; set; }
+        public Vector3 vTarget { get; set; }
+        public Vector3 vDistance { get; set; }
+        public float RangeToCheckPoint { get; set; } = 1.5f; // distance to checkpoint at which it is considered that we have reached it
+        public Vector3 vRangeToCheckPoint { get; set; } = new Vector3(0.5f, 0.5f, 0f); // distance to checkpoint at which it is considered that we have reached it
+
         /// <summary>
         /// Are patrols under way?
         /// The default is False
@@ -50,7 +85,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// <summary>
         /// Suspension of cruise points
         /// </summary>
-        protected Point PausePosition { get; set; }
+        public Point PausePosition { get; set; }
         /// <summary>
         /// Last mission
         /// </summary>
@@ -69,7 +104,7 @@ namespace AAEmu.Game.Models.Game.Units
         public void Apply(BaseUnit unit)
         {
             // If NPC does not exist or is not in cruise mode or the current number of executions is not zero
-            if (unit.Patrol != null && 
+            if (unit.Patrol != null &&
                (unit.Patrol.Running || this == unit.Patrol) &&
                (!unit.Patrol.Running || this != unit.Patrol))
             {
@@ -93,15 +128,14 @@ namespace AAEmu.Game.Models.Game.Units
                 case Transfer transfer:
                     Execute(transfer);
                     break;
+                case Npc npc:
+                    Execute(npc);
+                    break;
                 default:
                     Execute(unit);
                     break;
             }
         }
-
-        public abstract void Execute(BaseUnit unit);
-        public abstract void Execute(Transfer transfer);
-        public abstract void Execute(Gimmick gimmick);
 
         /// <summary>
         /// 再次执行任务
@@ -116,15 +150,31 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 case Npc npc:
                     if (!(patrol ?? this).Abandon)
+                    {
                         TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, npc), TimeSpan.FromMilliseconds(time));
+                    }
+
                     break;
                 case Gimmick gimmick:
                     if (!(patrol ?? this).Abandon)
+                    {
                         TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, gimmick), TimeSpan.FromMilliseconds(time));
+                    }
+
                     break;
                 case Transfer transfer:
                     if (!(patrol ?? this).Abandon)
+                    {
                         TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, transfer), TimeSpan.FromMilliseconds(time));
+                    }
+
+                    break;
+                default:
+                    if (!(patrol ?? this).Abandon)
+                    {
+                        TaskManager.Instance.Schedule(new UnitMove(patrol ?? this, unit), TimeSpan.FromMilliseconds(time));
+                    }
+
                     break;
             }
         }
@@ -160,15 +210,14 @@ namespace AAEmu.Game.Models.Game.Units
                 Repeat(unit);
                 return;
             }
-            // If the last cruise is not null
             if (LastPatrol == null || Running) { return; }
-
+            // If the last cruise is not null
             if (Math.Abs(unit.Position.X - LastPatrol.PausePosition.X) < Tolerance && Math.Abs(unit.Position.Y - LastPatrol.PausePosition.Y) < Tolerance && Math.Abs(unit.Position.Z - LastPatrol.PausePosition.Z) < Tolerance)
             {
                 LastPatrol.Running = true;
                 unit.Patrol = LastPatrol;
                 // Resume last cruise
-                Repeat(unit, 500, LastPatrol);
+                Repeat(unit, 1000, LastPatrol);
             }
             else
             {
@@ -179,9 +228,9 @@ namespace AAEmu.Game.Models.Game.Units
                 line.Loop = false;
                 line.LastPatrol = LastPatrol;
                 // Specify target point
-                line.Position = LastPatrol.PausePosition;
+                line.LastPatrolPosition = LastPatrol.PausePosition;
                 // Resume last cruise
-                Repeat(unit, 500, line);
+                Repeat(unit, 1000, line);
             }
         }
 
@@ -199,5 +248,9 @@ namespace AAEmu.Game.Models.Game.Units
                 Stop(unit);
             }
         }
+        public abstract void Execute(BaseUnit unit);
+        public abstract void Execute(Npc npc);
+        public abstract void Execute(Transfer transfer);
+        public abstract void Execute(Gimmick gimmick);
     }
 }

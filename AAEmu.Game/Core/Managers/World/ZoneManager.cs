@@ -90,7 +90,7 @@ namespace AAEmu.Game.Core.Managers.World
         /// <param name="y"></param>
         /// <param name="z"></param>
         /// <returns></returns>
-        public (float, float, float) ConvertCoord(uint zoneId, float x, float y, float z)
+        public (float, float, float) ConvertCoord0(uint zoneId, float x, float y, float z)
         {
             var zone = GetZoneByKey(zoneId);
             if (zone == null)
@@ -102,30 +102,79 @@ namespace AAEmu.Game.Core.Managers.World
 
             return (newX, newY, z);
         }
-        public (float, float, float) ConvertCoord1(uint zoneId, Vector3 point)
+
+        public (float, float, float) ConvertToWorldCoord(uint zoneId, Vector3 point)
         {
-            Vector2 coefficient = new Vector2();
+            Vector2 offsets = new Vector2();
             var zone = GetZoneByKey(zoneId);
             if (zone == null)
                 return (point.X, point.Y, point.Z); // если не нашли зону, вернем координаты
 
             var zoneGroup = GetZoneGroupById(zone.GroupId);
-            switch (zoneGroup.Id)
+            switch (zoneId)
             {
-                case 5:
-                    coefficient = new Vector2(2411f, 46f);
+                case 141: // zone_group=4 -
+                    offsets = new Vector2(1845.532429f, -113.2284f);
                     break;
-                case 6:
-                    coefficient = new Vector2(12609f, 15359f);
+                case 191: // zone_group=4 -
+                    offsets = new Vector2(1845.532429f, -113.2284f);
+                    break;
+                case 143: // zone_group=18 -
+                    offsets = new Vector2(404.1797f, -508.763f);
+                    break;
+                case 244: // zone_group=18 -
+                    offsets = new Vector2(404.1797f, -508.763f);
+                    break;
+                case 129: // zone_group=1 -
+                    offsets = new Vector2(1352.02f, 139.95f);
+                    break;
+                case 181: // zone_group=1 -
+                    offsets = new Vector2(1352.02f, 139.95f);
+                    break;
+                case 182: // zone_group=1 +
+                    offsets = new Vector2(1347.07935f, 154.05155f);
+                    break;
+                case 140: // zone_group=3 -
+                    offsets = new Vector2(1845.532429f, -113.2284f);
+                    break;
+                case 185: // zone_group=3 -
+                    offsets = new Vector2(1845.532429f, -113.2284f);
+                    break;
+                case 142: // zone_group=5 +
+                    offsets = new Vector2(387.766f, 36.206f);
+                    break;
+                case 178: // zone_group=5 +
+                    offsets = new Vector2(2410.951f, 46.011f);
+                    break;
+                case 179: // zone_group=5 -
+                    offsets = new Vector2(2410.951f, 46.011f);
+                    break;
+                case 144: // zone_group=6 -
+                    offsets = new Vector2(329.3186f, -271.2882f);
+                    break;
+                case 195: // zone_group=6 +
+                    offsets = new Vector2(344.929873f, -283.508042f);
+                    break;
+                case 146: // zone_group=7 -
+                    offsets = new Vector2(1396f, -970f);
+                    break;
+                case 197: // zone_group=7 -
+                    offsets = new Vector2(1396f, -970f);
+                    break;
+                case 188: // zone_group=7 -
+                    offsets = new Vector2(1396f, -970f);
+                    break;
+                case 189: // zone_group=7 -
+                    offsets = new Vector2(1396f, -970f);
                     break;
             }
 
-
-            var newX = zoneGroup.X + point.X + coefficient.X; // w_solzreed id=5, x=11925.0, y=13266.0
-            var newY = zoneGroup.Y + point.Y + coefficient.Y;
+            var newX = zoneGroup.X + point.X + offsets.X;
+            var newY = zoneGroup.Y + point.Y + offsets.Y;
 
             return (newX, newY, point.Z);
         }
+
         /// <summary>
         /// Переведём локальные координаты в мировые с использованием константы зависимой от zoneId
         /// </summary>
@@ -163,6 +212,7 @@ namespace AAEmu.Game.Core.Managers.World
             coefficient.Y = point.Y - zoneGroup.Y - target.Y;
             return coefficient;
         }
+
         /// <summary>
         /// Найти коэффициент для перевода локальных координат в мировые координаты
         /// </summary>

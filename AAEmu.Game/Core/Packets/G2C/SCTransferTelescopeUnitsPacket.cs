@@ -36,15 +36,15 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.WriteBc(30);
             stream.Write(132);
-            stream.WritePosition(14103.94f, 14396.37f, 422.774f);
+            stream.WritePositionBc(14103.94f, 14396.37f, 422.774f);
             stream.Write("фермы-ривертон");
             stream.WriteBc(31);
             stream.Write(133);
-            stream.WritePosition(15044.0f, 14089.78f, 481.798f);
+            stream.WritePositionBc(15044.0f, 14089.78f, 481.798f);
             stream.Write("фермы-гардуэй-крепость полумесяца");
             stream.WriteBc(32);
             stream.Write(52);
-            stream.WritePosition(14602.54f, 14045.79f, 657.798f);
+            stream.WritePositionBc(14602.54f, 14045.79f, 657.798f);
             stream.Write("гвинедар-солрид");
 
             return stream;

@@ -10,14 +10,14 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Transfers;
-
+using AAEmu.Game.Models.Game.World;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
 {
     public class Transfer : Unit
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        private static Logger s_log = LogManager.GetCurrentClassLogger();
 
         public uint Id { get; set; }
         public uint TemplateId { get; set; }
@@ -29,20 +29,20 @@ namespace AAEmu.Game.Models.Game.Units
         public override UnitCustomModelParams ModelParams { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
         public DateTime SpawnTime { get; set; }
-        public DateTime gameTime { get; set; }
+        public DateTime GameTime { get; set; }
         public float RotationDegrees { get; set; }
-        public short RotationX { get; set; }
-        public short RotationY { get; set; }
-        public ushort RotationZ { get; set; }
-        public short VelX { get; set; }
-        public short VelY { get; set; }
-        public short VelZ { get; set; }
-        public float AngVelX { get; set; }
-        public float AngVelY { get; set; }
-        public float AngVelZ { get; set; }
-        //public Vector3 Vel { get; set; }
-        //public Vector3 AngVel { get; set; }
-        //public Quaternion Rotation { get; set; }
+        public Quaternion Rot { get; set; } // значение поворота по оси Z должно быть в радианах
+        //public short RotationX { get; set; }
+        //public short RotationY { get; set; }
+        //public ushort RotationZ { get; set; }
+        public Vector3 Velocity { get; set; }
+        //public short VelX { get; set; }
+        //public short VelY { get; set; }
+        //public short VelZ { get; set; }
+        public Vector3 AngVel { get; set; }
+        //public float AngVelX { get; set; }
+        //public float AngVelY { get; set; }
+        //public float AngVelZ { get; set; }
         public int Steering { get; set; } = 1;
         public sbyte Throttle { get; set; } // ?
         public int PathPointIndex { get; set; }
@@ -396,6 +396,8 @@ namespace AAEmu.Game.Models.Game.Units
             AttachedDoodads = new List<Doodad>();
             Ai = new TransferAi(this, 500f);
             UnitType = BaseUnitType.Transfer;
+            WorldPos = new WorldPos();
+            Position = new Point();
         }
 
         public override void AddVisibleObject(Character character)

@@ -1,5 +1,6 @@
 ﻿using System;
-
+using System.Numerics;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Gimmicks;
@@ -12,114 +13,65 @@ namespace AAEmu.Game.Models.Game.Units.Route
 {
     internal class Line : Patrol
     {
-        private float distance = 0f;
-        private float MovingDistance = 0.27f;
-        public Point Position { get; set; }
+        public Point LastPatrolPosition { get; set; }
 
-        public override void Execute(BaseUnit unit)
+        private bool move;
+        private float returnDistance;
+        private float absoluteReturnDistance;
+        private Vector3 newPosition;
+        private float diffX;
+        private float diffY;
+        private float diffZ;
+
+        public override void Execute(Npc npc)
         {
-            var npc = unit as Npc;
-
             if (npc == null) { return; }
-            
-            if (Position == null)
+
+            if (LastPatrolPosition == null)
             {
-                Stop(unit);
+                Stop(npc);
                 return;
             }
-            var move = false;
 
-            var x = npc.Position.X - Position.X;
-            var y = npc.Position.Y - Position.Y;
-            var z = npc.Position.Z - Position.Z;
-            var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
-            float tempMovingDistance;
+            move = false;
+            vPosition = new Vector3(npc.Position.X, npc.Position.Y, npc.Position.Z);
+            Time += DeltaTime;
+            Time = Math.Clamp(Time, 0, 1);
 
-            if (Math.Abs(x) > distance)
+            if (!InPatrol)
             {
-                if (Math.Abs(MaxXYZ - Math.Abs(x)) > Tolerance)
-                {
-                    tempMovingDistance = Math.Abs(x) / (MaxXYZ / MovingDistance);
-                    tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
-                }
-                else
-                {
-                    tempMovingDistance = MovingDistance;
-                }
+                vPausePosition = Vector3.Zero;
+                vBeginPoint = new Vector3(npc.Position.X, npc.Position.Y, npc.Position.Z);
+                vEndPoint = new Vector3(LastPatrolPosition.X, LastPatrolPosition.Y, LastPatrolPosition.Z);
+                Angle = MathUtil.CalculateAngleFrom(vBeginPoint.X, vBeginPoint.Y, vEndPoint.X, vEndPoint.Y);
+                Angle = MathUtil.DegreeToRadian(Angle);
+                InPatrol = true;
+                npc.IsInBattle = false;
+            }
+            vDistance = vPosition - vEndPoint; // dx, dy, dz
+            // accelerate to maximum speed
+            npc.Vel = vMaxVelocityForwardWalk;
+            vVelocity = vMaxVelocityForwardWalk;
 
-                if (x < 0)
-                {
-                    npc.Position.X += tempMovingDistance;
-                }
-                else
-                {
-                    npc.Position.X -= tempMovingDistance;
-                }
-                if (Math.Abs(x) < tempMovingDistance)
-                {
-                    npc.Position.X = Position.X;
-                }
-                move = true;
-            }
-            if (Math.Abs(y) > distance)
-            {
-                if (Math.Abs(MaxXYZ - Math.Abs(y)) > Tolerance)
-                {
-                    tempMovingDistance = Math.Abs(y) / (MaxXYZ / MovingDistance);
-                    tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
-                }
-                else
-                {
-                    tempMovingDistance = MovingDistance;
-                }
-                if (y < 0)
-                {
-                    npc.Position.Y += tempMovingDistance;
-                }
-                else
-                {
-                    npc.Position.Y -= tempMovingDistance;
-                }
-                if (Math.Abs(y) < tempMovingDistance)
-                {
-                    npc.Position.Y = Position.Y;
-                }
-                move = true;
-            }
-            if (Math.Abs(z) > distance)
-            {
-                if (Math.Abs(MaxXYZ - Math.Abs(z)) > Tolerance)
-                {
-                    tempMovingDistance = Math.Abs(z) / (MaxXYZ / MovingDistance);
-                    tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
-                }
-                else
-                {
-                    tempMovingDistance = MovingDistance;
-                }
-                if (z < 0)
-                {
-                    npc.Position.Z += tempMovingDistance;
-                }
-                else
-                {
-                    npc.Position.Z -= tempMovingDistance;
-                }
-                if (Math.Abs(z) < tempMovingDistance)
-                {
-                    npc.Position.Z = Position.Z;
-                }
-                move = true;
-            }
+            // find out how far we have traveled over the past period of time
+            newPosition = Vector3.Lerp(vBeginPoint, vEndPoint, Time);
+            diffX = newPosition.X - npc.Position.X;
+            diffY = newPosition.Y - npc.Position.Y;
+
+            npc.Position.X = newPosition.X;
+            npc.Position.Y = newPosition.Y;
+
+            if (Math.Abs(diffX) > 0 || Math.Abs(diffY) > 0) { move = true; }
+            if (Math.Abs(vDistance.X) < diffX) { npc.Position.X = vTarget.X; }
+            if (Math.Abs(vDistance.Y) < diffY) { npc.Position.Y = vTarget.Y; }
 
             // 模拟unit
             // simulation unit
-            var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-
+            moveType = (ActorData)UnitMovement.GetType(UnitMovementType.Actor);
             // 改变NPC坐标
             // Change the NPC coordinates
-            moveType.X = npc.Position.X;
-            moveType.Y = npc.Position.Y;
+            moveType.X = newPosition.X;
+            moveType.Y = newPosition.Y;
             if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
             {
                 moveType.Z = 98.5993f;
@@ -132,20 +84,13 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             }
-
+            diffZ = moveType.Z - npc.Position.Z;
+            npc.Position.Z = moveType.Z;
             // looks in the direction of movement
-            //--------------------------взгляд_NPC_будет(движение_откуда                     ->                      движение_куда)
-            var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-            moveType.RotationX = 0;
-            moveType.RotationY = 0;
-            moveType.RotationZ = rotZ;
-
+            moveType.Rot = new Quaternion(0f, 0f, (float)Angle, 1f);
+            npc.Rot = moveType.Rot;
+            moveType.DeltaMovement = new Vector3(0, 1.0f, 0);
             moveType.Flags = 5;     // 5-walk, 4-run, 3-stand still
-            moveType.DeltaMovement = new sbyte[3];
-            moveType.DeltaMovement[0] = 0;
-            moveType.DeltaMovement[1] = 127;
-            moveType.DeltaMovement[2] = 0;
             moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = Seq;    // has to change all the time for normal motion.
@@ -156,15 +101,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 // broadcast mobile status
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 LoopDelay = 500;
-                Repeat(unit);
+                Repeat(npc);
             }
             else
             {
                 // 停止移动
                 // stop moving
-                moveType.DeltaMovement[1] = 0;
+                moveType.DeltaMovement = new Vector3();
                 npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
-                LoopAuto(unit);
+                LoopAuto(npc);
             }
         }
         public override void Execute(Transfer transfer)
@@ -172,6 +117,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             throw new NotImplementedException();
         }
         public override void Execute(Gimmick gimmick)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Execute(BaseUnit unit)
         {
             throw new NotImplementedException();
         }

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -49,6 +51,12 @@ namespace AAEmu.Game.Models.Game.NPChar
             
             npc.Spawner = this;
             npc.Position = Position.Clone();
+
+            npc.Pos = new WorldPos(Helpers.ConvertLongX(Position.X), Helpers.ConvertLongY(Position.Y), Position.Z);
+            npc.Rot = new Quaternion(Helpers.ConvertDirectionToRadian(Position.RotationX), Helpers.ConvertDirectionToRadian(Position.RotationY), Helpers.ConvertDirectionToRadian(Position.RotationZ), 1f);
+            npc.Vel = new Vector3();
+            npc.AngVel = new Vector3();
+
             if (npc.Position == null)
             {
                 _log.Error("Can't spawn npc {1} from spawn {0}", Id, UnitId);

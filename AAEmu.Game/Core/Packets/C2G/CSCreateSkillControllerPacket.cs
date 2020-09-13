@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var scType = stream.ReadByte();
             var fallDamageImmune = stream.ReadBoolean();
 
-            _log.Debug("CreateSkillController, objId: {0}, scType: {1}, fallDamageImmune: {2}", objId, scType, fallDamageImmune);
+            _log.Debug("CreateSkillController, objId: {0}, ScType: {1}, fallDamageImmune: {2}", objId, scType, fallDamageImmune);
         }
     }
 }

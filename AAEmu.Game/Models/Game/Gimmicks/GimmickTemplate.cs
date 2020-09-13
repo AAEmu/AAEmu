@@ -2,7 +2,7 @@
 {
     public class GimmickTemplate
     {
-        public uint Id { get; set; } // GimmickId
+        public uint Id { get; set; } // TemplateId
         public float AirResistance { get; set; }
         public float CollisionMinSpeed { get; set; }
         public uint CollisionSkillId { get; set; }

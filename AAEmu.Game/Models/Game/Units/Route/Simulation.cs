@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.UnitMove;
 using AAEmu.Game.Utils;
 
@@ -27,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
     /// </summary>
     public class Simulation : Patrol
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        private static Logger s_log = LogManager.GetCurrentClassLogger();
 
         public Character character;
         public Npc npc;
@@ -35,29 +36,28 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
         public bool AbandonTo { get; set; } = false; // для прерывания repeat()
         // +++
-        private float maxVelocityForward;
-        private float maxVelocityBackward;
-        private float velAccel;
-        private float angVel;
+        private float _maxVelocityForward;
+        private float _maxVelocityBackward;
+        private float _velAccel;
+        private float _angVel;
         private int Steering;
+        private float diffX;
+        private float diffY;
+        private float diffZ;
         //
-        public double yaw = -90; // degree
-        public double angle;
-        public double angleTmp;
-        public Vector3 vPosition;
-        public Vector3 vTarget;
-        public Vector3 vDistance;
-        public Vector3 vVelocity;
-        public Vector3 direction;
-        public float distance;
-        public DateTime gameTime;
+        public double _angleTmp;
+        public Vector3 _vPosition;
+        public Vector3 _vTarget;
+        public Vector3 _vDistance;
+        public Vector3 _vVelocity;
+        public double rad;
         // movement data
         public List<string> MovePath;     //  the data we're going to be moving on at the moment
         public List<Point> TransferPath;  // path from client file
         public List<string> RecordPath;   // data to write the path
         public Dictionary<int, List<Point>> Routes; // Steering, TransferPath
-        public Dictionary<uint, Dictionary<int, List<Point>>> AllRoutes; // templateId, Steering, TransferPath
-        public Dictionary<uint, Dictionary<int, string>> AllRouteNames; // templateId, Steering, TransferPath
+        public Dictionary<uint, Dictionary<int, List<Point>>> _allRoutes; // templateId, Steering, TransferPath
+        public Dictionary<uint, Dictionary<int, string>> _allRouteNames; // templateId, Steering, TransferPath
         // +++
         public int PointsCount { get; set; }              // number of points in the process of recording the path
         public bool SavePathEnabled { get; set; }         // flag, path recording
@@ -67,17 +67,16 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public bool Move { get; set; } = false;           // movement mode true -> moving to the point #, false -> get next point #
         public int MoveStepIndex { get; set; }            // current checkpoint (where are we running now)
 
-        private float oldX, oldY, oldZ;
+        private float _oldX, _oldY, _oldZ;
         //*******************************************************
         public string RecordFilesPath = @"./Data/Path/"; // path where our files are stored
         public string RecordFileExt = @".path";          // default extension
         public string MoveFilesPath = @"./Data/Path/";   // path where our files are stored
         public string MoveFileExt = @".path";            // default extension
         public string MoveFileName = "";                 // default name
-        private float MovingDistance = 0.25f; //0.3f;
-        private float tempMovingDistance;
-        private float RangeToCheckPoint = 0.5f; // distance to checkpoint at which it is considered that we have reached it
-        private int MoveTrigerDelay = 1000;     // triggering the timer for movement 1 sec
+        private float _tempMovingDistance;
+        private float _rangeToCheckPoint = 0.5f; // distance to checkpoint at which it is considered that we have reached it
+        private int _moveTrigerDelay = 1000;     // triggering the timer for movement 1 sec
 
         //*******************************************************
         /*
@@ -105,12 +104,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
             if (unit is Transfer)
             {
                 Routes = new Dictionary<int, List<Point>>();
-                velAccel = velAcceleration; //per s
-                maxVelocityForward = velocityForward;
-                maxVelocityBackward = velocityForward;
-                velAccel = velAcceleration;
-                angVel = angVelocity;
+                unit.WorldPos = new WorldPos();
+                _velAccel = velAcceleration; //per s
+                _maxVelocityForward = velocityForward; // 9.6f;
+                _maxVelocityBackward = velocityBackward;
+                _velAccel = velAcceleration;
+                _angVel = angVelocity;
                 Steering = 0;
+                //var linInertia = 0.3f;    //per s   // TODO Move to the upper motion control module
+                //var linDeaccelInertia = 0.1f;  //per s   // TODO Move to the upper motion control module
                 //var maxVelBackward = -2.0f; //per s
                 //var diffX = 0f;
                 //var diffY = 0f;
@@ -119,7 +121,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             Init(unit);
         }
         //***************************************************************
-        //public override void Execute(Unit unit)
+        //public override void Execute(Actor unit)
         //{
         //    if (unit is Npc npc)
         //    {
@@ -227,13 +229,13 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 for (var i = 0; i < pointsList.Count; i++)
                 {
                     s = pointsList[i];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
 
-                    _log.Warn(s + " #" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn(s + " #" + i + " x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
 
-                    m = Delta(vPosition.X, vPosition.Y, npc.Position.X, npc.Position.Y);
+                    m = Delta(_vPosition.X, _vPosition.Y, npc.Position.X, npc.Position.Y);
 
                     if (index == -1)
                     {
@@ -251,15 +253,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 float delta;
                 var minDist = 0f;
-                vTarget = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
+                _vTarget = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
                 for (var i = 0; i < pointsList.Count; i++)
                 {
                     s = pointsList[i];
-                    vPosition = new Vector3(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
+                    _vPosition = new Vector3(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
 
-                    _log.Warn(s + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn(s + " x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
 
-                    delta = MathUtil2.GetDistance(vTarget, vPosition);
+                    delta = MathUtil.GetDistance(_vTarget, _vPosition);
 
                     if (index == -1) // first assignment
                     {
@@ -297,7 +299,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var pointIndex = 0;
             var routeIndex = 0;
             //for (var i = 0; i < AllRoutes[transfer.TemplateId].Count; i++)
-            foreach (var (id, routes) in AllRoutes)
+            foreach (var (id, routes) in _allRoutes)
             {
                 foreach (var (idx, route) in routes)
                 {
@@ -316,21 +318,21 @@ namespace AAEmu.Game.Models.Game.Units.Route
             // check for a route
             if (pointsList.Count == 0)
             {
-                _log.Warn("no route data.");
+                s_log.Warn("no route data.");
                 return -1;
             }
             if (unit is Transfer transfer)
             {
                 float delta;
                 var minDist = 0f;
-                vTarget = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
+                _vTarget = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
                 for (var i = 0; i < pointsList.Count; i++)
                 {
-                    vPosition = new Vector3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
+                    _vPosition = new Vector3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
 
-                    _log.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn("#" + i + " x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
 
-                    delta = MathUtil2.GetDistance(vTarget, vPosition);
+                    delta = MathUtil.GetDistance(_vTarget, _vPosition);
 
                     if (delta > distance) { continue; } // ищем точку не очень далеко от повозки
 
@@ -356,7 +358,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             // check for a route
             if (pointsList.Count == 0)
             {
-                _log.Warn("no route data.");
+                s_log.Warn("no route data.");
                 return -1;
             }
             if (unit is Npc npc)
@@ -365,13 +367,13 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 minDist = -1;
                 for (var i = 0; i < pointsList.Count; i++)
                 {
-                    vPosition.X = pointsList[i].X;
-                    vPosition.Y = pointsList[i].Y;
-                    vPosition.Z = pointsList[i].Z;
+                    _vPosition.X = pointsList[i].X;
+                    _vPosition.Y = pointsList[i].Y;
+                    _vPosition.Z = pointsList[i].Z;
 
-                    _log.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn("#" + i + " x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
 
-                    m = Delta(vPosition.X, vPosition.Y, npc.Position.X, npc.Position.Y);
+                    m = Delta(_vPosition.X, _vPosition.Y, npc.Position.X, npc.Position.Y);
 
                     if (m <= 0) { continue; }
 
@@ -391,14 +393,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 float delta;
                 var minDist = 0f;
-                vTarget = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
+                _vTarget = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
                 for (var i = 0; i < pointsList.Count; i++)
                 {
-                    vPosition = new Vector3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
+                    _vPosition = new Vector3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
 
-                    _log.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn("#" + i + " x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
 
-                    delta = MathUtil2.GetDistance(vTarget, vPosition);
+                    delta = MathUtil.GetDistance(_vTarget, _vPosition);
                     if (delta > 200) { continue; } // ищем точку не очень далеко от повозки
 
                     if (index == -1) // first assignment
@@ -422,14 +424,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
             if (SavePathEnabled) { return; }
             if (MoveToPathEnabled)
             {
-                _log.Warn("while following the route, recording is not possible.");
+                s_log.Warn("while following the route, recording is not possible.");
                 return;
             }
             RecordPath.Clear();
             PointsCount = 0;
-            _log.Warn("route recording started ...");
+            s_log.Warn("route recording started ...");
             SavePathEnabled = true;
-            RepeatTo(ch, MoveTrigerDelay, sim);
+            RepeatTo(ch, _moveTrigerDelay, sim);
         }
         //***************************************************************
         public void Record(Simulation sim, Character ch)
@@ -438,8 +440,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var s = "|" + ch.Position.X + "|" + ch.Position.Y + "|" + ch.Position.Z + "|";
             RecordPath.Add(s);
             PointsCount++;
-            _log.Warn("added checkpoint # {0}", PointsCount);
-            RepeatTo(ch, MoveTrigerDelay, sim);
+            s_log.Warn("added checkpoint # {0}", PointsCount);
+            RepeatTo(ch, _moveTrigerDelay, sim);
         }
         //***************************************************************
         public void StopRecord(Simulation sim)
@@ -452,7 +454,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     sw.WriteLine(b.ToString());
                 }
             }
-            _log.Warn("Route recording completed.");
+            s_log.Warn("Route recording completed.");
             SavePathEnabled = false;
         }
         //***************************************************************
@@ -481,7 +483,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         //***************************************************************
         public void LoadTransferPath2(uint id, int index = 0)
         {
-            TransferPath = AllRoutes[id][index];
+            TransferPath = _allRoutes[id][index];
         }
         //***************************************************************
         public void LoadAllPath(Point position)
@@ -492,7 +494,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         //***************************************************************
         public void LoadAllPath2(uint templateId, Point position, byte worldId = 1)
         {
-            (AllRoutes, AllRouteNames) = TransferManager.Instance.GetAllTransferPath2(templateId);
+            (_allRoutes, _allRouteNames) = TransferManager.Instance.GetAllTransferPath2(templateId);
         }
         //***************************************************************
         public void ParseMoveClient(Unit unit)
@@ -500,17 +502,17 @@ namespace AAEmu.Game.Models.Game.Units.Route
             if (!SavePathEnabled) { return; }
             if (unit is Npc npc)
             {
-                vPosition.X = npc.Position.X;
-                vPosition.Y = npc.Position.Y;
-                vPosition.Z = npc.Position.Z;
+                _vPosition.X = npc.Position.X;
+                _vPosition.Y = npc.Position.Y;
+                _vPosition.Z = npc.Position.Z;
             }
             else if (unit is Transfer transfer)
             {
-                vPosition.X = transfer.Position.X;
-                vPosition.Y = transfer.Position.Y;
-                vPosition.Z = transfer.Position.Z;
+                _vPosition.X = transfer.Position.X;
+                _vPosition.Y = transfer.Position.Y;
+                _vPosition.Z = transfer.Position.Z;
             }
-            var s = "|" + vPosition.X + "|" + vPosition.Y + "|" + vPosition.Z + "|";
+            var s = "|" + _vPosition.X + "|" + _vPosition.Y + "|" + _vPosition.Z + "|";
             RecordPath.Add(s);
             PointsCount++;
             //_log.Warn("added checkpoint # {0}", PointsCount);
@@ -526,258 +528,258 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 MoveToForward = toForward;
                 if (!MoveToPathEnabled || transfer.Position == null || !transfer.IsInPatrol)
                 {
-                    _log.Warn("the route is stopped.");
+                    s_log.Warn("the route is stopped.");
                     StopMove(transfer);
                     return;
                 }
 
                 // presumably the path is already registered in MovePath
-                _log.Warn("trying to get on the road...");
+                s_log.Warn("trying to get on the road...");
                 // first go to the closest checkpoint
                 //var i = GetMinCheckPoint(transfer, TransferPath);
                 var (msi, idx) = GetMinCheckPointFromRoutes(transfer);
                 if (msi < 0)
                 {
-                    _log.Warn("no checkpoint found.");
+                    s_log.Warn("no checkpoint found.");
                     StopMove(transfer);
                     return;
                 }
                 Steering = idx; // индекс нужного "пути" в списке дорог
                 //LoadTransferPath(idx);   // загружаем "путь" в TransferPath
                 LoadTransferPath2(transfer.TemplateId, idx);   // загружаем "путь" в TransferPath
-                _log.Warn("found index routes # " + idx + " nearest checkpoint # " + msi + " walk there ...");
-                _log.Warn("index #" + idx);
-                _log.Warn("checkpoint #" + msi);
-                _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                s_log.Warn("found index routes # " + idx + " nearest checkpoint # " + msi + " walk there ...");
+                s_log.Warn("index #" + idx);
+                s_log.Warn("checkpoint #" + msi);
+                s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
 
                 MoveToPathEnabled = true;
                 MoveStepIndex = msi; // текущая точка пути
                 var s = TransferPath[MoveStepIndex]; // текущий "путь" с текущим индексом точки куда идти
-                vPosition.X = s.X;
-                vPosition.Y = s.Y;
-                vPosition.Z = s.Z;
+                _vPosition.X = s.X;
+                _vPosition.Y = s.Y;
+                _vPosition.Z = s.Z;
 
-                if (Math.Abs(oldX - vPosition.X) > Tolerance && Math.Abs(oldY - vPosition.Y) > Tolerance && Math.Abs(oldZ - vPosition.Z) > Tolerance)
+                if (Math.Abs(_oldX - _vPosition.X) > Tolerance && Math.Abs(_oldY - _vPosition.Y) > Tolerance && Math.Abs(_oldZ - _vPosition.Z) > Tolerance)
                 {
-                    oldX = vPosition.X;
-                    oldY = vPosition.Y;
-                    oldZ = vPosition.Z;
+                    _oldX = _vPosition.X;
+                    _oldY = _vPosition.Y;
+                    _oldZ = _vPosition.Z;
                 }
             }
-            RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+            RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
         }
         public void GoToPathFromRoutes2(Transfer transfer, bool toForward = true)
         {
-            if (AllRoutes[transfer.TemplateId].Count > 0) // имеются участки пути для дорог?
+            if (_allRoutes[transfer.TemplateId].Count > 0) // имеются участки пути для дорог?
             {
                 MoveToPathEnabled = !MoveToPathEnabled;
                 MoveToForward = toForward;
                 if (!MoveToPathEnabled || transfer.Position == null || !transfer.IsInPatrol)
                 {
-                    _log.Warn("the route is stopped.");
+                    s_log.Warn("the route is stopped.");
                     StopMove(transfer);
                     return;
                 }
 
                 // presumably the path is already registered in MovePath
-                _log.Warn("trying to get on the road...");
+                s_log.Warn("trying to get on the road...");
                 // first go to the closest checkpoint
                 //var i = GetMinCheckPoint(transfer, TransferPath);
                 var (pointIndex, routeIndex) = GetMinCheckPointFromRoutes2(transfer);
                 if (pointIndex == -1)
                 {
-                    _log.Warn("no checkpoint found.");
+                    s_log.Warn("no checkpoint found.");
                     StopMove(transfer);
                     return;
                 }
                 Steering = routeIndex; // индекс нужного участка пути в списке дорог
                 LoadTransferPath2(transfer.TemplateId, routeIndex);   // загружаем участок пути в TransferPath
-                _log.Warn("found index routes # " + routeIndex + " nearest checkpoint # " + pointIndex + " walk there ...");
-                _log.Warn("index #" + routeIndex);
-                _log.Warn("checkpoint #" + pointIndex);
-                _log.Warn("x={0}, y={1}, z={2}, rotZ={3}, zoneId={4}", transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationZ, transfer.Position.ZoneId);
+                s_log.Warn("found index routes # " + routeIndex + " nearest checkpoint # " + pointIndex + " walk there ...");
+                s_log.Warn("index #" + routeIndex);
+                s_log.Warn("checkpoint #" + pointIndex);
+                s_log.Warn("x={0}, y={1}, z={2}, rotZ={3}, zoneId={4}", transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationZ, transfer.Position.ZoneId);
 
                 MoveToPathEnabled = true;
                 MoveStepIndex = pointIndex; // текущая точка пути
                 var s = TransferPath[MoveStepIndex]; // текущий участок пути с текущим индексом точки куда идти
-                vPosition.X = s.X;
-                vPosition.Y = s.Y;
-                vPosition.Z = s.Z;
+                _vPosition.X = s.X;
+                _vPosition.Y = s.Y;
+                _vPosition.Z = s.Z;
 
-                if (Math.Abs(oldX - vPosition.X) > Tolerance && Math.Abs(oldY - vPosition.Y) > Tolerance && Math.Abs(oldZ - vPosition.Z) > Tolerance)
+                if (Math.Abs(_oldX - _vPosition.X) > Tolerance && Math.Abs(_oldY - _vPosition.Y) > Tolerance && Math.Abs(_oldZ - _vPosition.Z) > Tolerance)
                 {
-                    oldX = vPosition.X;
-                    oldY = vPosition.Y;
-                    oldZ = vPosition.Z;
+                    _oldX = _vPosition.X;
+                    _oldY = _vPosition.Y;
+                    _oldZ = _vPosition.Z;
                 }
             }
-            RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+            RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
         }
-        public void GoToPath(Unit unit, bool ToForward)
+        public void GoToPath(Unit unit, bool toForward)
         {
             if (unit is Npc npc)
             {
                 if (MovePath.Count > 0)
                 {
                     MoveToPathEnabled = !MoveToPathEnabled;
-                    MoveToForward = ToForward;
+                    MoveToForward = toForward;
                     if (!MoveToPathEnabled)
                     {
-                        _log.Warn("the route is stopped.");
+                        s_log.Warn("the route is stopped.");
                         StopMove(npc);
                         return;
                     }
 
                     // presumably the path is already registered in MovePath
-                    _log.Warn("trying to get on the path ...");
+                    s_log.Warn("trying to get on the path ...");
                     // first go to the closest checkpoint
                     var i = GetMinCheckPoint(npc, MovePath);
                     if (i < 0)
                     {
-                        _log.Warn("checkpoint not found.");
+                        s_log.Warn("checkpoint not found.");
                         StopMove(npc);
                         return;
                     }
 
-                    _log.Warn("found nearest checkpoint # " + i + " run there ...");
+                    s_log.Warn("found nearest checkpoint # " + i + " run there ...");
                     MoveToPathEnabled = true;
                     MoveStepIndex = i;
-                    _log.Warn("checkpoint #" + i);
+                    s_log.Warn("checkpoint #" + i);
                     var s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
 
-                    if (Math.Abs(oldX - vPosition.X) > Tolerance && Math.Abs(oldY - vPosition.Y) > Tolerance && Math.Abs(oldZ - vPosition.Z) > Tolerance)
+                    if (Math.Abs(_oldX - _vPosition.X) > Tolerance && Math.Abs(_oldY - _vPosition.Y) > Tolerance && Math.Abs(_oldZ - _vPosition.Z) > Tolerance)
                     {
-                        oldX = vPosition.X;
-                        oldY = vPosition.Y;
-                        oldZ = vPosition.Z;
+                        _oldX = _vPosition.X;
+                        _oldY = _vPosition.Y;
+                        _oldZ = _vPosition.Z;
                     }
                 }
                 if (TransferPath.Count > 0)
                 {
                     MoveToPathEnabled = !MoveToPathEnabled;
-                    MoveToForward = ToForward;
+                    MoveToForward = toForward;
                     if (!MoveToPathEnabled)
                     {
-                        _log.Warn("the route is stopped.");
+                        s_log.Warn("the route is stopped.");
                         StopMove(npc);
                         return;
                     }
 
                     // presumably the path is already registered in MovePath
-                    _log.Warn("trying to get on the path ...");
+                    s_log.Warn("trying to get on the path ...");
                     // first go to the closest checkpoint
                     var i = GetMinCheckPoint(npc, TransferPath);
                     if (i < 0)
                     {
-                        _log.Warn("checkpoint not found.");
+                        s_log.Warn("checkpoint not found.");
                         StopMove(npc);
                         return;
                     }
 
-                    _log.Warn("found nearest checkpoint # " + i + " run there ...");
-                    _log.Warn(" #" + i + "x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn("found nearest checkpoint # " + i + " run there ...");
+                    s_log.Warn(" #" + i + "x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                     MoveToPathEnabled = true;
                     MoveStepIndex = i;
-                    _log.Warn("checkpoint #" + i);
-                    _log.Warn(" #" + i + "x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn("checkpoint #" + i);
+                    s_log.Warn(" #" + i + "x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                     var s = TransferPath[MoveStepIndex];
-                    vPosition.X = s.X;
-                    vPosition.Y = s.Y;
-                    vPosition.Z = s.Z;
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
 
-                    if (Math.Abs(oldX - vPosition.X) > Tolerance && Math.Abs(oldY - vPosition.Y) > Tolerance && Math.Abs(oldZ - vPosition.Z) > Tolerance)
+                    if (Math.Abs(_oldX - _vPosition.X) > Tolerance && Math.Abs(_oldY - _vPosition.Y) > Tolerance && Math.Abs(_oldZ - _vPosition.Z) > Tolerance)
                     {
-                        oldX = vPosition.X;
-                        oldY = vPosition.Y;
-                        oldZ = vPosition.Z;
+                        _oldX = _vPosition.X;
+                        _oldY = _vPosition.Y;
+                        _oldZ = _vPosition.Z;
                     }
                 }
-                RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
             }
             else if (unit is Transfer transfer)
             {
                 if (MovePath.Count > 0)
                 {
                     MoveToPathEnabled = !MoveToPathEnabled;
-                    MoveToForward = ToForward;
+                    MoveToForward = toForward;
                     if (!MoveToPathEnabled)
                     {
-                        _log.Warn("the route has been stopped.");
+                        s_log.Warn("the route has been stopped.");
                         StopMove(transfer);
                         return;
                     }
 
                     // presumably the path is already registered in MovePath
-                    _log.Warn("trying to get on the road...");
+                    s_log.Warn("trying to get on the road...");
                     // first go to the closest checkpoint
                     var i = GetMinCheckPoint(transfer, MovePath);
                     if (i < 0)
                     {
-                        _log.Warn("no checkpoint found.");
+                        s_log.Warn("no checkpoint found.");
                         StopMove(transfer);
                         return;
                     }
 
-                    _log.Warn("found nearest checkpoint # " + i + " walk there ...");
+                    s_log.Warn("found nearest checkpoint # " + i + " walk there ...");
                     MoveToPathEnabled = true;
                     MoveStepIndex = i;
-                    _log.Warn("checkpoint #" + i);
+                    s_log.Warn("checkpoint #" + i);
                     var s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
 
-                    if (Math.Abs(oldX - vPosition.X) > Tolerance && Math.Abs(oldY - vPosition.Y) > Tolerance && Math.Abs(oldZ - vPosition.Z) > Tolerance)
+                    if (Math.Abs(_oldX - _vPosition.X) > Tolerance && Math.Abs(_oldY - _vPosition.Y) > Tolerance && Math.Abs(_oldZ - _vPosition.Z) > Tolerance)
                     {
-                        oldX = vPosition.X;
-                        oldY = vPosition.Y;
-                        oldZ = vPosition.Z;
+                        _oldX = _vPosition.X;
+                        _oldY = _vPosition.Y;
+                        _oldZ = _vPosition.Z;
                     }
                 }
                 if (TransferPath.Count > 0)
                 {
                     MoveToPathEnabled = !MoveToPathEnabled;
-                    MoveToForward = ToForward;
+                    MoveToForward = toForward;
                     if (!MoveToPathEnabled || transfer.Position == null || !transfer.IsInPatrol)
                     {
-                        _log.Warn("the route is stopped.");
+                        s_log.Warn("the route is stopped.");
                         StopMove(transfer);
                         return;
                     }
 
                     // presumably the path is already registered in MovePath
-                    _log.Warn("trying to get on the road...");
+                    s_log.Warn("trying to get on the road...");
                     // first go to the closest checkpoint
                     var i = GetMinCheckPoint(transfer, TransferPath);
                     if (i < 0)
                     {
-                        _log.Warn("no checkpoint found.");
+                        s_log.Warn("no checkpoint found.");
                         StopMove(transfer);
                         return;
                     }
 
-                    _log.Warn("found nearest checkpoint # " + i + " walk there ...");
-                    _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn("found nearest checkpoint # " + i + " walk there ...");
+                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                     MoveToPathEnabled = true;
                     MoveStepIndex = i;
-                    _log.Warn("checkpoint #" + i);
-                    _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                    s_log.Warn("checkpoint #" + i);
+                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                     var s = TransferPath[MoveStepIndex];
-                    vPosition.X = s.X;
-                    vPosition.Y = s.Y;
-                    vPosition.Z = s.Z;
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
 
-                    if (Math.Abs(oldX - vPosition.X) > Tolerance && Math.Abs(oldY - vPosition.Y) > Tolerance && Math.Abs(oldZ - vPosition.Z) > Tolerance)
+                    if (Math.Abs(_oldX - _vPosition.X) > Tolerance && Math.Abs(_oldY - _vPosition.Y) > Tolerance && Math.Abs(_oldZ - _vPosition.Z) > Tolerance)
                     {
-                        oldX = vPosition.X;
-                        oldY = vPosition.Y;
-                        oldZ = vPosition.Z;
+                        _oldX = _vPosition.X;
+                        _oldY = _vPosition.Y;
+                        _oldZ = _vPosition.Z;
                     }
                 }
-                RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeStart * 1000);
+                RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeStart * 1000);
             }
         }
         //***************************************************************
@@ -794,7 +796,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 var x = npc.Position.X - targetX;
                 var y = npc.Position.Y - targetY;
                 var z = npc.Position.Z - targetZ;
-                var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
+                var maxXyz = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
 
                 if (RunningMode)
                 {
@@ -806,95 +808,120 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
 
 
-                if (Math.Abs(x) > RangeToCheckPoint)
+                if (Math.Abs(x) > _rangeToCheckPoint)
                 {
-                    if (Math.Abs(MaxXYZ - Math.Abs(x)) > Tolerance)
+                    if (Math.Abs(maxXyz - Math.Abs(x)) > Tolerance)
                     {
-                        tempMovingDistance = Math.Abs(x) / (MaxXYZ / MovingDistance);
-                        tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
+                        _tempMovingDistance = Math.Abs(x) / (maxXyz / MovingDistance);
+                        _tempMovingDistance = Math.Min(_tempMovingDistance, MovingDistance);
                     }
                     else
                     {
-                        tempMovingDistance = MovingDistance;
+                        _tempMovingDistance = MovingDistance;
                     }
 
                     if (x < 0)
                     {
-                        npc.Position.X += tempMovingDistance;
+                        npc.Position.X += _tempMovingDistance;
                     }
                     else
                     {
-                        npc.Position.X -= tempMovingDistance;
+                        npc.Position.X -= _tempMovingDistance;
                     }
-                    if (Math.Abs(x) < tempMovingDistance)
+                    if (Math.Abs(x) < _tempMovingDistance)
                     {
-                        npc.Position.X = vPosition.X;
+                        npc.Position.X = _vPosition.X;
                     }
                     move = true;
                 }
-                if (Math.Abs(y) > RangeToCheckPoint)
+                if (Math.Abs(y) > _rangeToCheckPoint)
                 {
-                    if (Math.Abs(MaxXYZ - Math.Abs(y)) > Tolerance)
+                    if (Math.Abs(maxXyz - Math.Abs(y)) > Tolerance)
                     {
-                        tempMovingDistance = Math.Abs(y) / (MaxXYZ / MovingDistance);
-                        tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
+                        _tempMovingDistance = Math.Abs(y) / (maxXyz / MovingDistance);
+                        _tempMovingDistance = Math.Min(_tempMovingDistance, MovingDistance);
                     }
                     else
                     {
-                        tempMovingDistance = MovingDistance;
+                        _tempMovingDistance = MovingDistance;
                     }
                     if (y < 0)
                     {
-                        npc.Position.Y += tempMovingDistance;
+                        npc.Position.Y += _tempMovingDistance;
                     }
                     else
                     {
-                        npc.Position.Y -= tempMovingDistance;
+                        npc.Position.Y -= _tempMovingDistance;
                     }
-                    if (Math.Abs(y) < tempMovingDistance)
+                    if (Math.Abs(y) < _tempMovingDistance)
                     {
-                        npc.Position.Y = vPosition.Y;
+                        npc.Position.Y = _vPosition.Y;
                     }
                     move = true;
                 }
-                if (Math.Abs(z) > RangeToCheckPoint)
+                if (Math.Abs(z) > _rangeToCheckPoint)
                 {
-                    if (Math.Abs(MaxXYZ - Math.Abs(z)) > Tolerance)
+                    if (Math.Abs(maxXyz - Math.Abs(z)) > Tolerance)
                     {
-                        tempMovingDistance = Math.Abs(z) / (MaxXYZ / MovingDistance);
-                        tempMovingDistance = Math.Min(tempMovingDistance, MovingDistance);
+                        _tempMovingDistance = Math.Abs(z) / (maxXyz / MovingDistance);
+                        _tempMovingDistance = Math.Min(_tempMovingDistance, MovingDistance);
                     }
                     else
                     {
-                        tempMovingDistance = MovingDistance;
+                        _tempMovingDistance = MovingDistance;
                     }
                     if (z < 0)
                     {
-                        npc.Position.Z += tempMovingDistance;
+                        npc.Position.Z += _tempMovingDistance;
                     }
                     else
                     {
-                        npc.Position.Z -= tempMovingDistance;
+                        npc.Position.Z -= _tempMovingDistance;
                     }
-                    if (Math.Abs(z) < tempMovingDistance)
+                    if (Math.Abs(z) < _tempMovingDistance)
                     {
-                        npc.Position.Z = vPosition.Z;
+                        npc.Position.Z = _vPosition.Z;
                     }
                     move = true;
                 }
-                // simulation unit. return the moveType object
-                var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+                // simulation unit. return the unitMovement object
+                moveType = (ActorData)UnitMovement.GetType(UnitMovementType.Actor);
                 // Change the NPC coordinates
-                moveType.X = npc.Position.X;
-                moveType.Y = npc.Position.Y;
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-                // looks in the direction of movement
-                //-----------------------взгляд_NPC_будет(движение_откуда->движение_куда)
-                angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, vPosition.X, vPosition.Y);
-                var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-                moveType.RotationX = 0;
-                moveType.RotationY = 0;
-                moveType.RotationZ = rotZ;
+                //moveType.X = npc.Position.X;
+                //moveType.Y = npc.Position.Y;
+                //moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                //// looks in the direction of movement
+                ////-----------------------взгляд_NPC_будет(движение_откуда->движение_куда)
+                //angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, vPosition.X, vPosition.Y);
+                //var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+                //moveType.RotationX = 0;
+                //moveType.RotationY = 0;
+                //moveType.RotationZ = rotZ;
+                //if (RunningMode)
+                //{
+                //    moveType.Flags = 4;      // 5-walk, 4-run, 3-stand still
+                //}
+                //else
+                //{
+                //    moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
+                //}
+                //moveType.DeltaMovement = new sbyte[3];
+                //moveType.DeltaMovement[0] = 0;
+                //moveType.DeltaMovement[1] = 127;
+                //moveType.DeltaMovement[2] = 0;
+
+                var tmpZ = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                moveType.WorldPos = new WorldPos(npc.Pos.X, npc.Pos.Y, tmpZ);
+
+                var direction = new Vector3();
+                if (_vDistance != Vector3.Zero)
+                {
+                    direction = Vector3.Normalize(_vDistance);
+                }
+
+                var rotation = (float)Math.Atan2(direction.Y, direction.X);
+                moveType.Rot = Quaternion.CreateFromAxisAngle(direction, rotation);
+
                 if (RunningMode)
                 {
                     moveType.Flags = 4;      // 5-walk, 4-run, 3-stand still
@@ -903,10 +930,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 {
                     moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
                 }
-                moveType.DeltaMovement = new sbyte[3];
-                moveType.DeltaMovement[0] = 0;
-                moveType.DeltaMovement[1] = 127;
-                moveType.DeltaMovement[2] = 0;
+
+                moveType.DeltaMovement = direction;
+
+
                 moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
                 moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
                 moveType.Time += 100;    // has to change all the time for normal motion.
@@ -930,284 +957,219 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     return;
                 }
 
-                // transfer.gameTime = DateTime.Now;
                 vTarget = new Vector3(targetX, targetY, targetZ);
 
                 // create a pointer where we are going
-                var spwnFlag = SpawnFlag(vTarget);
+                //var spwnFlag = SpawnFlag(vTarget);
 
                 vPosition = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
-                vDistance = vPosition - vTarget; // dx, dy, dz
+                vDistance = vTarget - vPosition; // dx, dy, dz
                 // distance to the point where we are moving
-                distance = MathUtil2.GetDistance(vPosition, vTarget);
+                Distance = MathUtil.GetDistance(vTarget, vPosition);
+
+                if (!(Distance > 0))
+                {
+                    InPatrol = false;
+                    Time = 0f;
+
+                    // get next path or point # in current path
+                    OnMove2(transfer);
+                    return;
+                }
 
                 // get current values
                 // var deltaTime = (float)(DateTime.Now - GameService.StartTime).TotalSeconds;
-                var deltaTime = 0.05f; // temporarily took a constant, later it will be necessary to take the current time
+                DeltaTime = 0.05f; // temporarily took a constant, later it will be necessary to take the current time
 
                 var velocityX = vVelocity.X;
                 var velocityY = vVelocity.Y;
                 var velocityZ = vVelocity.Z;
-                var linInertia = 0.3f;    //per s   // TODO Move to the upper motion control module
-                var linDeaccelInertia = 0.1f;  //per s   // TODO Move to the upper motion control module
                 // accelerate to maximum speed
-                transfer.Speed += velAccel * deltaTime;
+                transfer.Speed += _velAccel * DeltaTime;
                 // check that it is not more than the maximum forward or reverse speed
-                transfer.Speed = Math.Clamp(transfer.Speed, maxVelocityBackward, maxVelocityForward);
+                transfer.Speed = Math.Clamp(transfer.Speed, _maxVelocityBackward, _maxVelocityForward);
                 // find out how far we have traveled over the past period of time
-                MovingDistance = transfer.Speed * deltaTime;
-                // calculate the distance that can be walked along each coordinate for a period of time
-                var rad = MathUtil2.CalculateDirection(vPosition, vTarget);
+                MovingDistance = transfer.Speed * DeltaTime;
+                rad = MathUtil.CalculateDirection(vPosition, vTarget);
+
                 var cosA = (float)Math.Cos(rad);
                 var sinA = (float)Math.Sin(rad);
-                var newX = MovingDistance * cosA;
-                var newY = MovingDistance * sinA;
+                diffX = MovingDistance * cosA;
+                diffY = MovingDistance * sinA;
+                var velX = transfer.Speed * cosA;
+                var velY = transfer.Speed * sinA;
 
-                // var newPosition = Vector3.Lerp(vPosition, vTarget, transfer.Speed * deltaTime);
-                // var newX = newPosition.X - vPosition.X;
-                // var newY = newPosition.Y - vPosition.Y;
-
-                // if the distance in X to travel is greater than the distance that can be traveled in a period of time
-                if (Math.Abs(vDistance.X) >= Math.Abs(newX))
+                //if the distance in X to travel is greater than the distance that can be traveled in a period of time
+                if (Math.Abs(vDistance.X) > Math.Abs(diffX))
                 {
-                    transfer.Position.X += newX;
-                    transfer.VelX = (short)(transfer.Speed * cosA * 1000);
+                    transfer.Position.X += diffX;
                 }
                 else
                 {
                     transfer.Position.X = vTarget.X;
                 }
                 // if the distance in Y to travel is greater than the distance that can be traveled in a period of time
-                if (Math.Abs(vDistance.Y) >= Math.Abs(newY))
+                if (Math.Abs(vDistance.Y) > Math.Abs(diffY))
                 {
-                    transfer.Position.Y += newY;
-                    transfer.VelY = (short)(transfer.Speed * sinA * 1000);
+                    transfer.Position.Y += diffY;
                 }
                 else
                 {
                     transfer.Position.Y = vTarget.Y;
                 }
-                var newPosition = Vector3.Lerp(vPosition, vTarget, deltaTime);
-                transfer.Position.Z = newPosition.Z;
-                // transfer.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, vPosition.X, vPosition.Y) : targetZ;
 
-                // looks in the direction of movement
-                angleTmp = MathUtil.RadianToDegree(rad);
-                // slowly turn to the desired angle
-                if (angleTmp > 0)
+                cosA = (float)Math.Cos(MathUtil.CalculateDirectionZ(vPosition, vTarget));
+                diffZ = MovingDistance * cosA;
+                if (Math.Abs(vDistance.Z) > Math.Abs(diffZ))
                 {
-                    angle += angVel;
-                    angle = (float)Math.Clamp(angle, 0f, angleTmp);
+                    transfer.Position.Z += diffZ;
+                    var tempPosZ = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, vPosition.X, vPosition.Y) : vPosition.Z;
+                    if (transfer.Position.Z < tempPosZ)
+                    {
+                        transfer.Position.Z = tempPosZ;
+                    }
                 }
                 else
                 {
-                    angle -= angVel;
-                    angle = (float)Math.Clamp(angle, angleTmp, 0f);
+                    transfer.Position.Z = vTarget.Z;
                 }
-                // var rotZ = MathUtil2.ConvertDegreeToDirectionShort(angle);
-                var rotZ = MathUtil.UpdateHeading(angle);
-                transfer.RotationZ = rotZ;
-                transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(angle);
-                transfer.RotationZ = Helpers.ConvertRotation(transfer.Position.RotationZ);
-                transfer.AngVelZ = (float)rad; //angVel; // сюда записывать дельту, в радианах, угла поворота между начальным вектором и конечным
+
+                var velZ = transfer.Speed * cosA;
+                transfer.Velocity = new Vector3(velX, velY, velZ);
+                vVelocity = new Vector3(velX, velY, velZ);
+
+                // looks in the direction of movement
+                //_angleTmp = MathUtil.RadianToDegree(rad);
+                // slowly turn to the desired angle
+                //if (_angleTmp > 0)
+                //{
+                //    _angle += _angVel;
+                //    _angle = (float)Math.Clamp(_angle, 0f, _angleTmp);
+                //}
+                //else
+                //{
+                //    _angle -= _angVel;
+                //    _angle = (float)Math.Clamp(_angle, _angleTmp, 0f);
+                //}
+                // var rotZ = MathUtil.ConvertDegreeToDirectionShort(angle);
+                //var rotZ = MathUtil.UpdateHeading(angle);
+                //transfer.Rot.Z = rotZ;
+                //var tmpZ = Helpers.ConvertRotation(transfer.Position.RotationZ);
+
+
+                //var axis = new Vector3(0f, 0f, 1f);
+                //transfer.Rot = Quaternion.CreateFromAxisAngle(axis, (float)_angleTmp);
+
+                //var temp = Quaternion.CreateFromYawPitchRoll((float)_angleTmp, 0 , 0);
+                //transfer.Rot = new Quaternion(0f, 0f, temp.Y * 32767f, temp.W * 32767);
+                // чтобы не разворачивало назад, если точка последняя
+                if (Math.Abs(Distance) < 1.5f && MoveStepIndex >= TransferPath.Count - 1)
+                {
+                    var pp = Steering >= Routes.Count - 1 ? Routes[0][0] : Routes[Steering + 1][0];
+                    var vNewTarget = new Vector3(pp.X, pp.Y, pp.Z);
+                    rad = MathUtil.CalculateDirection(vPosition, vNewTarget);
+                    Angle = rad;
+                }
+                else
+                {
+                    Angle = rad;
+                }
+
+                _angleTmp = MathUtil.RadianToDegree(Angle);
+                transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(_angleTmp);
+
+                transfer.Rot = new Quaternion(0f, 0f, MathUtil.ConvertToDirection(rad), 1f);
+
+                transfer.AngVel = new Vector3(0f, 0f, (float)rad); // сюда записывать дельту, в радианах, угла поворота между начальным вектором и конечным
+
                 // _log.Warn("Rad={0}, angle={1}, rotZ={2}", rad, angle, rotZ);
 
-                // despawnCross(spawnCrossList);
-                DespawnFlag(spwnFlag);
-
-                if (distance > RangeToCheckPoint)
+                //DespawnFlag(spwnFlag);
+                if (Distance > _rangeToCheckPoint)
                 {
                     //update class variables
                     vVelocity = new Vector3(velocityX, velocityY, velocityZ);
+                    transfer.Velocity = vVelocity;
                     // update Transfer variable
                     transfer.PathPointIndex = MoveStepIndex;
                     transfer.Steering = Steering;
                     // moving to the point #
-                    var moveType = (TransferMoveType)MoveType.GetType(MoveTypeEnum.Transfer);
-                    moveType.UseTransferBase(transfer);
-                    transfer.BroadcastPacket(new SCOneUnitMovementPacket(transfer.ObjId, moveType), true);
+                    var moveTypeTr = (TransferData)UnitMovement.GetType(UnitMovementType.Transfer);
+                    moveTypeTr.UseTransferBase(transfer);
+
+                    transfer.SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, Helpers.ConvertRadianToSbyteDirection(moveTypeTr.Rot.X), Helpers.ConvertRadianToSbyteDirection(moveTypeTr.Rot.Y), Helpers.ConvertRadianToSbyteDirection(moveTypeTr.Rot.Z));
+                    transfer.BroadcastPacket(new SCOneUnitMovementPacket(transfer.ObjId, moveTypeTr), true);
                     RepeatMove(sim, transfer, targetX, targetY, targetZ);
                 }
                 else
                 {
+                    InPatrol = false;
+                    Time = 0f;
+
                     // get next path or point # in current path
-                    // NextPathOrPointInPath(transfer);
-                    OnMove(transfer);
+                    OnMove2(transfer);
                 }
             }
         }
+
         //***************************************************************
-        public Doodad spawnFlag(float posX, float posY)
+        public Doodad SpawnFlag(float posX, float posY)
         {
             // spawn flag
-            var _combatFlag = new DoodadSpawner();
-            _combatFlag.Id = 0;
-            _combatFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _combatFlag.Position = new Point();
-            _combatFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, posX, posY);
-            _combatFlag.Position.WorldId = 1;
-            _combatFlag.Position.X = posX;
-            _combatFlag.Position.Y = posY;
-            _combatFlag.Position.Z = WorldManager.Instance.GetHeight(_combatFlag.Position.ZoneId, _combatFlag.Position.X, _combatFlag.Position.Y);
-            return _combatFlag.Spawn(0); // set CombatFlag
+            var combatFlag = new DoodadSpawner();
+            combatFlag.Id = 0;
+            combatFlag.UnitId = 5014; // Combat Flag Id=5014;
+            combatFlag.Position = new Point();
+            combatFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, posX, posY);
+            combatFlag.Position.WorldId = 1;
+            combatFlag.Position.X = posX;
+            combatFlag.Position.Y = posY;
+            combatFlag.Position.Z = WorldManager.Instance.GetHeight(combatFlag.Position.ZoneId, combatFlag.Position.X, combatFlag.Position.Y);
+            return combatFlag.Spawn(0); // set CombatFlag
         }
-        //***************************************************************
-        public List<Doodad> SpawnCross(Vector3 pos)
-        {
-            var ld = new List<Doodad>();
-            // spawn cross
-            var _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X;
-            _crossFlag.Position.Y = pos.Y;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            var dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
-            _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X + 5;
-            _crossFlag.Position.Y = pos.Y;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
-            _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X + 10;
-            _crossFlag.Position.Y = pos.Y;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
-            _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X - 5;
-            _crossFlag.Position.Y = pos.Y;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
-            _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X - 10;
-            _crossFlag.Position.Y = pos.Y;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
-            _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X;
-            _crossFlag.Position.Y = pos.Y + 5;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
-            _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X;
-            _crossFlag.Position.Y = pos.Y + 10;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
-            _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X;
-            _crossFlag.Position.Y = pos.Y - 5;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
-            _crossFlag = new DoodadSpawner();
-            _crossFlag.Id = 0;
-            _crossFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _crossFlag.Position = new Point();
-            _crossFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _crossFlag.Position.WorldId = 1;
-            _crossFlag.Position.X = pos.X;
-            _crossFlag.Position.Y = pos.Y - 10;
-            _crossFlag.Position.Z = WorldManager.Instance.GetHeight(_crossFlag.Position.ZoneId, _crossFlag.Position.X, _crossFlag.Position.Y);
-            dd = _crossFlag.Spawn(0);
-            ld.Add(dd);
 
-            return ld; // set CombatFlag
-        }
-        //***************************************************************
-        public void DespawnCross(List<Doodad> doodadList)
-        {
-            // despawn cross Flag
-            var _crossFlag = new DoodadSpawner();
-            foreach (var doodad in doodadList)
-            {
-                _crossFlag.Despawn(doodad);
-            }
-        }
         //***************************************************************
         public Doodad SpawnFlag(Vector3 pos)
         {
             // spawn flag
-            var _combatFlag = new DoodadSpawner();
-            _combatFlag.Id = 0;
-            _combatFlag.UnitId = 5014; // Combat Flag Id=5014;
-            _combatFlag.Position = new Point();
-            _combatFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
-            _combatFlag.Position.WorldId = 1;
-            _combatFlag.Position.X = pos.X;
-            _combatFlag.Position.Y = pos.Y;
-            _combatFlag.Position.Z = WorldManager.Instance.GetHeight(_combatFlag.Position.ZoneId, _combatFlag.Position.X, _combatFlag.Position.Y);
-            return _combatFlag.Spawn(0); // set CombatFlag
+            var combatFlag = new DoodadSpawner();
+            combatFlag.Id = 0;
+            combatFlag.UnitId = 5014; // Combat Flag Id=5014;
+            combatFlag.Position = new Point();
+            combatFlag.Position.ZoneId = WorldManager.Instance.GetZoneId(1, pos.X, pos.Y);
+            combatFlag.Position.WorldId = 1;
+            combatFlag.Position.X = pos.X;
+            combatFlag.Position.Y = pos.Y;
+            combatFlag.Position.Z = WorldManager.Instance.GetHeight(combatFlag.Position.ZoneId, combatFlag.Position.X, combatFlag.Position.Y);
+            return combatFlag.Spawn(0); // set CombatFlag
         }
+
         //***************************************************************
         public void DespawnFlag(Doodad doodad)
         {
             // spawn flag
-            var _combatFlag = new DoodadSpawner();
-            _combatFlag.Despawn(doodad);
+            var combatFlag = new DoodadSpawner();
+            combatFlag.Despawn(doodad);
         }
         //***************************************************************
-        public void RepeatMove(Simulation sim, Unit unit, float TargetX, float TargetY, float TargetZ, double time = 50)
+        public void RepeatMove(Simulation sim, Unit unit, float targetX, float targetY, float targetZ, double time = 50)
         {
             if (unit is Npc npc)
             {
                 //if ((sim ?? this).AbandonTo)
                 {
-                    TaskManager.Instance.Schedule(new Move(sim ?? this, npc, TargetX, TargetY, TargetZ), TimeSpan.FromMilliseconds(time));
+                    TaskManager.Instance.Schedule(new Move(sim ?? this, npc, targetX, targetY, targetZ), TimeSpan.FromMilliseconds(time));
                 }
             }
             else if (unit is Transfer transfer)
             {
                 //if ((sim ?? this).AbandonTo)
                 {
-                    TaskManager.Instance.Schedule(new Move(sim ?? this, transfer, TargetX, TargetY, TargetZ), TimeSpan.FromMilliseconds(time));
+                    TaskManager.Instance.Schedule(new Move(sim ?? this, transfer, targetX, targetY, targetZ), TimeSpan.FromMilliseconds(time));
                 }
             }
         }
+
         //***************************************************************
         public void RepeatTo(Character ch, double time = 1000, Simulation sim = null)
         {
@@ -1216,27 +1178,45 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 TaskManager.Instance.Schedule(new Record(sim ?? this, ch), TimeSpan.FromMilliseconds(time));
             }
         }
+
         //***************************************************************
         public void StopMove(Unit unit)
         {
             if (unit is Npc npc)
             {
-                _log.Warn("stop moving ...");
-                var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-                moveType.X = npc.Position.X;
-                moveType.Y = npc.Position.Y;
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-                //-----------------------взгляд_NPC_будет(движение_откуда->движение_куда)
-                var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, vPosition.X, vPosition.Y);
-                var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-                moveType.RotationX = 0;
-                moveType.RotationY = 0;
-                moveType.RotationZ = rotZ;
-                moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
-                moveType.DeltaMovement = new sbyte[3];
-                moveType.DeltaMovement[0] = 0;
-                moveType.DeltaMovement[1] = 0;
-                moveType.DeltaMovement[2] = 0;
+                s_log.Warn("stop moving ...");
+                moveType = (ActorData)UnitMovement.GetType(UnitMovementType.Actor);
+                //moveType.X = npc.Position.X;
+                //moveType.Y = npc.Position.Y;
+                //moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                ////-----------------------взгляд_NPC_будет(движение_откуда->движение_куда)
+                //var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, vPosition.X, vPosition.Y);
+                //var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+                //moveType.RotationX = 0;
+                //moveType.RotationY = 0;
+                //moveType.RotationZ = rotZ;
+                //moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
+                //moveType.DeltaMovement = new sbyte[3];
+                //moveType.DeltaMovement[0] = 0;
+                //moveType.DeltaMovement[1] = 0;
+                //moveType.DeltaMovement[2] = 0;
+
+                var tmpZ = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                moveType.WorldPos = new WorldPos(npc.Pos.X, npc.Pos.Y, tmpZ);
+
+                var direction = new Vector3();
+                if (_vDistance != Vector3.Zero)
+                {
+                    direction = Vector3.Normalize(_vDistance);
+                }
+
+                var rotation = (float)Math.Atan2(direction.Y, direction.X);
+                moveType.Rot = Quaternion.CreateFromAxisAngle(direction, rotation);
+
+                moveType.Flags = 5;
+
+                moveType.DeltaMovement = new Vector3();
+
                 moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
                 moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
                 moveType.Time += 50;    // has to change all the time for normal motion.
@@ -1245,39 +1225,61 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             else if (unit is Transfer transfer)
             {
-                _log.Warn("stop moving ...");
+                s_log.Warn("stop moving ...");
                 transfer.Speed = 0;
                 transfer.RotSpeed = 0;
-                transfer.VelX = 0;
-                transfer.VelY = 0;
-                transfer.VelZ = 0;
-                vVelocity = Vector3.Zero;
-                var moveType = (TransferMoveType)MoveType.GetType(MoveTypeEnum.Transfer);
-                moveType.UseTransferBase(transfer);
-                transfer.BroadcastPacket(new SCOneUnitMovementPacket(transfer.ObjId, moveType), true);
+                transfer.Velocity = Vector3.Zero;
+                _vVelocity = Vector3.Zero;
+
+                var pp = Steering >= Routes.Count - 1 ? Routes[0][0] : Routes[Steering + 1][0];
+                var vNewTarget = new Vector3(pp.X, pp.Y, pp.Z);
+                rad = MathUtil.CalculateDirection(vPosition, vNewTarget);
+                transfer.Rot = new Quaternion(0f, 0f, MathUtil.ConvertToDirection(rad), 1f);
+
+                var moveTypeTr = (TransferData)UnitMovement.GetType(UnitMovementType.Transfer);
+                moveTypeTr.UseTransferBase(transfer);
+                transfer.BroadcastPacket(new SCOneUnitMovementPacket(transfer.ObjId, moveTypeTr), true);
                 MoveToPathEnabled = false;
             }
         }
+
         public void PauseMove(Unit unit)
         {
             if (unit is Npc npc)
             {
-                _log.Warn("let's stand a little...");
-                var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-                moveType.X = npc.Position.X;
-                moveType.Y = npc.Position.Y;
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-                //-----------------------взгляд_NPC_будет(движение_откуда->движение_куда)
-                var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, vPosition.X, vPosition.Y);
-                var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-                moveType.RotationX = 0;
-                moveType.RotationY = 0;
-                moveType.RotationZ = rotZ;
-                moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
-                moveType.DeltaMovement = new sbyte[3];
-                moveType.DeltaMovement[0] = 0;
-                moveType.DeltaMovement[1] = 0;
-                moveType.DeltaMovement[2] = 0;
+                s_log.Warn("let's stand a little...");
+                moveType = (ActorData)UnitMovement.GetType(UnitMovementType.Actor);
+                //moveType.X = npc.Position.X;
+                //moveType.Y = npc.Position.Y;
+                //moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                ////-----------------------взгляд_NPC_будет(движение_откуда->движение_куда)
+                //var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, vPosition.X, vPosition.Y);
+                //var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+                //moveType.RotationX = 0;
+                //moveType.RotationY = 0;
+                //moveType.RotationZ = rotZ;
+                //moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
+                //moveType.DeltaMovement = new sbyte[3];
+                //moveType.DeltaMovement[0] = 0;
+                //moveType.DeltaMovement[1] = 0;
+                //moveType.DeltaMovement[2] = 0;
+
+                var tmpZ = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                moveType.WorldPos = new WorldPos(npc.Pos.X, npc.Pos.Y, tmpZ);
+
+                var direction = new Vector3();
+                if (_vDistance != Vector3.Zero)
+                {
+                    direction = Vector3.Normalize(_vDistance);
+                }
+
+                var rotation = (float)Math.Atan2(direction.Y, direction.X);
+                moveType.Rot = Quaternion.CreateFromAxisAngle(direction, rotation);
+
+                moveType.Flags = 5;
+
+                moveType.DeltaMovement = new Vector3();
+
                 moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
                 moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
                 moveType.Time += 50;    // has to change all the time for normal motion.
@@ -1285,19 +1287,23 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             else if (unit is Transfer transfer)
             {
-                _log.Warn("let's stand a little...");
-                _log.Warn("pause in #" + MoveStepIndex);
-                _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                s_log.Warn("let's stand a little...");
+                s_log.Warn("pause in #" + MoveStepIndex);
+                s_log.Warn("x:" + _vPosition.X + " y:" + _vPosition.Y + " z:" + _vPosition.Z);
                 transfer.Speed = 0;
                 transfer.RotSpeed = 0;
                 transfer.RotSpeed = 0;
-                transfer.VelX = 0;
-                transfer.VelY = 0;
-                transfer.VelZ = 0;
-                vVelocity = Vector3.Zero;
-                var moveType = (TransferMoveType)MoveType.GetType(MoveTypeEnum.Transfer);
-                moveType.UseTransferBase(transfer);
-                transfer.BroadcastPacket(new SCOneUnitMovementPacket(transfer.ObjId, moveType), true);
+                transfer.Velocity = Vector3.Zero;
+                _vVelocity = Vector3.Zero;
+
+                var pp = Steering >= Routes.Count - 1 ? Routes[0][0] : Routes[Steering + 1][0];
+                var vNewTarget = new Vector3(pp.X, pp.Y, pp.Z);
+                rad = MathUtil.CalculateDirection(vPosition, vNewTarget);
+                transfer.Rot = new Quaternion(0f, 0f, MathUtil.ConvertToDirection(rad), 1f);
+
+                var moveTypeTr = (TransferData)UnitMovement.GetType(UnitMovementType.Transfer);
+                moveTypeTr.UseTransferBase(transfer);
+                transfer.BroadcastPacket(new SCOneUnitMovementPacket(transfer.ObjId, moveTypeTr), true);
             }
         }
         public void OnMove(BaseUnit unit)
@@ -1306,19 +1312,19 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 if (!MoveToPathEnabled)
                 {
-                    _log.Warn("OnMove disabled");
+                    s_log.Warn("OnMove disabled");
                     StopMove(npc);
                     return;
                 }
                 if (MovePath.Count > 0)
                 {
                     var s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
-                    if (!PosInRange(npc, vPosition.X, vPosition.Y, 3))
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    if (!PosInRange(npc, _vPosition.X, _vPosition.Y, 3))
                     {
-                        RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                        RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
                         return;
                     }
 
@@ -1326,63 +1332,63 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     {
                         if (MoveStepIndex == MovePath.Count - 1)
                         {
-                            _log.Warn("we are ideally at the end point.");
+                            s_log.Warn("we are ideally at the end point.");
                             //StopMove(npc);
                             PauseMove(npc);
                             MoveToForward = false; //turn back
                             MoveStepIndex--;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = MovePath[MoveStepIndex];
-                            vPosition.X = ExtractValue(s, 1);
-                            vPosition.Y = ExtractValue(s, 2);
-                            vPosition.Z = ExtractValue(s, 3);
-                            RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z, 20000);
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
                             return;
                         }
 
                         MoveStepIndex++;
-                        _log.Warn("we have reached checkpoint go on...");
+                        s_log.Warn("we have reached checkpoint go on...");
                     }
                     else
                     {
                         if (MoveStepIndex > 0)
                         {
                             MoveStepIndex--;
-                            _log.Warn("we reached checkpoint go further ...");
+                            s_log.Warn("we reached checkpoint go further ...");
                         }
                         else
                         {
-                            _log.Warn("we are ideally at the starting point.");
+                            s_log.Warn("we are ideally at the starting point.");
                             //StopMove(npc);
                             PauseMove(npc);
                             MoveToForward = true; //turn back
                             MoveStepIndex++;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = MovePath[MoveStepIndex];
-                            vPosition.X = ExtractValue(s, 1);
-                            vPosition.Y = ExtractValue(s, 2);
-                            vPosition.Z = ExtractValue(s, 3);
-                            RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z, 20000);
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
                             return;
                         }
                     }
 
-                    _log.Warn("walk to #" + MoveStepIndex);
+                    s_log.Warn("walk to #" + MoveStepIndex);
                     s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
-                    RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
                 }
                 if (TransferPath.Count > 0)
                 {
                     var s = TransferPath[MoveStepIndex];
-                    vPosition.X = s.X;
-                    vPosition.Y = s.Y;
-                    vPosition.Z = s.Z;
-                    if (!PosInRange(npc, vPosition.X, vPosition.Y, 3))
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
+                    if (!PosInRange(npc, _vPosition.X, _vPosition.Y, 3))
                     {
-                        RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                        RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
                         return;
                     }
 
@@ -1390,72 +1396,72 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     {
                         if (MoveStepIndex == TransferPath.Count - 1)
                         {
-                            _log.Warn("we are ideally at the end point.");
+                            s_log.Warn("we are ideally at the end point.");
                             //StopMove(npc);
                             PauseMove(npc);
                             MoveToForward = false; //turn back
                             MoveStepIndex--;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = TransferPath[MoveStepIndex];
-                            vPosition.X = s.X;
-                            vPosition.Y = s.Y;
-                            vPosition.Z = s.Z;
-                            RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z, 20000);
+                            _vPosition.X = s.X;
+                            _vPosition.Y = s.Y;
+                            _vPosition.Z = s.Z;
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
                             return;
                         }
 
                         MoveStepIndex++;
-                        _log.Warn("we have reached checkpoint go on...");
+                        s_log.Warn("we have reached checkpoint go on...");
                     }
                     else
                     {
                         if (MoveStepIndex > 0)
                         {
                             MoveStepIndex--;
-                            _log.Warn("we reached checkpoint go further ...");
+                            s_log.Warn("we reached checkpoint go further ...");
                         }
                         else
                         {
-                            _log.Warn("we are ideally at the starting point.");
+                            s_log.Warn("we are ideally at the starting point.");
                             //StopMove(npc);
                             PauseMove(npc);
                             MoveToForward = true; //turn back
                             MoveStepIndex++;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = TransferPath[MoveStepIndex];
-                            vPosition.X = s.X;
-                            vPosition.Y = s.Y;
-                            vPosition.Z = s.Z;
-                            RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z, 20000);
+                            _vPosition.X = s.X;
+                            _vPosition.Y = s.Y;
+                            _vPosition.Z = s.Z;
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
                             return;
                         }
                     }
 
-                    _log.Warn("walk to #" + MoveStepIndex);
+                    s_log.Warn("walk to #" + MoveStepIndex);
                     s = TransferPath[MoveStepIndex];
-                    vPosition.X = s.X;
-                    vPosition.Y = s.Y;
-                    vPosition.Z = s.Z;
-                    RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
+                    RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
                 }
             }
             else if (unit is Transfer transfer)
             {
                 if (!MoveToPathEnabled)
                 {
-                    _log.Warn("OnMove disabled");
+                    s_log.Warn("OnMove disabled");
                     StopMove(transfer);
                     return;
                 }
                 if (MovePath.Count > 0)
                 {
                     var s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
-                    if (!PosInRange(transfer, vPosition.X, vPosition.Y, 3))
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    if (!PosInRange(transfer, _vPosition.X, _vPosition.Y, 3))
                     {
-                        RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                        RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                         return;
                     }
 
@@ -1463,120 +1469,534 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     {
                         if (MoveStepIndex == MovePath.Count - 1)
                         {
-                            _log.Warn("we are at the end point.");
+                            s_log.Warn("we are at the end point.");
                             //StopMove(npc);
                             PauseMove(transfer);
                             MoveToForward = false; //turn back
                             MoveStepIndex--;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = MovePath[MoveStepIndex];
-                            vPosition.X = ExtractValue(s, 1);
-                            vPosition.Y = ExtractValue(s, 2);
-                            vPosition.Z = ExtractValue(s, 3);
-                            RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeEnd * 1000);
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeEnd * 1000);
                             return;
                         }
 
                         MoveStepIndex++;
-                        _log.Warn("we reached checkpoint go further...");
+                        s_log.Warn("we reached checkpoint go further...");
                     }
                     else
                     {
                         if (MoveStepIndex > 0)
                         {
                             MoveStepIndex--;
-                            _log.Warn("we reached checkpoint go further ...");
+                            s_log.Warn("we reached checkpoint go further ...");
                         }
                         else
                         {
-                            _log.Warn("we are at the starting point.");
+                            s_log.Warn("we are at the starting point.");
                             //StopMove(npc);
                             PauseMove(transfer);
                             MoveToForward = true; //turn back
                             MoveStepIndex++;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = MovePath[MoveStepIndex];
-                            vPosition.X = ExtractValue(s, 1);
-                            vPosition.Y = ExtractValue(s, 2);
-                            vPosition.Z = ExtractValue(s, 3);
-                            RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeStart * 1000);
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeStart * 1000);
                             return;
                         }
                     }
 
-                    _log.Warn("walk to #" + MoveStepIndex);
+                    s_log.Warn("walk to #" + MoveStepIndex);
                     s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
-                    RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                 }
                 if (TransferPath.Count > 0)
                 {
                     var s = TransferPath[MoveStepIndex];
-                    vPosition.X = s.X;
-                    vPosition.Y = s.Y;
-                    vPosition.Z = s.Z;
-                    if (PosInRange(transfer, vPosition.X, vPosition.Y, 50))
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
+                    if (PosInRange(transfer, _vPosition.X, _vPosition.Y, 50))
                     {
                         if (MoveToForward)
                         {
                             if (MoveStepIndex == TransferPath.Count - 1)
                             {
-                                _log.Warn("we are at the end point.");
+                                s_log.Warn("we are at the end point.");
                                 //StopMove(npc);
                                 PauseMove(transfer);
                                 MoveToForward = false; //turn back
                                 MoveStepIndex--;
-                                _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
-                                _log.Warn("walk to #" + MoveStepIndex);
+                                s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                                s_log.Warn("walk to #" + MoveStepIndex);
                                 s = TransferPath[MoveStepIndex];
-                                vPosition.X = s.X;
-                                vPosition.Y = s.Y;
-                                vPosition.Z = s.Z;
-                                RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeEnd * 1000);
+                                _vPosition.X = s.X;
+                                _vPosition.Y = s.Y;
+                                _vPosition.Z = s.Z;
+                                RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeEnd * 1000);
                                 return;
                             }
                             MoveStepIndex++;
-                            _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
-                            _log.Warn("we reached checkpoint go further...");
+                            s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                            s_log.Warn("we reached checkpoint go further...");
                         }
                         else
                         {
                             if (MoveStepIndex > 0)
                             {
                                 MoveStepIndex--;
-                                _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
-                                _log.Warn("we reached checkpoint go further...");
+                                s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                                s_log.Warn("we reached checkpoint go further...");
                             }
                             else
                             {
-                                _log.Warn("we are at the starting point.");
+                                s_log.Warn("we are at the starting point.");
                                 //StopMove(npc);
                                 PauseMove(transfer);
                                 MoveToForward = true; //turn back
                                 MoveStepIndex++;
-                                _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
-                                _log.Warn("walk to #" + MoveStepIndex);
+                                s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                                s_log.Warn("walk to #" + MoveStepIndex);
                                 s = TransferPath[MoveStepIndex];
-                                vPosition.X = s.X;
-                                vPosition.Y = s.Y;
-                                vPosition.Z = s.Z;
-                                RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeStart * 1000);
+                                _vPosition.X = s.X;
+                                _vPosition.Y = s.Y;
+                                _vPosition.Z = s.Z;
+                                RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeStart * 1000);
                                 return;
                             }
                         }
-                        _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
-                        _log.Warn("walk to #" + MoveStepIndex);
+                        s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                        s_log.Warn("walk to #" + MoveStepIndex);
                         s = TransferPath[MoveStepIndex];
-                        vPosition.X = s.X;
-                        vPosition.Y = s.Y;
-                        vPosition.Z = s.Z;
-                        RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                        _vPosition.X = s.X;
+                        _vPosition.Y = s.Y;
+                        _vPosition.Z = s.Z;
+                        RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                         return;
                     }
-                    _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
-                    _log.Warn("to any point is very far, we stop.");
+                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                    s_log.Warn("to any point is very far, we stop.");
+                }
+            }
+        }
+
+        private void OnMove2(BaseUnit unit)
+        {
+            if (unit is Npc npc)
+            {
+                if (!MoveToPathEnabled)
+                {
+                    s_log.Warn("OnMove disabled");
+                    StopMove(npc);
+                    return;
+                }
+                if (MovePath.Count > 0)
+                {
+                    var s = MovePath[MoveStepIndex];
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    if (!PosInRange(npc, _vPosition.X, _vPosition.Y, 3))
+                    {
+                        RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
+                        return;
+                    }
+
+                    if (MoveToForward)
+                    {
+                        if (MoveStepIndex == MovePath.Count - 1)
+                        {
+                            s_log.Warn("we are ideally at the end point.");
+                            //StopMove(npc);
+                            PauseMove(npc);
+                            MoveToForward = false; //turn back
+                            MoveStepIndex--;
+                            s_log.Warn("walk to #" + MoveStepIndex);
+                            s = MovePath[MoveStepIndex];
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
+                            return;
+                        }
+
+                        MoveStepIndex++;
+                        s_log.Warn("we have reached checkpoint go on...");
+                    }
+                    else
+                    {
+                        if (MoveStepIndex > 0)
+                        {
+                            MoveStepIndex--;
+                            s_log.Warn("we reached checkpoint go further ...");
+                        }
+                        else
+                        {
+                            s_log.Warn("we are ideally at the starting point.");
+                            //StopMove(npc);
+                            PauseMove(npc);
+                            MoveToForward = true; //turn back
+                            MoveStepIndex++;
+                            s_log.Warn("walk to #" + MoveStepIndex);
+                            s = MovePath[MoveStepIndex];
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
+                            return;
+                        }
+                    }
+
+                    s_log.Warn("walk to #" + MoveStepIndex);
+                    s = MovePath[MoveStepIndex];
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
+                }
+                if (TransferPath.Count > 0)
+                {
+                    var s = TransferPath[MoveStepIndex];
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
+                    if (!PosInRange(npc, _vPosition.X, _vPosition.Y, 3))
+                    {
+                        RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
+                        return;
+                    }
+
+                    if (MoveToForward)
+                    {
+                        if (MoveStepIndex == TransferPath.Count - 1)
+                        {
+                            s_log.Warn("we are ideally at the end point.");
+                            //StopMove(npc);
+                            PauseMove(npc);
+                            MoveToForward = false; //turn back
+                            MoveStepIndex--;
+                            s_log.Warn("walk to #" + MoveStepIndex);
+                            s = TransferPath[MoveStepIndex];
+                            _vPosition.X = s.X;
+                            _vPosition.Y = s.Y;
+                            _vPosition.Z = s.Z;
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
+                            return;
+                        }
+
+                        MoveStepIndex++;
+                        s_log.Warn("we have reached checkpoint go on...");
+                    }
+                    else
+                    {
+                        if (MoveStepIndex > 0)
+                        {
+                            MoveStepIndex--;
+                            s_log.Warn("we reached checkpoint go further ...");
+                        }
+                        else
+                        {
+                            s_log.Warn("we are ideally at the starting point.");
+                            //StopMove(npc);
+                            PauseMove(npc);
+                            MoveToForward = true; //turn back
+                            MoveStepIndex++;
+                            s_log.Warn("walk to #" + MoveStepIndex);
+                            s = TransferPath[MoveStepIndex];
+                            _vPosition.X = s.X;
+                            _vPosition.Y = s.Y;
+                            _vPosition.Z = s.Z;
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
+                            return;
+                        }
+                    }
+
+                    s_log.Warn("walk to #" + MoveStepIndex);
+                    s = TransferPath[MoveStepIndex];
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
+                    RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
+                }
+            }
+            else if (unit is Transfer transfer)
+            {
+                if (!MoveToPathEnabled)
+                {
+                    s_log.Warn("OnMove disabled");
+                    StopMove(transfer);
+                    return;
+                }
+                if (MovePath.Count > 0)
+                {
+                    var s = MovePath[MoveStepIndex];
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    if (!PosInRange(transfer, _vPosition.X, _vPosition.Y, 3))
+                    {
+                        RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
+                        return;
+                    }
+
+                    if (MoveToForward)
+                    {
+                        if (MoveStepIndex == MovePath.Count - 1)
+                        {
+                            s_log.Warn("we are at the end point.");
+                            PauseMove(transfer);
+                            MoveToForward = false; //turn back
+                            MoveStepIndex--;
+                            s_log.Warn("walk to #" + MoveStepIndex);
+                            s = MovePath[MoveStepIndex];
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            double time = 0;
+                            if (transfer.Template.TransferPaths[Steering].WaitTimeEnd > 0)
+                            {
+                                time = transfer.Template.TransferPaths[Steering].WaitTimeEnd;
+                            }
+                            if (transfer.Template.TransferPaths[Steering].WaitTimeStart > 0)
+                            {
+                                time = transfer.Template.TransferPaths[Steering].WaitTimeStart;
+                            }
+                            RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, time * 1000);
+                            return;
+                        }
+
+                        MoveStepIndex++;
+                        s_log.Warn("we reached checkpoint go further...");
+                    }
+                    else
+                    {
+                        if (MoveStepIndex > 0)
+                        {
+                            MoveStepIndex--;
+                            s_log.Warn("we reached checkpoint go further ...");
+                        }
+                        else
+                        {
+                            s_log.Warn("we are at the starting point.");
+                            PauseMove(transfer);
+                            MoveToForward = true; //turn back
+                            MoveStepIndex++;
+                            s_log.Warn("walk to #" + MoveStepIndex);
+                            s = MovePath[MoveStepIndex];
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            double time = 0;
+                            if (transfer.Template.TransferPaths[Steering].WaitTimeEnd > 0)
+                            {
+                                time = transfer.Template.TransferPaths[Steering].WaitTimeEnd;
+                            }
+                            if (transfer.Template.TransferPaths[Steering].WaitTimeStart > 0)
+                            {
+                                time = transfer.Template.TransferPaths[Steering].WaitTimeStart;
+                            }
+                            RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, time * 1000);
+                            return;
+                        }
+                    }
+
+                    s_log.Warn("walk to #" + MoveStepIndex);
+                    s = MovePath[MoveStepIndex];
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
+                }
+                if (TransferPath.Count > 0)
+                {
+                    var s = TransferPath[MoveStepIndex];
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
+                    // var carriage = TransferManager.Instance.GetTransferTemplate(transfer.TemplateId);
+                    if (PosInRange(transfer, _vPosition.X, _vPosition.Y, 50))
+                    {
+                        if (MoveToForward)
+                        {
+                            /*
+                              Проходим по очереди все участки пути из списка, с начала каждого пути.
+                              Начиная с середины, это участки в обратную сторону.
+                            */
+                            if (MoveStepIndex >= TransferPath.Count - 1)
+                            {
+                                // участок пути закончился
+                                MoveStepIndex = 0;
+                                if (Steering >= Routes.Count - 1)
+                                {
+                                    // закончились дороги, нужно начать сначала
+                                    Steering = 0; // укажем на начальный путь
+                                    s_log.Warn("we are at the end point.");
+                                    if (!Loop)
+                                    {
+                                        PauseMove(transfer); // останавливаемся
+                                    }
+                                    else
+                                    {
+                                        LoadTransferPathFromRoutes(Steering); // загрузим путь в TransferPath
+                                        s_log.Warn("Transfer #" + transfer.TemplateId);
+                                        s_log.Warn("next path #" + Steering);
+                                        s_log.Warn("walk to #" + MoveStepIndex);
+                                        s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" +
+                                                   _vPosition.Z);
+                                        s = TransferPath[MoveStepIndex];
+                                        _vPosition.X = s.X;
+                                        _vPosition.Y = s.Y;
+                                        _vPosition.Z = s.Z;
+                                        // здесь будет непосредственно пауза между участками дороги, если она есть в базе данных
+                                        var time = transfer.Template.TransferPaths[Steering].WaitTimeStart;
+                                        RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, time * 1000);
+                                    }
+                                }
+                                else
+                                {
+                                    // продолжим путь
+                                    Steering++; // укажем на следующий участок пути
+                                    LoadTransferPathFromRoutes(Steering); // загрузим путь в TransferPath
+                                    //LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
+                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Warn("path #" + Steering);
+                                    s_log.Warn("walk to #" + MoveStepIndex);
+                                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                                    s = TransferPath[MoveStepIndex];
+                                    _vPosition.X = s.X;
+                                    _vPosition.Y = s.Y;
+                                    _vPosition.Z = s.Z;
+                                    // здесь будет непосредственно пауза между участками дороги
+                                    var time = transfer.Template.TransferPaths[Steering - 1].WaitTimeEnd;
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, time * 1000);
+                                }
+                            }
+                            else
+                            {
+                                MoveStepIndex++;
+                                s_log.Warn("we reached checkpoint go further...");
+                                s_log.Warn("Transfer #" + transfer.TemplateId);
+                                s_log.Warn("path #" + Steering);
+                                s_log.Warn("walk to #" + MoveStepIndex);
+                                s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                                s = TransferPath[MoveStepIndex];
+                                _vPosition.X = s.X;
+                                _vPosition.Y = s.Y;
+                                _vPosition.Z = s.Z;
+                                if (MoveStepIndex - 1 == 0)
+                                {
+                                    // здесь будет пауза в начале участка пути, если она есть в базе данных
+                                    var time = transfer.Template.TransferPaths[Steering].WaitTimeStart;
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, time * 1000);
+                                }
+                                else
+                                {
+                                    // иначе, паузу не делаем
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            /*
+                              здесь всё тоже самое, но с конца пути
+                              здесь проходим все пути из списка дорог по очереди, с конца каждого пути, начиная с середины это пути в обратную сторону
+                            */
+                            if (MoveStepIndex == 0)
+                            {
+                                s_log.Warn("we are at the begin point.");
+                                // путь закончился
+                                Steering--; // укажем на предыдущий путь
+                                if (Steering < 0)
+                                {
+                                    // закончились дороги, нужно начать с конца
+                                    Steering = Routes.Count - 1; // укажем на самый последний в списке путь
+                                    PauseMove(transfer); // продолжим путь после паузы назад
+                                    //LoadTransferPath(Steering); // загрузим путь в TransferPath
+                                    //LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
+                                    LoadTransferPathFromRoutes(Steering); // загрузим путь в TransferPath
+
+                                    MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
+                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Warn("next path #" + Steering);
+                                    s_log.Warn("walk to #" + MoveStepIndex);
+                                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                                    s = TransferPath[MoveStepIndex];
+                                    _vPosition.X = s.X;
+                                    _vPosition.Y = s.Y;
+                                    _vPosition.Z = s.Z;
+                                    // здесь непосредственно пауза
+                                    double time = 0;
+                                    if (transfer.Template.TransferPaths[Steering].WaitTimeEnd > 0)
+                                    {
+                                        time = transfer.Template.TransferPaths[Steering].WaitTimeEnd;
+                                    }
+                                    if (transfer.Template.TransferPaths[Steering].WaitTimeStart > 0)
+                                    {
+                                        time = transfer.Template.TransferPaths[Steering].WaitTimeStart;
+                                    }
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, time * 1000);
+                                }
+                                else
+                                {
+                                    // продолжим путь
+                                    //LoadTransferPath(Steering); // загрузим путь в TransferPath
+                                    //LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
+                                    LoadTransferPathFromRoutes(Steering); // загрузим путь в TransferPath
+                                    MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
+                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Warn("path #" + Steering);
+                                    s_log.Warn("walk to #" + MoveStepIndex);
+                                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                                    s = TransferPath[MoveStepIndex];
+                                    _vPosition.X = s.X;
+                                    _vPosition.Y = s.Y;
+                                    _vPosition.Z = s.Z;
+                                    // здесь будет непосредственно пауза между участками дороги, если она есть в базе данных
+                                    double time = 0;
+                                    if (transfer.Template.TransferPaths[Steering].WaitTimeEnd > 0)
+                                    {
+                                        time = transfer.Template.TransferPaths[Steering].WaitTimeEnd;
+                                    }
+                                    if (transfer.Template.TransferPaths[Steering].WaitTimeStart > 0)
+                                    {
+                                        time = transfer.Template.TransferPaths[Steering].WaitTimeStart;
+                                    }
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, time * 1000);
+                                }
+                            }
+                            else
+                            {
+                                MoveStepIndex--;
+                                s_log.Warn("we reached checkpoint go further...");
+                                s_log.Warn("Transfer #" + transfer.TemplateId);
+                                s_log.Warn("path #" + Steering);
+                                s_log.Warn("walk to #" + MoveStepIndex);
+                                s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                                s = TransferPath[MoveStepIndex];
+                                _vPosition.X = s.X;
+                                _vPosition.Y = s.Y;
+                                _vPosition.Z = s.Z;
+                                // здесь нет паузы
+                                RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        s_log.Warn("Transfer #" + transfer.TemplateId);
+                        s_log.Warn("path #" + Steering);
+                        s_log.Warn("checkpoint #" + MoveStepIndex);
+                        s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                        s_log.Warn("to any point is very far, we stop.");
+                    }
                 }
             }
         }
@@ -1586,19 +2006,19 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 if (!MoveToPathEnabled)
                 {
-                    _log.Warn("Move disabled");
+                    s_log.Warn("Move disabled");
                     StopMove(npc);
                     return;
                 }
                 if (MovePath.Count > 0)
                 {
                     var s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
-                    if (!PosInRange(npc, vPosition.X, vPosition.Y, 3))
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    if (!PosInRange(npc, _vPosition.X, _vPosition.Y, 3))
                     {
-                        RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                        RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
                         return;
                     }
 
@@ -1606,63 +2026,63 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     {
                         if (MoveStepIndex == MovePath.Count - 1)
                         {
-                            _log.Warn("we are at the end point.");
+                            s_log.Warn("we are at the end point.");
                             //StopMove(npc);
                             PauseMove(npc);
                             MoveToForward = false; //turn back
                             MoveStepIndex--;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = MovePath[MoveStepIndex];
-                            vPosition.X = ExtractValue(s, 1);
-                            vPosition.Y = ExtractValue(s, 2);
-                            vPosition.Z = ExtractValue(s, 3);
-                            RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z, 20000);
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
                             return;
                         }
 
                         MoveStepIndex++;
-                        _log.Warn("we have reached checkpoint go on...");
+                        s_log.Warn("we have reached checkpoint go on...");
                     }
                     else
                     {
                         if (MoveStepIndex > 0)
                         {
                             MoveStepIndex--;
-                            _log.Warn("we reached checkpoint go further ...");
+                            s_log.Warn("we reached checkpoint go further ...");
                         }
                         else
                         {
-                            _log.Warn("we are at the starting point.");
+                            s_log.Warn("we are at the starting point.");
                             //StopMove(npc);
                             PauseMove(npc);
                             MoveToForward = true; //turn back
                             MoveStepIndex++;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = MovePath[MoveStepIndex];
-                            vPosition.X = ExtractValue(s, 1);
-                            vPosition.Y = ExtractValue(s, 2);
-                            vPosition.Z = ExtractValue(s, 3);
-                            RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z, 20000);
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
                             return;
                         }
                     }
 
-                    _log.Warn("walk to #" + MoveStepIndex);
+                    s_log.Warn("walk to #" + MoveStepIndex);
                     s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
-                    RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
                 }
                 if (TransferPath.Count > 0)
                 {
                     var s = TransferPath[MoveStepIndex];
-                    vPosition.X = s.X;
-                    vPosition.Y = s.Y;
-                    vPosition.Z = s.Z;
-                    if (!PosInRange(npc, vPosition.X, vPosition.Y, 3))
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
+                    if (!PosInRange(npc, _vPosition.X, _vPosition.Y, 3))
                     {
-                        RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                        RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
                         return;
                     }
 
@@ -1670,72 +2090,72 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     {
                         if (MoveStepIndex == TransferPath.Count - 1)
                         {
-                            _log.Warn("we are at the end point.");
+                            s_log.Warn("we are at the end point.");
                             //StopMove(npc);
                             PauseMove(npc);
                             MoveToForward = false; //turn back
                             MoveStepIndex--;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = TransferPath[MoveStepIndex];
-                            vPosition.X = s.X;
-                            vPosition.Y = s.Y;
-                            vPosition.Z = s.Z;
-                            RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z, 20000);
+                            _vPosition.X = s.X;
+                            _vPosition.Y = s.Y;
+                            _vPosition.Z = s.Z;
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
                             return;
                         }
 
                         MoveStepIndex++;
-                        _log.Warn("we have reached checkpoint go on...");
+                        s_log.Warn("we have reached checkpoint go on...");
                     }
                     else
                     {
                         if (MoveStepIndex > 0)
                         {
                             MoveStepIndex--;
-                            _log.Warn("we reached checkpoint go further ...");
+                            s_log.Warn("we reached checkpoint go further ...");
                         }
                         else
                         {
-                            _log.Warn("we are at the starting point.");
+                            s_log.Warn("we are at the starting point.");
                             //StopMove(npc);
                             PauseMove(npc);
                             MoveToForward = true; //turn back
                             MoveStepIndex++;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = TransferPath[MoveStepIndex];
-                            vPosition.X = s.X;
-                            vPosition.Y = s.Y;
-                            vPosition.Z = s.Z;
-                            RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z, 20000);
+                            _vPosition.X = s.X;
+                            _vPosition.Y = s.Y;
+                            _vPosition.Z = s.Z;
+                            RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z, 20000);
                             return;
                         }
                     }
 
-                    _log.Warn("walk to #" + MoveStepIndex);
+                    s_log.Warn("walk to #" + MoveStepIndex);
                     s = TransferPath[MoveStepIndex];
-                    vPosition.X = s.X;
-                    vPosition.Y = s.Y;
-                    vPosition.Z = s.Z;
-                    RepeatMove(this, npc, vPosition.X, vPosition.Y, vPosition.Z);
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
+                    RepeatMove(this, npc, _vPosition.X, _vPosition.Y, _vPosition.Z);
                 }
             }
             else if (unit is Transfer transfer)
             {
                 if (!MoveToPathEnabled || transfer.Position == null || !transfer.IsInPatrol)
                 {
-                    _log.Warn("Move disabled");
+                    s_log.Warn("Move disabled");
                     StopMove(transfer);
                     return;
                 }
                 if (MovePath.Count > 0)
                 {
                     var s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
-                    if (!PosInRange(transfer, vPosition.X, vPosition.Y, 3))
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    if (!PosInRange(transfer, _vPosition.X, _vPosition.Y, 3))
                     {
-                        RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                        RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                         return;
                     }
 
@@ -1743,62 +2163,62 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     {
                         if (MoveStepIndex == MovePath.Count - 1)
                         {
-                            _log.Warn("we are at the end point.");
+                            s_log.Warn("we are at the end point.");
                             //StopMove(npc);
                             PauseMove(transfer);
                             MoveToForward = false; //turn back
                             MoveStepIndex--;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = MovePath[MoveStepIndex];
-                            vPosition.X = ExtractValue(s, 1);
-                            vPosition.Y = ExtractValue(s, 2);
-                            vPosition.Z = ExtractValue(s, 3);
-                            RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.WaitTime * 1000);
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.WaitTime * 1000);
                             return;
                         }
 
                         MoveStepIndex++;
-                        _log.Warn("we reached checkpoint go further...");
+                        s_log.Warn("we reached checkpoint go further...");
                     }
                     else
                     {
                         if (MoveStepIndex > 0)
                         {
                             MoveStepIndex--;
-                            _log.Warn("we reached checkpoint go further ...");
+                            s_log.Warn("we reached checkpoint go further ...");
                         }
                         else
                         {
-                            _log.Warn("we are at the starting point.");
+                            s_log.Warn("we are at the starting point.");
                             //StopMove(npc);
                             PauseMove(transfer);
                             MoveToForward = true; //turn back
                             MoveStepIndex++;
-                            _log.Warn("walk to #" + MoveStepIndex);
+                            s_log.Warn("walk to #" + MoveStepIndex);
                             s = MovePath[MoveStepIndex];
-                            vPosition.X = ExtractValue(s, 1);
-                            vPosition.Y = ExtractValue(s, 2);
-                            vPosition.Z = ExtractValue(s, 3);
-                            RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.WaitTime * 1000);
+                            _vPosition.X = ExtractValue(s, 1);
+                            _vPosition.Y = ExtractValue(s, 2);
+                            _vPosition.Z = ExtractValue(s, 3);
+                            RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.WaitTime * 1000);
                             return;
                         }
                     }
 
-                    _log.Warn("walk to #" + MoveStepIndex);
+                    s_log.Warn("walk to #" + MoveStepIndex);
                     s = MovePath[MoveStepIndex];
-                    vPosition.X = ExtractValue(s, 1);
-                    vPosition.Y = ExtractValue(s, 2);
-                    vPosition.Z = ExtractValue(s, 3);
-                    RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                    _vPosition.X = ExtractValue(s, 1);
+                    _vPosition.Y = ExtractValue(s, 2);
+                    _vPosition.Z = ExtractValue(s, 3);
+                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                 }
                 if (TransferPath.Count > 0)
                 {
                     var s = TransferPath[MoveStepIndex];
-                    vPosition.X = s.X;
-                    vPosition.Y = s.Y;
-                    vPosition.Z = s.Z;
+                    _vPosition.X = s.X;
+                    _vPosition.Y = s.Y;
+                    _vPosition.Z = s.Z;
                     //var carriage = TransferManager.Instance.GetTransferTemplate(transfer.TemplateId);
-                    if (PosInRange(transfer, vPosition.X, vPosition.Y, 50))
+                    if (PosInRange(transfer, _vPosition.X, _vPosition.Y, 50))
                     {
                         if (MoveToForward)
                         {
@@ -1810,30 +2230,29 @@ namespace AAEmu.Game.Models.Game.Units.Route
                             {
                                 // участок пути закончился
                                 Steering++; // укажем на следующий путь
-                                if (Steering == AllRoutes[transfer.TemplateId].Count)
+                                if (Steering == _allRoutes[transfer.TemplateId].Count)
                                 {
-                                    transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
                                     // закончились дороги, нужно начать сначала
                                     Steering = 0; // укажем на начальный путь
                                     // нужно разворачиваться
-                                    _log.Warn("we are at the end point.");
+                                    s_log.Warn("we are at the end point.");
                                     PauseMove(transfer);
                                     // продолжим путь после паузы назад
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = 0;
-                                    _log.Warn("next path #" + Steering);
-                                    _log.Warn("walk to #" + MoveStepIndex);
-                                    _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Warn("next path #" + Steering);
+                                    s_log.Warn("walk to #" + MoveStepIndex);
+                                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                                     s = TransferPath[MoveStepIndex];
-                                    vPosition.X = s.X;
-                                    vPosition.Y = s.Y;
-                                    vPosition.Z = s.Z;
+                                    _vPosition.X = s.X;
+                                    _vPosition.Y = s.Y;
+                                    _vPosition.Z = s.Z;
                                     // здесь будет непосредственно пауза между участками дороги, если она есть в базе данных
-                                    RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeStart * 1000);
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.TransferPaths[Steering].WaitTimeStart * 1000);
                                 }
                                 //else if (Steering == AllRoutes[transfer.TemplateId].Count / 2)
                                 //{
-                                //    transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
                                 //    // достигли середины списка, нужно разворачиваться
                                 //    _log.Warn("we are at the end point.");
                                 //    PauseMove(transfer);
@@ -1853,37 +2272,36 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                 //}
                                 else
                                 {
-                                    transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
                                     // продолжим путь
                                     //LoadTransferPath(Steering); // загрузим путь в TransferPath
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = 0;
-                                    _log.Warn("path #" + Steering);
-                                    _log.Warn("walk to #" + MoveStepIndex);
-                                    _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Warn("path #" + Steering);
+                                    s_log.Warn("walk to #" + MoveStepIndex);
+                                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                                     s = TransferPath[MoveStepIndex];
-                                    vPosition.X = s.X;
-                                    vPosition.Y = s.Y;
-                                    vPosition.Z = s.Z;
+                                    _vPosition.X = s.X;
+                                    _vPosition.Y = s.Y;
+                                    _vPosition.Z = s.Z;
                                     // здесь нет паузы
-                                    RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                                 }
                             }
                             else
                             {
-                                transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
-
                                 MoveStepIndex++;
-                                _log.Warn("we reached checkpoint go further...");
-                                _log.Warn("path #" + Steering);
-                                _log.Warn("walk to #" + MoveStepIndex);
-                                _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                                s_log.Warn("we reached checkpoint go further...");
+                                s_log.Warn("Transfer #" + transfer.TemplateId);
+                                s_log.Warn("path #" + Steering);
+                                s_log.Warn("walk to #" + MoveStepIndex);
+                                s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                                 s = TransferPath[MoveStepIndex];
-                                vPosition.X = s.X;
-                                vPosition.Y = s.Y;
-                                vPosition.Z = s.Z;
+                                _vPosition.X = s.X;
+                                _vPosition.Y = s.Y;
+                                _vPosition.Z = s.Z;
                                 // здесь нет паузы
-                                RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                                RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                             }
                         }
                         else
@@ -1892,89 +2310,89 @@ namespace AAEmu.Game.Models.Game.Units.Route
                             //TODO здесь проходим все пути из списка дорог по очереди, с конца каждого пути, начиная с середины это пути в обратную сторону
                             if (MoveStepIndex == 0)
                             {
-                                _log.Warn("we are at the begin point.");
+                                s_log.Warn("we are at the begin point.");
                                 // путь закончился
                                 Steering--; // укажем на предыдущий путь
                                 if (Steering < 0)
                                 {
-                                    transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
                                     // закончились дороги, нужно начать с конца
-                                    Steering = AllRoutes[transfer.TemplateId].Count - 1; // укажем на самый последний в списке путь
+                                    Steering = _allRoutes[transfer.TemplateId].Count - 1; // укажем на самый последний в списке путь
                                     PauseMove(transfer); // продолжим путь после паузы назад
                                     //LoadTransferPath(Steering); // загрузим путь в TransferPath
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
-                                    _log.Warn("next path #" + Steering);
-                                    _log.Warn("walk to #" + MoveStepIndex);
-                                    _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Warn("next path #" + Steering);
+                                    s_log.Warn("walk to #" + MoveStepIndex);
+                                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                                     s = TransferPath[MoveStepIndex];
-                                    vPosition.X = s.X;
-                                    vPosition.Y = s.Y;
-                                    vPosition.Z = s.Z;
+                                    _vPosition.X = s.X;
+                                    _vPosition.Y = s.Y;
+                                    _vPosition.Z = s.Z;
                                     // здесь непосредственно пауза
-                                    RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.WaitTime * 1000);
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.WaitTime * 1000);
                                 }
-                                else if (Steering == AllRoutes[transfer.TemplateId].Count / 2 - 1)
+                                else if (Steering == _allRoutes[transfer.TemplateId].Count / 2 - 1)
                                 {
-                                    transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
                                     // достигли середины списка, нужно разворачиваться
-                                    _log.Warn("have reached the middle of the list, we need to turn around...");
+                                    s_log.Warn("have reached the middle of the list, we need to turn around...");
                                     PauseMove(transfer); // продолжим путь после паузы назад
                                     //LoadTransferPath(Steering); // загрузим путь в TransferPath
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
-                                    _log.Warn("next path #" + Steering);
-                                    _log.Warn("walk to #" + MoveStepIndex);
-                                    _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Warn("next path #" + Steering);
+                                    s_log.Warn("walk to #" + MoveStepIndex);
+                                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                                     s = TransferPath[MoveStepIndex];
-                                    vPosition.X = s.X;
-                                    vPosition.Y = s.Y;
-                                    vPosition.Z = s.Z;
+                                    _vPosition.X = s.X;
+                                    _vPosition.Y = s.Y;
+                                    _vPosition.Z = s.Z;
                                     // здесь непосредственно пауза
-                                    RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z, transfer.Template.WaitTime * 1000);
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z, transfer.Template.WaitTime * 1000);
                                 }
                                 else
                                 {
-                                    transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
                                     // продолжим путь
                                     //LoadTransferPath(Steering); // загрузим путь в TransferPath
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
-                                    _log.Warn("path #" + Steering);
-                                    _log.Warn("walk to #" + MoveStepIndex);
-                                    _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Warn("path #" + Steering);
+                                    s_log.Warn("walk to #" + MoveStepIndex);
+                                    s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                                     s = TransferPath[MoveStepIndex];
-                                    vPosition.X = s.X;
-                                    vPosition.Y = s.Y;
-                                    vPosition.Z = s.Z;
+                                    _vPosition.X = s.X;
+                                    _vPosition.Y = s.Y;
+                                    _vPosition.Z = s.Z;
                                     // здесь нет паузы
-                                    RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                                    RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                                 }
                             }
                             else
                             {
-                                transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
                                 MoveStepIndex--;
-                                _log.Warn("we reached checkpoint go further...");
-                                _log.Warn("path #" + Steering);
-                                _log.Warn("walk to #" + MoveStepIndex);
-                                _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                                s_log.Warn("we reached checkpoint go further...");
+                                s_log.Warn("Transfer #" + transfer.TemplateId);
+                                s_log.Warn("path #" + Steering);
+                                s_log.Warn("walk to #" + MoveStepIndex);
+                                s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
                                 s = TransferPath[MoveStepIndex];
-                                vPosition.X = s.X;
-                                vPosition.Y = s.Y;
-                                vPosition.Z = s.Z;
+                                _vPosition.X = s.X;
+                                _vPosition.Y = s.Y;
+                                _vPosition.Z = s.Z;
                                 // здесь нет паузы
-                                RepeatMove(this, transfer, vPosition.X, vPosition.Y, vPosition.Z);
+                                RepeatMove(this, transfer, _vPosition.X, _vPosition.Y, _vPosition.Z);
                             }
                         }
                     }
                     else
                     {
-                        transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationX, transfer.Position.RotationY, transfer.Position.RotationZ);
-                        _log.Warn("path #" + Steering);
-                        _log.Warn("checkpoint #" + MoveStepIndex);
-                        _log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
-                        _log.Warn("to any point is very far, we stop.");
+                        s_log.Warn("Transfer #" + transfer.TemplateId);
+                        s_log.Warn("path #" + Steering);
+                        s_log.Warn("checkpoint #" + MoveStepIndex);
+                        s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
+                        s_log.Warn("to any point is very far, we stop.");
                     }
                 }
             }
@@ -2010,11 +2428,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 MovePath = new List<string>();
                 MovePath = File.ReadLines(GetMoveFileName()).ToList();
-                _log.Info("Loading {0} transfer_path...", GetMoveFileName());
+                s_log.Info("Loading {0} transfer_path...", GetMoveFileName());
             }
             catch (Exception e)
             {
-                _log.Warn("Error in read MovePath: {0}", e);
+                s_log.Warn("Error in read MovePath: {0}", e);
                 //StopMove(npc);
             }
             //try
@@ -2031,27 +2449,36 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
         public List<Point> LoadPath(string namePath) //Вызывается при включении скрипта
         {
-            _log.Info("Transfer: Loading {0} transfer_path...", namePath);
+            s_log.Info("Transfer: Loading {0} transfer_path...", namePath);
             TransferPath = TransferManager.Instance.GetTransferPath(namePath);
             return TransferPath;
+        }
+        public void LoadTransferPathFromRoutes(int steering) // загрузить путь под номером steering
+        {
+            s_log.Info("Transfer: Loading {0} transfer_path...", steering);
+            TransferPath = Routes[steering];
         }
 
         public void ReadPath(string namePath) //Вызывается при включении скрипта
         {
-            _log.Info("Transfer: Reading {0} transfer_path...", namePath);
+            s_log.Info("Transfer: Reading {0} transfer_path...", namePath);
             TransferPath = TransferManager.Instance.GetTransferPath(namePath);
         }
 
         public void AddPath(string namePath) //Добавить продолжение маршрута
         {
-            _log.Info("Transfer: Adding {0} transfer_path...", namePath);
+            s_log.Info("Transfer: Adding {0} transfer_path...", namePath);
             TransferPath.AddRange(TransferManager.Instance.GetTransferPath(namePath));
         }
 
         public override void Execute(BaseUnit unit)
         {
-            //NextPathOrPointInPath(npc);
-            OnMove(unit);
+            throw new NotImplementedException();
+        }
+
+        public override void Execute(Npc npc)
+        {
+            OnMove(npc);
         }
 
         public override void Execute(Transfer transfer)

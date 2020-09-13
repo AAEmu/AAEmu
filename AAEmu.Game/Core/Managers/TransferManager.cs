@@ -72,7 +72,43 @@ namespace AAEmu.Game.Core.Managers
         }
 
         /// <summary>
-        /// Поиск участка пути по позиции транспорта. Предположительно, что начало пути имеет отличный от нуля Type
+        /// Получить список всех частей своего пути для транспорта
+        /// </summary>
+        /// <param name="worldId"></param>
+        /// <returns></returns>
+        private void GetOwnerPaths(byte worldId = 1)
+        {
+            foreach (var (id, transferTemplate) in _templates)
+            {
+                foreach (var transferPaths in transferTemplate.TransferPaths)
+                {
+                    foreach (var (wid, transfers) in _transferRoads)
+                    {
+                        if (wid != worldId) { continue; }
+                        foreach (var (zid, transfer) in transfers)
+                        {
+                            foreach (var path in transfer.Where(path => path.Name == transferPaths.PathName))
+                            {
+                                var tmp = new TransferRoads()
+                                {
+                                    Name = path.Name,
+                                    Type = path.Type,
+                                    CellX = path.CellX,
+                                    CellY = path.CellY,
+                                    Pos = path.Pos
+                                };
+                                transferTemplate.TransferRoads.Add(tmp);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+        /// <summary>
+        /// Поиск участка пути по позиции транспорта. Предположительно, что начало пути имеет отличный от нуля ScType
         /// </summary>
         /// <param name="position">позиция транспорта</param>
         /// <param name="worldId"></param>
@@ -107,7 +143,7 @@ namespace AAEmu.Game.Core.Managers
                             return path.Pos;
                         }
 
-                        if (path.Type == 0) // предположительно, что начало пути имеет отличный от нуля Type
+                        if (path.Type == 0) // предположительно, что начало пути имеет отличный от нуля ScType
                         {
                             return path.Pos;
                         }
@@ -160,7 +196,7 @@ namespace AAEmu.Game.Core.Managers
         }
 
         /// <summary>
-        /// Поиск начала участка пути по позиции транспорта. Предположительно, что начало пути имеет отличный от нуля Type
+        /// Поиск начала участка пути по позиции транспорта. Предположительно, что начало пути имеет отличный от нуля ScType
         /// </summary>
         /// <param name="position">позиция транспорта</param>
         /// <param name="worldId"></param>
@@ -194,7 +230,7 @@ namespace AAEmu.Game.Core.Managers
                             return path.Pos;
                         }
 
-                        if (path.Type > 0) // предположительно, что начало пути имеет отличный от нуля Type
+                        if (path.Type > 0) // предположительно, что начало пути имеет отличный от нуля ScType
                         {
                             return path.Pos;
                         }
@@ -213,11 +249,11 @@ namespace AAEmu.Game.Core.Managers
         public (List<int>, List<string>, Dictionary<int, List<Point>>) GetAllTypesNamesPaths(uint templateId, byte worldId = 1)
         {
             //var listId = new List<uint>();
-            //                  path.Type
+            //                  path.ScType
             var listTypes = new List<int>();
             //                  path.Name
             var listNames = new List<string>();
-            //                             idx,  path.Pos
+            //                             idx,  path.WorldPos
             var listPaths = new Dictionary<int, List<Point>>();
 
             int idx = 0;
@@ -269,11 +305,11 @@ namespace AAEmu.Game.Core.Managers
 
             // узнаем для нашей повозки типы, имена и пути имеющихся дорог
             /*
-                                path.Type
+                                path.ScType
             var listTypes = new List<int>();
                                 path.Name
             var listNames = new List<string>();
-                                           idx,  path.Pos
+                                           idx,  path.WorldPos
             var listPaths = new Dictionary<uint, List<Point>>();
             */
             var (listTypes, listNames, listPaths) = GetAllTypesNamesPaths(templateId);
@@ -284,7 +320,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 if (listTypes[i] == 0) { continue; }
 
-                // записываем первую часть пути, для каждой дороги у которой Type не ноль, для требуемого templateId
+                // записываем первую часть пути, для каждой дороги у которой ScType не ноль, для требуемого templateId
                 _log.Warn("GetAllTransferPath2> нашли начало пути: {0}, для транспорта: {1}, для дороги с индесксом: {2}", templateId, listNames[i], i);
                 routes.TryAdd(cnt, path);   // начальный участок дороги 1
                 nameRoutes.TryAdd(cnt, listNames[i]); // добавили имя для участка
@@ -424,7 +460,7 @@ namespace AAEmu.Game.Core.Managers
                 _log.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
 
                 // проверка что это не таже самая точка
-                delta = MathUtil2.GetDistance(vTarget, vPosition);
+                delta = MathUtil.GetDistance(vTarget, vPosition);
 
                 if (delta > tolerance && delta < 50) // ищем точку не очень далеко от позиции, проверяем, что это не таже самая точка
                 {
@@ -454,7 +490,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Warn("GetMinCheckPointFromRoutes> tarX:=" + vTarget.X + " tarY:=" + vTarget.Y + " tarZ:=" + vTarget.Z);
             _log.Warn("GetMinCheckPointFromRoutes> posX:=" + vPosition.X + " posY:=" + vPosition.Y + " posZ:=" + vPosition.Z);
 
-            var delta = MathUtil2.GetDistance(vTarget, vPosition);
+            var delta = MathUtil.GetDistance(vTarget, vPosition);
             if (delta > tolerance && delta < 50) // ищем точку не очень далеко от позиции, проверяем, что это не таже самая точка
             {
                 return true;
@@ -561,9 +597,11 @@ namespace AAEmu.Game.Core.Managers
             owner.Mp = owner.MaxMp;
             owner.ModelParams = new UnitCustomModelParams();
             owner.Position = spawner.Position.Clone();
-            //owner.RotationZ = spawner.RotationZ;
-            //owner.Faction = new SystemFaction();
-            owner.Faction = FactionManager.Instance.GetFaction(1);
+            owner.Position.RotationZ = spawner.Position.RotationZ;
+            owner.Rot = new Quaternion(0f, 0f, spawner.RotationZ, 1f);
+
+            owner.Faction = new SystemFaction();
+            //owner.Faction = FactionManager.Instance.GetFaction(1);
             owner.Patrol = null;
             // add effect
             var buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
@@ -592,12 +630,14 @@ namespace AAEmu.Game.Core.Managers
             transfer.Mp = transfer.MaxMp;
             transfer.ModelParams = new UnitCustomModelParams();
             transfer.Position = spawner.Position.Clone();
-            transfer.Faction = FactionManager.Instance.GetFaction(1);
-            //transfer.RotationZ = spawner.RotationZ;
+            transfer.Position.RotationZ = spawner.Position.RotationZ;
+
+            transfer.Rot = new Quaternion(0f, 0f, spawner.RotationZ, 1f);
+            transfer.Rot = new Quaternion(0f, 0f, 0, 1f);
+
             (transfer.Position.X, transfer.Position.Y) = MathUtil.AddDistanceToFront(-9.24417f, transfer.Position.X, transfer.Position.Y, transfer.Position.RotationZ);
             //var tempPoint = new Point(transfer.Position.WorldId, transfer.Position.ZoneId, -0.33f, -9.01f, 2.44f, 0, 0, 0);
-            transfer.Position.Z = AppConfiguration.Instance.HeightMapsEnable
-                ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, transfer.Position.X, transfer.Position.Y) : transfer.Position.Z;
+            transfer.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, transfer.Position.X, transfer.Position.Y) : transfer.Position.Z;
 
             transfer.Faction = new SystemFaction();
             transfer.Patrol = null;
@@ -607,7 +647,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
             // create a boardingPart and indicate that we attach to the Carriage object 
-            transfer.Spawn();
+            //transfer.Spawn();
             _activeTransfers.Add(transfer.ObjId, transfer);
 
             foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
@@ -638,7 +678,7 @@ namespace AAEmu.Game.Core.Managers
                 doodad.SetScale(1f);
                 doodad.FuncGroupId = doodad.GetFuncGroupId();
 
-                doodad.Spawn();
+                //doodad.Spawn();
                 transfer.AttachedDoodads.Add(doodad);
             }
 
@@ -789,7 +829,7 @@ namespace AAEmu.Game.Core.Managers
                         if (xnode.Attributes.Count > 0)
                         {
                             transfers.Name = xnode.Attributes.GetNamedItem("Name").Value;
-                            transfers.Type = int.Parse(xnode.Attributes.GetNamedItem("Type").Value);
+                            transfers.Type = int.Parse(xnode.Attributes.GetNamedItem("ScType").Value);
                             transfers.CellX = int.Parse(xnode.Attributes.GetNamedItem("cellX").Value);
                             transfers.CellY = int.Parse(xnode.Attributes.GetNamedItem("cellY").Value);
                         }
@@ -799,7 +839,7 @@ namespace AAEmu.Game.Core.Managers
                             {
                                 if (node.Attributes.Count > 0)
                                 {
-                                    var attributeValue = node.Attributes.GetNamedItem("Pos").Value;
+                                    var attributeValue = node.Attributes.GetNamedItem("WorldPos").Value;
                                     var splitVals = attributeValue.Split(',');
                                     if (splitVals.Length == 3)
                                     {
@@ -808,7 +848,16 @@ namespace AAEmu.Game.Core.Managers
                                         var z = float.Parse(splitVals[2]);
                                         // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
                                         // но не учитываются dX и dY смещения по осям
-                                        var (xx, yy, zz) = ZoneManager.Instance.ConvertCoord(zoneId, x, y, z);
+                                        var xyz = new Vector3(x, y, z);
+                                        var (xx, yy, zz) = ZoneManager.Instance.ConvertToWorldCoord(zoneId, xyz);
+                                        //if (transfers.CellX > 0)
+                                        //{
+                                        //    xx += transfers.CellX * 16;
+                                        //}
+                                        //if (transfers.CellY > 0)
+                                        //{
+                                        //    yy += transfers.CellY * 16;
+                                        //}
                                         var pos = new Point(xx, yy, zz)
                                         {
                                             WorldId = world.Id,
@@ -826,6 +875,8 @@ namespace AAEmu.Game.Core.Managers
                 _transferRoads.Add((byte)world.Id, transferPaths);
             }
             #endregion
+
+            GetOwnerPaths();
         }
     }
 }

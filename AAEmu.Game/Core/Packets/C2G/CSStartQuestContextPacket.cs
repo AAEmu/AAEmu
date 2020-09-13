@@ -11,10 +11,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var questId = stream.ReadUInt32();
-            var objId = stream.ReadBc();
-            var objId2 = stream.ReadBc();
-            var type = stream.ReadUInt32();
+            var questId = stream.ReadUInt32(); // qType
+            var objId = stream.ReadBc();       // npcId
+            var objId2 = stream.ReadBc();      // doodadId
+            var type = stream.ReadUInt32();    // sphereType
 
             if (objId > 0 &&
                 Connection.ActiveChar.CurrentTarget != null &&

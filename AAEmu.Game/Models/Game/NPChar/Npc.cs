@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Numerics;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -8,6 +10,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -22,6 +25,11 @@ namespace AAEmu.Game.Models.Game.NPChar
         public override UnitCustomModelParams ModelParams => Template.ModelParams;
         public override float Scale => Template.Scale;
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
+
+        public WorldPos Pos { get; set; }
+        public Quaternion Rot { get; set; }
+        public Vector3 Vel { get; set; }
+        public Vector3 AngVel { get; set; }
 
         #region Attributes
 
@@ -664,6 +672,8 @@ namespace AAEmu.Game.Models.Game.NPChar
             Name = "";
             Ai = new NpcAi(this, 100f); //Template.AggroLinkHelpDist);
             UnitType = BaseUnitType.Npc;
+            WorldPos = new WorldPos();
+            Position = new Point();
         }
 
         public override void DoDie(Unit killer)
