@@ -20,6 +20,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
     {
         private bool move;
         private Vector3 newPosition;
+        private Vector3 diff;
         private float diffX;
         private float diffY;
         private float newx;
@@ -57,46 +58,99 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             if (!GoBack)
             {
-                Time += DeltaTime;
-                Time = Math.Clamp(Time, 0, 1);
-                newPosition = Vector3.Lerp(vBeginPoint, vEndPoint, Time);
-                diffX = newPosition.X - npc.Position.X;
-                diffY = newPosition.Y - npc.Position.Y;
-                npc.Position.X = newPosition.X;
-                npc.Position.Y = newPosition.Y;
-                if (Math.Abs(diffX) > 0 || Math.Abs(diffY) > 0) { move = true; }
-                if (Math.Abs(vDistance.X) < diffX) { npc.Position.X = vEndPoint.X; }
-                if (Math.Abs(vDistance.Y) < diffY) { npc.Position.Y = vEndPoint.Y; }
-                if (!(Math.Abs(diffX) > 0) && !(Math.Abs(diffY) > 0))
+                //Time += DeltaTime;
+                //Time = Math.Clamp(Time, 0, 1);
+                //newPosition = Vector3.Lerp(vBeginPoint, vEndPoint, Time);
+                //diffX = newPosition.X - npc.Position.X;
+                //diffY = newPosition.Y - npc.Position.Y;
+                //npc.Position.X = newPosition.X;
+                //npc.Position.Y = newPosition.Y;
+                //if (Math.Abs(diffX) > 0 || Math.Abs(diffY) > 0) { move = true; }
+                //if (Math.Abs(vDistance.X) < diffX) { npc.Position.X = vEndPoint.X; }
+                //if (Math.Abs(vDistance.Y) < diffY) { npc.Position.Y = vEndPoint.Y; }
+                //if (!(Math.Abs(diffX) > 0) && !(Math.Abs(diffY) > 0))
+                //{
+                //    GoBack = true;
+                //    move = false;
+                //    Time = 0f;
+                //}
+                //Angle = MathUtil.CalculateAngleFrom(vBeginPoint.X, vBeginPoint.Y, vEndPoint.X, vEndPoint.Y);
+
+                vDistance = vEndPoint - vPosition;
+                // скорость движения velociti за период времени DeltaTime
+                var velociti = 4.5f * DeltaTime;
+                // вектор направление на таргет (последовательность аргументов важно, чтобы смотреть на таргет)
+                var direction = vEndPoint - vPosition;
+                // вектор направления необходимо нормализовать
+                if (direction != Vector3.Zero)
+                {
+                    direction = Vector3.Normalize(direction);
+                }
+                
+                // вектор скорости (т.е. координаты, куда попадем двигаясь со скоростью velociti по направдению direction)
+                diff = direction * velociti;
+
+                npc.Position.X += diff.X;
+                npc.Position.Y += diff.Y;
+                if (Math.Abs(diff.X) > 0 || Math.Abs(diff.Y) > 0) { move = true; }
+                if (Math.Abs(vDistance.X) < Math.Abs(diff.X)) { npc.Position.X = vEndPoint.X; }
+                if (Math.Abs(vDistance.Y) < Math.Abs(diff.Y)) { npc.Position.Y = vEndPoint.Y; }
+                if (!(Math.Abs(diff.X) > 0) && !(Math.Abs(diff.Y) > 0))
                 {
                     GoBack = true;
                     move = false;
                     Time = 0f;
                 }
                 Angle = MathUtil.CalculateAngleFrom(vBeginPoint.X, vBeginPoint.Y, vEndPoint.X, vEndPoint.Y);
-                Angle = MathUtil.DegreeToRadian(Angle);
             }
             else
             {
-                Time += DeltaTime;
-                Time = Math.Clamp(Time, 0, 1);
-                newPosition = Vector3.Lerp(vEndPoint, vBeginPoint, Time);
-                diffX = newPosition.X - npc.Position.X;
-                diffY = newPosition.Y - npc.Position.Y;
-                npc.Position.X = newPosition.X;
-                npc.Position.Y = newPosition.Y;
-                if (Math.Abs(diffX) > 0 || Math.Abs(diffY) > 0) { move = true; }
-                if (Math.Abs(vDistance.X) < diffX) { npc.Position.X = vBeginPoint.X; }
-                if (Math.Abs(vDistance.Y) < diffY) { npc.Position.Y = vBeginPoint.Y; }
-                Angle = MathUtil.CalculateAngleFrom(vEndPoint.X, vEndPoint.Y, vBeginPoint.X, vBeginPoint.Y);
-                Angle = MathUtil.DegreeToRadian(Angle);
-                if (!(Math.Abs(diffX) > 0) && !(Math.Abs(diffY) > 0))
+                //Time += DeltaTime;
+                //Time = Math.Clamp(Time, 0, 1);
+                //newPosition = Vector3.Lerp(vEndPoint, vBeginPoint, Time);
+                //diffX = newPosition.X - npc.Position.X;
+                //diffY = newPosition.Y - npc.Position.Y;
+                //npc.Position.X = newPosition.X;
+                //npc.Position.Y = newPosition.Y;
+                //if (Math.Abs(diffX) > 0 || Math.Abs(diffY) > 0) { move = true; }
+                //if (Math.Abs(vDistance.X) < diffX) { npc.Position.X = vBeginPoint.X; }
+                //if (Math.Abs(vDistance.Y) < diffY) { npc.Position.Y = vBeginPoint.Y; }
+                //Angle = MathUtil.CalculateAngleFrom(vEndPoint.X, vEndPoint.Y, vBeginPoint.X, vBeginPoint.Y);
+                ////Angle = MathUtil.DegreeToRadian(Angle);
+                //if (!(Math.Abs(diffX) > 0) && !(Math.Abs(diffY) > 0))
+                //{
+                //    GoBack = false;
+                //    move = false;
+                //    Time = 0f;
+                //    InPatrol = false;
+                //}
+                vDistance = vBeginPoint - vPosition;
+                // скорость движения velociti за период времени DeltaTime
+                var velociti = 4.5f * DeltaTime;
+                // вектор направление на таргет (последовательность аргументов важно, чтобы смотреть на таргет)
+                var direction = vBeginPoint - vPosition;
+                // вектор направления необходимо нормализовать
+                if (direction != Vector3.Zero)
+                {
+                    direction = Vector3.Normalize(direction);
+                }
+
+                // вектор скорости (т.е. координаты, куда попадем двигаясь со скоростью velociti по направдению direction)
+                diff = direction * velociti;
+
+                npc.Position.X += diff.X;
+                npc.Position.Y += diff.Y;
+                if (Math.Abs(diff.X) > 0 || Math.Abs(diff.Y) > 0) { move = true; }
+                if (Math.Abs(vDistance.X) < Math.Abs(diff.X)) { npc.Position.X = vBeginPoint.X; }
+                if (Math.Abs(vDistance.Y) < Math.Abs(diff.Y)) { npc.Position.Y = vBeginPoint.Y; }
+                if (!(Math.Abs(diff.X) > 0) && !(Math.Abs(diff.Y) > 0))
                 {
                     GoBack = false;
                     move = false;
                     Time = 0f;
                     InPatrol = false;
                 }
+                Angle = MathUtil.CalculateAngleFrom(vEndPoint.X, vEndPoint.Y, vBeginPoint.X, vBeginPoint.Y);
             }
             // Simulated unit
             moveType = (ActorData)UnitMovement.GetType(UnitMovementType.Actor);
@@ -118,13 +172,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Z = newz;
             // looks in the direction of movement
             rotZ = MathUtil.ConvertDegreeToDirection(Angle);
-
-            //moveType.Rot = new Quaternion(0f, 0f, rotZ, 1f);
             moveType.Rot = new Quaternion(0f, 0f, Helpers.ConvertDirectionToRadian(rotZ), 1f);
-
             npc.Rot = moveType.Rot;
+
             //moveType.DeltaMovement = new Vector3(0, 127, 0);
             moveType.DeltaMovement = new Vector3(0, 1.0f, 0);
+            //moveType.DeltaMovement = new Vector3(diff.X, diff.Y, diff.Z);
 
             moveType.Flags = 5;     // 5-walk, 4-run, 3-stand still
             moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1

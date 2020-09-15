@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Units
         public bool InPatrol { get; set; }
         public short Degree { get; set; } = 360;
         public float Time { get; set; }
-        public float DeltaTime { get; set; } = 0.1f;
+        public float DeltaTime { get; set; } = 0.05f;
         public ActorData moveType { get; set; }
         public double Angle { get; set; }
         public float Distance { get; set; }
