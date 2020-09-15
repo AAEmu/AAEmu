@@ -829,7 +829,7 @@ namespace AAEmu.Game.Core.Managers
                         if (xnode.Attributes.Count > 0)
                         {
                             transfers.Name = xnode.Attributes.GetNamedItem("Name").Value;
-                            transfers.Type = int.Parse(xnode.Attributes.GetNamedItem("ScType").Value);
+                            transfers.Type = int.Parse(xnode.Attributes.GetNamedItem("Type").Value);
                             transfers.CellX = int.Parse(xnode.Attributes.GetNamedItem("cellX").Value);
                             transfers.CellY = int.Parse(xnode.Attributes.GetNamedItem("cellY").Value);
                         }
@@ -839,7 +839,7 @@ namespace AAEmu.Game.Core.Managers
                             {
                                 if (node.Attributes.Count > 0)
                                 {
-                                    var attributeValue = node.Attributes.GetNamedItem("WorldPos").Value;
+                                    var attributeValue = node.Attributes.GetNamedItem("Pos").Value;
                                     var splitVals = attributeValue.Split(',');
                                     if (splitVals.Length == 3)
                                     {
