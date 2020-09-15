@@ -1097,7 +1097,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     var moveTypeTr = (TransferData)UnitMovement.GetType(UnitMovementType.Transfer);
                     moveTypeTr.UseTransferBase(transfer);
 
-                    transfer.SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, Helpers.ConvertRadianToSbyteDirection(moveTypeTr.Rot.X), Helpers.ConvertRadianToSbyteDirection(moveTypeTr.Rot.Y), Helpers.ConvertRadianToSbyteDirection(moveTypeTr.Rot.Z));
+                    transfer.SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, Helpers.ConvertRadianToSbyteDirection(moveTypeTr.Rot.Z));
                     transfer.BroadcastPacket(new SCOneUnitMovementPacket(transfer.ObjId, moveTypeTr), true);
                     RepeatMove(sim, transfer, targetX, targetY, targetZ);
                 }
@@ -1845,7 +1845,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     else
                                     {
                                         LoadTransferPathFromRoutes(Steering); // загрузим путь в TransferPath
-                                        s_log.Warn("Transfer #" + transfer.TemplateId);
+                                        s_log.Info("Transfer #" + transfer.TemplateId);
                                         s_log.Warn("next path #" + Steering);
                                         s_log.Warn("walk to #" + MoveStepIndex);
                                         s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" +
@@ -1865,7 +1865,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     Steering++; // укажем на следующий участок пути
                                     LoadTransferPathFromRoutes(Steering); // загрузим путь в TransferPath
                                     //LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
-                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Info("Transfer #" + transfer.TemplateId);
                                     s_log.Warn("path #" + Steering);
                                     s_log.Warn("walk to #" + MoveStepIndex);
                                     s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -1882,7 +1882,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                             {
                                 MoveStepIndex++;
                                 s_log.Warn("we reached checkpoint go further...");
-                                s_log.Warn("Transfer #" + transfer.TemplateId);
+                                s_log.Info("Transfer #" + transfer.TemplateId);
                                 s_log.Warn("path #" + Steering);
                                 s_log.Warn("walk to #" + MoveStepIndex);
                                 s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -1924,7 +1924,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     LoadTransferPathFromRoutes(Steering); // загрузим путь в TransferPath
 
                                     MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
-                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Info("Transfer #" + transfer.TemplateId);
                                     s_log.Warn("next path #" + Steering);
                                     s_log.Warn("walk to #" + MoveStepIndex);
                                     s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -1951,7 +1951,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     //LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     LoadTransferPathFromRoutes(Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
-                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Info("Transfer #" + transfer.TemplateId);
                                     s_log.Warn("path #" + Steering);
                                     s_log.Warn("walk to #" + MoveStepIndex);
                                     s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -1976,7 +1976,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                             {
                                 MoveStepIndex--;
                                 s_log.Warn("we reached checkpoint go further...");
-                                s_log.Warn("Transfer #" + transfer.TemplateId);
+                                s_log.Info("Transfer #" + transfer.TemplateId);
                                 s_log.Warn("path #" + Steering);
                                 s_log.Warn("walk to #" + MoveStepIndex);
                                 s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -1991,7 +1991,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     }
                     else
                     {
-                        s_log.Warn("Transfer #" + transfer.TemplateId);
+                        s_log.Info("Transfer #" + transfer.TemplateId);
                         s_log.Warn("path #" + Steering);
                         s_log.Warn("checkpoint #" + MoveStepIndex);
                         s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -2240,7 +2240,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     // продолжим путь после паузы назад
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = 0;
-                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Info("Transfer #" + transfer.TemplateId);
                                     s_log.Warn("next path #" + Steering);
                                     s_log.Warn("walk to #" + MoveStepIndex);
                                     s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -2276,7 +2276,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     //LoadTransferPath(Steering); // загрузим путь в TransferPath
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = 0;
-                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Info("Transfer #" + transfer.TemplateId);
                                     s_log.Warn("path #" + Steering);
                                     s_log.Warn("walk to #" + MoveStepIndex);
                                     s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -2292,7 +2292,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                             {
                                 MoveStepIndex++;
                                 s_log.Warn("we reached checkpoint go further...");
-                                s_log.Warn("Transfer #" + transfer.TemplateId);
+                                s_log.Info("Transfer #" + transfer.TemplateId);
                                 s_log.Warn("path #" + Steering);
                                 s_log.Warn("walk to #" + MoveStepIndex);
                                 s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -2321,7 +2321,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     //LoadTransferPath(Steering); // загрузим путь в TransferPath
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
-                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Info("Transfer #" + transfer.TemplateId);
                                     s_log.Warn("next path #" + Steering);
                                     s_log.Warn("walk to #" + MoveStepIndex);
                                     s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -2340,7 +2340,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     //LoadTransferPath(Steering); // загрузим путь в TransferPath
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
-                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Info("Transfer #" + transfer.TemplateId);
                                     s_log.Warn("next path #" + Steering);
                                     s_log.Warn("walk to #" + MoveStepIndex);
                                     s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -2357,7 +2357,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                                     //LoadTransferPath(Steering); // загрузим путь в TransferPath
                                     LoadTransferPath2(transfer.TemplateId, Steering); // загрузим путь в TransferPath
                                     MoveStepIndex = TransferPath.Count - 1; // укажем на последнюю точку в пути
-                                    s_log.Warn("Transfer #" + transfer.TemplateId);
+                                    s_log.Info("Transfer #" + transfer.TemplateId);
                                     s_log.Warn("path #" + Steering);
                                     s_log.Warn("walk to #" + MoveStepIndex);
                                     s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -2373,7 +2373,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                             {
                                 MoveStepIndex--;
                                 s_log.Warn("we reached checkpoint go further...");
-                                s_log.Warn("Transfer #" + transfer.TemplateId);
+                                s_log.Info("Transfer #" + transfer.TemplateId);
                                 s_log.Warn("path #" + Steering);
                                 s_log.Warn("walk to #" + MoveStepIndex);
                                 s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);
@@ -2388,7 +2388,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     }
                     else
                     {
-                        s_log.Warn("Transfer #" + transfer.TemplateId);
+                        s_log.Info("Transfer #" + transfer.TemplateId);
                         s_log.Warn("path #" + Steering);
                         s_log.Warn("checkpoint #" + MoveStepIndex);
                         s_log.Warn("x:=" + _vPosition.X + " y:=" + _vPosition.Y + " z:=" + _vPosition.Z);

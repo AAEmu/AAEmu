@@ -113,59 +113,59 @@ namespace AAEmu.Game.Core.Managers.World
             var zoneGroup = GetZoneGroupById(zone.GroupId);
             switch (zoneId)
             {
-                case 141: // zone_group=4 -
-                    offsets = new Vector2(1845.532429f, -113.2284f);
-                    break;
-                case 191: // zone_group=4 -
-                    offsets = new Vector2(1845.532429f, -113.2284f);
-                    break;
-                case 143: // zone_group=18 -
-                    offsets = new Vector2(404.1797f, -508.763f);
-                    break;
-                case 244: // zone_group=18 -
-                    offsets = new Vector2(404.1797f, -508.763f);
-                    break;
                 case 129: // zone_group=1 -
                     offsets = new Vector2(1352.02f, 139.95f);
                     break;
-                case 181: // zone_group=1 -
-                    offsets = new Vector2(1352.02f, 139.95f);
+                case 140: // zone_group=3 +++
+                    offsets = new Vector2(1329.411429f, -895.9959f); // 49=(1329.046829f, -897.2141f) 65=(1329.411429f, -895.9959f)
                     break;
-                case 182: // zone_group=1 +
-                    offsets = new Vector2(1347.07935f, 154.05155f);
-                    break;
-                case 140: // zone_group=3 -
+                case 141: // zone_group=4 -
                     offsets = new Vector2(1845.532429f, -113.2284f);
                     break;
-                case 185: // zone_group=3 -
-                    offsets = new Vector2(1845.532429f, -113.2284f);
+                case 142: // zone_group=5   +                         -
+                    offsets = new Vector2(363.0062f, 46.0064f); //387.766f, 36.206f);
                     break;
-                case 142: // zone_group=5 +
-                    offsets = new Vector2(387.766f, 36.206f);
+                case 143: // zone_group=18  +++                    -
+                    offsets = new Vector2(495f, -550.9975f); //404.1797f, -508.763f);
                     break;
-                case 178: // zone_group=5 +
+                case 144: // zone_group=6 -
+                    offsets = new Vector2(329.3186f, -271.2882f);
+                    break;
+                case 146: // zone_group=7 -
+                    offsets = new Vector2(1396f, -970f);
+                    break;
+                case 178: // zone_group=5 +++
                     offsets = new Vector2(2410.951f, 46.011f);
                     break;
                 case 179: // zone_group=5 -
                     offsets = new Vector2(2410.951f, 46.011f);
                     break;
-                case 144: // zone_group=6 -
-                    offsets = new Vector2(329.3186f, -271.2882f);
+                case 181: // zone_group=1 -
+                    offsets = new Vector2(1352.02f, 139.95f);
                     break;
-                case 195: // zone_group=6 +
-                    offsets = new Vector2(344.929873f, -283.508042f);
+                case 182: // zone_group=1 +++
+                    offsets = new Vector2(1347.07935f, 154.05155f);
                     break;
-                case 146: // zone_group=7 -
-                    offsets = new Vector2(1396f, -970f);
-                    break;
-                case 197: // zone_group=7 -
-                    offsets = new Vector2(1396f, -970f);
+                case 185: // zone_group=3 -
+                    offsets = new Vector2(1845.532429f, -113.2284f);
                     break;
                 case 188: // zone_group=7 -
                     offsets = new Vector2(1396f, -970f);
                     break;
                 case 189: // zone_group=7 -
                     offsets = new Vector2(1396f, -970f);
+                    break;
+                case 191: // zone_group=4 -
+                    offsets = new Vector2(1845.532429f, -113.2284f);
+                    break;
+                case 195: // zone_group=6   +                               -
+                    offsets = new Vector2(345.736673f, -277.809482f); //344.929873f, -283.508042f);
+                    break;
+                case 197: // zone_group=7 -
+                    offsets = new Vector2(1396f, -970f);
+                    break;
+                case 244: // zone_group=18 -
+                    offsets = new Vector2(404.1797f, -508.763f);
                     break;
             }
 
