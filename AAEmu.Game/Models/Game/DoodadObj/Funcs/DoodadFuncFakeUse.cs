@@ -10,10 +10,19 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint SkillId { get; set; }
         public uint FakeSkillId { get; set; }
         public bool TargetParent { get; set; }
+        public uint NextPhase { get; set; }
 
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, FakeSkillId);
+            _log.Debug("DoodadFuncFakeUse with SkillId:{0}, FakeSkillId{1} and NextPhase:{2}", SkillId, FakeSkillId,NextPhase);
+            if(NextPhase > 0)
+            {
+                DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, FakeSkillId);
+            } else
+            {
+                DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, FakeSkillId);
+            }
+            
         }
     }
 }

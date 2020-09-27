@@ -87,6 +87,12 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
                                 res = acts[i].Use(Owner, this, SupplyItem);
                                 break;
+                            case "QuestActConReportNpc":
+                                res = false;
+                                break;
+                            case "QuestActObjItemUse":
+                                res = false;
+                                break;
                             default:
                                 res = acts[i].Use(Owner, this, Objectives[i]);
                                 break;
@@ -151,7 +157,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                         {
                                             case "QuestActObjItemGather" when (questSupplyItem.ItemId == questItemGather.ItemId):
                                                 res = acts[i].Use(Owner, this, SupplyItem);
-                                                break;
+                                                break;                                         
                                             default:
                                                 res = false;
                                                 break;
@@ -160,6 +166,10 @@ namespace AAEmu.Game.Models.Game.Quests
 
                                     break;
                                 }
+                            case "QuestActConReportNpc":
+                                res = false;
+                                break;
+                               
                             default:
                                 res = acts[i].Use(Owner, this, Objectives[i]);
                                 break;
@@ -215,7 +225,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             break;
                         case "QuestActConAutoComplete":
                             res = true;
-                            break;
+                            break;                        
                         default:
                             res = acts[i].Use(Owner, this, Objectives[i]);
                             break;
