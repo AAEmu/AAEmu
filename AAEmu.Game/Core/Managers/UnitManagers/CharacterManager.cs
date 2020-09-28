@@ -366,7 +366,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     point.ZoneId = WorldManager
                         .Instance
                         .GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y); // TODO ...
-
+                    
+                    point.RotationX = charTemplate.Pos.RotationX;
+                    point.RotationY = charTemplate.Pos.RotationY;
+                    point.RotationZ = charTemplate.Pos.RotationZ;
+                    
                     var template = _templates[(byte)(16 + charTemplate.Id)];
                     template.Position = point;
                     template.NumInventorySlot = charTemplate.NumInventorySlot;
