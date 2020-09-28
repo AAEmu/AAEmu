@@ -195,8 +195,9 @@ namespace AAEmu.Game.Models.Game.World
                         case Npc npc:
                             // Stop NPCs that players don't see
                             npc.IsInPatrol = false;
-                            npc.Patrol = null;
-                            //npc.RemoveVisibleObject(character);
+                            //npc.Patrol = null;
+                            //npc.Patrol?.Stop(npc);
+                            npc.RemoveVisibleObject(character);
                             break;
                         case Gimmick gimmick:
                             gimmick.RemoveVisibleObject(character);

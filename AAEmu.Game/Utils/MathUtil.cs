@@ -309,28 +309,8 @@ namespace AAEmu.Game.Utils
         }
         public static float ConvertToDirection(double radian)
         {
-            var degree = MathUtil.RadianToDegree(radian);
-            var tmp = degree;
-            var rotateModifier = Math.Sign(degree);
-            if (degree < 0)
-            {
-                rotateModifier = -1;   // remember the sign of the angle
-                degree = 360 + degree; // working with positive angles
-                degree -= 90; // 12 o'clock == 0°
-                if (Math.Abs(degree) > 180)
-                {
-                    degree = 360 - degree; // we work only with angles up to 180 degrees
-                }
-            }
-            else
-            {
-                degree -= 90; // 12 o'clock == 0°
-                if (Math.Abs(degree) > 180)
-                {
-                    degree = 360 - degree; // we work only with angles up to 180 degrees
-                    rotateModifier = -1;  // change the angle sign to the opposite
-                }
-            }
+            var degree = RadianToDegree(radian);
+            degree += -90; // 12 o'clock == 0°
 
             double direction = 0f;
             if (Math.Abs(degree) > 135 && Math.Abs(degree) <= 180)
@@ -347,9 +327,7 @@ namespace AAEmu.Game.Utils
             }
             //_log.Warn("Degree0={0}, Degree1={1}, Direction={2}", tmp, degree, direction);
 
-            var tmpZ = (short)(direction * rotateModifier);
-
-            return Helpers.ConvertDirectionToRadian(tmpZ);
+            return Helpers.ConvertDirectionToRadian((short)direction);
         }
         public static double CalculateDirection(Vector3 obj1, Vector3 obj2)
         {

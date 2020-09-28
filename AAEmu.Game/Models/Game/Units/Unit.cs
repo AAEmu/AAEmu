@@ -6,13 +6,11 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.AI.Abstracts;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -66,6 +64,8 @@ namespace AAEmu.Game.Models.Game.Units
         public GameConnection Connection { get; set; }
 
         private readonly object _doDieLock = new object();
+        public Dictionary<uint, DateTime> CooldownsSkills { get; set; }
+        public Dictionary<uint, DateTime> CooldownsBuffs { get; set; }
 
         public Unit()
         {
@@ -75,12 +75,17 @@ namespace AAEmu.Game.Models.Game.Units
             Equipment.ContainerSize = 28;
             WorldPos = new WorldPos();
             Position = new Point();
+            CooldownsSkills = new Dictionary<uint, DateTime>();
+            CooldownsBuffs = new Dictionary<uint, DateTime>();
         }
 
         public virtual void ReduceCurrentHp(Unit attacker, int value)
         {
             if (Hp <= 0)
+            {
                 return;
+            }
+
             Hp = Math.Max(Hp - value, 0);
             if (Hp <= 0)
             {
@@ -97,12 +102,20 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual void ReduceCurrentMp(Unit unit, int value)
         {
             if (Hp == 0)
+            {
                 return;
+            }
+
             Mp = Math.Max(Mp - value, 0);
             if (Mp == 0)
+            {
                 StopRegen();
+            }
             else
+            {
                 StartRegen();
+            }
+
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 

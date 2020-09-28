@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.AI;
+using AAEmu.Game.Models.Game.AI.Static;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -59,7 +61,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public uint ModelId { get; set; }
         public uint FactionId { get; set; }
         public bool SkillTrainer { get; set; }
-        public int AiFileId { get; set; }
+        public AiFilesType AiFileId { get; set; }
         public bool Merchant { get; set; }
         public int NpcNicknameId { get; set; }
         public bool Auctioneer { get; set; }
@@ -115,19 +117,24 @@ namespace AAEmu.Game.Models.Game.NPChar
         public bool UseAbuserList { get; set; }
         public bool ReturnWhenEnterHousingArea { get; set; }
         public bool LookConverter { get; set; }
-        public bool UseDDCMSMountSkill { get; set; }
+        public bool UseDdcmsMountSkill { get; set; }
         public bool CrowdEffect { get; set; }
         public uint AnimActionId { get; set; }
         public byte Race { get; set; }
         public byte Gender { get; set; }
         public uint MerchantPackId { get; set; }
-
         public uint HairId { get; set; }
         public UnitCustomModelParams ModelParams { get; set; }
         public EquipItemsTemplate Items { get; set; }
         public (uint ItemId, bool NpcOnly)[] BodyItems { get; set; }
         public List<uint> Buffs { get; set; }
         public List<BonusTemplate> Bonuses { get; set; }
+        
+        //+++
+        public List<NpSkills> NpSkills { get; set; }
+        public List<NpPassiveBuffs> NpPassiveBuffs { get; set; }
+        public List<NpcAggroLinks> NpcAggroLinks { get; set; }
+        public List<AiEvents> AiEvents { get; set; }
 
         public NpcTemplate()
         {
@@ -137,6 +144,10 @@ namespace AAEmu.Game.Models.Game.NPChar
             BodyItems = new (uint, bool)[7];
             Buffs = new List<uint>();
             Bonuses = new List<BonusTemplate>();
+            NpSkills = new List<NpSkills>();
+            NpPassiveBuffs = new List<NpPassiveBuffs>();
+            NpcAggroLinks = new List<NpcAggroLinks>();
+            AiEvents = new List<AiEvents>();
         }
     }
 }

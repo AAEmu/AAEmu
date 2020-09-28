@@ -5,6 +5,8 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.AI.Static;
+using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using NLog;
 
@@ -61,6 +63,18 @@ namespace AAEmu.Game.Models.Game.NPChar
             {
                 _log.Error("Can't spawn npc {1} from spawn {0}", Id, UnitId);
                 return null;
+            }
+
+
+            if (npc.Template.AiFileId == AiFilesType.Roaming ||
+                npc.Template.AiFileId == AiFilesType.BigMonsterRoaming ||
+                npc.Template.AiFileId == AiFilesType.ArcherRoaming ||
+                npc.Template.AiFileId == AiFilesType.WildBoarRoaming)
+            {
+                npc.Patrol = new Roaming { Interrupt = true, Loop = true, Abandon = false };
+                npc.IsInBattle = false;
+                npc.Patrol.Pause(npc);
+                npc.Patrol.LastPatrol = npc.Patrol;
             }
 
             npc.Spawn();

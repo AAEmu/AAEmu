@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Gimmicks;
+﻿using System;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using SQLitePCL;

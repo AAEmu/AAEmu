@@ -84,23 +84,28 @@ namespace AAEmu.Game.Models.Game.Transfers
                         _log.Warn("Transfer #" + transfer.TemplateId);
                         _log.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
                         transfer.IsInPatrol = true; // so as not to run the route a second time
+                        
+                        transfer.Steering = 0;
+                        transfer.PathPointIndex = 0;
 
-                        // попробуем заспавнить в первой точке пути
+                        // попробуем заспавнить в последней точке пути (она как раз напротив стоянки)
                         // попробуем смотреть на следующую точку
-                        var point = path.Routes[0][0];
-                        var point2 = path.Routes[0][1];
-                        var angle = MathUtil.CalculateAngleFrom(point.X, point.Y, point2.X, point2.Y);
-                        var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-                        path.Angle = MathUtil.DegreeToRadian(angle);
-                        //path.Angle = MathUtil2.ConvertDegreeToDirectionShort(angle);
+
+                        var point = path.Routes[path.Routes.Count - 1][path.Routes[path.Routes.Count - 1].Count - 1];
+                        var point2 = path.Routes[0][0];
+
+                        var vPosition = new Vector3(point.X, point.Y, point.Z);
+                        var vTarget = new Vector3(point2.X, point2.Y, point2.Z);
+                        path.Angle = MathUtil.CalculateDirection(vPosition, vTarget);
+                        transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(path.Angle));
+                        transfer.Rot = new Quaternion(0f, 0f, MathUtil.ConvertToDirection(path.Angle), 1f);
 
                         transfer.Position.WorldId = 1;
                         transfer.Position.ZoneId = WorldManager.Instance.GetZoneId(transfer.Position.WorldId, point.X, point.Y);
                         transfer.Position.X = point.X;
                         transfer.Position.Y = point.Y;
                         transfer.Position.Z = point.Z;
-                        transfer.Position.RotationZ = rotZ;
-                        transfer.Rot = new Quaternion(0f, 0f, (float)path.Angle, 1f);
+
                         transfer.WorldPos = new WorldPos(Helpers.ConvertLongY(point.X), Helpers.ConvertLongY(point.Y), point.Z);
                         _log.Warn("Transfer #" + transfer.TemplateId);
                         _log.Warn("New spawn myX={0}, myY={1}, myZ={2}, rotZ={3}, zoneId={4}", transfer.Position.X, transfer.Position.Y, transfer.Position.Z, transfer.Position.RotationZ, transfer.Position.ZoneId);

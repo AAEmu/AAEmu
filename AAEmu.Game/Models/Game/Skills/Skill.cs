@@ -33,9 +33,6 @@ namespace AAEmu.Game.Models.Game.Skills
         public byte Level { get; set; }
         public ushort TlId { get; set; }
 
-        //public bool isAutoAttack;
-        //public SkillTask autoAttackTask;
-
         public Skill()
         {
         }
@@ -47,7 +44,7 @@ namespace AAEmu.Game.Models.Game.Skills
             Level = 1;
         }
 
-        public void Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null)
+        public void Use(Unit caster, SkillCaster casterType, SkillCastTarget targetType, SkillObject skillObject = null)
         {
             //if (caster is Character chr)
             //{
@@ -87,19 +84,19 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.TargetType == SkillTargetType.Self)
             {
-                if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
+                if (targetType != null && (targetType.Type == SkillCastTargetType.Unit || targetType.Type == SkillCastTargetType.Doodad))
                 {
-                    targetCaster.ObjId = target.ObjId;
+                    targetType.ObjId = target.ObjId;
                 }
             }
             else if (Template.TargetType == SkillTargetType.Friendly)
             {
-                if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
+                if (targetType != null && (targetType.Type == SkillCastTargetType.Unit || targetType.Type == SkillCastTargetType.Doodad))
                 {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    target = targetType.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetType.ObjId) : caster;
                     if (target != null)
                     {
-                        targetCaster.ObjId = target.ObjId;
+                        targetType.ObjId = target.ObjId;
                     }
                 }
                 else
@@ -114,12 +111,12 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             else if (Template.TargetType == SkillTargetType.Hostile)
             {
-                if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
+                if (targetType != null && (targetType.Type == SkillCastTargetType.Unit || targetType.Type == SkillCastTargetType.Doodad))
                 {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    target = targetType.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetType.ObjId) : caster;
                     if (target != null)
                     {
-                        targetCaster.ObjId = target.ObjId;
+                        targetType.ObjId = target.ObjId;
                     }
                 }
                 else
@@ -134,12 +131,12 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             else if (Template.TargetType == SkillTargetType.AnyUnit)
             {
-                if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
+                if (targetType != null && (targetType.Type == SkillCastTargetType.Unit || targetType.Type == SkillCastTargetType.Doodad))
                 {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    target = targetType.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetType.ObjId) : caster;
                     if (target != null)
                     {
-                        targetCaster.ObjId = target.ObjId;
+                        targetType.ObjId = target.ObjId;
                     }
                 }
                 else
@@ -149,12 +146,12 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             else if (Template.TargetType == SkillTargetType.Doodad)
             {
-                if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
+                if (targetType != null && (targetType.Type == SkillCastTargetType.Unit || targetType.Type == SkillCastTargetType.Doodad))
                 {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    target = targetType.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetType.ObjId) : caster;
                     if (target != null)
                     {
-                        targetCaster.ObjId = target.ObjId;
+                        targetType.ObjId = target.ObjId;
                     }
                 }
                 else
@@ -168,12 +165,12 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             else if (Template.TargetType == SkillTargetType.Others)
             {
-                if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
+                if (targetType != null && (targetType.Type == SkillCastTargetType.Unit || targetType.Type == SkillCastTargetType.Doodad))
                 {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    target = targetType.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetType.ObjId) : caster;
                     if (target != null)
                     {
-                        targetCaster.ObjId = target.ObjId;
+                        targetType.ObjId = target.ObjId;
                     }
                 }
                 else
@@ -188,12 +185,12 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             else if (Template.TargetType == SkillTargetType.FriendlyOthers)
             {
-                if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
+                if (targetType != null && (targetType.Type == SkillCastTargetType.Unit || targetType.Type == SkillCastTargetType.Doodad))
                 {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    target = targetType.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetType.ObjId) : caster;
                     if (target != null)
                     {
-                        targetCaster.ObjId = target.ObjId;
+                        targetType.ObjId = target.ObjId;
                     }
                 }
                 else
@@ -212,12 +209,12 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             else if (Template.TargetType == SkillTargetType.GeneralUnit)
             {
-                if (targetCaster != null && (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad))
+                if (targetType != null && (targetType.Type == SkillCastTargetType.Unit || targetType.Type == SkillCastTargetType.Doodad))
                 {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    target = targetType.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetType.ObjId) : caster;
                     if (target != null)
                     {
-                        targetCaster.ObjId = target.ObjId;
+                        targetType.ObjId = target.ObjId;
                     }
                 }
                 else
@@ -232,7 +229,7 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             else if (Template.TargetType == SkillTargetType.Pos)
             {
-                var positionTarget = (SkillCastPositionTarget)targetCaster;
+                var positionTarget = (SkillCastPositionTarget)targetType;
                 var positionUnit = new BaseUnit();
                 positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                 positionUnit.Position.ZoneId = caster.Position.ZoneId;
@@ -254,7 +251,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 step.Event = eventTemplate;
                 step.Flag = 2;
 
-                if (!eventTemplate.СheckСonditions(caster, casterCaster, target, targetCaster, skillObject))
+                if (!eventTemplate.СheckСonditions(caster, casterType, target, targetType, skillObject))
                 {
                     step.Flag = 0;
                 }
@@ -266,16 +263,16 @@ namespace AAEmu.Game.Models.Game.Skills
                     callCounter.Add(step.Event.Id, 1);
                     foreach (var evnt in eventTemplate.NextEvents)
                     {
-                        res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step, callCounter);
+                        res = res && BuildPlot(caster, casterType, target, targetType, skillObject, evnt, step, callCounter);
                     }
                 }
-                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step);
+                ParsePlot(caster, casterType, target, targetType, skillObject, step);
             }
 
             if (Template.CastingTime > 0)
             {
-                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
-                caster.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterType, targetType, this, skillObject), true);
+                caster.SkillTask = new CastTask(this, caster, casterType, target, targetType, skillObject);
                 TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(Template.CastingTime));
             }
             else if (caster is Character && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
@@ -283,14 +280,14 @@ namespace AAEmu.Game.Models.Game.Skills
                 caster.IsAutoAttack = true; // enable auto attack
                 caster.SkillId = Id;
                 caster.TlId = TlId;
-                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterType, targetType, this, skillObject), true);
 
-                caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
+                caster.AutoAttackTask = new MeleeCastTask(this, caster, casterType, target, targetType, skillObject);
                 TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
             }
             else
             {
-                Cast(caster, casterCaster, target, targetCaster, skillObject);
+                Cast(caster, casterType, target, targetType, skillObject);
             }
         }
 
@@ -633,7 +630,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         }
                     }
 
-                    //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
+                    //effect.Template?.Apply(caster, casterType, target, targetType, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
                     if (effect.Template != null)
                     {
                         var effectToApply = new EffectToApply(effect.Template, caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject);

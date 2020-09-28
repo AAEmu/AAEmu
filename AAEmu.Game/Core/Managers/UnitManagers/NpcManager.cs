@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.AI.Abstracts;
+using AAEmu.Game.Models.Game.AI.Static;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
@@ -136,7 +139,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.ModelId = reader.GetUInt32("model_id");
                             template.FactionId = reader.GetUInt32("faction_id");
                             template.SkillTrainer = reader.GetBoolean("skill_trainer", true);
-                            template.AiFileId = reader.GetInt32("ai_file_id");
+                            template.AiFileId = (AiFilesType)reader.GetInt32("ai_file_id");
                             template.Merchant = reader.GetBoolean("merchant", true);
                             template.NpcNicknameId = reader.GetInt32("npc_nickname_id");
                             template.Auctioneer = reader.GetBoolean("auctioneer", true);
@@ -194,7 +197,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.ReturnWhenEnterHousingArea =
                                 reader.GetBoolean("return_when_enter_housing_area", true);
                             template.LookConverter = reader.GetBoolean("look_converter", true);
-                            template.UseDDCMSMountSkill = reader.GetBoolean("use_ddcms_mount_skill", true);
+                            template.UseDdcmsMountSkill = reader.GetBoolean("use_ddcms_mount_skill", true);
                             template.CrowdEffect = reader.GetBoolean("crowd_effect", true);
 
                             var bodyPack = reader.GetInt32("equip_bodies_id", 0);
@@ -495,6 +498,55 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             }
                             else
                                 _goods[id].Items.Add(itemId, new List<byte> { grade });
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM np_passive_buffs";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new NpPassiveBuffs
+                            {
+                                Id = reader.GetUInt32("id"),
+                                OwnerId = reader.GetUInt32("owner_id"),
+                                OwnerType = reader.GetString("owner_type"),
+                                PassiveBuffId = reader.GetUInt32("passive_buff_id")
+                            };
+                            if (_templates.ContainsKey(template.OwnerId))
+                            {
+                                _templates[template.OwnerId].NpPassiveBuffs.Add(template);
+                            }
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM np_skills";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new NpSkills
+                            {
+                                Id = reader.GetUInt32("id"),
+                                OwnerId = reader.GetUInt32("owner_id"),
+                                OwnerType = reader.GetString("owner_type"),
+                                SkillId = reader.GetUInt32("skill_id"),
+                                SkillUseConditionId = (SkillUseCondition)reader.GetUInt32("skill_use_condition_id"),
+                                SkillUseParam1 = reader.GetFloat("skill_use_param1"),
+                                SkillUseParam2 = reader.GetFloat("skill_use_param2")
+                            };
+                            if (_templates.ContainsKey(template.OwnerId))
+                            {
+                                _templates[template.OwnerId].NpSkills.Add(template);
+                            }
                         }
                     }
                 }

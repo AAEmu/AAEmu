@@ -2,12 +2,17 @@
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.UnitMove;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -18,12 +23,17 @@ namespace AAEmu.Game.Models.Game.Units
     public abstract class Patrol
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
-        
+
+        public Skill skill;
+        public int idx; // index of skill
+        public float ReturnDistance;
         public bool GoBack { get; set; }
         public bool InPatrol { get; set; }
+        public bool InitMovement { get; set; } // инициируем точку возврвата, для возврата, если NPC ушел далеко
         public short Degree { get; set; } = 360;
         public float Time { get; set; }
-        public float DeltaTime { get; set; } = 0.05f;
+        public float DeltaTime { get; set; } = 0.1f;
+        public DateTime UpdateTime { get; set; }
         public ActorData moveType { get; set; }
         public double Angle { get; set; }
         public float Distance { get; set; }
@@ -46,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Units
         public Vector3 vPausePosition { get; set; }
         public Vector3 vTarget { get; set; }
         public Vector3 vDistance { get; set; }
-        public float RangeToCheckPoint { get; set; } = 1.5f; // distance to checkpoint at which it is considered that we have reached it
+        public float RangeToCheckPoint { get; set; } = 0.5f; // distance to checkpoint at which it is considered that we have reached it
         public Vector3 vRangeToCheckPoint { get; set; } = new Vector3(0.5f, 0.5f, 0f); // distance to checkpoint at which it is considered that we have reached it
 
         /// <summary>
@@ -120,6 +130,7 @@ namespace AAEmu.Game.Models.Game.Units
             Seq = (uint)(DateTime.Now - GameService.StartTime).TotalMilliseconds;
             Running = true;
             unit.Patrol = this;
+            UpdateTime = DateTime.Now;
             switch (unit)
             {
                 case Gimmick gimmick:
@@ -190,7 +201,7 @@ namespace AAEmu.Game.Models.Game.Units
         public void Pause(BaseUnit unit)
         {
             Running = false;
-            PausePosition = unit.Position.Clone();
+            PausePosition = unit.Position.Clone(); // сохраним точку возврата на место спавна
         }
 
         public void Stop(BaseUnit unit)
@@ -210,27 +221,30 @@ namespace AAEmu.Game.Models.Game.Units
                 Repeat(unit);
                 return;
             }
+
             if (LastPatrol == null || Running) { return; }
+
             // If the last cruise is not null
             if (Math.Abs(unit.Position.X - LastPatrol.PausePosition.X) < Tolerance && Math.Abs(unit.Position.Y - LastPatrol.PausePosition.Y) < Tolerance && Math.Abs(unit.Position.Z - LastPatrol.PausePosition.Z) < Tolerance)
             {
                 LastPatrol.Running = true;
                 unit.Patrol = LastPatrol;
                 // Resume last cruise
-                Repeat(unit, 1000, LastPatrol);
+                Repeat(unit, 100, LastPatrol);
             }
             else
             {
                 // Create a straight cruise to return to the last cruise pause
                 var line = new Line();
                 // Uninterrupted, unaffected by external forces and attacks
-                line.Interrupt = false;
+                line.Interrupt = true;
                 line.Loop = false;
+                line.Abandon = false;
                 line.LastPatrol = LastPatrol;
                 // Specify target point
-                line.LastPatrolPosition = LastPatrol.PausePosition;
+                line.PausePosition = LastPatrol.PausePosition;
                 // Resume last cruise
-                Repeat(unit, 1000, line);
+                Repeat(unit, 100, line);
             }
         }
 
@@ -248,6 +262,136 @@ namespace AAEmu.Game.Models.Game.Units
                 Stop(unit);
             }
         }
+
+        protected Skill CheckSkill(Npc npc)
+        {
+            Skill getSkill = null;
+            if (npc.Template.NpSkills.Count <= 0) { return getSkill; }
+
+            var SkillId = npc.Template.NpSkills[idx].SkillId;
+            if (npc.CooldownsSkills.ContainsKey(SkillId))
+            {
+                if (DateTime.Now >= npc.CooldownsSkills[SkillId])
+                {
+                    // удалим время cooldownEnd для скилла
+                    npc.CooldownsSkills.Remove(SkillId);
+                }
+            }
+            // можно использовать скилл
+            if (npc.Template.NpSkills[idx].SkillUseConditionId == SkillUseCondition.InCombat)
+            {
+                getSkill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
+                if (npc.CooldownsSkills.ContainsKey(SkillId))
+                {
+                    if (DateTime.Now >= npc.CooldownsSkills[SkillId])
+                    {
+                        // добавим время cooldownEnd для скилла
+                        npc.CooldownsSkills[SkillId] = DateTime.Now.AddMilliseconds(getSkill.Template.CooldownTime);
+                    }
+                }
+                else
+                {
+                    // добавим время cooldownEnd для скилла
+                    npc.CooldownsSkills.Add(SkillId, DateTime.Now.AddMilliseconds(getSkill.Template.CooldownTime));
+                }
+            }
+            // USE_SEQUENCE
+            idx++;
+            if (idx >= npc.Template.NpSkills.Count)
+            {
+                idx = 0;
+            }
+
+            return getSkill;
+        }
+
+        protected void CheckBuff(Npc npc)
+        {
+            foreach (var npBuffs in npc.Template.NpPassiveBuffs)
+            {
+                var buffId = npBuffs.PassiveBuffId;
+                if (npc.CooldownsBuffs.ContainsKey(buffId))
+                {
+                    if (DateTime.Now < npc.CooldownsBuffs[buffId])
+                    {
+                        // время этого баффа ещё не вышло, пробуем следующий
+                        continue;
+                    }
+                    // удалим время cooldownEnd для баффа
+                    npc.CooldownsBuffs.Remove(buffId);
+                }
+                // можно использовать бафф
+                var buff = SkillManager.Instance.GetBuffTemplate(buffId);
+
+                if (buff == null) { continue; }
+
+                npc.Effects.AddEffect(new Effect(npc, npc, SkillCaster.GetByType(EffectOriginType.Passive), buff, null, DateTime.Now));
+                if (npc.CooldownsBuffs.ContainsKey(buffId))
+                {
+                    if (DateTime.Now >= npc.CooldownsBuffs[buffId])
+                    {
+                        // добавим время cooldownEnd для баффа
+                        npc.CooldownsBuffs[buffId] = DateTime.Now.AddSeconds(buff.Duration);
+                    }
+                }
+                else
+                {
+                    // добавим время cooldownEnd для баффа
+                    npc.CooldownsBuffs.Add(buffId, DateTime.Now.AddSeconds(buff.Duration));
+                }
+                //break;
+            }
+        }
+
+        protected SkillCastTarget GetSkillCastTarget(Unit caster, Skill skill)
+        {
+            SkillCastTarget targetType;
+            switch (skill.Template.TargetType)
+            {
+                case SkillTargetType.Doodad:
+                    targetType = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
+                    targetType.ObjId = caster.CurrentTarget.ObjId;
+                    break;
+                case SkillTargetType.AnyUnit:
+                case SkillTargetType.AnyUnitAlways:
+                case SkillTargetType.Friendly:
+                case SkillTargetType.FriendlyOthers:
+                case SkillTargetType.GeneralUnit:
+                case SkillTargetType.Hostile:
+                case SkillTargetType.Others:
+                case SkillTargetType.Self:
+                    targetType = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                    targetType.ObjId = caster.CurrentTarget.ObjId;
+                    break;
+                case SkillTargetType.ArtilleryPos:
+                case SkillTargetType.BallisticPos:
+                case SkillTargetType.CommanderPos:
+                case SkillTargetType.CursorPos:
+                case SkillTargetType.Pos:
+                case SkillTargetType.RelativePos:
+                case SkillTargetType.SourcePos:
+                case SkillTargetType.SummonPos:
+                    targetType = SkillCastTarget.GetByType(SkillCastTargetType.Position);
+                    targetType.ObjId = caster.CurrentTarget.ObjId;
+                    break;
+                case SkillTargetType.Item:
+                    targetType = SkillCastTarget.GetByType(SkillCastTargetType.Item);
+                    targetType.ObjId = caster.CurrentTarget.ObjId;
+                    break;
+                case SkillTargetType.Party:
+                case SkillTargetType.Raid:
+                case SkillTargetType.Line:
+                case SkillTargetType.Pet:
+                case SkillTargetType.Parent:
+                case SkillTargetType.ChildSlave:
+                case SkillTargetType.PetOwner:
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            return targetType;
+        }
+
         public abstract void Execute(BaseUnit unit);
         public abstract void Execute(Npc npc);
         public abstract void Execute(Transfer transfer);

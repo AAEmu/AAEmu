@@ -18,6 +18,8 @@
         <Content Include="NLog.config">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <None Remove="Data\npc_ai_params.json" />
+        <None Remove="Data\npc_ai_params.xml" />
         <None Remove="ExampleConfig.xml" />
         <Content Include="ExampleConfig.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -37,7 +39,16 @@
     </ItemGroup>
     
     <ItemGroup>
+      <Compile Remove="Models\Game\Units\Route\Jerky.cs" />
+      <Compile Remove="Models\Game\Units\Route\QuillX.cs" />
+      <Compile Remove="Models\Game\Units\Route\QuillY.cs" />
+      <Compile Remove="Models\Game\Units\Route\Stirring.cs" />
       <Compile Remove="Utils\MathUtil2.cs" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <None Remove="Data\npc_ai_params.json" />
+      <None Remove="Data\npc_ai_params.xml" />
     </ItemGroup>
 
     <ItemGroup>

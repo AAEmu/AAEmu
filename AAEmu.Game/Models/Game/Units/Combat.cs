@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Gimmicks;
@@ -33,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Units
                 // Uninterruptible, unaffected by external forces and attacks, similar to being out of combat
                 var line = new Line
                 {
-                    Interrupt = false,
+                    Interrupt = true,
                     Loop = false,
                     Abandon = false
                 };
@@ -46,12 +47,24 @@ namespace AAEmu.Game.Models.Game.Units
                 // First, estimate the distance
                 vPosition = new Vector3(npc.Position.X, npc.Position.Y, npc.Position.Z);
                 vTarget = new Vector3(trg.Position.X, trg.Position.Y, trg.Position.Z);
-                vDistance = vPosition - vTarget; // dx, dy, dz
+                //vDistance = vPosition - vTarget; // dx, dy, dz
                 Distance = MathUtil.GetDistance(vPosition, vTarget);
 
                 // 如果最大值超过distance 则放弃攻击转而进行追踪
                 // If the maximum value exceeds distance, the attack is abandoned and the tracking is followed.
-                if (Distance > npc.Template.AttackStartRangeScale)
+                float maxRange;
+                skill = CheckSkill(npc);
+                if (skill == null)
+                {
+                    skill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)npc.Template.BaseSkillId));
+                    maxRange = 3.0f;
+                }
+                else
+                {
+                    maxRange = (float)npc.ApplySkillModifiers(skill, SkillAttribute.Range, skill.Template.MaxRange);
+                }
+
+                if (Distance > maxRange)
                 {
                     var track = new Track();
                     track.Pause(npc);
@@ -61,22 +74,40 @@ namespace AAEmu.Game.Models.Game.Units
                 }
                 else
                 {
-                    LoopDelay = 2000; //npc.Template.BaseSkillDelay;
-                    var skillId = (uint)npc.Template.BaseSkillId;
-                    var skillCaster = SkillCaster.GetByType(EffectOriginType.Skill); // who uses
-                    skillCaster.ObjId = npc.ObjId;
-                    var skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit); // who is being used
-                    skillCastTarget.ObjId = npc.CurrentTarget.ObjId;
+                    CheckBuff(npc); // кастуем бафф, если есть
+
+                    skill = CheckSkill(npc) ?? new Skill(SkillManager.Instance.GetSkillTemplate((uint)npc.Template.BaseSkillId)); // проверим, есть ли скилл для использования
+
+                    var casterType = SkillCaster.GetByType(EffectOriginType.Skill); // who uses
+                    casterType.ObjId = npc.ObjId;
+
+                    var targetType = GetSkillCastTarget(npc, skill);
+
                     var flag = 0;
                     var flagType = flag & 15;
                     var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
-                    var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
-                    skill.Use(npc, skillCaster, skillCastTarget, skillObject);
+
+                    skill.Use(npc, casterType, targetType, skillObject);
+
+                    if (skill.Template.CastingTime != 0)
+                    {
+                        LoopDelay = skill.Template.CastingTime;
+                    }
+                    else if (skill.Template.CooldownTime != 0)
+                    {
+                        LoopDelay = skill.Template.CooldownTime;
+                    }
+                    else
+                    {
+                        LoopDelay = 3000;
+                    }
 
                     LoopAuto(npc);
+                    //}
                 }
             }
         }
+
         public override void Execute(Transfer transfer)
         {
             throw new NotImplementedException();
