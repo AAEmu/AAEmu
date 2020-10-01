@@ -9,9 +9,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public uint GroupId { get; set; }
-        public uint FuncId { get; set; }
+        public uint ActualFuncId { get; set; }
         public uint FuncKey { get; set; }
-        public string FuncType { get; set; }
+        public string ActualFuncType { get; set; }
         public int NextPhase { get; set; }
         public uint SoundId { get; set; }
         public uint SkillId { get; set; }
@@ -20,13 +20,20 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         //This acts as an interface/relay for doodad function chain
         public async void Use(Unit caster, Doodad owner, uint skillId)
-        {
-            var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
-
+        {            
+            var template = DoodadManager.Instance.GetFuncTemplate(ActualFuncId, ActualFuncType);
             if (template == null)
                 return;
             //_log.Debug("relaying to: " + FuncType);
             template.Use(caster, owner, skillId);
+            if (NextPhase > 0)
+            {
+                //Queue the next phase
+                var next = DoodadManager.Instance.GetFunc((uint)NextPhase, 0);
+                if (next == null)
+                    return;
+                next.Use(caster, owner, skillId);
+            }
         }
     }
 }

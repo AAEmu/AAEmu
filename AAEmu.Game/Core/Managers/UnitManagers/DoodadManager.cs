@@ -131,8 +131,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             var func = new DoodadFunc();
                             func.FuncKey = reader.GetUInt32("id");
                             func.GroupId = reader.GetUInt32("doodad_func_group_id");
-                            func.FuncId = reader.GetUInt32("actual_func_id");
-                            func.FuncType = reader.GetString("actual_func_type");
+                            func.ActualFuncId = reader.GetUInt32("actual_func_id");
+                            func.ActualFuncType = reader.GetString("actual_func_type");
                             func.NextPhase = reader.GetInt32("next_phase", -1); // TODO next_phase = 0?
                             func.SoundId = reader.IsDBNull("sound_id") ? 0 : reader.GetUInt32("sound_id");
                             func.SkillId = reader.GetUInt32("func_skill_id", 0);
@@ -162,8 +162,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFunc();
                             func.GroupId = reader.GetUInt32("doodad_func_group_id");
-                            func.FuncId = reader.GetUInt32("actual_func_id");
-                            func.FuncType = reader.GetString("actual_func_type");
+                            func.ActualFuncId = reader.GetUInt32("actual_func_id");
+                            func.ActualFuncType = reader.GetString("actual_func_type");
                             List<DoodadFunc> list;
                             if (_phaseFuncs.ContainsKey(func.GroupId))
                                 list = _phaseFuncs[func.GroupId];

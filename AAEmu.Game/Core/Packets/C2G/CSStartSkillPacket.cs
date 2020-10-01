@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("StartSkill: Id {0}, flag {1}", skillId, flag);
 
-            if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
+            if ((SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) || SkillManager.Instance.GetSkillTemplate(skillId) != null) && !(skillCaster is SkillItem))
             {
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
