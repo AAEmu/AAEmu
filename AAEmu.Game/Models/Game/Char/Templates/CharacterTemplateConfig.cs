@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Char.Templates
+﻿namespace AAEmu.Game.Models.Game.Char.Templates
 {
     public class CharacterTemplateConfig
     {
@@ -8,6 +8,10 @@ namespace AAEmu.Game.Models.Game.Char.Templates
             public float X { get; set; }
             public float Y { get; set; }
             public float Z { get; set; }
+            public sbyte RotationX { get; set; }
+            public sbyte RotationY { get; set; }
+            public sbyte RotationZ { get; set; }
+
         }
 
         public uint Id { get; set; }

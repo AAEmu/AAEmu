@@ -73,8 +73,8 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var mailTemplate = new Mail();
             mailTemplate.Id = MailManager.Instance.highestMailID += 1;
-            uint senderId ;
-            uint receiverId ;
+            uint senderId;
+            uint receiverId;
 
             mailTemplate.Header = new MailHeader()
             {
@@ -97,7 +97,16 @@ namespace AAEmu.Game.Models.Game.Char
             if (receiverName != "")
             {
                 receiverId = NameManager.Instance.GetCharacterId(receiverName);
+                if(receiverId == 0)
+                {
+                    Self.SendErrorMessage(Error.ErrorMessageType.MailReceiverNotFound);
+                    return false;
+                }
                 mailTemplate.Header.ReceiverId = receiverId;
+            } else
+            {
+                Self.SendErrorMessage(Error.ErrorMessageType.MailReceiverNotFound);
+                return false;
             }
 
             // Calculate mail fee
@@ -111,7 +120,9 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             if (money0 > 0)
+            {   
                 attachmentCountForFee++;
+            }
 
             if (mailTemplate.Header.Type == 1) // Normal
                 mailFee += 50;
@@ -124,8 +135,8 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 mailFee += (attachmentCountForFee - 1) * attachmentCost;
             }
-
-            if (mailFee > Self.Money)
+            
+            if (mailFee > Self.Money || mailFee+money0 > Self.Money)
             {
                 Self.SendErrorMessage(Error.ErrorMessageType.MailNotEnoughMoney);
                 return false;
@@ -159,7 +170,7 @@ namespace AAEmu.Game.Models.Game.Char
                 RecvDate = DateTime.UtcNow,
                 OpenDate = mailTemplate.Header.OpenDate,
             };
-            foreach(var iId in mailItemIds)
+            foreach (var iId in mailItemIds)
             {
                 var i = ItemManager.Instance.GetItemByItemId(iId);
                 if (i != null)
@@ -172,7 +183,12 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
 
-            Self.ChangeMoney(SlotType.Inventory, -mailFee);
+            Self.ChangeMoney(SlotType.Inventory, -mailFee); 
+            if(money0 > 0)
+            {
+                Self.ChangeMoney(SlotType.Inventory, -money0);
+            }
+            
             MailManager.Instance._allPlayerMails.Add(mailTemplate.Id, mailTemplate);
             Self.SendPacket(new SCMailSentPacket(mailTemplate.Header, itemSlots.ToArray()));
 
