@@ -142,6 +142,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     var next = Step;
                                     next++;
                                     var componentnext = Template.GetComponent(next);
+                                    if (componentnext == null) break;
                                     var actsnext = QuestManager.Instance.GetActs(componentnext.Id);
                                     foreach (var qa in actsnext)
                                     {
