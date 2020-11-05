@@ -55,9 +55,16 @@ namespace AAEmu.Game.Scripts.Commands
 
                 var angle = MathUtil.CalculateAngleFrom(character.CurrentTarget, character);
                 var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+                if (args.Length > 0) 
+                {
+                    sbyte.TryParse(args[0], out rotZ);
+                }
+
                 moveType.RotationX = 0;
                 moveType.RotationY = 0;
                 moveType.RotationZ = rotZ;
+
+                character.CurrentTarget.Position.RotationZ = rotZ;
 
                 moveType.Flags = 5;
                 moveType.DeltaMovement = new sbyte[3];
