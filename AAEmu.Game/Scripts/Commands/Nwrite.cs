@@ -79,7 +79,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                                     string json = JsonConvert.SerializeObject(spawners.ToArray(), Formatting.Indented);
                                     File.WriteAllText(path, json);
-                                    character.SendMessage("[Nwrite] Id: {0} has been saved!", character.CurrentTarget.ObjId);
+                                    character.SendMessage("[Nwrite] ObjId: {0} has been saved!", character.CurrentTarget.ObjId);
                                 }
                                 else
                                     throw new Exception($"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json file");
