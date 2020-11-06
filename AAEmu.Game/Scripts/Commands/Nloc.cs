@@ -38,51 +38,28 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (args.Length < 3)
             {
-<<<<<<< HEAD
                 character.SendMessage("[nloc] /npos <x> <y> <z> - Use x y z instead of a value to keep current position");
-=======
-                character.SendMessage("[nloc] /npos <x> <y> <z>");
->>>>>>> develop
                 return;
             }
 
             if (character.CurrentTarget != null)
             {
-<<<<<<< HEAD
                 float value = 0;
                 float x = character.CurrentTarget.Position.X;
                 float y = character.CurrentTarget.Position.Y;
                 float z = character.CurrentTarget.Position.Z;
 
-                if(float.TryParse(args[0], out value) && args[0] != "x")
-=======
-                character.SendMessage("[nloc] Unit: {0}, ObjId: {1}", character.CurrentTarget.Name, character.CurrentTarget.ObjId);
-
-                float value = 0;
-                float x = 0;
-                float y = 0;
-                float z = 0;
-
-                if(float.TryParse(args[0], out value))
->>>>>>> develop
+                if (float.TryParse(args[0], out value) && args[0] != "x")
                 {
                     x = value;
                 }
 
-<<<<<<< HEAD
                 if (float.TryParse(args[1], out value) && args[1] != "y")
-=======
-                if (float.TryParse(args[1], out value))
->>>>>>> develop
                 {
                     y = value;
                 }
 
-<<<<<<< HEAD
                 if (float.TryParse(args[2], out value) && args[0] != "z")
-=======
-                if (float.TryParse(args[2], out value))
->>>>>>> develop
                 {
                     z = value;
                 }
@@ -91,7 +68,7 @@ namespace AAEmu.Game.Scripts.Commands
                 var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
                 moveType.X = x;
-                moveType.Y = y; 
+                moveType.Y = y;
                 moveType.Z = z;
                 character.CurrentTarget.Position.X = x;
                 character.CurrentTarget.Position.Y = y;
@@ -111,10 +88,7 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.Alertness = 0; //idle=0, combat=2
                 moveType.Time = Seq;
 
-<<<<<<< HEAD
                 character.SendMessage("[nloc] New position {0} {1} {2}", character.CurrentTarget.Position.X, character.CurrentTarget.Position.Y, character.CurrentTarget.Position.Z);
-=======
->>>>>>> develop
                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
             }
             else
