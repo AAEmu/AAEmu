@@ -31,7 +31,7 @@ namespace AAEmu.Game.Scripts.Commands
                 var pos = character.CurrentTarget.Position;
 
                 if (character.CurrentTarget is Npc npc)
-                    character.SendMessage("[Position] ObjId: {0}, TemplateId: {1} X: |cFFFFFFFF{2:F1}|r  Y: |cFFFFFFFF{3:F1}|r  Z: |cFFFFFFFF{4:F1}|r", character.CurrentTarget.ObjId, npc.TemplateId, pos.X, pos.Y, pos.Z);
+                    character.SendMessage("[Position] Id: {0}, ObjId: {1}, TemplateId: {2} X: |cFFFFFFFF{3}|r  Y: |cFFFFFFFF{4}|r  Z: |cFFFFFFFF{5}|r", npc.Spawner.Id, character.CurrentTarget.ObjId, npc.TemplateId, pos.X, pos.Y, pos.Z);
             }
             else
             {
