@@ -20,17 +20,17 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public async Task Execute()
         {
-            _log.Debug("Executing tree with ID {0}", PlotId);
+            _log.Trace("Executing plot tree with ID {0}", PlotId);
             var queue = new Queue<(PlotNode node, DateTime timestamp)>();
             var executeQueue = new Queue<PlotNode>();
             
             queue.Enqueue((RootNode, DateTime.Now));
             (PlotNode node, DateTime timestamp) item;
-            while ((item = queue.Dequeue()).node != null)
+            while (queue.Count > 0)
             {
+                item = queue.Dequeue();
                 var now = DateTime.Now;
                 var node = item.node;
-                // var elapsedTime = (now - item.timestamp).TotalMilliseconds;
 
                 if (now >= item.timestamp)
                 {
@@ -43,17 +43,26 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 else
                 {
                     queue.Enqueue((node, item.timestamp));
-                    foreach (var plotNode in executeQueue)
-                    {
-                        plotNode.Execute();
-                    }
+                    FlushExecutionQueue(executeQueue);
                 }
 
-                await Task.Delay(5);
+                if (executeQueue.Count > 0)
+                    await Task.Delay(5);
             }
+
+            FlushExecutionQueue(executeQueue);
             
             //DoPlotEnd();
-            _log.Debug("Tree with ID {0} has finished executing", PlotId);
+            _log.Trace("Tree with ID {0} has finished executing", PlotId);
+        }
+
+        private void FlushExecutionQueue(Queue<PlotNode> executeQueue)
+        {
+            PlotNode execNode;
+            while ((execNode = executeQueue.Dequeue()) != null)
+            {
+                execNode.Execute();
+            }
         }
     }
 }

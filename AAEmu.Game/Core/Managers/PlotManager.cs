@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -268,7 +269,7 @@ namespace AAEmu.Game.Core.Managers
                 _log.Info("Building Flamebolt tree");
                 var flameboltTree = PlotBuilder.BuildTree(280);
                 _log.Info("Flamebolt tree built");
-                flameboltTree.Execute();
+                Task.Run(() => flameboltTree.Execute());
             }
         }
     }
