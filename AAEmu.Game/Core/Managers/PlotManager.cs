@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -226,6 +227,7 @@ namespace AAEmu.Game.Core.Managers
                             var template = new PlotNextEvent();
                             var id = reader.GetUInt32("event_id");
                             var nextId = reader.GetUInt32("next_event_id");
+                            template.Id = reader.GetUInt32("id");
                             template.Event = _eventTemplates[nextId];
                             template.Position = reader.GetInt32("position");
                             template.PerTarget = reader.GetBoolean("per_target", true);
@@ -262,6 +264,11 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 _log.Info("Loaded {0} plot events", _eventTemplates.Count);
+                
+                _log.Info("Building Flamebolt tree");
+                var flameboltTree = PlotBuilder.BuildTree(280);
+                _log.Info("Flamebolt tree built");
+                flameboltTree.Execute();
             }
         }
     }

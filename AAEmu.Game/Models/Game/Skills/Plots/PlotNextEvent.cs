@@ -2,6 +2,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 {
     public class PlotNextEvent
     {
+        public uint Id { get; set; }
         public PlotEventTemplate Event { get; set; }
         public int Position { get; set; }
         public bool PerTarget { get; set; }
