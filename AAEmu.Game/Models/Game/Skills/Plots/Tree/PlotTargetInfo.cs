@@ -38,6 +38,12 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             Target = targetInfo.Target;
         }
 
+        public void UpdateTargetInfo(PlotEventTemplate template, PlotState state)
+        {
+            UpdateSource(template, state);
+            UpdateTargets(template, state);
+        }
+        
         public void UpdateSource(PlotEventTemplate template, PlotState state)
         {
             switch ((PlotSourceUpdateMethodType)template.SourceUpdateMethodId)

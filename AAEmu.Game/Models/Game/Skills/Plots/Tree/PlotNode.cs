@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             return ParentNextEvent.Delay;
         }
         
-        public bool CheckConditions()
+        public bool CheckConditions(PlotState state, PlotTargetInfo targetInfo)
         {
             return true;
         }

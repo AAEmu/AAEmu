@@ -27,11 +27,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             {
                 var stopWatch = new Stopwatch();
 
-                var queue = new Queue<(PlotNode node, DateTime timestamp)>();
+                var queue = new Queue<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)>();
                 var executeQueue = new Queue<PlotNode>();
 
-                queue.Enqueue((RootNode, DateTime.Now));
-                // Create PlotTargetInfo here ?
+                queue.Enqueue((RootNode, DateTime.Now, new PlotTargetInfo(state)));
                 while (queue.Count > 0)
                 {
                     var item = queue.Dequeue();
@@ -40,19 +39,20 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                     if (now >= item.timestamp)
                     {
-                        // Update targets here ?
-                        if (node.CheckConditions())
+                        item.targetInfo.UpdateTargetInfo(node.Event, state);
+                        
+                        if (node.CheckConditions(state, item.targetInfo))
                         {
                             stopWatch.Stop();
                             _log.Debug($"PlotEvent{node.Event.Id} Queued at Delta: {stopWatch.ElapsedMilliseconds}");
                             stopWatch.Start();
-                            node.Children.ForEach(o => queue.Enqueue((o, now.AddMilliseconds(o.ComputeDelayMs()))));
+                            node.Children.ForEach(o => queue.Enqueue((o, now.AddMilliseconds(o.ComputeDelayMs()), new PlotTargetInfo(item.targetInfo))));
                             executeQueue.Enqueue(node);
                         }
                     }
                     else
                     {
-                        queue.Enqueue((node, item.timestamp));
+                        queue.Enqueue((node, item.timestamp, item.targetInfo));
                         FlushExecutionQueue(executeQueue);
                     }
 
@@ -72,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             //DoPlotEnd();
             _log.Debug("Tree with ID {0} has finished executing", PlotId);
         }
-
+        
         private void FlushExecutionQueue(Queue<PlotNode> executeQueue)
         {
             PlotNode execNode;
