@@ -37,6 +37,18 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     var now = DateTime.Now;
                     var node = item.node;
 
+                    if (state.Tickets.ContainsKey(node.Event.Id))
+                        state.Tickets[node.Event.Id]++;
+                    else
+                        state.Tickets.TryAdd(node.Event.Id, 1);
+
+                    //Check if we hit max tickets
+                    if (state.Tickets[node.Event.Id] > node.Event.Tickets 
+                        && node.Event.Tickets > 1)
+                    {
+                        continue;
+                    }
+
                     if (now >= item.timestamp)
                     {
                         item.targetInfo.UpdateTargetInfo(node.Event, state);
