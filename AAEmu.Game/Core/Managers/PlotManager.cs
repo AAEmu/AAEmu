@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
@@ -267,12 +267,11 @@ namespace AAEmu.Game.Core.Managers
 
                 _log.Info("Loaded {0} plot events", _eventTemplates.Count);
                 
-                var manastarsTree = PlotBuilder.BuildTree(1078);
-                _plots[1078].Tree = manastarsTree;
-                var flameboltTree = PlotBuilder.BuildTree(280);
-                _plots[280].Tree = flameboltTree;
-                var endless = PlotBuilder.BuildTree(1526);
-                _plots[1526].Tree = endless;
+                foreach(var plot in _plots.Values)
+                {
+                    if (plot.EventTemplate != null)
+                        plot.Tree = PlotBuilder.BuildTree(plot.Id);
+                }
                 // Task.Run(() => flameboltTree.Execute(new PlotState()));
             }
         }

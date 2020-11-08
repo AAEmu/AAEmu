@@ -23,6 +23,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public async Task Execute(PlotState state)
         {
+            var treeWatch = new Stopwatch();
+            treeWatch.Start();
             _log.Debug("Executing plot tree with ID {0}", PlotId);
             try
             {
@@ -36,6 +38,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                 while (queue.Count > 0)
                 {
+                    var nodewatch = new Stopwatch();
+                    nodewatch.Start();
                     var item = queue.Dequeue();
                     var now = DateTime.Now;
                     var node = item.node;
@@ -54,7 +58,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                             continue;
                         }
 
-                        _log.Debug($"Processing Node:{node.Event.Id}({state.Tickets[node.Event.Id]}) at Delta: {stopWatch.ElapsedMilliseconds}");
+                        if(node.Event.Id == 12104)
+                            _log.Debug($"Processing Node:{node.Event.Id}({state.Tickets[node.Event.Id]}) at Delta: {stopWatch.ElapsedMilliseconds}");
                         item.targetInfo.UpdateTargetInfo(node.Event, state);
 
                         var condition = node.CheckConditions(state, item.targetInfo);
@@ -87,9 +92,18 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                     if (queue.Count > 0)
                     {
+                        _log.Debug($"BEFORE DELAY - Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
                         int delay = (int)queue.Min(o => (o.timestamp - DateTime.Now).TotalMilliseconds);
-                        await Task.Delay(Math.Max(delay, 0));
+                        delay = Math.Max(delay, 0);
+
+                        //await Task.Delay(delay).ConfigureAwait(false);
+                        if (delay > 0)
+                            await Task.Delay(15).ConfigureAwait(false);
+                        
                     }
+
+                    //if (nodewatch.ElapsedMilliseconds > 10)
+                        _log.Debug($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
                 }
 
                 FlushExecutionQueue(executeQueue, state);
@@ -99,7 +113,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
             
             DoPlotEnd(state);
-            _log.Debug("Tree with ID {0} has finished executing", PlotId);
+            _log.Debug("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
         }
         
         private void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)

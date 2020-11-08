@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
@@ -39,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         public void Execute(PlotState state, PlotTargetInfo targetInfo)
         {
             //_log.Debug("Executing plot node with id {0}", Event.Id);
-            
+
             // var appliedEffects = false;
             // var skill = instance.ActiveSkill;
             //
@@ -49,13 +50,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             // }
             //
             // return appliedEffects;
-            
-            // double castTime = Event.NextEvents
-            //     .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling) && (pass ^ nextEvent.Fail))
-            //     .Aggregate(0, (current, nextEvent) => (current > nextEvent.Delay) ? current : (nextEvent.Delay / 10));
-            // castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime);
-            // castTime = Math.Clamp(castTime, 0, double.MaxValue);
-            double castTime = 100;
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            double castTime = Event.NextEvents
+                 .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling))
+                 .Aggregate(0, (current, nextEvent) => (current > nextEvent.Delay) ? current : (nextEvent.Delay / 10));
+            castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime);
+            castTime = Math.Max(castTime, 0);
 
             if (Event.Effects
                 .Select(eff => SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType))
@@ -79,6 +80,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                 byte targetCount = (byte)targetInfo.EffectedTargets.Count();
                 state.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, (ushort)castTime, 2, 0, targetCount), true);
+                _log.Debug($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
             }
         }
     }
