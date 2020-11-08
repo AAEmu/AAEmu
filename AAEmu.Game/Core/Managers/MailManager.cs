@@ -63,7 +63,7 @@ namespace AAEmu.Game.Core.Managers
             // Verify Receiver
             var targetName = NameManager.Instance.GetCharacterName(mail.Header.ReceiverId);
             var targetId = NameManager.Instance.GetCharacterId(mail.Header.ReceiverName);
-            if (!string.Equals(targetName, mail.Header.ReceiverName, StringComparison.CurrentCultureIgnoreCase))
+            if (!string.Equals(targetName, mail.Header.ReceiverName, StringComparison.InvariantCultureIgnoreCase))
             {
                 _log.Debug("Send() - Failed to verify receiver name {0} != {1}", targetName, mail.Header.ReceiverName);
                 return false; // Name mismatch
