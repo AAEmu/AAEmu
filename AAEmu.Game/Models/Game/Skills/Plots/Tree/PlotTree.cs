@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             PlotId = plotId;
         }
 
-        public async Task Execute()
+        public async Task Execute(PlotState state)
         {
             _log.Debug("Executing plot tree with ID {0}", PlotId);
             try
@@ -31,6 +31,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 var executeQueue = new Queue<PlotNode>();
 
                 queue.Enqueue((RootNode, DateTime.Now));
+                // Create PlotTargetInfo here ?
                 while (queue.Count > 0)
                 {
                     var item = queue.Dequeue();
@@ -39,6 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                     if (now >= item.timestamp)
                     {
+                        // Update targets here ?
                         if (node.CheckConditions())
                         {
                             stopWatch.Stop();

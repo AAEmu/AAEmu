@@ -34,6 +34,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, Doodad> _doodads;
         private readonly ConcurrentDictionary<uint, Npc> _npcs;
         private readonly ConcurrentDictionary<uint, Character> _characters;
+        private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes;
 
         public const int REGION_SIZE = 64;
         public const int CELL_SIZE = 1024 / REGION_SIZE;
@@ -52,6 +53,7 @@ namespace AAEmu.Game.Core.Managers.World
             _doodads = new ConcurrentDictionary<uint, Doodad>();
             _npcs = new ConcurrentDictionary<uint, Npc>();
             _characters = new ConcurrentDictionary<uint, Character>();
+            _areaShapes = new ConcurrentDictionary<uint, AreaShape>();
         }
 
         public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
@@ -194,6 +196,25 @@ namespace AAEmu.Game.Core.Managers.World
                             var id = reader.GetUInt32("wi_id");
                             var group = (WorldInteractionGroup)reader.GetUInt32("wi_group_id");
                             _worldInteractionGroups.Add(id, group);
+                        }
+                    }
+                }
+            
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM aoe_shapes";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var shape = new AreaShape();
+                            shape.Id = reader.GetUInt32("id");
+                            shape.Type = (AreaShapeType)reader.GetUInt32("kind_id");
+                            shape.Value1 = reader.GetDouble("value1");
+                            shape.Value2 = reader.GetDouble("value2");
+                            shape.Value3 = reader.GetDouble("value3");
+                            _areaShapes.TryAdd(shape.Id, shape);
                         }
                     }
                 }
@@ -607,6 +628,13 @@ namespace AAEmu.Game.Core.Managers.World
         public List<Character> GetAllCharacters()
         {
             return _characters.Values.ToList();
+        }
+        
+        public AreaShape GetAreaShapeById(uint id)
+        {
+            if (_areaShapes.TryGetValue(id, out AreaShape res))
+                return res;
+            return null;
         }
     }
 }

@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     var childNode = new PlotNode() {
                         Tree = parent.Tree, 
                         Event = childNextEvent.Event, 
-                        NextEvent = childNextEvent
+                        ParentNextEvent = childNextEvent
                     };
                     parent.Children.Add(childNode);
                     

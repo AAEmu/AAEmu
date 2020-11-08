@@ -47,6 +47,7 @@ namespace AAEmu.Game.Models.Game.Char
     public class Character : Unit
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
         public static Dictionary<uint, uint> _usedCharacterObjIds = new Dictionary<uint, uint>();
 
         private Dictionary<ushort, string> _options;

@@ -14,6 +14,7 @@ namespace AAEmu.Game.Models.Game.Units
 {
     public sealed class Mount : Unit
     {
+        public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
         //public ushort TlId { get; set; }
         public uint TemplateId { get; set; }
         public NpcTemplate Template { get; set; }
