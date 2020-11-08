@@ -7,19 +7,20 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Tests.Utils;
 using Xunit;
 
 namespace AAEmu.Tests
 {
     public class MailTests : IDisposable
     {
-        Character character;
+        CharacterMock character;
         CharacterMails mails;
 
         public MailTests()
         {
             var modelParams = new UnitCustomModelParams();
-            character = new Character(modelParams);
+            character = new CharacterMock();
             character.AccountId = 1;
             character.Id = 1;
             character.Name = "tester";
@@ -54,7 +55,7 @@ namespace AAEmu.Tests
             var extra = 0;
             var itemSlots = new List<(SlotType slotType, byte slot)>();
                       
-            mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots);
+            Assert.True(mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots));
             Assert.Equal(400, character.Money);        
         }
         

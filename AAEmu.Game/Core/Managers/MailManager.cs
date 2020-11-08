@@ -63,14 +63,23 @@ namespace AAEmu.Game.Core.Managers
             // Verify Receiver
             var targetName = NameManager.Instance.GetCharacterName(mail.Header.ReceiverId);
             var targetId = NameManager.Instance.GetCharacterId(mail.Header.ReceiverName);
-            if (!string.Equals(targetName, mail.Header.ReceiverName, StringComparison.CurrentCultureIgnoreCase))
+            if (!string.Equals(targetName, mail.Header.ReceiverName, StringComparison.InvariantCultureIgnoreCase))
+            {
+                _log.Debug("Send() - Failed to verify receiver name {0} != {1}", targetName, mail.Header.ReceiverName);
                 return false; // Name mismatch
+            }
             if (targetId != mail.Header.ReceiverId)
+            {
+                _log.Debug("Send() - Failed to verify receiver id {0} != {1}", targetId, mail.Header.ReceiverId);
                 return false; // Id mismatch
+            }
 
             // Assign a Id if we didn't have one yet
             if (mail.Id <= 0)
+            {
+                _log.Trace("Send() - Assign new mail Id");
                 mail.Id = GetNewMailId();
+            }
             _allPlayerMails.Add(mail.Id, mail);
             NotifyNewMailByNameIfOnline(mail, targetName);
             return true;
@@ -347,6 +356,7 @@ namespace AAEmu.Game.Core.Managers
 
         public bool NotifyNewMailByNameIfOnline(BaseMail m, string receiverName)
         {
+            _log.Trace("NotifyNewMailByNameIfOnline() - {0}", receiverName);
             // If unread and ready to deliver
             if ((m.Header.Status == 0) && (m.Body.RecvDate <= DateTime.UtcNow))
             {

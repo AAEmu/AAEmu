@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items.Actions;
 using System.Net.Mail;
 using AAEmu.Game.Core.Managers.Id;
+using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -72,6 +73,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public bool SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(Items.SlotType, byte)> itemSlots)
         {
+            Console.WriteLine("SendMailToPlayer to {0}", receiverName);
             var mail = new MailPlayerToPlayer(Self,receiverName);
 
             mail.MailType = mailType;
@@ -95,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             // With attachments in place, we can calculate the send fee
             var mailFee = mail.GetMailFee();
-            if (mailFee > Self.Money)
+            if ((mailFee + money0) > Self.Money)
             {
                 Self.SendErrorMessage(Error.ErrorMessageType.MailNotEnoughMoney);
                 return false;
@@ -108,16 +110,20 @@ namespace AAEmu.Game.Models.Game.Char
             if (mailType == MailType.Normal)
                 mail.Body.RecvDate = DateTime.UtcNow + MailManager.NormalMailDelay;
 
+            Console.WriteLine("SendMailToPlayer to {0} sending", receiverName);
             // Send it
             if (mail.Send())
             {
+                Console.WriteLine("SendMailToPlayer to {0} sending packet", receiverName);
                 Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray()));
+                Console.WriteLine("SendMailToPlayer to {0} subtracting money", receiverName);
                 // Take the fee
                 Self.SubtractMoney(SlotType.Inventory, mailFee + money0);
                 return true;
             }
             else
             {
+                Console.WriteLine("SendMailToPlayer to {0} failed", receiverName);
                 return false;
             }
         }
