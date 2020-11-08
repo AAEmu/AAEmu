@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.Proxy;
 
@@ -40,7 +40,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 }
                 else
                 {
-                    var childNode = new PlotNode() {Tree = parent.Tree, Event = childNextEvent.Event};
+                    var childNode = new PlotNode() {
+                        Tree = parent.Tree, 
+                        Event = childNextEvent.Event, 
+                        NextEvent = childNextEvent
+                    };
                     parent.Children.Add(childNode);
                     
                     existingNextEvents.Add(childNextEvent.Id, childNode);

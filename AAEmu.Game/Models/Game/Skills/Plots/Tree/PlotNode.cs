@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using NLog;
 
@@ -13,6 +13,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         public List<PlotNode> Children;
         // Plots
         public PlotEventTemplate Event;
+        public PlotNextEvent ParentNextEvent;
         
 
         public PlotNode()
@@ -22,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public int ComputeDelayMs()
         {
-            return 0;
+            return ParentNextEvent.Delay;
         }
         
         public bool CheckConditions()

@@ -1,5 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 
@@ -20,40 +22,53 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public async Task Execute()
         {
-            _log.Trace("Executing plot tree with ID {0}", PlotId);
-            var queue = new Queue<(PlotNode node, DateTime timestamp)>();
-            var executeQueue = new Queue<PlotNode>();
-            
-            queue.Enqueue((RootNode, DateTime.Now));
-            (PlotNode node, DateTime timestamp) item;
-            while (queue.Count > 0)
+            _log.Debug("Executing plot tree with ID {0}", PlotId);
+            try
             {
-                item = queue.Dequeue();
-                var now = DateTime.Now;
-                var node = item.node;
+                var stopWatch = new Stopwatch();
 
-                if (now >= item.timestamp)
+                var queue = new Queue<(PlotNode node, DateTime timestamp)>();
+                var executeQueue = new Queue<PlotNode>();
+
+                queue.Enqueue((RootNode, DateTime.Now));
+                while (queue.Count > 0)
                 {
-                    if (node.CheckConditions())
+                    var item = queue.Dequeue();
+                    var now = DateTime.Now;
+                    var node = item.node;
+
+                    if (now >= item.timestamp)
                     {
-                        node.Children.ForEach(o => queue.Enqueue((o, now.AddMilliseconds(o.ComputeDelayMs()))));
-                        executeQueue.Enqueue(node);
+                        if (node.CheckConditions())
+                        {
+                            stopWatch.Stop();
+                            _log.Debug($"PlotEvent{node.Event.Id} Queued at Delta: {stopWatch.ElapsedMilliseconds}");
+                            stopWatch.Start();
+                            node.Children.ForEach(o => queue.Enqueue((o, now.AddMilliseconds(o.ComputeDelayMs()))));
+                            executeQueue.Enqueue(node);
+                        }
+                    }
+                    else
+                    {
+                        queue.Enqueue((node, item.timestamp));
+                        FlushExecutionQueue(executeQueue);
+                    }
+
+                    if (queue.Count > 0)
+                    {
+                        int delay = (int)queue.Min(o => (o.timestamp - DateTime.Now).TotalMilliseconds);
+                        await Task.Delay(Math.Max(delay, 0));
                     }
                 }
-                else
-                {
-                    queue.Enqueue((node, item.timestamp));
-                    FlushExecutionQueue(executeQueue);
-                }
 
-                if (executeQueue.Count > 0)
-                    await Task.Delay(5);
+                FlushExecutionQueue(executeQueue);
+            } catch (Exception e)
+            {
+                _log.Debug($"Plot Error: {e.Message}");
             }
-
-            FlushExecutionQueue(executeQueue);
             
             //DoPlotEnd();
-            _log.Trace("Tree with ID {0} has finished executing", PlotId);
+            _log.Debug("Tree with ID {0} has finished executing", PlotId);
         }
 
         private void FlushExecutionQueue(Queue<PlotNode> executeQueue)
