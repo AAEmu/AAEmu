@@ -40,14 +40,28 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     if (now >= item.timestamp)
                     {
                         item.targetInfo.UpdateTargetInfo(node.Event, state);
-                        
-                        if (node.CheckConditions(state, item.targetInfo))
+
+                        var condition = node.CheckConditions(state, item.targetInfo);
+
+                        if (condition)
                         {
-                            stopWatch.Stop();
-                            _log.Debug($"PlotEvent{node.Event.Id} Queued at Delta: {stopWatch.ElapsedMilliseconds}");
-                            stopWatch.Start();
-                            node.Children.ForEach(o => queue.Enqueue((o, now.AddMilliseconds(o.ComputeDelayMs()), new PlotTargetInfo(item.targetInfo))));
                             executeQueue.Enqueue(node);
+                        }
+                        foreach (var child in node.Children)
+                        {
+                            if (condition != child.ParentNextEvent.Fail)
+                            {
+                                stopWatch.Stop();
+                                _log.Debug($"PlotEvent{node.Event.Id} Queued at Delta: {stopWatch.ElapsedMilliseconds}");
+                                stopWatch.Start();
+                                queue.Enqueue(
+                                    (
+                                    child, 
+                                    now.AddMilliseconds(child.ComputeDelayMs()), 
+                                    new PlotTargetInfo(item.targetInfo)
+                                    )
+                                );
+                            }
                         }
                     }
                     else
