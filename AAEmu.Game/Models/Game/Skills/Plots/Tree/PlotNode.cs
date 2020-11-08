@@ -28,7 +28,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         
         public bool CheckConditions(PlotState state, PlotTargetInfo targetInfo)
         {
-            return true;
+            var pass = true;
+
+            foreach (var condition in Event.Conditions)
+            {
+                //if (condition.Condition.)
+            }
+            
+            return pass;
         }
 
         public void Execute()

@@ -310,7 +310,7 @@ namespace AAEmu.Game.Models.Game.Skills
             step.Channeling = nextEvent.Channeling;
             foreach (var condition in nextEvent.Event.Conditions)
             {
-                if (condition.Condition.Check(caster, casterCaster, target, targetCaster, skillObject))
+                if (condition.Condition.Check(caster, casterCaster, target, targetCaster, skillObject, condition))
                 {
                     continue;
                 }

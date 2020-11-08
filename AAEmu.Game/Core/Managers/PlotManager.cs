@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
+using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -157,8 +158,8 @@ namespace AAEmu.Game.Core.Managers
                             var template = new PlotEventCondition();
                             template.Condition = _conditions[condId];
                             template.Position = reader.GetInt32("position");
-                            template.SourceId = reader.GetInt32("source_id");
-                            template.TargetId = reader.GetInt32("target_id");
+                            template.SourceId = (PlotEffectSource)reader.GetInt32("source_id");
+                            template.TargetId = (PlotEffectTarget)reader.GetInt32("target_id");
                             // TODO 1.2 // template.NotifyFailure = reader.GetBoolean("notify_failure", true);
                             var plotEvent = _eventTemplates[id];
                             if (plotEvent.Conditions.Count > 0)
