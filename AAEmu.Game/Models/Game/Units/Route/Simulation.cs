@@ -517,7 +517,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 MovePath.Count(); // проверяем на существование объекта, при отладке всякое может быть
             }
-            catch (Exception e)
+            catch
             {
                 //_log.Warn("Error: {0}", e);
                 //character.SendMessage("[MoveTo] Error: {0}", e);
@@ -619,7 +619,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             catch (Exception e)
             {
-                _log.Warn("Error in read MovePath: {0}", e);
+                _log.Warn("Error in read MovePath: {0}", e.Message);
                 //character.SendMessage("[MoveTo] Error in read MovePath: {0}", e);
                 StopMove(npc);
             }
@@ -630,7 +630,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             catch (Exception e)
             {
-                _log.Warn("Error in read RecordPath: {0}", e);
+                _log.Warn("Error in read RecordPath: {0}", e.Message);
                 //character.SendMessage("[MoveTo] Error in read MovePath: {0}", e);
                 StopMove(npc);
             }

@@ -12,13 +12,13 @@ namespace AAEmu.Game.Models.Game.Mails
     {
         public static byte MaxMailAttachments = 10;
         public long mailId { get; set; }
-        public byte Type { get; set; }
+        public MailType Type { get; set; }
         public string ReceiverName { get; set; }
         public string Title { get; set; }
         public string Text { get; set; }
+        public int CopperCoins { get; set; }
         public int MoneyAmount1 { get; set; }
         public int MoneyAmount2 { get; set; }
-        public int MoneyAmount3 { get; set; }
         public DateTime SendDate { get; set; }
         public DateTime RecvDate { get; set; }
         public DateTime OpenDate { get; set; }
@@ -32,13 +32,13 @@ namespace AAEmu.Game.Models.Game.Mails
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(mailId);
-            stream.Write(Type);
+            stream.Write((byte)Type);
             stream.Write(ReceiverName);
             stream.Write(Title);
             stream.Write(Text);
+            stream.Write(CopperCoins);
             stream.Write(MoneyAmount1);
             stream.Write(MoneyAmount2);
-            stream.Write(MoneyAmount3);
             stream.Write(SendDate);
             stream.Write(RecvDate);
             stream.Write(OpenDate);

@@ -55,6 +55,9 @@
       <None Update="Scripts\Commands\ReloadConfigs.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
+      <None Update="Scripts\Commands\TestFSets.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
       <None Update="Scripts\Commands\TestHeight.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
@@ -74,6 +77,9 @@
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\SpawnGrid.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+      <None Update="Scripts\Commands\TestMails.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\TestZoneState.cs">

@@ -57,6 +57,28 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
+            var itemTemplate = ItemManager.Instance.GetTemplate(itemId);
+            if (itemTemplate == null)
+            {
+                character.SendMessage("|cFFFF0000Item template does not exist for {0} !|r", itemId);
+                return;
+            }
+
+            if (itemTemplate.Category_Id == 133) // Speciality Packs (tradepacks) 
+            {
+                var currentBackpack = targetPlayer.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
+                if (currentBackpack != null)
+                {
+                    character.SendMessage("|cFFFF0000No room on the backpack slot to place a tradepack!|r");
+                    return;
+                }
+                if (!targetPlayer.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.Gm, itemId, count, grade))
+                {
+                    character.SendMessage("|cFFFF0000Tradepack could not be created!|r");
+                    return;
+                }
+            }
+            else
             if (!targetPlayer.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Gm, itemId, count, grade))
             {
                 character.SendMessage("|cFFFF0000Item could not be created!|r");
