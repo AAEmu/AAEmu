@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -762,6 +763,33 @@ namespace AAEmu.Game.Models.Game.Char
 
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
+        }
+        
+        public WeaponWieldKind GetWeaponWieldKind()
+        {
+            var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
+            if (item.Template is WeaponTemplate weapon)
+            {
+                EquipmentItemSlotType slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
+                if (slotId == EquipmentItemSlotType.TwoHanded)
+                    return WeaponWieldKind.TwoHanded;
+                else if (slotId == EquipmentItemSlotType.OneHanded)
+                {
+                    var item2 = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
+                    if (item2 != null && item2.Template is WeaponTemplate weapon2)
+                    {
+                        EquipmentItemSlotType slotId2 = (EquipmentItemSlotType)weapon2.HoldableTemplate.SlotTypeId;
+                        if (slotId2 == EquipmentItemSlotType.OneHanded)
+                            return WeaponWieldKind.DuelWielded;
+                        else
+                            return WeaponWieldKind.OneHanded;
+                    }
+                    else
+                        return WeaponWieldKind.OneHanded;
+                }
+            }
+
+            return WeaponWieldKind.None;
         }
 
         public void AddExp(int exp, bool shouldAddAbilityExp)

@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             var result = true;
             foreach (var condition in Conditions)
             {
-                if (condition.Condition.Check(caster, casterCaster, target, targetCaster, skillObject))
+                if (condition.Condition.Check(caster, casterCaster, target, targetCaster, skillObject, condition))
                     continue;
                 result = false;
                 break;
