@@ -1,6 +1,6 @@
-namespace AAEmu.Game.Models.Game.Mails
+﻿namespace AAEmu.Game.Models.Game.Mails
 {
-    public enum MailType
+    public enum MailType : byte
     {
         InvalidMailType = 0,
         Normal = 1,
@@ -28,6 +28,7 @@ namespace AAEmu.Game.Models.Game.Mails
         NationTaxRate = 23,
         NationTaxReceipt = 24,
         NationRequestFriend = 25,
+        // 1.2 ends here
         KickedFromBeginnerExped = 26,
         MobilizationGiveItem = 27,
         HeroCandidateAlarm = 28,

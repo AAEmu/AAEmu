@@ -15,8 +15,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var npcObjId = stream.ReadBc();
             var npcObjId2 = stream.ReadBc();
             var itemId = stream.ReadUInt64();
-            var startPrice = stream.ReadUInt32();
-            var buyoutPrice = stream.ReadUInt32();
+            var startPrice = stream.ReadInt32();
+            var buyoutPrice = stream.ReadInt32();
             var duration = stream.ReadByte();
 
             AuctionManager.Instance.ListAuctionItem(Connection.ActiveChar, itemId, startPrice, buyoutPrice, duration);

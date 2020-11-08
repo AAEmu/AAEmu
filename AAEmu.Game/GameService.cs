@@ -47,6 +47,7 @@ namespace AAEmu.Game
             TeamIdManager.Instance.Initialize();
             LaborPowerManager.Instance.Initialize();
             QuestIdManager.Instance.Initialize();
+            MailIdManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();

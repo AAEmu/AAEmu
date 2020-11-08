@@ -45,7 +45,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var biddingWorldID = stream.ReadByte();
             var typeBid2 = stream.ReadUInt32();
             var name = stream.ReadString();
-            var bid = stream.ReadUInt32();
+            var bid = stream.ReadInt32();
 
 
             AuctionManager.Instance.BidOnAuctionItem(Connection.ActiveChar, auctionId, bid);

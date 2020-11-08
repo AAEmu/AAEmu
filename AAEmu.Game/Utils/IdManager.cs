@@ -46,11 +46,21 @@ namespace AAEmu.Game.Utils
                 _freeIds.Clear();
                 _freeIdCount = _freeIdSize;
 
-                foreach (var usedObjectId in ExtractUsedObjectIdTable())
+                var allUsedObjects = new uint[0];
+                try
+                {
+                    allUsedObjects = (uint[])ExtractUsedObjectIdTable();
+                }
+                catch
+                {
+                    _log.Warn("{0} failed to read from database, reverting to default", _name);
+                }
+
+                foreach (var usedObjectId in allUsedObjects)
                 {
                     if (_exclude.Contains(usedObjectId))
                         continue;
-                    var objectId = (int) (usedObjectId - _firstId);
+                    var objectId = (int)(usedObjectId - _firstId);
                     if (usedObjectId < _firstId)
                     {
                         _log.Warn("{0}: Object ID {1} in DB is less than {2}", _name, usedObjectId, _firstId);
