@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -63,9 +64,22 @@ namespace AAEmu.Game.Core.Managers
             character.SendMessage("[Force Scripts Reload] Done");
         }
 
+        private string[] SplitCommandString(string baseString)
+        {
+            // https://codereview.stackexchange.com/questions/10826/splitting-a-string-into-words-or-double-quoted-substrings
+            var re = new Regex("(?<=\")[^\"]*(?=\")|[^\" ]+");
+            return re.Matches(baseString).Cast<Match>().Select(m => m.Value).ToArray();
+        }
+
         public bool Handle(Character character, string text)
         {
-            var words = text.Split(' ');
+            // Un-escape the string, as the client sends it escaped
+            // It is required if you want to test things like @NPC_NAME() and |cFF00FFFF text colors |r
+            // We only do this for GM commands as it would cause problems with regular chat
+            text = text.Replace("@@", "@").Replace("||", "|");
+
+            var words = SplitCommandString(text);
+            // var words = text.Split(' ');
             var thisCommand = words[0].ToLower();
 
             // Only enable the force_scripts_reload when we don't have anything loaded, this is simply a failsafe function in case

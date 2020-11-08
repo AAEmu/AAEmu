@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Specialty;
@@ -223,29 +224,77 @@ namespace AAEmu.Game.Core.Managers.World
             var npc = WorldManager.Instance.GetNpc(npcObjId);
             if (npc == null)
                 return;
+            // Our backpack isn't null, we have the NPC, time to calculate the profits
 
-            // Our backpack isn't null, we have the NPC 
-            var finalPrice = (basePrice * (priceRatio / 100f));
+            // TODO: Get crafter ID of tradepack
+            uint crafterId = 0; // leave this at zero if seller is crafter
+            var sellerShare = 0.80f; // 80% default, set this to 1f for packs that don't share profit
 
-            // TODO : Send the mail properly
-            // As a placeholder, we instantly add the pack's price to the player this time
+            var interestRate = 5;
+
+            var finalPriceNoInterest = (basePrice * (priceRatio / 100f));
+            var interest = (finalPriceNoInterest * (interestRate / 100f));
+            var amountBonus = 0; // TODO: negotiation bonus
+            var finalPrice = finalPriceNoInterest + interest + amountBonus ;
+
+
+            var itemTypeToDeliver = npc.Template.SpecialtyCoinId;
+            var amountOfItemsTotalPayout = (int)Math.Round(finalPrice);
+            var amountOfItemsSeller = amountOfItemsTotalPayout ;
+            var amountOfItemsCrafter = 0;
+            var amountOfItemsBase = basePrice;
+
             if (npc.Template.SpecialtyCoinId != 0)
             {
-                var amountOfItems = (int) Math.Round(finalPrice / 10000);
-                if (!player.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SellBackpack, npc.Template.SpecialtyCoinId, amountOfItems))
-                {
-                    player.SendErrorMessage(ErrorMessageType.BagFull);
-                    return;
-                }
+                // Items are listed in the DB at the same rate as "amounts of gold" so the value needs to be divided by 10000
+                amountOfItemsTotalPayout = (int)Math.Round(amountOfItemsTotalPayout / 10000f);
+                amountOfItemsSeller = (int)Math.Round(amountOfItemsSeller / 10000f);
+                amountOfItemsBase = (int)Math.Round(basePrice / 10000f);
             }
             else
             {
-                player.AddMoney(SlotType.Inventory, (int)finalPrice);
+                itemTypeToDeliver = Item.Coins;
             }
-            
+
+            // TODO: implement a global fsets
+            var fsets = new Models.Game.Features.FeatureSet();
+
+            // Split up the profit if needed
+            if ((crafterId != 0) && (crafterId != player.Id) && fsets.Check(Models.Game.Features.Feature.backpackProfitShare))
+            {
+                amountOfItemsSeller = (int)Math.Round(amountOfItemsTotalPayout * sellerShare);
+                amountOfItemsCrafter = amountOfItemsTotalPayout - amountOfItemsSeller;
+            }
+
+            // Mail for seller
+            if (amountOfItemsSeller > 0) // This check is here for if you'd create custom packs that give 100% to crafter and 0% for delivery
+            {
+                var sellerMail = new MailForSpeciality(player, crafterId, backpack.TemplateId, priceRatio, itemTypeToDeliver, amountOfItemsBase, amountBonus, amountOfItemsSeller, amountOfItemsCrafter, interestRate);
+                sellerMail.FinalizeForSeller();
+                if (!sellerMail.Send())
+                {
+                    player.SendErrorMessage(ErrorMessageType.MailUnknownFailure);
+                    return;
+                }
+            }
+
+            // Mail for crafter. If seller is not crafter, send a crafter mail as well
+            if ((amountOfItemsCrafter > 0) && (crafterId != 0))
+            {
+                var crafterMail = new MailForSpeciality(player, crafterId, backpack.TemplateId, priceRatio, itemTypeToDeliver, amountOfItemsBase, amountBonus, amountOfItemsSeller, amountOfItemsCrafter, interestRate);
+                crafterMail.FinalizeForCrafter();
+                if (!crafterMail.Send())
+                {
+                    player.SendErrorMessage(ErrorMessageType.MailUnknownFailure);
+                    // return; // don't cancel here if we fail to send mail to crafter
+                }
+            }
+
             // Delete the backpack
             player.Inventory.Equipment.ConsumeItem(ItemTaskType.SellBackpack, backpack.TemplateId, 1, backpack);
-            player.ChangeLabor(-60, (int) ActabilityType.Commerce);
+            // TODO: Calculate proper labor by skill level
+            player.ChangeLabor(-60, (int)ActabilityType.Commerce);
+
 
             // Add one pack sold in this zone during this tick
             if (!_soldPackAmountInTick.ContainsKey(backpack.TemplateId))

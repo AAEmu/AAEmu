@@ -25,13 +25,13 @@ namespace AAEmu.Game.Models.Game.Auction
         public byte WorldId2 { get; set; }
         public uint ClientId { get; set; }
         public string ClientName { get; set; }
-        public uint StartMoney { get; set; }
-        public uint DirectMoney { get; set; }
+        public int StartMoney { get; set; }
+        public int DirectMoney { get; set; }
         public ulong TimeLeft { get; set; } //seconds
         public byte BidWorldID { get; set; }
         public uint BidderId { get; set; }
         public string BidderName { get; set; }
-        public uint BidMoney { get; set; }
+        public int BidMoney { get; set; }
         public uint Extra { get; set; }
 
         public uint CategoryA { get; set; }

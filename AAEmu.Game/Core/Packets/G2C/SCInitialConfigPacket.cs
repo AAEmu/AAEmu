@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write("aaemu.local"); // host
-            
+
             // siege -> (byte)fset[0] & 1 == 1
             // premium -> (byte)fset[0] & 0x10 == 0x10
             // levelLimit -> (byte)fset[1]
@@ -37,12 +37,11 @@ namespace AAEmu.Game.Core.Packets.G2C
             // hudAuctionButton -> (uint)fset[8] & 0x20000 == 0x20000
             // auctionPostBuff -> (uint)fset[8] & 0x80000 == 0x80000
             // houseTaxPrepay -> (uint)fset[8] & 0x100000 == 0x100000
-            
+
             // 0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a
+            // stream.Write(new byte[] {0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a}, true); // fset
             var fset = new FeatureSet();
-            fset.Set(Feature.allowFamilyChanges, true);
             fset.Write(stream);
-//            stream.Write(new byte[] {0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a}, true); // fset
 
             /*
                 {
