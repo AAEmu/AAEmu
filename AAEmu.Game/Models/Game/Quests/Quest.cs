@@ -3,8 +3,10 @@ using System.Collections.Generic;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
@@ -84,6 +86,12 @@ namespace AAEmu.Game.Models.Game.Quests
                                     res = acts[i].Use(Owner, this, Objectives[i]);
                                     break;
                                 }
+                            case "QuestActConReportNpc":
+                                res = false;
+                                break;
+                            case "QuestActObjItemUse":
+                                res = false;
+                                break;
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
                                 res = acts[i].Use(Owner, this, SupplyItem);
                                 break;
@@ -161,6 +169,18 @@ namespace AAEmu.Game.Models.Game.Quests
 
                                     break;
                                 }
+                            case "QuestActObjMonsterGroupHunt":
+                                {
+                                    res = acts[i].Use(Owner, this, Objectives[i]);
+                                    if (res)
+                                    {
+                                        Owner.Quests.Complete(TemplateId, 0);
+                                    }
+                                    break;
+                                }
+                            case "QuestActConReportNpc":
+                                res = false;
+                                break;
                             default:
                                 res = acts[i].Use(Owner, this, Objectives[i]);
                                 break;
@@ -292,7 +312,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
                         }
 
-                        Owner.Inventory.ConsumeItem(null,ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
+                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
                         //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                     }
                     if (act.DetailType == "QuestActObjItemGather")
@@ -300,7 +320,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         var template = act.GetTemplate<QuestActObjItemGather>();
                         if (template.DestroyWhenDrop)
                         {
-                            Owner.Inventory.ConsumeItem(null,ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count,null);
+                            Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
                             //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                         }
                     }
@@ -496,7 +516,7 @@ namespace AAEmu.Game.Models.Game.Quests
             Update(res);
         }
 
-        public void OnInteraction(WorldInteractionType type)
+        public void OnInteraction(WorldInteractionType type, Units.BaseUnit target)
         {
             var res = false;
             var component = Template.GetComponent(Step);
@@ -511,17 +531,32 @@ namespace AAEmu.Game.Models.Game.Quests
                         var template = acts[i].GetTemplate<QuestActObjInteraction>();
                         if (template.WorldInteractionId == type)
                         {
-                            res = true;
-                            Objectives[i]++;
-                            if (Objectives[i] > template.Count) // TODO check to overtime
+                            var interactionTarget = (Doodad)target;
+                            if (template.DoodadId == interactionTarget.TemplateId)
                             {
-                                Objectives[i] = template.Count;
+                                res = true;
+                                Objectives[i]++;
+                                if (Objectives[i] > template.Count) // TODO check to overtime
+                                {
+                                    Objectives[i] = template.Count;
+                                }
                             }
                         }
                     }
+                    if (act.DetailType == "QuestActObjItemGather")
+                    {
+                        var template = acts[i].GetTemplate<QuestActObjItemGather>();                        
+                        Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                        if (Objectives[i] >= template.Count) // TODO check to overtime
+                        {
+                            Objectives[i] = template.Count;
+                            res = true;
+                        }                       
+                    }
                 }
             }
-
+        
+    
             Update(res);
         }
 
