@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Mails
         private bool _sellerIsCrafter;
         private int _itemCountTotal;
 
-        public static TimeSpan TradePackMailDelay = TimeSpan.FromSeconds(10); // Default is 8 hours
+        public static TimeSpan TradePackMailDelay = TimeSpan.FromHours(8); // Default is 8 hours
         public static string TradeDeliveryName = ".sellBackpack";
         public static string TradeDeliveryTitle = "Speciality Payment";
         public static string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
