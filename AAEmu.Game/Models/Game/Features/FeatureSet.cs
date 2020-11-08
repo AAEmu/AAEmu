@@ -3,7 +3,7 @@ using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Features
 {
-    class FeatureSet
+    public class FeatureSet
     {
         //default fsets
         //private byte[] _fset = { 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03 };
@@ -23,6 +23,12 @@ namespace AAEmu.Game.Models.Game.Features
             Set(Feature.allowFamilyChanges, true);
             //Disables Dwarf/Warborn character creation (0.5 only)
             Set(Feature.dwarfWarborn, false);
+
+            // Debug convenience flags
+            Set(Feature.sensitiveOpeartion, false);
+            Set(Feature.secondpass, false);
+            Set(Feature.ingameshopSecondpass, false);
+            Set(Feature.itemSecure, false);
         }
 
         private (byte byteIndex, byte bitIndex) GetIndexes(Feature feature)

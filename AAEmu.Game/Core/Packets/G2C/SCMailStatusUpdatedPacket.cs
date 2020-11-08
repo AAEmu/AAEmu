@@ -1,5 +1,6 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Mails;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -7,9 +8,9 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly bool _isSent;
         private readonly long _mailId;
-        private readonly byte _status;
+        private readonly MailStatus _status;
 
-        public SCMailStatusUpdatedPacket(bool isSent, long mailId, byte status) : base(SCOffsets.SCMailStatusUpdatedPacket, 1)
+        public SCMailStatusUpdatedPacket(bool isSent, long mailId, MailStatus status) : base(SCOffsets.SCMailStatusUpdatedPacket, 1)
         {
             _isSent = isSent;
             _mailId = mailId;
@@ -20,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_isSent);
             stream.Write(_mailId);
-            stream.Write(_status);
+            stream.Write((byte)_status);
             return stream;
         }
     }

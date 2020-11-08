@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -16,9 +17,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            _log.Debug("SendMail");
+            _log.Debug("SendMail by {0}", Connection.ActiveChar.Name);
 
-            var type = stream.ReadByte();
+            var type = (MailType)stream.ReadByte();
             var receiverCharName = stream.ReadString();
             var unkId = stream.ReadUInt32(); //could be status
             var title = stream.ReadString();
@@ -42,15 +43,15 @@ namespace AAEmu.Game.Core.Packets.C2G
             var doodadObjId = stream.ReadBc();
             var doodad = WorldManager.Instance.GetDoodad(doodadObjId);
 
-            var mailCheckOK = true;
+            // Validate if we are near a MailBox
+            bool mailCheckOK ;
             if (doodad != null)
             {
                 // Doodad GroupID 6 is "Other - Mailboxes"
                 if (doodad.Template.GroupId == 6)
                 {
                     var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Position, doodad.Position);
-                    if (dist > 5f)
-                        mailCheckOK = false;
+                    mailCheckOK = (dist <= 5f); // 5m is kinda generous I guess
                 }
                 else
                     mailCheckOK = false;
@@ -59,7 +60,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 mailCheckOK = false;
 
             if (mailCheckOK)
-                Connection.ActiveChar.Mails.SendMail(type, receiverCharName, Connection.ActiveChar.Name, title, text, attachments, money0, money1, money2, extra, itemSlots);
+                Connection.ActiveChar.Mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots);
             else
                 Connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailFailMailboxNotFound);
         }

@@ -4,6 +4,7 @@ using System.Text;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Units;
 using Xunit;
 
@@ -26,7 +27,7 @@ namespace AAEmu.Tests
             mails = new CharacterMails(character);
 
             NameManager.Instance.AddCharacterName(character.Id, character.Name);
-            MailManager.Instance._allPlayerMails = new Dictionary<long, Mail>();
+            MailManager.Instance._allPlayerMails = new Dictionary<long, BaseMail>();
         }
         
         public void Dispose()
@@ -40,7 +41,7 @@ namespace AAEmu.Tests
         [Fact]
         public void MoneyTest()
         {
-            var type = (byte)2;
+            var type = MailType.Express;
             var receiverCharName = "tester";
             var title = "test";
             var text = "test";
@@ -51,7 +52,7 @@ namespace AAEmu.Tests
             var extra = 0;
             var itemSlots = new List<(SlotType slotType, byte slot)>();
                       
-            mails.SendMail(type, receiverCharName,character.Name, title, text, attachments, money0, money1, money2, extra, itemSlots);
+            mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots);
             Assert.Equal(400, character.Money);        
         }
         
@@ -59,7 +60,7 @@ namespace AAEmu.Tests
         public void PlayerNotFoundTest()
         {
          
-            var type = (byte)2;
+            var type = MailType.Express;
             var receiverCharName = "bob";
             var title = "test";
             var text = "test";
@@ -69,8 +70,8 @@ namespace AAEmu.Tests
             var money2 = 0;
             var extra = 0;
             var itemSlots = new List<(SlotType slotType, byte slot)>();
-            
-            Assert.False(mails.SendMail(type, receiverCharName, character.Name, title, text, attachments, money0, money1, money2, extra, itemSlots));
+
+            Assert.False(mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots));
             Assert.Equal(1000, character.Money);
         }
     }
