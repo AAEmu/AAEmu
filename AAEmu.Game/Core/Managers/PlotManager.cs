@@ -269,7 +269,7 @@ namespace AAEmu.Game.Core.Managers
                 _log.Info("Building Flamebolt tree");
                 var flameboltTree = PlotBuilder.BuildTree(280);
                 _log.Info("Flamebolt tree built");
-                Task.Run(() => flameboltTree.Execute());
+                // Task.Run(() => flameboltTree.Execute());
             }
         }
     }
