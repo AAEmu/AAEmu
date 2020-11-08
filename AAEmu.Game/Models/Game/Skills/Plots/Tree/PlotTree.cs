@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AAEmu.Game.Core.Packets.G2C;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -29,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 stopWatch.Start();
 
                 var queue = new Queue<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)>();
-                var executeQueue = new Queue<PlotNode>();
+                var executeQueue = new Queue<(PlotNode node, PlotTargetInfo targetInfo)>();
 
                 queue.Enqueue((RootNode, DateTime.Now, new PlotTargetInfo(state)));
 
@@ -60,17 +61,19 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                         if (condition)
                         {
-                            executeQueue.Enqueue(node);
+                            executeQueue.Enqueue((node, item.targetInfo));
                         }
+                        
                         foreach (var child in node.Children)
                         {
                             if (condition != child.ParentNextEvent.Fail)
                             {
+                                var targetInfo = new PlotTargetInfo(item.targetInfo);
                                 queue.Enqueue(
                                     (
                                     child, 
-                                    now.AddMilliseconds(child.ComputeDelayMs()), 
-                                    new PlotTargetInfo(item.targetInfo)
+                                    now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo)), 
+                                    targetInfo
                                     )
                                 );
                             }
@@ -79,7 +82,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     else
                     {
                         queue.Enqueue((node, item.timestamp, item.targetInfo));
-                        FlushExecutionQueue(executeQueue);
+                        FlushExecutionQueue(executeQueue, state);
                     }
 
                     if (queue.Count > 0)
@@ -89,23 +92,28 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     }
                 }
 
-                FlushExecutionQueue(executeQueue);
+                FlushExecutionQueue(executeQueue, state);
             } catch (Exception e)
             {
                 _log.Debug($"Plot Error: {e.Message}\n Line: {e.StackTrace}");
             }
             
-            //DoPlotEnd();
+            DoPlotEnd(state);
             _log.Debug("Tree with ID {0} has finished executing", PlotId);
         }
         
-        private void FlushExecutionQueue(Queue<PlotNode> executeQueue)
+        private void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
         { 
             while (executeQueue.Count > 0)
             {
-                PlotNode node = executeQueue.Dequeue();
-                node.Execute();
+                var item = executeQueue.Dequeue();
+                item.node.Execute(state, item.targetInfo);
             }
+        }
+
+        private void DoPlotEnd(PlotState state)
+        {
+            state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
         }
     }
 }

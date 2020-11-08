@@ -117,7 +117,7 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var skill in Skills.Values)
                 points += skill.Template.SkillPoints;
             foreach (var buff in PassiveBuffs.Values)
-                points += buff.Template.ReqPoints;
+                points += buff.Template?.ReqPoints ?? 1;
             return points;
         }
         

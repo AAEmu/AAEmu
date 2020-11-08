@@ -68,7 +68,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 var type = _types[id];
  
-                _log.Info("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
+                _log.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
 
                 return _effects[type.Type][type.ActualId];
             }
@@ -77,7 +77,7 @@ namespace AAEmu.Game.Core.Managers
 
         public EffectTemplate GetEffectTemplate(uint id, string type)
         {
-            _log.Info("Get Effect Template: type = {0}, id = {1}", type, id);
+            _log.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
             
             return _effects[type][id];
         }

@@ -87,7 +87,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     break;
             }
 
-            _log.Debug("PlotCondition : {0} | Params : {1}, {2}, {3} | Result : {4}", Kind, Param1, Param2, Param3, NotCondition ? !res : res);            
+            _log.Trace("PlotCondition : {0} | Params : {1}, {2}, {3} | Result : {4}", Kind, Param1, Param2, Param3, NotCondition ? !res : res);            
 
             return NotCondition ? !res : res;
         }

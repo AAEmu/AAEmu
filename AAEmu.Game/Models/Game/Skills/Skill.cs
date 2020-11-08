@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -21,7 +22,7 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills
 {
-    public class Skill
+   public class Skill
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
@@ -46,15 +47,9 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null)
         {
-            //if (caster is Character chr)
-            //{
-            //    var dist = MathUtil.CalculateDistance(chr.Position, chr.CurrentTarget.Position, true);
-            //    if (dist > SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
-            //    {
-            //        chr.SendMessage("Target is too far ...");
-            //        return;
-            //    }
-            //}
+            // TODO : Add GCD to caster
+            // if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
+                // return;
             
             // TODO : Add check for range
             var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
@@ -210,6 +205,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 var positionTarget = (SkillCastPositionTarget)targetCaster;
                 var positionUnit = new BaseUnit();
+                positionUnit.ObjId = uint.MaxValue;
                 positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                 positionUnit.Position.ZoneId = caster.Position.ZoneId;
                 positionUnit.Position.WorldId = caster.Position.WorldId;
@@ -225,27 +221,8 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.Plot != null)
             {
-                var eventTemplate = Template.Plot.EventTemplate;
-                var step = new PlotStep();
-                step.Event = eventTemplate;
-                step.Flag = 2;
-
-                if (!eventTemplate.СheckСonditions(caster, casterCaster, target, targetCaster, skillObject))
-                {
-                    step.Flag = 0;
-                }
-
-                var res = true;
-                if (step.Flag != 0)
-                {
-                    var callCounter = new Dictionary<uint, int>();
-                    callCounter.Add(step.Event.Id, 1);
-                    foreach (var evnt in eventTemplate.NextEvents)
-                    {
-                        res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, evnt, step, callCounter);
-                    }
-                }
-                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, step); 
+                Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
+                return;
             }
             
             if (Template.CastingTime > 0)
@@ -267,96 +244,6 @@ namespace AAEmu.Game.Models.Game.Skills
             else
             {
                 Cast(caster, casterCaster, target, targetCaster, skillObject);
-            }
-        }
-
-        public bool BuildPlot(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotNextEvent nextEvent, PlotStep baseStep, Dictionary<uint, int> counter)
-        {
-            if (counter.ContainsKey(nextEvent.Event.Id))
-            {
-                var nextCount = counter[nextEvent.Event.Id] + 1;
-                if (nextCount > nextEvent.Event.Tickets)
-                {
-                    return true;
-                }
-                counter[nextEvent.Event.Id] = nextCount;
-            }
-            else
-            {
-                counter.Add(nextEvent.Event.Id, 1);
-            }
-
-            if (nextEvent.Delay > 0)
-            {
-                baseStep.Delay = nextEvent.Delay;
-                caster.SkillTask = new PlotTask(this, caster, casterCaster, target, targetCaster, skillObject, nextEvent, counter);
-                TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(nextEvent.Delay));
-                return false;
-            }
-
-            if (nextEvent.Speed > 0)
-            {
-                baseStep.Speed = nextEvent.Speed;
-                caster.SkillTask = new PlotTask(this, caster, casterCaster, target, targetCaster, skillObject, nextEvent, counter);
-                var dist = MathUtil.CalculateDistance(caster.Position, target.Position, true);
-                TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromSeconds(dist / nextEvent.Speed));
-                return false;
-            }
-
-            var step = new PlotStep();
-            step.Event = nextEvent.Event;
-            step.Flag = 2;
-            step.Casting = nextEvent.Casting;
-            step.Channeling = nextEvent.Channeling;
-            foreach (var condition in nextEvent.Event.Conditions)
-            {
-                if (condition.Condition.Check(caster, casterCaster, target, targetCaster, skillObject, condition))
-                {
-                    continue;
-                }
-                step.Flag = 0;
-                break;
-            }
-
-            baseStep.Steps.AddLast(step);
-            if (step.Flag == 0)
-            {
-                return true;
-            }
-            var res = true;
-            foreach (var e in nextEvent.Event.NextEvents)
-            {
-                res = res && BuildPlot(caster, casterCaster, target, targetCaster, skillObject, e, step, counter);
-            }
-            return res;
-        }
-
-        public void ParsePlot(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotStep step)
-        {
-            _log.Warn("Plot: StepId {0}, Flag {1}, Delay {2}", step.Event.Id, step.Flag, step.Delay);
-
-            if (step.Flag != 0)
-            {
-                foreach (var eff in step.Event.Effects)
-                {
-                    var template = SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType);
-                    if (template is BuffEffect)
-                    {
-                        step.Flag = 6;
-                    }
-                    template.Apply(caster, casterCaster, target, targetCaster, new CastPlot(step.Event.PlotId, TlId, step.Event.Id, Template.Id), this, skillObject, DateTime.Now);
-                }
-            }
-
-            var time = (ushort)(step.Flag != 0 ? step.Delay / 10 + 1 : 0); // TODO fixed the CSStopCastingPacket spam when using the "Chain Lightning" skill
-            var unkId = step.Casting || step.Channeling ? caster.ObjId : 0;
-            var casterPlotObj = new PlotObject(caster);
-            var targetPlotObj = new PlotObject(target);
-            caster.BroadcastPacket(new SCPlotEventPacket(TlId, step.Event.Id, Template.Id, casterPlotObj, targetPlotObj, unkId, time, step.Flag), true);
-
-            foreach (var st in step.Steps)
-            {
-                ParsePlot(caster, casterCaster, target, targetCaster, skillObject, st);
             }
         }
 
@@ -433,7 +320,7 @@ namespace AAEmu.Game.Models.Game.Skills
         }
 
         public async void StopSkill(Unit caster)
-        {
+        {;
             await caster.AutoAttackTask.Cancel();
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             caster.BroadcastPacket(new SCSkillStoppedPacket(caster.ObjId, Id), true);
@@ -455,32 +342,35 @@ namespace AAEmu.Game.Models.Game.Skills
                 buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
             }
 
+            var totalDelay = 0;
             if (Template.EffectDelay > 0)
-            {
-                var totalDelay = Template.EffectDelay;
-                if (Template.MatchAnimation) totalDelay += Template.FireAnim.Duration;
-                else if (Template.UseAnimTime) totalDelay += Template.FireAnim.CombatSyncTime;
+                totalDelay += Template.EffectDelay;
+            // TODO : Uncomment
+            // if (Template.EffectSpeed > 0)
+            //     totalDelay += (int) ((caster.GetDistanceTo(target) / Template.EffectSpeed) * 1000.0f);
+            if (Template.FireAnim != null && Template.UseAnimTime)
+                totalDelay += Template.FireAnim.CombatSyncTime;
+            
+            if (totalDelay > 0) 
                 TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));
-            }
-            else
-            {
-                var totalDelay = 0;
-                if ((Template.MatchAnimation || Template.UseAnimTime) && Template.FireAnim != null)
-                {
-                    if (Template.MatchAnimation) totalDelay += Template.FireAnim.CombatSyncTime;
-                    if (Template.UseAnimTime) totalDelay += Template.FireAnim.Duration;
-                    TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));
-                }
-                else Apply(caster, casterCaster, target, targetCaster, skillObject);
-            }
+            else 
+                Apply(caster, casterCaster, target, targetCaster, skillObject);
+                
         }
 
         public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
+            //Without this some skills hit twice. I think we
+            // need to reproduce these steps in plots or....
+            if (Template.PlotOnly)
+                return;
+
             var targets = new List<BaseUnit>(); // TODO crutches
             if (Template.TargetAreaRadius > 0)
             {
                 var obj = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius);
+                // TODO : Need to this if this is needed
+                if (targetSelf is Unit) targets.Add(targetSelf);
                 targets.AddRange(obj);
             }
             else

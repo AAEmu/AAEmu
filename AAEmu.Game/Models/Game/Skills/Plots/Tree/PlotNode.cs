@@ -1,5 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Static;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -21,26 +26,60 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             Children = new List<PlotNode>();
         }
 
-        public int ComputeDelayMs()
+        public int ComputeDelayMs(PlotState state, PlotTargetInfo targetInfo)
         {
-            return ParentNextEvent?.Delay ?? 0;
+            return ParentNextEvent.GetDelay(state, targetInfo, this);
         }
         
         public bool CheckConditions(PlotState state, PlotTargetInfo targetInfo)
         {
-            var pass = true;
-
-            foreach (var condition in Event.Conditions)
-            {
-                //if (condition.Condition.)
-            }
-            
-            return pass;
+            return Event.Conditions.All(condition => condition.CheckCondition(state, targetInfo));
         }
 
-        public void Execute()
+        public void Execute(PlotState state, PlotTargetInfo targetInfo)
         {
             //_log.Debug("Executing plot node with id {0}", Event.Id);
+            
+            // var appliedEffects = false;
+            // var skill = instance.ActiveSkill;
+            //
+            // foreach (var eff in Effects)
+            // {
+            //     eff.ApplyEffect(instance, eventInstance, this, skill, ref flag, ref appliedEffects);
+            // }
+            //
+            // return appliedEffects;
+            
+            // double castTime = Event.NextEvents
+            //     .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling) && (pass ^ nextEvent.Fail))
+            //     .Aggregate(0, (current, nextEvent) => (current > nextEvent.Delay) ? current : (nextEvent.Delay / 10));
+            // castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime);
+            // castTime = Math.Clamp(castTime, 0, double.MaxValue);
+            double castTime = 100;
+
+            if (Event.Effects
+                .Select(eff => SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType))
+                .OfType<SpecialEffect>()
+                .Any())
+            {
+                var skill = state.ActiveSkill;
+                var unkId = ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false)) ? state.Caster.ObjId : 0;
+
+                PlotObject casterPlotObj;
+                if (targetInfo.Source.ObjId == uint.MaxValue)
+                    casterPlotObj = new PlotObject(targetInfo.Source.Position);
+                else
+                    casterPlotObj = new PlotObject(targetInfo.Source);
+
+                PlotObject targetPlotObj;
+                if (targetInfo.Target.ObjId == uint.MaxValue)
+                    targetPlotObj = new PlotObject(targetInfo.Target.Position);
+                else
+                    targetPlotObj = new PlotObject(targetInfo.Target);
+
+                byte targetCount = (byte)targetInfo.EffectedTargets.Count();
+                state.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, (ushort)castTime, 2, 0, targetCount), true);
+            }
         }
     }
 }
