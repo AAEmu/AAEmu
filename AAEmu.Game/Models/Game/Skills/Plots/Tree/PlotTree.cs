@@ -26,31 +26,34 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             try
             {
                 var stopWatch = new Stopwatch();
+                stopWatch.Start();
 
                 var queue = new Queue<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)>();
                 var executeQueue = new Queue<PlotNode>();
 
                 queue.Enqueue((RootNode, DateTime.Now, new PlotTargetInfo(state)));
+
                 while (queue.Count > 0)
                 {
                     var item = queue.Dequeue();
                     var now = DateTime.Now;
                     var node = item.node;
 
-                    if (state.Tickets.ContainsKey(node.Event.Id))
-                        state.Tickets[node.Event.Id]++;
-                    else
-                        state.Tickets.TryAdd(node.Event.Id, 1);
-
-                    //Check if we hit max tickets
-                    if (state.Tickets[node.Event.Id] > node.Event.Tickets 
-                        && node.Event.Tickets > 1)
-                    {
-                        continue;
-                    }
-
                     if (now >= item.timestamp)
                     {
+                        if (state.Tickets.ContainsKey(node.Event.Id))
+                            state.Tickets[node.Event.Id]++;
+                        else
+                            state.Tickets.TryAdd(node.Event.Id, 1);
+
+                        //Check if we hit max tickets
+                        if (state.Tickets[node.Event.Id] > node.Event.Tickets
+                            && node.Event.Tickets > 1)
+                        {
+                            continue;
+                        }
+
+                        _log.Debug($"Processing Node:{node.Event.Id}({state.Tickets[node.Event.Id]}) at Delta: {stopWatch.ElapsedMilliseconds}");
                         item.targetInfo.UpdateTargetInfo(node.Event, state);
 
                         var condition = node.CheckConditions(state, item.targetInfo);
@@ -63,9 +66,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         {
                             if (condition != child.ParentNextEvent.Fail)
                             {
-                                stopWatch.Stop();
-                                _log.Debug($"PlotEvent{node.Event.Id} Queued at Delta: {stopWatch.ElapsedMilliseconds}");
-                                stopWatch.Start();
                                 queue.Enqueue(
                                     (
                                     child, 
@@ -92,7 +92,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 FlushExecutionQueue(executeQueue);
             } catch (Exception e)
             {
-                _log.Debug($"Plot Error: {e.Message}");
+                _log.Debug($"Plot Error: {e.Message}\n Line: {e.StackTrace}");
             }
             
             //DoPlotEnd();
@@ -100,11 +100,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         }
         
         private void FlushExecutionQueue(Queue<PlotNode> executeQueue)
-        {
-            PlotNode execNode;
-            while ((execNode = executeQueue.Dequeue()) != null)
+        { 
+            while (executeQueue.Count > 0)
             {
-                execNode.Execute();
+                PlotNode node = executeQueue.Dequeue();
+                node.Execute();
             }
         }
     }

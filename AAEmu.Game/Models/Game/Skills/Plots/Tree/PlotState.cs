@@ -35,6 +35,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             Tickets = new Dictionary<uint, int>();
             Variables = new List<int>();
         }
-        
+        public PlotState() //for testing only
+        {
+            HitObjects = new List<GameObject>();
+            Tickets = new Dictionary<uint, int>();
+            Variables = new List<int>();
+        }
     }
 }

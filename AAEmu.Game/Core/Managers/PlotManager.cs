@@ -267,9 +267,9 @@ namespace AAEmu.Game.Core.Managers
                 _log.Info("Loaded {0} plot events", _eventTemplates.Count);
                 
                 _log.Info("Building Flamebolt tree");
-                var flameboltTree = PlotBuilder.BuildTree(280);
+                var flameboltTree = PlotBuilder.BuildTree(1526);
                 _log.Info("Flamebolt tree built");
-                // Task.Run(() => flameboltTree.Execute());
+                 Task.Run(() => flameboltTree.Execute(new PlotState()));
             }
         }
     }

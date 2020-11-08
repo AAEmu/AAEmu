@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public int ComputeDelayMs()
         {
-            return ParentNextEvent.Delay;
+            return ParentNextEvent?.Delay ?? 0;
         }
         
         public bool CheckConditions(PlotState state, PlotTargetInfo targetInfo)
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public void Execute()
         {
-            _log.Debug("Executing plot node with id {0}", Event.Id);
+            //_log.Debug("Executing plot node with id {0}", Event.Id);
         }
     }
 }
