@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         public Dictionary<long, BaseMail> _allPlayerMails;
-        private List<long> _deletedMailIds;
+        private List<long> _deletedMailIds = new List<long>();
         private object _lock = new object();
 
         public static int CostNormal = 50;

@@ -104,9 +104,6 @@ namespace AAEmu.Game.Models.Game.Char
             if (!mail.FinalizeAttachments())
                 return false; // Should never fail at this point
 
-            // Take the fee
-            Self.SubtractMoney(SlotType.Inventory, mailFee);
-
             // Add delay if not a normal snail mail
             if (mailType == MailType.Normal)
                 mail.Body.RecvDate = DateTime.UtcNow + MailManager.NormalMailDelay;
@@ -115,6 +112,8 @@ namespace AAEmu.Game.Models.Game.Char
             if (mail.Send())
             {
                 Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray()));
+                // Take the fee
+                Self.SubtractMoney(SlotType.Inventory, mailFee + money0);
                 return true;
             }
             else

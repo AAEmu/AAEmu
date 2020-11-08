@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
@@ -27,6 +28,7 @@ namespace AAEmu.Tests
             mails = new CharacterMails(character);
 
             NameManager.Instance.AddCharacterName(character.Id, character.Name);
+            MailIdManager.Instance.Initialize();
             MailManager.Instance._allPlayerMails = new Dictionary<long, BaseMail>();
         }
         
