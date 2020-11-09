@@ -1077,7 +1077,20 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                // TODO reset_aoe_diminishing_effects
+                using(var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM reset_aoe_diminishing_effects";
+                    command.Prepare();
+                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while(reader.Read())
+                        {
+                            var template = new ResetAoeDiminishingEffect();
+                            template.Id = reader.GetUInt32("id");
+                            _effects["ResetAoeDiminishingEffect"].Add(template.Id, template);
+                        }
+                    }
+                }
                 using(var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM restore_mana_effects";
