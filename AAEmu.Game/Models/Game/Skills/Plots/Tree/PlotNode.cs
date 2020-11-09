@@ -46,12 +46,20 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             byte flag = 2;
             foreach (var eff in Event.Effects)
             {
-                eff.ApplyEffect(state, targetInfo, Event, ref flag);
+                try
+                {
+                    eff.ApplyEffect(state, targetInfo, Event, ref flag);
+                }
+                catch (Exception e)
+                {
+                    state?.Caster?.SendPacket(new SCChatMessagePacket(Chat.ChatType.Notice, "Plot Effects Error - Check Logs"));
+                    _log.Error("[Plot Effects Error]: {0}\n{1}", e.Message, e.StackTrace);
+                }
             }
-            
+
             double castTime = Event.NextEvents
                  .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling))
-                 .Aggregate(0, (current, nextEvent) => (current > nextEvent.Delay) ? current : (nextEvent.Delay / 10));
+                 .Max(nextEvent => nextEvent.Delay / 10 as int?) ?? 0;
             castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime);
             castTime = Math.Max(castTime, 0);
 

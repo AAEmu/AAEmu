@@ -58,8 +58,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                             continue;
                         }
 
-                        if(node.Event.Id == 12104)
-                            _log.Debug($"Processing Node:{node.Event.Id}({state.Tickets[node.Event.Id]}) at Delta: {stopWatch.ElapsedMilliseconds}");
                         item.targetInfo.UpdateTargetInfo(node.Event, state);
 
                         var condition = node.CheckConditions(state, item.targetInfo);
@@ -110,7 +108,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                     if (queue.Count > 0)
                     {
-                        _log.Debug($"BEFORE DELAY - Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
                         int delay = (int)queue.Min(o => (o.timestamp - DateTime.Now).TotalMilliseconds);
                         delay = Math.Max(delay, 0);
 
@@ -120,14 +117,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         
                     }
 
-                    //if (nodewatch.ElapsedMilliseconds > 10)
-                        _log.Debug($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
+                    if (nodewatch.ElapsedMilliseconds > 100)
+                        _log.Warn($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
                 }
 
                 FlushExecutionQueue(executeQueue, state);
             } catch (Exception e)
             {
-                _log.Debug($"Plot Error: {e.Message}\n Line: {e.StackTrace}");
+                _log.Error($"Main Loop Error: {e.Message}\n {e.StackTrace}");
             }
             
             DoPlotEnd(state);
