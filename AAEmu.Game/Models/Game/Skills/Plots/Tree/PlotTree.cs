@@ -75,8 +75,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                                 {
                                     foreach(var target in item.targetInfo.EffectedTargets)
                                     {
-                                        item.targetInfo.Target = target;
-                                        var targetInfo = new PlotTargetInfo(item.targetInfo);
+                                        var targetInfo = new PlotTargetInfo(item.targetInfo.Source, target);
                                         queue.Enqueue(
                                             (
                                             child,
@@ -88,7 +87,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                                 }
                                 else
                                 {
-                                    var targetInfo = new PlotTargetInfo(item.targetInfo);
+                                    var targetInfo = new PlotTargetInfo(item.targetInfo.Source, item.targetInfo.Target);
                                     queue.Enqueue(
                                         (
                                         child,

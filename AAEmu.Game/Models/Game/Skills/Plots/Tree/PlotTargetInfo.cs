@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
@@ -29,13 +29,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             PreviousTarget = state.Target;
         }
 
-        public PlotTargetInfo(PlotTargetInfo targetInfo)
+        public PlotTargetInfo(BaseUnit source, BaseUnit target)
         {
             EffectedTargets = new List<BaseUnit>();
-            PreviousSource = targetInfo.Source;
-            PreviousTarget = targetInfo.Target;
-            Source = targetInfo.Source;
-            Target = targetInfo.Target;
+            PreviousSource = source;
+            PreviousTarget = target;
+            Source = source;
+            Target = target;
         }
 
         public void UpdateTargetInfo(PlotEventTemplate template, PlotState state)
