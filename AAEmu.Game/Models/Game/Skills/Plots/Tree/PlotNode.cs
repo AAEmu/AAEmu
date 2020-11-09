@@ -16,6 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         
         // Tree
         public PlotTree Tree;
+        public PlotNode Parent;
         public List<PlotNode> Children;
         // Plots
         public PlotEventTemplate Event;
@@ -29,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public int ComputeDelayMs(PlotState state, PlotTargetInfo targetInfo)
         {
-            return ParentNextEvent.GetDelay(state, targetInfo, this);
+            return ParentNextEvent.GetDelay(state, targetInfo, Parent);
         }
         
         public bool CheckConditions(PlotState state, PlotTargetInfo targetInfo)
@@ -63,10 +64,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime);
             castTime = Math.Max(castTime, 0);
 
-            if (Event.Effects
-                .Select(eff => SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType))
-                .OfType<SpecialEffect>()
-                .Any())
+            if (Event.HasSpecialEffects() || castTime > 0)
             {
                 var skill = state.ActiveSkill;
                 var unkId = ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false)) ? state.Caster.ObjId : 0;
