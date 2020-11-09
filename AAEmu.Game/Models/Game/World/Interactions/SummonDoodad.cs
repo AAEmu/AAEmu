@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType, uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
         {
             var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster);
-            doodad.Position = caster.Position;
+            doodad.Position = target.Position;
             doodad.Spawn();
         }
     }
