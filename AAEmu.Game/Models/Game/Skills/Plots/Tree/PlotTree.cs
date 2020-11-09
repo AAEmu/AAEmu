@@ -60,6 +60,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                         item.targetInfo.UpdateTargetInfo(node.Event, state);
 
+                        if (item.targetInfo.Target == null)
+                            continue;
+
                         var condition = node.CheckConditions(state, item.targetInfo);
 
                         if (condition)

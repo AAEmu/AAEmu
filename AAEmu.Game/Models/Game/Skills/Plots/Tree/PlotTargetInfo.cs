@@ -156,9 +156,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             var randomUnits = WorldManager.Instance.GetAround<Unit>(Source, 5);
 
             var filteredUnits = FilterTargets(randomUnits, state, args, plotEvent);
-            var index = Rand.Next(0, randomUnits.Count);
+            var index = Rand.Next(0, filteredUnits.Count());
+
+            if (!filteredUnits.Any())
+                return null;
+
             var randomUnit = filteredUnits.ElementAt(index);
 
+            EffectedTargets.Add(randomUnit);
             if (state.HitObjects.ContainsKey(plotEvent.Id))
             {
                 state.HitObjects[plotEvent.Id].Add(randomUnit);
@@ -215,7 +220,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             // unitsInRange = unitsInRange.Where(u => u.);
 
             EffectedTargets.AddRange(unitsInRange);
-            EffectedTargets.AddRange(unitsInRange);
             if (state.HitObjects.ContainsKey(plotEvent.Id))
             {
                 state.HitObjects[plotEvent.Id].AddRange(unitsInRange);
@@ -243,7 +247,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     if (state.HitObjects.ContainsKey(plotEvent.Id))
                         return !state.HitObjects[plotEvent.Id].Contains(o);
                     else
-                        return false;
+                        return true;
                 });
             }
             
