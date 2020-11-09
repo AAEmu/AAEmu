@@ -16,6 +16,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Plot> _plots;
         private Dictionary<uint, PlotEventTemplate> _eventTemplates;
         private Dictionary<uint, PlotCondition> _conditions;
+        private Dictionary<uint, PlotAoeCondition> _aoeConditions;
 
         public Plot GetPlot(uint id)
         {
@@ -36,6 +37,7 @@ namespace AAEmu.Game.Core.Managers
             _plots = new Dictionary<uint, Plot>();
             _eventTemplates = new Dictionary<uint, PlotEventTemplate>();
             _conditions = new Dictionary<uint, PlotCondition>();
+            _aoeConditions = new Dictionary<uint, PlotAoeCondition>();
             using (var connection = SQLite.CreateConnection())
             {
                 _log.Info("Loading plots...");
@@ -113,40 +115,6 @@ namespace AAEmu.Game.Core.Managers
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM plot_aoe_conditions";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                    {
-                        while (reader.Read())
-                        {
-                            var id = reader.GetUInt32("event_id");
-                            var condId = reader.GetUInt32("condition_id");
-                            var template = new PlotEventCondition();
-                            template.Condition = _conditions[condId];
-                            template.Position = reader.GetInt32("position");
-                            var plotEvent = _eventTemplates[id];
-                            if (plotEvent.Conditions.Count > 0)
-                            {
-                                var res = false;
-                                for (var node = plotEvent.Conditions.First; node != null; node = node.Next)
-                                    if (node.Value.Position > template.Position)
-                                    {
-                                        plotEvent.Conditions.AddBefore(node, template);
-                                        res = true;
-                                        break;
-                                    }
-
-                                if (!res)
-                                    plotEvent.Conditions.AddLast(template);
-                            }
-                            else
-                                plotEvent.Conditions.AddFirst(template);
-                        }
-                    }
-                }
-
-                using (var command = connection.CreateCommand())
-                {
                     command.CommandText = "SELECT * FROM plot_event_conditions";
                     command.Prepare();
                     using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -178,6 +146,40 @@ namespace AAEmu.Game.Core.Managers
                             }
                             else
                                 plotEvent.Conditions.AddFirst(template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM plot_aoe_conditions";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var id = reader.GetUInt32("event_id");
+                            var condId = reader.GetUInt32("condition_id");
+                            var template = new PlotAoeCondition();
+                            template.Condition = _conditions[condId];
+                            template.Position = reader.GetInt32("position");
+                            var plotEvent = _eventTemplates[id];
+                            if (plotEvent.AoeConditions.Count > 0)
+                            {
+                                var res = false;
+                                for (var node = plotEvent.AoeConditions.First; node != null; node = node.Next)
+                                    if (node.Value.Position > template.Position)
+                                    {
+                                        plotEvent.AoeConditions.AddBefore(node, template);
+                                        res = true;
+                                        break;
+                                    }
+
+                                if (!res)
+                                    plotEvent.AoeConditions.AddLast(template);
+                            }
+                            else
+                                plotEvent.AoeConditions.AddFirst(template);
                         }
                     }
                 }
