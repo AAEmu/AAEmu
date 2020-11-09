@@ -73,14 +73,32 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         {
                             if (condition != child.ParentNextEvent.Fail)
                             {
-                                var targetInfo = new PlotTargetInfo(item.targetInfo);
-                                queue.Enqueue(
-                                    (
-                                    child, 
-                                    now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo)), 
-                                    targetInfo
-                                    )
-                                );
+                                if (node?.ParentNextEvent?.PerTarget ?? false)
+                                {
+                                    foreach(var target in item.targetInfo.EffectedTargets)
+                                    {
+                                        var targetInfo = new PlotTargetInfo(item.targetInfo);
+                                        targetInfo.Target = target;
+                                        queue.Enqueue(
+                                            (
+                                            child,
+                                            now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo)),
+                                            targetInfo
+                                            )
+                                        );
+                                    }
+                                }
+                                else
+                                {
+                                    var targetInfo = new PlotTargetInfo(item.targetInfo);
+                                    queue.Enqueue(
+                                        (
+                                        child,
+                                        now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo)),
+                                        targetInfo
+                                        )
+                                    );
+                                }
                             }
                         }
                     }
