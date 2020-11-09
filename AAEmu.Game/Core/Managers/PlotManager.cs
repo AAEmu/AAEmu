@@ -193,8 +193,8 @@ namespace AAEmu.Game.Core.Managers
                             var id = reader.GetUInt32("event_id");
                             var template = new PlotEventEffect();
                             template.Position = reader.GetInt32("position");
-                            template.SourceId = reader.GetInt32("source_id");
-                            template.TargetId = reader.GetInt32("target_id");
+                            template.SourceId = (PlotEffectSource) reader.GetInt32("source_id");
+                            template.TargetId = (PlotEffectTarget) reader.GetInt32("target_id");
                             template.ActualId = reader.GetUInt32("actual_id");
                             template.ActualType = reader.GetString("actual_type");
                             var evnt = _eventTemplates[id];

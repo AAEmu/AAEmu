@@ -41,17 +41,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         {
             //_log.Debug("Executing plot node with id {0}", Event.Id);
 
-            // var appliedEffects = false;
-            // var skill = instance.ActiveSkill;
-            //
-            // foreach (var eff in Effects)
-            // {
-            //     eff.ApplyEffect(instance, eventInstance, this, skill, ref flag, ref appliedEffects);
-            // }
-            //
-            // return appliedEffects;
             var stopwatch = new Stopwatch();
             stopwatch.Start();
+            byte flag = 2;
+            foreach (var eff in Event.Effects)
+            {
+                eff.ApplyEffect(state, targetInfo, Event, ref flag);
+            }
+            
             double castTime = Event.NextEvents
                  .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling))
                  .Aggregate(0, (current, nextEvent) => (current > nextEvent.Delay) ? current : (nextEvent.Delay / 10));
@@ -79,7 +76,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     targetPlotObj = new PlotObject(targetInfo.Target);
 
                 byte targetCount = (byte)targetInfo.EffectedTargets.Count();
-                state.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, (ushort)castTime, 2, 0, targetCount), true);
+                state.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount), true);
                 _log.Debug($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
             }
         }
