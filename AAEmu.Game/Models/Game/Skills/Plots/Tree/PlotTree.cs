@@ -73,12 +73,12 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         {
                             if (condition != child.ParentNextEvent.Fail)
                             {
-                                if (node?.ParentNextEvent?.PerTarget ?? false)
+                                if (child?.ParentNextEvent?.PerTarget ?? false)
                                 {
                                     foreach(var target in item.targetInfo.EffectedTargets)
                                     {
+                                        item.targetInfo.Target = target;
                                         var targetInfo = new PlotTargetInfo(item.targetInfo);
-                                        targetInfo.Target = target;
                                         queue.Enqueue(
                                             (
                                             child,
