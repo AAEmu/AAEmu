@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         public SkillCastTarget TargetCaster { get; set; }
         public SkillObject SkillObject { get; set; }
 
-        public List<GameObject> HitObjects { get; set; }
+        public Dictionary<uint,List<GameObject>> HitObjects { get; set; }
 
         public PlotState(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {
@@ -31,13 +31,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             SkillObject = skillObject;
             ActiveSkill = skill;
             
-            HitObjects = new List<GameObject>();
-            Tickets = new Dictionary<uint, int>();
-            Variables = new List<int>();
-        }
-        public PlotState() //for testing only
-        {
-            HitObjects = new List<GameObject>();
+            HitObjects = new Dictionary<uint, List<GameObject>>();
             Tickets = new Dictionary<uint, int>();
             Variables = new List<int>();
         }

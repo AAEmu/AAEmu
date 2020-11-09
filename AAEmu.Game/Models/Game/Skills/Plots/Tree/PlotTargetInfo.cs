@@ -84,19 +84,19 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     EffectedTargets.Add(Target);
                     break;
                 case PlotTargetUpdateMethodType.Area:
-                    Target = UpdateAreaTarget(new PlotTargetAreaParams(template), state);
+                    Target = UpdateAreaTarget(new PlotTargetAreaParams(template), state, template);
                     break;
                 case PlotTargetUpdateMethodType.RandomUnit:
-                    Target = UpdateRandomUnitTarget(new PlotTargetRandomUnitParams(template), state);
+                    Target = UpdateRandomUnitTarget(new PlotTargetRandomUnitParams(template), state, template);
                     EffectedTargets.Add(Target);
                     break;
                 case PlotTargetUpdateMethodType.RandomArea:
-                    Target = UpdateRandomAreaTarget(new PlotTargetRandomAreaParams(template), state);
+                    Target = UpdateRandomAreaTarget(new PlotTargetRandomAreaParams(template), state, template);
                     break;
             }
         }
 
-        private BaseUnit UpdateAreaTarget(PlotTargetAreaParams args, PlotState state)
+        private BaseUnit UpdateAreaTarget(PlotTargetAreaParams args, PlotState state, PlotEventTemplate plotEvent)
         {
             BaseUnit posUnit = new BaseUnit();
             posUnit.ObjId = uint.MaxValue;
@@ -130,7 +130,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             
             // posUnit.Position.Z = get heightmap value for x:y     
             //TODO: Get Targets around posUnit?
-            var unitsInRange = FilterTargets(WorldManager.Instance.GetAround<Unit>(posUnit, 5), state, args);
+            var unitsInRange = FilterTargets(WorldManager.Instance.GetAround<Unit>(posUnit, 5), state, args, plotEvent);
 
             // TODO : Filter min distance
             // TODO : Compute Unit Relation
@@ -138,24 +138,40 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             // unitsInRange = unitsInRange.Where(u => u.);
 
             EffectedTargets.AddRange(unitsInRange);
-            state.HitObjects.AddRange(unitsInRange);
+            if (state.HitObjects.ContainsKey(plotEvent.Id))
+            {
+                state.HitObjects[plotEvent.Id].AddRange(unitsInRange);
+            }
+            else
+            {
+                state.HitObjects.Add(plotEvent.Id, new List<GameObject>(unitsInRange));
+            }
 
             return posUnit;
         }
 
-        private BaseUnit UpdateRandomUnitTarget(PlotTargetRandomUnitParams args, PlotState state)
+        private BaseUnit UpdateRandomUnitTarget(PlotTargetRandomUnitParams args, PlotState state, PlotEventTemplate plotEvent)
         {
             //TODO for now we get all units in a 5 meters radius
             var randomUnits = WorldManager.Instance.GetAround<Unit>(Source, 5);
 
-            var filteredUnits = FilterTargets(randomUnits, state, args);
+            var filteredUnits = FilterTargets(randomUnits, state, args, plotEvent);
             var index = Rand.Next(0, randomUnits.Count);
             var randomUnit = filteredUnits.ElementAt(index);
+
+            if (state.HitObjects.ContainsKey(plotEvent.Id))
+            {
+                state.HitObjects[plotEvent.Id].Add(randomUnit);
+            }
+            else
+            {
+                state.HitObjects.Add(plotEvent.Id, new List<GameObject>{ randomUnit });
+            }
 
             return randomUnit;
         }
 
-        private BaseUnit UpdateRandomAreaTarget(PlotTargetRandomAreaParams args, PlotState state)
+        private BaseUnit UpdateRandomAreaTarget(PlotTargetRandomAreaParams args, PlotState state, PlotEventTemplate plotEvent)
         {
             BaseUnit posUnit = new BaseUnit();
             posUnit.ObjId = uint.MaxValue;
@@ -191,7 +207,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             // posUnit.Position.Z = get heightmap value for x:y     
             //TODO: Get Targets around posUnit?
-            var unitsInRange = FilterTargets(WorldManager.Instance.GetAround<Unit>(posUnit, 5), state, args);
+            var unitsInRange = FilterTargets(WorldManager.Instance.GetAround<Unit>(posUnit, 5), state, args, plotEvent);
 
             // TODO : Filter min distance
             // TODO : Compute Unit Relation
@@ -199,12 +215,20 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             // unitsInRange = unitsInRange.Where(u => u.);
 
             EffectedTargets.AddRange(unitsInRange);
-            state.HitObjects.AddRange(unitsInRange);
+            EffectedTargets.AddRange(unitsInRange);
+            if (state.HitObjects.ContainsKey(plotEvent.Id))
+            {
+                state.HitObjects[plotEvent.Id].AddRange(unitsInRange);
+            }
+            else
+            {
+                state.HitObjects.Add(plotEvent.Id, new List<GameObject>(unitsInRange));
+            }
 
             return posUnit;
         }
 
-        private IEnumerable<Unit> FilterTargets(IEnumerable<Unit> units, PlotState state, IPlotTargetParams args)
+        private IEnumerable<Unit> FilterTargets(IEnumerable<Unit> units, PlotState state, IPlotTargetParams args, PlotEventTemplate plotEvent)
         {
             var template = state.ActiveSkill.Template;
             var filtered = units;
@@ -213,9 +237,17 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             if (!template.TargetDead)
                 filtered = filtered.Where(o => o.Hp > 0);
             if (args.HitOnce)
-                filtered = filtered.Where(o => !state.HitObjects.Contains(o));
+            {
+                filtered = filtered.Where(o =>
+                {
+                    if (state.HitObjects.ContainsKey(plotEvent.Id))
+                        return !state.HitObjects[plotEvent.Id].Contains(o);
+                    else
+                        return false;
+                });
+            }
             
-            filtered = filtered
+            filtered = filtered 
                 .Where(o =>
                 {
                     var relationState = state.Caster.Faction.GetRelationState(o.Faction.Id);
