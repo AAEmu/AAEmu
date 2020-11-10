@@ -88,7 +88,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     break;
                 case PlotTargetUpdateMethodType.RandomUnit:
                     Target = UpdateRandomUnitTarget(new PlotTargetRandomUnitParams(template), state, template);
-                    EffectedTargets.Add(Target);
                     break;
                 case PlotTargetUpdateMethodType.RandomArea:
                     Target = UpdateRandomAreaTarget(new PlotTargetRandomAreaParams(template), state, template);
@@ -156,9 +155,12 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             var randomUnits = WorldManager.Instance.GetAround<Unit>(Source, 5);
 
             var filteredUnits = FilterTargets(randomUnits, state, args, plotEvent);
+            if (args.HitOnce)
+                filteredUnits = filteredUnits.Where(unit => unit.ObjId != PreviousTarget.ObjId);
+
             var index = Rand.Next(0, filteredUnits.Count());
 
-            if (!filteredUnits.Any())
+            if (filteredUnits.Count() == 0)
                 return null;
 
             var randomUnit = filteredUnits.ElementAt(index);

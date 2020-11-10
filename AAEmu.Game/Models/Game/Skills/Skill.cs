@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -47,26 +48,15 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null)
         {
-            // TODO : Add GCD to caster
             lock (caster.GCDLock)
             {
-                if (caster.SkillLastUsed[0].AddMilliseconds(40) > DateTime.Now)
+                if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.Now)
                     return;
-                if (caster.SkillLastUsed.ContainsKey(Id))
-                {
-                    if (caster.SkillLastUsed[Id].AddMilliseconds(100) > DateTime.Now)
-                        return;
-                }
-                else
-                {
-                    caster.SkillLastUsed.Add(Id, DateTime.MinValue);
-                }
 
                 if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
                     return;
 
-                caster.SkillLastUsed[Id] = DateTime.Now;
-                caster.SkillLastUsed[0] = DateTime.Now;
+                caster.SkillLastUsed = DateTime.Now;
             }
             
             // TODO : Add check for range
@@ -240,7 +230,20 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.Plot != null)
             {
                 Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
-                return;
+                if(Template.PlotOnly)
+                    return;
+            }
+
+            //Maybe we should do this somewhere else?
+            if (Template.DefaultGcd)
+            {
+                //TODO Apply Attack Spped * GCD
+                caster.GlobalCooldown = DateTime.Now.AddMilliseconds(1000);
+            }
+            else
+            {
+                //TODO Apply Attack Speed * GCD
+                caster.GlobalCooldown = DateTime.Now.AddMilliseconds(Template.CustomGcd);
             }
             
             if (Template.CastingTime > 0)

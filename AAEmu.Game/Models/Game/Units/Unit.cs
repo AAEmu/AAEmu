@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Units
         public SkillTask AutoAttackTask { get; set; }
         public DateTime GlobalCooldown { get; set; }
         public object GCDLock { get; set; }
-        public Dictionary<uint, DateTime> SkillLastUsed { get; set; }
+        public DateTime SkillLastUsed { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public Expedition Expedition { get; set; }
         public bool IsInBattle { get; set; }
@@ -79,8 +79,6 @@ namespace AAEmu.Game.Models.Game.Units
 
         public Unit()
         {
-            SkillLastUsed = new Dictionary<uint, DateTime>();
-            SkillLastUsed.Add(0, DateTime.MinValue);
             GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
