@@ -38,6 +38,8 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void RollProcsForKind(ProcChanceKind kind)
         {
+            if (!_procsByChanceKind.ContainsKey(kind))
+                return;
             var procs = _procsByChanceKind[kind];
             
             foreach (var proc in procs)
