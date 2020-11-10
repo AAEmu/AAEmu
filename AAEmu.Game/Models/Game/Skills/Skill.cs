@@ -48,8 +48,26 @@ namespace AAEmu.Game.Models.Game.Skills
         public void Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null)
         {
             // TODO : Add GCD to caster
-            // if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
-                // return;
+            lock (caster.GCDLock)
+            {
+                if (caster.SkillLastUsed[0].AddMilliseconds(40) > DateTime.Now)
+                    return;
+                if (caster.SkillLastUsed.ContainsKey(Id))
+                {
+                    if (caster.SkillLastUsed[Id].AddMilliseconds(100) > DateTime.Now)
+                        return;
+                }
+                else
+                {
+                    caster.SkillLastUsed.Add(Id, DateTime.MinValue);
+                }
+
+                if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
+                    return;
+
+                caster.SkillLastUsed[Id] = DateTime.Now;
+                caster.SkillLastUsed[0] = DateTime.Now;
+            }
             
             // TODO : Add check for range
             var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);

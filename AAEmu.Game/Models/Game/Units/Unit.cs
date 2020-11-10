@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -53,6 +54,9 @@ namespace AAEmu.Game.Models.Game.Units
         public uint OwnerId { get; set; }
         public SkillTask SkillTask { get; set; }
         public SkillTask AutoAttackTask { get; set; }
+        public DateTime GlobalCooldown { get; set; }
+        public object GCDLock { get; set; }
+        public Dictionary<uint, DateTime> SkillLastUsed { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public Expedition Expedition { get; set; }
         public bool IsInBattle { get; set; }
@@ -75,6 +79,9 @@ namespace AAEmu.Game.Models.Game.Units
 
         public Unit()
         {
+            SkillLastUsed = new Dictionary<uint, DateTime>();
+            SkillLastUsed.Add(0, DateTime.MinValue);
+            GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
