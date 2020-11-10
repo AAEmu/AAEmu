@@ -6,10 +6,10 @@ namespace AAEmu.Game.Models.Game.Skills
     public enum SkillCasterType : byte
     {
         Unit = 0,
-        Unk1 = 1,
+        Unk1 = 1, // Doodad
         Item = 2,
         Unk3 = 3, // TODO mountSkillType
-        Doodad = 4
+        Doodad = 4 // Gimmick
     }
 
     public abstract class SkillCaster : PacketMarshaler

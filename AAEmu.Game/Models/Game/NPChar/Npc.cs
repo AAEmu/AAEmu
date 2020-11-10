@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -7,6 +8,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Tasks.UnitMove;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -702,6 +705,22 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
 
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
+        }
+
+        public void OnDamageReceived(Unit attacker)
+        {
+            // 25 means "dummy" AI -> should not respond!
+            if (Template.AiFileId != 25 && (Patrol == null || Patrol.PauseAuto(this)))
+            {
+                CurrentTarget = attacker;
+                BroadcastPacket(new SCCombatEngagedPacket(attacker.ObjId), true); // caster
+                BroadcastPacket(new SCCombatEngagedPacket(ObjId), true);    // target
+                BroadcastPacket(new SCCombatFirstHitPacket(ObjId, attacker.ObjId, 0), true);
+                BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, attacker.ObjId), true);
+                BroadcastPacket(new SCTargetChangedPacket(ObjId, attacker.ObjId), true);
+
+                TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
+            }
         }
     }
 }
