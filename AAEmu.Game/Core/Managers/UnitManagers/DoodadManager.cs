@@ -2223,11 +2223,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.DbHouseId = house.Id;
             }
-            if (template.GrowthTime > 0)
+
+            var startPhaseFuncs = GetPhaseFunc(doodad.FuncGroupId);
+            if (startPhaseFuncs.Length > 0 && obj != null)
             {
-                var task = new DoodadFuncTimer();
-                task.Delay = template.GrowthTime;
-                task.Use((Unit)obj, doodad, 0);
+                foreach (var startPhaseFunc in startPhaseFuncs)
+                {
+                    startPhaseFunc.Use((Unit)obj, doodad, 0);
+                }
             }
 
             return doodad;
@@ -2288,8 +2291,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     doodad.FuncGroupId = nextPhase;
                     doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+                    TriggerPhases(className, caster, doodad, skillId);
                 }
-                TriggerPhases(className, caster, doodad, skillId);
             }
         }
         public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
