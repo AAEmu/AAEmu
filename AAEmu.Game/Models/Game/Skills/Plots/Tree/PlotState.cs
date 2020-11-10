@@ -9,9 +9,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 {
     public class PlotState
     {
+        private bool _cancellationRequest;
         public Dictionary<uint, int> Tickets { get; set; }
         public List<int> Variables { get; set; }
         public byte CombatDiceRoll { get; set; }
+        public bool IsCasting { get; set; }
 
         public Skill ActiveSkill { get; set; }
         public Unit Caster { get; set; }
@@ -24,6 +26,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
         public PlotState(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
         {
+            _cancellationRequest = false;
+
             Caster = caster;
             CasterCaster = casterCaster;
             Target = target;
@@ -35,5 +39,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             Tickets = new Dictionary<uint, int>();
             Variables = new List<int>();
         }
+
+        public bool CancellationRequested() => _cancellationRequest;
+        public bool RequestCancellation() => _cancellationRequest = true;
     }
 }
