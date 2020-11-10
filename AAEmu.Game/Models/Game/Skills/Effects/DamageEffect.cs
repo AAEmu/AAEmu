@@ -2,6 +2,8 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -137,6 +139,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
+            
+            // TODO : Use proper chance kinds (melee, magic etc.)
+            if (trg is Character procTarget)
+                procTarget.Procs.RollProcsForKind(ProcChanceKind.TakeDamageAny);
+            if (caster is Character procAttacker)
+                procAttacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
+
+            
             trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
             if (trg is Npc)
             {

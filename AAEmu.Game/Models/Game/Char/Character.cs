@@ -1185,6 +1185,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Slots[i] = new ActionSlot();
 
             Craft = new CharacterCraft(this);
+            Procs = new UnitProcs(this);
             LocalPingPosition = new Point();
 
             using (var connection = MySQL.CreateConnection())

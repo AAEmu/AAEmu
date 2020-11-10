@@ -76,6 +76,8 @@ namespace AAEmu.Game.Models.Game.Units
         /// </summary>
         public Patrol Patrol { get; set; }
         public Simulation Simulation { get; set; }
+        
+        public UnitProcs Procs { get; set; }
 
         public Unit()
         {

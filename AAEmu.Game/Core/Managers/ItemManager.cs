@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
@@ -54,6 +55,8 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, ItemLookConvert> _itemLookConverts;
         private Dictionary<uint, uint> _holdableItemLookConverts;
         private Dictionary<uint, uint> _wearableItemLookConverts;
+        
+        private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
         
         // Events
         public event EventHandler OnItemsLoaded;
@@ -398,6 +401,14 @@ namespace AAEmu.Game.Core.Managers
                 return _itemLookConverts[_holdableItemLookConverts[holdableId]];
             return null;
         }
+        
+        public ItemProcTemplate GetItemProcTemplate(uint templateId)
+        {
+            if (_itemProcTemplates.ContainsKey(templateId))
+                return _itemProcTemplates[templateId];
+            return null;
+        }
+
 
         public Item Create(uint templateId, int count, byte grade, bool generateId = true)
         {
@@ -454,8 +465,10 @@ namespace AAEmu.Game.Core.Managers
             _itemGradeDistributions = new Dictionary<int, GradeDistributions>();
             _lootDropItems = new Dictionary<uint, List<Item>>();
             _itemDoodadTemplates = new Dictionary<uint, ItemDoodadTemplate>();
+            _itemProcTemplates = new Dictionary<uint, ItemProcTemplate>();
             _config = new ItemConfig();
 
+            SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
             using (var connection = SQLite.CreateConnection())
             {
                 _log.Info("Loading item templates ...");
@@ -1145,6 +1158,32 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_procs";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new ItemProcTemplate()
+                            {
+                                Id = reader.GetUInt32("id"),
+                                SkillId = reader.GetUInt32("skill_id"),
+                                ChanceKind = (ProcChanceKind)reader.GetUInt32("chance_kind_id"),
+                                ChanceRate = reader.GetUInt32("chance_rate"),
+                                ChanceParam = reader.GetUInt32("chance_param"),
+                                CooldownSec = reader.GetUInt32("cooldown_sec"),
+                                Finisher = reader.GetBoolean("finisher", true),
+                                ItemLevelBasedChanceBonus = reader.GetUInt32("item_level_based_chance_bonus"),
+                            };
+                            
+                            _itemProcTemplates.Add(template.Id, template);
+                        }
+                    }
+                }
+
 
                 // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
                 var invalidItemCount = 0;
@@ -1383,6 +1422,13 @@ namespace AAEmu.Game.Core.Managers
             var res = (from i in _allItems where i.Value.OwnerId == character.Id select i.Value).ToList();
             return res;
         }
-
+        
+        public void OnSkillsLoaded(object sender, EventArgs e)
+        {
+            foreach (var procTemplate in _itemProcTemplates.Values)
+            {
+                procTemplate.SkillTemplate = SkillManager.Instance.GetSkillTemplate(procTemplate.SkillId);
+            }
+        }
     }
 }

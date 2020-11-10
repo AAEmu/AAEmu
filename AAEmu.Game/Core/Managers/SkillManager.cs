@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills;
@@ -25,8 +26,13 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
         private Dictionary<uint, List<uint>> _taggedBuffs;
         private Dictionary<uint, List<uint>> _skillTags;
-
         private Dictionary<uint, List<SkillModifier>> _skillModifiers;
+        
+        /**
+         * Events
+         */
+        public event EventHandler OnSkillsLoaded;
+
 
         public SkillTemplate GetSkillTemplate(uint id)
         {
@@ -1344,6 +1350,7 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 _log.Info("Skill effects loaded");
+                OnSkillsLoaded?.Invoke(this, new EventArgs());
             }
 
             foreach (var skillTemplate in _skills.Values.Where(x => x.AutoLearn))
