@@ -2,7 +2,7 @@
 {
     public abstract class PacketBase<T> : PacketMarshaler
     {
-        protected ushort TypeId { get; }
+        public ushort TypeId { get; }
 
         public T Connection { protected get; set; }
 
