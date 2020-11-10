@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // TODO do we need this call?
             if (caster is Character character)
             {
-                character.Quests.OnInteraction(WorldInteraction);
+                character.Quests.OnInteraction(WorldInteraction, target);
             }
         }
     }

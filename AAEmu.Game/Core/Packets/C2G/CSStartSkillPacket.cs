@@ -56,6 +56,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else
                 _log.Warn("StartSkill: Id {0}, undefined use type", skillId);
+                //If its a valid skill cast it. This fixes interactions with quest items/doodads.
+                var unskill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+                if(unskill != null) unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
         }
     }
 }

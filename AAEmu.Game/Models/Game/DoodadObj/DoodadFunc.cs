@@ -20,13 +20,20 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         //This acts as an interface/relay for doodad function chain
         public async void Use(Unit caster, Doodad owner, uint skillId)
-        {
+        {            
             var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
-
             if (template == null)
                 return;
-            //_log.Debug("relaying to: " + FuncType);
+         
             template.Use(caster, owner, skillId);
+            if (NextPhase > 0)
+            {
+                //Queue the next phase
+                var next = DoodadManager.Instance.GetFunc((uint)NextPhase, 0);
+                if (next == null)
+                    return;
+                next.Use(caster, owner, skillId);
+            }
         }
     }
 }
