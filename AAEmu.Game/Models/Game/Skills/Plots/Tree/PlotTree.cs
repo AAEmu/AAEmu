@@ -40,6 +40,18 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 {
                     var nodewatch = new Stopwatch();
                     nodewatch.Start();
+                    if (state.CancellationRequested() && state.IsCasting)
+                    {
+                        state.Caster.BroadcastPacket(
+                            new SCPlotCastingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
+                            true
+                        );
+                        state.Caster.BroadcastPacket(
+                            new SCPlotChannelingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
+                            true
+                        );
+                        break;
+                    }
                     var item = queue.Dequeue();
                     var now = DateTime.Now;
                     var node = item.node;

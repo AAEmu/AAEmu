@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -57,6 +58,7 @@ namespace AAEmu.Game.Models.Game.Units
         public DateTime GlobalCooldown { get; set; }
         public object GCDLock { get; set; }
         public DateTime SkillLastUsed { get; set; }
+        public PlotState ActivePlotState { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public Expedition Expedition { get; set; }
         public bool IsInBattle { get; set; }

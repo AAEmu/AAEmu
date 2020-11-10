@@ -64,6 +64,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime);
             castTime = Math.Max(castTime, 0);
 
+            if (castTime > 0)
+                state.IsCasting = true;
+            if ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Casting ?? false))
+                state.IsCasting = false;
+
             if (Event.HasSpecialEffects() || castTime > 0)
             {
                 var skill = state.ActiveSkill;

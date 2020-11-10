@@ -1,5 +1,6 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -12,11 +13,24 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override async void Read(PacketStream stream)
         {
             var tl = stream.ReadUInt16(); // sid
-            stream.ReadUInt16(); // tl; pid
+            var pid = stream.ReadUInt16(); // tl; pid
             var objId = stream.ReadBc();
 
-            if (Connection.ActiveChar.ObjId != objId || Connection.ActiveChar.SkillTask == null ||
-                Connection.ActiveChar.SkillTask.Skill.TlId != tl)
+            if (Connection.ActiveChar.ObjId != objId)
+                return;
+            if (pid != 0)
+            {
+                if(Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == pid)
+                {
+                    Connection.ActiveChar.ActivePlotState.RequestCancellation();
+                }
+                else
+                {
+                    Connection.SendPacket(new SCPlotCastingStoppedPacket(pid, 0, 1));
+                    Connection.SendPacket(new SCPlotChannelingStoppedPacket(pid, 0, 1));
+                }
+            }
+            if (Connection.ActiveChar.SkillTask == null || Connection.ActiveChar.SkillTask.Skill.TlId != tl)
                 return;
             await Connection.ActiveChar.SkillTask.Cancel();
             Connection.ActiveChar.SkillTask.Skill.Stop(Connection.ActiveChar);
