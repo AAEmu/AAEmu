@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -25,6 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public int Tickets { get; set; }
         public bool AoeDiminishing { get; set; }
         public LinkedList<PlotEventCondition> Conditions { get; set; }
+        public LinkedList<PlotAoeCondition> AoeConditions { get; set; }
         public LinkedList<PlotEventEffect> Effects { get; set; }
         public LinkedList<PlotNextEvent> NextEvents { get; set; }
 
@@ -34,6 +35,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public PlotEventTemplate()
         {
             Conditions = new LinkedList<PlotEventCondition>();
+            AoeConditions = new LinkedList<PlotAoeCondition>();
             Effects = new LinkedList<PlotEventEffect>();
             NextEvents = new LinkedList<PlotNextEvent>();
             _computedHasSpecialEffects = false;
