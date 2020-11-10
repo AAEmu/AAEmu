@@ -82,9 +82,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
             if(PassiveBuffs.ContainsKey(buffId))
                 return;
-            var buff = new PassiveBuff();
-            buff.Id = buffId;
-            buff.Template = template;
+            var buff = new PassiveBuff {Id = buffId, Template = template};
             PassiveBuffs.Add(buff.Id, buff);
             Owner.BroadcastPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id), true);
             // TODO apply buff effect
@@ -153,7 +151,8 @@ namespace AAEmu.Game.Models.Game.Char
                                 Skills.Add(skill.Id, skill);
                                 break;
                             case SkillType.Buff:
-                                var buff = new PassiveBuff {Id = reader.GetUInt32("id")};
+                                var buffId = reader.GetUInt32("id");
+                                var buff = new PassiveBuff {Id = buffId, Template = SkillManager.Instance.GetPassiveBuffTemplate(buffId)};
                                 PassiveBuffs.Add(buff.Id, buff);
                                 break;
                         }
