@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
@@ -15,6 +16,7 @@ using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -253,5 +255,17 @@ namespace AAEmu.Game.Models.Game.Units
         {
             SendPacket(new SCErrorMsgPacket(type, 0, true));
         }
+        
+        public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
+        {
+            var rawDist = MathUtil.CalculateDistance(this.Position, baseUnit.Position, includeZAxis);
+
+            rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
+            if (baseUnit is Unit unit)
+                rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
+            
+            return rawDist;
+        }
+
     }
 }
