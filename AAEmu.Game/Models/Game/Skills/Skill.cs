@@ -368,9 +368,8 @@ namespace AAEmu.Game.Models.Game.Skills
             var totalDelay = 0;
             if (Template.EffectDelay > 0)
                 totalDelay += Template.EffectDelay;
-            // TODO : Uncomment
-            // if (Template.EffectSpeed > 0)
-            //     totalDelay += (int) ((caster.GetDistanceTo(target) / Template.EffectSpeed) * 1000.0f);
+            if (Template.EffectSpeed > 0)
+                totalDelay += (int) ((caster.GetDistanceTo(target) / Template.EffectSpeed) * 1000.0f);
             if (Template.FireAnim != null && Template.UseAnimTime)
                 totalDelay += Template.FireAnim.CombatSyncTime;
             
@@ -383,11 +382,6 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
-            //Without this some skills hit twice. I think we
-            // need to reproduce these steps in plots or....
-            if (Template.PlotOnly)
-                return;
-
             var targets = new List<BaseUnit>(); // TODO crutches
             if (Template.TargetAreaRadius > 0)
             {
@@ -511,6 +505,14 @@ namespace AAEmu.Game.Models.Game.Skills
                 chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
             }
 
+            if (Template.Cost > 0 && caster is Unit unit)
+            {
+                var manaCost = unit.Modifiers.ApplyModifiers(this, SkillAttribute.ManaCost, Template.Cost);
+                if (unit is Character manaChar) 
+                    manaChar.SendMessage("Consumed " + manaCost + " mana thru the normal skills");
+                unit.ReduceCurrentMp(null, (int) manaCost);
+            }
+
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             TlIdManager.Instance.ReleaseId(TlId);
             //TlId = 0;
@@ -538,5 +540,6 @@ namespace AAEmu.Game.Models.Game.Skills
             TlIdManager.Instance.ReleaseId(TlId);
             //TlId = 0;
         }
+
     }
 }

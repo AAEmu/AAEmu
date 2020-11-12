@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using MySql.Data.MySqlClient;
@@ -46,10 +47,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
 
             if (Skills.ContainsKey(skillId))
-            {
-                Skills[skillId].Level++;
-                Owner.SendPacket(new SCSkillUpgradedPacket(Skills[skillId]));
-            }
+                Owner.SendMessage(ChatType.Notice, "[Skills] Error: This skill has already been learned. This should not happen.");
             else
                 AddSkill(template, 1, true);
         }
@@ -60,7 +58,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 Id = template.Id,
                 Template = template,
-                Level = level
+                Level = (template.LevelStep > 0 ? (byte)(((Owner.Level - (template.AbilityLevel)) / template.LevelStep) + 1): (byte)1)
             };
             Skills.Add(skill.Id, skill);
 
@@ -148,7 +146,8 @@ namespace AAEmu.Game.Models.Game.Char
                                     Id = reader.GetUInt32("id"),
                                     Level = reader.GetByte("level")
                                 };
-                                Skills.Add(skill.Id, skill);
+                                // Skills.Add(skill.Id, skill);
+                                AddSkill(skill.Id);
                                 break;
                             case SkillType.Buff:
                                 var buffId = reader.GetUInt32("id");
