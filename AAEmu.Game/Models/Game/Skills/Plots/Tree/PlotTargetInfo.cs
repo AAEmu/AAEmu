@@ -129,8 +129,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             
             // posUnit.Position.Z = get heightmap value for x:y     
             //TODO: Get Targets around posUnit?
-            var unitsInRange = FilterTargets(WorldManager.Instance.GetAround<Unit>(posUnit, 5), state, args, plotEvent);
-
+            var unitsInRange = FilterTargets(WorldManager.Instance.GetAroundByShape<Unit>(posUnit, args.Shape), state, args, plotEvent);
+            unitsInRange = unitsInRange.Take(args.MaxTargets);
             // TODO : Filter min distance
             // TODO : Compute Unit Relation
             // TODO : Compute Unit Flag
@@ -152,7 +152,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         private BaseUnit UpdateRandomUnitTarget(PlotTargetRandomUnitParams args, PlotState state, PlotEventTemplate plotEvent)
         {
             //TODO for now we get all units in a 5 meters radius
-            var randomUnits = WorldManager.Instance.GetAround<Unit>(Source, 5);
+            var randomUnits = WorldManager.Instance.GetAroundByShape<Unit>(Source, args.Shape);
 
             var filteredUnits = FilterTargets(randomUnits, state, args, plotEvent);
             if (args.HitOnce)
@@ -214,7 +214,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             // posUnit.Position.Z = get heightmap value for x:y     
             //TODO: Get Targets around posUnit?
-            var unitsInRange = FilterTargets(WorldManager.Instance.GetAround<Unit>(posUnit, 5), state, args, plotEvent);
+            var unitsInRange = FilterTargets(WorldManager.Instance.GetAroundByShape<Unit>(posUnit, args.Shape), state, args, plotEvent);
+            unitsInRange = unitsInRange.Take(args.MaxTargets);
 
             // TODO : Filter min distance
             // TODO : Compute Unit Relation
@@ -278,7 +279,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 });
 
             filtered = filtered.Where(o => ((byte)o.TypeFlag & args.UnitTypeFlag) != 0);
-
 
             return filtered;
         }

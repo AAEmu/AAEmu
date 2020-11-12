@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
     {
         private bool _cancellationRequest;
         public Dictionary<uint, int> Tickets { get; set; }
-        public List<int> Variables { get; set; }
+        public int[] Variables { get; set; }
         public byte CombatDiceRoll { get; set; }
         public bool IsCasting { get; set; }
 
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             
             HitObjects = new Dictionary<uint, List<GameObject>>();
             Tickets = new Dictionary<uint, int>();
-            Variables = new List<int>();
+            Variables = new int[12];
         }
 
         public bool CancellationRequested() => _cancellationRequest;

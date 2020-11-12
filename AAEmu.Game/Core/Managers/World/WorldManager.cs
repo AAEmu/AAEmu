@@ -211,9 +211,9 @@ namespace AAEmu.Game.Core.Managers.World
                             var shape = new AreaShape();
                             shape.Id = reader.GetUInt32("id");
                             shape.Type = (AreaShapeType)reader.GetUInt32("kind_id");
-                            shape.Value1 = reader.GetDouble("value1");
-                            shape.Value2 = reader.GetDouble("value2");
-                            shape.Value3 = reader.GetDouble("value3");
+                            shape.Value1 = reader.GetFloat("value1");
+                            shape.Value2 = reader.GetFloat("value2");
+                            shape.Value3 = reader.GetFloat("value3");
                             _areaShapes.TryAdd(shape.Id, shape);
                         }
                     }
@@ -497,6 +497,28 @@ namespace AAEmu.Game.Core.Managers.World
                 neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius);
 
             return result;
+        }
+
+        public List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : class
+        {
+            if (shape.Value1 == 0 && shape.Value2 == 0 && shape.Value3 == 0)
+                _log.Warn("AreaShape with no size values was used");
+            if(shape.Type == AreaShapeType.Sphere)
+            {
+                var radius = shape.Value1;
+                var height = shape.Value2;
+                return GetAround<T>(obj, radius);
+            }
+            else if(shape.Type == AreaShapeType.Cuboid)
+            {
+                _log.Warn("AreaShape[Cuboid] Not Implemented.");
+                return GetAround<T>(obj, 5);
+            }
+            else
+            {
+                _log.Error("AreaShape had impossible type");
+                throw new ArgumentNullException("AreaShape type does not exist!");
+            }
         }
 
         public List<T> GetInCell<T>(uint worldId, int x, int y) where T : class

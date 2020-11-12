@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -31,6 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public SkillTemplate Template { get; set; }
         public byte Level { get; set; }
         public ushort TlId { get; set; }
+        public PlotState ActivePlotState { get; set; }
 
         //public bool isAutoAttack;
         //public SkillTask autoAttackTask;
