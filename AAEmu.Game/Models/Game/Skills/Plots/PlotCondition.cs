@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
@@ -14,7 +14,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
     public class PlotCondition
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
-
         public uint Id { get; set; }
         public bool NotCondition { get; set; }
         public PlotConditionType Kind { get; set; }
@@ -196,8 +195,18 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         private static bool ConditionVariable(Unit caster, SkillCaster casterCaster, BaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
         {
-            // All 3 params used. No idea.
-            return true;
+            int index = unk1;
+            int operation = unk2;
+            int value = unk3;
+            //There is a high chance this is not implemented correctly..
+            //If refactoring. See SpecialEffect -> SetVariable as well
+            if (operation == 1)
+            {
+                //TODO obtain variables directly from plot.
+                return caster.ActivePlotState.Variables[index] == value;
+            }
+            _log.Error("Invalid Plot Variable Condition Operation[{0}]", operation);
+            return false;
         }
         
         private static bool ConditionUnitAttrib(Unit caster, SkillCaster casterCaster, BaseUnit target,
