@@ -6,6 +6,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
@@ -99,10 +100,6 @@ namespace AAEmu.Game.Models.Game.Skills
                     target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
                     targetCaster.ObjId = target.ObjId;
                 }
-                else
-                {
-                    // TODO ...
-                }
 
                 if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
                 {
@@ -115,10 +112,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 {
                     target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
                     targetCaster.ObjId = target.ObjId;
-                }
-                else
-                {
-                    // TODO ...
                 }
 
                 if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Hostile)
@@ -133,10 +126,6 @@ namespace AAEmu.Game.Models.Game.Skills
                     target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
                     targetCaster.ObjId = target.ObjId;
                 }
-                else
-                {
-                    // TODO ...
-                }
             }
             else if (Template.TargetType == SkillTargetType.Doodad)
             {
@@ -144,10 +133,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 {
                     target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
                     targetCaster.ObjId = target.ObjId;
-                }
-                else
-                {
-                    // TODO ...
                 }
             }
             else if (Template.TargetType == SkillTargetType.Item)
@@ -161,10 +146,6 @@ namespace AAEmu.Game.Models.Game.Skills
                     target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
                     targetCaster.ObjId = target.ObjId;
                 }
-                else
-                {
-                    // TODO ...
-                }
 
                 if (caster.ObjId == target.ObjId)
                 {
@@ -177,10 +158,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 {
                     target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
                     targetCaster.ObjId = target.ObjId;
-                }
-                else
-                {
-                    // TODO ...
                 }
 
                 if (caster.ObjId == target.ObjId)
@@ -199,10 +176,6 @@ namespace AAEmu.Game.Models.Game.Skills
                     target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
                     targetCaster.ObjId = target.ObjId;
                 }
-                else
-                {
-                    // TODO ...
-                }
 
                 if (caster.ObjId == target.ObjId)
                 {
@@ -219,10 +192,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 positionUnit.Position.WorldId = caster.Position.WorldId;
                 positionUnit.Region = caster.Region;
                 target = positionUnit;
-            }
-            else
-            {
-                // TODO ...
             }
 
             TlId = (ushort)TlIdManager.Instance.GetNextId();
@@ -257,7 +226,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 caster.IsAutoAttack = true; // enable auto attack
                 caster.SkillId = Id;
                 caster.TlId = TlId;
-                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject), true);
 
                 caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
                 TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
@@ -294,7 +263,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
                 var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
                 var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
-
+            
                 var trg = (Unit)target;
                 var dist = MathUtil.CalculateDistance(caster.Position, trg.Position, true);
                 if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
@@ -310,7 +279,7 @@ namespace AAEmu.Game.Models.Game.Skills
                             ? new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay[value], fireAnimId[value], false)
                             : new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay2[value], fireAnimId2[value], false),
                         true);
-
+            
                     if (caster is Character chr)
                     {
                         chr.SendMessage("Target is too far ...");
@@ -385,7 +354,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 var obj = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius);
                 // TODO : Need to this if this is needed
-                if (targetSelf is Unit) targets.Add(targetSelf);
+                //if (targetSelf is Unit) targets.Add(targetSelf);
                 targets.AddRange(obj);
             }
             else
@@ -393,6 +362,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 targets.Add(targetSelf);
             }
 
+            var packets = new CompressedGamePackets();
             foreach (var effect in Template.Effects)
             {
                 foreach (var target in targets)
@@ -494,10 +464,11 @@ namespace AAEmu.Game.Models.Game.Skills
                         }
                     }
 
-                    effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
+                    effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now, packets);
                 }
             }
-
+            caster.BroadcastPacket(packets, true);
+            
             if (Template.ConsumeLaborPower > 0 && caster is Character chart)
             {
                 chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);

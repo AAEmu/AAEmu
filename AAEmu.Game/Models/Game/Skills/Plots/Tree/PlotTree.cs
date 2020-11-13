@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using NLog;
 
@@ -147,11 +149,15 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         
         private void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
         { 
+            var packets = new CompressedGamePackets();
             while (executeQueue.Count > 0)
             {
                 var item = executeQueue.Dequeue();
-                item.node.Execute(state, item.targetInfo);
+                item.node.Execute(state, item.targetInfo, packets);
             }
+            
+            if (packets.Packets.Count > 0)
+                state.Caster.BroadcastPacket(packets, true);
         }
 
         private void DoPlotEnd(PlotState state)

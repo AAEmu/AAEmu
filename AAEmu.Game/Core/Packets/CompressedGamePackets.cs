@@ -45,7 +45,7 @@ namespace AAEmu.Game.Core.Packets
                 stream.Write(packetsData);
                 ps.Write(stream);
                 stopwatch.Stop();
-                _log.Debug("DD04 Size {0} (compressed), {1} (uncompressed). Took {2}ms to write", packetsData.Length, packets.Count, stopwatch.ElapsedMilliseconds);
+                _log.Trace("DD04 Size {0} (compressed), {1} (uncompressed). Took {2}ms to write", packetsData.Length, packets.Count, stopwatch.ElapsedMilliseconds);
             }
             catch (Exception ex)
             {

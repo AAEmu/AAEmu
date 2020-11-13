@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -15,7 +16,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override bool OnActionTime => false;
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time)
+            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             _log.ConditionalTrace(
                 "SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}",

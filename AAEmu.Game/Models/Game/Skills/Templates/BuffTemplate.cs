@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units;
 
@@ -159,8 +160,9 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             DynamicBonuses = new List<DynamicBonusTemplate>();
         }
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time)
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+            CastAction castObj,
+            Skill skill, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             if (RequireBuffId > 0 && !target.Effects.CheckBuff(RequireBuffId))
                 return; //TODO send error?

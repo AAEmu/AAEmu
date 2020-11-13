@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -38,7 +39,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             return Event.Conditions.All(condition => condition.CheckCondition(state, targetInfo));
         }
 
-        public void Execute(PlotState state, PlotTargetInfo targetInfo)
+        public void Execute(PlotState state, PlotTargetInfo targetInfo, CompressedGamePackets packets = null)
         {
             //_log.Debug("Executing plot node with id {0}", Event.Id);
 
@@ -87,7 +88,15 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     targetPlotObj = new PlotObject(targetInfo.Target);
 
                 byte targetCount = (byte)targetInfo.EffectedTargets.Count();
-                state.Caster.BroadcastPacket(new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount), true);
+
+                var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
+                    targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);
+                
+                if (packets != null)
+                    packets.AddPacket(packet);
+                else
+                    state.Caster.BroadcastPacket(packet, true);
+                
                 _log.Debug($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
             }
         }

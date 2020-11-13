@@ -47,7 +47,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
 
             if (Skills.ContainsKey(skillId))
-                Owner.SendMessage(ChatType.Notice, "[Skills] Error: This skill has already been learned. This should not happen.");
+                Owner.SendPacket(new SCSkillLearnedPacket(Skills[skillId]));
             else
                 AddSkill(template, 1, true);
         }
@@ -58,6 +58,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 Id = template.Id,
                 Template = template,
+                // TODO : Base this on Ability level rather than Owner Level
                 Level = (template.LevelStep > 0 ? (byte)(((Owner.Level - (template.AbilityLevel)) / template.LevelStep) + 1): (byte)1)
             };
             Skills.Add(skill.Id, skill);

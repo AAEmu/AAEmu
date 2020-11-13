@@ -466,7 +466,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
-                parameters["ab_level"] = 0;
+                parameters["ab_level"] = Level; // TODO : Make AbilityLevel
                 var res = formula.Evaluate(parameters);
                 return (float)res;
             }
@@ -478,7 +478,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.Dps ?? 0;
-                res += Str / 10f;
+                res += Str / 5f;
                 foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
@@ -524,7 +524,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
                 var res = weapon?.Dps ?? 0;
-                res += Str / 10f;
+                // res += Str / 10f;
                 foreach (var bonus in GetBonuses(UnitAttribute.OffhandDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
@@ -543,7 +543,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
                 var res = weapon?.Dps ?? 0;
-                res += Dex / 10f;
+                res += Dex / 5f;
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
@@ -589,7 +589,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.MDps ?? 0;
-                res += Int / 10f;
+                res += Int / 5f;
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)

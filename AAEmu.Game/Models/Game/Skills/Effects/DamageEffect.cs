@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Procs;
@@ -65,7 +66,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override bool OnActionTime => false;
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time)
+            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time,
+            CompressedGamePackets packetBuilder = null)
         {
             _log.Debug("DamageEffect");
 
@@ -75,68 +77,97 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             var trg = (Unit)target;
-            var min = 0;
-            var max = 0;
-
+            var min = 0.0f;
+            var max = 0.0f;
+            
             if (UseFixedDamage)
             {
                 min += FixedMin;
                 max += FixedMax;
             }
 
-            var unk = 0f;
-            var unk2 = 1f;
-            var skillLevel = 1;
-            if (skill != null)
-            {
-                skillLevel = (skill.Level - 1) * skill.Template.LevelStep + skill.Template.AbilityLevel;
-                if (skillLevel >= skill.Template.AbilityLevel)
-                {
-                    unk = 0.015f * (skillLevel - skill.Template.AbilityLevel + 1);
-                }
-                unk2 = (1 + unk) * 1.3f;
-            }
-
+            // Used for NPCs, I think
             if (UseLevelDamage)
             {
-                var levelMd = (unk + 1) * LevelMd;
-                min += (int)(caster.LevelDps * levelMd + 0.5f);
-                max += (int)((((skillLevel - 1) * 0.020408163f * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.0099999998f + 1f) * caster.LevelDps * levelMd + 0.5f);
+                var lvlMd = caster.LevelDps * LevelMd;
+                var levelModifier = ((skill.Level - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
+            
+                min += (lvlMd - levelModifier * lvlMd) + 0.5f;
+                max += (levelModifier + 1) * lvlMd + 0.5f;
+            }
+            
+            // Stats/Weapon DPS
+            if (caster is Character)
+            {
+                var dpsInc = 0;
+                switch (DamageType)
+                {
+                    case DamageType.Melee:
+                        dpsInc = caster.Dps;
+                        break;
+                    case DamageType.Magic:
+                        dpsInc = caster.MDps;
+                        break;
+                    case DamageType.Ranged:
+                        dpsInc = caster.RangedDps;
+                        break;
+                }
+
+                max = (dpsInc * 0.001f) * DpsIncMultiplier;
+                min = 0;
+
+                if (UseMainhandWeapon)
+                    min = caster.Dps * 0.001f; // TODO : Use only weapon value!
+                if (UseOffhandWeapon)
+                    min = (caster.OffhandDps * 0.001f) + min;
+                if (UseRangedWeapon)
+                    min = (caster.RangedDps * 0.001f) + min; // TODO : Use only weapon value!
+
+                max = (DpsMultiplier * min) + max;
+                
+                var minCastBonus = 1000f;
+                var castTimeMod = skill.Template.CastingTime; // This mod depends on casting_inc too!
+                if (castTimeMod <= 1000)
+                    minCastBonus = min > 0 ? min : minCastBonus;
+                else
+                    minCastBonus = castTimeMod;
+
+                max = max * minCastBonus * 0.001f;
             }
 
-            var dpsInc = 0f;
-            if (DamageType == DamageType.Melee)
+
+            min *= Multiplier;
+            max *= Multiplier;
+
+            var damageMultiplier = 0.0f;
+            switch (DamageType)
             {
-                dpsInc = caster.DpsInc;
-            }
-            else if (DamageType == DamageType.Magic)
-            {
-                dpsInc = caster.MDps + caster.MDpsInc;
-            }
-            else if (DamageType == DamageType.Ranged)
-            {
-                dpsInc = caster.RangedDpsInc;
+                case DamageType.Melee:
+                    // damageMultiplier = caster.Dps???
+                    damageMultiplier = 1.0f;
+                    break;
+                case DamageType.Magic:
+                    damageMultiplier = 1.0f;
+                    break;
+                case DamageType.Ranged:
+                    damageMultiplier = 1.0f;
+                    break;
+                case DamageType.Siege:
+                    // TODO 
+                    damageMultiplier = 1.0f;
+                    break;
             }
 
-            var dps = 0f;
-            if (UseMainhandWeapon)
-            {
-                dps += caster.Dps;
-            }
-            else if (UseOffhandWeapon)
-            {
-                dps += caster.OffhandDps;
-            }
-            else if (UseRangedWeapon)
-            {
-                dps += caster.RangedDps;
-            }
+            var iVar1 = (int)(min * (damageMultiplier + 1000));
+            var uVar3 = iVar1 / 1000 + (iVar1 >> 0x1f);
+            min = (uVar3 >> 0x1f) + uVar3;
+            iVar1 = (int)(max * (damageMultiplier + 1000));
+            uVar3 = iVar1 / 1000 + (iVar1 >> 0x1f);
+            max = (uVar3 >> 0x1f) + uVar3;
+            
+            
 
-            min += (int)((DpsMultiplier * dps * 0.001f + DpsIncMultiplier * dpsInc * 0.001f) * unk2 + 0.5f);
-            max += (int)((DpsMultiplier * dps * 0.001f + DpsIncMultiplier * dpsInc * 0.001f) * unk2 + 0.5f);
-            min = (int)(min * Multiplier);
-            max = (int)(max * Multiplier);
-            var value = Rand.Next(min, max);
+            var value = (int)max;
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
             
@@ -146,27 +177,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (caster is Character procAttacker)
                 procAttacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
 
-            
-            trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
+            if (packetBuilder != null) 
+                packetBuilder.AddPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value));
+            else
+                trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
             if (trg is Npc)
             {
                 trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
             }
             if (trg is Npc npc && npc.CurrentTarget != caster)
             {
-                //npc.BroadcastPacket(new SCAiAggroPacket(npc.ObjId, 1, caster.ObjId), true);
-
-                // if (npc.Patrol == null || npc.Patrol.PauseAuto(npc))
-                // {
-                //     npc.CurrentTarget = caster;
-                //     npc.BroadcastPacket(new SCCombatEngagedPacket(caster.ObjId), true); // caster
-                //     npc.BroadcastPacket(new SCCombatEngagedPacket(npc.ObjId), true);    // target
-                //     npc.BroadcastPacket(new SCCombatFirstHitPacket(npc.ObjId, caster.ObjId, 0), true);
-                //     npc.BroadcastPacket(new SCAggroTargetChangedPacket(npc.ObjId, caster.ObjId), true);
-                //     npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, caster.ObjId), true);
-                //
-                //     TaskManager.Instance.Schedule(new UnitMove(new Track(), npc), TimeSpan.FromMilliseconds(100));
-                // }
                 npc.OnDamageReceived(caster);
             }
         }
