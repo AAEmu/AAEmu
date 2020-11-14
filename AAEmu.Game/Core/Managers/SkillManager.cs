@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills;
@@ -25,8 +26,13 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
         private Dictionary<uint, List<uint>> _taggedBuffs;
         private Dictionary<uint, List<uint>> _skillTags;
-
         private Dictionary<uint, List<SkillModifier>> _skillModifiers;
+        
+        /**
+         * Events
+         */
+        public event EventHandler OnSkillsLoaded;
+
 
         public SkillTemplate GetSkillTemplate(uint id)
         {
@@ -68,7 +74,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 var type = _types[id];
  
-                _log.Info("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
+                _log.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
 
                 return _effects[type.Type][type.ActualId];
             }
@@ -77,7 +83,7 @@ namespace AAEmu.Game.Core.Managers
 
         public EffectTemplate GetEffectTemplate(uint id, string type)
         {
-            _log.Info("Get Effect Template: type = {0}, id = {1}", type, id);
+            _log.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
             
             return _effects[type][id];
         }
@@ -1077,7 +1083,20 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                // TODO reset_aoe_diminishing_effects
+                using(var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM reset_aoe_diminishing_effects";
+                    command.Prepare();
+                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while(reader.Read())
+                        {
+                            var template = new ResetAoeDiminishingEffect();
+                            template.Id = reader.GetUInt32("id");
+                            _effects["ResetAoeDiminishingEffect"].Add(template.Id, template);
+                        }
+                    }
+                }
                 using(var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM restore_mana_effects";
@@ -1331,6 +1350,7 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 _log.Info("Skill effects loaded");
+                OnSkillsLoaded?.Invoke(this, new EventArgs());
             }
 
             foreach (var skillTemplate in _skills.Values.Where(x => x.AutoLearn))

@@ -10,6 +10,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
+        public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Shipyard;
         public ShipyardData Template { get; set; }
         public override UnitCustomModelParams ModelParams { get; set; }
 

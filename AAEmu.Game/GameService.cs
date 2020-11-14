@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -80,6 +81,7 @@ namespace AAEmu.Game
             FamilyManager.Instance.Load();
             PortalManager.Instance.Load();
             FriendMananger.Instance.Load();
+            ModelManager.Instance.Load();
 
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
@@ -104,7 +106,6 @@ namespace AAEmu.Game
             SaveManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
             stopWatch.Stop();
-
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
 
             return Task.CompletedTask;

@@ -24,7 +24,8 @@ namespace AAEmu.Game.Core.Managers
             for (byte lv = 1; lv < _levels.Count; lv++)
             {
                 if (exp >= (mate ? _levels[lv].TotalMateExp : _levels[lv].TotalExp))
-                    return lv;
+                    continue;
+                return (lv--);
             }
             return 0;
         }

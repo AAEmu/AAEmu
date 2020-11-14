@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
@@ -10,14 +12,18 @@ using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units
 {
     public class Unit : BaseUnit
     {
+        public virtual UnitTypeFlag TypeFlag { get;} = UnitTypeFlag.None;
+        
         private Task _regenTask;
         public uint ModelId { get; set; }
         public byte Level { get; set; }
@@ -51,6 +57,10 @@ namespace AAEmu.Game.Models.Game.Units
         public uint OwnerId { get; set; }
         public SkillTask SkillTask { get; set; }
         public SkillTask AutoAttackTask { get; set; }
+        public DateTime GlobalCooldown { get; set; }
+        public object GCDLock { get; set; }
+        public DateTime SkillLastUsed { get; set; }
+        public PlotState ActivePlotState { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
         public Expedition Expedition { get; set; }
         public bool IsInBattle { get; set; }
@@ -70,9 +80,12 @@ namespace AAEmu.Game.Models.Game.Units
         /// </summary>
         public Patrol Patrol { get; set; }
         public Simulation Simulation { get; set; }
+        
+        public UnitProcs Procs { get; set; }
 
         public Unit()
         {
+            GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
@@ -242,5 +255,17 @@ namespace AAEmu.Game.Models.Game.Units
         {
             SendPacket(new SCErrorMsgPacket(type, 0, true));
         }
+        
+        public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
+        {
+            var rawDist = MathUtil.CalculateDistance(this.Position, baseUnit.Position, includeZAxis);
+
+            rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
+            if (baseUnit is Unit unit)
+                rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
+            
+            return rawDist;
+        }
+
     }
 }

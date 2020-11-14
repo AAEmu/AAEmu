@@ -15,6 +15,7 @@ namespace AAEmu.Game.Models.Game.Units
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
+        public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer;
         public uint Id { get; set; }
         public uint TemplateId { get; set; }
         public uint BondingObjId { get; set; } = 0;

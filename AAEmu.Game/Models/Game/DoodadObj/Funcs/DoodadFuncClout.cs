@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers.UnitManagers;
+﻿using System.Threading.Tasks;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -26,7 +27,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                        " TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}",
                 Duration, Tick, TargetRelationId, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
 
-            DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
+            if (Duration > 0)
+            {
+                // TODO : Add a proper delay in here
+                Task.Run(async () =>
+                {
+                    await Task.Delay(Duration);
+                    if (NextPhase == 0) 
+                        owner.Delete();
+                    DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
+                });
+            }
         }
     }
 }

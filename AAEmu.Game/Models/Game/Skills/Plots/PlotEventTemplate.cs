@@ -1,4 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots
@@ -22,28 +25,36 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public int Tickets { get; set; }
         public bool AoeDiminishing { get; set; }
         public LinkedList<PlotEventCondition> Conditions { get; set; }
+        public LinkedList<PlotAoeCondition> AoeConditions { get; set; }
         public LinkedList<PlotEventEffect> Effects { get; set; }
         public LinkedList<PlotNextEvent> NextEvents { get; set; }
+
+        private bool _computedHasSpecialEffects;
+        private bool _hasSpecialEffects;
 
         public PlotEventTemplate()
         {
             Conditions = new LinkedList<PlotEventCondition>();
+            AoeConditions = new LinkedList<PlotAoeCondition>();
             Effects = new LinkedList<PlotEventEffect>();
             NextEvents = new LinkedList<PlotNextEvent>();
+            _computedHasSpecialEffects = false;
         }
 
-        public virtual bool СheckСonditions(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        // TODO : Find better way of doing this. Tried doing it in the PlotManager, but SkillManager had not loaded at the time. Could use an event on SkillManager load like it is done for trade packs iirc.
+        public bool HasSpecialEffects()
         {
-            var result = true;
-            foreach (var condition in Conditions)
-            {
-                if (condition.Condition.Check(caster, casterCaster, target, targetCaster, skillObject))
-                    continue;
-                result = false;
-                break;
-            }
+            if (_computedHasSpecialEffects)
+                return _hasSpecialEffects;
+            
+            _hasSpecialEffects = Effects
+                .Select(eff =>
+                    SkillManager.Instance.GetEffectTemplate(eff.ActualId, eff.ActualType))
+                .OfType<SpecialEffect>()
+                .Any();
+            _computedHasSpecialEffects = true;
 
-            return result;
+            return _hasSpecialEffects;
         }
     }
 }

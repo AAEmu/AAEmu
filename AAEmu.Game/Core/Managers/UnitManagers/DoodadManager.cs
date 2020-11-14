@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         private Dictionary<uint, DoodadTemplate> _templates;
         private Dictionary<uint, List<DoodadFunc>> _funcsByGroups;
+        private Dictionary<uint, DoodadFunc> _funcsById;
         private Dictionary<uint, List<DoodadFunc>> _phaseFuncs;
         private Dictionary<string, Dictionary<uint, DoodadFuncTemplate>> _funcTemplates;
 
@@ -39,6 +40,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             _templates = new Dictionary<uint, DoodadTemplate>();
             _funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
+            _funcsById = new Dictionary<uint, DoodadFunc>();
             _phaseFuncs = new Dictionary<uint, List<DoodadFunc>>();
             _funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
             foreach (var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.DoodadObj.Funcs"))
@@ -147,6 +149,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 _funcsByGroups.Add(func.GroupId, tempListGroups);
                             }
                             tempListGroups.Add(func);
+                            _funcsById.Add(func.FuncKey, func);
                         }
                     }
                 }
@@ -2223,16 +2226,26 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.DbHouseId = house.Id;
             }
-            if (template.GrowthTime > 0)
+
+            var startPhaseFuncs = GetPhaseFunc(doodad.FuncGroupId);
+            if (startPhaseFuncs.Length > 0 && obj != null)
             {
-                var task = new DoodadFuncTimer();
-                task.Delay = template.GrowthTime;
-                task.Use((Unit)obj, doodad, 0);
+                foreach (var startPhaseFunc in startPhaseFuncs)
+                {
+                    startPhaseFunc.Use((Unit)obj, doodad, 0);
+                }
             }
 
             return doodad;
         }
 
+        public DoodadFunc GetFunc(uint funcId)
+        {
+            if (!_funcsById.ContainsKey(funcId))
+                return null;
+            return _funcsById[funcId];
+        }
+        
         public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
         {
             if (!_funcsByGroups.ContainsKey(funcGroupId))
@@ -2288,8 +2301,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     doodad.FuncGroupId = nextPhase;
                     doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+                    TriggerPhases(className, caster, doodad, skillId);
                 }
-                TriggerPhases(className, caster, doodad, skillId);
             }
         }
         public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)

@@ -1,5 +1,10 @@
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 using NLog;
@@ -9,7 +14,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
     public class PlotCondition
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
-
         public uint Id { get; set; }
         public bool NotCondition { get; set; }
         public PlotConditionType Kind { get; set; }
@@ -17,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public int Param2 { get; set; }
         public int Param3 { get; set; }
 
-        public bool Check(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        public bool Check(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotEventCondition eventCondition)
         {
             var res = true;
             switch (Kind)
@@ -29,11 +33,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     res = ConditionRelation(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3);
                     break;
                 case PlotConditionType.Direction:
-                    res = ConditionDirection(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3);
+                    res = ConditionDirection(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3, eventCondition);
                     break;
                 case PlotConditionType.BuffTag:
-                    res = ConditionBuffTag(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
-                        Param3);
+                    res = ConditionBuffTag(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,Param3, eventCondition);
                     break;
                 case PlotConditionType.WeaponEquipStatus:
                     res = ConditionWeaponEquipStatus(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3); 
@@ -83,7 +86,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     break;
             }
 
-            _log.Debug("PlotCondition : {0} | Params : {1}, {2}, {3} | Result : {4}", Kind, Param1, Param2, Param3, NotCondition ? !res : res);            
+            _log.Trace("PlotCondition : {0} | Params : {1}, {2}, {3} | Result : {4}", Kind, Param1, Param2, Param3, NotCondition ? !res : res);            
 
             return NotCondition ? !res : res;
         }
@@ -102,15 +105,25 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         }
 
         private static bool ConditionDirection(Unit caster, SkillCaster casterCaster, BaseUnit target,
-            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3, PlotEventCondition eventCondition)
         {
-            // No params on this
-            return true;
+            //TODO we need to calculate if unit facing us or not.
+            if (eventCondition.TargetId == PlotEffectTarget.Source)
+                return false;
+            else if (eventCondition.TargetId == PlotEffectTarget.Target)
+                return true;//Always backstab?
+            
+            //default?
+            return false;
         }
 
         private static bool ConditionBuffTag(Unit caster, SkillCaster casterCaster, BaseUnit target,
-            SkillCastTarget targetCaster, SkillObject skillObject, int tagId, int unk2, int unk3)
+            SkillCastTarget targetCaster, SkillObject skillObject, int tagId, int unk2, int unk3, PlotEventCondition eventCondition)
         {
+            // if (eventCondition.TargetId == PlotEffectTarget.Source)
+            //     return caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
+            // else if (eventCondition.TargetId == PlotEffectTarget.Target)
+            //     return target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
             return target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
         }
 
@@ -118,10 +131,15 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             SkillCastTarget targetCaster, SkillObject skillObject, int weaponEquipStatus, int unk2, int unk3)
         {
             // Weapon equip status can be :
-            // 1 = ?
-            // 2 = ?
-            // 3 = ?
-            return true;
+            // 1 = 1handed
+            // 2 = 2handed
+            // 3 = duel-wielded
+            WeaponWieldKind wieldKind = (WeaponWieldKind)weaponEquipStatus;
+            if (caster is Character character)
+            {
+                return character.GetWeaponWieldKind() == wieldKind;
+            }
+            return false;
         }
         
         private static bool ConditionChance(Unit caster, SkillCaster casterCaster, BaseUnit target,
@@ -146,10 +164,21 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         }
         
         private static bool ConditionInstrumentType(Unit caster, SkillCaster casterCaster, BaseUnit target,
-            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+            SkillCastTarget targetCaster, SkillObject skillObject, int instrumentTypeId, int unk2, int unk3)
         {
             // Param1 is either 21, 22 or 23
-            return true;
+            if (caster is Character character)
+            {
+                var item = character.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Musical);
+                if (item == null)
+                    return false;
+                if (item.Template is WeaponTemplate template)
+                {
+                    if (instrumentTypeId == template.HoldableTemplate.SlotTypeId)
+                        return true;
+                }
+            }
+            return false;
         }
         
         private static bool ConditionRange(Unit caster, SkillCaster casterCaster, BaseUnit target,
@@ -158,14 +187,26 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             // Param1 = Min range
             // Param2 = Max range
             var range = MathUtil.CalculateDistance(caster.Position, target.Position);
+            range -= 2;//Temp fix because the calculation is off
+            range = Math.Max(0f, range);
             return range >= minRange && range <= maxRange;
         }
         
         private static bool ConditionVariable(Unit caster, SkillCaster casterCaster, BaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
         {
-            // All 3 params used. No idea.
-            return true;
+            int index = unk1;
+            int operation = unk2;
+            int value = unk3;
+            //There is a high chance this is not implemented correctly..
+            //If refactoring. See SpecialEffect -> SetVariable as well
+            if (operation == 1)
+            {
+                //TODO obtain variables directly from plot.
+                return caster.ActivePlotState.Variables[index] == value;
+            }
+            _log.Error("Invalid Plot Variable Condition Operation[{0}]", operation);
+            return false;
         }
         
         private static bool ConditionUnitAttrib(Unit caster, SkillCaster casterCaster, BaseUnit target,
@@ -191,7 +232,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             // unsure if player or target
             // only used for Flamebolt for some reason.
             // Also always a "NotCondition" so will default to false (result will be True)
-            return false;
+            return true;
         }
         
         private static bool ConditionVisible(Unit caster, SkillCaster casterCaster, BaseUnit target,
@@ -201,20 +242,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             return true;
         }
         private static bool ConditionABLevel(Unit caster, SkillCaster casterCaster, BaseUnit target,
-            SkillCastTarget targetCaster, SkillObject skillObject, int flag, int min, int max)
+            SkillCastTarget targetCaster, SkillObject skillObject, int abilityType, int min, int max)
         {
-            // Unsure what Param1 is. Seems like a 3 bit flag
-            // For Arc Lightning, we have a value of 7, using 3 different conditions
-            // Need to find what the flags mean
-            // Could be target/caster level ? 
-            // 1 = caster ?
-            // 2 = target ?
-            // 3 = caster+target
-            // 4 = ???
-            // 7 = caster+target+???
-            
-            var level = caster.Level;
-            return level >= min && level <= max;
+            if (caster is Character character)
+            {
+                var ability = character.Abilities.Abilities[(AbilityType)abilityType];
+                int abLevel = ExpirienceManager.Instance.GetLevelFromExp(ability.Exp);
+                return abLevel >= min && abLevel <= max;
+            }
+            //Should this ever not be a character using this condition?
+            return false;
         }
     }
 }
