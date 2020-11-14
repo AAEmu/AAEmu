@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -182,6 +183,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 owner.AddBonus(effect.Index, bonus);
             }
 
+            effect.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
+            
             owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
         }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -96,6 +97,17 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (Hp <= 0)
                 return;
+
+            var absorptionEffects = Effects.GetAbsorptionEffects().ToList();
+            if (absorptionEffects.Count > 0)
+            {
+                // Handle damage absorb
+                foreach (var absorptionEffect in absorptionEffects)
+                {
+                    value = absorptionEffect.ConsumeCharge(value);
+                }
+            }
+            
             Hp = Math.Max(Hp - value, 0);
             if (Hp <= 0)
             {
@@ -113,6 +125,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (Hp == 0)
                 return;
+            
             Mp = Math.Max(Mp - value, 0);
             if (Mp == 0)
                 StopRegen();

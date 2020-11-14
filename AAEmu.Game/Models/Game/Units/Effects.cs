@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -353,6 +354,22 @@ namespace AAEmu.Game.Models.Game.Units
         private BaseUnit GetOwner()
         {
             return _owner?.Target as BaseUnit;
+        }
+
+        public IEnumerable<Effect> GetAbsorptionEffects()
+        {
+            return _effects.Where(e =>
+            {
+                switch (e.Template)
+                {
+                    case BuffTemplate bt:
+                        return bt.DamageAbsorptionTypeId > 0;
+                    case BuffEffect be:
+                        return be.Buff.DamageAbsorptionTypeId > 0;
+                    default:
+                        return false;
+                }
+            });
         }
     }
 }

@@ -31,6 +31,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public double Tick { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public int Charge { get; set; }
 
         public Effect(BaseUnit owner, Unit caster, SkillCaster skillCaster, EffectTemplate template, Skill skill, DateTime time)
         {
@@ -191,6 +192,25 @@ namespace AAEmu.Game.Models.Game.Skills
         public void WriteData(PacketStream stream)
         {
             Template.WriteData(stream);
+        }
+        
+        /// <summary>
+        /// Consumes as much charge as possible. Remainder is returned
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public int ConsumeCharge(int value)
+        {
+            var newCharge = Math.Max(0, Charge - value);
+            value = Math.Max(0, value - Charge);
+            Charge = newCharge;
+
+            if (Charge <= 0)
+            {
+                Exit();
+            }
+            
+            return value;
         }
     }
 }
