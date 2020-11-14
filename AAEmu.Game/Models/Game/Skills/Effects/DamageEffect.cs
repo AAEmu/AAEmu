@@ -4,7 +4,9 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Procs;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -87,52 +89,68 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             // Used for NPCs, I think
+            var levelMin = 0.0f;
+            var levelMax = 0.0f;
             if (UseLevelDamage)
             {
                 var lvlMd = caster.LevelDps * LevelMd;
                 var levelModifier = ((skill.Level - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
             
-                min += (lvlMd - levelModifier * lvlMd) + 0.5f;
-                max += (levelModifier + 1) * lvlMd + 0.5f;
+                levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
+                levelMax += (levelModifier + 1) * lvlMd + 0.5f;
             }
             
             // Stats/Weapon DPS
-            if (caster is Character)
+            var dpsInc = 0;
+            switch (DamageType)
             {
-                var dpsInc = 0;
-                switch (DamageType)
+                case DamageType.Melee:
+                    dpsInc = caster.DpsInc;
+                    break;
+                case DamageType.Magic:
+                    dpsInc = caster.MDps;
+                    break;
+                case DamageType.Ranged:
+                    dpsInc = caster.RangedDpsInc;
+                    break;
+            }
+
+            max = (dpsInc * 0.001f) * DpsIncMultiplier;
+            var weaponDamage = 0.0f;
+
+            if (UseMainhandWeapon)
+                weaponDamage = caster.Dps * 0.001f; // TODO : Use only weapon value!
+            if (UseOffhandWeapon)
+                weaponDamage = (caster.OffhandDps * 0.001f) + weaponDamage;
+            if (UseRangedWeapon)
+                weaponDamage = (caster.RangedDps * 0.001f) + weaponDamage; // TODO : Use only weapon value!
+
+            max = (DpsMultiplier * weaponDamage) + max;
+            
+            var minCastBonus = 1000f;
+            var castTimeMod = skill.Template.CastingTime; // This mod depends on casting_inc too!
+            if (castTimeMod <= 1000)
+                minCastBonus = min > 0 ? min : minCastBonus;
+            else
+                minCastBonus = castTimeMod;
+
+            var variableDamage = (max * minCastBonus * 0.001f);
+            // TODO : Handle NPC
+            if (WeaponSlotId < 0)
+            {
+                min = variableDamage + levelMin;
+                max = variableDamage + levelMax;
+            }
+            else
+            {
+                var weapon = caster.Equipment.GetItemBySlot(WeaponSlotId);
+                if (weapon != null)
                 {
-                    case DamageType.Melee:
-                        dpsInc = caster.Dps;
-                        break;
-                    case DamageType.Magic:
-                        dpsInc = caster.MDps;
-                        break;
-                    case DamageType.Ranged:
-                        dpsInc = caster.RangedDps;
-                        break;
+                    var holdable = (WeaponTemplate)weapon.Template;
+                    var scaledDamage = holdable.HoldableTemplate.DamageScale * variableDamage * 0.01f;
+                    min = levelMin + (variableDamage - scaledDamage);
+                    max = levelMax + (variableDamage + scaledDamage);
                 }
-
-                max = (dpsInc * 0.001f) * DpsIncMultiplier;
-                min = 0;
-
-                if (UseMainhandWeapon)
-                    min = caster.Dps * 0.001f; // TODO : Use only weapon value!
-                if (UseOffhandWeapon)
-                    min = (caster.OffhandDps * 0.001f) + min;
-                if (UseRangedWeapon)
-                    min = (caster.RangedDps * 0.001f) + min; // TODO : Use only weapon value!
-
-                max = (DpsMultiplier * min) + max;
-                
-                var minCastBonus = 1000f;
-                var castTimeMod = skill.Template.CastingTime; // This mod depends on casting_inc too!
-                if (castTimeMod <= 1000)
-                    minCastBonus = min > 0 ? min : minCastBonus;
-                else
-                    minCastBonus = castTimeMod;
-
-                max = max * minCastBonus * 0.001f;
             }
 
 
@@ -165,9 +183,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             uVar3 = iVar1 / 1000 + (iVar1 >> 0x1f);
             max = (uVar3 >> 0x1f) + uVar3;
             
-            
-
-            var value = (int)max;
+            var value = (int)Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
             
