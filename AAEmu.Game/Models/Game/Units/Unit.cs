@@ -267,5 +267,10 @@ namespace AAEmu.Game.Models.Game.Units
             return rawDist;
         }
 
+        public virtual int GetAbLevel(AbilityType type)
+        {
+            return Level;
+        }
+
     }
 }

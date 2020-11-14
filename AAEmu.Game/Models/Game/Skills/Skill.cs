@@ -480,10 +480,10 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.Cost > 0 && caster is Unit unit)
             {
-                var manaCost = unit.Modifiers.ApplyModifiers(this, SkillAttribute.ManaCost, Template.Cost);
-                if (unit is Character manaChar) 
-                    manaChar.SendMessage("Consumed " + manaCost + " mana thru the normal skills");
-                unit.ReduceCurrentMp(null, (int) manaCost);
+                var baseCost = ((caster.GetAbLevel((AbilityType)Template.AbilityId)-1) * 1.6 + 8) * 3 / 3.65;
+                var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
+                var manaCost = (int)unit.Modifiers.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
+                unit.ReduceCurrentMp(null, manaCost);
             }
 
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);

@@ -912,6 +912,12 @@ namespace AAEmu.Game.Models.Game.Char
             SendPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep));
         }
 
+        public override int GetAbLevel(AbilityType type)
+        {
+            if (type == AbilityType.General) return Level;
+            return ExpirienceManager.Instance.GetLevelFromExp(Abilities.Abilities[type].Exp);
+        }
+
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;
