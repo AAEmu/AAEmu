@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
@@ -61,14 +62,26 @@ namespace AAEmu.Game.Models.Game.Skills
 
                 caster.SkillLastUsed = DateTime.Now;
             }
-            
-            // TODO : Add check for range
-            var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
 
             if (skillObject == null)
             {
                 skillObject = new SkillObject();
             }
+
+            var target = GetInitialTarget(caster, targetCaster);
+
+            TlId = (ushort)TlIdManager.Instance.GetNextId();
+
+            if (Template.Plot != null)
+            {
+                Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
+                if (Template.PlotOnly)
+                    return;
+            }
+
+            // TODO : Add check for range
+            var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
+
             var effects = caster.Effects.GetEffectsByType(typeof(BuffTemplate));
             foreach (var effect in effects)
             {
@@ -84,125 +97,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 {
                     effect.Exit();
                 }
-            }
-
-            var target = (BaseUnit)caster;
-
-            if (Template.TargetType == SkillTargetType.Self)
-            {
-                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
-                {
-                    targetCaster.ObjId = target.ObjId;
-                }
-            }
-            else if (Template.TargetType == SkillTargetType.Friendly)
-            {
-                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
-                {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                    targetCaster.ObjId = target.ObjId;
-                }
-
-                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
-                {
-                    return; //TODO отправлять ошибку?
-                }
-            }
-            else if (Template.TargetType == SkillTargetType.Hostile)
-            {
-                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
-                {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                    targetCaster.ObjId = target.ObjId;
-                }
-
-                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Hostile)
-                {
-                    return; //TODO отправлять ошибку?
-                }
-            }
-            else if (Template.TargetType == SkillTargetType.AnyUnit)
-            {
-                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
-                {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                    targetCaster.ObjId = target.ObjId;
-                }
-            }
-            else if (Template.TargetType == SkillTargetType.Doodad)
-            {
-                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
-                {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                    targetCaster.ObjId = target.ObjId;
-                }
-            }
-            else if (Template.TargetType == SkillTargetType.Item)
-            {
-                // TODO ...
-            }
-            else if (Template.TargetType == SkillTargetType.Others)
-            {
-                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
-                {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                    targetCaster.ObjId = target.ObjId;
-                }
-
-                if (caster.ObjId == target.ObjId)
-                {
-                    return; //TODO отправлять ошибку?
-                }
-            }
-            else if (Template.TargetType == SkillTargetType.FriendlyOthers)
-            {
-                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
-                {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                    targetCaster.ObjId = target.ObjId;
-                }
-
-                if (caster.ObjId == target.ObjId)
-                {
-                    return; //TODO отправлять ошибку?
-                }
-                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
-                {
-                    return; //TODO отправлять ошибку?
-                }
-            }
-            else if (Template.TargetType == SkillTargetType.Building)
-            {
-                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
-                {
-                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                    targetCaster.ObjId = target.ObjId;
-                }
-
-                if (caster.ObjId == target.ObjId)
-                {
-                    return; //TODO отправлять ошибку?
-                }
-            }
-            else if (Template.TargetType == SkillTargetType.Pos)
-            {
-                var positionTarget = (SkillCastPositionTarget)targetCaster;
-                var positionUnit = new BaseUnit();
-                positionUnit.ObjId = uint.MaxValue;
-                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                positionUnit.Position.ZoneId = caster.Position.ZoneId;
-                positionUnit.Position.WorldId = caster.Position.WorldId;
-                positionUnit.Region = caster.Region;
-                target = positionUnit;
-            }
-
-            TlId = (ushort)TlIdManager.Instance.GetNextId();
-
-            if (Template.Plot != null)
-            {
-                Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
-                if(Template.PlotOnly)
-                    return;
             }
 
             //Maybe we should do this somewhere else?
@@ -237,6 +131,121 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 Cast(caster, casterCaster, target, targetCaster, skillObject);
             }
+        }
+
+        private BaseUnit GetInitialTarget(Unit caster, SkillCastTarget targetCaster)
+        {
+            var target = (BaseUnit)caster;
+
+            if (Template.TargetType == SkillTargetType.Self)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    targetCaster.ObjId = target.ObjId;
+                }
+            }
+            else if (Template.TargetType == SkillTargetType.Friendly)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    targetCaster.ObjId = target.ObjId;
+                }
+
+                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
+                {
+                    return null; //TODO отправлять ошибку?
+                }
+            }
+            else if (Template.TargetType == SkillTargetType.Hostile)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    targetCaster.ObjId = target.ObjId;
+                }
+
+                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Hostile)
+                {
+                    return null; //TODO отправлять ошибку?
+                }
+            }
+            else if (Template.TargetType == SkillTargetType.AnyUnit)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    targetCaster.ObjId = target.ObjId;
+                }
+            }
+            else if (Template.TargetType == SkillTargetType.Doodad)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    targetCaster.ObjId = target.ObjId;
+                }
+            }
+            else if (Template.TargetType == SkillTargetType.Item)
+            {
+                // TODO ...
+            }
+            else if (Template.TargetType == SkillTargetType.Others)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    targetCaster.ObjId = target.ObjId;
+                }
+
+                if (caster.ObjId == target.ObjId)
+                {
+                    return null; //TODO отправлять ошибку?
+                }
+            }
+            else if (Template.TargetType == SkillTargetType.FriendlyOthers)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    targetCaster.ObjId = target.ObjId;
+                }
+
+                if (caster.ObjId == target.ObjId)
+                {
+                    return null; //TODO отправлять ошибку?
+                }
+                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
+                {
+                    return null; //TODO отправлять ошибку?
+                }
+            }
+            else if (Template.TargetType == SkillTargetType.Building)
+            {
+                if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                {
+                    target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
+                    targetCaster.ObjId = target.ObjId;
+                }
+
+                if (caster.ObjId == target.ObjId)
+                {
+                    return null; //TODO отправлять ошибку?
+                }
+            }
+            else if (Template.TargetType == SkillTargetType.Pos)
+            {
+                var positionTarget = (SkillCastPositionTarget)targetCaster;
+                var positionUnit = new BaseUnit();
+                positionUnit.ObjId = uint.MaxValue;
+                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                positionUnit.Position.ZoneId = caster.Position.ZoneId;
+                positionUnit.Position.WorldId = caster.Position.WorldId;
+                positionUnit.Region = caster.Region;
+                target = positionUnit;
+            }
+
+            return target;
         }
 
         public void Cast(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -349,15 +358,44 @@ namespace AAEmu.Game.Models.Game.Skills
                 
         }
 
+        private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, IEnumerable<BaseUnit> units)
+        {
+            switch (Template.TargetRelation)
+            {
+                case SkillTargetRelation.Any:
+                    //Filter Nothing
+                    break;
+                case SkillTargetRelation.Friendly:
+                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction.Id) == RelationState.Friendly);
+                    break;
+                case SkillTargetRelation.Hostile:
+                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction.Id) == RelationState.Hostile);
+                    break;
+                case SkillTargetRelation.Party:
+                    //todo
+                    break;
+                case SkillTargetRelation.Raid:
+                    //todo
+                    break;
+                case SkillTargetRelation.Others:
+                    //Does others == neutral? This might be wrong
+                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction.Id) == RelationState.Neutral);
+                    break;
+            }
+            return units;
+        }
+
         public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
             var targets = new List<BaseUnit>(); // TODO crutches
             if (Template.TargetAreaRadius > 0)
             {
-                var obj = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius);
+                var units = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius).AsEnumerable();
+                units = FilterAoeUnits(caster, units);
+
+                targets.AddRange(units);
                 // TODO : Need to this if this is needed
                 //if (targetSelf is Unit) targets.Add(targetSelf);
-                targets.AddRange(obj);
             }
             else
             {
