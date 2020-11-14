@@ -91,10 +91,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // Used for NPCs, I think
             var levelMin = 0.0f;
             var levelMax = 0.0f;
-            if (UseLevelDamage)
+            if (UseLevelDamage) 
             {
                 var lvlMd = caster.LevelDps * LevelMd;
-                var levelModifier = ((skill.Level - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
+                // Hack null-check on skill
+                var levelModifier = (( (skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
             
                 levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
                 levelMax += (levelModifier + 1) * lvlMd + 0.5f;
@@ -128,7 +129,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             max = (DpsMultiplier * weaponDamage) + max;
             
             var minCastBonus = 1000f;
-            var castTimeMod = skill.Template.CastingTime; // This mod depends on casting_inc too!
+            // Hack null-check on skill
+            var castTimeMod = skill?.Template.CastingTime ?? 0 ; // This mod depends on casting_inc too!
             if (castTimeMod <= 1000)
                 minCastBonus = min > 0 ? min : minCastBonus;
             else

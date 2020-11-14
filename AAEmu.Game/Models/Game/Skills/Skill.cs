@@ -469,7 +469,9 @@ namespace AAEmu.Game.Models.Game.Skills
                     effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now, packets);
                 }
             }
-            caster.BroadcastPacket(packets, true);
+            // Quick Hack
+            if (packets.Packets.Count > 0)
+                caster.BroadcastPacket(packets, true);
             
             if (Template.ConsumeLaborPower > 0 && caster is Character chart)
             {
