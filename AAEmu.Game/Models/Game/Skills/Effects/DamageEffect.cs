@@ -117,7 +117,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     break;
             }
 
-            max = (dpsInc * 0.001f) * DpsIncMultiplier;
+            max += (dpsInc * 0.001f) * DpsIncMultiplier;
             var weaponDamage = 0.0f;
 
             if (UseMainhandWeapon)
