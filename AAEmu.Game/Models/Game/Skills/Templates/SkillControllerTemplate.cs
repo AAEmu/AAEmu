@@ -1,5 +1,6 @@
 using System;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
@@ -19,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Debug("SkillControllerTemplate");
         }

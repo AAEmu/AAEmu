@@ -69,7 +69,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override bool OnActionTime => false;
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
             CompressedGamePackets packetBuilder = null)
         {
             _log.Debug("DamageEffect");
@@ -96,7 +96,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 var lvlMd = caster.LevelDps * LevelMd;
                 // Hack null-check on skill
-                var levelModifier = (( (skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
+                var levelModifier = (( (source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
             
                 levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
                 levelMax += (levelModifier + 1) * lvlMd + 0.5f;
@@ -131,7 +131,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             
             var minCastBonus = 1000f;
             // Hack null-check on skill
-            var castTimeMod = skill?.Template.CastingTime ?? 0 ; // This mod depends on casting_inc too!
+            var castTimeMod = source.Skill?.Template.CastingTime ?? 0 ; // This mod depends on casting_inc too!
             if (castTimeMod <= 1000)
                 minCastBonus = min > 0 ? min : minCastBonus;
             else
@@ -186,9 +186,18 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             uVar3 = iVar1 / 1000 + (iVar1 >> 0x1f);
             max = (uVar3 >> 0x1f) + uVar3;
 
-            min = (float) caster.Modifiers.ApplyModifiers(skill, SkillAttribute.Damage, min);
-            max = (float) caster.Modifiers.ApplyModifiers(skill, SkillAttribute.Damage, max);
-            
+            if (source.Skill != null)
+            {
+                min = (float)caster.Modifiers.ApplyModifiers(source.Skill, SkillAttribute.Damage, min);
+                max = (float)caster.Modifiers.ApplyModifiers(source.Skill, SkillAttribute.Damage, max);
+            }
+
+            if (source.Buff?.TickEffect != null)
+            {
+                min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
+                max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
+            }
+
             var value = (int)Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;

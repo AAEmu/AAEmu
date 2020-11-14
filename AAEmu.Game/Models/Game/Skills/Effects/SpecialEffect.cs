@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override bool OnActionTime => false;
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
             CompressedGamePackets packetBuilder = null)
         {
             _log.ConditionalTrace(
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             var action = (SpecialEffectAction)Activator.CreateInstance(classType);
-            action.Execute(caster, casterObj, target, targetObj, castObj, skill, skillObject, time, Value1, Value2,
+            action.Execute(caster, casterObj, target, targetObj, castObj, source.Skill, skillObject, time, Value1, Value2,
                 Value3, Value4);
         }
     }

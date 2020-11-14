@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
@@ -92,7 +93,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 var obj = new SkillCasterUnit(npc.ObjId);
-                buff.Apply(npc, obj, npc, null, null, null, null, DateTime.Now);
+                buff.Apply(npc, obj, npc, null, null, new EffectSource(), null, DateTime.Now);
             }
 
             foreach (var bonusTemplate in template.Bonuses)

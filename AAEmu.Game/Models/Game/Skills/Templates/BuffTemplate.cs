@@ -4,6 +4,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
@@ -162,13 +163,13 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             if (RequireBuffId > 0 && !target.Effects.CheckBuff(RequireBuffId))
                 return; //TODO send error?
             if (target.Effects.CheckBuffImmune(Id))
                 return; //TODO  error of immune?
-            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, skill, time));
+            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source?.Skill, time));
         }
 
         public override void Start(Unit caster, BaseUnit owner, Effect effect)

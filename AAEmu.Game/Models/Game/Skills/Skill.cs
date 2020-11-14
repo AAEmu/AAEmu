@@ -299,7 +299,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 if (Template.ChannelingBuffId != 0)
                 {
                     var buff = SkillManager.Instance.GetBuffTemplate(Template.ChannelingBuffId);
-                    buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
+                    buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
                 }
 
                 caster.SkillTask = new ChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject);
@@ -331,7 +331,7 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.ToggleBuffId != 0)
             {
                 var buff = SkillManager.Instance.GetBuffTemplate(Template.ToggleBuffId);
-                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now);
+                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
             }
 
             var totalDelay = 0;
@@ -466,7 +466,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         }
                     }
 
-                    effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), this, skillObject, DateTime.Now, packets);
+                    effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now, packets);
                 }
             }
             // Quick Hack

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public override bool OnActionTime => false;
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj, Skill skill, SkillObject skillObject, DateTime time,
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
             CompressedGamePackets packetBuilder = null)
         {
             _log.Debug("InteractionEffect, {0}", WorldInteraction);
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             _log.Debug("InteractionEffect, Action: {0}", classType); // TODO help to debug...
 
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
-            action.Execute(caster, casterObj, target, targetObj, skill.Template.Id, DoodadId);
+            action.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
 
             // TODO do we need this call?
             if (caster is Character character)

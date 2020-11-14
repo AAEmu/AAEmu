@@ -19,13 +19,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             if (Buff.RequireBuffId > 0 && !target.Effects.CheckBuff(Buff.RequireBuffId))
                 return; // TODO send error?
             if (target.Effects.CheckBuffImmune(Buff.Id))
                 return; // TODO send error of immune?
-            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, skill, time));
+            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source.Skill, time));
         }
 
         public override void Start(Unit caster, BaseUnit owner, Effect effect)
@@ -54,7 +54,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var eff = SkillManager.Instance.GetEffectTemplate(Buff.TickEffect.EffectId);
             var targetObj = new SkillCastUnitTarget(owner.ObjId);
             var skillObj = new SkillObject(); // TODO ?
-            eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, skillObj, DateTime.Now);
+            eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), new EffectSource(Buff), skillObj, DateTime.Now);
         }
 
         public override void Dispel(Unit caster, BaseUnit owner, Effect effect)
