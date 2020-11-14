@@ -1,128 +1,29 @@
 [
     {
+        // second point --vvv--
+        // <Transfer Name="lily_solzreed_in1" Type="6" cellX="1" cellY="0">
+        //   <Point Pos="1344.8792,1016.6302,158.24292" /> 
+        // 011 * 1024 = 11264 + 1344.8792 = 12608.8792
+        // 014 * 1024 = 14336 + 1016.6302 = 15352.6302
+
+        // first point --vvv--
+        // 11_14 <Transfer Name="lilyut_in2" Type="0" cellX="1" cellY="0">
+        // <Point Pos="1345.3906,1023.7513,158.57738" /> 
+        // 11 * 1024 = 11264 + 1345.3906 = 12609.3906
+        // 14 * 1024 = 14336 + 1023.7513 = 15359.7513
+
+        // 11_14
         "Count": 1,
-        "Id": 10,
+        "Id": 6,
         "UnitId": 6,
         "Position": {
-        "X": 12609.47,
-        "Y": 15359.19,
-        "Z": 158.2
+        "X": 12608.8792,
+        "Y": 15352.6302,
+        "Z": 158.5774
         },
         "RotationX": 0,
         "RotationY": 0,
-        "RotationZ": 1.5831, // 90, угол в радианах, был 22768,
-        "Scale": 1.0
-    },
-    {
-        "Count": 1,
-        "Id": 20,
-        "UnitId": 8,
-        "Position": {
-        "X": 12600.47,
-        "Y": 15350.19,
-        "Z": 158.2
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 1.57, // 90, угол в радианах, был 22768,
-        "Scale": 1.0
-    },
-    {
-        "Count": 1,
-        "Id": 30,
-        "UnitId": 10,
-        "Position": {
-        "X": 9941.062,
-        "Y": 12710.54,
-        "Z": 158.2
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 1.73,
-        "Scale": 1.0
-    },
-    {
-        "Count": 1,
-        "Id": 40,
-        "UnitId": 49,
-        "Position": {
-        "X": 10501.75,
-        "Y": 15121.53,
-        "Z": 279.70001
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 0.9,
-        "Scale": 1.0
-    },
-    {
-        "Count": 1,
-        "Id": 45,
-        "UnitId": 50,
-        "Position": {
-        "X": 9677.802,
-        "Y": 12677.02,
-        "Z": 206.442
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 6.18,
-        "Scale": 1.0
-    },
-    {
-        "Count": 1,
-        "Id": 50,
-        "UnitId": 52,
-        "Position": {
-        "X": 10501.75,
-        "Y": 15121.53,
-        "Z": 279.70001
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 0.9,  // 45, угол в радианах, был 6494,
-        "Scale": 1.0
-    },
-    {
-        "Count": 1,
-        "Id": 60,
-        "UnitId": 65,
-        "Position": {
-        "X": 9777.504, // 12867.9,
-        "Y": 12725.31, //14306.34,
-        "Z": 228.33594 //222.28185
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 2.35, // 135, угол в радианах, был 24914,
-        "Scale": 1.0
-    },
-    {
-        "Count": 1,
-        "Id": 65,
-        "UnitId": 103,
-        "Position": {
-        "X": 12336.92,
-        "Y": 13905.52,
-        "Z": 128.464
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 1.93,
-        "Scale": 1.0
-    },
-    {
-        "Count": 1,
-        "Id": 70,
-        "UnitId": 114,
-        "Position": {
-        "X": 11005.79,
-        "Y": 12676.86,
-        "Z": 228.33594
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 0,
+        "RotationZ": -1.58,
         "Scale": 1.0
     }
 ]

@@ -2,7 +2,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Error;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Utils;
 

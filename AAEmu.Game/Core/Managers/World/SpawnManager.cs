@@ -69,6 +69,12 @@ namespace AAEmu.Game.Core.Managers.World
                             spawner.Position.ZoneId = WorldManager
                                 .Instance
                                 .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+
+                            //spawner.Position.Z = AppConfiguration.Instance.HeightMapsEnable
+                            //    ? WorldManager.Instance.GetHeight(spawner.Position.ZoneId, spawner.Position.X,
+                            //        spawner.Position.Y)
+                            //    : spawner.Position.Z;
+
                             npcSpawners.Add(spawner.Id, spawner);
                         }
                     else

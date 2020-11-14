@@ -11,8 +11,6 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
-using Quartz.Impl.AdoJobStore;
-using System;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
@@ -88,8 +86,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.DespawnOnCollision = reader.GetBoolean("despawn_on_collision", true);
                             template.NoCollision = reader.GetBoolean("no_collision", true);
                             template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
-
-
 
                             _templates.Add(template.Id, template);
                         }

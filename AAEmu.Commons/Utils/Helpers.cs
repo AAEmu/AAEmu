@@ -116,8 +116,7 @@ namespace AAEmu.Commons.Utils
         [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]
         public static float ConvertZ(byte[] coords)
         {
-            return (float)Math.Round(coords[0] * 0.001f + coords[1] * 0.2561f + coords[2] * 65.5625f - 100, 4,
-                MidpointRounding.ToEven);
+            return (float)Math.Round(coords[0] * 0.001f + coords[1] * 0.2561f + coords[2] * 65.5625f - 100, 4, MidpointRounding.ToEven);
         }
 
         [Obsolete("This method is deprecated, is better to use ConvertPosition", false)]

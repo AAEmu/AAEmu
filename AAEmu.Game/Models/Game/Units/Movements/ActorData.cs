@@ -34,15 +34,15 @@ namespace AAEmu.Game.Models.Game.Units.Movements
 
         public ActorData()
         {
-            WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongX(Y), Z);
-            GcWorldPos = new WorldPos(Helpers.ConvertLongX(X2), Helpers.ConvertLongX(Y2), Z2);
+            WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongY(Y), Z);
+            GcWorldPos = new WorldPos(Helpers.ConvertLongX(X2), Helpers.ConvertLongY(Y2), Z2);
         }
 
         public override void Read(PacketStream stream)
         {
             base.Read(stream);
             (X, Y, Z) = stream.ReadPositionBc();
-            WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongX(Y), Z);
+            WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongY(Y), Z);
 
             //VelX = stream.ReadInt16();
             //VelY = stream.ReadInt16();
@@ -63,18 +63,18 @@ namespace AAEmu.Game.Models.Game.Units.Movements
 
             Stance = stream.ReadSByte();
             Alertness = stream.ReadSByte();
-            Flags = stream.ReadByte();
-            if ((Flags & 0x80) == 0x80)
+            actorFlags = stream.ReadByte();
+            if ((actorFlags & 0x80) == 0x80)
             {
                 FallVel = stream.ReadUInt16(); // actor.fallVel
             }
 
-            if ((Flags & 0x20) == 0x20)
+            if ((actorFlags & 0x20) == 0x20)
             {
                 GcFlags = stream.ReadByte();    // actor.gcFlags
                 GcPartId = stream.ReadUInt16(); // actor.gcPartId
                 (X2, Y2, Z2) = stream.ReadPositionBc(); // ix, iy, iz
-                GcWorldPos = new WorldPos(Helpers.ConvertLongX(X2), Helpers.ConvertLongX(Y2), Z2);
+                GcWorldPos = new WorldPos(Helpers.ConvertLongX(X2), Helpers.ConvertLongY(Y2), Z2);
                 //var (x2, y2, z2) = stream.ReadWorldPosition();
                 //GcWorldPos = new WorldPos(x2, y2, z2);
 
@@ -83,12 +83,12 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                 //RotationZ2 = stream.ReadSByte();
                 GcWorldRot = stream.ReadQuaternionSbyte();
             }
-            if ((Flags & 0x60) == 0x60)
+            if ((actorFlags & 0x60) == 0x60)
             {
                 GcId = stream.ReadUInt32(); // actor.gcId
             }
 
-            if ((Flags & 0x40) == 0x40)
+            if ((actorFlags & 0x40) == 0x40)
             {
                 ClimbData = stream.ReadUInt32(); // actor.climbData
             }
@@ -98,7 +98,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         {
             base.Write(stream);
             stream.WritePositionBc(X, Y, Z);
-            WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongX(Y), Z);
+            WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongY(Y), Z);
             //stream.WriteWorldPosition(WorldPos.X, WorldPos.Y, WorldPos.Z);
 
             //stream.Write(VelX);
@@ -119,19 +119,19 @@ namespace AAEmu.Game.Models.Game.Units.Movements
 
             stream.Write(Stance);
             stream.Write(Alertness);
-            stream.Write(Flags);
-            if ((Flags & 0x80) == 0x80)
+            stream.Write(actorFlags);
+            if ((actorFlags & 0x80) == 0x80)
             {
                 stream.Write(FallVel);
             }
 
-            if ((Flags & 0x20) == 0x20)
+            if ((actorFlags & 0x20) == 0x20)
             {
                 stream.Write(GcFlags);
                 stream.Write(GcPartId);
 
                 stream.WritePositionBc(X2, Y2, Z2);
-                GcWorldPos = new WorldPos(Helpers.ConvertLongX(X2), Helpers.ConvertLongX(Y2), Z2);
+                GcWorldPos = new WorldPos(Helpers.ConvertLongX(X2), Helpers.ConvertLongY(Y2), Z2);
                 //stream.WriteWorldPosition(GcWorldPos.X, GcWorldPos.Y, GcWorldPos.Z);
 
                 //stream.Write(RotationX2);
@@ -140,12 +140,12 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                 stream.WriteQuaternionSbyte(GcWorldRot);
 
             }
-            if ((Flags & 0x60) == 0x60)
+            if ((actorFlags & 0x60) == 0x60)
             {
                 stream.Write(GcId);
             }
 
-            if ((Flags & 0x40) == 0x40)
+            if ((actorFlags & 0x40) == 0x40)
             {
                 stream.Write(ClimbData);
             }

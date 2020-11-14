@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -57,207 +58,391 @@ namespace AAEmu.Game.Core.Managers.World
             return zoneGroup?.TargetId ?? 0;
         }
 
-        public (float, float, float) ConvertCoordFromZoneKey(uint zoneId, float x, float y, float z)
-        {
-            //if (Instance.GetZoneByKey(zoneId) == null)
-            //{
-            //    return (x, y, z); // если не нашли зону, вернем координаты
-            //}
-            //var zonegroup = Instance.GetZoneGroupById(Instance.GetZoneByKey(zoneId).GroupId);
-            //var newX = zonegroup.X + x;
-            //var newY = zonegroup.Y + y;
-            //var newZ = z;
-            var zone = GetZoneByKey(zoneId);
-            if (zone == null)
-                return (x, y, z); // если не нашли зону, вернем координаты
-
-            var zoneGroup = GetZoneGroupById(zone.GroupId);
-            var newX = zoneGroup.X + x + 2412f; //2411.19535f; // w_solzreed id=5, x=11925, y=13266
-            var newY = zoneGroup.Y + y + 46f;
-            var newZ = z;
-            //var newX = x; //для теста, берём координаты из файла
-            //var newY = y;
-            //var newZ = z;
-
-            return (newX, newY, newZ);
-        }
-
         /// <summary>
-        /// Переведём локальные координаты в мировые в зависимости от zoneId
-        /// </summary>
-        /// <param name="zoneId"></param>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <returns></returns>
-        public (float, float, float) ConvertCoord0(uint zoneId, float x, float y, float z)
-        {
-            var zone = GetZoneByKey(zoneId);
-            if (zone == null)
-                return (x, y, z); // если не нашли зону, вернем координаты
-
-            var zoneGroup = GetZoneGroupById(zone.GroupId);
-            var newX = zoneGroup.X + x; // w_solzreed id=5, x=11925.0, y=13266.0
-            var newY = zoneGroup.Y + y;
-
-            return (newX, newY, z);
-        }
-
-        public (float, float, float) ConvertToWorldCoord(uint zoneId, Vector3 point)
-        {
-            Vector2 offsets = new Vector2();
-            var zone = GetZoneByKey(zoneId);
-            if (zone == null)
-                return (point.X, point.Y, point.Z); // если не нашли зону, вернем координаты
-
-            var zoneGroup = GetZoneGroupById(zone.GroupId);
-            switch (zoneId)
-            {
-                case 129: // zone_group=1 -
-                    offsets = new Vector2(1352.02f, 139.95f);
-                    break;
-                case 140: // zone_group=3 +++
-                    offsets = new Vector2(1329.411429f, -895.9959f); // 49=(1329.046829f, -897.2141f) 65=(1329.411429f, -895.9959f)
-                    break;
-                case 141: // zone_group=4 -
-                    offsets = new Vector2(1845.532429f, -113.2284f);
-                    break;
-                case 142: // zone_group=5   +                         -
-                    offsets = new Vector2(363.0062f, 46.0064f); //387.766f, 36.206f);
-                    break;
-                case 143: // zone_group=18  +++                    -
-                    offsets = new Vector2(495f, -550.9975f); //404.1797f, -508.763f);
-                    break;
-                case 144: // zone_group=6 -
-                    offsets = new Vector2(329.3186f, -271.2882f);
-                    break;
-                case 146: // zone_group=7 -
-                    offsets = new Vector2(1396f, -970f);
-                    break;
-                case 178: // zone_group=5 +++
-                    offsets = new Vector2(2410.951f, 46.011f);
-                    break;
-                case 179: // zone_group=5 -
-                    offsets = new Vector2(2410.951f, 46.011f);
-                    break;
-                case 181: // zone_group=1 -
-                    offsets = new Vector2(1352.02f, 139.95f);
-                    break;
-                case 182: // zone_group=1 +++
-                    offsets = new Vector2(1347.07935f, 154.05155f);
-                    break;
-                case 185: // zone_group=3 -
-                    offsets = new Vector2(1845.532429f, -113.2284f);
-                    break;
-                case 188: // zone_group=7 -
-                    offsets = new Vector2(1396f, -970f);
-                    break;
-                case 189: // zone_group=7 -
-                    offsets = new Vector2(1396f, -970f);
-                    break;
-                case 191: // zone_group=4 -
-                    offsets = new Vector2(1845.532429f, -113.2284f);
-                    break;
-                case 195: // zone_group=6   +                               -
-                    offsets = new Vector2(345.736673f, -277.809482f); //344.929873f, -283.508042f);
-                    break;
-                case 197: // zone_group=7 -
-                    offsets = new Vector2(1396f, -970f);
-                    break;
-                case 244: // zone_group=18 -
-                    offsets = new Vector2(404.1797f, -508.763f);
-                    break;
-            }
-
-            var newX = zoneGroup.X + point.X + offsets.X;
-            var newY = zoneGroup.Y + point.Y + offsets.Y;
-
-            return (newX, newY, point.Z);
-        }
-
-        /// <summary>
-        /// Переведём локальные координаты в мировые с использованием константы зависимой от zoneId
+        /// Переведём локальные координаты в мировые с использованием оригинальных координат ячеек для зоны
         /// </summary>
         /// <param name="zoneId"></param>
         /// <param name="point"></param>
-        /// <param name="coefficient"></param>
         /// <returns></returns>
-        public (float, float, float) ConvertCoord2(uint zoneId, Vector3 point, Vector2 coefficient)
+        public (float, float, float) ConvertToWorldCoordinates(uint zoneId, Vector3 point)
         {
-            var zone = GetZoneByKey(zoneId);
-            if (zone == null)
-                return (point.X, point.Y, point.Z); // если не нашли зону, вернем координаты
+            var origin = new Vector2();
 
-            var zoneGroup = GetZoneGroupById(zone.GroupId);
-
-            var newX = coefficient.X + point.X + zoneGroup.X;
-            var newY = coefficient.Y + point.Y + zoneGroup.Y;
-
-            return (newX, newY, point.Z);
-        }
-
-        /// <summary>
-        /// Найти коэффициент для перевода локальных координат в мировые координаты
-        /// </summary>
-        /// <param name="zoneId"></param>
-        /// <param name="point">точка возле остановки с мировыми координатами</param>
-        /// <param name="target">нулевая точка начального участка пути из файла</param>
-        /// <returns></returns>
-        public Vector2 GetCoefficients0(uint zoneId, Vector3 point, Vector3 target)
-        {
-            var coefficient = new Vector2();
-            var zone = GetZoneByKey(zoneId);
-            var zoneGroup = GetZoneGroupById(zone.GroupId);
-            coefficient.X = point.X - zoneGroup.X - target.X;
-            coefficient.Y = point.Y - zoneGroup.Y - target.Y;
-            return coefficient;
-        }
-
-        /// <summary>
-        /// Найти коэффициент для перевода локальных координат в мировые координаты
-        /// </summary>
-        /// <param name="zoneId"></param>
-        /// <param name="target">нулевая точка начального участка пути из файла</param>
-        /// <returns></returns>
-        public Vector2 GetCoefficients(uint zoneId, Vector3 target)
-        {
-            var coefficient = new Vector2();
-            Vector3 tmp;
-            var zone = GetZoneByKey(zoneId);
-            var zoneGroup = GetZoneGroupById(zone.GroupId);
-            switch (zoneGroup.Id)
+            switch (zoneId)
             {
-                case 5:
-                    tmp = new Vector3(15663f, 15020f, 0);
-                    coefficient = GetCoefficients0(zoneId, tmp, target);
+                // from game\world.xml
+                case 129: //  <Zone name="w_gweonid_forest_1" id="129" originX="9" originY="14">
+                    origin = new Vector2(9f, 14f);
                     break;
-                case 6:
-                    tmp = new Vector3(12609f, 15359f, 0);
-                    coefficient = GetCoefficients0(zoneGroup.Id, tmp, target);
+                case 133: //  <Zone name="w_marianople_1" id="133" originX="10" originY="10">
+                    origin = new Vector2(10f, 10f);
+                    break;
+                case 136: //  <Zone name="e_steppe_belt_1" id="136" originX="22" originY="5">
+                    origin = new Vector2(22f, 5f);
+                    break;
+                case 137: //  <Zone name="e_ruins_of_hariharalaya_1" id="137" originX="25" originY="5">
+                    origin = new Vector2(25f, 5f);
+                    break;
+                case 138: //  <Zone name="e_lokas_checkers_1" id="138" originX="23" originY="7">
+                    origin = new Vector2(23f, 7f);
+                    break;
+                case 139: //  <Zone name="e_ynystere_1" id="139" originX="18" originY="11">
+                    origin = new Vector2(18f, 11f);
+                    break;
+                case 140: //  <Zone name="w_garangdol_plains_1" id="140" originX="11" originY="11">
+                    origin = new Vector2(11f, 11f);
+                    break;
+                case 141: //  <Zone name="e_sunrise_peninsula_1" id="141" originX="14" originY="6">
+                    origin = new Vector2(14f, 6f);
+                    break;
+                case 142: //  <Zone name="w_solzreed_1" id="142" originX="12" originY="13">
+                    origin = new Vector2(12f, 13f);
+                    break;
+                case 143: //  <Zone name="w_white_forest_1" id="143" originX="8" originY="11">
+                    origin = new Vector2(8f, 11f);
+                    break;
+                case 144: //  <Zone name="w_lilyut_meadow_1" id="144" originX="11" originY="14">
+                    origin = new Vector2(11f, 14f);
+                    break;
+                case 145: //  <Zone name="w_the_carcass_1" id="145" originX="8" originY="15">
+                    origin = new Vector2(8f, 15f);
+                    break;
+                case 146: //  <Zone name="e_rainbow_field_1" id="146" originX="18" originY="6">
+                    origin = new Vector2(18f, 6f);
+                    break;
+                case 148: //  <Zone name="w_cross_plains_1" id="148" originX="13" originY="10">
+                    origin = new Vector2(13f, 10f);
+                    break;
+                case 149: //  <Zone name="w_two_crowns_1" id="149" originX="11" originY="9">
+                    origin = new Vector2(11f, 9f);
+                    break;
+                case 150: //  <Zone name="w_cradle_of_genesis" id="150" originX="6" originY="11">
+                    origin = new Vector2(6f, 11f);
+                    break;
+                case 151: //  <Zone name="w_golden_plains_1" id="151" originX="6" originY="8">
+                    origin = new Vector2(6f, 8f);
+                    break;
+                case 153: //  <Zone name="e_mahadevi_1" id="153" originX="17" originY="7">
+                    origin = new Vector2(17f, 7f);
+                    break;
+                case 154: //  <Zone name="w_bronze_rock_1" id="154" originX="5" originY="11">
+                    origin = new Vector2(5f, 11f);
+                    break;
+                case 155: //  <Zone name="e_hasla_1" id="155" originX="27" originY="6">
+                    origin = new Vector2(27f, 6f);
+                    break;
+                case 156: //  <Zone name="e_falcony_plateau_1" id="156" originX="21" originY="7">
+                    origin = new Vector2(21f, 7f);
+                    break;
+                case 157: //  <Zone name="e_sunny_wilderness_1" id="157" originX="18" originY="4">
+                    origin = new Vector2(18f, 4f);
+                    break;
+                case 158: //  <Zone name="e_tiger_spine_mountains_1" id="158" originX="20" originY="7">
+                    origin = new Vector2(20f, 7f);
+                    break;
+                case 159: //  <Zone name="e_ancient_forest" id="159" originX="21" originY="10">
+                    origin = new Vector2(21f, 10f);
+                    break;
+                case 160: //  <Zone name="e_singing_land_1" id="160" originX="20" originY="9">
+                    origin = new Vector2(20f, 9f);
+                    break;
+                case 161: //  <Zone name="w_hell_swamp_1" id="161" originX="6" originY="7">
+                    origin = new Vector2(6f, 7f);
+                    break;
+                case 162: //  <Zone name="w_long_sand_1" id="162" originX="7" originY="7">
+                    origin = new Vector2(7f, 7f);
+                    break;
+                case 164: //  <Zone name="w_barren_land" id="164" originX="8" originY="13">
+                    origin = new Vector2(8f, 13f);
+                    break;
+                case 172: //  <Zone name="s_lost_island" id="172" originX="13" originY="8">
+                    origin = new Vector2(13f, 8f);
+                    break;
+                case 173: //  <Zone name="s_lostway_sea" id="173" originX="15" originY="9">
+                    origin = new Vector2(15f, 9f);
+                    break;
+                case 178: //  <Zone name="w_solzreed_2" id="178" originX="14" originY="13">
+                    origin = new Vector2(14f, 13f);
+                    break;
+                case 179: //  <Zone name="w_solzreed_3" id="179" originX="14" originY="13">
+                    origin = new Vector2(14f, 13f);
+                    break;
+                case 180: //  <Zone name="s_silent_sea_7" id="180" originX="15" originY="13">
+                    origin = new Vector2(15f, 13f);
+                    break;
+                case 181: //  <Zone name="w_gweonid_forest_2" id="181" originX="9" originY="14">
+                    origin = new Vector2(9f, 14f);
+                    break;
+                case 182: //  <Zone name="w_gweonid_forest_3" id="182" originX="10" originY="14">
+                    origin = new Vector2(10f, 14f);
+                    break;
+                case 183: //  <Zone name="w_marianople_2" id="183" originX="10" originY="11">
+                    origin = new Vector2(10f, 11f);
+                    break;
+                case 184: //  <Zone name="e_falcony_plateau_2" id="184" originX="23" originY="7">
+                    origin = new Vector2(23f, 7f);
+                    break;
+                case 185: //  <Zone name="w_garangdol_plains_2" id="185" originX="11" originY="12">
+                    origin = new Vector2(11f, 12f);
+                    break;
+                case 186: //  <Zone name="w_two_crowns_2" id="186" originX="12" originY="9">
+                    origin = new Vector2(12f, 9f);
+                    break;
+                case 187: //  <Zone name="e_rainbow_field_2" id="187" originX="18" originY="6">
+                    origin = new Vector2(18f, 6f);
+                    break;
+                case 188: //  <Zone name="e_rainbow_field_3" id="188" originX="19" originY="6">
+                    origin = new Vector2(19f, 6f);
+                    break;
+                case 189: //  <Zone name="e_rainbow_field_4" id="189" originX="20" originY="6">
+                    origin = new Vector2(20f, 6f);
+                    break;
+                case 190: //  <Zone name="e_sunny_wilderness_2" id="190" originX="21" originY="5">
+                    origin = new Vector2(21f, 5f);
+                    break;
+                case 191: //  <Zone name="e_sunrise_peninsula_2" id="191" originX="15" originY="8">
+                    origin = new Vector2(15f, 8f);
+                    break;
+                case 192: //  <Zone name="w_bronze_rock_2" id="192" originX="5" originY="13">
+                    origin = new Vector2(5f, 13f);
+                    break;
+                case 193: //  <Zone name="w_bronze_rock_3" id="193" originX="6" originY="13">
+                    origin = new Vector2(6f, 13f);
+                    break;
+                case 194: //  <Zone name="e_singing_land_2" id="194" originX="19" originY="9">
+                    origin = new Vector2(19f, 9f);
+                    break;
+                case 195: //  <Zone name="w_lilyut_meadow_2" id="195" originX="11" originY="14">
+                    origin = new Vector2(11f, 14f);
+                    break;
+                case 196: //  <Zone name="e_mahadevi_2" id="196" originX="18" originY="7">
+                    origin = new Vector2(18f, 7f);
+                    break;
+                case 197: //  <Zone name="e_mahadevi_3" id="197" originX="19" originY="7">
+                    origin = new Vector2(19f, 7f);
+                    break;
+                case 200: //  <Zone name="o_temp_d" id="200" originX="19" originY="29">
+                    origin = new Vector2(19f, 29f);
+                    break;
+                case 201: //  <Zone name="o_temp_c" id="201" originX="14" originY="29">
+                    origin = new Vector2(14f, 29f);
+                    break;
+                case 202: //  <Zone name="o_temp_b" id="202" originX="19" originY="24">
+                    origin = new Vector2(19f, 24f);
+                    break;
+                case 203: //  <Zone name="o_temp_a" id="203" originX="14" originY="24">
+                    origin = new Vector2(14f, 24f);
+                    break;
+                case 204: //  <Zone name="o_salpimari" id="204" originX="18" originY="22">
+                    origin = new Vector2(18f, 22f);
+                    break;
+                case 205: //  <Zone name="o_nuimari" id="205" originX="20" originY="22">
+                    origin = new Vector2(20f, 22f);
+                    break;
+                case 206: //  <Zone name="w_golden_plains_2" id="206" originX="7" originY="9">
+                    origin = new Vector2(7f, 9f);
+                    break;
+                case 207: //  <Zone name="w_golden_plains_3" id="207" originX="9" originY="9">
+                    origin = new Vector2(9f, 9f);
+                    break;
+                case 209: //  <Zone name="w_dark_side_of_the_moon" id="209" originX="11" originY="16">
+                    origin = new Vector2(11f, 6f);
+                    break;
+                case 210: //  <Zone name="s_silent_sea_1" id="210" originX="13" originY="15">
+                    origin = new Vector2(13f, 15f);
+                    break;
+                case 211: //  <Zone name="s_silent_sea_2" id="211" originX="18" originY="13">
+                    origin = new Vector2(18f, 13f);
+                    break;
+                case 212: //  <Zone name="s_silent_sea_3" id="212" originX="13" originY="20">
+                    origin = new Vector2(13f, 20f);
+                    break;
+                case 213: //  <Zone name="s_silent_sea_4" id="213" originX="17" originY="18">
+                    origin = new Vector2(17f, 18f);
+                    break;
+                case 214: //  <Zone name="s_silent_sea_5" id="214" originX="22" originY="15">
+                    origin = new Vector2(22f, 15f);
+                    break;
+                case 215: //  <Zone name="s_silent_sea_6" id="215" originX="22" originY="20">
+                    origin = new Vector2(22f, 20f);
+                    break;
+                case 216: //  <Zone name="e_una_basin" id="216" originX="21" originY="12">
+                    origin = new Vector2(21f, 12f);
+                    break;
+                case 217: //  <Zone name="s_nightmare_coast" id="217" originX="22" originY="13">
+                    origin = new Vector2(22f, 13f);
+                    break;
+                case 218: //  <Zone name="s_golden_sea_1" id="218" originX="9" originY="5">
+                    origin = new Vector2(9f, 5f);
+                    break;
+                case 219: //  <Zone name="s_golden_sea_2" id="219" originX="12" originY="5">
+                    origin = new Vector2(12f, 5f);
+                    break;
+                case 221: //  <Zone name="s_crescent_sea" id="221" originX="12" originY="12">
+                    origin = new Vector2(12f, 12f);
+                    break;
+                case 225: //  <Zone name="lock_south_sunrise_peninsula" id="225" originX="15" originY="5">
+                    origin = new Vector2(15f, 5f);
+                    break;
+                case 226: //  <Zone name="lock_golden_sea" id="226" originX="9" originY="5">
+                    origin = new Vector2(9f, 5f);
+                    break;
+                case 227: //  <Zone name="lock_left_side_of_silent_sea" id="227" originX="13" originY="21">
+                    origin = new Vector2(13f, 21f);
+                    break;
+                case 228: //  <Zone name="lock_right_side_of_silent_sea_1" id="228" originX="22" originY="18">
+                    origin = new Vector2(22f, 18f);
+                    break;
+                case 229: //  <Zone name="lock_right_side_of_silent_sea_2" id="229" originX="26" originY="13">
+                    origin = new Vector2(26f, 13f);
+                    break;
+                case 230: //  <Zone name="w_golden_moss_covered_forest" id="230" originX="6" originY="10">
+                    origin = new Vector2(6f, 10f);
+                    break;
+                case 231: //  <Zone name="e_land_of_return_1" id="231" originX="23" originY="11">
+                    origin = new Vector2(23f, 11f);
+                    break;
+                case 232: //  <Zone name="o_temp_e" id="232" originX="18" originY="22">
+                    origin = new Vector2(18f, 22f);
+                    break;
+                case 233: //  <Zone name="o_seonyeokmari" id="233" originX="18" originY="24">
+                    origin = new Vector2(18f, 24f);
+                    break;
+                case 234: //  <Zone name="o_rest_land" id="234" originX="20" originY="24">
+                    origin = new Vector2(20f, 24f);
+                    break;
+                case 242: //  <Zone name="e_ruins_of_hariharalaya_2" id="242" originX="27" originY="5">
+                    origin = new Vector2(27f, 5f);
+                    break;
+                case 243: //  <Zone name="e_ruins_of_hariharalaya_3" id="243" originX="25" originY="6">
+                    origin = new Vector2(25f, 6f);
+                    break;
+                case 244: //  <Zone name="w_white_forest_2" id="244" originX="9" originY="11">
+                    origin = new Vector2(9f, 11f);
+                    break;
+                case 245: //  <Zone name="w_long_sand_2" id="245" originX="8" originY="7">
+                    origin = new Vector2(8f, 7f);
+                    break;
+                case 246: //  <Zone name="e_lokas_checkers_2" id="246" originX="23" originY="9">
+                    origin = new Vector2(23f, 9f);
+                    break;
+                case 247: //  <Zone name="e_steppe_belt_2" id="247" originX="24" originY="5">
+                    origin = new Vector2(24f, 5f);
+                    break;
+                case 248: //  <Zone name="w_hell_swamp_2" id="248" originX="6" originY="8">
+                    origin = new Vector2(6f, 8f);
+                    break;
+                case 249: //  <Zone name="w_tornado_mea" id="249" originX="4" originY="5">
+                    origin = new Vector2(4f, 5f);
+                    break;
+                case 250: //  <Zone name="w_twist_coast" id="250" originX="7" originY="3">
+                    origin = new Vector2(7f, 3f);
+                    break;
+                case 251: //  <Zone name="e_sylvina_region" id="251" originX="15" originY="4">
+                    origin = new Vector2(15f, 4f);
+                    break;
+                case 252: //  <Zone name="e_fossils_desert" id="252" originX="22" originY="3">
+                    origin = new Vector2(22f, 3f);
+                    break;
+                case 253: //  <Zone name="e_laveda" id="253" originX="25" originY="2">
+                    origin = new Vector2(25f, 2f);
+                    break;
+                case 254: //  <Zone name="e_black_desert" id="254" originX="28" originY="3">
+                    origin = new Vector2(28f, 3f);
+                    break;
+                case 256: //  <Zone name="e_singing_land_3" id="256" originX="20" originY="9">
+                    origin = new Vector2(20f, 9f);
+                    break;
+                case 257: //  <Zone name="w_cross_plains_2" id="257" originX="13" originY="10">
+                    origin = new Vector2(13f, 10f);
+                    break;
+                case 258: //  <Zone name="e_tiger_spine_mountains_2" id="258" originX="21" originY="7">
+                    origin = new Vector2(21f, 7f);
+                    break;
+                case 259: //  <Zone name="e_ynystere_2" id="259" originX="20" originY="11">
+                    origin = new Vector2(20f, 11f);
+                    break;
+                case 261: //  <Zone name="e_white_island" id="261" originX="24" originY="14">
+                    origin = new Vector2(24f, 14f);
+                    break;
+                case 266: //  <Zone name="w_mirror_kingdom_1" id="266" originX="6" originY="16">
+                    origin = new Vector2(6f, 16f);
+                    break;
+                case 267: //  <Zone name="w_frozen_top_1" id="267" originX="4" originY="13">
+                    origin = new Vector2(4f, 13f);
+                    break;
+                case 268: //  <Zone name="w_firefly_pen_1" id="268" originX="9" originY="17">
+                    origin = new Vector2(9f, 7f);
+                    break;
+                case 269: //  <Zone name="w_hanuimaru_1" id="269" originX="4" originY="7">
+                    origin = new Vector2(4f, 7f);
+                    break;
+                case 270: //  <Zone name="e_lokaloka_mountains_1" id="270" originX="25" originY="8">
+                    origin = new Vector2(25f, 8f);
+                    break;
+                case 272: //  <Zone name="e_hasla_2" id="272" originX="27" originY="8">
+                    origin = new Vector2(27f, 8f);
+                    break;
+                case 273: //  <Zone name="w_the_carcass_2" id="273" originX="10" originY="16">
+                    origin = new Vector2(10f, 16f);
+                    break;
+                case 274: //  <Zone name="e_hasla_3" id="274" originX="29" originY="6">
+                    origin = new Vector2(29f, 6f);
+                    break;
+                case 275: //  <Zone name="o_land_of_sunlights" id="275" originX="20" originY="24">
+                    origin = new Vector2(20f, 24f);
+                    break;
+                case 276: //  <Zone name="o_abyss_gate" id="276" originX="21" originY="23">
+                    origin = new Vector2(21f, 23f);
+                    break;
+                case 277: //  <Zone name="s_lonely_sea_1" id="277" originX="29" originY="6">
+                    origin = new Vector2(29f, 6f);
+                    break;
+                case 281: //  <Zone name="o_ruins_of_gold" id="281" originX="16" originY="26">
+                    origin = new Vector2(16f, 26f);
+                    break;
+                case 282: //  <Zone name="o_shining_shore_1" id="282" originX="17" originY="25">
+                    origin = new Vector2(17f, 25f);
+                    break;
+                case 283: //  <Zone name="s_freedom_island" id="283" originX="19" originY="15">
+                    origin = new Vector2(19f, 15f);
+                    break;
+                case 284: //  <Zone name="s_pirate_island" id="284" originX="13" originY="21">
+                    origin = new Vector2(13f, 21f);
+                    break;
+                case 286: //  <Zone name="e_sunny_wilderness_3" id="286" originX="18" originY="4">
+                    origin = new Vector2(18f, 4f);
+                    break;
+                case 287: //  <Zone name="e_sunny_wilderness_4" id="287" originX="18" originY="5">
+                    origin = new Vector2(18f, 5f);
+                    break;
+                case 288: //  <Zone name="o_the_great_reeds" id="288" originX="17" originY="27">
+                    origin = new Vector2(17f, 27f);
+                    break;
+                case 289: //  <Zone name="s_silent_sea_8" id="289" originX="18" originY="24">
+                    origin = new Vector2(18f, 24f);
+                    break;
+                case 293: //  <Zone name="o_library_1" id="293" originX="2" originY="28">
+                    origin = new Vector2(2f, 28f);
+                    break;
+                case 294: //  <Zone name="o_library_2" id="294" originX="2" originY="26">
+                    origin = new Vector2(2f, 26f);
+                    break;
+                case 295: //  <Zone name="o_library_3" id="295" originX="2" originY="24">
+                    origin = new Vector2(2f, 24f);
+                    break;
+                case 301: //  <Zone name="o_shining_shore_2" id="301" originX="18" originY="25">
+                    origin = new Vector2(18f, 25f);
+                    break;
+                case 307: //  <Zone name="o_dew_plains" id="307" originX="22" originY="26">
+                    origin = new Vector2(22f, 26f);
                     break;
             }
-            return coefficient;
-        }
 
-        public (float, float, float) ConvertCoordFromZoneKey(uint zoneId, Vector3 position)
-        {
-            var zone = GetZoneByKey(zoneId);
-            if (zone == null)
-                return (position.X, position.Y, position.Z); // если не нашли зону, вернем координаты
+            var newX = origin.X * 1024 + point.X;
+            var newY = origin.Y * 1024 + point.Y;
 
-            var zoneGroup = GetZoneGroupById(zone.GroupId);
-
-            var a = (32768 + position.Z) / 27.712812f + 1f;
-            var b = (32768 + position.X) / 32f + 0.5f;
-            var c = a * 0.5f + b;
-            var d = c - a * 2f;
-            var e = (float)(d * 0.33333334d + 0.0000099999997d);
-
-            var newX = e * 2f + a;
-            var newY = a * 0.5f;
-            var newZ = position.Z;
-
-            return (newX, newY, newZ);
+            return (newX, newY, point.Z);
         }
 
         public void Load()

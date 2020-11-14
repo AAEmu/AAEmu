@@ -7,7 +7,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.AI.Abstracts;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.World

@@ -1,0 +1,1523 @@
+[
+  {
+    "Count": 1,
+    "Id": 44305,
+    "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3714.364,
+      "Y": 4547.796,
+      "Z": 145.0163,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 43
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44285,
+    "UnitId": 12231,
+    "Title": "Lucky Bunny",
+    "Position": {
+      "X": 3613.776,
+      "Y": 4661.184,
+      "Z": 161.8929,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 21
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44273,
+    "UnitId": 12230,
+    "Title": "Lucky Bunny",
+    "Position": {
+      "X": 3621.508,
+      "Y": 4684.662,
+      "Z": 147.7864,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 49
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44255,
+    "UnitId": 12053,
+    "Title": "Bugira",
+    "Position": {
+      "X": 3612.494,
+      "Y": 4682.662,
+      "Z": 147.7614,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -21
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44296,
+    "UnitId": 12230,
+    "Title": "Lucky Bunny",
+    "Position": {
+      "X": 3608.066,
+      "Y": 4681.99,
+      "Z": 147.7594,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 44
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44263,
+    "UnitId": 12230,
+    "Title": "Lucky Bunny",
+    "Position": {
+      "X": 3616.848,
+      "Y": 4690.51,
+      "Z": 147.7864,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 39
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44275,
+    "UnitId": 12231,
+    "Title": "Lucky Bunny",
+    "Position": {
+      "X": 3617.636,
+      "Y": 4697.806,
+      "Z": 161.8639,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -58
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44256,
+    "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3690.918,
+      "Y": 4536.194,
+      "Z": 144.9343,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -20
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44284,
+    "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3710.472,
+      "Y": 4550.02,
+      "Z": 144.9113,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 44
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44270,
+    "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3692.694,
+      "Y": 4532.786,
+      "Z": 144.9113,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -13
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44280,
+    "UnitId": 10913,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3710.012,
+      "Y": 4545.766,
+      "Z": 144.9113,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 25
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44267,
+    "UnitId": 10914,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3695.642,
+      "Y": 4533.56,
+      "Z": 144.9113,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -2
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44299,
+    "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3712.316,
+      "Y": 4546.04,
+      "Z": 144.9333,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 43
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44295,
+    "UnitId": 10915,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3712.008,
+      "Y": 4543.57,
+      "Z": 144.9403,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 44
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44262,
+    "UnitId": 10856,
+    "Title": "Piporo",
+    "Position": {
+      "X": 3713.998,
+      "Y": 4537.224,
+      "Z": 144.9163,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 21
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44281,
+    "UnitId": 17820,
+    "Position": {
+      "X": 3703.782,
+      "Y": 4523.348,
+      "Z": 144.9113,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -19
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44274,
+    "UnitId": 16485,
+    "Position": {
+      "X": 3725.502,
+      "Y": 4544.358,
+      "Z": 144.9113,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 45
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44283,
+    "UnitId": 16859,
+    "Position": {
+      "X": 3706.442,
+      "Y": 4519.46,
+      "Z": 144.9363,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -19
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44297,
+    "UnitId": 14275,
+    "Title": "Contest Coin Collector",
+    "Position": {
+      "X": 3711.946,
+      "Y": 4512.142,
+      "Z": 144.9303,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -18
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44253,
+    "UnitId": 10926,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3613.584,
+      "Y": 4424.888,
+      "Z": 103.7582,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 29
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44243,
+    "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3595.234,
+      "Y": 4435.612,
+      "Z": 105.776,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 51
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44272,
+    "UnitId": 12402,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3567.364,
+      "Y": 4533.632,
+      "Z": 142.5354,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 47
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44261,
+    "UnitId": 12401,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3559.954,
+      "Y": 4545.348,
+      "Z": 142.5864,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 46
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44244,
+    "UnitId": 13384,
+    "Title": "Sinru",
+    "Position": {
+      "X": 3533.004,
+      "Y": 4456.326,
+      "Z": 105.822,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 53
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44245,
+    "UnitId": 10923,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3545.012,
+      "Y": 4441.52,
+      "Z": 105.4209,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 49
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44293,
+    "UnitId": 13455,
+    "Title": "Morudo",
+    "Position": {
+      "X": 3514.962,
+      "Y": 4436.224,
+      "Z": 104.6706,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -19
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44298,
+    "UnitId": 13454,
+    "Title": "Garini",
+    "Position": {
+      "X": 3518.248,
+      "Y": 4431.766,
+      "Z": 104.4185,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -19
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44248,
+    "UnitId": 13453,
+    "Title": "Lunaru",
+    "Position": {
+      "X": 3522.716,
+      "Y": 4427.0,
+      "Z": 104.7336,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -20
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44265,
+    "UnitId": 10927,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3532.554,
+      "Y": 4422.388,
+      "Z": 104.2874,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -20
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44290,
+    "UnitId": 12399,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3553.656,
+      "Y": 4428.0,
+      "Z": 105.2688,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 42
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44254,
+    "UnitId": 10916,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3552.488,
+      "Y": 4405.684,
+      "Z": 104.2094,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 9
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44300,
+    "UnitId": 10919,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3502.826,
+      "Y": 4378.592,
+      "Z": 105.9551,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 22
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44278,
+    "UnitId": 10924,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3573.418,
+      "Y": 4398.46,
+      "Z": 105.9371,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 30
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44268,
+    "UnitId": 10925,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3585.968,
+      "Y": 4412.744,
+      "Z": 105.9361,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 28
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44294,
+    "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3565.814,
+      "Y": 4331.112,
+      "Z": 105.2928,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 44
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43954,
+    "UnitId": 84,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3458.744,
+      "Y": 4373.778,
+      "Z": 105.6429,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 33
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44279,
+    "UnitId": 10921,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3494.974,
+      "Y": 4240.622,
+      "Z": 104.4655,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -27
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43970,
+    "UnitId": 84,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3450.29,
+      "Y": 4389.46,
+      "Z": 105.9821,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -13
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43943,
+    "UnitId": 85,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3507.286,
+      "Y": 4393.886,
+      "Z": 106.0881,
+      "RotationX": 1,
+      "RotationY": 0,
+      "RotationZ": 23
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44260,
+    "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3469.22,
+      "Y": 4238.56,
+      "Z": 105.9601,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -24
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44287,
+    "UnitId": 10918,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3618.258,
+      "Y": 4305.174,
+      "Z": 103.7252,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 24
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43934,
+    "UnitId": 264,
+    "Title": "Bluemist Forest Ghost",
+    "Position": {
+      "X": 3717.09,
+      "Y": 4316.714,
+      "Z": 102.8409,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 48
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 52242,
+    "UnitId": 253,
+    "Position": {
+      "X": 3720.006,
+      "Y": 4301.248,
+      "Z": 102.6818,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 40
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 52652,
+    "UnitId": 509,
+    "Title": "Sarracenia",
+    "Position": {
+      "X": 3712.79,
+      "Y": 4355.548,
+      "Z": 110.4808,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -14
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43935,
+    "UnitId": 251,
+    "Position": {
+      "X": 3725.83,
+      "Y": 4325.958,
+      "Z": 104.9477,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 48
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 94583,
+    "UnitId": 549,
+    "Title": "Ridge Bandit Wizard",
+    "Position": {
+      "X": 3712.466,
+      "Y": 4365.982,
+      "Z": 110.4898,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 23
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43930,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3725.928,
+      "Y": 4331.458,
+      "Z": 104.8546,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 18
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43931,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3727.272,
+      "Y": 4333.11,
+      "Z": 104.8516,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 18
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 94255,
+    "UnitId": 552,
+    "Title": "Slum Resident",
+    "Position": {
+      "X": 3713.426,
+      "Y": 4368.436,
+      "Z": 110.4818,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 18
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 95394,
+    "UnitId": 552,
+    "Title": "Slum Resident",
+    "Position": {
+      "X": 3727.296,
+      "Y": 4360.446,
+      "Z": 110.4778,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -46
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43936,
+    "UnitId": 252,
+    "Position": {
+      "X": 3733.936,
+      "Y": 4334.522,
+      "Z": 104.1884,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 48
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 123476,
+    "UnitId": 551,
+    "Title": "Slum Resident",
+    "Position": {
+      "X": 3728.506,
+      "Y": 4362.746,
+      "Z": 110.4698,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -46
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43928,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3735.978,
+      "Y": 4330.67,
+      "Z": 104.8676,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 79
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 94700,
+    "UnitId": 550,
+    "Title": "Ridge Bandit Wizard",
+    "Position": {
+      "X": 3729.452,
+      "Y": 4365.136,
+      "Z": 110.4618,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -40
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 71376,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3734.488,
+      "Y": 4312.554,
+      "Z": 104.9207,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 11
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43929,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3737.412,
+      "Y": 4332.028,
+      "Z": 104.8827,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 79
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 94813,
+    "UnitId": 509,
+    "Title": "Sarracenia",
+    "Position": {
+      "X": 3729.268,
+      "Y": 4375.7,
+      "Z": 110.3928,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -14
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 61481,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3736.256,
+      "Y": 4313.564,
+      "Z": 105.0037,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 10
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 71548,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3739.746,
+      "Y": 4315.26,
+      "Z": 105.1908,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 8
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 71836,
+    "UnitId": 78,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3738.334,
+      "Y": 4309.58,
+      "Z": 100.5129,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 40
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 71796,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3741.504,
+      "Y": 4315.944,
+      "Z": 105.3098,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 7
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 94921,
+    "UnitId": 508,
+    "Title": "Roaming Wood Elemental",
+    "Position": {
+      "X": 3737.886,
+      "Y": 4386.234,
+      "Z": 104.7506,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -14
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 71434,
+    "UnitId": 248,
+    "Position": {
+      "X": 3740.726,
+      "Y": 4310.664,
+      "Z": 105.0917,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 40
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 71405,
+    "UnitId": 162,
+    "Title": "Ragebeak",
+    "Position": {
+      "X": 3728.838,
+      "Y": 4305.248,
+      "Z": 104.9647,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 40
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 80475,
+    "UnitId": 510,
+    "Title": "Mutant Sarracenia",
+    "Position": {
+      "X": 3721.0,
+      "Y": 4365.584,
+      "Z": 110.4428,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -14
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43933,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3731.23,
+      "Y": 4337.838,
+      "Z": 104.8786,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 17
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 118310,
+    "UnitId": 548,
+    "Title": "Selen Sharpwind",
+    "Position": {
+      "X": 3725.25,
+      "Y": 4358.784,
+      "Z": 110.4858,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -46
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 17520,
+    "UnitId": 546,
+    "Title": "Sewerstain Slime",
+    "Position": {
+      "X": 3716.682,
+      "Y": 4372.4,
+      "Z": 110.4658,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 18
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43927,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3732.912,
+      "Y": 4327.816,
+      "Z": 104.8446,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 79
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 94818,
+    "UnitId": 545,
+    "Title": "Groundling Shaman",
+    "Position": {
+      "X": 3718.882,
+      "Y": 4373.758,
+      "Z": 110.4578,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 13
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 129351,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3738.042,
+      "Y": 4304.732,
+      "Z": 104.9097,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 70
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 71748,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3739.978,
+      "Y": 4305.412,
+      "Z": 104.9927,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 70
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 24071,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3743.536,
+      "Y": 4306.936,
+      "Z": 105.1798,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 73
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 50883,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3745.2,
+      "Y": 4307.808,
+      "Z": 105.2988,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 74
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43952,
+    "UnitId": 64,
+    "Title": "Blacksmith",
+    "Position": {
+      "X": 3870.718,
+      "Y": 4368.804,
+      "Z": 102.4627,
+      "RotationX": -5,
+      "RotationY": -7,
+      "RotationZ": -24
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43953,
+    "UnitId": 64,
+    "Title": "Blacksmith",
+    "Position": {
+      "X": 3873.002,
+      "Y": 4362.63,
+      "Z": 105.1067,
+      "RotationX": -5,
+      "RotationY": -7,
+      "RotationZ": -24
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43951,
+    "UnitId": 83,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3899.644,
+      "Y": 4374.836,
+      "Z": 100.66,
+      "RotationX": -5,
+      "RotationY": -7,
+      "RotationZ": -24
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43967,
+    "UnitId": 81,
+    "Title": "Tree Trail Foreman",
+    "Position": {
+      "X": 4118.45,
+      "Y": 4487.912,
+      "Z": 99.6356,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 2
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43969,
+    "UnitId": 423,
+    "Position": {
+      "X": 4117.848,
+      "Y": 4493.738,
+      "Z": 100.668,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 2
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43968,
+    "UnitId": 86,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 4117.512,
+      "Y": 4496.928,
+      "Z": 100.8541,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 2
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43932,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3729.898,
+      "Y": 4336.278,
+      "Z": 104.8766,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 18
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 110743,
+    "UnitId": 545,
+    "Title": "Groundling Shaman",
+    "Position": {
+      "X": 3720.78,
+      "Y": 4356.576,
+      "Z": 105.2588,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -46
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 78841,
+    "UnitId": 164,
+    "Title": "TEST_Hwang2",
+    "Position": {
+      "X": 3719.626,
+      "Y": 4363.932,
+      "Z": 106.2112,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -14
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 78939,
+    "UnitId": 547,
+    "Title": "Ironscrap Slime",
+    "Position": {
+      "X": 3716.42,
+      "Y": 4366.554,
+      "Z": 105.0027,
+      "RotationX": 57,
+      "RotationY": 27,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43922,
+    "UnitId": 86,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3685.38,
+      "Y": 4042.876,
+      "Z": 100.8541,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 11
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43923,
+    "UnitId": 423,
+    "Position": {
+      "X": 3686.982,
+      "Y": 4040.096,
+      "Z": 100.668,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 11
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43921,
+    "UnitId": 81,
+    "Title": "Tree Trail Foreman",
+    "Position": {
+      "X": 3693.194,
+      "Y": 4030.656,
+      "Z": 99.6356,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 11
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43926,
+    "UnitId": 77,
+    "Title": "Royster's Camp Soldier",
+    "Position": {
+      "X": 3731.358,
+      "Y": 4326.356,
+      "Z": 104.9007,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 78
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43925,
+    "UnitId": 79,
+    "Title": "Irene Royster",
+    "Position": {
+      "X": 3733.14,
+      "Y": 4333.718,
+      "Z": 100.5099,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 48
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 89818,
+    "UnitId": 497,
+    "Title": "Siva",
+    "Position": {
+      "X": 3719.64,
+      "Y": 4363.944,
+      "Z": 100.2899,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -14
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44249,
+    "UnitId": 10918,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3951.646,
+      "Y": 4592.45,
+      "Z": 105.0767,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 13
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44303,
+    "UnitId": 10917,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3864.84,
+      "Y": 4637.43,
+      "Z": 107.9188,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 46
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44271,
+    "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3926.526,
+      "Y": 4650.826,
+      "Z": 108.306,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 31
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44251,
+    "UnitId": 13385,
+    "Title": "Kiru",
+    "Position": {
+      "X": 3840.778,
+      "Y": 4632.102,
+      "Z": 108.357,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -52
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44269,
+    "UnitId": 10927,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3842.974,
+      "Y": 4670.184,
+      "Z": 109.4674,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 49
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44288,
+    "UnitId": 10919,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3855.028,
+      "Y": 4704.44,
+      "Z": 109.7996,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 14
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43920,
+    "UnitId": 85,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3847.008,
+      "Y": 4709.378,
+      "Z": 109.3804,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 12
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43937,
+    "UnitId": 85,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3851.45,
+      "Y": 4711.622,
+      "Z": 109.3194,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 12
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43924,
+    "UnitId": 84,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3828.784,
+      "Y": 4736.142,
+      "Z": 109.4594,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -25
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 43944,
+    "UnitId": 84,
+    "Title": "Barkbridge Trail Worker",
+    "Position": {
+      "X": 3823.474,
+      "Y": 4750.45,
+      "Z": 109.4364,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -21
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44277,
+    "UnitId": 10922,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3930.06,
+      "Y": 4713.306,
+      "Z": 109.6245,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -50
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 44252,
+    "UnitId": 10921,
+    "Title": "Mirage Isle Guide",
+    "Position": {
+      "X": 3947.884,
+      "Y": 4698.652,
+      "Z": 108.5141,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 22
+    },
+    "Scale": 0.0
+  }
+]

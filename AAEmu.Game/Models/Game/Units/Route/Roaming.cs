@@ -67,7 +67,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 _mov = Rand.Next(2, 5);
                 _rotZ = (sbyte)Rand.Next(0, 127);
                 (_newx, _newy) = MathUtil.AddDistanceToFront(_mov, _x, _y, _rotZ);
-                _newz = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, _newx, _newy) : npc.Position.Z;
+                //_newz = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, _newx, _newy) : npc.Position.Z;
+                _newz = npc.Position.Z;
                 vEndPoint = new Vector3(_newx, _newy, _newz); // точка, куда идём в данный момент
                 vBeginPoint = new Vector3(_x, _y, _z); // точка откуда идем
                 //Distance = MathUtil.GetDistance(vBeginPoint, vEndPoint);
@@ -162,8 +163,9 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             else // other
             {
-                _newz = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-                moveType.Z = _newz;
+                //_newz = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                //moveType.Z = _newz;
+                moveType.Z = npc.Position.Z;
             }
 
             // looks in the direction of movement
@@ -175,7 +177,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.DeltaMovement = new Vector3(0, 1.0f, 0);
             //moveType.DeltaMovement = new Vector3(diff.X, diff.Y, diff.Z);
 
-            moveType.Flags = 5;     // 5-walk, 4-run, 3-stand still
+            moveType.actorFlags = 5;     // 5-walk, 4-run, 3-stand still
             moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = Seq;    // has to change all the time for normal motion.

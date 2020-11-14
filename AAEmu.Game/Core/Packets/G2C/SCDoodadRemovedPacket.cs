@@ -16,6 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.WriteBc(_id);
             stream.Write(false); // e if false then the doodad will be deleted
+
             return stream;
         }
     }

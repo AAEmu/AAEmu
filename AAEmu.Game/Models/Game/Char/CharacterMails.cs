@@ -127,7 +127,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (mailFee > Self.Money)
             {
-                Self.SendErrorMessage(Error.ErrorMessageType.MailNotEnoughMoney);
+                Self.SendErrorMessage(ErrorMessageType.MailNotEnoughMoney);
                 return false;
             }
 

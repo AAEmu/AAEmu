@@ -55,6 +55,7 @@ namespace AAEmu.Game.Core.Managers
             }
             return null;
         }
+        
         public List<Point> GetTransferPath(string namePath, byte worldId = 1)
         {
             foreach (var (wid, transfers) in _transferRoads)
@@ -104,9 +105,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
         }
-
-
-
+        
         /// <summary>
         /// Поиск участка пути по позиции транспорта. Предположительно, что начало пути имеет отличный от нуля ScType
         /// </summary>
@@ -152,6 +151,7 @@ namespace AAEmu.Game.Core.Managers
             }
             return null;
         }
+        
         public (int, List<Point>) FindTransferRoad(Point target, Dictionary<int, List<Point>> listPaths, float tolerance = 1.401298E-45f, int firstPoint = -1)
         {
             // сначала найдем участк пути, в котором есть ближайшая к нашей точки место
@@ -418,6 +418,7 @@ namespace AAEmu.Game.Core.Managers
 
             return routes;
         }
+        
         public (int, int) GetMinCheckPointFromRoutes(Point position, Dictionary<int, List<Point>> routes)
         {
             var res = 0;
@@ -432,6 +433,7 @@ namespace AAEmu.Game.Core.Managers
             }
             return (res, index);
         }
+        
         //***************************************************************
         /// <summary>
         /// Ищем ближайшую точку у заданной, есть дополнительная проверка что точка таже самая или очень близкая
@@ -480,6 +482,7 @@ namespace AAEmu.Game.Core.Managers
 
             return index;
         }
+        
         public bool ComparePoints(Point target, Point position, float tolerance = 1.401298E-45f)
         {
             //var Tolerance = 1.401298E-45f;    // Погрешность
@@ -519,6 +522,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
         }
+        
         public void Spawn(Character character, Transfer tr)
         {
             // спавним кабину
@@ -825,13 +829,14 @@ namespace AAEmu.Game.Core.Managers
                     var xRoot = xDoc.DocumentElement;
                     foreach (XmlElement xnode in xRoot)
                     {
-                        var transfers = new TransferRoads();
+                        var transferRoad = new TransferRoads();
                         if (xnode.Attributes.Count > 0)
                         {
-                            transfers.Name = xnode.Attributes.GetNamedItem("Name").Value;
-                            transfers.Type = int.Parse(xnode.Attributes.GetNamedItem("Type").Value);
-                            transfers.CellX = int.Parse(xnode.Attributes.GetNamedItem("cellX").Value);
-                            transfers.CellY = int.Parse(xnode.Attributes.GetNamedItem("cellY").Value);
+                            transferRoad.Name = xnode.Attributes.GetNamedItem("Name").Value;
+                            transferRoad.ZoneId = zoneId;
+                            transferRoad.Type = int.Parse(xnode.Attributes.GetNamedItem("Type").Value);
+                            transferRoad.CellX = int.Parse(xnode.Attributes.GetNamedItem("cellX").Value);
+                            transferRoad.CellY = int.Parse(xnode.Attributes.GetNamedItem("cellY").Value);
                         }
                         foreach (XmlNode childnode in xnode.ChildNodes)
                         {
@@ -847,28 +852,19 @@ namespace AAEmu.Game.Core.Managers
                                         var y = float.Parse(splitVals[1]);
                                         var z = float.Parse(splitVals[2]);
                                         // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
-                                        // но не учитываются dX и dY смещения по осям
                                         var xyz = new Vector3(x, y, z);
-                                        var (xx, yy, zz) = ZoneManager.Instance.ConvertToWorldCoord(zoneId, xyz);
-                                        //if (transfers.CellX > 0)
-                                        //{
-                                        //    xx += transfers.CellX * 16;
-                                        //}
-                                        //if (transfers.CellY > 0)
-                                        //{
-                                        //    yy += transfers.CellY * 16;
-                                        //}
+                                        var (xx, yy, zz) = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
                                         var pos = new Point(xx, yy, zz)
                                         {
                                             WorldId = world.Id,
                                             ZoneId = zoneId
                                         };
-                                        transfers.Pos.Add(pos);
+                                        transferRoad.Pos.Add(pos);
                                     }
                                 }
                             }
                         }
-                        transferPath.Add(transfers);
+                        transferPath.Add(transferRoad);
                     }
                     transferPaths.Add(zoneId, transferPath);
                 }

@@ -2,8 +2,6 @@
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -130,7 +128,7 @@ namespace AAEmu.Game.Models.Game.Units
             Seq = (uint)(DateTime.Now - GameService.StartTime).TotalMilliseconds;
             Running = true;
             unit.Patrol = this;
-            UpdateTime = DateTime.Now;
+            //UpdateTime = DateTime.Now;
             switch (unit)
             {
                 case Gimmick gimmick:

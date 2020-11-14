@@ -17,6 +17,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         public long EntityGuid { get; set; }
         public float WaitTime { get; set; }
         public float TopZ { get; set; }
+        public float MiddleZ { get; set; }
         public float BottomZ { get; set; }
         public float RotationX { get; set; }
         public float RotationY { get; set; }

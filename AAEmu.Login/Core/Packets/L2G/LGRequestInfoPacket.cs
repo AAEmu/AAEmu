@@ -7,7 +7,7 @@ namespace AAEmu.Login.Core.Packets.L2G
     {
         private readonly uint _connectionId;
         private readonly uint _requestId;
-        private readonly ulong _accountId;
+        private readonly uint _accountId;
 
         public LGRequestInfoPacket(uint connectionId, uint requestId, uint accountId) : base(0x03)
         {

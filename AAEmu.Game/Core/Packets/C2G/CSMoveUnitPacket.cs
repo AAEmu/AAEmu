@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -90,17 +91,16 @@ namespace AAEmu.Game.Core.Packets.C2G
                 RemoveEffects(Connection.ActiveChar, moveType);
                 // This will allow you to walk on a boat, but crashes other clients. Not sure why yet.
                 if ((
-                        (moveType.Flags & 32) == 32 // предположительно, мы на корабле
-                     || 
-                        (moveType.Flags & 36) == 36 // предположительно, мы на дилижансе
+                        (moveType.actorFlags & 32) == 32 // предположительно, мы на корабле
+                     ||
+                        (moveType.actorFlags & 36) == 36 // предположительно, мы на дилижансе
                      )
                     && moveType is ActorData mType)
                 {
                     Connection
                         .ActiveChar
-                        .SetPosition(mType.X2 + mType.X, mType.Y2 + mType.Y, mType.Z2 + mType.Z, (sbyte)mType.Rot.X, (sbyte)mType.Rot.Y, (sbyte)mType.Rot.Z);
-
-                    //  .SetPosition(mType.GcWorldPos.X + mType.X, mType.GcWorldPos.Y + mType.Y, mType.GcWorldPos.Z + mType.Z, (sbyte)mType.Rot.X, (sbyte)mType.Rot.Y, (sbyte)mType.Rot.Z);
+                        .SetPosition(mType.GcWorldPos.X + mType.X, mType.GcWorldPos.Y + mType.Y, mType.GcWorldPos.Z + mType.Z, (sbyte)mType.Rot.X, (sbyte)mType.Rot.Y, (sbyte)mType.Rot.Z);
+                        //.SetPosition(mType.X2 + mType.X, mType.Y2 + mType.Y, mType.Z2 + mType.Z, (sbyte)mType.Rot.X, (sbyte)mType.Rot.Y, (sbyte)mType.Rot.Z);
 
                 }
                 else

@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.World;
@@ -147,7 +148,7 @@ namespace AAEmu.Game.Core.Managers
                 if (activeTeam.MembersCount() >= (activeTeam.IsParty ? 5 : 50)) // TODO - NEED TESTS
                 {
                     // ERROR TEAM IS FULL
-                    target.SendErrorMessage(Models.Game.Error.ErrorMessageType.TeamFull);
+                    target.SendErrorMessage(ErrorMessageType.TeamFull);
                     _activeInvitations.Remove(activeInvitation.Target.Id);
                     return;
                 }

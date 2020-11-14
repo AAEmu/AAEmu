@@ -1,10 +1,10 @@
 ﻿using System;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -20,13 +20,22 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             _log.Debug("PutDownBackpackEffect");
 
             Character character = (Character)caster;
-            if (character == null) return;
+            if (character == null)
+            {
+                return;
+            }
 
-            CasterEffectBuff packItem = (CasterEffectBuff) casterObj;
-            if (packItem == null) return;
+            CasterEffectBuff packItem = (CasterEffectBuff)casterObj;
+            if (packItem == null)
+            {
+                return;
+            }
 
             Item item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
-            if (item == null) return;
+            if (item == null)
+            {
+                return;
+            }
 
             if (character.Inventory.Equipment.RemoveItem(Items.Actions.ItemTaskType.DropBackpack, item, true))
             {

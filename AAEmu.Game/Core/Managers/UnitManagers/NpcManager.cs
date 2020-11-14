@@ -455,6 +455,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
+                _log.Info("Loading merchant packs...");
 
                 using (var command = connection.CreateCommand())
                 {
@@ -473,8 +474,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
-                _log.Info("Loaded {0} npc templates", _templates.Count);
-                _log.Info("Loading merchant packs...");
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM merchant_goods";
@@ -501,7 +500,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
+                _log.Info("Loaded {0} merchant packs", _goods.Count);
 
+                _log.Info("Loading np passive_buffs & skills...");
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM np_passive_buffs";
@@ -551,7 +552,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
-                _log.Info("Loaded {0} merchant packs", _goods.Count);
+                _log.Info("Loaded {0} npc templates", _templates.Count);
             }
         }
 

@@ -392,8 +392,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             
         }
 
-        public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body,
-            UnitCustomModelParams customModel, byte ability1)
+        public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body, UnitCustomModelParams customModel, byte ability1)
         {
             var nameValidationCode = NameManager.Instance.ValidationCharacterName(name);
             if (nameValidationCode == 0)

@@ -24,10 +24,11 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             //RotationX = (sbyte)stream.ReadInt16();
             //RotationY = (sbyte)stream.ReadInt16();
             //RotationZ = (sbyte)stream.ReadInt16();
-            var rx = stream.ReadSByte();
-            var ry = stream.ReadSByte();
-            var rz = stream.ReadSByte();
-            Rot = new Quaternion(Helpers.ConvertDirectionToRadian(rx), Helpers.ConvertDirectionToRadian(ry), Helpers.ConvertDirectionToRadian(rz), 1f);
+            //var rx = stream.ReadSByte();
+            //var ry = stream.ReadSByte();
+            //var rz = stream.ReadSByte();
+            //Rot = new Quaternion(Helpers.ConvertDirectionToRadian(rx), Helpers.ConvertDirectionToRadian(ry), Helpers.ConvertDirectionToRadian(rz), 1f);
+            Rot = stream.ReadQuaternionShort();
         }
 
         public override PacketStream Write(PacketStream stream)

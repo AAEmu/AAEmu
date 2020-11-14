@@ -106,7 +106,7 @@ namespace AAEmu.Game.Scripts.Commands
                         if ((args.Length > 2) && (double.TryParse(args[2], out var degrees)))
                         {
                             angle = degrees;
-                            character.SendMessage("[Spawn] Doodad {0} using user provided angle {1}°", unitId, angle);
+                            character.SendMessage("[Spawn] Doodad unitId={0}, objId={1} using user provided angle {2}°", unitId, doodadSpawner.Id, angle);
                         }
                         else
                             character.SendMessage("[Spawn] Doodad {0} facing you, using characters angle {1}°", unitId, angle);

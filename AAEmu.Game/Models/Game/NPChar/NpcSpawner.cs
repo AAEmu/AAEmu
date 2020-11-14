@@ -65,7 +65,6 @@ namespace AAEmu.Game.Models.Game.NPChar
                 return null;
             }
 
-
             if (npc.Template.AiFileId == AiFilesType.Roaming ||
                 npc.Template.AiFileId == AiFilesType.BigMonsterRoaming ||
                 npc.Template.AiFileId == AiFilesType.ArcherRoaming ||

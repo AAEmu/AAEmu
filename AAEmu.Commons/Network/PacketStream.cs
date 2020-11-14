@@ -844,7 +844,7 @@ namespace AAEmu.Commons.Network
         {
             var temp = new PacketStream();
             temp.Write(Helpers.ConvertLongX(x));
-            temp.Write(Helpers.ConvertLongX(y));
+            temp.Write(Helpers.ConvertLongY(y));
             temp.Write(z);
             return Write(temp, false);
         }

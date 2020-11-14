@@ -1,8 +1,6 @@
 ﻿using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils;
-using Point = AAEmu.Game.Models.Game.World.Point;
 
 namespace AAEmu.Game.Models.Game.Team
 {

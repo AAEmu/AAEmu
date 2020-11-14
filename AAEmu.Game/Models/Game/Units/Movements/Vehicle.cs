@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             base.Read(stream);
             (X, Y, Z) = stream.ReadPositionBc();
             //var (x, y, z) = stream.ReadWorldPosition();
-            WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongX(Y), Z);
+            WorldPos = new WorldPos(Helpers.ConvertLongX(X), Helpers.ConvertLongY(Y), Z);
 
             //VelX = stream.ReadInt16(); // TODO убрать
             //VelY = stream.ReadInt16(); // TODO убрать

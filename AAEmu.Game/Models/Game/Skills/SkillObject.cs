@@ -84,7 +84,7 @@ namespace AAEmu.Game.Models.Game.Skills
             stream.Write(Type);
             stream.Write(Id);
             stream.Write(Helpers.ConvertLongX(X));
-            stream.Write(Helpers.ConvertLongX(Y));
+            stream.Write(Helpers.ConvertLongY(Y));
             stream.Write(Z);
             return stream;
         }
