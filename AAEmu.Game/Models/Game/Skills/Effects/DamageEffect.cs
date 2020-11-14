@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -184,6 +185,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             iVar1 = (int)(max * (damageMultiplier + 1000));
             uVar3 = iVar1 / 1000 + (iVar1 >> 0x1f);
             max = (uVar3 >> 0x1f) + uVar3;
+
+            min = (float) caster.Modifiers.ApplyModifiers(skill, SkillAttribute.Damage, min);
+            max = (float) caster.Modifiers.ApplyModifiers(skill, SkillAttribute.Damage, max);
             
             var value = (int)Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
