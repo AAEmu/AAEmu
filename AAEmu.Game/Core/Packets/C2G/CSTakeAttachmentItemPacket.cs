@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var slotType = stream.ReadByte();
             var slot = stream.ReadByte();
       
-            Connection.ActiveChar.Mails.GetAttached(mailId, false, true, true);
+            Connection.ActiveChar.Mails.GetAttached(mailId, false, true, false, id);
         }
     }
 }

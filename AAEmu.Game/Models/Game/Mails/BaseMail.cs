@@ -40,6 +40,7 @@ namespace AAEmu.Game.Models.Game.Mails
         {
             // Update Attachments just in case somebody did manual editing
             Header.Attachments = GetTotalAttachmentCount();
+            RenumberSlots();
             return MailManager.Instance.Send(this);
         }
 
@@ -73,6 +74,15 @@ namespace AAEmu.Game.Models.Game.Mails
             Body.MoneyAmount1 = money1Amount;
             Body.MoneyAmount2 = money2Amount;
             Header.Attachments = GetTotalAttachmentCount();
+        }
+
+        protected void RenumberSlots()
+        {
+            for(var i = 0;i < Body.Attachments.Count;i++)
+            {
+                Body.Attachments[i].SlotType = SlotType.Mail;
+                Body.Attachments[i].Slot = i;
+            }
         }
 
     }

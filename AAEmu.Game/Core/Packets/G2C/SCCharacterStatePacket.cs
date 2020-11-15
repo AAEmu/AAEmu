@@ -35,7 +35,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.Write(_character.Mails.unreadMailCount.Received); // unreadMail
             stream.Write(_character.Mails.unreadMailCount.MiaReceived); // unreadMiaMail
-            stream.Write(0); // unreadCommercialMail
+            stream.Write(_character.Mails.unreadMailCount.CommercialReceived); // unreadCommercialMail
             stream.Write(_character.NumInventorySlots);
             stream.Write(_character.NumBankSlots);
             stream.Write(_character.Money); // moneyAmount - Inventory
