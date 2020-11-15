@@ -430,23 +430,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM doodad_func_clout_effects";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                    {
-                        while (reader.Read())
-                        {
-                            var func = new DoodadFuncCloutEffect();
-                            func.Id = reader.GetUInt32("id");
-                            func.FuncCloutId = reader.GetUInt32("doodad_func_clout_id");
-                            func.EffectId = reader.GetUInt32("effect_id");
-                            _funcTemplates["DoodadFuncCloutEffect"].Add(func.Id, func);
-                        }
-                    }
-                }
-
-                using (var command = connection.CreateCommand())
-                {
                     command.CommandText = "SELECT * FROM doodad_func_clouts";
                     command.Prepare();
                     using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -466,7 +449,23 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                             func.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
                             func.UseOriginSource = reader.GetBoolean("use_origin_source", true);
+                            func.Effects = new List<uint>();
                             _funcTemplates["DoodadFuncClout"].Add(func.Id, func);
+                        }
+                    }
+                }
+                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodad_func_clout_effects";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var funcCloutId = reader.GetUInt32("doodad_func_clout_id");
+                            var func = (DoodadFuncClout)_funcTemplates["DoodadFuncClout"][funcCloutId];
+                            func.Effects.Add(reader.GetUInt32("effect_id"));
                         }
                     }
                 }

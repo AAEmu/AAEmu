@@ -74,6 +74,14 @@ namespace AAEmu.Game.Models.Game.Units
             return null;
         }
 
+        public Effect GetEffectByTemplate(EffectTemplate template)
+        {
+            foreach (var effect in new List<Effect>(_effects))
+                if (effect.Template == template)
+                    return effect;
+            return null;
+        }
+
         public bool CheckBuff(uint id)
         {
             foreach (var effect in new List<Effect>(_effects))
