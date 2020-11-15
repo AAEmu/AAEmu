@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -154,6 +155,50 @@ namespace AAEmu.Game.Scripts.Commands
                     else
                     {
                         character.SendMessage("[TestMail] Extra Flag parse error");
+                    }
+                }
+
+                if (args.Length > 6)
+                {
+                    for(var a = 6; a < args.Length-1;a += 2)
+                    {
+                        var iStr = args[a];
+                        var cStr = args[a+1];
+                        if (uint.TryParse(iStr, out var itemId))
+                        {
+                            if (int.TryParse(cStr, out var itemCount))
+                            {
+                                var itemTemplate = ItemManager.Instance.GetTemplate(itemId);
+                                if (itemTemplate == null)
+                                {
+                                    character.SendMessage("|cFFFF0000Item template does not exist for {0} !|r", itemId);
+                                    return;
+                                }
+
+                                if (itemCount < 1)
+                                    itemCount = 1;
+                                if (itemCount > itemTemplate.MaxCount)
+                                    itemCount = itemTemplate.MaxCount;
+
+                                var itemGrade = itemTemplate.FixedGrade;
+                                if (itemGrade <= 0)
+                                    itemGrade = 0;
+                                var newItem = ItemManager.Instance.Create(itemId, itemCount, (byte)itemGrade, true);
+                                newItem.OwnerId = character.Id;
+                                newItem.SlotType = SlotType.Mail;
+                                mail.Body.Attachments.Add(newItem);
+
+                                character.SendMessage("[TestMail] Attachment: @ITEM_NAME({0}) ({0}) x {1}", itemId, itemCount);
+                            }
+                            else
+                            {
+                                character.SendMessage("[TestMail] Parse Error on ItemCount");
+                            }
+                        }
+                        else
+                        {
+                            character.SendMessage("[TestMail] Parse Error on ItemID");
+                        }
                     }
                 }
 

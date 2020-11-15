@@ -1,6 +1,7 @@
 {
     "echo": 100,
     "snow": 100,
+    "testmail": 100,
     "testguild": 100,
     "testslave": 100,
     "testtransfer": 100,
