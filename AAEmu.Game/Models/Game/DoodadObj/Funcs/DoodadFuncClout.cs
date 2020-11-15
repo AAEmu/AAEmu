@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
@@ -34,6 +35,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                        " TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}",
                 Duration, Tick, TargetRelationId, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
 
+            
+            var areaTrigger = new AreaTrigger()
+            {
+                Shape = WorldManager.Instance.GetAreaShapeById(AoeShapeId),
+                Owner = owner,
+                Caster = caster,
+                InsideBuffTemplate = SkillManager.Instance.GetBuffTemplate(BuffId)
+            };
+
+            AreaTriggerManager.Instance.AddAreaTrigger(areaTrigger);
+            
             if (Duration > 0)
             {
                 // TODO : Add a proper delay in here
@@ -43,19 +55,20 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     if (NextPhase == 0) 
                         owner.Delete();
                     DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
+                    AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });
             }
             
             // Tick logic
             // If tick is > 0 we apply the BuffId to every player in the AoeShape 
-            if (Tick > 0)
-            {
-                Task.Run(async () =>
-                {
-                    await ScheduleTick(caster, owner);
-                });
-            }
-            
+            // if (Tick > 0)
+            // {
+            //     Task.Run(async () =>
+            //     {
+            //         await ScheduleTick(caster, owner);
+            //     });
+            // }
+
             // Area Trigger logic
             // If tick is == 0 we create an AreaTrigger which applies the effect everytime someone enters the area
         }

@@ -318,6 +318,33 @@ namespace AAEmu.Game.Models.Game.Units
                         return;
                 }
         }
+        
+        public void RemoveBuffs(uint buffTagId, int count)
+        {
+            var own = GetOwner();
+            if (own == null)
+                return;
+        
+            if (_effects == null)
+                return;
+
+            var buffIds = SkillManager.Instance.GetBuffsByTagId(buffTagId);
+            foreach (var e in new List<Effect>(_effects))
+                if (e != null)
+                {
+                    switch (e.Template)
+                    {
+                        case BuffTemplate template when !buffIds.Contains(template.Id):
+                        case BuffEffect effect when !buffIds.Contains(effect.Buff.Id):
+                            continue;
+                    }
+
+                    e.Exit();
+                    count--;
+                    if (count == 0)
+                        return;
+                }
+        }
 
         public void RemoveAllEffects()
         {

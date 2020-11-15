@@ -107,14 +107,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         private static bool ConditionDirection(Unit caster, SkillCaster casterCaster, BaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3, PlotEventCondition eventCondition)
         {
-            //TODO we need to calculate if unit facing us or not.
-            if (eventCondition.TargetId == PlotEffectTarget.Source)
-                return false;
-            else if (eventCondition.TargetId == PlotEffectTarget.Target)
-                return true;//Always backstab?
-            
-            //default?
-            return false;
+            return !MathUtil.IsFront(caster, target);
         }
 
         private static bool ConditionBuffTag(Unit caster, SkillCaster casterCaster, BaseUnit target,
