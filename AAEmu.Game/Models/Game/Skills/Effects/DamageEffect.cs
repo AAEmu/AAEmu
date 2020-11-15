@@ -201,7 +201,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = (int)Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
-            
+
+            caster.SendPacket(new SCChatMessagePacket(Chat.ChatType.System, $"Applied: {value} damage to {trg.ObjId} from {caster.ObjId}"));
             // TODO : Use proper chance kinds (melee, magic etc.)
             if (trg is Character procTarget)
                 procTarget.Procs.RollProcsForKind(ProcChanceKind.TakeDamageAny);

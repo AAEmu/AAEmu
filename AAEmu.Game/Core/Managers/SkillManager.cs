@@ -1274,7 +1274,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Front = reader.GetBoolean("front", true);
                             template.Back = reader.GetBoolean("back", true);
                             template.TargetNpcTagId = reader.GetUInt32("target_npc_tag_id", 0);
-                            template.ApplicationMethodId = reader.GetUInt32("application_method_id");
+                            template.ApplicationMethod = (SkillEffectApplicationMethod)reader.GetUInt32("application_method_id");
                             template.ConsumeSourceItem = reader.GetBoolean("consume_source_item", true);
                             template.ConsumeItemId = reader.GetUInt32("consume_item_id", 0);
                             template.ConsumeItemCount = reader.GetInt32("consume_item_count");

@@ -405,7 +405,23 @@ namespace AAEmu.Game.Models.Game.Skills
             var packets = new CompressedGamePackets();
             foreach (var effect in Template.Effects)
             {
-                foreach (var target in targets)
+                var effectedTargets = new List<BaseUnit>();
+                switch (effect.ApplicationMethod)
+                {
+                    case SkillEffectApplicationMethod.Target:
+                        effectedTargets = targets;//keep target
+                        break;
+                    case SkillEffectApplicationMethod.Source:
+                        effectedTargets.Add(caster);//Diff between Source and SourceOnce?
+                        break;
+                    case SkillEffectApplicationMethod.SourceOnce:
+                        effectedTargets.Add(caster);//idk
+                        break;
+                    case SkillEffectApplicationMethod.SourceToPos:
+                        effectedTargets = targets;
+                        break;
+                }
+                foreach (var target in effectedTargets)
                 {
                     if (effect.StartLevel > caster.Level || effect.EndLevel < caster.Level)
                     {
