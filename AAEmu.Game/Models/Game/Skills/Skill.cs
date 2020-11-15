@@ -390,8 +390,9 @@ namespace AAEmu.Game.Models.Game.Skills
             var targets = new List<BaseUnit>(); // TODO crutches
             if (Template.TargetAreaRadius > 0)
             {
-                var units = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius).AsEnumerable();
-                units = FilterAoeUnits(caster, units);
+                var units = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius);
+                units.Add(targetSelf);
+                units = FilterAoeUnits(caster, units).ToList();
 
                 targets.AddRange(units);
                 // TODO : Need to this if this is needed
