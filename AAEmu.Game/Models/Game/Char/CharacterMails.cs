@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using System.Net.Mail;
 using AAEmu.Game.Core.Managers.Id;
 using SQLitePCL;
+using System.Numerics;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -123,46 +124,117 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected)
+        public void GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected, ulong specifiedItemId = 0)
         {
             if (MailManager.Instance._allPlayerMails.TryGetValue(mailId, out var thisMail))
             {
+                bool tookMoney = false;
                 if (thisMail.Body.CopperCoins > 0 && takeMoney)
                 {
                     Self.ChangeMoney(SlotType.Inventory, thisMail.Body.CopperCoins);
                     thisMail.Body.CopperCoins = 0;
                     thisMail.Header.Attachments -= 1;
+                    tookMoney = true;
                 }
 
                 var itemSlotList = new List<ItemIdAndLocation>();
+                // Check if items need to be taken, and add them to a list
                 if (takeItems)
                 {
                     var toRemove = new List<Item>();
                     foreach (var itemAttachment in thisMail.Body.Attachments)
                     {
+                        // if not our specified item, skip this slot
+                        if ((specifiedItemId > 0) && (itemAttachment.Id != specifiedItemId))
+                            continue;
+
+                        // Sanity-check
                         if (itemAttachment.Id != 0)
                         {
-                            if (Self.Inventory.Bag.FreeSlotCount > 0)
+                            // Free Space Check
+                            if (Self.Inventory.Bag.SpaceLeftForItem(itemAttachment,out var foundItems) >= itemAttachment.Count)
                             {
-                                // TODO: Handle proper item stacking
-                                Self.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment);
+                                Item stackItem = null;
+                                // Check if we can stack the item onto a existing one
+                                if ((itemAttachment.Template.MaxCount > 1) && (foundItems.Count > 0))
+                                {
+                                    foreach (var fi in foundItems)
+                                    {
+                                        if ((fi.Count + itemAttachment.Count) <= fi.Template.MaxCount)
+                                        {
+                                            stackItem = fi;
+                                            break;
+                                        }
+                                    }
+                                }
+
                                 var iial = new ItemIdAndLocation();
                                 iial.Id = itemAttachment.Id;
                                 iial.SlotType = itemAttachment.SlotType;
                                 iial.Slot = (byte)itemAttachment.Slot;
-                                itemSlotList.Add(iial);
-                                thisMail.Header.Attachments -= 1;
-                                toRemove.Add(itemAttachment);
+
+                                // Move item to player inventory
+                                if (Self.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment, stackItem != null? stackItem.Slot : -1))
+                                {
+                                    itemSlotList.Add(iial);
+                                    thisMail.Header.Attachments -= 1;
+                                    toRemove.Add(itemAttachment);
+                                }
+                                else
+                                {
+                                    // Should technically never fail because of previous free slot check
+                                    throw new Exception("GetAttachmentFailedAddToBag");
+                                }
+                            }
+                            else
+                            {
+                                // Bag Full
+                                Self.SendErrorMessage(Error.ErrorMessageType.BagFull);
                             }
                         }
                     }
-                    // thisMail.Body.Attachments.Clear();
+                    // Removed those marked to be taken
                     foreach (var ia in toRemove)
                         thisMail.Body.Attachments.Remove(ia);
                     
                 }
-                Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, itemSlotList));
-                Self.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
+                // Mark taken items
+                
+                // Send attachments taken packets (if needed)
+                // Money
+                if (tookMoney)
+                {
+                    Self.SendPacket(new SCAttachmentTakenPacket(mailId, true, false, takeAllSelected, new List<ItemIdAndLocation>()));
+                }
+                // Items
+                if (itemSlotList.Count > 0)
+                {
+                    // Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, itemSlotList));
+                    /* 
+                     * ZeromusXYZ:
+                     * Splitting this packet up to be sent one by one fixes delivery issue in cases where not everything is deliverd at once,
+                     * like full bag, manual item grabbing.
+                     * It's kind of silly, but I don't have a better solution for it 
+                    */
+                    foreach (var iSlot in itemSlotList)
+                    {
+                        var dummyItemSlotList = new List<ItemIdAndLocation>();
+                        dummyItemSlotList.Add(iSlot);
+                        Self.SendPacket(new SCAttachmentTakenPacket(mailId, takeMoney, false, takeAllSelected, dummyItemSlotList));
+                    }
+                }
+                // Mark mail as read in case we took at least one item from it
+                if ((thisMail.Header.Status == MailStatus.Unread) && (tookMoney || (itemSlotList.Count > 0)))
+                {
+                    thisMail.Header.Status = MailStatus.Read;
+                    unreadMailCount.Received--;
+                    Self.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
+                    Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
+                }
+
+                // TODO: Make sure attachment settings and mail info is sent back correctly 
+                // taking all attachements sometimes doesn't enable the delete button when getting attachments using "GetAllSelected"
+
                 // TODO: if source player is online, update their mail info (sent tab)
             }
         }

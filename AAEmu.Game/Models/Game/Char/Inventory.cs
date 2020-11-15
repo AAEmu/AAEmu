@@ -174,23 +174,23 @@ namespace AAEmu.Game.Models.Game.Char
             var totalCount = 0;
             if (_itemContainers.TryGetValue(slotType, out var c))
             {
-                if (c.GetAllItemsByTemplate(templateId, out _, out int itemCount))
+                if (c.GetAllItemsByTemplate(templateId, -1, out _, out int itemCount))
                     totalCount += itemCount;
             }
             return (totalCount >= count);
         }
 
-        public int GetItemsCount(uint templateId)
+        public int GetItemsCount(uint templateId, int gradeToCount = -1)
         {
-            if (GetAllItemsByTemplate(null, templateId, out var _, out var counted))
+            if (GetAllItemsByTemplate(null, templateId, gradeToCount, out var _, out var counted))
                 return counted;
             else
                 return 0;
         }
 
-        public int GetItemsCount(SlotType slotType, uint templateId)
+        public int GetItemsCount(SlotType slotType, uint templateId, int gradeToCount = -1)
         {
-            if (GetAllItemsByTemplate(new SlotType[1] { slotType }, templateId, out var _, out var counted))
+            if (GetAllItemsByTemplate(new SlotType[1] { slotType }, templateId, gradeToCount, out var _, out var counted))
                 return counted;
             else
                 return 0;
@@ -202,9 +202,10 @@ namespace AAEmu.Game.Models.Game.Char
         /// <param name="inContainerTypes">Array of SlotTypes to search in, you can leave this blank or null to check Inventory + Equipped + Warehouse</param>
         /// <param name="templateId">templateId to search for</param>
         /// <param name="foundItems">List of found item objects</param>
+        /// <param name="gradeToCheck">Only list specified grade, use -1 for all grades</param>
         /// <param name="unitsOfItemFound">Total count of the count values of the found items</param>
         /// <returns>True if any item was found</returns>
-        public bool GetAllItemsByTemplate(SlotType[] inContainerTypes, uint templateId, out List<Item> foundItems, out int unitsOfItemFound)
+        public bool GetAllItemsByTemplate(SlotType[] inContainerTypes, uint templateId, int gradeToCheck, out List<Item> foundItems, out int unitsOfItemFound)
         {
             bool res = false;
             foundItems = new List<Item>();
@@ -217,7 +218,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (_itemContainers.TryGetValue(ct, out var c))
                 {
-                    res |= c.GetAllItemsByTemplate(templateId, out var theseItems, out var theseAmounts);
+                    res |= c.GetAllItemsByTemplate(templateId, gradeToCheck, out var theseItems, out var theseAmounts);
                     foundItems.AddRange(theseItems);
                     unitsOfItemFound += theseAmounts;
                 }

@@ -192,7 +192,9 @@ namespace AAEmu.Game.Models.Game.Items
             byte sourceSlot = (byte)item.Slot;
             SlotType sourceSlotType = item.SlotType;
 
+            var currentPreferredSlotItem = GetItemBySlot(preferredSlot);
             var newSlot = -1;
+            bool canAddToSameSlot = false;
             // When adding wearables to equipment container, for the slot numbers if needed
             if ((ContainerType == SlotType.Equipment) && (item is EquipItem eItem) && (preferredSlot < 0))
             {
@@ -200,6 +202,15 @@ namespace AAEmu.Game.Models.Game.Items
                     newSlot = (int)armorTemp.SlotTemplate.SlotTypeId;
                 if (eItem.Template is AccessoryTemplate accTemp)
                     newSlot = (int)accTemp.SlotTemplate.SlotTypeId;
+            }
+            if (
+                (ContainerType == SlotType.Inventory) && (item.Template.MaxCount > 1) && 
+                (currentPreferredSlotItem != null) && 
+                (currentPreferredSlotItem.TemplateId == item.TemplateId) && (currentPreferredSlotItem.Grade == item.Grade) && 
+                (item.Count + currentPreferredSlotItem.Count <= item.Template.MaxCount))
+            {
+                newSlot = preferredSlot;
+                canAddToSameSlot = true;
             }
             else
             {
@@ -229,20 +240,29 @@ namespace AAEmu.Game.Models.Game.Items
                 Owner?.Inventory.OnConsumedItem(item, item.Count);
             }
 
-            item.SlotType = ContainerType;
-            item.Slot = newSlot;
-            item._holdingContainer = this;
-            if (this.Owner != null)
-                item.OwnerId = this.Owner.Id;
+            if (canAddToSameSlot)
+            {
+                currentPreferredSlotItem.Count += item.Count;
+                if (this.ContainerType != SlotType.None)
+                    itemTasks.Add(new ItemCountUpdate(currentPreferredSlotItem, item.Count));
+            }
             else
-                item.OwnerId = 0;
+            {
+                item.SlotType = ContainerType;
+                item.Slot = newSlot;
+                item._holdingContainer = this;
+                if (this.Owner != null)
+                    item.OwnerId = this.Owner.Id;
+                else
+                    item.OwnerId = 0;
 
-            Items.Insert(0, item); // insert at front for easy buyback handling
-            //Items.Add(item);
-            UpdateFreeSlotCount();
-            // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
-            if (this.ContainerType != SlotType.None)
-                itemTasks.Add(new ItemAdd(item));
+                Items.Insert(0, item); // insert at front for easy buyback handling
+                                       //Items.Add(item);
+                UpdateFreeSlotCount();
+                // Note we use SlotType.None for things like the Item BuyBack Container. Make sure to manually handle the remove for these
+                if (this.ContainerType != SlotType.None)
+                    itemTasks.Add(new ItemAdd(item));
+            }
 
             // Item Tasks
             if ((sourceContainer != null) && (sourceContainer != this))
@@ -297,7 +317,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <returns>True on success, False if there aren't enough item units or otherwise fails to update the container</returns>
         public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume,Item preferredItem)
         {
-            if (!GetAllItemsByTemplate(templateId, out var foundItems, out var count))
+            if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out var count))
                 return 0; // Nothing found
             if (amountToConsume > count)
                 return 0; // Not enough total
@@ -363,7 +383,7 @@ namespace AAEmu.Game.Models.Game.Items
             if (amountToAdd <= 0)
                 return true;
 
-            GetAllItemsByTemplate(templateId, out var currentItems, out var currentTotalItemCount);
+            GetAllItemsByTemplate(templateId, gradeToAdd, out var currentItems, out var currentTotalItemCount);
             var template = ItemManager.Instance.GetTemplate(templateId);
             if (template == null)
                 return false; // Invalid item templateId
@@ -420,13 +440,35 @@ namespace AAEmu.Game.Models.Game.Items
             return (itemTasks.Count > 0);
         }
 
+        /// <summary>
+        /// Count the maximum amount of items of a given templateID that can be added to a inventory taking into account the max stack size. Ignores item grade
+        /// </summary>
+        /// <param name="templateId">Item template ID</param>
+        /// <returns>Amount of item units that can be added before the bag is full</returns>
         public int SpaceLeftForItem(uint templateId)
         {
-            GetAllItemsByTemplate(templateId, out var currentItems, out var currentTotalItemCount);
+            GetAllItemsByTemplate(templateId, -1, out var currentItems, out var currentTotalItemCount);
             var template = ItemManager.Instance.GetTemplate(templateId);
             if (template == null)
                 return 0 ; // Invalid item templateId
             return (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
+        }
+
+        /// <summary>
+        /// Count the maximum amount of items of a given item that can be added to a inventory taking into account the max stack size using a specific item to be added. Takes into account item grade
+        /// </summary>
+        /// <param name="itemToAdd">Item we wish to add for</param>
+        /// <param name="currentItems">List of items in the current container that match the itemToAdd's criteria (template and grade)</param>
+        /// <returns>Amount of item units of the given item that can be added before the bag is full</returns>
+        public int SpaceLeftForItem(Item itemToAdd, out List<Item> currentItems)
+        {
+            if (itemToAdd == null)
+            {
+                currentItems = new List<Item>();
+                return 0;
+            }
+            GetAllItemsByTemplate(itemToAdd.TemplateId, itemToAdd.Grade, out currentItems, out var currentTotalItemCount);
+            return (currentItems.Count * itemToAdd.Template.MaxCount) - currentTotalItemCount + (FreeSlotCount * itemToAdd.Template.MaxCount);
         }
 
 
@@ -447,14 +489,15 @@ namespace AAEmu.Game.Models.Game.Items
         /// </summary>
         /// <param name="templateId">templateId to search for</param>
         /// <param name="foundItems">List of found item objects</param>
+        /// <param name="gradeToFind">Only lists items of specific grade is gradeToFind >= </param>
         /// <param name="unitsOfItemFound">Total count of the count values of the found items</param>
         /// <returns>True if any item was found</returns>
-        public bool GetAllItemsByTemplate(uint templateId, out List<Item> foundItems, out int unitsOfItemFound)
+        public bool GetAllItemsByTemplate(uint templateId, int gradeToFind, out List<Item> foundItems, out int unitsOfItemFound)
         {
             foundItems = new List<Item>();
             unitsOfItemFound = 0;
             foreach (var i in Items)
-                if (i.TemplateId == templateId)
+                if ((i.TemplateId == templateId) && ((gradeToFind < 0) || (gradeToFind == i.Grade)))
                 {
                     foundItems.Add(i);
                     unitsOfItemFound += i.Count;
