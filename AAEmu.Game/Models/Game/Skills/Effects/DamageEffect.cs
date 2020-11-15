@@ -110,7 +110,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     dpsInc = caster.DpsInc;
                     break;
                 case DamageType.Magic:
-                    dpsInc = caster.MDps;
+                    dpsInc = caster.MDps + caster.MDpsInc;
                     break;
                 case DamageType.Ranged:
                     dpsInc = caster.RangedDpsInc;

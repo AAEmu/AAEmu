@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -13,6 +14,9 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using Microsoft.CodeAnalysis.Text;
@@ -42,6 +46,7 @@ namespace AAEmu.Game.Core.Managers
 
         // Gemming
         private Dictionary<uint, uint> _socketChance;
+        private Dictionary<uint, List<BonusTemplate>> _itemUnitModifiers;
         private Dictionary<uint, ItemCapScale> _itemCapScales;
 
         // LootPacks
@@ -409,6 +414,13 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
+        public List<BonusTemplate> GetUnitModifiers(uint itemId)
+        {
+            if (_itemUnitModifiers.ContainsKey(itemId))
+                return _itemUnitModifiers[itemId];
+            return new List<BonusTemplate>();
+        }
+
 
         public Item Create(uint templateId, int count, byte grade, bool generateId = true)
         {
@@ -466,6 +478,7 @@ namespace AAEmu.Game.Core.Managers
             _lootDropItems = new Dictionary<uint, List<Item>>();
             _itemDoodadTemplates = new Dictionary<uint, ItemDoodadTemplate>();
             _itemProcTemplates = new Dictionary<uint, ItemProcTemplate>();
+            _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
             _config = new ItemConfig();
 
             SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
@@ -1220,6 +1233,30 @@ namespace AAEmu.Game.Core.Managers
                             };
                             
                             _itemProcTemplates.Add(template.Id, template);
+                        }
+                    }
+                }
+                
+                using(var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Item'";
+                    command.Prepare();
+                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while(reader.Read())
+                        {
+                            var itemId = reader.GetUInt32("owner_id");
+                            var template = new BonusTemplate
+                            {
+                                Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"),
+                                ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
+                                Value = reader.GetInt32("value"),
+                                LinearLevelBonus = reader.GetInt32("linear_level_bonus")
+                            };
+                            
+                            if (!_itemUnitModifiers.ContainsKey(itemId))
+                                _itemUnitModifiers.Add(itemId, new List<BonusTemplate>());
+                            _itemUnitModifiers[itemId].Add(template);
                         }
                     }
                 }

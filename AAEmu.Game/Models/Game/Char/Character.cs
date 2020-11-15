@@ -589,7 +589,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.MDps ?? 0;
-                res += Int / 5f;
+                // res += Int / 5f;
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
@@ -918,6 +918,23 @@ namespace AAEmu.Game.Models.Game.Char
             return ExpirienceManager.Instance.GetLevelFromExp(Abilities.Abilities[type].Exp);
         }
 
+        public void UpdateGearBonuses()
+        {
+            // We use index 1 for gear bonuses. Will make this a constant later, or do it properly. Right now the expected behavior is to have key == buff id, which doesn't work when you have items.
+            Bonuses[1] = new List<Bonus>();
+
+            foreach (var item in Equipment.Items)
+            {
+                if (!(item is EquipItem ei))
+                    continue;
+
+                // Gems
+                foreach (var gem in ei.GemIds)
+                    foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
+                        AddBonus(1, new Bonus {Template = template, Value = template.Value});
+            }
+        }
+
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;
@@ -1243,6 +1260,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             Mails = new CharacterMails(this);
             MailManager.Instance.GetCurrentMailList(this); //Doesn't need a connection, but does need to load after the inventory
+            UpdateGearBonuses();
         }
 
         public bool SaveDirectlyToDatabase()
