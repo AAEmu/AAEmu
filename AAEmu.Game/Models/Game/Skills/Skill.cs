@@ -403,6 +403,7 @@ namespace AAEmu.Game.Models.Game.Skills
             }
 
             var packets = new CompressedGamePackets();
+            var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
             foreach (var effect in Template.Effects)
             {
                 var effectedTargets = new List<BaseUnit>();
@@ -421,6 +422,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         effectedTargets = targets;
                         break;
                 }
+
                 foreach (var target in effectedTargets)
                 {
                     if (effect.StartLevel > caster.Level || effect.EndLevel < caster.Level)
@@ -520,8 +522,13 @@ namespace AAEmu.Game.Models.Game.Skills
                         }
                     }
 
-                    effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now, packets);
-                }
+                    effectsToApply.Add((target, effect));
+                    //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now, packets);
+                } 
+            }
+            foreach (var item in effectsToApply)
+            {
+                item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now, packets);
             }
             // Quick Hack
             if (packets.Packets.Count > 0)
