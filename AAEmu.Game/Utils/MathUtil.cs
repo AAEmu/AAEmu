@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Utils
@@ -110,6 +111,20 @@ namespace AAEmu.Game.Utils
             }
 
             return (float)Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        public static Vector3 GetVectorFromQuat(Quaternion quat)
+        {
+                double sqw = quat.W*quat.W;
+                double sqx = quat.X*quat.X;
+                double sqy = quat.Y*quat.Y;
+                double sqz = quat.Z*quat.Z;
+                
+                var rotX = (float)Math.Atan2(2.0 * (quat.X*quat.Y + quat.Z*quat.W),(sqx - sqy - sqz + sqw));
+                var rotY = (float)Math.Atan2(2.0 * (quat.Y*quat.Z + quat.X*quat.W),(-sqx - sqy + sqz + sqw));
+                var rotZ = (float)Math.Asin(-2.0 * (quat.X*quat.Z - quat.Y*quat.W)/(sqx + sqy + sqz + sqw));
+
+                return new Vector3(rotX, rotY, rotZ);
         }
     }
 }
