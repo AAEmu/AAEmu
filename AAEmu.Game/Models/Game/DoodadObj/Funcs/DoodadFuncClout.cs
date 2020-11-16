@@ -44,7 +44,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 InsideBuffTemplate = SkillManager.Instance.GetBuffTemplate(BuffId)
             };
 
-            AreaTriggerManager.Instance.AddAreaTrigger(areaTrigger);
+            // AreaTriggerManager.Instance.AddAreaTrigger(areaTrigger);
             
             if (Duration > 0)
             {
@@ -55,7 +55,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     if (NextPhase == 0) 
                         owner.Delete();
                     DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
-                    AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
+                    // AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });
             }
             

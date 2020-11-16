@@ -43,7 +43,7 @@ namespace AAEmu.Game.Core.Network.Stream
             var config = AppConfiguration.Instance.StreamNetwork;
             _server = new Server(
                 new IPEndPoint(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port),
-                10);
+                AppConfiguration.Instance.Network.NumConnections);
             _server.SetHandler(_handler);
             _server.Start();
             _log.Info("StreamNetwork started");
