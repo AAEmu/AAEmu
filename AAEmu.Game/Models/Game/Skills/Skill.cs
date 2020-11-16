@@ -251,7 +251,6 @@ namespace AAEmu.Game.Models.Game.Skills
         public void Cast(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
             caster.SkillTask = null;
-
             if (Id == 2 || Id == 3 || Id == 4)
             {
                 if (caster is Character && caster.CurrentTarget == null)
@@ -543,6 +542,9 @@ namespace AAEmu.Game.Models.Game.Skills
 
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             TlIdManager.Instance.ReleaseId(TlId);
+
+            if (caster is Character character1 && character1.IgnoreSkillCooldowns)
+                character1.ResetSkillCooldown(Template.Id, false);
             //TlId = 0;
 
             //if (Template.CastingTime > 0)
@@ -566,6 +568,9 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             caster.SkillTask = null;
             TlIdManager.Instance.ReleaseId(TlId);
+
+            if (caster is Character character && character.IgnoreSkillCooldowns)
+                character.ResetSkillCooldown(Template.Id, false);
             //TlId = 0;
         }
 

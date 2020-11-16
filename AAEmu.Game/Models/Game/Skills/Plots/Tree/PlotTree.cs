@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -163,6 +164,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         private void DoPlotEnd(PlotState state)
         {
             state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
+
+            if (state.Caster is Character character && character.IgnoreSkillCooldowns)
+                character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
         }
     }
 }

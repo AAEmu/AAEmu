@@ -37,9 +37,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_tagCount); // tagCount
             for (var i = 0; i < _tagCount; i++)
             {
-                stream.Write(0u); // type(id)
-                stream.Write(0u); // type(id)
-                stream.Write(0u); // type(id)
+                stream.Write(0u); // type(id) //tagId
+                stream.Write(0u); // type(id) // GCD?
+                stream.Write(0u); // type(id) // Delay?
             }
 
             return stream;

@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -65,6 +66,7 @@ namespace AAEmu.Game.Models.Game.Char
         public AbilityType Ability1 { get; set; }
         public AbilityType Ability2 { get; set; }
         public AbilityType Ability3 { get; set; }
+        public bool IgnoreSkillCooldowns { get; set; }
         public string FactionName { get; set; }
         public uint Family { get; set; }
         public short DeadCount { get; set; }
@@ -933,6 +935,24 @@ namespace AAEmu.Game.Models.Game.Char
                     foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
                         AddBonus(1, new Bonus {Template = template, Value = template.Value});
             }
+        }
+
+        public void ResetSkillCooldown(uint skillId, bool gcd)
+        {
+            SendPacket(new SCSkillCooldownResetPacket(this, skillId, 0, gcd));
+        }
+
+        public void ResetAllSkillCooldowns(bool triggerGcd)
+        {
+            const uint playerSkillsTag = 378;
+            var skillIds = SkillManager.Instance.GetSkillsByTag(playerSkillsTag);
+
+            var packets = new CompressedGamePackets();
+            foreach(var skillId in skillIds)
+            {
+                packets.AddPacket(new SCSkillCooldownResetPacket(this, skillId, 0, triggerGcd));
+            }
+            SendPacket(packets);
         }
 
         public void SetAction(byte slot, ActionSlotType type, uint actionId)

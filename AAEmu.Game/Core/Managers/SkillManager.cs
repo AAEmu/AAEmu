@@ -26,6 +26,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
         private Dictionary<uint, List<uint>> _taggedBuffs;
         private Dictionary<uint, List<uint>> _skillTags;
+        private Dictionary<uint, List<uint>> _taggedSkills;
         private Dictionary<uint, List<SkillModifier>> _skillModifiers;
         
         /**
@@ -101,7 +102,14 @@ namespace AAEmu.Game.Core.Managers
                 return _skillTags[skillId];
             return new List<uint>();
         }
-        
+
+        public List<uint> GetSkillsByTag(uint tagId)
+        {
+            if (_taggedSkills.ContainsKey(tagId))
+                return _taggedSkills[tagId];
+            return new List<uint>();
+        }
+
         public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
         {
             if(_passiveBuffs.ContainsKey(id))
@@ -171,6 +179,7 @@ namespace AAEmu.Game.Core.Managers
             _taggedBuffs = new Dictionary<uint, List<uint>>();
             _skillModifiers = new Dictionary<uint, List<SkillModifier>>();
             _skillTags = new Dictionary<uint, List<uint>>();
+            _taggedSkills = new Dictionary<uint, List<uint>>();
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -1342,9 +1351,15 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var tagId = reader.GetUInt32("tag_id");
                             var skillId = reader.GetUInt32("skill_id");
+
+                            //I guess we need this
                             if (!_skillTags.ContainsKey(skillId))
                                 _skillTags.Add(skillId, new List<uint>());
                             _skillTags[skillId].Add(tagId);
+
+                            if (!_taggedSkills.ContainsKey(tagId))
+                                _taggedSkills.Add(tagId, new List<uint>());
+                            _taggedSkills[tagId].Add(skillId);
                         }
                     }
                 }
