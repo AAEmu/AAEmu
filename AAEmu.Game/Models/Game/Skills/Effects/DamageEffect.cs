@@ -79,6 +79,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 return;
             }
+            
+            
+            var weapon = caster?.Equipment.GetItemBySlot(WeaponSlotId);
+            var holdable = (WeaponTemplate)weapon?.Template;
 
             var trg = (Unit)target;
             var min = 0.0f;
@@ -147,10 +151,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
             else
             {
-                var weapon = caster.Equipment.GetItemBySlot(WeaponSlotId);
                 if (weapon != null)
                 {
-                    var holdable = (WeaponTemplate)weapon.Template;
                     var scaledDamage = holdable.HoldableTemplate.DamageScale * variableDamage * 0.01f;
                     min = levelMin + (variableDamage - scaledDamage);
                     max = levelMax + (variableDamage + scaledDamage);
@@ -199,7 +201,24 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
             }
 
-            var value = (int)Rand.Next(min, max);
+            var finalDamage = Rand.Next(min, max);
+            
+            // Reduction
+            var reductionMul = 1.0f;
+
+            switch (DamageType)
+            {
+                case DamageType.Melee:
+                case DamageType.Ranged:
+                    reductionMul = 1.0f - (caster.Armor) / (caster.Armor + 5300.0f);
+                    break;
+                case DamageType.Magic:
+                    reductionMul = 1.0f - (caster.MagicResistance) / (caster.MagicResistance + 5300.0f);
+                    break;
+            }
+
+            var value = (int)(finalDamage * reductionMul);
+            var absorbed = (int)(finalDamage * (1.0f - reductionMul));
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
 
@@ -214,10 +233,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (caster is Character procAttacker)
                 procAttacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
 
+            var packet = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value, absorbed)
+            {
+                HoldableId = (byte) (holdable?.HoldableTemplate?.Id ?? 0)
+            };
+            
             if (packetBuilder != null) 
-                packetBuilder.AddPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value));
+                packetBuilder.AddPacket(packet);
             else
-                trg.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value), true);
+                trg.BroadcastPacket(packet, true);
             if (trg is Npc)
             {
                 trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
