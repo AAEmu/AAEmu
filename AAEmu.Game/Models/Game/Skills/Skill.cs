@@ -155,7 +155,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     targetCaster.ObjId = target.ObjId;
                 }
 
-                if (caster.Faction.GetRelationState(target.Faction) != RelationState.Friendly)
+                if (caster.GetRelationStateTo(target) != RelationState.Friendly)
                 {
                     return null; //TODO отправлять ошибку?
                 }
@@ -168,7 +168,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     targetCaster.ObjId = target.ObjId;
                 }
 
-                if (caster.Faction.GetRelationState(target.Faction) != RelationState.Hostile)
+                if (caster.GetRelationStateTo(target) != RelationState.Hostile)
                 {
                     if(!caster.ForceAttack)
                     {
@@ -221,7 +221,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 {
                     return null; //TODO отправлять ошибку?
                 }
-                if (caster.Faction.GetRelationState(target.Faction) != RelationState.Friendly)
+                if (caster.GetRelationStateTo(target) != RelationState.Friendly)
                 {
                     return null; //TODO отправлять ошибку?
                 }
@@ -371,10 +371,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     //Filter Nothing
                     break;
                 case SkillTargetRelation.Friendly:
-                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction) == RelationState.Friendly);
+                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly);
                     break;
                 case SkillTargetRelation.Hostile:
-                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction) == RelationState.Hostile);
+                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Hostile);
                     break;
                 case SkillTargetRelation.Party:
                     //todo
@@ -384,7 +384,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     break;
                 case SkillTargetRelation.Others:
                     //Does others == neutral? This might be wrong
-                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction) == RelationState.Neutral);
+                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Neutral);
                     break;
             }
             return units;
@@ -436,12 +436,12 @@ namespace AAEmu.Game.Models.Game.Skills
                         continue;
                     }
 
-                    if (effect.Friendly && !effect.NonFriendly && caster.Faction.GetRelationState(target.Faction) != RelationState.Friendly)
+                    if (effect.Friendly && !effect.NonFriendly && caster.GetRelationStateTo(target) != RelationState.Friendly)
                     {
                         continue;
                     }
 
-                    if (!effect.Friendly && effect.NonFriendly && caster.Faction.GetRelationState(target.Faction) != RelationState.Hostile)
+                    if (!effect.Friendly && effect.NonFriendly && caster.GetRelationStateTo(target) != RelationState.Hostile)
                     {
                         continue;
                     }

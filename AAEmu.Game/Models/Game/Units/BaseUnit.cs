@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.Faction;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.World;
@@ -39,6 +41,22 @@ namespace AAEmu.Game.Models.Game.Units
         {
             Effects = new Effects(this);
             Modifiers = new SkillModifiers();
+        }
+
+        public RelationState GetRelationStateTo(BaseUnit unit)
+        {
+            var relation = Faction.GetRelationState(unit.Faction);
+            if (this is Character me && unit is Character other)
+            {
+                bool isTeam = TeamManager.Instance.GetActiveTeamByUnit(me.ObjId)?.IsMember(other.ObjId) ?? false;
+                if (other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF)
+                    && !isTeam && relation == RelationState.Friendly)
+                {
+                    return RelationState.Hostile;
+                }
+            }
+
+            return relation;
         }
 
         public virtual void AddBonus(uint bonusIndex, Bonus bonus)

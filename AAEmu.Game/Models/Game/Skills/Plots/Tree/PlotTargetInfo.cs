@@ -257,7 +257,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             filtered = filtered 
                 .Where(o =>
                 {
-                    var relationState = state.Caster.Faction.GetRelationState(o.Faction);
+                    var relationState = state.Caster.GetRelationStateTo(o);
                     if (relationState == RelationState.Neutral) // TODO ?
                         return false;
                     

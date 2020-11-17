@@ -203,7 +203,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
 
-            if (caster.Faction.GetRelationState(target.Faction) == RelationState.Friendly)
+            if (caster.GetRelationStateTo(target) == RelationState.Friendly)
             {
                 caster.SetCriminalState(true);
             }
