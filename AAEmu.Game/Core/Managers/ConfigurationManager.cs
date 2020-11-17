@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using NLog;
 using System;
 using System.IO;
+using DotNet.Config;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -18,20 +19,14 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Info("Loading ConfigurationManager...");
 
-            #region FileManager
-            _configurations = new Dictionary<string, string>();
-            Dictionary<string, string> d = new Dictionary<string, string>();
             try
             {
-                string data = File.ReadAllText("Data/configurations.json");
-                d = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
-                foreach (var entry in d)
-                    _configurations.Add(entry.Key,entry.Value);
+                _configurations = AppSettings.Retrieve(@"Configs\server.properties");
             }
             catch (Exception e ){
                 _log.Error(e.Message);
             }           
-            #endregion
+            
         }
 
         public string GetConfiguration(string configName)
