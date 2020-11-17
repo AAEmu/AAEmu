@@ -79,6 +79,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 return;
             }
+
+            //Safeguard for avoiding false positive flagging
+            if (!caster.CanAttack(target))
+                return;
             
             
             var weapon = caster?.Equipment.GetItemBySlot(WeaponSlotId);
@@ -222,9 +226,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
 
-            if (caster.GetRelationStateTo(target) == RelationState.Friendly)
+            if (caster.GetRelationStateTo(trg) == RelationState.Friendly)
             {
-                caster.SetCriminalState(true);
+                if (!trg.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF))
+                {
+                    caster.SetCriminalState(true);
+                }
             }
 
             // TODO : Use proper chance kinds (melee, magic etc.)

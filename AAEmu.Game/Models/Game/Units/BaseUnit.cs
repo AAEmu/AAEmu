@@ -43,23 +43,32 @@ namespace AAEmu.Game.Models.Game.Units
             Modifiers = new SkillModifiers();
         }
 
-        public RelationState GetRelationStateTo(BaseUnit unit)
+        public bool CanAttack(BaseUnit unit)
         {
-            if (Faction == null || unit.Faction == null)
-                return RelationState.Neutral;
-            var relation = Faction.GetRelationState(unit.Faction);
+            if (this.Faction == null || unit.Faction == null)
+                return false;
+            if (this.ObjId == unit.ObjId)
+                return false;
+
+            var relation = GetRelationStateTo(unit);
             if (this is Character me && unit is Character other)
             {
-                bool isTeam = TeamManager.Instance.AreTeamMembers(me.ObjId, other.ObjId);
+                bool isTeam = TeamManager.Instance.AreTeamMembers(me.Id, other.Id);
                 if (other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF)
                     && !isTeam && relation == RelationState.Friendly)
                 {
-                    return RelationState.Hostile;
+                    return true;
+                }
+                else if (me.ForceAttack && relation == RelationState.Friendly && !isTeam)
+                {
+                    return true;
                 }
             }
 
-            return relation;
+            return relation == RelationState.Hostile;
         }
+
+        public RelationState GetRelationStateTo(BaseUnit unit) => this.Faction.GetRelationState(unit.Faction);
 
         public virtual void AddBonus(uint bonusIndex, Bonus bonus)
         {

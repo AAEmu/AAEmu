@@ -267,16 +267,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         case SkillTargetRelation.Any:
                             return true;
                         case SkillTargetRelation.Friendly:
-                            return relationState == RelationState.Friendly;
+                            return relationState == RelationState.Friendly && !state.Caster.CanAttack(o);
                         case SkillTargetRelation.Party:
                             return false; // TODO filter party member
                         case SkillTargetRelation.Raid:
                             return false; // TODO filter raid member
                         case SkillTargetRelation.Hostile:
-                            var isTeam = !TeamManager.Instance.AreTeamMembers(state.Caster.ObjId, o.ObjId);
-                            if (state.Caster.ObjId != o.ObjId && !isTeam)
-                                return relationState == RelationState.Hostile || (relationState == RelationState.Friendly && state.Caster.ForceAttack);
-                            else return false;
+                            return state.Caster.CanAttack(o);
                         default:
                             return true;
                     }

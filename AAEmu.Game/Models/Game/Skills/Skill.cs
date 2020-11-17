@@ -170,7 +170,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
                 if (caster.GetRelationStateTo(target) != RelationState.Hostile)
                 {
-                    if(!caster.ForceAttack)
+                    if(!caster.CanAttack(target))
                     {
                         return null; //TODO отправлять ошибку?
                     }
@@ -371,21 +371,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     //Filter Nothing
                     break;
                 case SkillTargetRelation.Friendly:
-                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly);
+                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly && !caster.CanAttack(o));
                     break;
                 case SkillTargetRelation.Hostile:
-                    units = units.Where(o =>
-                    {
-                        var isTeam = !TeamManager.Instance.AreTeamMembers(caster.ObjId, o.ObjId);
-                        var relation = caster.GetRelationStateTo(o);
-                        if (caster.ObjId != o.ObjId && !isTeam)
-                        {
-                            return relation == RelationState.Hostile
-                                    || (relation == RelationState.Friendly
-                                    && ((Unit)caster).ForceAttack);
-                        }
-                        else return false;
-                    });
+                    units = units.Where(o => caster.CanAttack(o));
                     break;
                 case SkillTargetRelation.Party:
                     //todo
