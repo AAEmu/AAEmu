@@ -417,11 +417,16 @@ namespace AAEmu.Game.Models.Game.Char
 
             // Handle Equipment Broadcasting
             if (fromType == SlotType.Equipment)
+            {
                 Owner.BroadcastPacket(
-                    new SCUnitEquipmentsChangedPacket(Owner.ObjId,fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+                    new SCUnitEquipmentsChangedPacket(Owner.ObjId, fromSlot, Equipment.GetItemBySlot(fromSlot)), false);
+            }
+
             if (toType == SlotType.Equipment)
+            {
                 Owner.BroadcastPacket(
-                    new SCUnitEquipmentsChangedPacket(Owner.ObjId,toSlot, Equipment.GetItemBySlot(toSlot)), false);
+                    new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
+            } 
 
             if (itemTasks.Count > 0)
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
