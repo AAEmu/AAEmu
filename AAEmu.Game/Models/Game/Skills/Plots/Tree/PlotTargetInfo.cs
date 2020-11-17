@@ -257,7 +257,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             filtered = filtered 
                 .Where(o =>
                 {
-                    var relationState = state.Caster.Faction.GetRelationState(o.Faction.Id);
+                    var relationState = state.Caster.Faction.GetRelationState(o.Faction);
                     if (relationState == RelationState.Neutral) // TODO ?
                         return false;
                     
@@ -266,7 +266,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         case SkillTargetRelation.Any:
                             return true;
                         case SkillTargetRelation.Friendly:
-                            return relationState == RelationState.Friendly;
+                            return relationState == RelationState.Friendly || state.Caster.ForceAttack;
                         case SkillTargetRelation.Party:
                             return false; // TODO filter party member
                         case SkillTargetRelation.Raid:

@@ -70,6 +70,9 @@ namespace AAEmu.Game.Models.Game.Skills
 
             var target = GetInitialTarget(caster, targetCaster);
 
+            if (target == null)
+                return;//We should try to make sure this doesnt happen
+
             TlId = (ushort)TlIdManager.Instance.GetNextId();
 
             if (Template.Plot != null)
@@ -152,7 +155,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     targetCaster.ObjId = target.ObjId;
                 }
 
-                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
+                if (caster.Faction.GetRelationState(target.Faction) != RelationState.Friendly)
                 {
                     return null; //TODO отправлять ошибку?
                 }
@@ -165,9 +168,12 @@ namespace AAEmu.Game.Models.Game.Skills
                     targetCaster.ObjId = target.ObjId;
                 }
 
-                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Hostile)
+                if (caster.Faction.GetRelationState(target.Faction) != RelationState.Hostile)
                 {
-                    return null; //TODO отправлять ошибку?
+                    if(!caster.ForceAttack)
+                    {
+                        return null; //TODO отправлять ошибку?
+                    }
                 }
             }
             else if (Template.TargetType == SkillTargetType.AnyUnit)
@@ -215,7 +221,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 {
                     return null; //TODO отправлять ошибку?
                 }
-                if (caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
+                if (caster.Faction.GetRelationState(target.Faction) != RelationState.Friendly)
                 {
                     return null; //TODO отправлять ошибку?
                 }
@@ -365,10 +371,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     //Filter Nothing
                     break;
                 case SkillTargetRelation.Friendly:
-                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction.Id) == RelationState.Friendly);
+                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction) == RelationState.Friendly);
                     break;
                 case SkillTargetRelation.Hostile:
-                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction.Id) == RelationState.Hostile);
+                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction) == RelationState.Hostile);
                     break;
                 case SkillTargetRelation.Party:
                     //todo
@@ -378,7 +384,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     break;
                 case SkillTargetRelation.Others:
                     //Does others == neutral? This might be wrong
-                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction.Id) == RelationState.Neutral);
+                    units = units.Where(o => caster.Faction.GetRelationState(o.Faction) == RelationState.Neutral);
                     break;
             }
             return units;
@@ -430,12 +436,12 @@ namespace AAEmu.Game.Models.Game.Skills
                         continue;
                     }
 
-                    if (effect.Friendly && !effect.NonFriendly && caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Friendly)
+                    if (effect.Friendly && !effect.NonFriendly && caster.Faction.GetRelationState(target.Faction) != RelationState.Friendly)
                     {
                         continue;
                     }
 
-                    if (!effect.Friendly && effect.NonFriendly && caster.Faction.GetRelationState(target.Faction.Id) != RelationState.Hostile)
+                    if (!effect.Friendly && effect.NonFriendly && caster.Faction.GetRelationState(target.Faction) != RelationState.Hostile)
                     {
                         continue;
                     }

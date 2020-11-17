@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -201,6 +202,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = (int)Rand.Next(min, max);
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
+
+            if (caster.Faction.GetRelationState(target.Faction) == RelationState.Friendly)
+            {
+                caster.SetCriminalState(true);
+            }
 
             // TODO : Use proper chance kinds (melee, magic etc.)
             if (trg is Character procTarget)
