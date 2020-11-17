@@ -374,7 +374,18 @@ namespace AAEmu.Game.Models.Game.Skills
                     units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly);
                     break;
                 case SkillTargetRelation.Hostile:
-                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Hostile || caster.GetRelationStateTo(o) == RelationState.Friendly && ((Unit)caster).ForceAttack);
+                    units = units.Where(o =>
+                    {
+                        var isTeam = !TeamManager.Instance.AreTeamMembers(caster.ObjId, o.ObjId);
+                        var relation = caster.GetRelationStateTo(o);
+                        if (caster.ObjId != o.ObjId && !isTeam)
+                        {
+                            return relation == RelationState.Hostile
+                                    || (relation == RelationState.Friendly
+                                    && ((Unit)caster).ForceAttack);
+                        }
+                        else return false;
+                    });
                     break;
                 case SkillTargetRelation.Party:
                     //todo

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -272,7 +273,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         case SkillTargetRelation.Raid:
                             return false; // TODO filter raid member
                         case SkillTargetRelation.Hostile:
-                            if (state.Caster.ObjId != o.ObjId)
+                            var isTeam = !TeamManager.Instance.AreTeamMembers(state.Caster.ObjId, o.ObjId);
+                            if (state.Caster.ObjId != o.ObjId && !isTeam)
                                 return relationState == RelationState.Hostile || (relationState == RelationState.Friendly && state.Caster.ForceAttack);
                             else return false;
                         default:

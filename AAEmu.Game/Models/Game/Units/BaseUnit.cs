@@ -45,10 +45,12 @@ namespace AAEmu.Game.Models.Game.Units
 
         public RelationState GetRelationStateTo(BaseUnit unit)
         {
+            if (Faction == null || unit.Faction == null)
+                return RelationState.Neutral;
             var relation = Faction.GetRelationState(unit.Faction);
             if (this is Character me && unit is Character other)
             {
-                bool isTeam = TeamManager.Instance.GetActiveTeamByUnit(me.ObjId)?.IsMember(other.ObjId) ?? false;
+                bool isTeam = TeamManager.Instance.AreTeamMembers(me.ObjId, other.ObjId);
                 if (other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF)
                     && !isTeam && relation == RelationState.Friendly)
                 {
