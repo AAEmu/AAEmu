@@ -121,7 +121,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new HousingTemplate();
                             template.Id = reader.GetUInt32("id");
-                            template.Name = reader.GetString("name");
+                            template.Name = LocalizationManager.Instance.Get("housings", "name", template.Id, reader.GetString("name"));
                             template.CategoryId = reader.GetUInt32("category_id");
                             template.MainModelId = reader.GetUInt32("main_model_id");
                             template.DoorModelId = reader.GetUInt32("door_model_id", 0);

@@ -213,32 +213,30 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void SetCriminalState(bool criminalState)
         {
-            const uint retributionBuffId = 2167;
             if (criminalState)
             {
-                var buff = SkillManager.Instance.GetBuffTemplate(retributionBuffId);
+                var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.RETRIBUTION_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
                 Effects.AddEffect(new Effect(this, this, casterObj, buff, null, DateTime.Now));
             }
             else
             {
-                Effects.RemoveBuff(retributionBuffId);
+                Effects.RemoveBuff((uint) BuffConstants.RETRIBUTION_BUFF);
             }
         }
 
         public void SetForceAttack(bool value)
         {
-            const uint bloodlustBuffId = 1482;
             ForceAttack = value;
             if (ForceAttack)
             {
-                var buff = SkillManager.Instance.GetBuffTemplate(bloodlustBuffId);
+                var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.BLOODLUST_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
                 Effects.AddEffect(new Effect(this, this, casterObj, buff, null, DateTime.Now));
             }
             else
             {
-                Effects.RemoveBuff(bloodlustBuffId);
+                Effects.RemoveBuff((uint) BuffConstants.BLOODLUST_BUFF);
             }
             BroadcastPacket(new SCForceAttackSetPacket(ObjId, ForceAttack), true);
         }
