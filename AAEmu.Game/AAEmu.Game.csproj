@@ -34,6 +34,7 @@
         </Compile>
         <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
         <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
+      <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -50,6 +51,12 @@
         <PackageReference Include="NLog" Version="4.5.11" />
         <PackageReference Include="Quartz" Version="3.0.7" />        
         <PackageReference Include="Ionic.Zlib" Version="1.9.1.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="DotNet.Config">
+        <HintPath>DotNet.Config.dll</HintPath>
+      </Reference>
     </ItemGroup>
 
     <ItemGroup>
