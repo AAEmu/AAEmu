@@ -374,7 +374,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly);
                     break;
                 case SkillTargetRelation.Hostile:
-                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Hostile);
+                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Hostile || caster.GetRelationStateTo(o) == RelationState.Friendly && ((Unit)caster).ForceAttack);
                     break;
                 case SkillTargetRelation.Party:
                     //todo
@@ -443,7 +443,10 @@ namespace AAEmu.Game.Models.Game.Skills
 
                     if (!effect.Friendly && effect.NonFriendly && caster.GetRelationStateTo(target) != RelationState.Hostile)
                     {
-                        continue;
+                        if (caster.GetRelationStateTo(target) == RelationState.Friendly && !caster.ForceAttack)
+                        {
+                            continue;
+                        }
                     }
 
                     if (effect.Front && !effect.Back && !MathUtil.IsFront(caster, target))
