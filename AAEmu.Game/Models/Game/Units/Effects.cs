@@ -297,21 +297,40 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void RemoveBuffs(BuffKind kind, int count)
+        public void RemoveBuffs(BuffKind kind, int count, uint buffTagId = 0)
         {
             var own = GetOwner();
             if (own == null)
                 return;
 
+            var taggedBuffs = SkillManager.Instance.GetBuffsByTagId(buffTagId);
+            
             if (_effects == null)
                 return;
             foreach (var e in new List<Effect>(_effects))
                 if (e != null)
                 {
-                    if (e.Template is BuffTemplate template && template.Kind != kind)
+                    BuffTemplate buffTemplate = null;
+                    switch (e.Template)
+                    {
+                        case BuffEffect buffEffect:
+                            buffTemplate = buffEffect.Buff;
+                            break;
+                        case BuffTemplate buffTempl:
+                            buffTemplate = buffTempl;
+                            break;
+                    }
+
+                    if (buffTemplate == null)
                         continue;
-                    if (e.Template is BuffEffect effect && effect.Buff.Kind != kind)
+
+                    if (buffTemplate.System)
                         continue;
+                    if (buffTemplate.Kind != kind)
+                        continue;
+                    if (buffTagId > 0 && !taggedBuffs.Contains(buffTemplate.Id))
+                        continue;
+                    
                     e.Exit();
                     count--;
                     if (count == 0)

@@ -18,14 +18,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("DispelEffect");
+            _log.Debug("DispelEffect {0}", Id);
 
             if (BuffTagId > 0 && !target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(BuffTagId)))
                 return;
             if (DispelCount > 0)
-                target.Effects.RemoveBuffs(BuffKind.Good, DispelCount); //TODO ....
+                target.Effects.RemoveBuffs(BuffKind.Good, DispelCount, BuffTagId); //TODO ....
             if (CureCount > 0)
-                target.Effects.RemoveBuffs(BuffKind.Bad, CureCount);
+                target.Effects.RemoveBuffs(BuffKind.Bad, CureCount, BuffTagId);
         }
     }
 }
