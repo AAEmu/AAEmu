@@ -121,6 +121,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             foreach (var effect in new List<Effect>(_effects))
             {
+                if (effect.Passive) continue;
                 switch (effect.Template)
                 {
                     case BuffTemplate template:

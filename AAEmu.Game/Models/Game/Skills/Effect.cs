@@ -33,6 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public int Charge { get; set; }
+        public bool Passive { get; set; }
 
         public Effect(BaseUnit owner, Unit caster, SkillCaster skillCaster, EffectTemplate template, Skill skill, DateTime time)
         {

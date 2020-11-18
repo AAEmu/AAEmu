@@ -40,7 +40,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             effect.Charge = Rand.Next(Buff.InitMinCharge, Buff.InitMaxCharge);
-            owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
+            if (!effect.Passive)
+                owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
         }
 
         public override void TimeToTimeApply(Unit caster, BaseUnit owner, Effect effect)
@@ -63,7 +64,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         {
             foreach (var template in Buff.Bonuses)
                 owner.RemoveBonus(effect.Index, template.Attribute);
-            owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
+            if (!effect.Passive)
+                owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
         }
 
         public override void WriteData(PacketStream stream)

@@ -186,7 +186,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             if (effect.Charge == 0)
                 effect.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
             
-            owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
+            if (!effect.Passive)
+                owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
         }
 
         public override void TimeToTimeApply(Unit caster, BaseUnit owner, Effect effect)
