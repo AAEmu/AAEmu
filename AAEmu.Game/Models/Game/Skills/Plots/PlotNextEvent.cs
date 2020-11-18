@@ -1,8 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -58,11 +60,21 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 
         }
 
+        private int GetSkillControllerDelay(PlotNode node)
+        {
+            //Value3=delay, Value5=useDelay?
+            return node.Event.Effects.Where(o => o.ActualType == "SkillController")
+                .Select(o => SkillManager.Instance.GetEffectTemplate(o.ActualId, o.ActualType) as SkillControllerTemplate)
+                .Where(o => o != null && o.Value[4] == 1)
+                .Max(o => (int?)o.Value[2]) ?? 0;
+        }
+
         public int GetDelay(PlotState instance, PlotTargetInfo eventInstance, PlotNode node)
         {
             var animTime = GetAnimDelay(node.Event.Effects);
             var projectileTime = GetProjectileDelay(eventInstance.Source, eventInstance.Target);
-            var delay = animTime + projectileTime;
+            var skillCtrlTime = GetSkillControllerDelay(node);
+            var delay = animTime + projectileTime + skillCtrlTime;
             if (Casting)
                 delay += (int)instance.Caster.ApplySkillModifiers(instance.ActiveSkill, Static.SkillAttribute.CastTime,
                     Delay);
