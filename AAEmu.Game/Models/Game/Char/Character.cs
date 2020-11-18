@@ -598,7 +598,7 @@ namespace AAEmu.Game.Models.Game.Char
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
-                        res += bonus.Value;
+                        res += bonus.Value * 0.001f;
                 }
 
                 return (int)(res * 1000);
