@@ -10,11 +10,13 @@ namespace AAEmu.Game.Core.Managers.World
     public class AreaTriggerManager : Singleton<AreaTriggerManager>
     {
         private readonly List<AreaTrigger> _areaTriggers;
+        private List<AreaTrigger> _queuedTriggers;
         private int tickCount;
 
         public AreaTriggerManager()
         {
             _areaTriggers = new List<AreaTrigger>();
+            _queuedTriggers = new List<AreaTrigger>();
             tickCount = 0;
         }
         
@@ -25,7 +27,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void AddAreaTrigger(AreaTrigger trigger)
         {
-            _areaTriggers.Add(trigger);
+            _queuedTriggers.Add(trigger);
         }
 
         public void RemoveAreaTrigger(AreaTrigger trigger)
@@ -36,6 +38,9 @@ namespace AAEmu.Game.Core.Managers.World
         
         public void Tick()
         {
+            if (_queuedTriggers?.Count > 0) 
+                _areaTriggers.AddRange(_queuedTriggers);
+            _queuedTriggers = new List<AreaTrigger>();
             foreach (var trigger in _areaTriggers)
             {
                 trigger.Tick();

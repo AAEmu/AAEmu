@@ -104,8 +104,9 @@ namespace AAEmu.Game.Models.Game.World
             {
                 foreach (var effect in EffectPerTick)
                 {
-                    // unit.Effects.AddEffect(new Effect(unit, Caster, new SkillCasterUnit(Caster.ObjId), effect, null,
-                    //     DateTime.Now));
+                    if (effect is BuffEffect buffEffect && unit.Effects.CheckBuff(buffEffect.BuffId))
+                        continue;
+                    
                     effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), new CastSkill(SkillId, 0), new EffectSource(), new SkillObject(), DateTime.Now);
                 }
             }
