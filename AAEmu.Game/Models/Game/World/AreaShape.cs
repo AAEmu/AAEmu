@@ -118,8 +118,9 @@ namespace AAEmu.Game.Models.Game.World
             // every 200 ms
             if (_tickCount % 4 == 0)
                 UpdateUnits();
-            if ((_tickCount*50) % TickRate == 0)
-                ApplyEffects();
+            if (TickRate > 0 )
+                if ((_tickCount*50) % TickRate == 0)
+                    ApplyEffects();
         }
     }
 }
