@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Managers.World
         
         public void Initialize()
         {
-            TaskManager.Instance.Schedule(new AreaTriggerTickTask(), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
+            TaskManager.Instance.Schedule(new AreaTriggerTickTask(), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(50));
         }
 
         public void AddAreaTrigger(AreaTrigger trigger)
@@ -36,17 +36,10 @@ namespace AAEmu.Game.Core.Managers.World
         
         public void Tick()
         {
-            if (tickCount >= 3)
+            foreach (var trigger in _areaTriggers)
             {
-                foreach (var trigger in _areaTriggers)
-                {
-                    trigger.UpdateUnits();
-                }
-
-                tickCount = 0;
+                trigger.Tick();
             }
-
-            tickCount++;
         }
     }
 }

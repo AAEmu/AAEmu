@@ -210,15 +210,18 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // Reduction
             var reductionMul = 1.0f;
 
-            switch (DamageType)
+            if (target is Unit targetUnit)
             {
-                case DamageType.Melee:
-                case DamageType.Ranged:
-                    reductionMul = 1.0f - (caster.Armor) / (caster.Armor + 5300.0f);
-                    break;
-                case DamageType.Magic:
-                    reductionMul = 1.0f - (caster.MagicResistance) / (caster.MagicResistance + 5300.0f);
-                    break;
+                switch (DamageType)
+                {
+                    case DamageType.Melee:
+                    case DamageType.Ranged:
+                        reductionMul = 1.0f - targetUnit.Armor / (targetUnit.Armor + 5300.0f);
+                        break;
+                    case DamageType.Magic:
+                        reductionMul = 1.0f - (targetUnit.MagicResistance) / (targetUnit.MagicResistance + 5300.0f);
+                        break;
+                }
             }
 
             var value = (int)(finalDamage * reductionMul);

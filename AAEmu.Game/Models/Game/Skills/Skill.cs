@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -18,6 +20,7 @@ using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -310,18 +313,11 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.ChannelingTime > 0)
             {
-                if (Template.ChannelingBuffId != 0)
-                {
-                    var buff = SkillManager.Instance.GetBuffTemplate(Template.ChannelingBuffId);
-                    buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
-                }
-
-                caster.SkillTask = new ChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject);
-                TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
+                StartChanneling(caster, casterCaster, target, targetCaster, skillObject);
             }
             else
             {
-                Channeling(caster, casterCaster, target, targetCaster, skillObject);
+                ScheduleEffects(caster, casterCaster, target, targetCaster, skillObject);
             }
         }
 
@@ -335,13 +331,41 @@ namespace AAEmu.Game.Models.Game.Skills
             TlIdManager.Instance.ReleaseId(TlId);
         }
 
-        public void Channeling(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        public void StartChanneling(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        {
+            if (Template.ChannelingBuffId != 0)
+            {
+                var buff = SkillManager.Instance.GetBuffTemplate(Template.ChannelingBuffId);
+                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
+            }
+
+            Doodad doodad = null;
+            if (Template.ChannelingDoodadId > 0)
+            {
+                doodad = DoodadManager.Instance.Create(0, Template.ChannelingDoodadId, caster);
+                doodad.Position = caster.Position.Clone();
+                doodad.Spawn();
+            }
+                
+            caster.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
+            TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
+        }
+        
+        public void EndChanneling(Unit caster, Doodad channelDoodad)
         {
             caster.SkillTask = null;
             if (Template.ChannelingBuffId != 0)
             {
                 caster.Effects.RemoveEffect(Template.ChannelingBuffId, Template.Id);
             }
+
+            channelDoodad?.Delete();
+
+            EndSkill(caster);
+        }
+        
+        public void ScheduleEffects(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
+        {
             if (Template.ToggleBuffId != 0)
             {
                 var buff = SkillManager.Instance.GetBuffTemplate(Template.ToggleBuffId);
@@ -358,39 +382,21 @@ namespace AAEmu.Game.Models.Game.Skills
             
             if (totalDelay > 0) 
                 TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));
-            else 
-                Apply(caster, casterCaster, target, targetCaster, skillObject);
-                
+            else
+            {
+                ApplyEffects(caster, casterCaster, target, targetCaster, skillObject);
+                EndSkill(caster);
+            }
+
         }
 
         private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, IEnumerable<BaseUnit> units)
         {
-            switch (Template.TargetRelation)
-            {
-                case SkillTargetRelation.Any:
-                    //Filter Nothing
-                    break;
-                case SkillTargetRelation.Friendly:
-                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly && !caster.CanAttack(o));
-                    break;
-                case SkillTargetRelation.Hostile:
-                    units = units.Where(o => caster.CanAttack(o));
-                    break;
-                case SkillTargetRelation.Party:
-                    //todo
-                    break;
-                case SkillTargetRelation.Raid:
-                    //todo
-                    break;
-                case SkillTargetRelation.Others:
-                    //Does others == neutral? This might be wrong
-                    units = units.Where(o => caster.GetRelationStateTo(o) == RelationState.Neutral);
-                    break;
-            }
+            units = SkillTargetingUtil.FilterWithRelation(Template.TargetRelation, caster, units);
             return units;
         }
 
-        public void Apply(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
+        public void ApplyEffects(Unit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
         {
             var targets = new List<BaseUnit>(); // TODO crutches
             if (Template.TargetAreaRadius > 0)
@@ -543,6 +549,11 @@ namespace AAEmu.Game.Models.Game.Skills
             if (packets.Packets.Count > 0)
                 caster.BroadcastPacket(packets, true);
             
+            EndSkill(caster);
+        }
+
+        public void EndSkill(Unit caster)
+        {
             if (Template.ConsumeLaborPower > 0 && caster is Character chart)
             {
                 chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
@@ -561,19 +572,13 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (caster is Character character1 && character1.IgnoreSkillCooldowns)
                 character1.ResetSkillCooldown(Template.Id, false);
-            //TlId = 0;
-
-            //if (Template.CastingTime > 0)
-            //{
-            //    caster.BroadcastPacket(new SCSkillStoppedPacket(caster.ObjId, Template.Id), true);
-            //}
         }
 
-        public void Stop(Unit caster)
+        public void Stop(Unit caster, Doodad channelDoodad = null)
         {
-            if (Template.ChannelingBuffId != 0)
+            if (Template.ChannelingTime > 0)
             {
-                caster.Effects.RemoveEffect(Template.ChannelingBuffId, Template.Id);
+                EndChanneling(caster, channelDoodad);
             }
 
             if (Template.ToggleBuffId != 0)

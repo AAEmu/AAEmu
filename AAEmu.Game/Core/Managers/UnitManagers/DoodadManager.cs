@@ -8,11 +8,10 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
-using Quartz.Impl.AdoJobStore;
-using System;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -440,7 +439,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.Id = reader.GetUInt32("id");
                             func.Duration = reader.GetInt32("duration");
                             func.Tick = reader.GetInt32("tick");
-                            func.TargetRelationId = reader.GetUInt32("target_relation_id");
+                            func.TargetRelation = (SkillTargetRelation)reader.GetUInt32("target_relation_id");
                             func.BuffId = reader.GetUInt32("buff_id", 0);
                             func.ProjectileId = reader.GetUInt32("projectile_id", 0);
                             func.ShowToFriendlyOnly = reader.GetBoolean("show_to_friendly_only", true);

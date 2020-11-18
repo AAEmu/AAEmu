@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -32,8 +33,17 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             if (Connection.ActiveChar.SkillTask == null || Connection.ActiveChar.SkillTask.Skill.TlId != tl)
                 return;
+            
             await Connection.ActiveChar.SkillTask.Cancel();
-            Connection.ActiveChar.SkillTask.Skill.Stop(Connection.ActiveChar);
+
+            if (Connection.ActiveChar.SkillTask is EndChannelingTask ect)
+            {
+                Connection.ActiveChar.SkillTask.Skill.Stop(Connection.ActiveChar, ect._channelDoodad);
+            }
+            else
+            {
+                Connection.ActiveChar.SkillTask.Skill.Stop(Connection.ActiveChar);
+            }
         }
     }
 }

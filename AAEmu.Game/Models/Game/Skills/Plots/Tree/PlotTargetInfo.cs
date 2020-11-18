@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Skills.Plots.UpdateTargetMethods;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
@@ -261,24 +262,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     var relationState = state.Caster.GetRelationStateTo(o);
                     if (relationState == RelationState.Neutral) // TODO ?
                         return false;
-
-                    switch (args.UnitRelationType)
-                    {
-                        case SkillTargetRelation.Any:
-                            return true;
-                        case SkillTargetRelation.Friendly:
-                            return relationState == RelationState.Friendly && !state.Caster.CanAttack(o);
-                        case SkillTargetRelation.Party:
-                            return false; // TODO filter party member
-                        case SkillTargetRelation.Raid:
-                            return false; // TODO filter raid member
-                        case SkillTargetRelation.Hostile:
-                            return state.Caster.CanAttack(o);
-                        default:
-                            return true;
-                    }
+                    return true;
                 });
-
+            
+            filtered = SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
             filtered = filtered.Where(o => ((byte)o.TypeFlag & args.UnitTypeFlag) != 0);
 
             return filtered;

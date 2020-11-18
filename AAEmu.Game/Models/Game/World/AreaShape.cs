@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
 
@@ -33,9 +34,13 @@ namespace AAEmu.Game.Models.Game.World
         public Unit Caster { get; set; }
         private List<Unit> Units { get; set; }
         
+        
+        public uint SkillId { get; set; }
+        public SkillTargetRelation TargetRelation { get; set; }
         public BuffTemplate InsideBuffTemplate { get; set; }
         public List<EffectTemplate> EffectPerTick { get; set; }
-        public uint TickRate { get; set; }
+        public int TickRate { get; set; }
+        private int _tickCount = 0;
 
         public AreaTrigger()
         {
@@ -44,6 +49,12 @@ namespace AAEmu.Game.Models.Game.World
         
         public void UpdateUnits()
         {
+            if (Owner == null || !Owner.IsVisible)
+            {
+                AreaTriggerManager.Instance.RemoveAreaTrigger(this);
+                return;
+            }
+            
             var units = WorldManager.Instance.GetAroundByShape<Unit>(Owner, Shape);
 
             var leftUnits = Units.Where(u => units.All(u2 => u.ObjId != u2.ObjId));
@@ -64,9 +75,9 @@ namespace AAEmu.Game.Models.Game.World
 
         public void OnEnter(Unit unit)
         {
-            InsideBuffTemplate?.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.Now);
+            if (SkillTargetingUtil.IsRelationValid(TargetRelation, Caster, unit))
+                InsideBuffTemplate?.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.Now);
             // unit.Effects.AddEffect(new Effect(Owner, Caster, new SkillCasterUnit(Caster.ObjId), InsideBuffTemplate, null, DateTime.Now));
-            
         }
 
         public void OnLeave(Unit unit)
@@ -77,15 +88,38 @@ namespace AAEmu.Game.Models.Game.World
 
         public void OnDelete()
         {
-            foreach (var unit in Units.Where(unit => InsideBuffTemplate != null))
+            if (InsideBuffTemplate != null)
             {
-                unit.Effects.RemoveEffect(InsideBuffTemplate.Id);
+                foreach (var unit in Units)
+                {
+                    unit.Effects.RemoveBuff(InsideBuffTemplate.BuffId);
+                }
             }
         }
 
+        public void ApplyEffects()
+        {
+            var unitsToApply = SkillTargetingUtil.FilterWithRelation(TargetRelation, Caster, Units);
+            foreach (var unit in unitsToApply)
+            {
+                foreach (var effect in EffectPerTick)
+                {
+                    // unit.Effects.AddEffect(new Effect(unit, Caster, new SkillCasterUnit(Caster.ObjId), effect, null,
+                    //     DateTime.Now));
+                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), new CastSkill(SkillId, 0), new EffectSource(), new SkillObject(), DateTime.Now);
+                }
+            }
+        }
+
+        // Called every 50ms
         public void Tick()
         {
-            
+            _tickCount++;
+            // every 200 ms
+            if (_tickCount % 4 == 0)
+                UpdateUnits();
+            if ((_tickCount*50) % TickRate == 0)
+                ApplyEffects();
         }
     }
 }
