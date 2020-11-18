@@ -110,6 +110,23 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
                 levelMax += (levelModifier + 1) * lvlMd + 0.5f;
             }
+
+            
+            if (UseChargedBuff && source.Skill != null)
+            {
+                var charges = caster.Effects.GetEffectFromBuffId(ChargedBuffId)?.Charge ?? 0;
+                
+                min += charges * ChargedMul * (source.Skill.Level * ChargedLevelMul);
+                max += charges * ChargedMul * (source.Skill.Level * ChargedLevelMul);
+            }
+
+            if (UseTargetChargedBuff && source.Skill != null)
+            {
+                var charges = target.Effects.GetEffectFromBuffId(ChargedBuffId).Charge;
+                
+                min += charges * ChargedMul * (source.Skill.Level * ChargedLevelMul);
+                max += charges * ChargedMul * (source.Skill.Level * ChargedLevelMul);
+            }
             
             // Stats/Weapon DPS
             var dpsInc = 0;

@@ -1,6 +1,7 @@
 using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -191,7 +192,18 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void WriteData(PacketStream stream)
         {
-            Template.WriteData(stream);
+            switch (Template)
+            {
+                case BuffEffect buffEffect:
+                    stream.WritePisc(Charge, buffEffect.Buff.Duration / 10, 0, (long)(buffEffect.Buff.Tick / 10));
+                    break;
+                case BuffTemplate buffTemplate:
+                    stream.WritePisc(Charge, buffTemplate.Duration / 10, 0, (long)(buffTemplate.Tick / 10));
+                    break;
+                default:
+                    Template.WriteData(stream);
+                    break;
+            }
         }
         
         /// <summary>

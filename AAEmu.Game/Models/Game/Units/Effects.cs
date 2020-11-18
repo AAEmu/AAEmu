@@ -89,6 +89,14 @@ namespace AAEmu.Game.Models.Game.Units
                     return true;
             return false;
         }
+        
+        public Effect GetEffectFromBuffId(uint id)
+        {
+            foreach (var effect in new List<Effect>(_effects))
+                if (effect != null && effect.Template.BuffId > 0 && effect.Template.BuffId == id)
+                    return effect;
+            return null;
+        }
 
         public bool CheckBuffs(List<uint> ids)
         {

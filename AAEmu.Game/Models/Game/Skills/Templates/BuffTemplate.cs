@@ -183,7 +183,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 owner.AddBonus(effect.Index, bonus);
             }
 
-            effect.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
+            if (effect.Charge == 0)
+                effect.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
             
             owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
         }
