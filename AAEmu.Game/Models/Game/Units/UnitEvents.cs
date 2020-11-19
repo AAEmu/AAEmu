@@ -15,7 +15,6 @@ namespace AAEmu.Game.Models.Game.Units
         public EventHandler<OnAttackedArgs> OnAttacked = delegate { }; //Double check this one
         public EventHandler<OnDamageArgs> OnDamage = delegate { };
         public EventHandler<OnDamagedArgs> OnDamaged = delegate { };
-        public EventHandler<OnDispelledArgs> OnDispelled = delegate { };
         //public EventHandler<OnTimeoutArgs> OnTimeout = delegate { }; //When player disconnects? Buff runs out? idk
         //public EventHandler<OnDamagedMeleeArgs> OnDamagedMelee = delegate { };
         //public EventHandler<OnDamagedRangedArgs> OnDamagedRanged = delegate { };
@@ -55,11 +54,6 @@ namespace AAEmu.Game.Models.Game.Units
 
     }
 
-    public class OnDispelledArgs : EventArgs
-    {
-
-    }
-
     public class OnTimeoutArgs : EventArgs
     {
 
@@ -86,11 +80,6 @@ namespace AAEmu.Game.Models.Game.Units
     }
 
     public class OnLandingArgs : EventArgs
-    {
-
-    }
-
-    public class OnStartedArgs : EventArgs
     {
 
     }

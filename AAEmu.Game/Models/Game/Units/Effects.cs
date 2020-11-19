@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
@@ -210,6 +211,8 @@ namespace AAEmu.Game.Models.Game.Units
                 }
 
                 _effects.Add(effect);
+                effect.Triggers.SubscribeEvents();
+                effect.Events.OnBuffStarted(effect, new OnBuffStartedArgs());
                 
                 if (effect.Template.BuffId > 0)
                     owner.Modifiers.AddModifiers(effect.Template.BuffId);

@@ -1,7 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 
 namespace AAEmu.Game.Models.Tasks.Skills
 {
@@ -28,10 +28,8 @@ namespace AAEmu.Game.Models.Tasks.Skills
 
             if (eff.IsEnded())
             {
-                if (eff.Owner is Unit unit)
-                {
-                    unit.Events.OnDispelled(eff, new OnDispelledArgs());
-                }
+                eff.Events.OnDispelled(eff, new OnDispelledArgs());
+                eff.Triggers.UnsubscribeToEvents();
                 return;
             }
             EffectTaskManager.Instance.AddDispelTask(eff, eff.Tick);

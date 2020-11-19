@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -35,6 +36,8 @@ namespace AAEmu.Game.Models.Game.Skills
         public int Charge { get; set; }
         public bool Passive { get; set; }
         public uint AbLevel { get; set; }
+        public BuffEvents Events { get;}
+        public BuffTriggersHandler Triggers { get;}
 
         public Effect(BaseUnit owner, Unit caster, SkillCaster skillCaster, EffectTemplate template, Skill skill, DateTime time)
         {
@@ -46,6 +49,8 @@ namespace AAEmu.Game.Models.Game.Skills
             StartTime = time;
             EndTime = DateTime.MinValue;
             AbLevel = 1;
+            Events = new BuffEvents();
+            Triggers = new BuffTriggersHandler(this);
         }
 
         public void UpdateEffect()
