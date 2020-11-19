@@ -36,7 +36,7 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (target == null) return;
 
-            if (args[0] != "target")
+            if (args[0] == "target")
             {
                 var temp = source;
                 source = target;

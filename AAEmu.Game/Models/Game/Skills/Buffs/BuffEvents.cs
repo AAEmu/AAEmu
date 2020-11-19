@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs
     {
         public EventHandler<OnBuffStartedArgs> OnBuffStarted = delegate { };
         public EventHandler<OnDispelledArgs> OnDispelled = delegate { };
+        public EventHandler<OnTimeoutArgs> OnTimeout = delegate { };
     }
 
     public class OnBuffStartedArgs : EventArgs
@@ -16,6 +17,11 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs
     }
 
     public class OnDispelledArgs : EventArgs
+    {
+
+    }
+
+    public class OnTimeoutArgs : EventArgs
     {
 
     }

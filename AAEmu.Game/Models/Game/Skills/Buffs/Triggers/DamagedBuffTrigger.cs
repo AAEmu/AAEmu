@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
 {
-    class DamageBuffTrigger : BuffTrigger
+    class DamagedBuffTrigger : BuffTrigger
     {
         public override void Execute(object sender, EventArgs eventArgs)
         {
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
                 null, DateTime.Now);
         }
 
-        public DamageBuffTrigger(Effect owner, BuffTriggerTemplate template) : base(owner, template)
+        public DamagedBuffTrigger(Effect owner, BuffTriggerTemplate template) : base(owner, template)
         {
 
         }

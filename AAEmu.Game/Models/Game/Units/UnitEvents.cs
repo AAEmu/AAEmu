@@ -54,11 +54,6 @@ namespace AAEmu.Game.Models.Game.Units
 
     }
 
-    public class OnTimeoutArgs : EventArgs
-    {
-
-    }
-
     public class OnDamagedMeleeArgs : EventArgs
     {
 

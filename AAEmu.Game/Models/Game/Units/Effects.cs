@@ -242,6 +242,7 @@ namespace AAEmu.Game.Models.Game.Units
                 effect.SetInUse(false, false);
                 _effects.Remove(effect);
                 own.Modifiers.RemoveModifiers(effect.Template.BuffId);
+                effect.Triggers.UnsubscribeEvents();
             }
         }
 
@@ -261,6 +262,7 @@ namespace AAEmu.Game.Models.Game.Units
                         _effects.Remove(e);
                         e.SetInUse(false, false);
                         own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                        e.Triggers.UnsubscribeEvents();
                     }
                 }
             }
@@ -282,6 +284,7 @@ namespace AAEmu.Game.Models.Game.Units
                         _effects.Remove(e);
                         e.SetInUse(false, false);
                         own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                        e.Triggers.UnsubscribeEvents();
                         break;
                     }
                 }
@@ -304,6 +307,7 @@ namespace AAEmu.Game.Models.Game.Units
                     _effects.Remove(e);
                     e.SetInUse(false, false);
                     own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                    e.Triggers.UnsubscribeEvents();
                     break;
                 }
             }
