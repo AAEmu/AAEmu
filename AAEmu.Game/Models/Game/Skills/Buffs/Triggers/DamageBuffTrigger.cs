@@ -13,16 +13,21 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
         {
             var args = eventArgs as OnDamageArgs;
 
-            var caster = _owner.Caster;
-            var target = _owner.Caster;
-            _log.Warn("Buff[{0}] damage trigger executed. Applying Effect[{1}]!", _owner.Template.BuffId, Template.Effect.Id);
+            _log.Warn("Buff[{0}] damage trigger {1} executed. Applying Effect[{2}]!", _effect.Template.BuffId, Template.Id, Template.Effect.Id);
 
-            /*
-            var skillCaster = new SkillCasterUnit(caster.ObjId);
-            var skillCastTarget = new SkillCastUnitTarget(caster.ObjId);
-            var effect = new Effect(caster, caster, skillCaster, Template.Effect, null, DateTime.Now);
-            var skillObj = new SkillObject();
-            Template.Effect.Apply(caster, skillCaster, caster, skillCastTarget, new CastBuff(effect), new EffectSource(_owner.Template), skillObj, DateTime.Now*/
+            if (!(_owner is Unit owner))
+            {
+                _log.Warn("AttackTrigger owner is not a Unit");
+                return;   
+            }
+
+            var target = owner;
+            if (Template.EffectOnSource)
+                target = args.Attacker;
+            
+            Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_effect),
+                new EffectSource(), // TODO : EffectSource Type trigger 
+                null, DateTime.Now);
         }
 
         public DamageBuffTrigger(Effect owner, BuffTriggerTemplate template) : base(owner, template)

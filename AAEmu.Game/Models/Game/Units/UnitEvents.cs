@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnAttackArgs : EventArgs
     {
-
+        public Unit Attacker { get; set; }
     }
 
     public class OnAttackedArgs : EventArgs
@@ -46,7 +46,7 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnDamageArgs : EventArgs
     {
-
+        public Unit Attacker { get; set; }
     }
 
     public class OnDamagedArgs : EventArgs

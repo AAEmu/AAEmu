@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Units;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
@@ -9,13 +10,15 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
     abstract class BuffTrigger
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
-        protected Effect _owner;
+        protected Effect _effect;
+        protected readonly BaseUnit _owner;
         public BuffTriggerTemplate Template { get; set; }
         public abstract void Execute(object sender, EventArgs args);
 
-        public BuffTrigger(Effect owner, BuffTriggerTemplate template)
+        public BuffTrigger(Effect effect, BuffTriggerTemplate template)
         {
-            _owner = owner;
+            _effect = effect;
+            _owner = _effect.Owner;
             Template = template;
         }
     }

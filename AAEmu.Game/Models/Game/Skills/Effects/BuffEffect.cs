@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return; // TODO send error of immune?
             target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source.Skill, time));
             
-            if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly)
+            if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly && caster != target)
                 caster.SetCriminalState(true);
         }
 

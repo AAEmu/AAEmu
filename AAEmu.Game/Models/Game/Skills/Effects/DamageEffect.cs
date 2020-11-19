@@ -279,12 +279,18 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             //Invoke even if damage is 0
-            caster.Events.OnAttack(this, new OnAttackArgs { });
+            caster.Events.OnAttack(this, new OnAttackArgs
+            {
+                Attacker = caster
+            });
             trg.Events.OnAttacked(this, new OnAttackedArgs { });
 
             if (value > 0)
             {
-                caster.Events.OnDamage(this, new OnDamageArgs { });
+                caster.Events.OnDamage(this, new OnDamageArgs {
+                    Attacker = caster
+                    
+                });
                 trg.Events.OnDamaged(this, new OnDamagedArgs { });
             }
         }
