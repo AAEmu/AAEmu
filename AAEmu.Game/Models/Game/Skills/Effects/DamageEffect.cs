@@ -83,12 +83,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             //Safeguard for avoiding false positive flagging
             if (!caster.CanAttack(target))
                 return;
-            
-            
+
             var weapon = caster?.Equipment.GetItemBySlot(WeaponSlotId);
             var holdable = (WeaponTemplate)weapon?.Template;
 
             var trg = (Unit)target;
+
             var min = 0.0f;
             var max = 0.0f;
             
@@ -278,8 +278,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 npc.OnDamageReceived(caster);
             }
 
-            caster.Events.OnDamage(this, new  OnDamageArgs{ });
-            trg.Events.OnDamaged(this, new OnDamagedArgs { });
+            //Invoke even if damage is 0
+            caster.Events.OnAttack(this, new OnAttackArgs { });
+            trg.Events.OnAttacked(this, new OnAttackedArgs { });
+
+            if (value > 0)
+            {
+                caster.Events.OnDamage(this, new OnDamageArgs { });
+                trg.Events.OnDamaged(this, new OnDamagedArgs { });
+            }
         }
     }
 }
