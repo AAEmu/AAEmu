@@ -955,6 +955,18 @@ namespace AAEmu.Game.Models.Game.Char
             }
             SendPacket(packets);
         }
+
+        public void SetPirate(bool pirate)
+        {
+            // TODO : If castle owner -> Nope
+            var defaultFactionId = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender).FactionId;
+
+            var newFaction = pirate ? (uint)Factions.FACTION_PIRATE : defaultFactionId;
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, newFaction, false), true);
+            Faction = FactionManager.Instance.GetFaction(newFaction);
+            // TODO : Teleport to Growlgate
+            // TODO : Leave guild
+        }
         
         public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {
