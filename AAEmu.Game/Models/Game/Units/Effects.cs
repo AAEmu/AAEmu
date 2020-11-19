@@ -216,10 +216,6 @@ namespace AAEmu.Game.Models.Game.Units
                 
                 if (effect.Template.BuffId > 0)
                     owner.Modifiers.AddModifiers(effect.Template.BuffId);
-                foreach (var buffTrigger in SkillManager.Instance.GetTriggers(effect.Template.BuffId))
-                {
-                    // Do something...
-                }
                 
                 if (effect.Duration > 0)
                     effect.SetInUse(true, false);
