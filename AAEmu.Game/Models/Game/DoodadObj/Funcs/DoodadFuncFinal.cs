@@ -28,8 +28,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 skillId, After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
 
             var delay = Rand.Next(MinTime, MaxTime);
-            var character = (Character)caster; 
-            if (character != null)
+
+            if (caster is Character character)
             {
                 const int count = 1;
                 var itemTemplate = ItemManager.Instance.GetItemIdsFromDoodad(owner.TemplateId);

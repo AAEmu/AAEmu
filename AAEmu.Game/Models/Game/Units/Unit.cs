@@ -161,7 +161,10 @@ namespace AAEmu.Game.Models.Game.Units
                 killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
                 killer.SummarizeDamage = 0;
 
-                killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
+                if (killer.CurrentTarget != null)
+                {
+                    killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
+                }
                 killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
                 killer.StartRegen();
                 killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
