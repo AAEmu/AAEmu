@@ -28,13 +28,16 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             if (_owner.Template is BuffTemplate template)
             {
-                var triggers = SkillManager.Instance.GetBuffTriggerTemplates(template.BuffId);
+                var triggerTemplates = SkillManager.Instance.GetBuffTriggerTemplates(template.BuffId);
 
-                foreach(var trigger in triggers)
+                foreach(var triggerTemplate in triggerTemplates)
                 {
-                    switch (trigger.Kind)
+                    switch (triggerTemplate.Kind)
                     {
                         case Buffs.BuffEventTriggerKind.Attack:
+                            var trigger = new AttackBuffTrigger(_owner, triggerTemplate);
+                            _owner.Caster.Events.OnAttack += trigger.Execute;
+                            _triggers.Add(trigger);
                             break;
                         case Buffs.BuffEventTriggerKind.Attacked:
                             break;
@@ -86,63 +89,61 @@ namespace AAEmu.Game.Models.Game.Skills
         }
         public void UnsubscribeEvents()
         {
-            if (_owner.Template is BuffTemplate template)
+            foreach (var trigger in _triggers)
             {
-                var triggers = SkillManager.Instance.GetBuffTriggerTemplates(template.BuffId);
-
-                foreach (var trigger in triggers)
+                switch (trigger.Template.Kind)
                 {
-                    switch (trigger.Kind)
-                    {
-                        case Buffs.BuffEventTriggerKind.Attack:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Attacked:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Damage:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Damaged:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Dispelled:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Timeout:
-                            break;
-                        case Buffs.BuffEventTriggerKind.DamagedMelee:
-                            break;
-                        case Buffs.BuffEventTriggerKind.DamagedRanged:
-                            break;
-                        case Buffs.BuffEventTriggerKind.DamagedSpell:
-                            break;
-                        case Buffs.BuffEventTriggerKind.DamagedSiege:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Landing:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Started:
-                            break;
-                        case Buffs.BuffEventTriggerKind.RemoveOnMove:
-                            break;
-                        case Buffs.BuffEventTriggerKind.ChannelingCancel:
-                            break;
-                        case Buffs.BuffEventTriggerKind.RemoveOnDamage:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Death:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Unmount:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Kill:
-                            break;
-                        case Buffs.BuffEventTriggerKind.DamagedCollision:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Immotality:
-                            break;
-                        case Buffs.BuffEventTriggerKind.Time:
-                            break;
-                        case Buffs.BuffEventTriggerKind.KillAny:
-                            break;
-                        default:
-                            break;
-                    }
+                    case Buffs.BuffEventTriggerKind.Attack:
+                        _owner.Caster.Events.OnAttack -= trigger.Execute;
+                        break;
+                    case Buffs.BuffEventTriggerKind.Attacked:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Damage:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Damaged:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Dispelled:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Timeout:
+                        break;
+                    case Buffs.BuffEventTriggerKind.DamagedMelee:
+                        break;
+                    case Buffs.BuffEventTriggerKind.DamagedRanged:
+                        break;
+                    case Buffs.BuffEventTriggerKind.DamagedSpell:
+                        break;
+                    case Buffs.BuffEventTriggerKind.DamagedSiege:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Landing:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Started:
+                        break;
+                    case Buffs.BuffEventTriggerKind.RemoveOnMove:
+                        break;
+                    case Buffs.BuffEventTriggerKind.ChannelingCancel:
+                        break;
+                    case Buffs.BuffEventTriggerKind.RemoveOnDamage:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Death:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Unmount:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Kill:
+                        break;
+                    case Buffs.BuffEventTriggerKind.DamagedCollision:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Immotality:
+                        break;
+                    case Buffs.BuffEventTriggerKind.Time:
+                        break;
+                    case Buffs.BuffEventTriggerKind.KillAny:
+                        break;
+                    default:
+                        break;
                 }
             }
+
+            _triggers.Clear();
         }
     }
 }
