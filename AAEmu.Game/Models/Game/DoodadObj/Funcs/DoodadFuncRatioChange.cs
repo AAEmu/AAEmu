@@ -5,9 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
-
 using System;
-using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {

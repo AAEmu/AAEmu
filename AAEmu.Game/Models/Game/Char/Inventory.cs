@@ -452,6 +452,17 @@ namespace AAEmu.Game.Models.Game.Char
             return true;
         }
 
+        public bool TryEquipNewBackPack(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1)
+        {
+            // Remove player backpack
+            if (Owner.Inventory.TakeoffBackpack(taskType, true))
+            {
+                // Put tradepack in their backpack slot
+                return Owner.Inventory.Equipment.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd);
+            }
+            return false;
+        }
+
         public Item GetItemById(ulong id)
         {
             foreach(var c in _itemContainers)
