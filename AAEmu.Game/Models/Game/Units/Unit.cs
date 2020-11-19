@@ -24,6 +24,7 @@ namespace AAEmu.Game.Models.Game.Units
     {
         public virtual UnitTypeFlag TypeFlag { get;} = UnitTypeFlag.None;
         
+        public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
         public byte Level { get; set; }
@@ -85,6 +86,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public Unit()
         {
+            Events = new UnitEvents();
             GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
