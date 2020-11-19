@@ -79,7 +79,7 @@ namespace AAEmu.Game.Core.Managers
                 try
                 {
                     // Save stuff
-                    _log.Info("Saving DB ...");
+                    _log.Debug("Saving DB ...");
                     using (var connection = MySQL.CreateConnection())
                     {
                         using (var transaction = connection.BeginTransaction())
@@ -112,7 +112,7 @@ namespace AAEmu.Game.Core.Managers
 
                             if (totalCommits <= 0)
                             {
-                                _log.Info("No data to update ...");
+                                _log.Debug("No data to update ...");
                                 saved = true;
                             }
                             else
@@ -120,11 +120,18 @@ namespace AAEmu.Game.Core.Managers
                                 try
                                 {
                                     transaction.Commit();
-                                    _log.Info("Updated {0} and deleted {1} houses ...", savedHouses.Item1, savedHouses.Item2);
-                                    _log.Info("Updated {0} and deleted {1} mails ...", savedMails.Item1, savedMails.Item2);
-                                    _log.Info("Updated {0} and deleted {1} items ...", saveItems.Item1, saveItems.Item2);
-                                    _log.Info("Updated {0} and deleted {1} auction items ...", savedAuctionHouse.Item1, savedAuctionHouse.Item2);
-                                    _log.Info("Updated {0} characters ...", savedCharacters);
+
+                                    if ((savedHouses.Item1 + savedHouses.Item2) > 0)
+                                        _log.Debug("Updated {0} and deleted {1} houses ...", savedHouses.Item1, savedHouses.Item2);
+                                    if ((savedMails.Item1 + savedMails.Item2) > 0)
+                                        _log.Debug("Updated {0} and deleted {1} mails ...", savedMails.Item1, savedMails.Item2);
+                                    if ((saveItems.Item1 + saveItems.Item2) > 0)
+                                        _log.Debug("Updated {0} and deleted {1} items ...", saveItems.Item1, saveItems.Item2);
+                                    if ((savedAuctionHouse.Item1 + savedAuctionHouse.Item2) > 0)
+                                        _log.Debug("Updated {0} and deleted {1} auction items ...", savedAuctionHouse.Item1, savedAuctionHouse.Item2);
+                                    if (savedCharacters > 0)
+                                        _log.Debug("Updated {0} characters ...", savedCharacters);
+
                                     saved = true;
                                 }
                                 catch (Exception e)
@@ -150,7 +157,7 @@ namespace AAEmu.Game.Core.Managers
                     _log.Error(string.Format("DoSave Exception: {0}", e.Message));
                 }
                 stopWatch.Stop();
-                _log.Info("Saving data took {0}", stopWatch.Elapsed);
+                _log.Debug("Saving data took {0}", stopWatch.Elapsed);
             }
             _isSaving = false;
             return saved;

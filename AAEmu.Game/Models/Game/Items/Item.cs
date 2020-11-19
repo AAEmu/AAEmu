@@ -21,8 +21,8 @@ namespace AAEmu.Game.Models.Game.Items
     {
         Money = 0,
         Honor = 1,
-        SiegeShop = 2,
-        VocationBadges = 3,
+        VocationBadges = 2,
+        SiegeShop = 3,
     }
 
     public struct ItemLocation

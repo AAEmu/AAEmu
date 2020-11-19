@@ -28,6 +28,15 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                 return true;
             else
             {
+                if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
+                {
+                    return character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+                }
+                else
+                {
+                    return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+                }
+                /*
                 var template = ItemManager.Instance.GetTemplate(ItemId);
                 if (template is BackpackTemplate backpackTemplate)
                 {
@@ -40,26 +49,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                 {
                     return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
                 }
-                /*
-                var tasks = new List<ItemTask>();
-                var item = ItemManager.Instance.Create(ItemId, Count, GradeId);
-                if (item == null)
-                    return false;
-                var backpackTemplate = (BackpackTemplate)null;
-                if (item.Template is BackpackTemplate)
-                    backpackTemplate = (BackpackTemplate)item.Template;
-                var res = character.Inventory.AddItem(item);
-                if (res == null)
-                    ItemManager.Instance.ReleaseId(item.Id);
-                if (res.Id != item.Id)
-                    tasks.Add(new ItemCountUpdate(res, item.Count));
-                else
-                    tasks.Add(new ItemAdd(item));
-                character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestSupplyItems, tasks, new List<ulong>()));
-                if (backpackTemplate != null && backpackTemplate.BackpackType == BackpackType.TradePack )
-                    character.Inventory.Move(item.Id, item.SlotType, (byte)item.Slot, 0, SlotType.Equipment, (byte)EquipmentItemSlot.Backpack);
-                return true;
                 */
+
             }
         }
     }
