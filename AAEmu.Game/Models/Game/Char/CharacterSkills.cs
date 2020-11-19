@@ -128,6 +128,7 @@ namespace AAEmu.Game.Models.Game.Char
                 skill.Template.AbilityLevel == skillTemplate.AbilityLevel);
         }
 
+        #region database
         public void Load(MySqlConnection connection)
         {
             using (var command = connection.CreateCommand())
@@ -216,5 +217,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
         }
+
+        #endregion
     }
 }

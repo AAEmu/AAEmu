@@ -6,27 +6,27 @@ namespace AAEmu.Game.Models.Game.Units
 {
     public class UnitEvents
     {
-        public EventHandler<OnAttackArgs> OnAttack = delegate { };
-        public EventHandler<OnAttackedArgs> OnAttacked = delegate { };
+        //public EventHandler<OnAttackArgs> OnAttack = delegate { };
+        //public EventHandler<OnAttackedArgs> OnAttacked = delegate { };
         public EventHandler<OnDamageArgs> OnDamage = delegate { };
         public EventHandler<OnDamagedArgs> OnDamaged = delegate { };
         public EventHandler<OnDispelledArgs> OnDispelled = delegate { };
-        public EventHandler<OnTimeoutArgs> OnTimeout = delegate { };
+        //public EventHandler<OnTimeoutArgs> OnTimeout = delegate { };
         //public EventHandler<OnDamagedMeleeArgs> OnDamagedMelee = delegate { };
         //public EventHandler<OnDamagedRangedArgs> OnDamagedRanged = delegate { };
         //public EventHandler<OnDamagedSpellArgs> OnDamagedSpell = delegate { };
         //public EventHandler<OnDamagedSiegeArgs> OnDamagedSiege = delegate { };
-        public EventHandler<OnLandingArgs> OnLanding = delegate { };
-        public EventHandler<OnStartedArgs> OnStarted = delegate { };
+        //public EventHandler<OnLandingArgs> OnLanding = delegate { };
+        //public EventHandler<OnStartedArgs> OnStarted = delegate { }; // I think this belongs part of effect
         public EventHandler<OnMovementArgs> OnMovement = delegate { };
-        public EventHandler<OnChannelingCancelArgs> ChannelingCancel = delegate { };
-        public EventHandler<OnRemoveOnDamagedArgs> OnRemoveOnDamaged = delegate { };
+        public EventHandler<OnChannelingCancelArgs> OnChannelingCancel = delegate { };
+        //public EventHandler<OnRemoveOnDamagedArgs> OnRemoveOnDamaged = delegate { };
         public EventHandler<OnDeathArgs> OnDeath = delegate { };
         public EventHandler<OnUnmountArgs> OnUnmount = delegate { };
         public EventHandler<OnKillArgs> OnKill = delegate { };
-        public EventHandler<OnDamagedCollisionArgs> OnDamagedCollision = delegate { };
-        public EventHandler<OnImmortalityArgs> OnImmortality = delegate { };
-        public EventHandler<OnTimeArgs> OnTime = delegate { };
+        //public EventHandler<OnDamagedCollisionArgs> OnDamagedCollision = delegate { };//I think for ships
+        //public EventHandler<OnImmortalityArgs> OnImmortality = delegate { };
+        //public EventHandler<OnTimeArgs> OnTime = delegate { }; //Event for effect?
         //OnKillAny == OnKill? Add it if needed
     }
 
@@ -117,7 +117,7 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnKillArgs : EventArgs
     {
-
+        public Unit target { get; set; }
     }
 
     public class OnDamagedCollisionArgs : EventArgs

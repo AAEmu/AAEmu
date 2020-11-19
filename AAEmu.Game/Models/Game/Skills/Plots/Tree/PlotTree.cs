@@ -7,6 +7,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
@@ -167,6 +168,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             if (state.Caster is Character character && character.IgnoreSkillCooldowns)
                 character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
+
+            //Maybe always do thsi on end of plot?
+            //Should we check if it was a channeled skill?
+            if (state.CancellationRequested())
+                state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
         }
     }
 }

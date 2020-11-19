@@ -94,6 +94,16 @@ namespace AAEmu.Game.Models.Game.Units
             Equipment.ContainerSize = 28;
         }
 
+        public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        {
+            var moved = !Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z);
+            if (moved)
+            {
+                Events.OnMovement(this, new OnMovementArgs());
+            }
+            base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+        }
+
         public virtual void ReduceCurrentHp(Unit attacker, int value)
         {
             if (Hp <= 0)
@@ -112,6 +122,7 @@ namespace AAEmu.Game.Models.Game.Units
             Hp = Math.Max(Hp - value, 0);
             if (Hp <= 0)
             {
+                attacker.Events.OnKill(attacker, new OnKillArgs { target = attacker });
                 DoDie(attacker);
                 //StopRegen();
             }
@@ -169,6 +180,8 @@ namespace AAEmu.Game.Models.Game.Units
 
                 killer.CurrentTarget = null;
             }
+
+            Events.OnDeath(this, new OnDeathArgs { });
         }
 
         private async void StopAutoSkill(Unit character)

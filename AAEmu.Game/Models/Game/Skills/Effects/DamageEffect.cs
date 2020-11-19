@@ -277,6 +277,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 npc.OnDamageReceived(caster);
             }
+
+            caster.Events.OnDamage(this, new  OnDamageArgs{ });
+            trg.Events.OnDamaged(this, new OnDamagedArgs { });
         }
     }
 }

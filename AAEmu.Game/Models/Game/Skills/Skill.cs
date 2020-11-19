@@ -362,6 +362,8 @@ namespace AAEmu.Game.Models.Game.Skills
             channelDoodad?.Delete();
 
             EndSkill(caster);
+
+            caster.Events.OnChannelingCancel(this, new OnChannelingCancelArgs());
         }
         
         public void ScheduleEffects(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
