@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_effect.Index);
             stream.Write(_effect.Template.BuffId); // buffId
             stream.Write(_effect.Caster.Level); // sourceLevel
-            stream.Write((short) 1); // sourceAbLevel
+            stream.Write((short) _effect.AbLevel); // sourceAbLevel
             //TODO: Fix this applying CD to wrong skill
             //stream.Write(_effect.Skill?.Template.Id ?? 0); // skillId
             stream.Write(0); // skillId

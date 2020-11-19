@@ -47,7 +47,7 @@ namespace AAEmu.Game.Models.Game.Char
         Female = 2
     }
 
-    public class Character : Unit
+    public partial class Character : Unit
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
@@ -919,23 +919,6 @@ namespace AAEmu.Game.Models.Game.Char
         {
             if (type == AbilityType.General) return Level;
             return ExpirienceManager.Instance.GetLevelFromExp(Abilities.Abilities[type].Exp);
-        }
-
-        public void UpdateGearBonuses()
-        {
-            // We use index 1 for gear bonuses. Will make this a constant later, or do it properly. Right now the expected behavior is to have key == buff id, which doesn't work when you have items.
-            Bonuses[1] = new List<Bonus>();
-
-            foreach (var item in Equipment.Items)
-            {
-                if (!(item is EquipItem ei))
-                    continue;
-
-                // Gems
-                foreach (var gem in ei.GemIds)
-                    foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
-                        AddBonus(1, new Bonus {Template = template, Value = template.Value});
-            }
         }
 
         public void ResetSkillCooldown(uint skillId, bool gcd)

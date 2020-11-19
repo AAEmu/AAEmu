@@ -62,6 +62,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, uint> _wearableItemLookConverts;
         
         private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
+        private Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>> _armorGradeBuffs;
         
         // Events
         public event EventHandler OnItemsLoaded;
@@ -421,6 +422,14 @@ namespace AAEmu.Game.Core.Managers
             return new List<BonusTemplate>();
         }
 
+        public ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade)
+        {
+            if (!_armorGradeBuffs.ContainsKey(type))
+                return null;
+            if (!_armorGradeBuffs[type].ContainsKey(grade))
+                return null;
+            return _armorGradeBuffs[type][grade];
+        }
 
         public Item Create(uint templateId, int count, byte grade, bool generateId = true)
         {
@@ -478,6 +487,7 @@ namespace AAEmu.Game.Core.Managers
             _lootDropItems = new Dictionary<uint, List<Item>>();
             _itemDoodadTemplates = new Dictionary<uint, ItemDoodadTemplate>();
             _itemProcTemplates = new Dictionary<uint, ItemProcTemplate>();
+            _armorGradeBuffs = new Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>>();
             _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
             _config = new ItemConfig();
 
@@ -1260,7 +1270,31 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-
+                
+                using(var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM armor_grade_buffs";
+                    command.Prepare();
+                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while(reader.Read())
+                        {
+                            var armorGradeBuff = new ArmorGradeBuff()
+                            {
+                                Id = reader.GetByte("id"),
+                                ArmorType = (ArmorType) reader.GetUInt32("armor_type_id"),
+                                ItemGrade = (ItemGrade) reader.GetUInt32("item_grade_id"),
+                                BuffId = reader.GetUInt32("buff_id")
+                            };
+                            
+                            if (!_armorGradeBuffs.ContainsKey(armorGradeBuff.ArmorType))
+                                _armorGradeBuffs.Add(armorGradeBuff.ArmorType, new Dictionary<ItemGrade, ArmorGradeBuff>());
+                            
+                            if (!_armorGradeBuffs[armorGradeBuff.ArmorType].ContainsKey(armorGradeBuff.ItemGrade))
+                                _armorGradeBuffs[armorGradeBuff.ArmorType].Add(armorGradeBuff.ItemGrade, armorGradeBuff);
+                        }
+                    }
+                }
 
                 // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
                 var invalidItemCount = 0;

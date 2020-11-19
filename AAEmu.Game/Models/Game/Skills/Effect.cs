@@ -34,6 +34,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public DateTime EndTime { get; set; }
         public int Charge { get; set; }
         public bool Passive { get; set; }
+        public uint AbLevel { get; set; }
 
         public Effect(BaseUnit owner, Unit caster, SkillCaster skillCaster, EffectTemplate template, Skill skill, DateTime time)
         {
@@ -44,6 +45,7 @@ namespace AAEmu.Game.Models.Game.Skills
             Skill = skill;
             StartTime = time;
             EndTime = DateTime.MinValue;
+            AbLevel = 1;
         }
 
         public void UpdateEffect()

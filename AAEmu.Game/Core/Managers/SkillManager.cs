@@ -28,7 +28,8 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<uint>> _skillTags;
         private Dictionary<uint, List<uint>> _taggedSkills;
         private Dictionary<uint, List<SkillModifier>> _skillModifiers;
-        
+
+        private Dictionary<uint, List<BuffTrigger>> _buffTriggers;
         /**
          * Events
          */
@@ -124,6 +125,11 @@ namespace AAEmu.Game.Core.Managers
             return new List<SkillModifier>();
         }
 
+        public List<BuffTrigger> GetTriggers(uint buffId)
+        {
+            return _buffTriggers.ContainsKey(buffId) ? _buffTriggers[buffId] : new List<BuffTrigger>();
+        }
+
         public void Load()
         {
             _skills = new Dictionary<uint, SkillTemplate>();
@@ -180,6 +186,7 @@ namespace AAEmu.Game.Core.Managers
             _skillModifiers = new Dictionary<uint, List<SkillModifier>>();
             _skillTags = new Dictionary<uint, List<uint>>();
             _taggedSkills = new Dictionary<uint, List<uint>>();
+            _buffTriggers = new Dictionary<uint, List<BuffTrigger>>();
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -1360,6 +1367,35 @@ namespace AAEmu.Game.Core.Managers
                             if (!_taggedSkills.ContainsKey(tagId))
                                 _taggedSkills.Add(tagId, new List<uint>());
                             _taggedSkills[tagId].Add(skillId);
+                        }
+                    }
+                }
+                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM buff_triggers";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var trigger = new BuffTrigger()
+                            {
+                                BuffId = reader.GetUInt32("buff_id"),
+                                EventKind = (BuffTriggerEventKind)reader.GetUInt32("event_id"),
+                                EffectOnSource = reader.GetBoolean("effect_on_source"),
+                                EffectId = reader.GetUInt32("effect_id"),
+                                UseDamageAmount = reader.GetBoolean("use_damage_amount"),
+                                UseOriginalSource = reader.GetBoolean("use_original_source"),
+                                TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0),
+                                TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0),
+                                Synergy = reader.GetBoolean("synergy")
+                            };
+                            
+                            
+                            if (!_buffTriggers.ContainsKey(trigger.BuffId))
+                                _buffTriggers.Add(trigger.BuffId, new List<BuffTrigger>());
+                            _buffTriggers[trigger.BuffId].Add(trigger);
                         }
                     }
                 }
