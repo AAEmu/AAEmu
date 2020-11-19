@@ -33,16 +33,20 @@ namespace AAEmu.Game.Models.Game.Skills
 
                 foreach(var triggerTemplate in triggerTemplates)
                 {
+                    BuffTrigger trigger;
                     switch (triggerTemplate.Kind)
                     {
                         case Buffs.BuffEventTriggerKind.Attack:
-                            var trigger = new AttackBuffTrigger(_owner, triggerTemplate);
+                            trigger = new AttackBuffTrigger(_owner, triggerTemplate);
                             _owner.Caster.Events.OnAttack += trigger.Execute;
                             _triggers.Add(trigger);
                             break;
                         case Buffs.BuffEventTriggerKind.Attacked:
                             break;
                         case Buffs.BuffEventTriggerKind.Damage:
+                            trigger = new DamageBuffTrigger(_owner, triggerTemplate);
+                            _owner.Caster.Events.OnDamage += trigger.Execute;
+                            _triggers.Add(trigger);
                             break;
                         case Buffs.BuffEventTriggerKind.Damaged:
                             break;
@@ -100,6 +104,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     case Buffs.BuffEventTriggerKind.Attacked:
                         break;
                     case Buffs.BuffEventTriggerKind.Damage:
+                        _owner.Caster.Events.OnDamage -= trigger.Execute;
                         break;
                     case Buffs.BuffEventTriggerKind.Damaged:
                         break;

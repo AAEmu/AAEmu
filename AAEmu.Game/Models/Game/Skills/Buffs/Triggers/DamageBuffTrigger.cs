@@ -6,11 +6,11 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
 {
-    class AttackBuffTrigger : BuffTrigger
+    class DamageBuffTrigger : BuffTrigger
     {
         public override void Execute(object sender, EventArgs eventArgs)
         {
-            var args = eventArgs as OnAttackArgs;
+            var args = eventArgs as OnDamageArgs;
 
             var caster = _owner.Caster;
             var target = _owner.Caster;
@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             //Template.Effect.Apply()
         }
 
-        public AttackBuffTrigger(Effect owner, BuffTriggerTemplate template) : base(owner, template)
+        public DamageBuffTrigger(Effect owner, BuffTriggerTemplate template) : base(owner, template)
         {
 
         }
