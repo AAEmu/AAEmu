@@ -87,7 +87,15 @@ namespace AAEmu.Game.Core.Managers
  
                 _log.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
 
-                return _effects[type.Type][type.ActualId];
+                if (_effects.TryGetValue(type.Type, out var effect))
+                {
+                    return _effects[type.Type][type.ActualId];
+                }
+                else
+                {
+                    _log.Warn("No such Effec Type[{0}] found.", type.Type);
+                    return null;
+                }
             }
             return null;
         }
@@ -1398,8 +1406,8 @@ namespace AAEmu.Game.Core.Managers
                             trigger.EffectOnSource = reader.GetBoolean("effect_on_source");
                             trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount");
                             trigger.UseOriginalSource = reader.GetBoolean("use_original_source");
-                            trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id");
-                            trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id");
+                            trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
+                            trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
                             trigger.Synergy = reader.GetBoolean("synergy");
 
                             _buffTriggers[buffId].Add(trigger);

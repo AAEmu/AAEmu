@@ -31,8 +31,8 @@ namespace AAEmu.Game.Scripts.Commands
         public void Execute(Character character, string[] args)
         {
             int argsIdx = 0;
-            var source = character;
-            var target = character.CurrentTarget == null ? character : character.CurrentTarget;
+            Unit source = character;
+            Unit target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
 
             if (target == null) return;
 

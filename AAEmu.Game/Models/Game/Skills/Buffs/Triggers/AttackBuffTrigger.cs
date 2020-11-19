@@ -14,6 +14,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
 
             var caster = _owner.Caster;
             var target = _owner.Caster;
+            _log.Warn("Buff[{0}] attack triggered executed!", _owner.Template.BuffId);
             //Template.Effect.Apply()
         }
 

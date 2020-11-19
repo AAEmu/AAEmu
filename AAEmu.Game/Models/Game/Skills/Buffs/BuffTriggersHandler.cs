@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Buffs.Triggers;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -26,9 +27,9 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void SubscribeEvents()
         {
-            if (_owner.Template is BuffTemplate template)
+            if (_owner.Template is BuffEffect buffEffect)
             {
-                var triggerTemplates = SkillManager.Instance.GetBuffTriggerTemplates(template.BuffId);
+                var triggerTemplates = SkillManager.Instance.GetBuffTriggerTemplates(buffEffect.Buff.BuffId);
 
                 foreach(var triggerTemplate in triggerTemplates)
                 {
