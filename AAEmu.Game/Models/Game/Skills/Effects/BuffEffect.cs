@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -27,6 +28,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (target.Effects.CheckBuffImmune(Buff.Id))
                 return; // TODO send error of immune?
             target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source.Skill, time));
+            
+            if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly)
+                caster.SetCriminalState(true);
         }
 
         public override void Start(Unit caster, BaseUnit owner, Effect effect)

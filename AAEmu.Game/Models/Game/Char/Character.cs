@@ -955,6 +955,53 @@ namespace AAEmu.Game.Models.Game.Char
             }
             SendPacket(packets);
         }
+        
+        public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        {
+            var moved = !Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z);
+            var lastZoneKey = Position.ZoneId;
+            base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+
+            if (!moved)
+                return;
+
+            if (Position.ZoneId == lastZoneKey)
+                return;
+
+            // We switched zonekeys, we need to do some checks
+            var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
+            var newZone = ZoneManager.Instance.GetZoneByKey(Position.ZoneId);
+            var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
+            var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
+            if (lastZoneGroupId == newZoneGroupId)
+                return;
+
+            // Ok, we actually changed zone groups, we'll leave to do some chat channel stuff
+            if (lastZoneGroupId != 0)
+                ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(this);
+
+            if (newZoneGroupId != 0)
+                ChatManager.Instance.GetZoneChat(Position.ZoneId).JoinChannel(this);
+
+            if (newZone != null && (!newZone.Closed))
+                return;
+
+            // Entered a forbidden zone
+            /*
+                            if (!thisChar.isGM)
+                            {
+                                // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
+                                // TODO: Remove backpack immediatly
+                            }
+                            */
+            // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour
+            if (newZone != null)
+                SendMessage(ChatType.System,
+                    "|cFFFF0000You have entered a closed zone ({0} - {1})!\nPlease leave immediatly!|r",
+                    newZone.ZoneKey, newZone.Name);
+            // Send the error message
+            SendErrorMessage(ErrorMessageType.ClosedZone);
+        }
 
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
