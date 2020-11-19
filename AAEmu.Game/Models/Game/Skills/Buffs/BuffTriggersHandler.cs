@@ -86,9 +86,9 @@ namespace AAEmu.Game.Models.Game.Skills
         }
         public void UnsubscribeEvents()
         {
-            if (_buff.Template is BuffTemplate template)
+            if (_owner.Template is BuffTemplate template)
             {
-                var triggers = SkillManager.Instance.GetBuffTriggers(template.BuffId);
+                var triggers = SkillManager.Instance.GetBuffTriggerTemplates(template.BuffId);
 
                 foreach (var trigger in triggers)
                 {

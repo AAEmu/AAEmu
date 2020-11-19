@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
             if (eff.IsEnded())
             {
                 eff.Events.OnDispelled(eff, new OnDispelledArgs());
-                eff.Triggers.UnsubscribeToEvents();
+                eff.Triggers.UnsubscribeEvents();
                 return;
             }
             EffectTaskManager.Instance.AddDispelTask(eff, eff.Tick);
