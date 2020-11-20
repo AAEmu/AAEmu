@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint ModelId { get; set; }
         public byte Level { get; set; }
         public int Hp { get; set; }
-        [UnitAttribute(UnitAttribute.MaxHealth)]
+        [UnitAttribute(UnitAttribute.MaxHealth, UnitAttribute.Str)]
         public virtual int MaxHp { get; set; }
         [UnitAttribute(UnitAttribute.HealthRegen)]
         public virtual int HpRegen { get; set; }
@@ -347,7 +347,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             var props = this.GetType().GetProperties()
                 .Where(o => (o.GetCustomAttributes(typeof(UnitAttributeAttribute), true) as IEnumerable<UnitAttributeAttribute>)
-                    .Any(a => a.Attribute == attr));
+                    .Any(a => a.Attributes.Contains(attr)));
 
             if (props.Count() > 0)
                 return props.ElementAt(0).GetValue(this).ToString();

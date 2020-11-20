@@ -29,7 +29,7 @@ namespace AAEmu.Game.Scripts.Commands
         public void Execute(Character character, string[] args)
         {
             Unit target = character;
-
+            int argsIdx = 0;
 
             if (args.Length == 0)
             {
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            if (args.Length > 1 && args[1] == "target")
+            if (args.Length > 1 && args[0] == "target")
             {
                 if (character.CurrentTarget == null || !(character.CurrentTarget is Unit))
                 {
@@ -45,9 +45,10 @@ namespace AAEmu.Game.Scripts.Commands
                     return;
                 }
                 target = (Unit)character.CurrentTarget;
+                argsIdx++;
             }
 
-            if (byte.TryParse(args[0], out byte attrId))
+            if (byte.TryParse(args[argsIdx], out byte attrId))
             {
                 if(Enum.IsDefined(typeof(UnitAttribute), attrId))
                 {
@@ -59,7 +60,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
             else
             {
-                if(Enum.TryParse(typeof(UnitAttribute), args[0], true, out var attr))
+                if(Enum.TryParse(typeof(UnitAttribute), args[argsIdx], true, out var attr))
                 {
                     string value = target.GetAttribute((UnitAttribute)attr);
                     character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));

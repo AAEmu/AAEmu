@@ -8,11 +8,15 @@ namespace AAEmu.Game.Models.Game.Units
     [AttributeUsage(AttributeTargets.Property, Inherited = true)]
     public class UnitAttributeAttribute : Attribute
     {
-        public UnitAttribute Attribute { get; set; }
+        public List<UnitAttribute> Attributes { get; set; }
 
-        public UnitAttributeAttribute(UnitAttribute attribute)
+        public UnitAttributeAttribute(params UnitAttribute[] attributes)
         {
-            Attribute = attribute;
+            Attributes = new List<UnitAttribute>();
+            foreach(var attr in attributes)
+            {
+                Attributes.Add(attr);
+            }
         }
     }
 }

@@ -408,7 +408,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        [UnitAttribute(UnitAttribute.MaxMana)]
+        [UnitAttribute(UnitAttribute.ManaRegen)]
         public override int MpRegen
         {
             get
@@ -669,7 +669,8 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        [UnitAttribute(UnitAttribute.SpellDpsInc)]
+        //No heal dps inc?
+        //[UnitAttribute(UnitAttribute.SpellDpsInc)]
         public override int HDpsInc
         {
             get
