@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Models.Game.Skills;
+using System.CodeDom;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -30,9 +31,24 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            var targetPlayer = character.CurrentTarget == null ? character : character.CurrentTarget;
+            int argsIdx = 0;
+            Unit source = character;
+            Unit target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
+
+            if (target == null) return;
+
+            if (args[0] == "target")
+            {
+                var temp = source;
+                source = target;
+                target = temp;
+                argsIdx++;
+            }
 
             var casterObj = new SkillCasterUnit(character.ObjId);
+            var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+            targetObj.ObjId = target.ObjId;
+
 
             uint buffId;
             if (!uint.TryParse(args[0], out buffId))
@@ -42,7 +58,7 @@ namespace AAEmu.Game.Scripts.Commands
             if (buffTemplate == null)
                 return;
 
-            targetPlayer.Effects.AddEffect(new Effect(targetPlayer, character, casterObj, buffTemplate, null, System.DateTime.Now));
+            target.Effects.AddEffect(new Effect(target, character, casterObj, buffTemplate, null, System.DateTime.Now));
         }
     }
 }

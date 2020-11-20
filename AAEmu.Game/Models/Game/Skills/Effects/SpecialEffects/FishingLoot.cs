@@ -36,28 +36,32 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             //TODO: Should likely make a lootmanager to handle these cases. 
             var lootPacks = ItemManager.Instance.GetLootPacks(lootTableId);
 
-            var totalDropRate = (int)lootPacks.Sum(c => c.DropRate); //Adds the total drop rate of all possible items from a skill
-
-            Random rand = new Random();
-            var randChoice = rand.Next(totalDropRate);
-
-            LootPacks lootpack = null;
-
-            foreach (var item in lootPacks) //Picks item based on a weighted system. The higher the droprate the more likely you are to get that item. 
+            if(lootPacks !=  null)
             {
-                if (randChoice < item.DropRate)
+                var totalDropRate = (int)lootPacks.Sum(c => c.DropRate); //Adds the total drop rate of all possible items from a skill
+                Random rand = new Random();
+                var randChoice = rand.Next(totalDropRate);
+
+                LootPacks lootpack = null;
+
+                foreach (var item in lootPacks) //Picks item based on a weighted system. The higher the droprate the more likely you are to get that item. 
                 {
-                    lootpack = item;
-                    break;
+                    if (randChoice < item.DropRate)
+                    {
+                        lootpack = item;
+                        break;
+                    }
+                    else
+                        randChoice -= (int)item.DropRate;
                 }
-                else
-                    randChoice -= (int)item.DropRate;
+
+                var player = (Character)caster;
+
+                if (player != null && lootpack != null)
+                {
+                    player.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.Fishing, lootpack.ItemId, 1);
+                }
             }
-
-            var player = (Character)caster;
-
-            var newItem = ItemManager.Instance.Create(lootpack.ItemId, 1, lootpack.GradeId, true);
-            player.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.Fishing, newItem.TemplateId,1,newItem.Grade);
         }
     }
 }
