@@ -48,7 +48,15 @@ namespace AAEmu.Game.Scripts.Commands
                 argsIdx++;
             }
 
-            if (byte.TryParse(args[argsIdx], out byte attrId))
+            if (args[argsIdx].ToLower() == "all")
+            {
+                foreach(var attr in Enum.GetValues(typeof(UnitAttribute)))
+                {
+                    string value = target.GetAttribute((UnitAttribute)attr);
+                    character.SendPacket(new SCChatMessagePacket(ChatType.System, $"{(UnitAttribute)attr}: {value}"));
+                }
+            }
+            else if (byte.TryParse(args[argsIdx], out byte attrId))
             {
                 if(Enum.IsDefined(typeof(UnitAttribute), attrId))
                 {
