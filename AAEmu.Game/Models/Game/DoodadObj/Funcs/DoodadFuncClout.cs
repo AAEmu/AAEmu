@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint BuffId { get; set; }
         public uint ProjectileId { get; set; }
         public bool ShowToFriendlyOnly { get; set; }
-        public uint NextPhase { get; set; }
+        public int NextPhase { get; set; }
         public uint AoeShapeId { get; set; }
         public uint TargetBuffTagId { get; set; }
         public uint TargetNoBuffTagId { get; set; }
@@ -57,9 +57,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 Task.Run(async () =>
                 {
                     await Task.Delay(Duration);
-                    if (NextPhase == 0) 
+                    if (NextPhase == -1) 
                         owner.Delete();
-                    DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
+                    // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
+                    owner.GoToPhase(caster, NextPhase);
                     AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });
             }

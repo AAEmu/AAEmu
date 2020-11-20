@@ -6,9 +6,9 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 {
     public class DoodadFuncTimerTask : DoodadFuncTask
     {
-        private uint _nextPhase;
+        private int _nextPhase;
 
-        public DoodadFuncTimerTask(Unit caster, Doodad owner, uint skillId, uint nextPhase) : base(caster, owner, skillId)
+        public DoodadFuncTimerTask(Unit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
         {
             _nextPhase = nextPhase;
         }
@@ -16,14 +16,15 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         public override void Execute()
         {
             _owner.FuncTask = null;
-            var phases = DoodadManager.Instance.GetPhaseFunc(_nextPhase);
-            if (phases.Length > 0)
-            {
-                _owner.FuncGroupId = _nextPhase;
-                DoodadManager.Instance.TriggerPhases(GetType().Name, _caster, _owner, _skillId);
-            }
-            else
-                DoodadManager.Instance.TriggerFunc(GetType().Name, _caster, _owner, _skillId, _nextPhase);
+            // var phases = DoodadManager.Instance.GetPhaseFunc(_nextPhase);
+            // if (phases.Length > 0)
+            // {
+            //     _owner.FuncGroupId = _nextPhase;
+            //     DoodadManager.Instance.TriggerPhases(GetType().Name, _caster, _owner, _skillId);
+            // }
+            // else
+            //     DoodadManager.Instance.TriggerFunc(GetType().Name, _caster, _owner, _skillId, _nextPhase);
+            _owner.GoToPhase(_caster, _nextPhase);
         }
     }
 }

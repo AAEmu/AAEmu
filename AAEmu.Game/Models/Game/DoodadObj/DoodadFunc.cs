@@ -26,14 +26,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 return;
          
             template.Use(caster, owner, skillId);
-            if (NextPhase > 0)
-            {
-                //Queue the next phase
-                var next = DoodadManager.Instance.GetFunc((uint)NextPhase, 0);
-                if (next == null)
-                    return;
-                next.Use(caster, owner, skillId);
-            }
+            // if (NextPhase > 0)
+            // {
+            //     //Queue the next phase
+            //     var next = DoodadManager.Instance.GetFunc((uint)NextPhase, 0);
+            //     if (next == null)
+            //         return;
+            //     next.Use(caster, owner, skillId);
+            // }
         }
     }
 }

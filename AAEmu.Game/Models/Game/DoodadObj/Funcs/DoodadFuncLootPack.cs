@@ -40,7 +40,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     count = itemQuantity.Next(pack.MinAmount, pack.MaxAmount);
                     character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, pack.ItemId, count);
                 }
-                DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
+                // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
             }
             else
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);

@@ -6,18 +6,19 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 {
     public class DoodadFuncGrowthTask : DoodadFuncTask
     {
-        private uint _nextPhase;
+        private int _nextPhase;
 
-        public DoodadFuncGrowthTask(Unit caster, Doodad owner, uint skillId, uint nextPhase) : base(caster, owner, skillId)
+        public DoodadFuncGrowthTask(Unit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
         {
             _nextPhase = nextPhase;
         }
 
         public override void Execute()
         {
-            _owner.FuncGroupId = _nextPhase;
-            _owner.FuncTask = null;
-            DoodadManager.Instance.TriggerPhases(GetType().Name, _caster, _owner, _skillId);
+            // _owner.FuncGroupId = _nextPhase;
+            // _owner.FuncTask = null;
+            // DoodadManager.Instance.TriggerPhases(GetType().Name, _caster, _owner, _skillId);
+            _owner.GoToPhase(_caster, _nextPhase);
         }
     }
 }

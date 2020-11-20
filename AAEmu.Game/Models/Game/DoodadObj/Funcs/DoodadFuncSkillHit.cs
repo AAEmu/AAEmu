@@ -10,7 +10,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
-            DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, SkillId);
+            // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, SkillId);
+            owner.Use(caster);
         }
     }
 }

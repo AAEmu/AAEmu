@@ -10,6 +10,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public override void Use(Unit caster, Doodad owner, uint skillId)
         {
             _log.Debug("DoodadFuncHouseFarm");
+            // owner.Use(caster);
         }
     }
 }

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -40,6 +42,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public uint TimeLeft => GrowthTime > DateTime.Now ? (uint)(GrowthTime - DateTime.Now).TotalMilliseconds : 0; // TODO formula time of phase
         public bool cancelPhasing { get; set; }
+        
+        public uint CurrentPhaseId { get; set; }
 
         public Doodad()
         {
@@ -54,6 +58,77 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _scale = scale;
         }
 
+        // public void DoFirstPhase(Unit unit)
+        // {
+        //     
+        // }
+
+        /// <summary>
+        /// This "uses" the doodad. Using a doodad means running its functions in doodad_funcs
+        /// </summary>
+        public void Use(Unit unit)
+        {
+            // Get all doodad_funcs
+            var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
+
+            // Apply them
+            var nextFunc = 0;
+            foreach (var func in funcs)
+            {
+                // if a function has a skill, maybe cast it ?
+                func.Use(unit, this, 0);
+                if (func.NextPhase > 0) nextFunc = func.NextPhase;
+            }
+
+            // If any of them have a next phase > 0, go to next phase
+            GoToPhase(unit, nextFunc);
+        }
+
+        /// <summary>
+        /// This executes a doodad's phase. Phase functions start as soon as the doodad switches to a new phase.
+        /// </summary>
+        public void DoPhase(Unit unit)
+        {
+            var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
+
+            foreach (var phaseFunc in phaseFuncs)
+            {
+                phaseFunc.Use(unit, this, 0);
+            }
+        }
+
+        /// <summary>
+        /// Changes the doodad's phase
+        /// </summary>
+        /// <param name="unit">Unit who triggered the change</param>
+        /// <param name="funcGroupId">New phase to go to</param>
+        public void GoToPhase(Unit unit, int funcGroupId)
+        {
+            if (funcGroupId == -1)
+            {
+                // Delete doodad
+                Delete();
+            }
+            else
+            {
+                CurrentPhaseId = (uint)funcGroupId;
+                DoPhase(unit);
+                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
+            }
+        }
+
+        public List<uint> GetStartFuncs()
+        {
+            var startGroupIds = new List<uint>();
+            foreach (var funcGroup in Template.FuncGroups)
+            {
+                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
+                    startGroupIds.Add(funcGroup.Id);
+            }
+
+            return startGroupIds;
+        }
+        
         public uint GetFuncGroupId()
         {   
             foreach (var funcGroup in Template.FuncGroups)

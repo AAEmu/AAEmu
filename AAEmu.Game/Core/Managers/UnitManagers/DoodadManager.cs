@@ -443,7 +443,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.BuffId = reader.GetUInt32("buff_id", 0);
                             func.ProjectileId = reader.GetUInt32("projectile_id", 0);
                             func.ShowToFriendlyOnly = reader.GetBoolean("show_to_friendly_only", true);
-                            func.NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetUInt32("next_phase") : 0;
+                            func.NextPhase = reader.GetInt32("next_phase", 0);
                             func.AoeShapeId = reader.GetUInt32("aoe_shape_id");
                             func.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                             func.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
@@ -1115,7 +1115,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.Delay = reader.GetInt32("delay");
                             func.StartScale = reader.GetInt32("start_scale");
                             func.EndScale = reader.GetInt32("end_scale");
-                            func.NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetUInt32("next_phase") : 0;
+                            func.NextPhase = reader.GetInt32("next_phase", 0);
                             _funcTemplates["DoodadFuncGrowth"].Add(func.Id, func);
                         }
                     }
@@ -2086,7 +2086,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             var func = new DoodadFuncTimer();
                             func.Id = reader.GetUInt32("id");
                             func.Delay = reader.GetInt32("delay");
-                            func.NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetUInt32("next_phase") : 0;
+                            func.NextPhase = reader.GetInt32("next_phase", 0);
                             func.KeepRequester = reader.GetBoolean("keep_requester", true);
                             func.ShowTip = reader.GetBoolean("show_tip", true);
                             func.ShowEndTime = reader.GetBoolean("show_end_time", true);
@@ -2209,6 +2209,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.OwnerObjId = obj?.ObjId ?? 0;
             doodad.FuncGroupId = doodad.GetFuncGroupId();
             doodad.OwnerType = DoodadOwnerType.System;
+            doodad.CurrentPhaseId = doodad.GetFuncGroupId();
 
             if (obj is Character character)
             {
@@ -2225,14 +2226,16 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 doodad.DbHouseId = house.Id;
             }
 
-            var startPhaseFuncs = GetPhaseFunc(doodad.FuncGroupId);
-            if (startPhaseFuncs.Length > 0 && obj != null)
-            {
-                foreach (var startPhaseFunc in startPhaseFuncs)
-                {
-                    startPhaseFunc.Use((Unit)obj, doodad, 0);
-                }
-            }
+            // var startPhaseFuncs = GetPhaseFunc(doodad.FuncGroupId);
+            // if (startPhaseFuncs.Length > 0 && obj != null)
+            // {
+            //     foreach (var startPhaseFunc in startPhaseFuncs)
+            //     {
+            //         startPhaseFunc.Use((Unit)obj, doodad, 0);
+            //     }
+            // }
+            if (obj is Unit unit)
+                doodad.DoPhase(unit);
 
             return doodad;
         }
@@ -2263,6 +2266,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return null;
         }
 
+        public List<DoodadFunc> GetFuncsForGroup(uint funcGroupId)
+        {
+            if (_funcsByGroups.ContainsKey(funcGroupId))
+                return _funcsByGroups[funcGroupId];
+            return new List<DoodadFunc>();
+        }
+
         public DoodadFunc[] GetPhaseFunc(uint funcGroupId)
         {
             if (_phaseFuncs.ContainsKey(funcGroupId))
@@ -2280,43 +2290,43 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return null;
         }
 
-        public void TriggerFunc(string className, Unit caster, Doodad doodad, uint skillId, uint nextPhase = 0)
-        {
-            var action = GetFunc(doodad.FuncGroupId, skillId);
-            if (action != null)
-            {
-                //_log.Warn(className + " is Actioning " + action.FuncType);
-                if (action.NextPhase > 0)
-                    doodad.FuncGroupId = (uint)action.NextPhase;
-                else
-                    doodad.cancelPhasing = true; //If the next phase in the action doesn't exist, prevent the doodad from phasing any further
-
-                action.Use(caster, doodad, action.SkillId);
-            }
-            else
-            {
-                if (nextPhase > 0)
-                {
-                    doodad.FuncGroupId = nextPhase;
-                    doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
-                    TriggerPhases(className, caster, doodad, skillId);
-                }
-            }
-        }
-        public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
-        {
-            var phases = GetPhaseFunc(doodad.FuncGroupId);
-            foreach (var phase in phases)
-            {
-                if (!doodad.cancelPhasing)
-                {
-                    //_log.Warn(className + " is Phasing " + phase.FuncType);
-                    phase.Use(caster, doodad, phase.SkillId);
-                }
-            }
-            if (!doodad.cancelPhasing)
-                doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
-            doodad.cancelPhasing = false;
-        }
+        // public void TriggerFunc(string className, Unit caster, Doodad doodad, uint skillId, uint nextPhase = 0)
+        // {
+        //     var action = GetFunc(doodad.FuncGroupId, skillId);
+        //     if (action != null)
+        //     {
+        //         //_log.Warn(className + " is Actioning " + action.FuncType);
+        //         if (action.NextPhase > 0)
+        //             doodad.FuncGroupId = (uint)action.NextPhase;
+        //         else
+        //             doodad.cancelPhasing = true; //If the next phase in the action doesn't exist, prevent the doodad from phasing any further
+        //
+        //         action.Use(caster, doodad, action.SkillId);
+        //     }
+        //     else
+        //     {
+        //         if (nextPhase > 0)
+        //         {
+        //             doodad.FuncGroupId = nextPhase;
+        //             doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+        //             TriggerPhases(className, caster, doodad, skillId);
+        //         }
+        //     }
+        // }
+        // public void TriggerPhases(string className, Unit caster, Doodad doodad, uint skillId)
+        // {
+        //     var phases = GetPhaseFunc(doodad.FuncGroupId);
+        //     foreach (var phase in phases)
+        //     {
+        //         if (!doodad.cancelPhasing)
+        //         {
+        //             //_log.Warn(className + " is Phasing " + phase.FuncType);
+        //             phase.Use(caster, doodad, phase.SkillId);
+        //         }
+        //     }
+        //     if (!doodad.cancelPhasing)
+        //         doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
+        //     doodad.cancelPhasing = false;
+        // }
     }
 }
