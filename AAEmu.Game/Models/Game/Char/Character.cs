@@ -1323,7 +1323,6 @@ namespace AAEmu.Game.Models.Game.Char
 
             Mails = new CharacterMails(this);
             MailManager.Instance.GetCurrentMailList(this); //Doesn't need a connection, but does need to load after the inventory
-            UpdateGearBonuses();
         }
 
         public bool SaveDirectlyToDatabase()
