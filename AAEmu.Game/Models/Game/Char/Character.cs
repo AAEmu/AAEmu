@@ -773,16 +773,16 @@ namespace AAEmu.Game.Models.Game.Char
             var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
             if (item.Template is WeaponTemplate weapon)
             {
-                EquipmentItemSlotType slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
+                var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
                 if (slotId == EquipmentItemSlotType.TwoHanded)
                     return WeaponWieldKind.TwoHanded;
-                else if (slotId == EquipmentItemSlotType.OneHanded)
+                else if (slotId == EquipmentItemSlotType.OneHanded || slotId == EquipmentItemSlotType.Mainhand)
                 {
                     var item2 = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
                     if (item2 != null && item2.Template is WeaponTemplate weapon2)
                     {
-                        EquipmentItemSlotType slotId2 = (EquipmentItemSlotType)weapon2.HoldableTemplate.SlotTypeId;
-                        if (slotId2 == EquipmentItemSlotType.OneHanded)
+                        var slotId2 = (EquipmentItemSlotType)weapon2.HoldableTemplate.SlotTypeId;
+                        if (slotId2 == EquipmentItemSlotType.OneHanded || slotId2 == EquipmentItemSlotType.Offhand)
                             return WeaponWieldKind.DuelWielded;
                         else
                             return WeaponWieldKind.OneHanded;
