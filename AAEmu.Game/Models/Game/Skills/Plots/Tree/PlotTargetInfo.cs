@@ -113,7 +113,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             float x, y;
             if (args.Distance > 0)
-                (x, y) = MathUtil.AddDistanceToFront(args.Distance / 1000, PreviousTarget.Position.X, PreviousTarget.Position.Y, rotZ);
+                (x, y) = MathUtil.AddDistanceToFront((args.Distance / 1000.0f) - 0.01f, PreviousTarget.Position.X, PreviousTarget.Position.Y, rotZ);
+            // We substract 0.1 here to help with floating point errors
             else
                 (x, y) = (PreviousTarget.Position.X, PreviousTarget.Position.Y);
 
