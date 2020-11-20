@@ -5,7 +5,7 @@ using System.Text;
 namespace AAEmu.Game.Models.Game.Units
 {
     //Yes the naming looks weird, ignore it please.
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property, Inherited = true)]
     public class UnitAttributeAttribute : Attribute
     {
         public UnitAttribute Attribute { get; set; }

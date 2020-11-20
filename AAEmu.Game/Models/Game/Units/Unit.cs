@@ -29,24 +29,41 @@ namespace AAEmu.Game.Models.Game.Units
         public uint ModelId { get; set; }
         public byte Level { get; set; }
         public int Hp { get; set; }
+        [UnitAttribute(UnitAttribute.MaxHealth)]
         public virtual int MaxHp { get; set; }
+        [UnitAttribute(UnitAttribute.HealthRegen)]
         public virtual int HpRegen { get; set; }
+        [UnitAttribute(UnitAttribute.PersistentHealthRegen)]
         public virtual int PersistentHpRegen { get; set; } = 30;
         public int Mp { get; set; }
+        [UnitAttribute(UnitAttribute.MaxMana)]
         public virtual int MaxMp { get; set; }
+        [UnitAttribute(UnitAttribute.ManaRegen)]
         public virtual int MpRegen { get; set; }
+        [UnitAttribute(UnitAttribute.PersistentManaRegen)]
         public virtual int PersistentMpRegen { get; set; } = 30;
         public virtual float LevelDps { get; set; }
+        [UnitAttribute(UnitAttribute.MainhandDps)]
         public virtual int Dps { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeDpsInc)]
         public virtual int DpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.OffhandDps)]
         public virtual int OffhandDps { get; set; }
+        [UnitAttribute(UnitAttribute.RangedDps)]
         public virtual int RangedDps { get; set; }
+        [UnitAttribute(UnitAttribute.RangedDpsInc)]
         public virtual int RangedDpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.SpellDps)]
         public virtual int MDps { get; set; }
+        [UnitAttribute(UnitAttribute.SpellDpsInc)]
         public virtual int MDpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.HealDps)]
         public virtual int HDps { get; set; }
+        //No Attribute?
         public virtual int HDpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.Armor)]
         public virtual int Armor { get; set; }
+        [UnitAttribute(UnitAttribute.MagicResist)]
         public virtual int MagicResistance { get; set; }
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
@@ -326,5 +343,30 @@ namespace AAEmu.Game.Models.Game.Units
             return Level;
         }
 
+        public string GetAttribute(UnitAttribute attr)
+        {
+            var props = this.GetType().GetProperties()
+                .Where(o => (o.GetCustomAttributes(typeof(UnitAttributeAttribute), true) as IEnumerable<UnitAttributeAttribute>)
+                    .Any(a => a.Attribute == attr));
+
+            if (props.Count() > 0)
+                return props.ElementAt(0).GetValue(this).ToString();
+            else
+                return "NotFound";
+        }
+
+        public string GetAttribute(uint attr) => GetAttribute((UnitAttribute)attr);
+
+        //Uncomment if you need this
+        /*
+        public string GetAttribute(string attr)
+        {
+            if (Enum.TryParse(typeof(UnitAttribute), attr, true, out var result))
+            {
+                return GetAttribute((UnitAttribute)result);
+            }
+            return "FailedParse";
+        }
+        */
     }
 }
