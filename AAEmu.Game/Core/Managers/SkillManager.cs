@@ -1412,7 +1412,11 @@ namespace AAEmu.Game.Core.Managers
                             trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
                             trigger.Synergy = reader.GetBoolean("synergy");
 
-                            _buffTriggers[buffId].Add(trigger);
+                            //Apparently this is possible..
+                            if(trigger.Effect != null)
+                            {
+                                _buffTriggers[buffId].Add(trigger);
+                            }
                         }
                     }
                 }

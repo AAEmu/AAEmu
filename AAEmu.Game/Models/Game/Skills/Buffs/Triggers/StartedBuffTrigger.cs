@@ -12,8 +12,8 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
         public override void Execute(object sender, EventArgs eventArgs)
         {
             var args = eventArgs as OnAttackArgs;
-            _log.Warn("Buff[{0}] {1} executed. Applying {2}[{3}]!", _effect.Template.BuffId, this.GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
-            //Template.Effect.Apply()
+            _log.Warn("Buff[{0}] {1} executed. Applying {2}[{3}]!", _effect?.Template?.BuffId, this?.GetType()?.Name, Template?.Effect?.GetType().Name, Template?.Effect?.Id);
+            _log.Info("test");//Template.Effect.Apply()
 
             if (!(_owner is Unit owner))
             {
