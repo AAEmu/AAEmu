@@ -18,23 +18,33 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "";
+            return "<attrId || attrName> [target]";
         }
 
         public string GetCommandHelpText()
         {
-            return "getattribute <attrId || attrName> <optional:target>";
+            return "getattribute <attrId || attrName> [target]";
         }
 
         public void Execute(Character character, string[] args)
         {
             Unit target = character;
 
+
+            if (args.Length == 0)
+            {
+                character.SendMessage("[GetAttribute] " + CommandManager.CommandPrefix + "getattribute <attrId || attrName> [target]");
+                return;
+            }
+
             if (args.Length > 1 && args[1] == "target")
             {
-                target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
-                character.SendPacket(new SCChatMessagePacket(ChatType.System, $"No Target Selected"));
-                return;
+                if (character.CurrentTarget == null || !(character.CurrentTarget is Unit))
+                {
+                    character.SendPacket(new SCChatMessagePacket(ChatType.System, $"No Target Selected"));
+                    return;
+                }
+                target = (Unit)character.CurrentTarget;
             }
 
             if (byte.TryParse(args[0], out byte attrId))

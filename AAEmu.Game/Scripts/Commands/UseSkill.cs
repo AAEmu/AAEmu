@@ -20,12 +20,12 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "";
+            return "[target] <skillId>";
         }
 
         public string GetCommandHelpText()
         {
-            return "usekill <skillId>";
+            return "Forces unit(target optional) to use a skill";
         }
 
         public void Execute(Character character, string[] args)
@@ -35,6 +35,12 @@ namespace AAEmu.Game.Scripts.Commands
             Unit target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
 
             if (target == null) return;
+
+            if (args.Length == 0)
+            {
+                character.SendMessage("[UseSkill] " + CommandManager.CommandPrefix + "useskill [target] <SkillId>");
+                return;
+            }
 
             if (args[0] == "target")
             {
