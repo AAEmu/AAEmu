@@ -95,8 +95,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                     equipItem.GemIds[i] = 0;
                 }
             }
-            
-            owner.UpdateGearBonuses();
 
             tasksSocketing.Add(new ItemUpdate(equipItem));
 

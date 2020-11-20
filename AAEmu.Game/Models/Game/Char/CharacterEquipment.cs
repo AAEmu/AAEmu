@@ -47,6 +47,9 @@ namespace AAEmu.Game.Models.Game.Char
                 if (!(item.Template is ArmorTemplate armorTemplate))
                     continue;
 
+                if (armorTemplate.SlotTemplate.SlotTypeId == (ulong) EquipmentItemSlotType.Back)
+                    continue;
+
                 if (!armorPieces.ContainsKey((ArmorType)armorTemplate.KindTemplate.TypeId))
                     armorPieces.Add((ArmorType)armorTemplate.KindTemplate.TypeId, new List<Armor>());
                 armorPieces[(ArmorType)armorTemplate.KindTemplate.TypeId].Add(armor);
