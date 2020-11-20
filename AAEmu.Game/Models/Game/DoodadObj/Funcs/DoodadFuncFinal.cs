@@ -29,22 +29,22 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             var delay = Rand.Next(MinTime, MaxTime);
 
-            if (caster is Character character)
-            {
-                const int count = 1;
-                var itemTemplate = ItemManager.Instance.GetItemIdsFromDoodad(owner.TemplateId);
-                if (itemTemplate != null)
-                {
-                    foreach (var itemId in itemTemplate)
-                    {
-                        if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
-                        {
-                            // TODO: do proper handling of insufficient bag space
-                            character.SendErrorMessage(Error.ErrorMessageType.BagFull);
-                        }
-                    }
-                }
-            }
+            // if (caster is Character character)
+            // {
+            //     const int count = 1;
+            //     var itemTemplate = ItemManager.Instance.GetItemIdsFromDoodad(owner.TemplateId);
+            //     if (itemTemplate != null)
+            //     {
+            //         foreach (var itemId in itemTemplate)
+            //         {
+            //             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
+            //             {
+            //                 // TODO: do proper handling of insufficient bag space
+            //                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+            //             }
+            //         }
+            //     }
+            // }
             if (After > 0)
             {
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, skillId, Respawn);
@@ -54,6 +54,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 owner.Delete();
             }
+            // owner.Delete();
         }
     }
 }

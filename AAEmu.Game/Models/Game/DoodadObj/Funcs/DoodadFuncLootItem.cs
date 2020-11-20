@@ -34,8 +34,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (chance > Percent) return;
 
             int count = Rand.Next(CountMin, CountMax);
-            // if (character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
-            //     DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
+                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
             // else
             // {
             //     character.SendErrorMessage(Error.ErrorMessageType.BagFull);
