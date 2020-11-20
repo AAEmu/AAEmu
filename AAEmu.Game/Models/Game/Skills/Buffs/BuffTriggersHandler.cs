@@ -135,12 +135,10 @@ namespace AAEmu.Game.Models.Game.Skills
                         _owner.Events.OnTimeout -= trigger.Execute;
                         break;
                     case Buffs.BuffEventTriggerKind.DamagedMelee:
-                        break;
                     case Buffs.BuffEventTriggerKind.DamagedRanged:
-                        break;
                     case Buffs.BuffEventTriggerKind.DamagedSpell:
-                        break;
                     case Buffs.BuffEventTriggerKind.DamagedSiege:
+                        _owner.Caster.Events.OnDamage -= trigger.Execute;
                         break;
                     case Buffs.BuffEventTriggerKind.Landing:
                         break;

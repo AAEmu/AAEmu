@@ -340,9 +340,9 @@ namespace AAEmu.Game.Models.Game.Units
                     if (buffTemplate == null)
                         continue;
 
-                    if (buffTemplate.System)
+                    if (buffTagId == 0 && buffTemplate.System)
                         continue;
-                    if (buffTemplate.Kind != kind)
+                    if (buffTagId == 0 && buffTemplate.Kind != kind)
                         continue;
                     if (buffTagId > 0 && !taggedBuffs.Contains(buffTemplate.Id))
                         continue;
