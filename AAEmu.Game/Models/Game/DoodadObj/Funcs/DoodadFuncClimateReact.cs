@@ -13,17 +13,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Debug("DoodadFuncClimateReact");
 
-            if (owner.FuncTask != null)
-            {
-                await owner.FuncTask.Cancel();
-                owner.FuncTask = null;
-            }
-
-            owner.FuncGroupId = NextPhase;
-            var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
-            foreach (var func in funcs)
-                func.Use(caster, owner, skillId);
-            owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true);
+            // if (owner.FuncTask != null)
+            // {
+            //     await owner.FuncTask.Cancel();
+            //     owner.FuncTask = null;
+            // }
+            //
+            // owner.FuncGroupId = NextPhase;
+            // var funcs = DoodadManager.Instance.GetPhaseFunc(owner.FuncGroupId);
+            // foreach (var func in funcs)
+            //     func.Use(caster, owner, skillId);
+            // owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true);
         }
     }
 }

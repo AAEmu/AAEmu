@@ -2207,9 +2207,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.TemplateId = template.Id;
             doodad.Template = template;
             doodad.OwnerObjId = obj?.ObjId ?? 0;
-            doodad.FuncGroupId = doodad.GetFuncGroupId();
-            doodad.OwnerType = DoodadOwnerType.System;
             doodad.CurrentPhaseId = doodad.GetFuncGroupId();
+            doodad.OwnerType = DoodadOwnerType.System;
 
             if (obj is Character character)
             {

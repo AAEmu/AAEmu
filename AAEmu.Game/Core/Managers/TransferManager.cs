@@ -184,7 +184,7 @@ namespace AAEmu.Game.Core.Managers
                     doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
                     doodad.Data = (byte)doodadBinding.AttachPointId;
                     doodad.SetScale(1f);
-                    doodad.FuncGroupId = doodad.GetFuncGroupId();
+                    doodad.CurrentPhaseId = doodad.GetFuncGroupId();
 
                     transfer.AttachedDoodads.Add(doodad);
 

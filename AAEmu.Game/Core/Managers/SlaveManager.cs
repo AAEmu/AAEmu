@@ -169,7 +169,7 @@ namespace AAEmu.Game.Core.Managers
 
                 doodad.SetScale(doodadBinding.Scale);
 
-                doodad.FuncGroupId = doodad.GetFuncGroupId();
+                doodad.CurrentPhaseId = doodad.GetFuncGroupId();
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {
