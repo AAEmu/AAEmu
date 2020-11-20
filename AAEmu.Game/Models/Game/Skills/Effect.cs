@@ -79,7 +79,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
         }
 
-        public void ScheduleEffect()
+        public void ScheduleEffect(bool replace)
         {
             switch (State)
             {
@@ -142,29 +142,29 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 State = EffectState.Finished;
                 InUse = false;
-                StopEffectTask();
+                StopEffectTask(replace);
             }
         }
 
-        public void Exit()
+        public void Exit(bool replace = false)
         {
             if (State == EffectState.Finished)
                 return;
             if (State != EffectState.Created)
             {
                 State = EffectState.Finishing;
-                ScheduleEffect();
+                ScheduleEffect(replace);
             }
             else
                 State = EffectState.Finishing;
         }
 
-        private void StopEffectTask()
+        private void StopEffectTask(bool replace)
         {
             lock (_lock)
             {
                 Owner.Effects.RemoveEffect(this);
-                Template.Dispel(Caster, Owner, this);
+                Template.Dispel(Caster, Owner, this, replace);
             }
         }
 
@@ -174,7 +174,7 @@ namespace AAEmu.Game.Models.Game.Skills
             if (update)
                 UpdateEffect();
             else if (inUse)
-                ScheduleEffect();
+                ScheduleEffect(false);
             else if (State != EffectState.Finished)
                 State = EffectState.Finishing;
         }
@@ -227,7 +227,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Charge <= 0)
             {
-                Exit();
+                Exit(false);
             }
             
             return value;

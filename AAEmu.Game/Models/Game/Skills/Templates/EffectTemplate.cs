@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         {
         }
 
-        public virtual void Dispel(Unit caster, BaseUnit owner, Effect effect)
+        public virtual void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
         {
         }
 

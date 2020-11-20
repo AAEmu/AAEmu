@@ -66,11 +66,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), new EffectSource(Buff), skillObj, DateTime.Now);
         }
 
-        public override void Dispel(Unit caster, BaseUnit owner, Effect effect)
+        public override void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
         {
             foreach (var template in Buff.Bonuses)
                 owner.RemoveBonus(effect.Index, template.Attribute);
-            if (!effect.Passive)
+            if (!effect.Passive && !replaced)
                 owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
         }
 

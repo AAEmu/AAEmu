@@ -207,11 +207,12 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             }
         }
 
-        public override void Dispel(Unit caster, BaseUnit owner, Effect effect)
+        public override void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
         {
             foreach (var template in Bonuses)
                 owner.RemoveBonus(effect.Index, template.Attribute);
-            owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
+            if (!effect.Passive && !replaced)
+                owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
         }
 
         public override void WriteData(PacketStream stream)

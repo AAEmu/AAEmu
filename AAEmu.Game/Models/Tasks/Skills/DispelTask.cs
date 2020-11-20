@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
             if (eff.Owner == null)
                 return;
 
-            eff.ScheduleEffect();
+            eff.ScheduleEffect(false);
 
             if (eff.IsEnded())
             {

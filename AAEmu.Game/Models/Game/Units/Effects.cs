@@ -163,7 +163,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void AddEffect(Effect effect)
+        public void AddEffect(Effect effect, uint index = 0)
         {
             lock (_lock)
             {
@@ -172,10 +172,17 @@ namespace AAEmu.Game.Models.Game.Units
                     return;
 
                 effect.State = EffectState.Created;
-                effect.Index = _nextIndex; // TODO need safe increment...
+                if (index == 0)
+                {
+                    effect.Index = _nextIndex; // TODO need safe increment...
 
-                if (++_nextIndex == uint.MaxValue)
-                    _nextIndex = 1;
+                    if (++_nextIndex == uint.MaxValue)
+                        _nextIndex = 1;
+                }
+                else
+                {
+                    effect.Index = index;
+                }
 
                 effect.Duration = effect.Template.GetDuration();
                 if (effect.Duration > 0 && effect.StartTime == DateTime.MinValue)
@@ -194,7 +201,7 @@ namespace AAEmu.Game.Models.Game.Units
                                 if (e != null && e.InUse && e.Template.BuffId == effect.Template.BuffId)
                                     if (e.GetTimeLeft() < effect.GetTimeLeft())
                                         last = e;
-                        last?.Exit();
+                        last?.Exit(index > 0 && last.Template.Id == effect.Template.Id);
                         break;
                     }
                     case BuffEffect buffEffect:
@@ -205,7 +212,7 @@ namespace AAEmu.Game.Models.Game.Units
                                 if (e != null && e.InUse && e.Template.BuffId == effect.Template.BuffId)
                                     if (last == null || e.GetTimeLeft() < last.GetTimeLeft())
                                         last = e;
-                        last?.Exit();
+                        last?.Exit(index > 0 && last.Template.Id == effect.Template.Id);
                         break;
                     }
                 }

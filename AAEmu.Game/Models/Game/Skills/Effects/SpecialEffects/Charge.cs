@@ -15,21 +15,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             Skill skill, SkillObject skillObject, DateTime time, int buffId, int minCharge, int maxCharge, int unused)
         {
             var buff = caster.Effects.GetEffectFromBuffId((uint)buffId);
-            var initialCharges = 0;
-            if (buff != null)
-            {
-                initialCharges = buff.Charge;
-                // buff.Exit();
-            }
-            
             var template = SkillManager.Instance.GetBuffTemplate((uint)buffId);
             var newEffect =
                 new Effect(target, caster, casterObj, template, skill, time)
                 {
-                    Charge = Math.Min(initialCharges + Rand.Next(minCharge, maxCharge), template.MaxCharge)
+                    Charge = Math.Min(Rand.Next(minCharge, maxCharge), template.MaxCharge)
                 };
 
-            caster.Effects.AddEffect(newEffect);
+            caster.Effects.AddEffect(newEffect, buff?.Index ?? 0);
         }
     }
 }
