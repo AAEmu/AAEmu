@@ -12,11 +12,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public UnitAttributeAttribute(params UnitAttribute[] attributes)
         {
-            Attributes = new List<UnitAttribute>();
-            foreach(var attr in attributes)
-            {
-                Attributes.Add(attr);
-            }
+            Attributes = new List<UnitAttribute>(attributes);
         }
     }
 }

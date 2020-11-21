@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Units
+﻿namespace AAEmu.Game.Models.Game.Units
 {
     public enum UnitAttribute : byte
     {
@@ -142,6 +142,32 @@ namespace AAEmu.Game.Models.Game.Units
         SpellDamageCriticalBonus = 152,
         RangedParry = 153,
         RangedParryMul = 154,
-        HealDps = 173
+        //Fill in when we need?
+        /*
+        DEATH_DURABILITY_LOSS_RATIO_MUL = 0x9B,
+        PENALTY_EXP_MUL = 0x9C,
+        RECOVERABLE_EXP_MUL = 0x9D,
+        ACTABILITY_LANG_NUIAN = 0x9E,
+        ACTABILITY_LANG_ELF = 0x9F,
+        ACTABILITY_LANG_HARIHARAN = 0xA0,
+        ACTABILITY_LANG_FERRE = 0xA1,
+        ACTABILITY_LANG_WESTCOMMON = 0xA2,
+        ACTABILITY_LANG_EASTCOMMON = 0xA3,
+        ACTABILITY_LANG_DWARF = 0xA4,
+        ACTABILITY_LANG_WARBORN = 0xA5,*/
+        HealDps = 173,
+        HealCritical = 174,
+        HealDpsInc = 175,
+        HealCriticalBonus = 176,
+        Block = 177,
+        Dodge = 178,
+        BlockMul = 179,
+        DodgeMul = 180,
+        BullsEye = 181,
+        BattleResist = 182,
+        Flexibility = 183,
+        MagicPenetration = 184,
+        HealCriticalMul = 185,
+        ExpByLaborPowerMul = 186,
     }
 }
