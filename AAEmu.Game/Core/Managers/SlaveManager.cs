@@ -123,6 +123,8 @@ namespace AAEmu.Game.Core.Managers
             var spawnPos = owner.Position.Clone();
             spawnPos.X += slaveTemplate.SpawnXOffset;
             spawnPos.Y += slaveTemplate.SpawnYOffset;
+            if (slaveTemplate.SlaveKind == SlaveKind.Boat)
+                spawnPos.Z = 100.0f;
 
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
