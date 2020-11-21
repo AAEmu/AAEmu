@@ -691,6 +691,31 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.MeleeAntiMiss)]
+        public override float MeleeAccuracy
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeAntiMiss);
+                var parameters = new Dictionary<string, double>();
+                parameters["str"] = Str; //Str not needed, but maybe we use later
+                parameters["spi"] = Spi;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeAntiMiss))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
+                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (Math.Abs(res) + res) / 2f;
+                return (float)res;
+            }
+        }
+
         [UnitAttribute(UnitAttribute.MeleeCritical)]
         public override float MeleeCritical
         {
@@ -747,6 +772,32 @@ namespace AAEmu.Game.Models.Game.Char
                 return res;
             }
         }
+
+        [UnitAttribute(UnitAttribute.RangedAntiMiss)]
+        public override float RangedAccuracy
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.RangedAntiMiss);
+                var parameters = new Dictionary<string, double>();
+                parameters["dex"] = Dex; //Str not needed, but maybe we use later
+                parameters["spi"] = Spi;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedAntiMiss))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
+                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (Math.Abs(res) + res) / 2f;
+                return (float)res;
+            }
+        }
+
         [UnitAttribute(UnitAttribute.RangedCritical)]
         public override float RangedCritical
         {
@@ -803,6 +854,32 @@ namespace AAEmu.Game.Models.Game.Char
                 return res;
             }
         }
+
+        [UnitAttribute(UnitAttribute.SpellAntiMiss)]
+        public override float SpellAccuracy
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.SpellAntiMiss);
+                var parameters = new Dictionary<string, double>();
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellAntiMiss))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
+                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (Math.Abs(res) + res) / 2f;
+                return (float)res;
+            }
+        }
+
         [UnitAttribute(UnitAttribute.SpellCritical)]
         public override float SpellCritical
         {

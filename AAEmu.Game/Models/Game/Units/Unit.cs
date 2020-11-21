@@ -62,18 +62,24 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int HDps { get; set; }
         [UnitAttribute(UnitAttribute.HealDpsInc)]
         public virtual int HDpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeAntiMissMul)]
+        public virtual float MeleeAccuracy { get; set; }
         [UnitAttribute(UnitAttribute.MeleeCritical)]
         public virtual float MeleeCritical { get; set; }
         [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
         public virtual float MeleeCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
         public virtual float MeleeCriticalMul { get; set; }
+        [UnitAttribute(UnitAttribute.RangedAntiMiss)]
+        public virtual float RangedAccuracy { get; set; }
         [UnitAttribute(UnitAttribute.RangedCritical)]
         public virtual float RangedCritical { get; set; }
         [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
         public virtual float RangedCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.RangedCriticalMul)]
         public virtual float RangedCriticalMul { get; set; }
+        [UnitAttribute(UnitAttribute.SpellAntiMiss)]
+        public virtual float SpellAccuracy { get; set; }
         [UnitAttribute(UnitAttribute.SpellCritical)]
         public virtual float SpellCritical { get; set; }
         [UnitAttribute(UnitAttribute.SpellCriticalBonus)]

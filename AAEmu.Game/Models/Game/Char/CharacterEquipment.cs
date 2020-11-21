@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
@@ -54,7 +54,8 @@ namespace AAEmu.Game.Models.Game.Char
                     armorPieces.Add((ArmorType)armorTemplate.KindTemplate.TypeId, new List<Armor>());
                 armorPieces[(ArmorType)armorTemplate.KindTemplate.TypeId].Add(armor);
             }
-
+            if (armorPieces.Count() == 0)
+                return;
             // Get kind with most pieces
             var piecesOfKind = armorPieces.First();
             foreach (var piecesByKind in armorPieces)

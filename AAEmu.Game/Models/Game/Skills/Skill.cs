@@ -651,11 +651,20 @@ namespace AAEmu.Game.Models.Game.Skills
             switch (damageType)
             {
                 case DamageType.Melee:
-                    return SkillHitType.MeleeHit;
+                    if (Rand.Next(0f, 100f) < attacker.MeleeAccuracy)
+                        return SkillHitType.MeleeHit;
+                    else
+                        return SkillHitType.MeleeMiss;
                 case DamageType.Magic:
-                    return SkillHitType.SpellHit;
+                    if (Rand.Next(0f, 100f) < attacker.SpellAccuracy)
+                        return SkillHitType.SpellHit;
+                    else
+                        return SkillHitType.SpellMiss;
                 case DamageType.Ranged:
-                    return SkillHitType.RangedHit;
+                    if (Rand.Next(0f, 100f) < attacker.RangedAccuracy)
+                        return SkillHitType.RangedHit;
+                    else
+                        return SkillHitType.RangedMiss;
                 case DamageType.Siege:
                     return SkillHitType.RangedHit;//No siege type?
                 default:
