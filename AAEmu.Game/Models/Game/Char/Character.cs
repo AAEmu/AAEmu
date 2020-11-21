@@ -669,8 +669,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        //No heal dps inc?
-        //[UnitAttribute(UnitAttribute.SpellDpsInc)]
+        [UnitAttribute(UnitAttribute.HealDpsInc)]
         public override int HDpsInc
         {
             get
@@ -679,12 +678,7 @@ namespace AAEmu.Game.Models.Game.Char
                     FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.HealDpsInc);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
-                parameters["str"] = Str;
-                parameters["dex"] = Dex;
-                parameters["sta"] = Sta;
-                parameters["int"] = Int;
                 parameters["spi"] = Spi;
-                parameters["fai"] = Fai;
                 var res = formula.Evaluate(parameters);
                 foreach(var bonus in GetBonuses(UnitAttribute.HealDpsInc))
                 {
@@ -694,6 +688,174 @@ namespace AAEmu.Game.Models.Game.Char
                         res += bonus.Value;
                 }
                 return (int) res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeCritical)]
+        public override float MeleeCritical
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeCritical);
+                var parameters = new Dictionary<string, double>();
+                parameters["str"] = Str; //Str not needed, but maybe we use later
+                parameters["dex"] = Dex;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCritical))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = res * (1f/Facets) * 100;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
+        public override float MeleeCriticalBonus
+        {
+            get
+            {
+                var res = 1500f;
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCriticalBonus))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res* bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (res - 1000f) / 10f;
+}
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
+        public override float MeleeCriticalMul
+        {
+            get
+            {
+                float res = 0;
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCriticalMul))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return res;
+            }
+        }
+        [UnitAttribute(UnitAttribute.RangedCritical)]
+        public override float RangedCritical
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.RangedCritical);
+                var parameters = new Dictionary<string, double>();
+                parameters["dex"] = Dex; //Str not needed, but maybe we use later
+                parameters["int"] = Int;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedCritical))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = res * (1f / Facets) * 100;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
+        public override float RangedCriticalBonus
+        {
+            get
+            {
+                var res = 1500f;
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedCriticalBonus))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (res - 1000f) / 10f;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.RangedCriticalMul)]
+        public override float RangedCriticalMul
+        {
+            get
+            {
+                float res = 0;
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedCriticalMul))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return res;
+            }
+        }
+        [UnitAttribute(UnitAttribute.SpellCritical)]
+        public override float SpellCritical
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.SpellCritical);
+                var parameters = new Dictionary<string, double>();
+                parameters["int"] = Int; //Str not needed, but maybe we use later
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellCritical))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = res * (1f / Facets) * 100;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.SpellCriticalBonus)]
+        public override float SpellCriticalBonus
+        {
+            get
+            {
+                var res = 1500f;
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellCriticalBonus))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (res - 1000f) / 10f;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.SpellCriticalMul)]
+        public override float SpellCriticalMul
+        {
+            get
+            {
+                float res = 0;
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellCriticalMul))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return res;
             }
         }
 

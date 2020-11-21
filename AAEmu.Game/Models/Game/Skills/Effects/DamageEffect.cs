@@ -103,25 +103,33 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             }
 
-            if(hitType == SkillHitType.Invalid)
+            float flexibilityRateMod = (trg.Flexibility / 1000 * 3);
+            switch (DamageType)
             {
-                switch (DamageType)
-                {
-                    case DamageType.Melee:
+                case DamageType.Melee:
+                    if (Rand.Next(0f, 100f) < (caster.MeleeCritical - flexibilityRateMod))
+                        hitType = SkillHitType.MeleeCritical;
+                    else
                         hitType = SkillHitType.MeleeHit;
-                        break;
-                    case DamageType.Magic:
+                    break;
+                case DamageType.Magic:
+                    if (Rand.Next(0f, 100f) < (caster.SpellCritical - flexibilityRateMod))
+                        hitType = SkillHitType.SpellCritical;
+                    else
                         hitType = SkillHitType.SpellHit;
-                        break;
-                    case DamageType.Siege:
-                        hitType = SkillHitType.SpellHit;
-                        break;
-                    case DamageType.Ranged:
+                    break;
+                case DamageType.Ranged:
+                    if (Rand.Next(0f, 100f) < (caster.RangedCritical - flexibilityRateMod))
+                        hitType = SkillHitType.RangedCritical;
+                    else
                         hitType = SkillHitType.RangedHit;
-                        break;
-                    default:
-                        break;
-                }
+                    break;
+                case DamageType.Siege:
+                    hitType = SkillHitType.RangedHit;//No siege type?
+                    break;
+                default:
+                    hitType = SkillHitType.Invalid;
+                    break;
             }
 
             var min = 0.0f;
@@ -258,7 +266,27 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             var finalDamage = Rand.Next(min, max);
-            
+
+            //toughness reduction (PVP Only)
+            if (caster is Character && trg is Character)
+                finalDamage *= ( 1 - ( trg.BattleResist / ( 8000f + trg.BattleResist ) ) );
+
+            //Do Critical Dmgs
+            switch (hitType)
+            {
+                case SkillHitType.MeleeCritical:
+                    finalDamage *= 1 + ((caster.MeleeCriticalBonus - (trg.Flexibility / 100)) / 100);
+                    break;
+                case SkillHitType.RangedCritical:
+                    finalDamage *= 1 + ((caster.RangedCriticalBonus - (trg.Flexibility / 100)) / 100);
+                    break;
+                case SkillHitType.SpellCritical:
+                    finalDamage *= 1 + ((caster.SpellCriticalBonus - (trg.Flexibility / 100)) / 100);
+                    break;
+                default:
+                    break;
+            }
+
             // Reduction
             var reductionMul = 1.0f;
 
@@ -275,9 +303,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         break;
                 }
             }
-            //toughness reduction (PVP Only)
-            if (caster is Character && trg is Character)
-                finalDamage *= ( 1 - ( trg.BattleResist / ( 8000f + trg.BattleResist ) ) );
             var value = (int)(finalDamage * reductionMul);
             var absorbed = (int)(finalDamage * (1.0f - reductionMul));
             trg.ReduceCurrentHp(caster, value);

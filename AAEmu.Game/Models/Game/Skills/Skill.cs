@@ -654,10 +654,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     return SkillHitType.MeleeHit;
                 case DamageType.Magic:
                     return SkillHitType.SpellHit;
-                case DamageType.Siege:
-                    return SkillHitType.Invalid;//No siege type?
                 case DamageType.Ranged:
                     return SkillHitType.RangedHit;
+                case DamageType.Siege:
+                    return SkillHitType.RangedHit;//No siege type?
                 default:
                     return SkillHitType.Invalid;
             }

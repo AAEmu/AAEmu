@@ -60,8 +60,26 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int MDpsInc { get; set; }
         [UnitAttribute(UnitAttribute.HealDps)]
         public virtual int HDps { get; set; }
-        //No Attribute?
+        [UnitAttribute(UnitAttribute.HealDpsInc)]
         public virtual int HDpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeCritical)]
+        public virtual float MeleeCritical { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
+        public virtual float MeleeCriticalBonus { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
+        public virtual float MeleeCriticalMul { get; set; }
+        [UnitAttribute(UnitAttribute.RangedCritical)]
+        public virtual float RangedCritical { get; set; }
+        [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
+        public virtual float RangedCriticalBonus { get; set; }
+        [UnitAttribute(UnitAttribute.RangedCriticalMul)]
+        public virtual float RangedCriticalMul { get; set; }
+        [UnitAttribute(UnitAttribute.SpellCritical)]
+        public virtual float SpellCritical { get; set; }
+        [UnitAttribute(UnitAttribute.SpellCriticalBonus)]
+        public virtual float SpellCriticalBonus { get; set; }
+        [UnitAttribute(UnitAttribute.SpellCriticalMul)]
+        public virtual float SpellCriticalMul { get; set; }
         [UnitAttribute(UnitAttribute.Armor)]
         public virtual int Armor { get; set; }
         [UnitAttribute(UnitAttribute.MagicResist)]
