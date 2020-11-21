@@ -86,19 +86,18 @@ namespace AAEmu.Game.Models.Game.Char
             foreach (var product in _craft.CraftProducts)
             {
                 // Check if we're crafting a tradepack, if so, try to remove currently equipped backpack slot
-                bool isTradePack = false;
-                var productResultItemTemplate = ItemManager.Instance.GetTemplate(product.ItemId);
-                if ((productResultItemTemplate != null) && (productResultItemTemplate is BackpackTemplate bt))
-                {
-                    if (bt.BackpackType == BackpackType.TradePack)
-                        isTradePack = true;
-                }
-                if (isTradePack == false)
+                if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
                 {
                     Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
                 }
                 else
                 {
+                    if (!Owner.Inventory.TryEquipNewBackPack(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount))
+                    {
+                        CancelCraft();
+                        return;
+                    }
+                    /*
                     // Remove player backpack
                     if (Owner.Inventory.TakeoffBackpack(Items.Actions.ItemTaskType.CraftPickupProduct,true))
                     {
@@ -110,6 +109,7 @@ namespace AAEmu.Game.Models.Game.Char
                         CancelCraft();
                         return;
                     }
+                    */
                 }
             }
 

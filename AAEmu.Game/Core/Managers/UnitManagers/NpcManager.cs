@@ -486,15 +486,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                             var itemId = reader.GetUInt32("item_id");
                             var grade = reader.GetByte("grade_id");
-                            if (_goods[id].Items.ContainsKey(itemId))
-                            {
-                                if (_goods[id].Items[itemId].IndexOf(grade) > -1)
-                                    continue;
 
-                                _goods[id].Items[itemId].Add(grade);
-                            }
-                            else
-                                _goods[id].Items.Add(itemId, new List<byte> { grade });
+                            _goods[id].AddItemToStock(itemId, grade);
                         }
                     }
                 }

@@ -1257,7 +1257,9 @@ namespace AAEmu.Game.Core.Managers
                             continue;
                         if (item.SlotType == SlotType.None)
                         {
-                            _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}", item.Id, item.TemplateId));
+                            // Only give a error if it has no owner, otherwise it's likely a BuyBack item
+                            if (item.OwnerId <= 0)
+                                _log.Warn(string.Format("Found SlotType.None in itemslist, skipping ID:{0} - Template:{1}", item.Id, item.TemplateId));
                             continue;
                         }
                         if (!item.IsDirty)
@@ -1429,6 +1431,13 @@ namespace AAEmu.Game.Core.Managers
             {
                 procTemplate.SkillTemplate = SkillManager.Instance.GetSkillTemplate(procTemplate.SkillId);
             }
+        }
+
+        public bool IsAutoEquipTradePack(uint itemTemplateId)
+        {
+            var template = GetTemplate(itemTemplateId);
+            // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
+            return ((template != null) && (template is BackpackTemplate bt) && !template.BindType.HasFlag(ItemBindType.BindOnEquip));
         }
     }
 }
