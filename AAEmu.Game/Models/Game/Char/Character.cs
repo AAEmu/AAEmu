@@ -686,7 +686,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
+                foreach(var bonus in GetBonuses(UnitAttribute.HealDpsInc))
                 {
                     if(bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (res * bonus.Value / 100f);
@@ -778,6 +778,135 @@ namespace AAEmu.Game.Models.Game.Char
                 }
 
                 return res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.BattleResist)]
+        public override int BattleResist
+        {
+            get
+            {
+                var res = 0f;
+                foreach (var bonus in GetBonuses(UnitAttribute.BattleResist))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+        [UnitAttribute(UnitAttribute.Facets)]
+        public override int Facets
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Facet);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Facets))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Dodge)]
+        public override float DodgeRate
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dodge);
+                var parameters = new Dictionary<string, double>();
+                parameters["dex"] = Dex;
+                parameters["int"] = Int;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Dodge))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (float)(res * (1f/Facets) * 100f);
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeParry)]
+        public override float MeleeParryRate
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeParry);
+                var parameters = new Dictionary<string, double>();
+                parameters["str"] = Str;
+                parameters["sta"] = Sta;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeParry))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (float)(res * (1f / Facets) * 100f);
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.RangedParry)]
+        public override float RangedParryRate
+        {
+            get
+            {
+                //RangedParry Formula == 0
+                double res = 0;
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedParry))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (float)(res * (1f / Facets) * 100f);
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Block)]
+        public override float BlockRate
+        {
+            get
+            {
+                var offhand = Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
+                if (offhand != null && offhand.Template is WeaponTemplate template)
+                {
+                    var slotId = (EquipmentItemSlotType)template.HoldableTemplate.SlotTypeId;
+                    if (slotId != EquipmentItemSlotType.Shield)
+                        return 0f;
+                }
+                else if (offhand == null)
+                    return 0f;
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Block);
+                var parameters = new Dictionary<string, double>();
+                parameters["str"] = Str;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Block))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (float)(res * (1f / Facets) * 100f);
             }
         }
 

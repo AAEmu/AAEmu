@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Formulas
+﻿namespace AAEmu.Game.Models.Game.Formulas
 {
     public enum FormulaOwnerType : byte
     {
@@ -13,16 +13,17 @@ namespace AAEmu.Game.Models.Game.Formulas
 
     public enum UnitFormulaKind : byte
     {
+        // Commented Formula Kinds do not exist
         // TODO v.1.0
         MeleeCritical = 1,
         MeleeAntiMiss = 2,
-        MeleeDodge = 3,
-        MeleeBlock = 4,
+        //MeleeDodge = 3,
+        //MeleeBlock = 4,
         MeleeParry = 5,
         RangedCritical = 6,
         RangedAntiMiss = 7,
-        RangedDodge = 8,
-        RangedBlock = 9,
+        //RangedDodge = 8,
+        //RangedBlock = 9,
         SpellCritical = 10,
         SpellAntiMiss = 11,
         LevelDps = 12,

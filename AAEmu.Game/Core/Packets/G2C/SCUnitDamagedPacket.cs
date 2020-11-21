@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 
@@ -14,6 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _absorbed;
         
         public byte HoldableId { get; set; }
+        public SkillHitType HitType { get; set; }
 
         public SCUnitDamagedPacket(CastAction castAction, SkillCaster skillCaster, uint casterId, uint targetId, int damage, int absorbed)
             : base(SCOffsets.SCUnitDamagedPacket, 1)
@@ -36,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WritePisc(_damage, _absorbed, 0);
             stream.WritePisc(0, 0, 0);
             stream.Write(HoldableId); // hol
-            stream.Write((ushort)289); // de
+            stream.Write(288 | (uint)HitType); // de
             stream.Write((byte)1); // flag
             stream.Write((byte)1); // result -> to debug info
             // TODO debug info

@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks.UnitMove;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -88,6 +89,18 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var holdable = (WeaponTemplate)weapon?.Template;
 
             var trg = (Unit)target;
+            var hitType = RollCombatDice(caster, trg);
+
+            if (SkillMissed(hitType))
+            {
+                var missPacket = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 0, 0)
+                {
+                    HoldableId = (byte)(holdable?.HoldableTemplate?.Id ?? 0),
+                    HitType = hitType
+                };
+                caster.BroadcastPacket(missPacket, true);
+                return;
+            }
 
             var min = 0.0f;
             var max = 0.0f;
@@ -262,7 +275,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var packet = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value, absorbed)
             {
-                HoldableId = (byte) (holdable?.HoldableTemplate?.Id ?? 0)
+                HoldableId = (byte)(holdable?.HoldableTemplate?.Id ?? 0),
+                HitType = hitType
             };
             
             if (packetBuilder != null) 
@@ -293,6 +307,71 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 });
                 trg.Events.OnDamaged(this, new OnDamagedArgs { });
             }
+        }
+
+        private SkillHitType RollCombatDice(Unit attacker, Unit target)
+        {
+            // TODO
+            //  -Calculate Miss and Apply Focus(antihit?)
+            //  -Check for AlwaysHit?
+            //  -Only Parry if sword equipped?
+
+
+            //Idk if this is right. Double check it
+            //if (!MathUtil.IsFront(attacker, target))
+               // goto AlwaysHit;
+
+            if (Rand.Next(0f, 100f) < target.DodgeRate)
+            {
+                if (DamageType == DamageType.Melee)
+                    return SkillHitType.MeleeDodge;
+                else if (DamageType == DamageType.Ranged)
+                    return SkillHitType.RangedDodge;
+            }
+            else if (Rand.Next(0f,100f) < target.BlockRate)
+            {
+                if (DamageType == DamageType.Melee)
+                    return SkillHitType.MeleeBlock;
+                else if (DamageType == DamageType.Ranged)
+                    return SkillHitType.RangedBlock;
+            }
+            else if (Rand.Next(0F,100f) < target.MeleeParryRate)
+            {
+                if (DamageType == DamageType.Melee)
+                    return SkillHitType.MeleeParry;
+            }
+            else if (Rand.Next(0f,100f) < target.RangedParryRate)
+            {
+                if (DamageType == DamageType.Ranged)
+                    return SkillHitType.RangedParry;
+            }
+
+            AlwaysHit:
+            switch (DamageType)
+            {
+                case DamageType.Melee:
+                    return SkillHitType.MeleeHit;
+                case DamageType.Magic:
+                    return SkillHitType.SpellHit;
+                case DamageType.Siege:
+                    return SkillHitType.Invalid;//No siege type?
+                case DamageType.Ranged:
+                    return SkillHitType.RangedHit;
+                default:
+                    return SkillHitType.Invalid;
+            }
+        }
+
+        private bool SkillMissed(SkillHitType hitType)
+        {
+            return hitType == SkillHitType.MeleeDodge
+            || hitType == SkillHitType.MeleeParry
+            || hitType == SkillHitType.MeleeBlock
+            || hitType == SkillHitType.MeleeMiss
+            || hitType == SkillHitType.RangedDodge
+            || hitType == SkillHitType.RangedParry
+            || hitType == SkillHitType.RangedBlock
+            || hitType == SkillHitType.RangedMiss;
         }
     }
 }

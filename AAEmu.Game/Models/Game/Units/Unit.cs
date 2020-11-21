@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -29,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint ModelId { get; set; }
         public byte Level { get; set; }
         public int Hp { get; set; }
-        [UnitAttribute(UnitAttribute.MaxHealth, UnitAttribute.Str)]
+        [UnitAttribute(UnitAttribute.MaxHealth)]
         public virtual int MaxHp { get; set; }
         [UnitAttribute(UnitAttribute.HealthRegen)]
         public virtual int HpRegen { get; set; }
@@ -65,6 +66,17 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int Armor { get; set; }
         [UnitAttribute(UnitAttribute.MagicResist)]
         public virtual int MagicResistance { get; set; }
+        [UnitAttribute(UnitAttribute.Dodge)]
+        public virtual float DodgeRate { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeParry)]
+        public virtual float MeleeParryRate { get; set; }
+        [UnitAttribute(UnitAttribute.RangedParry)]
+        public virtual float RangedParryRate { get; set; }
+        [UnitAttribute(UnitAttribute.Block)]
+        public virtual float BlockRate { get; set; }
+        public virtual int BattleResist { get; set; }
+        [UnitAttribute(UnitAttribute.Facets)]
+        public virtual int Facets { get; set; }
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
