@@ -67,35 +67,36 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// This "uses" the doodad. Using a doodad means running its functions in doodad_funcs
         /// </summary>
-        public void Use(Unit unit)
+        public void Use(Unit unit, uint skillId)
         {
+            _log.Debug("Using phase {0}", CurrentPhaseId);
             // Get all doodad_funcs
             var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
 
             // Apply them
             var nextFunc = 0;
             var isUse = false;
+            var startPhase = CurrentPhaseId;
             foreach (var func in funcs)
             {
-                // if a function has a skill, maybe cast it ?
-                func.Use(unit, this, 0);
-                if (func.NextPhase != 0) nextFunc = func.NextPhase;
-                if (func.FuncType == "DoodadFuncUse") isUse = true;
+                if (func.SkillId > 0 && func.SkillId == skillId)
+                {
+                    func.Use(unit, this, skillId, func.NextPhase);
+                    if (func.NextPhase != 0) nextFunc = func.NextPhase;
+                    if (func.FuncType == "DoodadFuncUse") isUse = true;
+                }
+                else if (func.SkillId == 0)
+                {
+                    func.Use(unit, this, skillId);
+                    if (func.NextPhase != 0) nextFunc = func.NextPhase;
+                    if (func.FuncType == "DoodadFuncUse") isUse = true;
+                }
             }
 
-            // If any of them have a next phase > 0, go to next phase
-            try
-            {
-                // This is a hackfix that needs to be studied more. DoodadFuncUse -> SkillID = 0, use new phase, SkillID > 0, use skill ?
-                if (isUse)
-                    GoToPhaseAndUse(unit, nextFunc);
-                else
-                    GoToPhase(unit, nextFunc);
-            }
-            catch (Exception e)
-            {
-                _log.Error(e, "Error in doodad functions");
-            }
+            if (isUse)
+                GoToPhaseAndUse(unit, nextFunc, skillId);
+            else
+                GoToPhase(unit, nextFunc);
         }
 
         /// <summary>
@@ -103,6 +104,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         public void DoPhase(Unit unit)
         {
+            _log.Debug("Doing phase {0}", CurrentPhaseId);
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
 
             OverridePhase = 0;
@@ -127,6 +129,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="funcGroupId">New phase to go to</param>
         public void GoToPhase(Unit unit, int funcGroupId)
         {
+            _log.Debug("Going to phase {0}", funcGroupId);
             if (funcGroupId == -1)
             {
                 // Delete doodad
@@ -140,8 +143,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
         }
 
-        public void GoToPhaseAndUse(Unit unit, int funcGroupId)
+        public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId)
         {
+            _log.Debug("Going to phase {0}", funcGroupId);
             if (funcGroupId == -1)
             {
                 // Delete doodad
@@ -152,7 +156,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 CurrentPhaseId = (uint)funcGroupId;
                 DoPhase(unit);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
-                Use(unit);
+                Use(unit, skillId);
             }
         }
 

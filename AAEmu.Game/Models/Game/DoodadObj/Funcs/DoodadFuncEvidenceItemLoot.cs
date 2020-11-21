@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int CrimeValue { get; set; }
         public uint CrimeKindId { get; set; }
         
-        public override void Use(Unit caster, Doodad owner, uint skillId)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncEvidenceItemLoot");
         }

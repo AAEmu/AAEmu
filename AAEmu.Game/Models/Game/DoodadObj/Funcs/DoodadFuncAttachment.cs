@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int Space { get; set; }
         public byte BondKindId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncAttachment");
             if (caster is Character character)

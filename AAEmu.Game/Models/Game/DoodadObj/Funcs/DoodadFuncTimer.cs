@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool ShowEndTime { get; set; }
         public string Tip { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             //_log.Debug("Delay " + Delay);
             //_log.Debug("NextPhase " + NextPhase);
@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 //Wondering if more needs done here if depending on next phase func
                 // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
-                owner.Use(caster);
+                owner.Use(caster, skillId);
             }
         }
     }

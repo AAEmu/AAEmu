@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
                 // {                                  
                 //     action.Use(caster, doodad, action.SkillId);
                 // }
-                doodad.Use(caster);
+                doodad.Use(caster, skillId);
             }            
         }
     }

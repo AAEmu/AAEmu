@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint ZoneId { get; set; }
         public uint FactionId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncEnterSysInstance, ZoneId: {0}", ZoneId);
             if (caster is Character character)
