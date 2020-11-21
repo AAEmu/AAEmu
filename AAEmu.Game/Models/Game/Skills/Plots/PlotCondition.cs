@@ -107,7 +107,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         private static bool ConditionDirection(Unit caster, SkillCaster casterCaster, BaseUnit target,
             SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3, PlotEventCondition eventCondition)
         {
-            return !MathUtil.IsFront(caster, target);
+            return MathUtil.IsFront(caster, target);
         }
 
         private static bool ConditionBuffTag(Unit caster, SkillCaster casterCaster, BaseUnit target,
