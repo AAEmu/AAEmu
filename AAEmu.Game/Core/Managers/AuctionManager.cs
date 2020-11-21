@@ -120,6 +120,9 @@ namespace AAEmu.Game.Core.Managers
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
 
+            if (auctionItem.BidderName != "") // Someone has already bid on the item and we do not want to remove it. 
+                return;
+
             if(auctionItem != null)
             {
                 var moneyToSubtract = auctionItem.DirectMoney * .1f;
