@@ -1026,7 +1026,7 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var res = 0f;
-                foreach (var bonus in GetBonuses(UnitAttribute.BullsEye))
+                foreach (var bonus in GetBonuses(UnitAttribute.BattleResist))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (res * bonus.Value / 100f);
