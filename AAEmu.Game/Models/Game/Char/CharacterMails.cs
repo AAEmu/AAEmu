@@ -129,7 +129,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (MailManager.Instance._allPlayerMails.TryGetValue(mailId, out var thisMail))
             {
                 bool tookMoney = false;
-                if (thisMail.MailType == MailType.AucOffSuccess)
+                if ((thisMail.MailType == MailType.AucOffSuccess) && (thisMail.Body.CopperCoins > 0) && takeMoney)
                 {
                     if (Self.LaborPower <= 1)
                     {
