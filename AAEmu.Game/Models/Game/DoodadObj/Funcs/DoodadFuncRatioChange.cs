@@ -23,8 +23,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (roll <= Ratio)
             {
                 // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
-                owner.Use(caster);
-                owner.cancelPhasing = true; //Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded
+                // owner.Use(caster);
+                owner.OverridePhase = NextPhase; //Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded
             }
         }
     }

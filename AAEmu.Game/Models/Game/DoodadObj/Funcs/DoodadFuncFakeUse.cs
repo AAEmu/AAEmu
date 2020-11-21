@@ -37,11 +37,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             }
             if(FakeSkillId != 0)
             {
-                var skillCaster = SkillCaster.GetByType(SkillCasterType.Doodad);
-                skillCaster.ObjId = owner.ObjId;
+                var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
+                skillCaster.ObjId = caster.ObjId;
 
-                var target = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-                target.ObjId = caster.ObjId;
+                var target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
+                target.ObjId = owner.ObjId;
                 if (TargetParent)
                 {
                     //target owner/doodad

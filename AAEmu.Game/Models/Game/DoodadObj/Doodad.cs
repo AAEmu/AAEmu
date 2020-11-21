@@ -44,6 +44,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public bool cancelPhasing { get; set; }
         
         public uint CurrentPhaseId { get; set; }
+        public uint OverridePhase { get; set; }
 
         public Doodad()
         {
@@ -79,12 +80,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 // if a function has a skill, maybe cast it ?
                 func.Use(unit, this, 0);
                 if (func.NextPhase != 0) nextFunc = func.NextPhase;
-                if (func.FuncType == "DoodadFuncUse" || func.FuncType == "DoodadFuncFakeUse") isUse = true;
+                if (func.FuncType == "DoodadFuncUse") isUse = true;
             }
 
             // If any of them have a next phase > 0, go to next phase
             try
             {
+                // This is a hackfix that needs to be studied more. DoodadFuncUse -> SkillID = 0, use new phase, SkillID > 0, use skill ?
                 if (isUse)
                     GoToPhaseAndUse(unit, nextFunc);
                 else
@@ -103,9 +105,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
 
+            OverridePhase = 0;
             foreach (var phaseFunc in phaseFuncs)
             {
                 phaseFunc.Use(unit, this, 0);
+                if (OverridePhase > 0)
+                    break;
+            }
+
+            if (OverridePhase > 0)
+            {
+                CurrentPhaseId = OverridePhase;
+                DoPhase(unit);
             }
         }
 
