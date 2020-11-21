@@ -58,10 +58,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         {
             base.Write(stream);
 
-            if ((Flags & 0x20) == 0x20)
-                stream.WritePosition(X2, Y2, Z2);
-            else
-                stream.WritePosition(X, Y, Z);
+            stream.WritePosition(X, Y, Z);
             stream.Write(VelX);
             stream.Write(VelY);
             stream.Write(VelZ);
