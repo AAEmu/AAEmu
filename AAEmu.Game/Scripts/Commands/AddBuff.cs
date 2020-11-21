@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Models.Game.Skills;
-using System.CodeDom;
+using System.Collections.Generic;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -15,50 +15,103 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "addbuff", "usebuff", "add_buff", "use_buff" };
+            string[] name = { "addbuff", "usebuff", "add_buff", "use_buff", "buff" };
             CommandManager.Instance.Register(name, this);
         }
 
         public string GetCommandLineHelp()
         {
-            return "";
+            return "[\"AsTarget\"||\"View\"] [buffid]";
         }
 
         public string GetCommandHelpText()
         {
-            return "addbuff <buffid>";
+            return "Applies <buffid> to target with yourself as source.\r\n" +
+                "If you preceed the buffid with the text \"AsTarget\" (or just \"t\") the source and target of the applied buff will be reversed.\r\n" +
+                "You can also provide \"View\" to get a list of buffs applied to the target.";
         }
 
         public void Execute(Character character, string[] args)
         {
             int argsIdx = 0;
-            Unit source = character;
-            Unit target = character.CurrentTarget == null ? character : (Unit)character.CurrentTarget;
+            BaseUnit sourceUnit = character;
+            BaseUnit selectedUnit = character.CurrentTarget == null ? character : character.CurrentTarget;
 
-            if (target == null) return;
-
-            if (args[0] == "target")
+            if ((args.Length <= 0) || (selectedUnit == null))
             {
-                var temp = source;
-                source = target;
-                target = temp;
+                character.SendMessage("[AddBuff] " + CommandManager.CommandPrefix + "addbuff " + GetCommandLineHelp());
+                return;
+            }
+            var a = args[0].ToLower();
+
+            var targetUnit = selectedUnit;
+
+            if ((a == "view") || (a == "v"))
+            {
+                var good = new List<Effect>();
+                var bad = new List<Effect>();
+                var hidden = new List<Effect>();
+                targetUnit.Effects.GetAllBuffs(good, bad, hidden);
+                if (good.Count + bad.Count + hidden.Count > 0)
+                {
+                    character.SendMessage("[Buff] Buffs on {0} - |cFFFFFFFF{1}|r", targetUnit.ObjId, targetUnit.Name);
+                    foreach (var b in good)
+                    {
+                        var l = LocalizationManager.Instance.Get("buffs", "name", b.Template.BuffId);
+                        character.SendMessage("[Buff] |cFF00FF00{0}|r - {1}", b.Template.BuffId, l);
+                    }
+                    foreach (var b in bad)
+                    {
+                        var l = LocalizationManager.Instance.Get("buffs", "name", b.Template.BuffId);
+                        character.SendMessage("[Buff] |cFFFF0000{0}|r - {1}", b.Template.BuffId, l);
+                    }
+                    foreach (var b in hidden)
+                    {
+                        var l = LocalizationManager.Instance.Get("buffs", "name", b.Template.BuffId);
+                        character.SendMessage("[Buff] |cFF6666FF{0}|r - {1}", b.Template.BuffId, l);
+                    }
+                }
+                else
+                {
+                    character.SendMessage("[Buff] No buffs on unit {0} - |cFFFFFFFF{1}|r", targetUnit.ObjId, targetUnit.Name);
+                }
+                return;
+            }
+
+            if ((a == "astarget") || (a == "target") || (a == "at") || (a == "t"))
+            {
+                sourceUnit = selectedUnit;
+                targetUnit = character;
                 argsIdx++;
             }
 
-            var casterObj = new SkillCasterUnit(character.ObjId);
+            var casterObj = new SkillCasterUnit(sourceUnit.ObjId);
             var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-            targetObj.ObjId = target.ObjId;
+            targetObj.ObjId = targetUnit.ObjId;
 
+            if (int.TryParse(args[argsIdx], out var buffIdInt))
+            {
+                // TODO: add possibility to remove buffs using the negative of the buffid
+                var buffId = (uint)Math.Abs(buffIdInt);
+                var doRemove = buffIdInt < 0;
 
-            uint buffId;
-            if (!uint.TryParse(args[0], out buffId))
+                var buffTemplate = SkillManager.Instance.GetBuffTemplate(buffId);
+                if (buffTemplate == null)
+                {
+                    character.SendMessage("|cFFFF0000No such buffid {0} !|r",buffId);
+                    return;
+                }
+
+                if (doRemove)
+                    targetUnit.Effects.RemoveBuff(buffId);
+                else
+                    targetUnit.Effects.AddEffect(new Effect(targetUnit, character, casterObj, buffTemplate, null, System.DateTime.Now));
+            }
+            else
+            {
+                character.SendMessage("|cFFFF0000Parse error on buffid !|r");
                 return;
-
-            var buffTemplate = SkillManager.Instance.GetBuffTemplate(buffId);
-            if (buffTemplate == null)
-                return;
-
-            target.Effects.AddEffect(new Effect(target, character, casterObj, buffTemplate, null, System.DateTime.Now));
+            }
         }
     }
 }
