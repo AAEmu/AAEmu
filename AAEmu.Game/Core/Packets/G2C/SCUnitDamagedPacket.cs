@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WritePisc(_damage, _absorbed, 0);
             stream.WritePisc(0, 0, 0);
             stream.Write(HoldableId); // hol
-            stream.Write(288 | (uint)HitType); // de
+            stream.Write((ushort)(288 | (ushort)HitType)); // de
             stream.Write((byte)1); // flag
             stream.Write((byte)1); // result -> to debug info
             // TODO debug info

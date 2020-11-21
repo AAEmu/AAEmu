@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.MeleeParry)]
         public virtual float MeleeParryRate { get; set; }
         [UnitAttribute(UnitAttribute.RangedParry)]
-        public virtual float RangedParryRate { get; set; };
+        public virtual float RangedParryRate { get; set; }
         [UnitAttribute(UnitAttribute.Block)]
         public virtual float BlockRate { get; set; }
         [UnitAttribute(UnitAttribute.BattleResist)]
