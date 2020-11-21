@@ -220,9 +220,12 @@ namespace AAEmu.Game.Models.Game.Units
                 _effects.Add(effect);
                 effect.Triggers.SubscribeEvents();
                 effect.Events.OnBuffStarted(effect, new OnBuffStartedArgs());
-                
+
                 if (effect.Template.BuffId > 0)
+                {
                     owner.Modifiers.AddModifiers(effect.Template.BuffId);
+                    owner.CombatBuffs.AddCombatBuffs(effect.Template.BuffId);
+                }
                 
                 if (effect.Duration > 0)
                     effect.SetInUse(true, false);
@@ -249,6 +252,7 @@ namespace AAEmu.Game.Models.Game.Units
                 effect.SetInUse(false, false);
                 _effects.Remove(effect);
                 own.Modifiers.RemoveModifiers(effect.Template.BuffId);
+                own.CombatBuffs.RemoveCombatBuff(effect.Template.BuffId);
                 effect.Triggers.UnsubscribeEvents();
             }
         }
@@ -269,6 +273,7 @@ namespace AAEmu.Game.Models.Game.Units
                         _effects.Remove(e);
                         e.SetInUse(false, false);
                         own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                        own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
                         e.Triggers.UnsubscribeEvents();
                     }
                 }
@@ -291,6 +296,7 @@ namespace AAEmu.Game.Models.Game.Units
                         _effects.Remove(e);
                         e.SetInUse(false, false);
                         own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                        own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
                         e.Triggers.UnsubscribeEvents();
                         break;
                     }
@@ -314,6 +320,7 @@ namespace AAEmu.Game.Models.Game.Units
                     _effects.Remove(e);
                     e.SetInUse(false, false);
                     own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                    own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
                     e.Triggers.UnsubscribeEvents();
                     break;
                 }

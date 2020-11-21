@@ -36,11 +36,13 @@ namespace AAEmu.Game.Models.Game.Units
         
         public Effects Effects { get; set; }
         public SkillModifiers Modifiers { get; set; }
+        public CombatBuffs CombatBuffs { get; set; }
 
         public BaseUnit()
         {
             Effects = new Effects(this);
             Modifiers = new SkillModifiers();
+            CombatBuffs = new CombatBuffs(this);
         }
 
         public bool CanAttack(BaseUnit unit)

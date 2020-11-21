@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills;
@@ -30,6 +31,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<uint>> _taggedSkills;
         private Dictionary<uint, List<SkillModifier>> _skillModifiers;
         private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers;
+        private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
         /**
          * Events
          */
@@ -142,6 +144,13 @@ namespace AAEmu.Game.Core.Managers
             return new List<SkillModifier>();
         }
 
+        public List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId)
+        {
+            if (_combatBuffs.ContainsKey(reqBuffId))
+                return _combatBuffs[reqBuffId];
+            return new List<CombatBuffTemplate>();
+        }
+
         public void Load()
         {
             _skills = new Dictionary<uint, SkillTemplate>();
@@ -198,6 +207,7 @@ namespace AAEmu.Game.Core.Managers
             _skillModifiers = new Dictionary<uint, List<SkillModifier>>();
             _skillTags = new Dictionary<uint, List<uint>>();
             _taggedSkills = new Dictionary<uint, List<uint>>();
+            _combatBuffs = new Dictionary<uint, List<CombatBuffTemplate>>();
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -1384,8 +1394,35 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM combat_buffs";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var combatBuffTemplate = new CombatBuffTemplate()
+                            {
+                                Id = reader.GetUInt32("id"),
+                                HitSkillId = reader.GetUInt32("hit_skill_id", 0),
+                                HitType = (SkillHitType)reader.GetUInt32("hit_type_id"),
+                                BuffId = reader.GetUInt32("buff_id"),
+                                BuffFromSource = reader.GetBoolean("buff_from_source"),
+                                BuffToSource = reader.GetBoolean("buff_to_source"),
+                                ReqSkillId = reader.GetUInt32("req_skill_id", 0),
+                                ReqBuffId = reader.GetUInt32("req_buff_id"),
+                                IsHealSpell = reader.GetBoolean("is_heal_spell", true)
+                            };
+                            
+                            if (!_combatBuffs.ContainsKey(combatBuffTemplate.ReqBuffId))
+                                _combatBuffs.Add(combatBuffTemplate.ReqBuffId, new List<CombatBuffTemplate>());
+                            _combatBuffs[combatBuffTemplate.ReqBuffId].Add(combatBuffTemplate);
+                        }
+                    }
+                }
+                
                 _log.Info("Skill effects loaded");
-                OnSkillsLoaded?.Invoke(this, new EventArgs());
 
                 _buffTriggers = new Dictionary<uint, List<BuffTriggerTemplate>>();
                 using (var command = connection.CreateCommand())
@@ -1421,6 +1458,8 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
                 _log.Info("Buff triggers loaded");
+                
+                OnSkillsLoaded?.Invoke(this, new EventArgs());
             }
 
 
