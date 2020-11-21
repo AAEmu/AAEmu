@@ -89,9 +89,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var holdable = (WeaponTemplate)weapon?.Template;
 
             var trg = (Unit)target;
-            var hitType = RollCombatDice(caster, trg);
 
-            if (SkillMissed(hitType))
+            var hitType = SkillHitType.Invalid;
+            if ((source?.Skill?.HitTypes.TryGetValue(trg.ObjId, out hitType) ?? false )
+                && (source?.Skill.SkillMissed(trg.ObjId) ?? false))
             {
                 var missPacket = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 0, 0)
                 {
@@ -100,6 +101,27 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 };
                 caster.BroadcastPacket(missPacket, true);
                 return;
+            }
+
+            if(hitType == SkillHitType.Invalid)
+            {
+                switch (DamageType)
+                {
+                    case DamageType.Melee:
+                        hitType = SkillHitType.MeleeHit;
+                        break;
+                    case DamageType.Magic:
+                        hitType = SkillHitType.SpellHit;
+                        break;
+                    case DamageType.Siege:
+                        hitType = SkillHitType.SpellHit;
+                        break;
+                    case DamageType.Ranged:
+                        hitType = SkillHitType.RangedHit;
+                        break;
+                    default:
+                        break;
+                }
             }
 
             var min = 0.0f;
@@ -253,7 +275,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         break;
                 }
             }
-
+            //toughness reduction (PVP Only)
+            if (caster is Character && trg is Character)
+                finalDamage *= ( 1 - ( trg.BattleResist / ( 8000f + trg.BattleResist ) ) );
             var value = (int)(finalDamage * reductionMul);
             var absorbed = (int)(finalDamage * (1.0f - reductionMul));
             trg.ReduceCurrentHp(caster, value);
@@ -307,71 +331,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 });
                 trg.Events.OnDamaged(this, new OnDamagedArgs { });
             }
-        }
-
-        private SkillHitType RollCombatDice(Unit attacker, Unit target)
-        {
-            // TODO
-            //  -Calculate Miss and Apply Focus(antihit?)
-            //  -Check for AlwaysHit?
-            //  -Only Parry if sword equipped?
-
-
-            //Idk if this is right. Double check it
-            //if (!MathUtil.IsFront(attacker, target))
-               // goto AlwaysHit;
-
-            if (Rand.Next(0f, 100f) < target.DodgeRate)
-            {
-                if (DamageType == DamageType.Melee)
-                    return SkillHitType.MeleeDodge;
-                else if (DamageType == DamageType.Ranged)
-                    return SkillHitType.RangedDodge;
-            }
-            else if (Rand.Next(0f,100f) < target.BlockRate)
-            {
-                if (DamageType == DamageType.Melee)
-                    return SkillHitType.MeleeBlock;
-                else if (DamageType == DamageType.Ranged)
-                    return SkillHitType.RangedBlock;
-            }
-            else if (Rand.Next(0F,100f) < target.MeleeParryRate)
-            {
-                if (DamageType == DamageType.Melee)
-                    return SkillHitType.MeleeParry;
-            }
-            else if (Rand.Next(0f,100f) < target.RangedParryRate)
-            {
-                if (DamageType == DamageType.Ranged)
-                    return SkillHitType.RangedParry;
-            }
-
-            AlwaysHit:
-            switch (DamageType)
-            {
-                case DamageType.Melee:
-                    return SkillHitType.MeleeHit;
-                case DamageType.Magic:
-                    return SkillHitType.SpellHit;
-                case DamageType.Siege:
-                    return SkillHitType.Invalid;//No siege type?
-                case DamageType.Ranged:
-                    return SkillHitType.RangedHit;
-                default:
-                    return SkillHitType.Invalid;
-            }
-        }
-
-        private bool SkillMissed(SkillHitType hitType)
-        {
-            return hitType == SkillHitType.MeleeDodge
-            || hitType == SkillHitType.MeleeParry
-            || hitType == SkillHitType.MeleeBlock
-            || hitType == SkillHitType.MeleeMiss
-            || hitType == SkillHitType.RangedDodge
-            || hitType == SkillHitType.RangedParry
-            || hitType == SkillHitType.RangedBlock
-            || hitType == SkillHitType.RangedMiss;
         }
     }
 }

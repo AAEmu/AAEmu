@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -38,16 +39,19 @@ namespace AAEmu.Game.Models.Game.Skills
         public byte Level { get; set; }
         public ushort TlId { get; set; }
         public PlotState ActivePlotState { get; set; }
+        public Dictionary<uint, SkillHitType> HitTypes { get; set; }
 
         //public bool isAutoAttack;
         //public SkillTask autoAttackTask;
 
         public Skill()
         {
+            HitTypes = new Dictionary<uint, SkillHitType>();
         }
 
         public Skill(SkillTemplate template)
         {
+            HitTypes = new Dictionary<uint, SkillHitType>();
             Id = template.Id;
             Template = template;
             Level = 1;
@@ -77,7 +81,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 return;//We should try to make sure this doesnt happen
 
             TlId = (ushort)TlIdManager.Instance.GetNextId();
-
+            _log.Warn(Template.DamageTypeId);
             if (Template.Plot != null)
             {
                 Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
@@ -416,7 +420,16 @@ namespace AAEmu.Game.Models.Game.Skills
                 targets.Add(targetSelf);
             }
 
+            foreach(var target in targets)
+            {
+                if (target is Unit trg && Template.TargetType == SkillTargetType.Hostile)
+                {
+                    HitTypes.TryAdd(trg.ObjId, RollCombatDice(caster, trg));
+                }
+            }
+
             var packets = new CompressedGamePackets();
+
             var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
             foreach (var effect in Template.Effects)
             {
@@ -595,6 +608,76 @@ namespace AAEmu.Game.Models.Game.Skills
             if (caster is Character character && character.IgnoreSkillCooldowns)
                 character.ResetSkillCooldown(Template.Id, false);
             //TlId = 0;
+        }
+
+        public SkillHitType RollCombatDice(Unit attacker, Unit target)
+        {
+            // TODO
+            //  -Calculate Hit/Miss Rates
+            //  -Check for AlwaysHit?
+            //  -Only Parry if sword equipped?
+            var damageType = (DamageType)Template.DamageTypeId;
+            var bullsEyeMod = (((attacker.BullsEye / 1000f) * 3f) / 100f);
+            //Idk if this is right. Double check it
+            if (!MathUtil.IsFront(attacker, target))
+                goto AlwaysHit;
+
+            if (Rand.Next(0f, 100f) < (target.DodgeRate - bullsEyeMod))
+            {
+                if (damageType == DamageType.Melee)
+                    return SkillHitType.MeleeDodge;
+                else if (damageType == DamageType.Ranged)
+                    return SkillHitType.RangedDodge;
+            }
+            else if (Rand.Next(0f, 100f) < (target.BlockRate - bullsEyeMod))
+            {
+                if (damageType == DamageType.Melee)
+                    return SkillHitType.MeleeBlock;
+                else if (damageType == DamageType.Ranged)
+                    return SkillHitType.RangedBlock;
+            }
+            else if (Rand.Next(0F, 100f) < (target.MeleeParryRate - bullsEyeMod))
+            {
+                if (damageType == DamageType.Melee)
+                    return SkillHitType.MeleeParry;
+            }
+            else if (Rand.Next(0f, 100f) < (target.RangedParryRate - bullsEyeMod))
+            {
+                if (damageType == DamageType.Ranged)
+                    return SkillHitType.RangedParry;
+            }
+
+            AlwaysHit:
+            switch (damageType)
+            {
+                case DamageType.Melee:
+                    return SkillHitType.MeleeHit;
+                case DamageType.Magic:
+                    return SkillHitType.SpellHit;
+                case DamageType.Siege:
+                    return SkillHitType.Invalid;//No siege type?
+                case DamageType.Ranged:
+                    return SkillHitType.RangedHit;
+                default:
+                    return SkillHitType.Invalid;
+            }
+        }
+
+        public bool SkillMissed(uint objId)
+        {
+            if (HitTypes.TryGetValue(objId, out var hitType))
+            {
+                return hitType == SkillHitType.MeleeDodge
+                    || hitType == SkillHitType.MeleeParry
+                    || hitType == SkillHitType.MeleeBlock
+                    || hitType == SkillHitType.MeleeMiss
+                    || hitType == SkillHitType.RangedDodge
+                    || hitType == SkillHitType.RangedParry
+                    || hitType == SkillHitType.RangedBlock
+                    || hitType == SkillHitType.RangedMiss;
+            }
+            _log.Error($"Unit[{objId}] was not found in the CbtDiceRolls.");
+            return true;
         }
 
     }

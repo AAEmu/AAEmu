@@ -23,8 +23,8 @@ namespace AAEmu.Game.Models.Game.Units
 {
     public class Unit : BaseUnit
     {
-        public virtual UnitTypeFlag TypeFlag { get;} = UnitTypeFlag.None;
-        
+        public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
+
         public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
@@ -71,10 +71,15 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.MeleeParry)]
         public virtual float MeleeParryRate { get; set; }
         [UnitAttribute(UnitAttribute.RangedParry)]
-        public virtual float RangedParryRate { get; set; }
+        public virtual float RangedParryRate { get; set; };
         [UnitAttribute(UnitAttribute.Block)]
         public virtual float BlockRate { get; set; }
+        [UnitAttribute(UnitAttribute.BattleResist)]
         public virtual int BattleResist { get; set; }
+        [UnitAttribute(UnitAttribute.BullsEye)]
+        public virtual int BullsEye { get; set; }
+        [UnitAttribute(UnitAttribute.Flexibility)]
+        public virtual int Flexibility { get; set; }
         [UnitAttribute(UnitAttribute.Facets)]
         public virtual int Facets { get; set; }
         public BaseUnit CurrentTarget { get; set; }

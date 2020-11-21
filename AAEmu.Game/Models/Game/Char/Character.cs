@@ -787,7 +787,7 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var res = 0f;
-                foreach (var bonus in GetBonuses(UnitAttribute.BattleResist))
+                foreach (var bonus in GetBonuses(UnitAttribute.BullsEye))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (res * bonus.Value / 100f);
@@ -797,6 +797,41 @@ namespace AAEmu.Game.Models.Game.Char
                 return (int)res;
             }
         }
+
+        [UnitAttribute(UnitAttribute.BullsEye)]
+        public override int BullsEye
+        {
+            get
+            {
+                var res = 0f;
+                foreach (var bonus in GetBonuses(UnitAttribute.BullsEye))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Flexibility)]
+        public override int Flexibility
+        {
+            get
+            {
+                var res = 0f;
+                foreach (var bonus in GetBonuses(UnitAttribute.Flexibility))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
         [UnitAttribute(UnitAttribute.Facets)]
         public override int Facets
         {

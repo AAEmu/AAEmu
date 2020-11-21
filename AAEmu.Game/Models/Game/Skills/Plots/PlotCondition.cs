@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public int Param2 { get; set; }
         public int Param3 { get; set; }
 
-        public bool Check(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotEventCondition eventCondition)
+        public bool Check(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, PlotEventCondition eventCondition, Skill skill)
         {
             var res = true;
             switch (Kind)
@@ -51,7 +51,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     break;
                 case PlotConditionType.CombatDiceResult:
                     res = ConditionCombatDiceResult(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
-                        Param3); // Every CombatDiceResult is a NotCondition -> false makes it true. 
+                        Param3, skill); // Every CombatDiceResult is a NotCondition -> false makes it true. 
                     break;
                 case PlotConditionType.InstrumentType:
                     res = ConditionInstrumentType(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2,
@@ -151,9 +151,27 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         }
         
         private static bool ConditionCombatDiceResult(Unit caster, SkillCaster casterCaster, BaseUnit target,
-            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3)
+            SkillCastTarget targetCaster, SkillObject skillObject, int unk1, int unk2, int unk3, Skill skill)
         {
-            return false; // Every CombatDiceResult is a NotCondition -> false makes it true.
+            if (target is Unit trg)
+            {
+                //Super hacky way to do combat dice....
+                var hitType = skill.RollCombatDice(caster, trg);
+                if (!skill.HitTypes.ContainsKey(trg.ObjId))
+                    skill.HitTypes.Add(trg.ObjId, hitType);
+                else
+                    skill.HitTypes[trg.ObjId] = hitType;
+
+                return hitType == SkillHitType.MeleeDodge
+                    || hitType == SkillHitType.MeleeParry
+                    || hitType == SkillHitType.MeleeBlock
+                    || hitType == SkillHitType.MeleeMiss
+                    || hitType == SkillHitType.RangedDodge
+                    || hitType == SkillHitType.RangedParry
+                    || hitType == SkillHitType.RangedBlock
+                    || hitType == SkillHitType.RangedMiss;
+            }
+            return true; // Every CombatDiceResult is a NotCondition -> false makes it true.
         }
         
         private static bool ConditionInstrumentType(Unit caster, SkillCaster casterCaster, BaseUnit target,
