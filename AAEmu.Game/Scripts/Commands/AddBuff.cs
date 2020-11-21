@@ -15,7 +15,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            string[] name = { "usebuff", "add_buff", "addbuff" };
+            string[] name = { "addbuff", "usebuff", "add_buff", "use_buff" };
             CommandManager.Instance.Register(name, this);
         }
 
