@@ -13,8 +13,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         {
             if (!(target is Doodad doodad)) { return; }
 
-            var func = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
-            func?.Use(caster, doodad, skillId);
+            doodad.Use(caster, skillId);
         }
     }
 }

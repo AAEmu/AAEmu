@@ -133,7 +133,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (funcGroupId == -1)
             {
                 // Delete doodad
-                Delete();
+                // Delete();
             }
             else
             {
