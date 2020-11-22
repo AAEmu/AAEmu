@@ -32,6 +32,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<SkillModifier>> _skillModifiers;
         private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers;
         private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
+        private Dictionary<uint, SkillReagent> _skillReagents;
         /**
          * Events
          */
@@ -151,6 +152,20 @@ namespace AAEmu.Game.Core.Managers
             return new List<CombatBuffTemplate>();
         }
 
+
+        public List<SkillReagent> GetSkillReagentsBySkillId(uint id)
+        {
+            List<SkillReagent> reagents = new List<SkillReagent>();
+
+            foreach (var reagent in _skillReagents)
+            {
+                if (reagent.Value.SkillId == id)
+                    reagents.Add(reagent.Value);
+            }
+
+            return reagents;
+        }
+
         public void Load()
         {
             _skills = new Dictionary<uint, SkillTemplate>();
@@ -208,6 +223,7 @@ namespace AAEmu.Game.Core.Managers
             _skillTags = new Dictionary<uint, List<uint>>();
             _taggedSkills = new Dictionary<uint, List<uint>>();
             _combatBuffs = new Dictionary<uint, List<CombatBuffTemplate>>();
+            _skillReagents = new Dictionary<uint, SkillReagent>();
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -1458,7 +1474,29 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
                 _log.Info("Buff triggers loaded");
-                
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * from skill_reagents";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new SkillReagent
+                            {
+                                Id = reader.GetUInt32("id"),
+                                SkillId = reader.GetUInt32("skill_id"),
+                                ItemId = reader.GetUInt32("item_id"),
+                                Amount = reader.GetInt16("amount")
+                            };
+                            _skillReagents.Add(template.Id, template);
+                        }
+                    }
+                }
+                _log.Info("Skill Reagents loaded");
+
                 OnSkillsLoaded?.Invoke(this, new EventArgs());
             }
 
