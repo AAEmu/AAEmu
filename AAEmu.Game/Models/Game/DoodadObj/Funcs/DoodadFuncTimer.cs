@@ -10,13 +10,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     public class DoodadFuncTimer : DoodadFuncTemplate
     {
         public int Delay { get; set; }
-        public uint NextPhase { get; set; }
+        public int NextPhase { get; set; }
         public bool KeepRequester { get; set; }
         public bool ShowTip { get; set; }
         public bool ShowEndTime { get; set; }
         public string Tip { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             //_log.Debug("Delay " + Delay);
             //_log.Debug("NextPhase " + NextPhase);
@@ -35,7 +35,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             else
             {
                 //Wondering if more needs done here if depending on next phase func
-                DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
+                // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
+                owner.Use(caster, skillId);
             }
         }
     }

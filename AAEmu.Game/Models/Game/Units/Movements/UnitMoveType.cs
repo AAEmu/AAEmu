@@ -37,6 +37,8 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             Stance = stream.ReadSByte();
             Alertness = stream.ReadSByte();
             Flags = stream.ReadByte();
+            if((Flags & 0x80) == 0x80)
+                FallVel = stream.ReadUInt16(); // actor.fallVel
             if((Flags & 0x20) == 0x20)
             {
                 GcFlags = stream.ReadByte(); // actor.gcFlags
@@ -46,17 +48,16 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                 RotationY2 = stream.ReadSByte(); 
                 RotationZ2 = stream.ReadSByte();
             }
+            if((Flags & 0x60) != 0)
+                GcId = stream.ReadUInt32(); // actor.gcId
             if((Flags & 0x40) == 0x40)
                 ClimbData = stream.ReadUInt32(); // actor.climbData
-            if((Flags & 0x60) == 0x60)
-                GcId = stream.ReadUInt32(); // actor.gcId
-            if((Flags & 0x80) == 0x80)
-                FallVel = stream.ReadUInt16(); // actor.fallVel
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
+
             stream.WritePosition(X, Y, Z);
             stream.Write(VelX);
             stream.Write(VelY);
@@ -70,6 +71,8 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             stream.Write(Stance);
             stream.Write(Alertness);
             stream.Write(Flags);
+            if((Flags & 0x80) == 0x80)
+                stream.Write(FallVel);
             if((Flags & 0x20) == 0x20)
             {
                 stream.Write(GcFlags);
@@ -79,12 +82,10 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                 stream.Write(RotationY2);
                 stream.Write(RotationZ2);
             }
+            if((Flags & 0x60) != 0)
+                stream.Write(GcId);
             if((Flags & 0x40) == 0x40)
                 stream.Write(ClimbData);
-            if((Flags & 0x60) == 0x60)
-                stream.Write(GcId);
-            if((Flags & 0x80) == 0x80)
-                stream.Write(FallVel);
             return stream;
         }
     }

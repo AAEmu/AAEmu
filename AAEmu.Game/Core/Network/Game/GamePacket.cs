@@ -52,7 +52,7 @@ namespace AAEmu.Game.Core.Network.Game
                 !(TypeId == 0x06C && Level == 1)) // SCOneUnitMovement
             {
                 //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
-                _log.Debug("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
+                _log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
 
             }
             return ps;
@@ -66,7 +66,7 @@ namespace AAEmu.Game.Core.Network.Game
                 !(TypeId == 0x089 && Level == 1)) // CSMoveUnit
             {
                 //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
-                _log.Debug("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
+                _log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
             }
             try
             {

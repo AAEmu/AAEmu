@@ -1,3 +1,4 @@
+﻿using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Skills
@@ -18,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public bool Front { get; set; }
         public bool Back { get; set; }
         public uint TargetNpcTagId { get; set; }
-        public uint ApplicationMethodId { get; set; }
+        public SkillEffectApplicationMethod ApplicationMethod { get; set; }
         public bool ConsumeSourceItem { get; set; }
         public uint ConsumeItemId { get; set; }
         public int ConsumeItemCount { get; set; }

@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Packets.S2C
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationY));
                 stream.Write(Helpers.ConvertRotation(doodad.Position.RotationZ));
                 stream.Write(doodad.Scale);
-                stream.Write(doodad.FuncGroupId); // doodad_func_groups Id
+                stream.Write(doodad.CurrentPhaseId); // doodad_func_groups Id
                 stream.Write(doodad.TimeLeft); // growing
                 stream.Write(doodad.PlantTime); // plantTime
             }

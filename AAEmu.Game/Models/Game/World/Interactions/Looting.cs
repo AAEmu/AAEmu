@@ -20,7 +20,8 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         {
             if (target is Doodad doodad)
             {
-                DoodadManager.Instance.TriggerPhases(GetType().Name, caster, doodad, skillId);
+                // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, doodad, skillId);
+                doodad.Use(caster, skillId);
             }
         }
     }

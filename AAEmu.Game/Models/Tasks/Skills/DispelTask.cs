@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 
 namespace AAEmu.Game.Models.Tasks.Skills
 {
@@ -23,10 +24,12 @@ namespace AAEmu.Game.Models.Tasks.Skills
             if (eff.Owner == null)
                 return;
 
-            eff.ScheduleEffect();
+            eff.ScheduleEffect(false);
 
             if (eff.IsEnded())
+            {
                 return;
+            }
             EffectTaskManager.Instance.AddDispelTask(eff, eff.Tick);
         }
     }

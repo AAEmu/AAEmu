@@ -11,9 +11,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int Delay { get; set; }
         public int StartScale { get; set; }
         public int EndScale { get; set; }
-        public uint NextPhase { get; set; }
+        public int NextPhase { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             //_log.Debug("Delay " + Delay);
             //_log.Debug("StartScale " + StartScale);
@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             //TODO add doodad scaling transformation
             owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, skillId, NextPhase);
-            TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay));
+            TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(1000));
         }
     }
 }

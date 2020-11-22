@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -26,8 +28,10 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
         private Dictionary<uint, List<uint>> _taggedBuffs;
         private Dictionary<uint, List<uint>> _skillTags;
+        private Dictionary<uint, List<uint>> _taggedSkills;
         private Dictionary<uint, List<SkillModifier>> _skillModifiers;
-        
+        private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers;
+        private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
         /**
          * Events
          */
@@ -68,6 +72,15 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
+        public List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId)
+        {
+            if (_buffTriggers.TryGetValue(buffId, out List<BuffTriggerTemplate> triggers))
+            {
+                return triggers;
+            }
+            return new List<BuffTriggerTemplate>();
+        }
+
         public EffectTemplate GetEffectTemplate(uint id)
         {
             if(_types.ContainsKey(id))
@@ -76,7 +89,15 @@ namespace AAEmu.Game.Core.Managers
  
                 _log.Trace("Get Effect Template: type = {0}, id = {1}", type.Type, type.ActualId);
 
-                return _effects[type.Type][type.ActualId];
+                if (_effects.TryGetValue(type.Type, out var effect))
+                {
+                    return _effects[type.Type][type.ActualId];
+                }
+                else
+                {
+                    _log.Warn("No such Effec Type[{0}] found.", type.Type);
+                    return null;
+                }
             }
             return null;
         }
@@ -101,7 +122,14 @@ namespace AAEmu.Game.Core.Managers
                 return _skillTags[skillId];
             return new List<uint>();
         }
-        
+
+        public List<uint> GetSkillsByTag(uint tagId)
+        {
+            if (_taggedSkills.ContainsKey(tagId))
+                return _taggedSkills[tagId];
+            return new List<uint>();
+        }
+
         public PassiveBuffTemplate GetPassiveBuffTemplate(uint id)
         {
             if(_passiveBuffs.ContainsKey(id))
@@ -114,6 +142,13 @@ namespace AAEmu.Game.Core.Managers
             if(_skillModifiers.ContainsKey(id))
                 return _skillModifiers[id];
             return new List<SkillModifier>();
+        }
+
+        public List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId)
+        {
+            if (_combatBuffs.ContainsKey(reqBuffId))
+                return _combatBuffs[reqBuffId];
+            return new List<CombatBuffTemplate>();
         }
 
         public void Load()
@@ -171,6 +206,8 @@ namespace AAEmu.Game.Core.Managers
             _taggedBuffs = new Dictionary<uint, List<uint>>();
             _skillModifiers = new Dictionary<uint, List<SkillModifier>>();
             _skillTags = new Dictionary<uint, List<uint>>();
+            _taggedSkills = new Dictionary<uint, List<uint>>();
+            _combatBuffs = new Dictionary<uint, List<CombatBuffTemplate>>();
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -200,7 +237,7 @@ namespace AAEmu.Game.Core.Managers
                             template.EffectRepeatCount = reader.GetInt32("effect_repeat_count");
                             template.EffectRepeatTick = reader.GetInt32("effect_repeat_tick");
                             template.ActiveWeaponId = reader.GetInt32("active_weapon_id");
-                            template.TargetType = (SkillTargetType) reader.GetInt32("target_type_id");
+                            template.TargetType = (SkillTargetType)reader.GetInt32("target_type_id");
                             template.TargetSelection = (SkillTargetSelection)reader.GetInt32("target_selection_id");
                             template.TargetRelation = (SkillTargetRelation)reader.GetInt32("target_relation_id");
                             template.TargetAreaCount = reader.GetInt32("target_area_count");
@@ -309,7 +346,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var id = (uint) reader.GetInt32("skill_id");
+                            var id = (uint)reader.GetInt32("skill_id");
                             var skill = new DefaultSkill
                             {
                                 Template = _skills[id],
@@ -346,13 +383,13 @@ namespace AAEmu.Game.Core.Managers
 
                 _log.Info("Loading skill effects/buffs...");
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM buffs";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new BuffTemplate();
                             template.Id = reader.GetUInt32("id");
@@ -524,22 +561,24 @@ namespace AAEmu.Game.Core.Managers
                             template.FreezeShip = reader.GetBoolean("freeze_ship", true);
                             template.CrowdFriendly = reader.GetBoolean("crowd_friendly", true);
                             template.CrowdHostile = reader.GetBoolean("crowd_hostile", true);
+                            // TEMPORARY FIX FOR FEAR DEBUFF -> WHY NEGATIVE ?
+                            if (template.Duration < 0) template.Duration = -template.Duration;
                             _effects["Buff"].Add(template.Id, template);
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM buff_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new BuffEffect();
                             template.Id = reader.GetUInt32("id");
                             var buffId = reader.GetUInt32("buff_id");
-                            if(_effects["Buff"].ContainsKey(buffId))
+                            if (_effects["Buff"].ContainsKey(buffId))
                                 template.Buff = (BuffTemplate)_effects["Buff"][buffId];
                             template.Chance = reader.GetInt32("chance");
                             template.Stack = reader.GetInt32("stack");
@@ -548,13 +587,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM buff_tick_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("buff_id");
                             var template = (BuffTemplate)_effects["Buff"][buffId];
@@ -565,16 +604,16 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Buff'"; // TODO OwnerType: BuffUnitModifier -> buff_unit_modifiers
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("owner_id");
-                            if(!_effects["Buff"].ContainsKey(buffId))
+                            if (!_effects["Buff"].ContainsKey(buffId))
                                 continue;
                             var buff = (BuffTemplate)_effects["Buff"][buffId];
                             var template = new BonusTemplate();
@@ -586,16 +625,16 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM dynamic_unit_modifiers";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("buff_id");
-                            if(!_effects["Buff"].ContainsKey(buffId))
+                            if (!_effects["Buff"].ContainsKey(buffId))
                                 continue;
                             var buff = (BuffTemplate)_effects["Buff"][buffId];
                             var template = new DynamicBonusTemplate();
@@ -631,13 +670,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM accept_quest_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new AcceptQuestEffect();
                             template.Id = reader.GetUInt32("id");
@@ -646,13 +685,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM aggro_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new AggroEffect();
                             template.Id = reader.GetUInt32("id");
@@ -670,13 +709,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM bubble_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new BubbleEffect();
                             template.Id = reader.GetUInt32("id");
@@ -685,13 +724,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM cleanup_ucc_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new CleanupUccEffect();
                             template.Id = reader.GetUInt32("id");
@@ -699,13 +738,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM conversion_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new ConversionEffect();
                             template.Id = reader.GetUInt32("id");
@@ -718,13 +757,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM craft_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new CraftEffect();
                             template.Id = reader.GetUInt32("id");
@@ -733,13 +772,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM damage_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new DamageEffect();
                             template.Id = reader.GetUInt32("id");
@@ -794,13 +833,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM dispel_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new DispelEffect();
                             template.Id = reader.GetUInt32("id");
@@ -811,13 +850,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM flying_state_change_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new FlyingStateChangeEffect();
                             template.Id = reader.GetUInt32("id");
@@ -826,13 +865,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM gain_loot_pack_item_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new GainLootPackItemEffect();
                             template.Id = reader.GetUInt32("id");
@@ -845,13 +884,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM heal_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new HealEffect();
                             template.Id = reader.GetUInt32("id");
@@ -877,13 +916,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM imprint_ucc_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new ImprintUccEffect();
                             template.Id = reader.GetUInt32("id");
@@ -892,13 +931,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM impulse_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new ImpulseEffect();
                             template.Id = reader.GetUInt32("id");
@@ -918,13 +957,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM interaction_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new InteractionEffect();
                             template.Id = reader.GetUInt32("id");
@@ -934,13 +973,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM kill_npc_without_corpse_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new KillNpcWithoutCorpseEffect();
                             template.Id = reader.GetUInt32("id");
@@ -952,13 +991,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM mana_burn_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new ManaBurnEffect();
                             template.Id = reader.GetUInt32("id");
@@ -972,13 +1011,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM move_to_rez_point_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new MoveToRezPointEffect();
                             template.Id = reader.GetUInt32("id");
@@ -986,13 +1025,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM open_portal_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new OpenPortalEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1001,13 +1040,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM physical_explosion_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new PhysicalExplosionEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1018,13 +1057,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM put_down_backpack_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new PutDownBackpackEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1033,13 +1072,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM recover_exp_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new RecoverExpEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1051,13 +1090,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM repair_slave_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new RepairSlaveEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1067,13 +1106,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM report_crime_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new ReportCrimeEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1083,13 +1122,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM reset_aoe_diminishing_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new ResetAoeDiminishingEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1097,13 +1136,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM restore_mana_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new RestoreManaEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1119,13 +1158,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM scoped_f_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new ScopedFEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1136,13 +1175,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM spawn_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new SpawnEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1193,13 +1232,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM special_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new SpecialEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1212,13 +1251,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM train_craft_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new TrainCraftEffect();
                             template.Id = reader.GetUInt32("id");
@@ -1228,13 +1267,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
                 // TODO train_craft_rank_effects
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new EffectType();
                             template.Id = reader.GetUInt32("id");
@@ -1244,22 +1283,22 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM skill_effects";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var skillId = reader.GetUInt32("skill_id");
                             if (!_skills.ContainsKey(skillId))
                                 continue;
-                            
+
                             var template = new SkillEffect();
                             var effectId = reader.GetUInt32("effect_id");
                             var type = _types[effectId];
-                            if(_effects.ContainsKey(type.Type))
+                            if (_effects.ContainsKey(type.Type))
                                 template.Template = _effects[type.Type][type.ActualId];
                             template.Weight = reader.GetInt32("weight");
                             template.StartLevel = reader.GetByte("start_level");
@@ -1274,7 +1313,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Front = reader.GetBoolean("front", true);
                             template.Back = reader.GetBoolean("back", true);
                             template.TargetNpcTagId = reader.GetUInt32("target_npc_tag_id", 0);
-                            template.ApplicationMethodId = reader.GetUInt32("application_method_id");
+                            template.ApplicationMethod = (SkillEffectApplicationMethod)reader.GetUInt32("application_method_id");
                             template.ConsumeSourceItem = reader.GetBoolean("consume_source_item", true);
                             template.ConsumeItemId = reader.GetUInt32("consume_item_id", 0);
                             template.ConsumeItemCount = reader.GetInt32("consume_item_count");
@@ -1302,7 +1341,7 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM skill_modifiers";
@@ -1331,7 +1370,7 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM tagged_skills";
@@ -1342,16 +1381,87 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var tagId = reader.GetUInt32("tag_id");
                             var skillId = reader.GetUInt32("skill_id");
+
+                            //I guess we need this
                             if (!_skillTags.ContainsKey(skillId))
                                 _skillTags.Add(skillId, new List<uint>());
                             _skillTags[skillId].Add(tagId);
+
+                            if (!_taggedSkills.ContainsKey(tagId))
+                                _taggedSkills.Add(tagId, new List<uint>());
+                            _taggedSkills[tagId].Add(skillId);
                         }
                     }
                 }
 
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM combat_buffs";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var combatBuffTemplate = new CombatBuffTemplate()
+                            {
+                                Id = reader.GetUInt32("id"),
+                                HitSkillId = reader.GetUInt32("hit_skill_id", 0),
+                                HitType = (SkillHitType)reader.GetUInt32("hit_type_id"),
+                                BuffId = reader.GetUInt32("buff_id"),
+                                BuffFromSource = reader.GetBoolean("buff_from_source"),
+                                BuffToSource = reader.GetBoolean("buff_to_source"),
+                                ReqSkillId = reader.GetUInt32("req_skill_id", 0),
+                                ReqBuffId = reader.GetUInt32("req_buff_id"),
+                                IsHealSpell = reader.GetBoolean("is_heal_spell", true)
+                            };
+                            
+                            if (!_combatBuffs.ContainsKey(combatBuffTemplate.ReqBuffId))
+                                _combatBuffs.Add(combatBuffTemplate.ReqBuffId, new List<CombatBuffTemplate>());
+                            _combatBuffs[combatBuffTemplate.ReqBuffId].Add(combatBuffTemplate);
+                        }
+                    }
+                }
+                
                 _log.Info("Skill effects loaded");
+
+                _buffTriggers = new Dictionary<uint, List<BuffTriggerTemplate>>();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM buff_triggers";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var trigger = new BuffTriggerTemplate();
+                            var buffId = reader.GetUInt32("buff_id");
+                            if (!_buffTriggers.ContainsKey(buffId))
+                            {
+                                _buffTriggers.Add(buffId, new List<BuffTriggerTemplate>());
+                            }
+                            trigger.Id = reader.GetUInt32("id");
+                            trigger.Kind = (BuffEventTriggerKind)reader.GetUInt16("event_id");
+                            trigger.Effect = GetEffectTemplate(reader.GetUInt32("effect_id"));
+                            trigger.EffectOnSource = reader.GetBoolean("effect_on_source");
+                            trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount");
+                            trigger.UseOriginalSource = reader.GetBoolean("use_original_source");
+                            trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
+                            trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
+                            trigger.Synergy = reader.GetBoolean("synergy");
+
+                            //Apparently this is possible..
+                            if(trigger.Effect != null)
+                            {
+                                _buffTriggers[buffId].Add(trigger);
+                            }
+                        }
+                    }
+                }
+                _log.Info("Buff triggers loaded");
+                
                 OnSkillsLoaded?.Invoke(this, new EventArgs());
             }
+
 
             foreach (var skillTemplate in _skills.Values.Where(x => x.AutoLearn))
             {

@@ -70,7 +70,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     state.CasterCaster,
                     target,
                     state.TargetCaster,
-                    new CastPlot(evt.PlotId, state.ActiveSkill.TlId, evt.Id, state.ActiveSkill.Template.Id), state.ActiveSkill, state.SkillObject, DateTime.Now);
+                    new CastPlot(evt.PlotId, state.ActiveSkill.TlId, evt.Id, state.ActiveSkill.Template.Id), new EffectSource(state.ActiveSkill), state.SkillObject, DateTime.Now);
             }
         }
     }

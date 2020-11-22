@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
 
         public override void Execute()
         {
-            _caster.SkillTask = null;
+            /*_caster.SkillTask = null;
             var step = new PlotStep();
             step.Event = _nextEvent.Event;
             step.Casting = _nextEvent.Casting;
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
             step.Flag = 2;
             foreach (var condition in _nextEvent.Event.Conditions)
             {
-                if (condition.Condition.Check(_caster, _casterCaster, _target, _targetCaster, _skillObject, condition))
+                if (condition.Condition.Check(_caster, _casterCaster, _target, _targetCaster, _skillObject, condition, state))
                     continue;
                 step.Flag = 0;
                 break;
@@ -55,7 +55,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
                 return;
             _caster.BroadcastPacket(new SCPlotEndedPacket(Skill.TlId), true);
             TlIdManager.Instance.ReleaseId(Skill.TlId);
-            Skill.TlId = 0;
+            Skill.TlId = 0;*/
         }
     }
 }

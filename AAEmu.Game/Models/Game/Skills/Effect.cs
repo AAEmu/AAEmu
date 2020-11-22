@@ -1,6 +1,8 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -31,6 +33,11 @@ namespace AAEmu.Game.Models.Game.Skills
         public double Tick { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public int Charge { get; set; }
+        public bool Passive { get; set; }
+        public uint AbLevel { get; set; }
+        public BuffEvents Events { get;}
+        public BuffTriggersHandler Triggers { get;}
 
         public Effect(BaseUnit owner, Unit caster, SkillCaster skillCaster, EffectTemplate template, Skill skill, DateTime time)
         {
@@ -41,6 +48,9 @@ namespace AAEmu.Game.Models.Game.Skills
             Skill = skill;
             StartTime = time;
             EndTime = DateTime.MinValue;
+            AbLevel = 1;
+            Events = new BuffEvents();
+            Triggers = new BuffTriggersHandler(this);
         }
 
         public void UpdateEffect()
@@ -69,7 +79,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
         }
 
-        public void ScheduleEffect()
+        public void ScheduleEffect(bool replace)
         {
             switch (State)
             {
@@ -132,29 +142,29 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 State = EffectState.Finished;
                 InUse = false;
-                StopEffectTask();
+                StopEffectTask(replace);
             }
         }
 
-        public void Exit()
+        public void Exit(bool replace = false)
         {
             if (State == EffectState.Finished)
                 return;
             if (State != EffectState.Created)
             {
                 State = EffectState.Finishing;
-                ScheduleEffect();
+                ScheduleEffect(replace);
             }
             else
                 State = EffectState.Finishing;
         }
 
-        private void StopEffectTask()
+        private void StopEffectTask(bool replace)
         {
             lock (_lock)
             {
                 Owner.Effects.RemoveEffect(this);
-                Template.Dispel(Caster, Owner, this);
+                Template.Dispel(Caster, Owner, this, replace);
             }
         }
 
@@ -164,7 +174,7 @@ namespace AAEmu.Game.Models.Game.Skills
             if (update)
                 UpdateEffect();
             else if (inUse)
-                ScheduleEffect();
+                ScheduleEffect(false);
             else if (State != EffectState.Finished)
                 State = EffectState.Finishing;
         }
@@ -190,7 +200,37 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void WriteData(PacketStream stream)
         {
-            Template.WriteData(stream);
+            switch (Template)
+            {
+                case BuffEffect buffEffect:
+                    stream.WritePisc(Charge, buffEffect.Buff.Duration / 10, 0, (long)(buffEffect.Buff.Tick / 10));
+                    break;
+                case BuffTemplate buffTemplate:
+                    stream.WritePisc(Charge, buffTemplate.Duration / 10, 0, (long)(buffTemplate.Tick / 10));
+                    break;
+                default:
+                    Template.WriteData(stream);
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// Consumes as much charge as possible. Remainder is returned
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public int ConsumeCharge(int value)
+        {
+            var newCharge = Math.Max(0, Charge - value);
+            value = Math.Max(0, value - Charge);
+            Charge = newCharge;
+
+            if (Charge <= 0)
+            {
+                Exit(false);
+            }
+            
+            return value;
         }
     }
 }

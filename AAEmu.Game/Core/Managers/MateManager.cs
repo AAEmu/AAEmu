@@ -140,6 +140,9 @@ namespace AAEmu.Game.Core.Managers
             if ((unMounted != 1 && unMounted != 2) || targetObj == null) return;
 
             character.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
+
+            character.Events.OnUnmount(character, new OnUnmountArgs { });
+
             _log.Debug("UnMountMate. mountTlId: {0}, objId: {1}, att: {2}, reason: {3}", mateInfo.TlId, targetObj.ObjId, unMounted, reason);
         }
 

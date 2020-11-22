@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
@@ -162,13 +164,13 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             if (RequireBuffId > 0 && !target.Effects.CheckBuff(RequireBuffId))
                 return; //TODO send error?
             if (target.Effects.CheckBuffImmune(Id))
                 return; //TODO  error of immune?
-            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, skill, time));
+            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source?.Skill, time));
         }
 
         public override void Start(Unit caster, BaseUnit owner, Effect effect)
@@ -177,11 +179,15 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             {
                 var bonus = new Bonus();
                 bonus.Template = template;
-                bonus.Value = template.Value; // TODO using LinearLevelBonus
+                bonus.Value = (int) (template.Value + (template.LinearLevelBonus * (effect.AbLevel / 100)));
                 owner.AddBonus(effect.Index, bonus);
             }
 
-            owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
+            if (effect.Charge == 0)
+                effect.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
+            
+            if (!effect.Passive)
+                owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
         }
 
         public override void TimeToTimeApply(Unit caster, BaseUnit owner, Effect effect)
@@ -201,11 +207,12 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             }
         }
 
-        public override void Dispel(Unit caster, BaseUnit owner, Effect effect)
+        public override void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
         {
             foreach (var template in Bonuses)
                 owner.RemoveBonus(effect.Index, template.Attribute);
-            owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
+            if (!effect.Passive && !replaced)
+                owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
         }
 
         public override void WriteData(PacketStream stream)

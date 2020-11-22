@@ -10,6 +10,11 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
 {
+    public enum Factions
+    {
+        FACTION_PIRATE = 161
+    }
+    
     public class FactionManager : Singleton<FactionManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();

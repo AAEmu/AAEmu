@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -13,6 +14,9 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using Microsoft.CodeAnalysis.Text;
@@ -42,6 +46,7 @@ namespace AAEmu.Game.Core.Managers
 
         // Gemming
         private Dictionary<uint, uint> _socketChance;
+        private Dictionary<uint, List<BonusTemplate>> _itemUnitModifiers;
         private Dictionary<uint, ItemCapScale> _itemCapScales;
 
         // LootPacks
@@ -57,6 +62,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, uint> _wearableItemLookConverts;
         
         private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
+        private Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>> _armorGradeBuffs;
         
         // Events
         public event EventHandler OnItemsLoaded;
@@ -409,6 +415,21 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
+        public List<BonusTemplate> GetUnitModifiers(uint itemId)
+        {
+            if (_itemUnitModifiers.ContainsKey(itemId))
+                return _itemUnitModifiers[itemId];
+            return new List<BonusTemplate>();
+        }
+
+        public ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade)
+        {
+            if (!_armorGradeBuffs.ContainsKey(type))
+                return null;
+            if (!_armorGradeBuffs[type].ContainsKey(grade))
+                return null;
+            return _armorGradeBuffs[type][grade];
+        }
 
         public Item Create(uint templateId, int count, byte grade, bool generateId = true)
         {
@@ -466,6 +487,8 @@ namespace AAEmu.Game.Core.Managers
             _lootDropItems = new Dictionary<uint, List<Item>>();
             _itemDoodadTemplates = new Dictionary<uint, ItemDoodadTemplate>();
             _itemProcTemplates = new Dictionary<uint, ItemProcTemplate>();
+            _armorGradeBuffs = new Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>>();
+            _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
             _config = new ItemConfig();
 
             SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
@@ -1012,6 +1035,46 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_socket_chances";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var numSockets = reader.GetUInt32("num_sockets");
+                            var chance = reader.GetUInt32("success_ratio");
+
+                            if (!_socketChance.ContainsKey(numSockets))
+                                _socketChance.Add(numSockets, chance);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_cap_scales";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new ItemCapScale();
+                            template.Id = reader.GetUInt32("id");
+                            template.SkillId = reader.GetUInt32("skill_id");
+                            template.ScaleMin = reader.GetInt32("scale_min");
+                            template.ScaleMax = reader.GetInt32("scale_max");
+
+                            if (!_itemCapScales.ContainsKey(template.SkillId))
+                                _itemCapScales.Add(template.SkillId, template);
+                        }
+                    }
+                }
+
 
                 // Load main item templates
                 using (var command = connection.CreateCommand())
@@ -1183,7 +1246,55 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-
+                
+                using(var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Item'";
+                    command.Prepare();
+                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while(reader.Read())
+                        {
+                            var itemId = reader.GetUInt32("owner_id");
+                            var template = new BonusTemplate
+                            {
+                                Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"),
+                                ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
+                                Value = reader.GetInt32("value"),
+                                LinearLevelBonus = reader.GetInt32("linear_level_bonus")
+                            };
+                            
+                            if (!_itemUnitModifiers.ContainsKey(itemId))
+                                _itemUnitModifiers.Add(itemId, new List<BonusTemplate>());
+                            _itemUnitModifiers[itemId].Add(template);
+                        }
+                    }
+                }
+                
+                using(var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM armor_grade_buffs";
+                    command.Prepare();
+                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while(reader.Read())
+                        {
+                            var armorGradeBuff = new ArmorGradeBuff()
+                            {
+                                Id = reader.GetByte("id"),
+                                ArmorType = (ArmorType) reader.GetUInt32("armor_type_id"),
+                                ItemGrade = (ItemGrade) reader.GetUInt32("item_grade_id"),
+                                BuffId = reader.GetUInt32("buff_id")
+                            };
+                            
+                            if (!_armorGradeBuffs.ContainsKey(armorGradeBuff.ArmorType))
+                                _armorGradeBuffs.Add(armorGradeBuff.ArmorType, new Dictionary<ItemGrade, ArmorGradeBuff>());
+                            
+                            if (!_armorGradeBuffs[armorGradeBuff.ArmorType].ContainsKey(armorGradeBuff.ItemGrade))
+                                _armorGradeBuffs[armorGradeBuff.ArmorType].Add(armorGradeBuff.ItemGrade, armorGradeBuff);
+                        }
+                    }
+                }
 
                 // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
                 var invalidItemCount = 0;

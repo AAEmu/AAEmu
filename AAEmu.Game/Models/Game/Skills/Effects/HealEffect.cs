@@ -32,44 +32,54 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
+            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Debug("HealEffect");
 
             if (!(target is Unit))
                 return;
             var trg = (Unit)target;
-            var min = 0;
-            var max = 0;
+            var min = 0.0f;
+            var max = 0.0f;
             if (UseFixedHeal)
             {
                 min += FixedMin;
                 max += FixedMax;
             }
 
-            var unk = 0f;
-            var unk2 = 1f;
-            var skillLevel = 1;
-            if (skill != null)
+            var levelMin = 0.0f;
+            var levelMax = 0.0f;
+            
+            if (UseLevelHeal) 
             {
-                skillLevel = (skill.Level - 1) * skill.Template.LevelStep + skill.Template.AbilityLevel;
-                if (skillLevel >= skill.Template.AbilityLevel)
-                    unk = 0.15f * (skillLevel - skill.Template.AbilityLevel + 1);
-                unk2 = (1 + unk) * 1.3f;
+                var lvlMd = caster.LevelDps * LevelMd;
+                var levelModifier = (( (source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
+            
+                levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
+                levelMax += (levelModifier + 1) * lvlMd + 0.5f;
             }
 
-            if (UseLevelHeal)
+            max += ((caster.HDps * 0.001f) * DpsMultiplier);
+            
+            var minCastBonus = 1000f;
+            // Hack null-check on skill
+            var castTimeMod = source.Skill?.Template.CastingTime ?? 0 ; // This mod depends on casting_inc too!
+            if (castTimeMod <= 1000)
+                minCastBonus = min > 0 ? min : minCastBonus;
+            else
+                minCastBonus = castTimeMod;
+
+            var variableDamage = (max * minCastBonus * 0.001f);
+            min = variableDamage + levelMin;
+            max = variableDamage + levelMax;
+            
+            if (source.Buff?.TickEffect != null)
             {
-                var levelMd = (unk + 1) * LevelMd;
-                min += (int)(caster.LevelDps * levelMd + 0.5f);
-                max += (int)((((skillLevel - 1) * 0.020408163f * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.0099999998f + 1f) *
-                             caster.LevelDps * levelMd + 0.5f);
+                min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
+                max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
             }
-
-            min += (int)((caster.HDps + caster.HDpsInc) * DpsMultiplier * 0.001f * unk2 + 0.5f);
-            max += (int)((caster.HDps + caster.HDpsInc) * DpsMultiplier * 0.001f * unk2 + 0.5f);
-
-            var value = Rand.Next(min, max);
+            
+            var value = (int)Rand.Next(min, max);
             trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, value), true);
             trg.Hp += value;
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);

@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(_doodad.ObjId);
-            stream.Write(_doodad.FuncGroupId);
+            stream.Write(_doodad.CurrentPhaseId);
             stream.Write(_doodad.TimeLeft); // growing
             stream.Write(-1); // puzzleGroup
             stream.Write(0); // type(id)

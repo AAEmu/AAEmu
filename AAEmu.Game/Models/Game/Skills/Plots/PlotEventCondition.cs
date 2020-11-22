@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Units;
@@ -85,7 +85,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     }
 
                     if (condition.Condition.Check(source, state.CasterCaster, target,
-                        state.TargetCaster, state.SkillObject, condition))
+                        state.TargetCaster, state.SkillObject, condition, state.ActiveSkill))
                     {
                         continue;
                     }

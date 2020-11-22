@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Skills
             foreach (var modifier in modifiers) {
                 switch (modifier.UnitModifierType) {
                     case UnitModifierType.Percent:
-                        endValue += (endValue * (modifier.Value / 100));
+                        endValue += (endValue * (modifier.Value / 100.0f));
                         break;
                     case UnitModifierType.Value:
                         endValue += modifier.Value;
@@ -97,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Skills
             if (_modifiersBySkillId.ContainsKey(modifier.SkillId))
                 _modifiersBySkillId[modifier.SkillId].Remove(modifier);
 
-            if (_modifiersBySkillId.ContainsKey(modifier.TagId))
+            if (_modifiersByTagId.ContainsKey(modifier.TagId))
                 _modifiersByTagId[modifier.TagId].Remove(modifier);
         }
     }

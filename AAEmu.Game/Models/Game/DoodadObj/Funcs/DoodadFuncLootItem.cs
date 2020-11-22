@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public int RemainTime { get; set; }
         public uint GroupId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             Character character = (Character)caster;
             if (character == null) return;
@@ -34,12 +34,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (chance > Percent) return;
 
             int count = Rand.Next(CountMin, CountMax);
-            if (character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
-                DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
-            else
-            {
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
-            }
+            // else
+            // {
+            //     character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+            // }
         }
     }
 }

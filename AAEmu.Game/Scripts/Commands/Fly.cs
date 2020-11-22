@@ -34,7 +34,7 @@ namespace AAEmu.Game.Scripts.Commands
             Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
             if (bool.TryParse(args[firstarg + 0], out var isFlying))
-                targetPlayer.BroadcastPacket(new SCUnitFlyingStateChangedPacket(targetPlayer.ObjId, isFlying), true);
+                targetPlayer.SendPacket(new SCUnitFlyingStateChangedPacket(targetPlayer.ObjId, isFlying));
             else
                 character.SendMessage("|cFFFF0000[Fly] Throw parse bool!|r");
         }

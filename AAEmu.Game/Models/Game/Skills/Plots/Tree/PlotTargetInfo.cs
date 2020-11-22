@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Skills.Plots.UpdateTargetMethods;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
@@ -111,7 +113,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             float x, y;
             if (args.Distance > 0)
-                (x, y) = MathUtil.AddDistanceToFront(args.Distance / 1000, PreviousTarget.Position.X, PreviousTarget.Position.Y, rotZ);
+                (x, y) = MathUtil.AddDistanceToFront((args.Distance / 1000.0f) - 0.01f, PreviousTarget.Position.X, PreviousTarget.Position.Y, rotZ);
+            // We substract 0.1 here to help with floating point errors
             else
                 (x, y) = (PreviousTarget.Position.X, PreviousTarget.Position.Y);
 
@@ -257,27 +260,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             filtered = filtered 
                 .Where(o =>
                 {
-                    var relationState = state.Caster.Faction.GetRelationState(o.Faction.Id);
+                    var relationState = state.Caster.GetRelationStateTo(o);
                     if (relationState == RelationState.Neutral) // TODO ?
                         return false;
-                    
-                    switch (args.UnitRelationType)
-                    {
-                        case SkillTargetRelation.Any:
-                            return true;
-                        case SkillTargetRelation.Friendly:
-                            return relationState == RelationState.Friendly;
-                        case SkillTargetRelation.Party:
-                            return false; // TODO filter party member
-                        case SkillTargetRelation.Raid:
-                            return false; // TODO filter raid member
-                        case SkillTargetRelation.Hostile:
-                            return relationState == RelationState.Hostile;
-                        default:
-                            return true;
-                    }
+                    return true;
                 });
-
+            
+            filtered = SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
             filtered = filtered.Where(o => ((byte)o.TypeFlag & args.UnitTypeFlag) != 0);
 
             return filtered;

@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
         #region Attributes
-
+        [UnitAttribute(UnitAttribute.Str)]
         public int Str
         {
             get
@@ -57,6 +57,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.Dex)]
         public int Dex
         {
             get
@@ -82,6 +83,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.Sta)]
         public int Sta
         {
             get
@@ -107,6 +109,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.Int)]
         public int Int
         {
             get
@@ -132,6 +135,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.Spi)]
         public int Spi
         {
             get
@@ -157,6 +161,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.Fai)]
         public int Fai
         {
             get
@@ -182,6 +187,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.MaxHealth)]
         public override int MaxHp
         {
             get
@@ -213,6 +219,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.HealthRegen)]
         public override int HpRegen
         {
             get
@@ -245,6 +252,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.PersistentHealthRegen)]
         public override int PersistentHpRegen
         {
             get
@@ -277,6 +285,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.MaxMana)]
         public override int MaxMp
         {
             get
@@ -308,6 +317,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.ManaRegen)]
         public override int MpRegen
         {
             get
@@ -340,6 +350,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.PersistentManaRegen)]
         public override int PersistentMpRegen
         {
             get
@@ -398,6 +409,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.MainhandDps)]
         public override int Dps
         {
             get
@@ -417,6 +429,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.MeleeDpsInc)]
         public override int DpsInc
         {
             get
@@ -450,6 +463,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.OffhandDps)]
         public override int OffhandDps
         {
             get
@@ -469,6 +483,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.RangedDps)]
         public override int RangedDps
         {
             get
@@ -488,6 +503,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.RangedDpsInc)]
         public override int RangedDpsInc
         {
             get
@@ -521,6 +537,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.SpellDps)]
         public override int MDps
         {
             get
@@ -540,6 +557,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.SpellDpsInc)]
         public override int MDpsInc
         {
             get
@@ -573,6 +591,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.Armor)]
         public override int Armor
         {
             get
@@ -604,6 +623,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
+        [UnitAttribute(UnitAttribute.MagicResist)]
         public override int MagicResistance
         {
             get

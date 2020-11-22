@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -22,31 +23,89 @@ namespace AAEmu.Game.Models.Game.Units
 {
     public class Unit : BaseUnit
     {
-        public virtual UnitTypeFlag TypeFlag { get;} = UnitTypeFlag.None;
-        
+        public virtual UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.None;
+
+        public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
         public byte Level { get; set; }
         public int Hp { get; set; }
+        [UnitAttribute(UnitAttribute.MaxHealth)]
         public virtual int MaxHp { get; set; }
+        [UnitAttribute(UnitAttribute.HealthRegen)]
         public virtual int HpRegen { get; set; }
+        [UnitAttribute(UnitAttribute.PersistentHealthRegen)]
         public virtual int PersistentHpRegen { get; set; } = 30;
         public int Mp { get; set; }
+        [UnitAttribute(UnitAttribute.MaxMana)]
         public virtual int MaxMp { get; set; }
+        [UnitAttribute(UnitAttribute.ManaRegen)]
         public virtual int MpRegen { get; set; }
+        [UnitAttribute(UnitAttribute.PersistentManaRegen)]
         public virtual int PersistentMpRegen { get; set; } = 30;
         public virtual float LevelDps { get; set; }
+        [UnitAttribute(UnitAttribute.MainhandDps)]
         public virtual int Dps { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeDpsInc)]
         public virtual int DpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.OffhandDps)]
         public virtual int OffhandDps { get; set; }
+        [UnitAttribute(UnitAttribute.RangedDps)]
         public virtual int RangedDps { get; set; }
+        [UnitAttribute(UnitAttribute.RangedDpsInc)]
         public virtual int RangedDpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.SpellDps)]
         public virtual int MDps { get; set; }
+        [UnitAttribute(UnitAttribute.SpellDpsInc)]
         public virtual int MDpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.HealDps)]
         public virtual int HDps { get; set; }
+        [UnitAttribute(UnitAttribute.HealDpsInc)]
         public virtual int HDpsInc { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeAntiMissMul)]
+        public virtual float MeleeAccuracy { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeCritical)]
+        public virtual float MeleeCritical { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
+        public virtual float MeleeCriticalBonus { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
+        public virtual float MeleeCriticalMul { get; set; }
+        [UnitAttribute(UnitAttribute.RangedAntiMiss)]
+        public virtual float RangedAccuracy { get; set; }
+        [UnitAttribute(UnitAttribute.RangedCritical)]
+        public virtual float RangedCritical { get; set; }
+        [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
+        public virtual float RangedCriticalBonus { get; set; }
+        [UnitAttribute(UnitAttribute.RangedCriticalMul)]
+        public virtual float RangedCriticalMul { get; set; }
+        [UnitAttribute(UnitAttribute.SpellAntiMiss)]
+        public virtual float SpellAccuracy { get; set; }
+        [UnitAttribute(UnitAttribute.SpellCritical)]
+        public virtual float SpellCritical { get; set; }
+        [UnitAttribute(UnitAttribute.SpellCriticalBonus)]
+        public virtual float SpellCriticalBonus { get; set; }
+        [UnitAttribute(UnitAttribute.SpellCriticalMul)]
+        public virtual float SpellCriticalMul { get; set; }
+        [UnitAttribute(UnitAttribute.Armor)]
         public virtual int Armor { get; set; }
+        [UnitAttribute(UnitAttribute.MagicResist)]
         public virtual int MagicResistance { get; set; }
+        [UnitAttribute(UnitAttribute.Dodge)]
+        public virtual float DodgeRate { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeParry)]
+        public virtual float MeleeParryRate { get; set; }
+        [UnitAttribute(UnitAttribute.RangedParry)]
+        public virtual float RangedParryRate { get; set; }
+        [UnitAttribute(UnitAttribute.Block)]
+        public virtual float BlockRate { get; set; }
+        [UnitAttribute(UnitAttribute.BattleResist)]
+        public virtual int BattleResist { get; set; }
+        [UnitAttribute(UnitAttribute.BullsEye)]
+        public virtual int BullsEye { get; set; }
+        [UnitAttribute(UnitAttribute.Flexibility)]
+        public virtual int Flexibility { get; set; }
+        [UnitAttribute(UnitAttribute.Facets)]
+        public virtual int Facets { get; set; }
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
@@ -85,6 +144,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public Unit()
         {
+            Events = new UnitEvents();
             GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
@@ -92,13 +152,35 @@ namespace AAEmu.Game.Models.Game.Units
             Equipment.ContainerSize = 28;
         }
 
+        public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        {
+            var moved = !Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z);
+            if (moved)
+            {
+                Events.OnMovement(this, new OnMovementArgs());
+            }
+            base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+        }
+
         public virtual void ReduceCurrentHp(Unit attacker, int value)
         {
             if (Hp <= 0)
                 return;
+
+            var absorptionEffects = Effects.GetAbsorptionEffects().ToList();
+            if (absorptionEffects.Count > 0)
+            {
+                // Handle damage absorb
+                foreach (var absorptionEffect in absorptionEffects)
+                {
+                    value = absorptionEffect.ConsumeCharge(value);
+                }
+            }
+            
             Hp = Math.Max(Hp - value, 0);
             if (Hp <= 0)
             {
+                attacker.Events.OnKill(attacker, new OnKillArgs { target = attacker });
                 DoDie(attacker);
                 //StopRegen();
             }
@@ -113,6 +195,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (Hp == 0)
                 return;
+            
             Mp = Math.Max(Mp - value, 0);
             if (Mp == 0)
                 StopRegen();
@@ -136,7 +219,10 @@ namespace AAEmu.Game.Models.Game.Units
                 killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
                 killer.SummarizeDamage = 0;
 
-                killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
+                if (killer.CurrentTarget != null)
+                {
+                    killer.BroadcastPacket(new SCCombatClearedPacket(killer.CurrentTarget.ObjId), true);
+                }
                 killer.BroadcastPacket(new SCCombatClearedPacket(killer.ObjId), true);
                 killer.StartRegen();
                 killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
@@ -155,6 +241,8 @@ namespace AAEmu.Game.Models.Game.Units
 
                 killer.CurrentTarget = null;
             }
+
+            Events.OnDeath(this, new OnDeathArgs { });
         }
 
         private async void StopAutoSkill(Unit character)
@@ -198,9 +286,33 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitInvisiblePacket(ObjId, Invisible), true);
         }
 
+        public void SetCriminalState(bool criminalState)
+        {
+            if (criminalState)
+            {
+                var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.RETRIBUTION_BUFF);
+                var casterObj = new SkillCasterUnit(ObjId);
+                Effects.AddEffect(new Effect(this, this, casterObj, buff, null, DateTime.Now));
+            }
+            else
+            {
+                Effects.RemoveBuff((uint) BuffConstants.RETRIBUTION_BUFF);
+            }
+        }
+
         public void SetForceAttack(bool value)
         {
             ForceAttack = value;
+            if (ForceAttack)
+            {
+                var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.BLOODLUST_BUFF);
+                var casterObj = new SkillCasterUnit(ObjId);
+                Effects.AddEffect(new Effect(this, this, casterObj, buff, null, DateTime.Now));
+            }
+            else
+            {
+                Effects.RemoveBuff((uint) BuffConstants.BLOODLUST_BUFF);
+            }
             BroadcastPacket(new SCForceAttackSetPacket(ObjId, ForceAttack), true);
         }
 
@@ -272,5 +384,30 @@ namespace AAEmu.Game.Models.Game.Units
             return Level;
         }
 
+        public string GetAttribute(UnitAttribute attr)
+        {
+            var props = this.GetType().GetProperties()
+                .Where(o => (o.GetCustomAttributes(typeof(UnitAttributeAttribute), true) as IEnumerable<UnitAttributeAttribute>)
+                    .Any(a => a.Attributes.Contains(attr)));
+
+            if (props.Count() > 0)
+                return props.ElementAt(0).GetValue(this).ToString();
+            else
+                return "NotFound";
+        }
+
+        public string GetAttribute(uint attr) => GetAttribute((UnitAttribute)attr);
+
+        //Uncomment if you need this
+        /*
+        public string GetAttribute(string attr)
+        {
+            if (Enum.TryParse(typeof(UnitAttribute), attr, true, out var result))
+            {
+                return GetAttribute((UnitAttribute)result);
+            }
+            return "FailedParse";
+        }
+        */
     }
 }

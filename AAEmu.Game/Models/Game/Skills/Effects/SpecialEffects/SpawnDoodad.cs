@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value4)
         {
             var doodad = DoodadManager.Instance.Create(0, (uint) doodadId, caster);
-            doodad.Position = caster.Position;
+            doodad.Position = caster.Position.Clone();
             doodad.Spawn();
         }
     }

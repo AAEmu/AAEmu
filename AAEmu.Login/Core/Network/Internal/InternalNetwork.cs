@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Net;
-using AAEmu.Commons.Network.Type;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Packets.G2L;
 using AAEmu.Login.Models;
@@ -31,8 +31,7 @@ namespace AAEmu.Login.Core.Network.Internal
             var host =
                 new IPEndPoint(config.Host.Equals("*") ? IPAddress.Any : IPAddress.Parse(config.Host), config.Port);
 
-            _server = new Server(host, 10);
-            _server.SetHandler(_handler);
+            _server = new Server(host.Address, host.Port, _handler);
             _server.Start();
 
             _log.Info("InternalNetwork started");

@@ -22,29 +22,29 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool ShowEndTime { get; set; }
         public string Tip { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId)
+        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncFinal: skillId {0}, After {1}, Respawn {2}, MinTime {3}, MaxTime {4}, ShowTip {5}, ShowEndTime {6}, Tip {7}",
                 skillId, After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
 
             var delay = Rand.Next(MinTime, MaxTime);
-            var character = (Character)caster; 
-            if (character != null)
-            {
-                const int count = 1;
-                var itemTemplate = ItemManager.Instance.GetItemIdsFromDoodad(owner.TemplateId);
-                if (itemTemplate != null)
-                {
-                    foreach (var itemId in itemTemplate)
-                    {
-                        if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
-                        {
-                            // TODO: do proper handling of insufficient bag space
-                            character.SendErrorMessage(Error.ErrorMessageType.BagFull);
-                        }
-                    }
-                }
-            }
+
+            // if (caster is Character character)
+            // {
+            //     const int count = 1;
+            //     var itemTemplate = ItemManager.Instance.GetItemIdsFromDoodad(owner.TemplateId);
+            //     if (itemTemplate != null)
+            //     {
+            //         foreach (var itemId in itemTemplate)
+            //         {
+            //             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
+            //             {
+            //                 // TODO: do proper handling of insufficient bag space
+            //                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+            //             }
+            //         }
+            //     }
+            // }
             if (After > 0)
             {
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, skillId, Respawn);
@@ -54,6 +54,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 owner.Delete();
             }
+            // owner.Delete();
         }
     }
 }

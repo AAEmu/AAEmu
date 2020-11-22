@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -18,6 +19,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -45,7 +47,7 @@ namespace AAEmu.Game.Models.Game.Char
         Female = 2
     }
 
-    public class Character : Unit
+    public partial class Character : Unit
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
@@ -65,6 +67,7 @@ namespace AAEmu.Game.Models.Game.Char
         public AbilityType Ability1 { get; set; }
         public AbilityType Ability2 { get; set; }
         public AbilityType Ability3 { get; set; }
+        public bool IgnoreSkillCooldowns { get; set; }
         public string FactionName { get; set; }
         public uint Family { get; set; }
         public short DeadCount { get; set; }
@@ -156,6 +159,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         #region Attributes
 
+        [UnitAttribute(UnitAttribute.Str)]
         public int Str
         {
             get
@@ -179,6 +183,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.Dex)]
         public int Dex
         {
             get
@@ -201,6 +206,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.Sta)]
         public int Sta
         {
             get
@@ -223,6 +229,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.Int)]
         public int Int
         {
             get
@@ -267,6 +274,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.Fai)]
         public int Fai
         {
             get
@@ -286,6 +294,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.MaxHealth)]
         public override int MaxHp
         {
             get
@@ -313,6 +322,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.HealthRegen)]
         public override int HpRegen
         {
             get
@@ -341,6 +351,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.PersistentHealthRegen)]
         public override int PersistentHpRegen
         {
             get
@@ -369,6 +380,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.MaxMana)]
         public override int MaxMp
         {
             get
@@ -396,6 +408,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.ManaRegen)]
         public override int MpRegen
         {
             get
@@ -424,6 +437,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.PersistentManaRegen)]
         public override int PersistentMpRegen
         {
             get
@@ -472,6 +486,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.MainhandDps)]
         public override int Dps
         {
             get
@@ -491,6 +506,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.MeleeDpsInc)]
         public override int DpsInc
         {
             get
@@ -518,6 +534,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.OffhandDps)]
         public override int OffhandDps
         {
             get
@@ -537,6 +554,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.RangedDps)]
         public override int RangedDps
         {
             get
@@ -556,6 +574,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.RangedDpsInc)]
         public override int RangedDpsInc
         {
             get
@@ -583,25 +602,27 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.SpellDps)]
         public override int MDps
         {
             get
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.MDps ?? 0;
-                res += Int / 5f;
+                // res += Int / 5f;
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (int)(res * bonus.Value / 100f);
                     else
-                        res += bonus.Value;
+                        res += bonus.Value * 0.001f;
                 }
 
                 return (int)(res * 1000);
             }
         }
 
+        [UnitAttribute(UnitAttribute.SpellDpsInc)]
         public override int MDpsInc
         {
             get
@@ -628,7 +649,8 @@ namespace AAEmu.Game.Models.Game.Char
                 return (int)res;
             }
         }
-        
+
+        [UnitAttribute(UnitAttribute.HealDps)]
         public override int HDps
         {
             get
@@ -647,6 +669,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.HealDpsInc)]
         public override int HDpsInc
         {
             get
@@ -655,14 +678,9 @@ namespace AAEmu.Game.Models.Game.Char
                     FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.HealDpsInc);
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
-                parameters["str"] = Str;
-                parameters["dex"] = Dex;
-                parameters["sta"] = Sta;
-                parameters["int"] = Int;
                 parameters["spi"] = Spi;
-                parameters["fai"] = Fai;
                 var res = formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
+                foreach(var bonus in GetBonuses(UnitAttribute.HealDpsInc))
                 {
                     if(bonus.Template.ModifierType == UnitModifierType.Percent)
                         res += (res * bonus.Value / 100f);
@@ -673,6 +691,252 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.MeleeAntiMiss)]
+        public override float MeleeAccuracy
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeAntiMiss);
+                var parameters = new Dictionary<string, double>();
+                parameters["str"] = Str; //Str not needed, but maybe we use later
+                parameters["spi"] = Spi;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeAntiMiss))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
+                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (Math.Abs(res) + res) / 2f;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeCritical)]
+        public override float MeleeCritical
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeCritical);
+                var parameters = new Dictionary<string, double>();
+                parameters["str"] = Str; //Str not needed, but maybe we use later
+                parameters["dex"] = Dex;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCritical))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = res * (1f/Facets) * 100;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
+        public override float MeleeCriticalBonus
+        {
+            get
+            {
+                var res = 1500f;
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCriticalBonus))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res* bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (res - 1000f) / 10f;
+}
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
+        public override float MeleeCriticalMul
+        {
+            get
+            {
+                float res = 0;
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCriticalMul))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.RangedAntiMiss)]
+        public override float RangedAccuracy
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.RangedAntiMiss);
+                var parameters = new Dictionary<string, double>();
+                parameters["dex"] = Dex; //Str not needed, but maybe we use later
+                parameters["spi"] = Spi;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedAntiMiss))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
+                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (Math.Abs(res) + res) / 2f;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.RangedCritical)]
+        public override float RangedCritical
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.RangedCritical);
+                var parameters = new Dictionary<string, double>();
+                parameters["dex"] = Dex; //Str not needed, but maybe we use later
+                parameters["int"] = Int;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedCritical))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = res * (1f / Facets) * 100;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
+        public override float RangedCriticalBonus
+        {
+            get
+            {
+                var res = 1500f;
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedCriticalBonus))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (res - 1000f) / 10f;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.RangedCriticalMul)]
+        public override float RangedCriticalMul
+        {
+            get
+            {
+                float res = 0;
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedCriticalMul))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.SpellAntiMiss)]
+        public override float SpellAccuracy
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.SpellAntiMiss);
+                var parameters = new Dictionary<string, double>();
+                parameters["int"] = Int;
+                parameters["spi"] = Spi;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellAntiMiss))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
+                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (Math.Abs(res) + res) / 2f;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.SpellCritical)]
+        public override float SpellCritical
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.SpellCritical);
+                var parameters = new Dictionary<string, double>();
+                parameters["int"] = Int; //Str not needed, but maybe we use later
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellCritical))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                res = res * (1f / Facets) * 100;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.SpellCriticalBonus)]
+        public override float SpellCriticalBonus
+        {
+            get
+            {
+                var res = 1500f;
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellCriticalBonus))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (res - 1000f) / 10f;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.SpellCriticalMul)]
+        public override float SpellCriticalMul
+        {
+            get
+            {
+                float res = 0;
+                foreach (var bonus in GetBonuses(UnitAttribute.SpellCriticalMul))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Armor)]
         public override int Armor
         {
             get
@@ -715,6 +979,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.MagicResist)]
         public override int MagicResistance
         {
             get
@@ -755,6 +1020,170 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.BattleResist)]
+        public override int BattleResist
+        {
+            get
+            {
+                var res = 0f;
+                foreach (var bonus in GetBonuses(UnitAttribute.BattleResist))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.BullsEye)]
+        public override int BullsEye
+        {
+            get
+            {
+                var res = 0f;
+                foreach (var bonus in GetBonuses(UnitAttribute.BullsEye))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Flexibility)]
+        public override int Flexibility
+        {
+            get
+            {
+                var res = 0f;
+                foreach (var bonus in GetBonuses(UnitAttribute.Flexibility))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Facets)]
+        public override int Facets
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Facet);
+                var parameters = new Dictionary<string, double>();
+                parameters["level"] = Level;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Facets))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Dodge)]
+        public override float DodgeRate
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dodge);
+                var parameters = new Dictionary<string, double>();
+                parameters["dex"] = Dex;
+                parameters["int"] = Int;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Dodge))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (float)(res * (1f/Facets) * 100f);
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeParry)]
+        public override float MeleeParryRate
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeParry);
+                var parameters = new Dictionary<string, double>();
+                parameters["str"] = Str;
+                parameters["sta"] = Sta;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.MeleeParry))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (float)(res * (1f / Facets) * 100f);
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.RangedParry)]
+        public override float RangedParryRate
+        {
+            get
+            {
+                //RangedParry Formula == 0
+                double res = 0;
+                foreach (var bonus in GetBonuses(UnitAttribute.RangedParry))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (float)(res * (1f / Facets) * 100f);
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.Block)]
+        public override float BlockRate
+        {
+            get
+            {
+                var offhand = Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
+                if (offhand != null && offhand.Template is WeaponTemplate template)
+                {
+                    var slotId = (EquipmentItemSlotType)template.HoldableTemplate.SlotTypeId;
+                    if (slotId != EquipmentItemSlotType.Shield)
+                        return 0f;
+                }
+                else if (offhand == null)
+                    return 0f;
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Block);
+                var parameters = new Dictionary<string, double>();
+                parameters["str"] = Str;
+                var res = formula.Evaluate(parameters);
+                foreach (var bonus in GetBonuses(UnitAttribute.Block))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+                return (float)(res * (1f / Facets) * 100f);
+            }
+        }
+
         #endregion
 
         public Character(UnitCustomModelParams modelParams)
@@ -764,22 +1193,22 @@ namespace AAEmu.Game.Models.Game.Char
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
         }
-        
+
         public WeaponWieldKind GetWeaponWieldKind()
         {
             var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
             if (item.Template is WeaponTemplate weapon)
             {
-                EquipmentItemSlotType slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
+                var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
                 if (slotId == EquipmentItemSlotType.TwoHanded)
                     return WeaponWieldKind.TwoHanded;
-                else if (slotId == EquipmentItemSlotType.OneHanded)
+                else if (slotId == EquipmentItemSlotType.OneHanded || slotId == EquipmentItemSlotType.Mainhand)
                 {
                     var item2 = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
                     if (item2 != null && item2.Template is WeaponTemplate weapon2)
                     {
-                        EquipmentItemSlotType slotId2 = (EquipmentItemSlotType)weapon2.HoldableTemplate.SlotTypeId;
-                        if (slotId2 == EquipmentItemSlotType.OneHanded)
+                        var slotId2 = (EquipmentItemSlotType)weapon2.HoldableTemplate.SlotTypeId;
+                        if (slotId2 == EquipmentItemSlotType.OneHanded || slotId2 == EquipmentItemSlotType.Offhand)
                             return WeaponWieldKind.DuelWielded;
                         else
                             return WeaponWieldKind.OneHanded;
@@ -916,6 +1345,83 @@ namespace AAEmu.Game.Models.Game.Char
         {
             if (type == AbilityType.General) return Level;
             return ExpirienceManager.Instance.GetLevelFromExp(Abilities.Abilities[type].Exp);
+        }
+
+        public void ResetSkillCooldown(uint skillId, bool gcd)
+        {
+            SendPacket(new SCSkillCooldownResetPacket(this, skillId, 0, gcd));
+        }
+
+        public void ResetAllSkillCooldowns(bool triggerGcd)
+        {
+            const uint playerSkillsTag = 378;
+            var skillIds = SkillManager.Instance.GetSkillsByTag(playerSkillsTag);
+
+            var packets = new CompressedGamePackets();
+            foreach(var skillId in skillIds)
+            {
+                packets.AddPacket(new SCSkillCooldownResetPacket(this, skillId, 0, triggerGcd));
+            }
+            SendPacket(packets);
+        }
+
+        public void SetPirate(bool pirate)
+        {
+            // TODO : If castle owner -> Nope
+            var defaultFactionId = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender).FactionId;
+
+            var newFaction = pirate ? (uint)Factions.FACTION_PIRATE : defaultFactionId;
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, newFaction, false), true);
+            Faction = FactionManager.Instance.GetFaction(newFaction);
+            // TODO : Teleport to Growlgate
+            // TODO : Leave guild
+        }
+        
+        public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        {
+            var moved = !Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z);
+            var lastZoneKey = Position.ZoneId;
+            base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+
+            if (!moved)
+                return;
+
+            if (Position.ZoneId == lastZoneKey)
+                return;
+
+            // We switched zonekeys, we need to do some checks
+            var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
+            var newZone = ZoneManager.Instance.GetZoneByKey(Position.ZoneId);
+            var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
+            var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
+            if (lastZoneGroupId == newZoneGroupId)
+                return;
+
+            // Ok, we actually changed zone groups, we'll leave to do some chat channel stuff
+            if (lastZoneGroupId != 0)
+                ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(this);
+
+            if (newZoneGroupId != 0)
+                ChatManager.Instance.GetZoneChat(Position.ZoneId).JoinChannel(this);
+
+            if (newZone != null && (!newZone.Closed))
+                return;
+
+            // Entered a forbidden zone
+            /*
+                            if (!thisChar.isGM)
+                            {
+                                // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
+                                // TODO: Remove backpack immediatly
+                            }
+                            */
+            // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour
+            if (newZone != null)
+                SendMessage(ChatType.System,
+                    "|cFFFF0000You have entered a closed zone ({0} - {1})!\nPlease leave immediatly!|r",
+                    newZone.ZoneKey, newZone.Name);
+            // Send the error message
+            SendErrorMessage(ErrorMessageType.ClosedZone);
         }
 
         public void SetAction(byte slot, ActionSlotType type, uint actionId)

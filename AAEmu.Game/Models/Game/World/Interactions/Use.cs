@@ -18,11 +18,12 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             _log.Trace("World interaction SkillID: {0}", skillId);
             if (target is Doodad doodad)
             {
-                var action = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
-                if (action != null)
-                {                                  
-                    action.Use(caster, doodad, action.SkillId);
-                }
+                // var action = DoodadManager.Instance.GetFunc(doodad.FuncGroupId, skillId);
+                // if (action != null)
+                // {                                  
+                //     action.Use(caster, doodad, action.SkillId);
+                // }
+                doodad.Use(caster, skillId);
             }            
         }
     }

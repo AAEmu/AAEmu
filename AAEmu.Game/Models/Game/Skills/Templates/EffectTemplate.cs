@@ -1,6 +1,7 @@
 using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
 
@@ -18,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
 
         public abstract void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
-            Skill skill, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null);
+            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null);
 
         public virtual void Start(Unit caster, BaseUnit owner, Effect effect)
         {
@@ -28,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         {
         }
 
-        public virtual void Dispel(Unit caster, BaseUnit owner, Effect effect)
+        public virtual void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
         {
         }
 

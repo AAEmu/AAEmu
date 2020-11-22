@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -20,12 +21,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             DateTime time,
             int skillId,
             int delay,
-            int value3,
+            int chance,
             int value4)
         {
+            if (Rand.Next(0, 101) > chance && chance != 0)
+                return;
             var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
             TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(delay));
-            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", skillId, delay, value3, value4);
+            _log.Warn("SkillId {0}, Delay {1}, Chance {2}, value4 {3}", skillId, delay, chance, value4);
         }
     }
 }

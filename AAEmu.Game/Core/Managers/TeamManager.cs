@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using NLog;
 
@@ -43,6 +44,12 @@ namespace AAEmu.Game.Core.Managers
         {
             if (teamId == 0) return null;
             return _activeTeams.ContainsKey(teamId) ? _activeTeams[teamId] : null;
+        }
+
+        public bool AreTeamMembers(uint unit1, uint unit2)
+        {
+            var team = GetActiveTeamByUnit(unit1);
+            return team?.IsMember(unit2) ?? false;
         }
 
         private InvitationTemplate GetActiveInvitation(uint targetId)

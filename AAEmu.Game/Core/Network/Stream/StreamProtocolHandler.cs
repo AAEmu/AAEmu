@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Text;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Connections;
 using NLog;
 
@@ -78,7 +79,7 @@ namespace AAEmu.Game.Core.Network.Stream
                     connection.LastPacket = null;
                 }
 
-                stream.Insert(stream.Count, buf);
+                stream.Insert(stream.Count, buf, 0, bytes);
                 while (stream != null && stream.Count > 0)
                 {
                     ushort len;
