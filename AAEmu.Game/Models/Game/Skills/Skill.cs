@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 skillObject = new SkillObject();
             }
 
-            var target = GetInitialTarget(caster, targetCaster);
+            var target = GetInitialTarget(caster, casterCaster, targetCaster);
 
             if (target == null)
                 return;//We should try to make sure this doesnt happen
@@ -143,9 +143,12 @@ namespace AAEmu.Game.Models.Game.Skills
             }
         }
 
-        private BaseUnit GetInitialTarget(Unit caster, SkillCastTarget targetCaster)
+        private BaseUnit GetInitialTarget(Unit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
         {
             var target = (BaseUnit)caster;
+            // HACKFIX : Mounts
+            if (skillCaster.Type == SkillCasterType.Unk3)
+                target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
 
             if (Template.TargetType == SkillTargetType.Self)
             {

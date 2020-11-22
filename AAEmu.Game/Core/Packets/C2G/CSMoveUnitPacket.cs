@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 RemoveEffects(mateInfo, moveType);
                 mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                mateInfo.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), myObjId);
+                mateInfo.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
 
                 if (mateInfo.Att1 > 0)
                 {

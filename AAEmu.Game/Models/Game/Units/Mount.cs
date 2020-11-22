@@ -382,10 +382,15 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
-        public void BroadcastPacket(GamePacket packet, uint objId)
+        public override void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-                if (objId != character.ObjId) character.SendPacket(packet);
+            {
+                if (OwnerObjId == character.ObjId && self)
+                    character.SendPacket(packet);
+                else if (OwnerObjId != character.ObjId)
+                    character.SendPacket(packet);
+            }
         }
     }
 }
