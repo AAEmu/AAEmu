@@ -13,9 +13,9 @@ namespace AAEmu.Game.Core.Managers
         //private List<LaborPower> _onlineChar;
         //private List<LaborPower> _offlineChar;
         private const short LpChangePremium = 10; // TODO in config
-        private short LpChange = short.Parse(ConfigurationManager.Instance.GetConfiguration("LaborRecoveryAmount"));
-        private short UpLimit = short.Parse(ConfigurationManager.Instance.GetConfiguration("LaborMax"));
-        private double Delay = double.Parse(ConfigurationManager.Instance.GetConfiguration("LaborRecoveryRate")); // min
+        private const short LpChange = 5;
+        private const short UpLimit = 2000;
+        private const double Delay = 5; // min
 
         public LaborPowerManager()
         {

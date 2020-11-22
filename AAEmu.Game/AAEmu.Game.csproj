@@ -97,5 +97,4 @@
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
     </ItemGroup>
-
 </Project>

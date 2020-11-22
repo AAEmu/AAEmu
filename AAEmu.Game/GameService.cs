@@ -34,8 +34,6 @@ namespace AAEmu.Game
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
 
-            ConfigurationManager.Instance.Load();
-
             ItemIdManager.Instance.Initialize();
             ChatManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
@@ -60,6 +58,7 @@ namespace AAEmu.Game
 
             FormulaManager.Instance.Load();
             ExpirienceManager.Instance.Load();
+            ConfigurationManager.Instance.Load();
 
             TlIdManager.Instance.Initialize();
             SpecialtyManager.Instance.Load();
