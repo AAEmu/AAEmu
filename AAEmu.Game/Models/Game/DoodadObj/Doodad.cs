@@ -69,14 +69,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         public void Use(Unit unit, uint skillId)
         {
-            _log.Debug("Using phase {0}", CurrentPhaseId);
+            _log.Warn("Using phase {0}", CurrentPhaseId);
             // Get all doodad_funcs
             var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
 
             // Apply them
             var nextFunc = 0;
             var isUse = false;
-            var startPhase = CurrentPhaseId;
             foreach (var func in funcs)
             {
                 if (func.SkillId > 0 && func.SkillId == skillId)
@@ -93,6 +92,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
             }
 
+            if (nextFunc == 0)
+                return;
+
             if (isUse)
                 GoToPhaseAndUse(unit, nextFunc, skillId);
             else
@@ -102,15 +104,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// This executes a doodad's phase. Phase functions start as soon as the doodad switches to a new phase.
         /// </summary>
-        public void DoPhase(Unit unit)
+        public void DoPhase(Unit unit, uint skillId)
         {
-            _log.Debug("Doing phase {0}", CurrentPhaseId);
+            _log.Warn("Doing phase {0}", CurrentPhaseId);
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
 
             OverridePhase = 0;
             foreach (var phaseFunc in phaseFuncs)
             {
-                phaseFunc.Use(unit, this, 0);
+                phaseFunc.Use(unit, this, skillId);
                 if (OverridePhase > 0)
                     break;
             }
@@ -118,7 +120,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (OverridePhase > 0)
             {
                 CurrentPhaseId = OverridePhase;
-                DoPhase(unit);
+                DoPhase(unit, skillId);
             }
         }
 
@@ -127,25 +129,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         /// <param name="unit">Unit who triggered the change</param>
         /// <param name="funcGroupId">New phase to go to</param>
-        public void GoToPhase(Unit unit, int funcGroupId)
+        public void GoToPhase(Unit unit, int funcGroupId, uint skillId = 0)
         {
-            _log.Debug("Going to phase {0}", funcGroupId);
-            if (funcGroupId == -1)
-            {
-                // Delete doodad
-                // Delete();
-            }
-            else
-            {
-                CurrentPhaseId = (uint)funcGroupId;
-                DoPhase(unit);
-                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
-            }
-        }
-
-        public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId)
-        {
-            _log.Debug("Going to phase {0}", funcGroupId);
+            _log.Warn("Going to phase {0}", funcGroupId);
             if (funcGroupId == -1)
             {
                 // Delete doodad
@@ -154,7 +140,23 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             else
             {
                 CurrentPhaseId = (uint)funcGroupId;
-                DoPhase(unit);
+                DoPhase(unit, skillId);
+                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
+            }
+        }
+
+        public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId)
+        {
+            _log.Warn("Going to phase {0} and using it", funcGroupId);
+            if (funcGroupId == -1)
+            {
+                // Delete doodad
+                Delete();
+            }
+            else
+            {
+                CurrentPhaseId = (uint)funcGroupId;
+                DoPhase(unit, skillId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
                 Use(unit, skillId);
             }
