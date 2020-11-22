@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             TeamManager.Instance.UpdateAtLogin(Connection.ActiveChar);
             Connection.ActiveChar.Expedition?.OnCharacterLogin(Connection.ActiveChar);
             
-            Connection.ActiveChar.UpdateGearBonuses();
+            Connection.ActiveChar.UpdateGearBonuses(null, null);
 
             _log.Info("NotifyInGame");
         }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Char
 {
     public partial class Character
     {
-        public void UpdateGearBonuses()
+        public void UpdateGearBonuses(Item itemAdded, Item itemRemoved)
         {
             // We use index 1 for gear bonuses. Will make this a constant later, or do it properly. Right now the expected behavior is to have key == buff id, which doesn't work when you have items.
             Bonuses[1] = new List<Bonus>();
@@ -25,9 +25,11 @@ namespace AAEmu.Game.Models.Game.Char
                 foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
                     AddBonus(1, new Bonus {Template = template, Value = template.Value});
             }
-            
-            // Compute equip effects ?
-            
+
+            // Apply Equip Effects
+            ApplyEquipEffects(itemAdded, itemRemoved);
+
+
             // Compute gear buff
             ApplyArmorGradeBuff();
         }
@@ -94,6 +96,47 @@ namespace AAEmu.Game.Models.Game.Char
                     };
 
                 Effects.AddEffect(newEffect);
+            }
+        }
+
+        private void ApplyEquipEffects(Item itemAdded, Item itemRemoved)
+        {
+            if(itemRemoved != null && itemRemoved.Template.BuffId != 0) // remove previous buff
+            {
+                if(Effects.CheckBuff(itemRemoved.Template.BuffId))
+                {
+                    Effects.RemoveBuff(itemRemoved.Template.BuffId);
+                }
+            }
+
+            if(itemAdded != null && itemAdded.Template.BuffId != 0) // add buff from equipped item
+            {
+                var buffTemplate = SkillManager.Instance.GetBuffTemplate(itemAdded.Template.BuffId);
+                var newEffect =
+                    new Effect(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
+                    {
+                        AbLevel = 1
+                    };
+
+                Effects.AddEffect(newEffect);
+            }
+
+            if(itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 
+            {
+                foreach (var item in Equipment.Items)
+                {
+                    if(item.Template.BuffId != 0)
+                    {
+                        var buffTemplate = SkillManager.Instance.GetBuffTemplate(item.Template.BuffId);
+                        var newEffect =
+                            new Effect(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
+                            {
+                                AbLevel = 1
+                            };
+
+                        Effects.AddEffect(newEffect);
+                    }
+                }
             }
         }
     }
