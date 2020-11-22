@@ -563,8 +563,6 @@ namespace AAEmu.Game.Models.Game.Skills
             // Quick Hack
             if (packets.Packets.Count > 0)
                 caster.BroadcastPacket(packets, true);
-            
-            EndSkill(caster);
         }
 
         public void EndSkill(Unit caster)
