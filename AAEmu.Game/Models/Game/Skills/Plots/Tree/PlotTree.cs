@@ -166,7 +166,6 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         private void DoPlotEnd(PlotState state)
         {
             state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
-            TlIdManager.Instance.ReleaseId(state.ActiveSkill.TlId);
 
             if (state.Caster is Character character && character.IgnoreSkillCooldowns)
                 character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
