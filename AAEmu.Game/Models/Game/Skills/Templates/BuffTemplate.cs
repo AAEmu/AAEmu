@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -179,7 +179,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             {
                 var bonus = new Bonus();
                 bonus.Template = template;
-                bonus.Value = (int) (template.Value + (template.LinearLevelBonus * (effect.AbLevel / 100)));
+                bonus.Value = (int) (template.Value + (template.LinearLevelBonus * (effect.AbLevel / 100f)));
                 owner.AddBonus(effect.Index, bonus);
             }
 
