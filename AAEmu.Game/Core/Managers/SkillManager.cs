@@ -33,6 +33,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers;
         private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
         private Dictionary<uint, SkillReagent> _skillReagents;
+        private Dictionary<uint, SkillProduct> _skillProducts;
         /**
          * Events
          */
@@ -166,6 +167,19 @@ namespace AAEmu.Game.Core.Managers
             return reagents;
         }
 
+        public List<SkillProduct> GetSkillProductsBySkillId(uint id)
+        {
+            List<SkillProduct> products = new List<SkillProduct>();
+
+            foreach (var product in _skillProducts)
+            {
+                if (product.Value.SkillId == id)
+                    products.Add(product.Value);
+            }
+
+            return products;
+        }
+
         public void Load()
         {
             _skills = new Dictionary<uint, SkillTemplate>();
@@ -224,6 +238,7 @@ namespace AAEmu.Game.Core.Managers
             _taggedSkills = new Dictionary<uint, List<uint>>();
             _combatBuffs = new Dictionary<uint, List<CombatBuffTemplate>>();
             _skillReagents = new Dictionary<uint, SkillReagent>();
+            _skillProducts = new Dictionary<uint, SkillProduct>();
 
             using (var connection = SQLite.CreateConnection())
             {
@@ -1497,7 +1512,29 @@ namespace AAEmu.Game.Core.Managers
                 }
                 _log.Info("Skill Reagents loaded");
 
-                OnSkillsLoaded?.Invoke(this, new EventArgs());
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * from skill_products";
+                    command.Prepare();
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new SkillProduct
+                            {
+                                Id = reader.GetUInt32("id"),
+                                SkillId = reader.GetUInt32("skill_id"),
+                                ItemId = reader.GetUInt32("item_id"),
+                                Amount = reader.GetInt16("amount")
+                            };
+                            _skillProducts.Add(template.Id, template);
+                        }
+                    }
+                    _log.Info("Skill Products loaded");
+
+                    OnSkillsLoaded?.Invoke(this, new EventArgs());
+                }
             }
 
 

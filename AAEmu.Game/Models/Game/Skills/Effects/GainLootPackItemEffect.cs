@@ -92,7 +92,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         }
                     }
 
-                    if (minAmount > 1 || itemIdLoot == 500)
+                    if (minAmount > 1 && itemIdLoot == 500)
                     {
                         AddGold(caster, minAmount, maxAmount);
                     }
@@ -108,8 +108,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount);
                     }
                 }
-
-                RemoveItem(caster, casterObj, 1);
             }
             else
             {
@@ -147,7 +145,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             }
                         }
 
-                        if (minAmount > 1 || itemIdLoot == 500)
+                        if (minAmount > 1 && itemIdLoot == 500)
                             AddGold(caster, minAmount, maxAmount);
 
                         if (itemIdLoot > 0 && itemIdLoot != 500)
@@ -158,8 +156,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount);
                         }
                     }
-
-                    RemoveItem(caster, casterObj, 1);
                 }
             }
 
@@ -229,39 +225,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             return gradeId;
-        }
-
-        private void RemoveItem(Unit caster, SkillCaster casterObj, int consumeCount)
-        {
-            var character = (Character)caster;
-            if (character == null) return;
-            var lootPack = (SkillItem)casterObj;
-            if (lootPack == null) return;
-            var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
-            character?.Inventory.ConsumeItem(null,ItemTaskType.SkillReagents, lootPackItem.TemplateId, consumeCount,null);
-            /*
-            if (lootPackItem.Count > 1)
-            {
-                lootPackItem.Count -= consumeCount;
-                character.SendPacket(
-                    new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents,
-                        new List<ItemTask>
-                        {
-                            new ItemCountUpdate(lootPackItem, -consumeCount)
-                        }, new List<ulong>()));
-            }
-            else
-            {
-                character.Inventory.RemoveItem(lootPackItem, true);
-                character.SendPacket(
-                    new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents,
-                        new List<ItemTask>
-                        {
-                            new ItemRemove(lootPackItem)
-                        },
-                        new List<ulong>()));
-            }
-            */
         }
     }
 }
