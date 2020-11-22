@@ -428,8 +428,8 @@ namespace AAEmu.Game.Models.Game.Char
                     new SCUnitEquipmentsChangedPacket(Owner.ObjId, toSlot, Equipment.GetItemBySlot(toSlot)), false);
             }
             
-            if (fromType == SlotType.Equipment || toType == SlotType.Equipment)
-                Owner.UpdateGearBonuses();
+            if (fromType == SlotType.Equipment || toType == SlotType.Equipment) // Used for gear bonuses and gear buffs
+                Owner.UpdateGearBonuses(itemInTargetSlot, fromItem);
 
             if (itemTasks.Count > 0)
                 Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
