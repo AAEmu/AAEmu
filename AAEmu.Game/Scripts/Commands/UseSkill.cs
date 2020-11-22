@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -49,6 +50,18 @@ namespace AAEmu.Game.Scripts.Commands
                 target = temp;
                 argsIdx++;
             }
+
+            if (args[0] == "area")
+            {
+                if (uint.TryParse(args[1], out var skillIdAoe))
+                {
+                    var skillTemplate2 = SkillManager.Instance.GetSkillTemplate(skillIdAoe);
+                    if (skillTemplate2 != null)
+                        DoAoe(character, skillTemplate2);
+                }
+                return;
+            }
+
             var casterObj = new SkillCasterUnit(source.ObjId);
             var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
             targetObj.ObjId = target.ObjId;
@@ -64,6 +77,20 @@ namespace AAEmu.Game.Scripts.Commands
 
             var useSkill = new Skill(skillTemplate);
             TaskManager.Instance.Schedule(new UseSkillTask(useSkill, source, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(0));
+        }
+
+        private void DoAoe(Character character, SkillTemplate skill)
+        {
+            foreach (var target in WorldManager.Instance.GetAround<Unit>(character, 20f))
+            {
+                var casterObj = new SkillCasterUnit(target.ObjId);
+                var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                targetObj.ObjId = character.ObjId;
+                var skillObject = new SkillObject();
+
+                var useSkill = new Skill(skill);
+                TaskManager.Instance.Schedule(new UseSkillTask(useSkill, target, casterObj, character, targetObj, skillObject), TimeSpan.FromMilliseconds(0));
+            }
         }
     }
 }
