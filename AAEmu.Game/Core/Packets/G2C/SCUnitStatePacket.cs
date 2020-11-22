@@ -456,7 +456,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)1); // sourceAbLevel
+                stream.Write((short)effect.AbLevel); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
                 stream.Write((uint)effect.Tick); // tickTime
@@ -474,7 +474,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)1); // sourceAbLevel
+                stream.Write((short)effect.AbLevel); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
                 stream.Write((uint)effect.Tick); // tickTime
@@ -492,7 +492,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(effect.SkillCaster);
                 stream.Write(0u); // type(id)
                 stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)1); // sourceAbLevel
+                stream.Write((short)effect.AbLevel); // sourceAbLevel
                 stream.Write(effect.Duration); // totalTime
                 stream.Write(effect.GetTimeElapsed()); // elapsedTime
                 stream.Write((uint)effect.Tick); // tickTime
