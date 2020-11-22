@@ -63,6 +63,7 @@ namespace AAEmu.Game.Core.Managers
         
         private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
         private Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>> _armorGradeBuffs;
+        private Dictionary<uint, EquipItemSet> _equipItemSets;
         
         // Events
         public event EventHandler OnItemsLoaded;
@@ -73,6 +74,14 @@ namespace AAEmu.Game.Core.Managers
         public ItemTemplate GetTemplate(uint id)
         {
             return _templates.ContainsKey(id) ? _templates[id] : null;
+        }
+
+        public EquipItemSet GetEquiptItemSet(uint id)
+        {
+            if (_equipItemSets.TryGetValue(id, out var value))
+                return value;
+            else
+                return null;
         }
 
         public GradeTemplate GetGradeTemplate(int grade)
@@ -489,6 +498,7 @@ namespace AAEmu.Game.Core.Managers
             _itemProcTemplates = new Dictionary<uint, ItemProcTemplate>();
             _armorGradeBuffs = new Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>>();
             _itemUnitModifiers = new Dictionary<uint, List<BonusTemplate>>();
+            _equipItemSets = new Dictionary<uint, EquipItemSet>();
             _config = new ItemConfig();
 
             SkillManager.Instance.OnSkillsLoaded += OnSkillsLoaded;
@@ -743,6 +753,57 @@ namespace AAEmu.Game.Core.Managers
 
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandText = "SELECT * FROM item_procs";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new ItemProcTemplate()
+                            {
+                                Id = reader.GetUInt32("id"),
+                                SkillId = reader.GetUInt32("skill_id"),
+                                ChanceKind = (ProcChanceKind)reader.GetUInt32("chance_kind_id"),
+                                ChanceRate = reader.GetUInt32("chance_rate"),
+                                ChanceParam = reader.GetUInt32("chance_param"),
+                                CooldownSec = reader.GetUInt32("cooldown_sec"),
+                                Finisher = reader.GetBoolean("finisher", true),
+                                ItemLevelBasedChanceBonus = reader.GetUInt32("item_level_based_chance_bonus"),
+                            };
+
+                            _itemProcTemplates.Add(template.Id, template);
+                        }
+                    }
+                }
+
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM equip_item_set_bonuses";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            uint id = reader.GetUInt32("equip_item_set_id");
+                            if (!_equipItemSets.ContainsKey(id))
+                                _equipItemSets.Add(id, new EquipItemSet { Id = id });
+
+                            var bonus = new EquipItemSetBonus()
+                            {
+                                NumPieces = reader.GetInt32("num_pieces"),
+                                BuffId = reader.GetUInt32("buff_id", 0),
+                                ItemProcId = reader.GetUInt32("proc_id", 0)
+                            };
+
+                            if (bonus.BuffId != 0 || bonus.ItemProcId != 0)
+                                _equipItemSets[id].Bonuses.Add(bonus);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
                     command.CommandText = "SELECT * FROM item_armors";
                     command.Prepare();
                     using (var sqliteReader = command.ExecuteReader())
@@ -767,7 +828,8 @@ namespace AAEmu.Game.Core.Managers
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                                 ChargeLifetime = reader.GetInt32("charge_lifetime"),
                                 ChargeCount = reader.GetInt32("charge_count"),
-                                ItemLookConvert = GetWearableItemLookConvert(slotTypeId)
+                                ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
+                                EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
                             _templates.Add(template.Id, template);
                         }
@@ -796,7 +858,8 @@ namespace AAEmu.Game.Core.Managers
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                                 ChargeLifetime = reader.GetInt32("charge_lifetime"),
                                 ChargeCount = reader.GetInt32("charge_count"),
-                                ItemLookConvert = GetHoldableItemLookConvert(holdableId)
+                                ItemLookConvert = GetHoldableItemLookConvert(holdableId),
+                                EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
                             _templates.Add(template.Id, template);
                         }
@@ -826,7 +889,8 @@ namespace AAEmu.Game.Core.Managers
                                 DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
                                 RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                                 ChargeLifetime = reader.GetInt32("charge_lifetime"),
-                                ChargeCount = reader.GetInt32("charge_count")
+                                ChargeCount = reader.GetInt32("charge_count"),
+                                EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                             };
                             _templates.Add(template.Id, template);
                         }
@@ -1218,31 +1282,6 @@ namespace AAEmu.Game.Core.Managers
                                 template.DoodadId = reader.GetUInt32("doodad_id");
                                 _itemDoodadTemplates.Add(template.DoodadId, template);
                             }
-                        }
-                    }
-                }
-                
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM item_procs";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new ItemProcTemplate()
-                            {
-                                Id = reader.GetUInt32("id"),
-                                SkillId = reader.GetUInt32("skill_id"),
-                                ChanceKind = (ProcChanceKind)reader.GetUInt32("chance_kind_id"),
-                                ChanceRate = reader.GetUInt32("chance_rate"),
-                                ChanceParam = reader.GetUInt32("chance_param"),
-                                CooldownSec = reader.GetUInt32("cooldown_sec"),
-                                Finisher = reader.GetBoolean("finisher", true),
-                                ItemLevelBasedChanceBonus = reader.GetUInt32("item_level_based_chance_bonus"),
-                            };
-                            
-                            _itemProcTemplates.Add(template.Id, template);
                         }
                     }
                 }

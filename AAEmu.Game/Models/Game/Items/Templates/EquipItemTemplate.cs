@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace AAEmu.Game.Models.Game.Items.Templates
 {
@@ -13,5 +13,6 @@ namespace AAEmu.Game.Models.Game.Items.Templates
         public int ChargeLifetime { get; set; }
         public int ChargeCount { get; set; }
         public ItemLookConvert ItemLookConvert { get; set; }
+        public uint EquipItemSetId { get; set; }
     }
 }

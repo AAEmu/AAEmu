@@ -32,6 +32,65 @@ namespace AAEmu.Game.Models.Game.Char
 
             // Compute gear buff
             ApplyArmorGradeBuff();
+            ApplyEquipItemSetBonuses();
+        }
+
+        private void ApplyEquipItemSetBonuses()
+        {
+            var setNumPieces = new Dictionary<uint, int>();
+            var itemLevels = new Dictionary<uint, uint>();
+            foreach(var item in Equipment.Items)
+            {
+                if (item.Template is EquipItemTemplate template)
+                {
+                    var equipItemSetId = template.EquipItemSetId;
+                    if (template.EquipItemSetId == 0)
+                        continue;
+
+                    if (!setNumPieces.ContainsKey(equipItemSetId))
+                    {
+                        setNumPieces.Add(equipItemSetId, (1));
+                        itemLevels.Add(equipItemSetId, (uint)item.Template.Level);
+                    }
+                    else
+                    {
+                        setNumPieces[equipItemSetId]++;
+                        if (item.Template.Level < itemLevels[equipItemSetId])
+                            itemLevels[equipItemSetId] = (uint)item.Template.Level;
+                    }
+                }
+            }
+
+            var appliedBuffs = new HashSet<uint>();
+            foreach (var setCount in setNumPieces)
+            {
+                var equipItemSet = ItemManager.Instance.GetEquiptItemSet(setCount.Key);
+                foreach(var bonus in equipItemSet.Bonuses)
+                {
+                    if (setCount.Value >= bonus.NumPieces)
+                    {
+                        if (Effects.CheckBuff(bonus.BuffId))
+                        {
+                            appliedBuffs.Add(bonus.BuffId);
+                            continue;
+                        }
+                        var buffTemplate = SkillManager.Instance.GetBuffTemplate(bonus.BuffId);
+
+                        var newEffect =
+                            new Effect(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now)
+                            {
+                                AbLevel = itemLevels[setCount.Key]
+                            };
+                        Effects.AddEffect(newEffect);
+                        appliedBuffs.Add(bonus.BuffId);
+                    }
+                    else //This needs to be revised? Will we ever remove more than 1 item at a time?
+                    {
+                        if (Effects.CheckBuff(bonus.BuffId) && !appliedBuffs.Contains(bonus.BuffId))
+                            Effects.RemoveBuff(bonus.BuffId);
+                    }
+                }
+            }
         }
 
         private void ApplyArmorGradeBuff()
