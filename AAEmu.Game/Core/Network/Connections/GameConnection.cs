@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Game;

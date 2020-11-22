@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Network.Connections

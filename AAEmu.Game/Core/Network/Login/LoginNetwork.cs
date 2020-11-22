@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Net;
-using AAEmu.Commons.Network.Type;
+using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.L2G;
@@ -27,15 +27,15 @@ namespace AAEmu.Game.Core.Network.Login
         public void Start()
         {
             var config = AppConfiguration.Instance.LoginNetwork;
-            _client = new Client(new IPEndPoint(IPAddress.Parse(config.Host), config.Port));
-            _client.SetHandler(_handler);
-            _client.Start();
+            _client = new Client(IPAddress.Parse(config.Host), config.Port, _handler);
+            _client.ConnectAsync();
+
         }
 
         public void Stop()
         {
-            if (_client.IsStarted)
-                _client.Stop();
+            if (_client.IsConnected)
+                _client.DisconnectAsync();
         }
 
         public void SetConnection(LoginConnection con)

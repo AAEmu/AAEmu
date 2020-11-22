@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Commons.Network
+﻿using AAEmu.Commons.Network.Core;
+
+namespace AAEmu.Commons.Network
 {
     public interface INetBase
     {
