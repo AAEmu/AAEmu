@@ -507,29 +507,18 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         continue;
                     }
+
                     if (casterCaster is SkillItem castItem) // TODO Clean up. 
                     {
+                        var player = (Character)caster;
+                        if(effect.ConsumeSourceItem)
+                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, null);
+
                         var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
-                        if ((castItemTemplate.UseSkillAsReagent) && (caster is Character player))
+                        if ((castItemTemplate.UseSkillAsReagent) && player != null)
                             player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount,null);
-                        /*
-                        var itemUsed = ItemManager.Instance.Create(castItem.ItemTemplateId, 1, 1, true);
-                        var isRaegent = itemUsed.Template.UseSkillAsReagent;
-                        if (isRaegent) //if item is a raegent
-                        {
-                            if (caster is Character player)
-                            {
-                                var items = player.Inventory.RemoveItem(castItem.ItemTemplateId, effect.ConsumeItemCount);
-                                var tasks = new List<ItemTask>();
-                                foreach (var (item, count) in items)
-                                {
-                                    InventoryHelper.RemoveItemAndUpdateClient(player, item, count, ItemTaskType.SkillReagents);
-                                }
-                            }
-                        }
-                        ItemManager.Instance.ReleaseId(itemUsed.Id);
-                        */
                     }
+
                     if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
                     {
                         if (effect.ConsumeSourceItem)
@@ -559,6 +548,30 @@ namespace AAEmu.Game.Models.Game.Skills
                     //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now, packets);
                 } 
             }
+
+            if(casterCaster is SkillItem skillItem) //This will handle all items with a reagent/product
+            {
+                var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
+                var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(Template.Id);
+                var player = (Character)caster;
+
+                if(reagents.Count > 0)
+                {
+                    foreach (var reagent in reagents)
+                    {
+                        player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
+                    }
+                }
+
+                if(skillProducts.Count > 0)
+                {
+                    foreach (var product in skillProducts)
+                    {
+                        player.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectGainItem, product.ItemId, product.Amount);
+                    }
+                }
+            }
+
             foreach (var item in effectsToApply)
             {
                 item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now, packets);
