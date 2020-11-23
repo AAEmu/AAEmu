@@ -57,7 +57,7 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             Template.Start(Caster, Owner, this);
             if (Duration == 0)
-                Duration = Template.GetDuration();
+                Duration = Template.GetDuration(AbLevel);
             if (StartTime == DateTime.MinValue)
             {
                 StartTime = DateTime.Now;
@@ -90,7 +90,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     Template.Start(Caster, Owner, this);
 
                     if (Duration == 0)
-                        Duration = Template.GetDuration();
+                        Duration = Template.GetDuration(AbLevel);
                     if (StartTime == DateTime.MinValue)
                     {
                         StartTime = DateTime.Now;
@@ -203,13 +203,13 @@ namespace AAEmu.Game.Models.Game.Skills
             switch (Template)
             {
                 case BuffEffect buffEffect:
-                    stream.WritePisc(Charge, buffEffect.Buff.Duration / 10, 0, (long)(buffEffect.Buff.Tick / 10));
+                    stream.WritePisc(Charge, buffEffect.Buff.GetDuration(AbLevel) / 10, 0, (long)(buffEffect.Buff.Tick / 10));
                     break;
                 case BuffTemplate buffTemplate:
-                    stream.WritePisc(Charge, buffTemplate.Duration / 10, 0, (long)(buffTemplate.Tick / 10));
+                    stream.WritePisc(Charge, buffTemplate.GetDuration(AbLevel) / 10, 0, (long)(buffTemplate.Tick / 10));
                     break;
                 default:
-                    Template.WriteData(stream);
+                    Template.WriteData(stream, AbLevel);
                     break;
             }
         }

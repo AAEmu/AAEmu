@@ -5,6 +5,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
@@ -170,7 +171,24 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 return; //TODO send error?
             if (target.Effects.CheckBuffImmune(Id))
                 return; //TODO  error of immune?
-            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source?.Skill, time));
+            uint abLevel = 1;
+            if (caster is Character character)
+            {
+                if (source.Skill != null)
+                {
+                    var template = source.Skill.Template;
+                    var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
+                    if (template.LevelStep != 0)
+                        abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    else
+                        abLevel = (uint)template.AbilityLevel;
+                }
+                else if (source.Buff != null)
+                {
+                    //not sure?
+                }
+            }
+            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source?.Skill, time) { AbLevel = abLevel });
         }
 
         public override void Start(Unit caster, BaseUnit owner, Effect effect)
@@ -215,14 +233,14 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
         }
 
-        public override void WriteData(PacketStream stream)
+        public override void WriteData(PacketStream stream, uint abLevel)
         {
-            stream.WritePisc(0, Duration / 10, 0, (long) (Tick / 10)); // unk, Duration, unk / 10, Tick
+            stream.WritePisc(0, GetDuration(abLevel) / 10, 0, (long) (Tick / 10)); // unk, Duration, unk / 10, Tick
         }
 
-        public override int GetDuration()
+        public override int GetDuration(uint abLevel)
         {
-            return Duration;
+            return (LevelDuration * (int)abLevel) + Duration;
         }
 
         public override double GetTick()

@@ -184,7 +184,7 @@ namespace AAEmu.Game.Models.Game.Units
                     effect.Index = index;
                 }
 
-                effect.Duration = effect.Template.GetDuration();
+                effect.Duration = effect.Template.GetDuration(effect.AbLevel);
                 if (effect.Duration > 0 && effect.StartTime == DateTime.MinValue)
                 {
                     effect.StartTime = DateTime.Now;

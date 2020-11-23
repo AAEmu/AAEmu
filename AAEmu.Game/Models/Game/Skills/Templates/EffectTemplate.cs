@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         {
         }
 
-        public virtual int GetDuration()
+        public virtual int GetDuration(uint abLevel)
         {
             return 0;
         }
@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             return 0;
         }
 
-        public virtual void WriteData(PacketStream stream)
+        public virtual void WriteData(PacketStream stream, uint abLevel)
         {
         }
     }

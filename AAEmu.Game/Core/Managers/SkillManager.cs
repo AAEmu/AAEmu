@@ -592,8 +592,6 @@ namespace AAEmu.Game.Core.Managers
                             template.FreezeShip = reader.GetBoolean("freeze_ship", true);
                             template.CrowdFriendly = reader.GetBoolean("crowd_friendly", true);
                             template.CrowdHostile = reader.GetBoolean("crowd_hostile", true);
-                            // TEMPORARY FIX FOR FEAR DEBUFF -> WHY NEGATIVE ?
-                            if (template.Duration < 0) template.Duration = -template.Duration;
                             _effects["Buff"].Add(template.Id, template);
                         }
                     }

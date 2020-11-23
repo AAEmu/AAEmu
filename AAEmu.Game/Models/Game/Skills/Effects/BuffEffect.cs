@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -38,7 +39,26 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return; // TODO send error?
             if (target.Effects.CheckBuffImmune(Buff.Id))
                 return; // TODO send error of immune?
-            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source.Skill, time));
+
+            uint abLevel = 1;
+            if (caster is Character character)
+            {
+                if (source.Skill != null)
+                {
+                    var template = source.Skill.Template;
+                    var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
+                    if (template.LevelStep != 0)
+                        abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    else
+                        abLevel = (uint)template.AbilityLevel;
+                }
+                else if (source.Buff != null)
+                {
+                    //not sure?
+                }
+            }
+
+            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source.Skill, time) { AbLevel = abLevel });
             
             if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly && caster != target)
                 caster.SetCriminalState(true);
@@ -83,14 +103,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
         }
 
-        public override void WriteData(PacketStream stream)
+        public override void WriteData(PacketStream stream, uint abLevel)
         {
-            stream.WritePisc(0, Buff.Duration / 10, 0, (long)(Buff.Tick / 10)); // TODO unk, Duration / 10, unk / 10, Tick / 10
+            stream.WritePisc(0, GetDuration(abLevel) / 10, 0, (long)(Buff.Tick / 10)); // TODO unk, Duration / 10, unk / 10, Tick / 10
         }
 
-        public override int GetDuration()
+        public override int GetDuration(uint abLevel)
         {
-            return Buff.Duration;
+            return (Buff.LevelDuration * (int)abLevel) + Buff.Duration;
         }
 
         public override double GetTick()
