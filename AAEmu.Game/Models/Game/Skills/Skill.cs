@@ -40,6 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public ushort TlId { get; set; }
         public PlotState ActivePlotState { get; set; }
         public Dictionary<uint, SkillHitType> HitTypes { get; set; }
+        private bool _bypassGcd;
 
         //public bool isAutoAttack;
         //public SkillTask autoAttackTask;
@@ -57,17 +58,21 @@ namespace AAEmu.Game.Models.Game.Skills
             Level = 1;
         }
 
-        public void Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null)
+        public void Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
         {
-            lock (caster.GCDLock)
+            _bypassGcd = bypassGcd;
+            if (!_bypassGcd)
             {
-                if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.Now)
-                    return;
+                lock (caster.GCDLock)
+                {
+                    if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.Now)
+                        return;
 
-                if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
-                    return;
+                    if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
+                        return;
 
-                caster.SkillLastUsed = DateTime.Now;
+                    caster.SkillLastUsed = DateTime.Now;
+                }
             }
 
             if (skillObject == null)
@@ -113,12 +118,14 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.DefaultGcd)
             {
                 //TODO Apply Attack Spped * GCD
-                caster.GlobalCooldown = DateTime.Now.AddMilliseconds(1000);
+                if (!_bypassGcd)
+                    caster.GlobalCooldown = DateTime.Now.AddMilliseconds(1000);
             }
             else
             {
                 //TODO Apply Attack Speed * GCD
-                caster.GlobalCooldown = DateTime.Now.AddMilliseconds(Template.CustomGcd);
+                if (!_bypassGcd)
+                    caster.GlobalCooldown = DateTime.Now.AddMilliseconds(Template.CustomGcd);
             }
             
             if (Template.CastingTime > 0)
