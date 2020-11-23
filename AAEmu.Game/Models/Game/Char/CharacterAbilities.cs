@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using MySql.Data.MySqlClient;
@@ -51,11 +53,11 @@ namespace AAEmu.Game.Models.Game.Char
         {
             // TODO SCExpChangedPacket
             if (Owner.Ability1 != AbilityType.None)
-                Abilities[Owner.Ability1].Exp += exp;
+                Abilities[Owner.Ability1].Exp = Math.Max(Abilities[Owner.Ability1].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
             if (Owner.Ability2 != AbilityType.None)
-                Abilities[Owner.Ability2].Exp += exp;
+                Abilities[Owner.Ability2].Exp = Math.Max(Abilities[Owner.Ability2].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
             if (Owner.Ability3 != AbilityType.None)
-                Abilities[Owner.Ability3].Exp += exp;
+                Abilities[Owner.Ability3].Exp = Math.Max(Abilities[Owner.Ability3].Exp + exp, ExpirienceManager.Instance.GetExpForLevel(55));
         }
 
         public void Swap(AbilityType oldAbilityId, AbilityType abilityId)
