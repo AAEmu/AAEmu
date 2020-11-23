@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
+using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
@@ -50,6 +51,8 @@ namespace AAEmu.Game
             QuestIdManager.Instance.Initialize();
             MailIdManager.Instance.Initialize();
 
+            GameDataManager.Instance.LoadGameData();
+            GameDataManager.Instance.PostLoadGameData();
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
             QuestManager.Instance.Load();
