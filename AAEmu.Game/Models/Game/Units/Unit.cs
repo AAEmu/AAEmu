@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Units
         public byte Level { get; set; }
         public int Hp { get; set; }
         [UnitAttribute(UnitAttribute.GlobalCooldownMul)]
-        public virtual float GlobalCooldownMul { get; set; }
+        public virtual float GlobalCooldownMul { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.MaxHealth)]
         public virtual int MaxHp { get; set; }
         [UnitAttribute(UnitAttribute.HealthRegen)]

@@ -160,7 +160,7 @@ namespace AAEmu.Game.Models.Game.Char
         #region Attributes
 
         [UnitAttribute(UnitAttribute.GlobalCooldownMul)]
-        public float GlobalCooldownMul
+        public override float GlobalCooldownMul
         {
             get
             {
@@ -1215,7 +1215,7 @@ namespace AAEmu.Game.Models.Game.Char
         public WeaponWieldKind GetWeaponWieldKind()
         {
             var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
-            if (item.Template is WeaponTemplate weapon)
+            if (item != null && item.Template is WeaponTemplate weapon)
             {
                 var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
                 if (slotId == EquipmentItemSlotType.TwoHanded)

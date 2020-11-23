@@ -395,7 +395,7 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.EffectSpeed > 0)
                 totalDelay += (int) ((caster.GetDistanceTo(target) / Template.EffectSpeed) * 1000.0f);
             if (Template.FireAnim != null && Template.UseAnimTime)
-                totalDelay += Template.FireAnim.CombatSyncTime;
+                totalDelay += (int)(Template.FireAnim.CombatSyncTime * (caster.GlobalCooldownMul / 100));
             
             if (totalDelay > 0) 
                 TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));

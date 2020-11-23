@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
 
         public int GetDelay(PlotState instance, PlotTargetInfo eventInstance, PlotNode node)
         {
-            var animTime = GetAnimDelay(node.Event.Effects);
+            var animTime = (int)(GetAnimDelay(node.Event.Effects) * (instance.Caster.GlobalCooldownMul/100f));
             var projectileTime = GetProjectileDelay(eventInstance.Source, eventInstance.Target);
             var skillCtrlTime = GetSkillControllerDelay(node);
             var delay = animTime + projectileTime + skillCtrlTime;

@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -31,8 +32,44 @@ namespace AAEmu.Game.Models.Game.Char
 
 
             // Compute gear buff
+            ApplyWeaponWieldBuff();
             ApplyArmorGradeBuff();
             ApplyEquipItemSetBonuses();
+        }
+
+        private void ApplyWeaponWieldBuff()
+        {
+            Effects.RemoveBuff((uint)BuffConstants.EQUIP_DUALWIELD_BUFF);
+            Effects.RemoveBuff((uint)BuffConstants.EQUIP_SHIELD_BUFF);
+            Effects.RemoveBuff((uint)BuffConstants.EQUIP_TWOHANDED_BUFF);
+
+            BuffTemplate buffTemplate = null;
+            switch (GetWeaponWieldKind())
+            {
+                case WeaponWieldKind.None:
+                case WeaponWieldKind.OneHanded:
+                    var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
+                    if (item != null && item.Template is WeaponTemplate weapon)
+                    {
+                        var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
+                        if (slotId == EquipmentItemSlotType.Shield)
+                            buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EQUIP_SHIELD_BUFF);
+                    }
+                    break;
+                case WeaponWieldKind.TwoHanded:
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EQUIP_TWOHANDED_BUFF);
+                    break;
+                case WeaponWieldKind.DuelWielded:
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EQUIP_DUALWIELD_BUFF);
+                    break;
+            }
+
+            if(buffTemplate != null)
+            {
+                var effect = new Effect(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now);
+                Effects.AddEffect(effect);
+            }
+
         }
 
         private void ApplyEquipItemSetBonuses()
