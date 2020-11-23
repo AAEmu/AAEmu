@@ -119,13 +119,14 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 //TODO Apply Attack Spped * GCD
                 if (!_bypassGcd)
-                    caster.GlobalCooldown = DateTime.Now.AddMilliseconds(1000);
+                    caster.GlobalCooldown = DateTime.Now.AddMilliseconds(1000 * (caster.GlobalCooldownMul / 100));
             }
             else
             {
                 //TODO Apply Attack Speed * GCD
                 if (!_bypassGcd)
-                    caster.GlobalCooldown = DateTime.Now.AddMilliseconds(Template.CustomGcd);
+                    caster.GlobalCooldown = 
+                        DateTime.Now.AddMilliseconds(Template.CustomGcd * (caster.GlobalCooldownMul / 100));
             }
             
             if (Template.CastingTime > 0)

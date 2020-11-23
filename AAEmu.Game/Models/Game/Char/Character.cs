@@ -159,6 +159,24 @@ namespace AAEmu.Game.Models.Game.Char
 
         #region Attributes
 
+        [UnitAttribute(UnitAttribute.GlobalCooldownMul)]
+        public float GlobalCooldownMul
+        {
+            get
+            {
+                var res = 0f;
+                foreach (var bonus in GetBonuses(UnitAttribute.GlobalCooldownMul))
+                {
+                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                        res += (res * bonus.Value / 100f);
+                    else
+                        res += bonus.Value;
+                }
+
+                return (int)(100000f / (res + 1000f));
+            }
+        }
+
         [UnitAttribute(UnitAttribute.Str)]
         public int Str
         {
@@ -497,7 +515,7 @@ namespace AAEmu.Game.Models.Game.Char
                 foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
+                        res += (res * bonus.Value / 100f);
                     else
                         res += bonus.Value;
                 }

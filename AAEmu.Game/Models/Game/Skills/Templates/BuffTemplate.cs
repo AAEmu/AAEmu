@@ -179,7 +179,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             {
                 var bonus = new Bonus();
                 bonus.Template = template;
-                bonus.Value = (int) (template.Value + (template.LinearLevelBonus * (effect.AbLevel / 100f)));
+                bonus.Value = (int) Math.Round(template.Value + (template.LinearLevelBonus * (effect.AbLevel / 100f)));
                 owner.AddBonus(effect.Index, bonus);
             }
 
