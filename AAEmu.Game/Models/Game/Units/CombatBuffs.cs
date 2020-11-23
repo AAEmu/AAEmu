@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
@@ -44,9 +45,23 @@ namespace AAEmu.Game.Models.Game.Units
             if (!_cbuffsByHitType.ContainsKey(type))
                 return;
             var buffs = _cbuffsByHitType[type];
-            // TODO : Check who it should be applied to
-            
-            // TODO : Apply BuffId
+
+            if (!(_owner is Unit unit))
+                return;
+            foreach (var cb in buffs)
+            {
+                // var caster = unit;
+                // var target = attacker;
+                // if (cb.BuffFromSource)
+                //     caster = attacker;
+                // if (cb.BuffToSource)
+                //     target = unit;
+                
+                // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
+                
+                var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
+                _owner.Effects.AddEffect(new Effect(_owner, attacker, new SkillCasterUnit(), buffTempl, null, DateTime.Now));
+            }
         }
     }
 }

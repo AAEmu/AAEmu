@@ -24,6 +24,8 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             var target = owner;
             if (Template.EffectOnSource)
                 target = args.Attacker;
+            if (!Template.UseOriginalSource)
+                target = _effect.Caster;
 
             Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_effect),
                 new EffectSource(), // TODO : EffectSource Type trigger 

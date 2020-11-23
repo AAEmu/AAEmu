@@ -322,6 +322,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (caster is Character procAttacker)
                 procAttacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
 
+            // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
+            caster.CombatBuffs.TriggerCombatBuffs(target as Unit ?? null, hitType);
+            
             var packet = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value, absorbed)
             {
                 HoldableId = (byte)(holdable?.HoldableTemplate?.Id ?? 0),
