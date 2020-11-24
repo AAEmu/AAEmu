@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -126,8 +127,9 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterSkills Skills { get; set; }
         public CharacterCraft Craft { get; set; }
 
-        public int AccessLevel { get; set;}
+        public int AccessLevel { get; set; }
         public Point LocalPingPosition { get; set; } // added as a GM command helper
+        private ConcurrentDictionary<uint, DateTime> HostilePlayers { get; set; }
 
         private bool _inParty;
         private bool _isOnline;
@@ -1237,6 +1239,24 @@ namespace AAEmu.Game.Models.Game.Char
             }
 
             return WeaponWieldKind.None;
+        }
+
+        public void SetHostileActivity(Character attacker)
+        {
+            if (HostilePlayers.ContainsKey(attacker.ObjId))
+                HostilePlayers[attacker.ObjId] = DateTime.Now;
+            else
+                HostilePlayers.TryAdd(attacker.ObjId, DateTime.Now);
+        }
+
+        public bool IsActivelyHostile(Character target)
+        {
+            if(HostilePlayers.TryGetValue(target.ObjId, out var value))
+            {
+                //Maybe get the time to stay hostile from db?
+                return value.AddSeconds(30) > DateTime.Now;
+            }
+            return false;
         }
 
         public void AddExp(int exp, bool shouldAddAbilityExp)

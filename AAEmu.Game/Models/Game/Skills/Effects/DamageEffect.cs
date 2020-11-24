@@ -317,10 +317,21 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             // TODO : Use proper chance kinds (melee, magic etc.)
-            if (trg is Character procTarget)
-                procTarget.Procs.RollProcsForKind(ProcChanceKind.TakeDamageAny);
-            if (caster is Character procAttacker)
-                procAttacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
+            var trgCharacter = trg as Character;
+            var attacker = caster as Character;
+            if (trgCharacter != null)
+            {
+                if (attacker != null)
+                {
+                    //maybe move this to character class SetHostility
+                    trgCharacter.SetHostileActivity(attacker);
+                }
+                trgCharacter.Procs.RollProcsForKind(ProcChanceKind.TakeDamageAny);
+            }    
+            if (attacker != null)
+            {
+                attacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
+            }
 
             // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
             caster.CombatBuffs.TriggerCombatBuffs(target as Unit ?? null, hitType);

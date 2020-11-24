@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills;
@@ -51,10 +53,12 @@ namespace AAEmu.Game.Models.Game.Units
                 return false;
             if (this.ObjId == unit.ObjId)
                 return false;
-
             var relation = GetRelationStateTo(unit);
             if (this is Character me && unit is Character other)
             {
+                if (other.Faction.Id == other.Position.ZoneId && !me.IsActivelyHostile(other))
+                    return false;
+
                 bool isTeam = TeamManager.Instance.AreTeamMembers(me.Id, other.Id);
                 if (other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF)
                     && !isTeam && relation == RelationState.Friendly)
