@@ -47,21 +47,26 @@ namespace AAEmu.Game.Models.Game.Units
             CombatBuffs = new CombatBuffs(this);
         }
 
-        public bool CanAttack(BaseUnit unit)
+        public bool CanAttack(BaseUnit target)
         {
-            if (this.Faction == null || unit.Faction == null)
+            if (this.Faction == null || target.Faction == null)
                 return false;
-            if (this.ObjId == unit.ObjId)
+            if (this.ObjId == target.ObjId)
                 return false;
-            var relation = GetRelationStateTo(unit);
-            if (this is Character me && unit is Character other)
+            var relation = GetRelationStateTo(target);
+            var zone = ZoneManager.Instance.GetZoneById(target.Position.ZoneId);
+            if (this is Character me && target is Character other)
             {
-                if (other.Faction.Id == other.Position.ZoneId && !me.IsActivelyHostile(other))
+                var trgIsFlagged = other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF);
+
+                if (other.Faction.MotherId != 0 && other.Faction.MotherId == zone.FactionId 
+                    && !me.IsActivelyHostile(other) && !trgIsFlagged)
+                {
                     return false;
+                }
 
                 bool isTeam = TeamManager.Instance.AreTeamMembers(me.Id, other.Id);
-                if (other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF)
-                    && !isTeam && relation == RelationState.Friendly)
+                if (trgIsFlagged && !isTeam && relation == RelationState.Friendly)
                 {
                     return true;
                 }
@@ -70,6 +75,10 @@ namespace AAEmu.Game.Models.Game.Units
                     return true;
                 }
             }
+
+            //This check is for npcs
+            if (target.Faction.MotherId == zone.FactionId)
+                return false;
 
             return relation == RelationState.Hostile;
         }
