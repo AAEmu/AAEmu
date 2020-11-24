@@ -71,10 +71,10 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             stream.Write(DeltaMovement[2]);
             stream.Write(Stance);
             stream.Write(Alertness);
-            stream.Write(Flags);
-            if((Flags & 0x80) == 0x80)
+            stream.Write(ActorFlags);
+            if((ActorFlags & 0x80) == 0x80)
                 stream.Write(FallVel);
-            if((Flags & 0x20) == 0x20)
+            if((ActorFlags & 0x20) == 0x20)
             {
                 stream.Write(GcFlags);
                 stream.Write(GcPartId);
@@ -83,9 +83,9 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                 stream.Write(RotationY2);
                 stream.Write(RotationZ2);
             }
-            if((Flags & 0x60) != 0)
+            if((ActorFlags & 0x60) != 0)
                 stream.Write(GcId);
-            if((Flags & 0x40) == 0x40)
+            if((ActorFlags & 0x40) == 0x40)
                 stream.Write(ClimbData);
             return stream;
         }
