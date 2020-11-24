@@ -69,23 +69,22 @@ namespace AAEmu.Game.Core.Managers.World
             slave.Position.X = newX;
             slave.Position.Y = newY;
 
-            // This works when going staight Y, it displays the correct speed. Didn't add rotation yet so i don't know 
             moveType.VelX = (short) (diffX * 21900);
             moveType.VelY = (short) (diffY * 21900);
             
             slave.RotationDegrees -= slave.RotSpeed;
+            // TODO : Find a better way
             if (slave.RotationDegrees < -180.0f)
                 slave.RotationDegrees = 180.0f;
             if (slave.RotationDegrees > 180.0f)
                 slave.RotationDegrees = -180.0f;
-            // slave.RotationDegrees %= 360f;
             
-            // TODO: Replace 0 with ship's rotation in degrees [-180, 180]
             var yaw = (float)(slave.RotationDegrees * (Math.PI / 180));
-            var quat = Quaternion.CreateFromYawPitchRoll(yaw, 0.0003f, -0.002f);
-            moveType.RotationX = (short) (quat.X * 32767);
-            moveType.RotationY = (short) (quat.Z * 32767);
-            moveType.RotationZ = (short) (quat.Y * 32767);
+            
+            var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(0.0003f, -0.002f, yaw);
+            moveType.RotationX = rotX;
+            moveType.RotationY = rotY;
+            moveType.RotationZ = rotZ;
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
         }
         

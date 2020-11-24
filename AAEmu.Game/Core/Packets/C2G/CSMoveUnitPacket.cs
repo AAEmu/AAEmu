@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -40,35 +41,10 @@ namespace AAEmu.Game.Core.Packets.C2G
                 
                 if (moveType is VehicleMoveType vmt)
                 {
-                    var quatX = vmt.RotationX * 0.00003052f;
-                    var quatY = vmt.RotationY * 0.00003052f;
-                    var quatZ = vmt.RotationZ * 0.00003052f;
-                    var quatNorm = quatX * quatX + quatY * quatY + quatZ * quatZ;
+                    var (rotDegX, rotDegY, rotDegZ) =
+                        MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
+                    var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rotDegX, rotDegY, rotDegZ);
 
-                    var quatW = 0.0f;
-                    if (quatNorm < 0.99750)
-                    {
-                        quatW = (float)Math.Sqrt(1.0 - quatNorm);
-                    }
-
-                    var quat = new Quaternion(quatX, quatY, quatZ, quatW);
-
-                    var roll = (float)Math.Atan2(2 * (quat.W * quat.X + quat.Y * quat.Z),
-                        1 - 2 * (quat.X * quat.X + quat.Y * quat.Y));
-                    var sinp = 2 * (quat.W * quat.Y - quat.Z * quat.X);
-                    var pitch = 0.0f;
-                    if (Math.Abs(sinp) >= 1)
-                        pitch = (float)Math.CopySign(Math.PI / 2, sinp);
-                    else
-                    {
-                        pitch = (float)Math.Asin(sinp);
-                    }
-
-                    var yaw = (float)Math.Atan2(2 * (quat.W * quat.Z + quat.X * quat.Y), 1 - 2 * (quat.Y * quat.Y + quat.Z * quat.Z));
-
-                    var reverseQuat = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
-                    var reverseZ = reverseQuat.Y / 0.00003052f;
-                    
                     // Connection.ActiveChar.SendMessage("Client: " + vmt.RotationZ + ". Yaw (deg): " + (yaw * 180 / Math.PI) + ". Reverse: " + reverseZ);
                 }
                 
