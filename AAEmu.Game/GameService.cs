@@ -109,6 +109,7 @@ namespace AAEmu.Game
             SaveManager.Instance.Initialize();
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
+            BoatPhysicsManager.Instance.Initialize();
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
 

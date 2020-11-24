@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using System.Numerics;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -26,6 +28,50 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (objId != myObjId) // Can be mate
             {
+                if (moveType is ShipRequestMoveType srmt)
+                {
+                    var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(myObjId);
+                    if (slave == null)
+                        return;
+
+                    slave.ThrottleRequest = srmt.Throttle;
+                    slave.SteeringRequest = srmt.Steering;
+                }
+                
+                if (moveType is VehicleMoveType vmt)
+                {
+                    var quatX = vmt.RotationX * 0.00003052f;
+                    var quatY = vmt.RotationY * 0.00003052f;
+                    var quatZ = vmt.RotationZ * 0.00003052f;
+                    var quatNorm = quatX * quatX + quatY * quatY + quatZ * quatZ;
+
+                    var quatW = 0.0f;
+                    if (quatNorm < 0.99750)
+                    {
+                        quatW = (float)Math.Sqrt(1.0 - quatNorm);
+                    }
+
+                    var quat = new Quaternion(quatX, quatY, quatZ, quatW);
+
+                    var roll = (float)Math.Atan2(2 * (quat.W * quat.X + quat.Y * quat.Z),
+                        1 - 2 * (quat.X * quat.X + quat.Y * quat.Y));
+                    var sinp = 2 * (quat.W * quat.Y - quat.Z * quat.X);
+                    var pitch = 0.0f;
+                    if (Math.Abs(sinp) >= 1)
+                        pitch = (float)Math.CopySign(Math.PI / 2, sinp);
+                    else
+                    {
+                        pitch = (float)Math.Asin(sinp);
+                    }
+
+                    var yaw = (float)Math.Atan2(2 * (quat.W * quat.Z + quat.X * quat.Y), 1 - 2 * (quat.Y * quat.Y + quat.Z * quat.Z));
+
+                    var reverseQuat = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+                    var reverseZ = reverseQuat.Y / 0.00003052f;
+                    
+                    // Connection.ActiveChar.SendMessage("Client: " + vmt.RotationZ + ". Yaw (deg): " + (yaw * 180 / Math.PI) + ". Reverse: " + reverseZ);
+                }
+                
                 var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(objId);
                 if (mateInfo == null) return;
 
@@ -74,6 +120,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                         .SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
                     
                 }
+
+                
                 Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
             }
         }

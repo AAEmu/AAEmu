@@ -72,6 +72,14 @@ namespace AAEmu.Game.Utils
             return ConvertDirectionToDegree(direction) * Math.PI / 180.0;
         }
 
+        public static (float, float) AddDistanceToFrontDeg(float distance, float x, float y, float deg)
+        {
+            var rad = deg * Math.PI / 180.0;
+            var newX = (distance * (float)Math.Cos(rad)) + x;
+            var newY = (distance * (float)Math.Sin(rad)) + y;
+            return (newX, newY);
+        }
+        
         public static (float, float) AddDistanceToFront(float distance, float x, float y, sbyte rotZ)
         {
             var rad = ConvertDirectionToRadian(rotZ);

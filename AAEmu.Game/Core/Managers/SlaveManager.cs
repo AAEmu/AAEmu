@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -34,9 +35,19 @@ namespace AAEmu.Game.Core.Managers
             return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
         }
 
-        private Slave GetActiveSlaveByOwnerObjId(uint objId)
+        public Slave GetActiveSlaveByOwnerObjId(uint objId)
         {
             return _activeSlaves.ContainsKey(objId) ? _activeSlaves[objId] : null;
+        }
+        
+        public IEnumerable<Slave> GetActiveSlavesByKind(SlaveKind kind)
+        {
+            return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
+        }
+
+        public IEnumerable<Slave> GetActiveSlavesByKinds(SlaveKind[] kinds)
+        {
+            return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind)).Select(s => s.Value);
         }
 
         private Slave GetActiveSlaveByObjId(uint objId)
@@ -66,6 +77,12 @@ namespace AAEmu.Game.Core.Managers
             var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
             if (activeSlaveInfo == null) return;
             unit.SendPacket(new SCUnitDetachedPacket(unit.ObjId, 5));
+        }
+        
+        public void BindSlave(Character character, uint objId)
+        {
+            character.SendPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId));
+            character.SendPacket(new SCSlaveBoundPacket(character.Id, objId));
         }
 
         public void BindSlave(GameConnection connection, uint tlId)
@@ -144,7 +161,8 @@ namespace AAEmu.Game.Core.Managers
                 Faction = owner.Faction,
                 Id = 10, // TODO
                 Summoner = owner,
-                AttachedDoodads = new List<Doodad>()
+                AttachedDoodads = new List<Doodad>(),
+                SpawnTime = DateTime.Now
             };
             
 
