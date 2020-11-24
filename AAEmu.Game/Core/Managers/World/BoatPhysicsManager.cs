@@ -66,8 +66,7 @@ namespace AAEmu.Game.Core.Managers.World
 
             var diffX = newX - slave.Position.X;
             var diffY = newY - slave.Position.Y;
-            slave.Position.X = newX;
-            slave.Position.Y = newY;
+            slave.SetPosition(newX, newY, slave.Position.Z);
 
             moveType.VelX = (short) (diffX * 21900);
             moveType.VelY = (short) (diffY * 21900);
