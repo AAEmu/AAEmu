@@ -54,7 +54,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (this.ObjId == target.ObjId)
                 return false;
             var relation = GetRelationStateTo(target);
-            var zone = ZoneManager.Instance.GetZoneById(target.Position.ZoneId);
+            var zone = ZoneManager.Instance.GetZoneByKey(target.Position.ZoneId);
             if (this is Character me && target is Character other)
             {
                 var trgIsFlagged = other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF);

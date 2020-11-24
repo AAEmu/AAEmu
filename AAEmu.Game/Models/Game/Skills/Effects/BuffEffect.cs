@@ -58,10 +58,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
 
+            //Safeguard to prevent accidental flagging
+            if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target))
+                return;
             target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source.Skill, time) { AbLevel = abLevel });
             
-            if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly && caster != target)
+            if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly 
+                && caster != target && !target.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF))
+            {
                 caster.SetCriminalState(true);
+            }
         }
 
         public override void Start(Unit caster, BaseUnit owner, Effect effect)

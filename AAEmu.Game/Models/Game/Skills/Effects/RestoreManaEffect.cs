@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -40,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var unk = 0f;
             var unk2 = 1f;
             var skillLevel = 1;
-            if (source != null)
+            if (source != null && source.Skill != null)
             {
                 skillLevel = (source.Skill.Level - 1) * source.Skill.Template.LevelStep + source.Skill.Template.AbilityLevel;
                 if (skillLevel >= source.Skill.Template.AbilityLevel)

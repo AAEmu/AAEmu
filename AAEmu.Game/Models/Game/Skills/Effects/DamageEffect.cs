@@ -81,10 +81,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             }
 
-            //Safeguard for avoiding false positive flagging
-            if (!caster.CanAttack(target))
-                return;
-
             var weapon = caster?.Equipment.GetItemBySlot(WeaponSlotId);
             var holdable = (WeaponTemplate)weapon?.Template;
 
@@ -305,6 +301,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
             var value = (int)(finalDamage * reductionMul);
             var absorbed = (int)(finalDamage * (1.0f - reductionMul));
+
+            //Safeguard to prevent accidental flagging
+            if (!caster.CanAttack(trg))
+                return;
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
 
