@@ -129,7 +129,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public int AccessLevel { get; set; }
         public Point LocalPingPosition { get; set; } // added as a GM command helper
-        private ConcurrentDictionary<uint, DateTime> HostilePlayers { get; set; }
+        private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
 
         private bool _inParty;
         private bool _isOnline;
@@ -1209,6 +1209,7 @@ namespace AAEmu.Game.Models.Game.Char
         public Character(UnitCustomModelParams modelParams)
         {
             _options = new Dictionary<ushort, string>();
+            _hostilePlayers = new ConcurrentDictionary<uint, DateTime>();
 
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
@@ -1243,15 +1244,15 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void SetHostileActivity(Character attacker)
         {
-            if (HostilePlayers.ContainsKey(attacker.ObjId))
-                HostilePlayers[attacker.ObjId] = DateTime.Now;
+            if (_hostilePlayers.ContainsKey(attacker.ObjId))
+                _hostilePlayers[attacker.ObjId] = DateTime.Now;
             else
-                HostilePlayers.TryAdd(attacker.ObjId, DateTime.Now);
+                _hostilePlayers.TryAdd(attacker.ObjId, DateTime.Now);
         }
 
         public bool IsActivelyHostile(Character target)
         {
-            if(HostilePlayers.TryGetValue(target.ObjId, out var value))
+            if(_hostilePlayers.TryGetValue(target.ObjId, out var value))
             {
                 //Maybe get the time to stay hostile from db?
                 return value.AddSeconds(30) > DateTime.Now;
