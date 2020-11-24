@@ -1,14 +1,18 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects
 {
@@ -38,127 +42,90 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             _log.Debug("LootGroups {0}", lootGroups);
 
-            var rowG = lootGroups.Length;
-            var rowP = lootPacks.Length;
-            if (rowG >= 1)
+            List<LootPacks> lootItems = new List<LootPacks>();
+
+            LootGroups lootGroup = null; // Need some form of loot manager for this. 
+            if (lootGroups.Length > 0)
             {
-                const float maxDropRate = (float)10000000;
-                for (var i = 0; i < rowG; i++)
+                var totalDropRate = (int)lootGroups.Sum(c => c.DropRate);
+                Random random = new Random();
+                var randomNumber = random.Next(totalDropRate);
+
+                foreach (var group in lootGroups)
                 {
-                    var itemIdLoot = (uint)0;
-                    var minAmount = 0;
-                    var maxAmount = 0;
-                    var gradeId = (byte)0;
-                    var dropRateMax = (uint)0;
-                    var dropRate = Rand.Next(0, maxDropRate);
-                    var dropRateGroup = (uint)10000000;
-                    if (lootGroups[i].GroupNo > 1 && rowG >= 2)
+                    if (randomNumber < group.DropRate)
                     {
-                        dropRateGroup = 0;
-                        for (var di = 0; di < lootGroups[i].GroupNo; di++)
-                            if (lootGroups[di].GroupNo > 1)
-                                dropRateGroup += lootGroups[di].DropRate;
+                        lootGroup = group;
+                        break;
                     }
-
-                    if (dropRateGroup >= dropRate)
-                    {
-                        for (var ui = 0; ui < rowP; ui++)
-                        {
-                            if (lootPacks[ui].Group == lootGroups[i].GroupNo)
-                            {
-                                dropRateMax += lootPacks[ui].DropRate;
-                            }
-                        }
-
-                        var dropRateItem = Rand.Next(0, dropRateMax);
-                        var dropRateItemId = (uint)0;
-                        for (var uii = 0; uii < rowP; uii++)
-                        {
-                            if (lootPacks[uii].Group == lootGroups[i].GroupNo)
-                            {
-                                if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
-                                {
-                                    itemIdLoot = lootPacks[uii].ItemId;
-                                    minAmount = lootPacks[uii].MinAmount;
-                                    maxAmount = lootPacks[uii].MaxAmount;
-                                    gradeId = lootPacks[uii].GradeId;
-                                    uii = rowP;
-                                }
-                                else
-                                {
-                                    dropRateItemId += lootPacks[uii].DropRate;
-                                }
-                            }
-                        }
-                    }
-
-                    if (minAmount > 1 && itemIdLoot == 500)
-                    {
-                        AddGold(caster, minAmount, maxAmount);
-                    }
-
-                    if (itemIdLoot > 0 && itemIdLoot != 500)
-                    {
-                        if (InheritGrade)
-                            gradeId = lootPackItem.Grade;
-
-                        if (lootGroups[i].ItemGradeDistributionId > 0)
-                            gradeId = GetGradeDistributionId(lootGroups[i].ItemGradeDistributionId);
-
-                        AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount);
-                    }
+                    else
+                        randomNumber -= (int)group.DropRate;
                 }
             }
-            else
+            else // Do this if there are no loot groups to use. 
             {
-                if (rowP >= 1)
+                var sortedLootPack = lootPacks.Where(c => c.AlwaysDrop != true).ToList();
+                var totalDropRate = (int)sortedLootPack.Sum(c => c.DropRate);
+                Random random = new Random();
+                var randomNumber = random.Next(totalDropRate);
+
+                foreach (var item in sortedLootPack)
                 {
-                    for (var i = 1; i <= 17; i++) ////////max group here ////// in sqlite max group = 17 /////
+                    if (randomNumber < item.DropRate)
                     {
-                        var itemIdLoot = (uint)0;
-                        var minAmount = 0;
-                        var maxAmount = 0;
-                        var gradeId = (byte)0;
-                        var dropRateMax = (uint)0;
-                        for (var ui = 0; ui < rowP; ui++)
-                            if (lootPacks[ui].Group == i)
-                                dropRateMax += lootPacks[ui].DropRate;
+                        lootItems.Add(item);
+                        break;
+                    }
+                    else
+                        randomNumber -= (int)item.DropRate;
+                }
+            }
 
-                        var dropRateItem = Rand.Next(0, dropRateMax);
-                        var dropRateItemId = (uint)0;
-                        for (var uii = 0; uii < rowP; uii++)
-                        {
-                            if (lootPacks[uii].Group == i)
-                            {
-                                if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
-                                {
-                                    itemIdLoot = lootPacks[uii].ItemId;
-                                    minAmount = lootPacks[uii].MinAmount;
-                                    maxAmount = lootPacks[uii].MaxAmount;
-                                    gradeId = lootPacks[uii].GradeId;
-                                    uii = rowP;
-                                }
-                                else
-                                {
-                                    dropRateItemId += lootPacks[uii].DropRate;
-                                }
-                            }
-                        }
+            if (lootGroup != null) // We picked a lootgroup from a list of groups. Now pick the items
+            {
+                var sortedLootPack = lootPacks.Where(c => c.Group == lootGroup.GroupNo && c.AlwaysDrop != true).ToList();
+                var totalDropRate = (int)sortedLootPack.Sum(c => c.DropRate);
+                Random random = new Random();
+                var randomNumber = random.Next(totalDropRate);
 
-                        if (minAmount > 1 && itemIdLoot == 500)
-                            AddGold(caster, minAmount, maxAmount);
-
-                        if (itemIdLoot > 0 && itemIdLoot != 500)
-                        {
-                            if (InheritGrade)
-                                gradeId = lootPackItem.Grade;
-
-                            AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount);
-                        }
+                foreach (var item in sortedLootPack)
+                {
+                    if (randomNumber < item.DropRate)
+                    {
+                        lootItems.Add(item);
+                        break;
+                    }
+                    else
+                    {
+                        randomNumber -= (int)item.DropRate;
                     }
                 }
             }
 
+            var alwaysDropItems = lootPacks.Where(c => c.AlwaysDrop == true).ToList();// Adds always dropped items to the list. 
+            if (alwaysDropItems.Count > 0)
+                lootItems.AddRange(alwaysDropItems);
+
+            if (lootItems.Count > 0) // Add picked items to inventory
+            {
+                foreach (var item in lootItems)
+                {
+                    if (item.ItemId == 500) // handle gold
+                    {
+                        AddGold(character, item.MinAmount, item.MaxAmount);
+                        continue;
+                    }
+
+                    Random rand = new Random();
+                    var amount = rand.Next(item.MinAmount, item.MaxAmount + 1);
+
+                    var grade = 0;
+                    if (InheritGrade)
+                        grade = GetGradeDistributionId(item.GradeId);
+
+                    character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectGainItem, item.ItemId, amount, grade);
+                }
+            }
             _log.Debug("GainLootPackItemEffect {0}", LootPackId);
         }
 
@@ -167,7 +134,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var character = (Character)caster;
             if (character == null) return;
             var goldAdd = Rand.Next(goldMin, goldMax);
-            var jackpot = Rand.Next(0, 10000);
+            var jackpot = Rand.Next(0, 10000); //TODO: Make this a config. 
             if (jackpot <= 50)
                 goldAdd = goldAdd * 1000;
 
@@ -176,19 +143,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             character.Money += goldAdd;
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillEffectGainItem,
-                new List<ItemTask> {new MoneyChange(goldAdd)}, new List<ulong>()));
-        }
-
-        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount)
-        {
-            var character = (Character)caster;
-            if (character == null) return;
-            var amount = Rand.Next(minAmount, maxAmount);
-            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount))
-            {
-                // TODO: do proper handling of insufficient bag space
-                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
-            }
+                new List<ItemTask> { new MoneyChange(goldAdd) }, new List<ulong>()));
         }
 
         private byte GetGradeDistributionId(byte gradeId)

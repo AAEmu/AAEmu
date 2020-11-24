@@ -1094,7 +1094,8 @@ namespace AAEmu.Game.Core.Managers
                             template.MaxAmount = reader.GetInt32("max_amount");
                             template.LootPackId = reader.GetUInt32("loot_pack_id");
                             template.GradeId = reader.GetByte("grade_id");
-                            template.AlwaysDrop = reader.GetBoolean("always_drop");
+                            template.AlwaysDrop = reader.GetBoolean("always_drop", true);
+
                             List<LootPacks> lootPacks;
                             if (_lootPacks.ContainsKey(template.LootPackId))
                                 lootPacks = _lootPacks[template.LootPackId];
