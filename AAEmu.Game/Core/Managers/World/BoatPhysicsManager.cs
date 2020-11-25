@@ -37,8 +37,8 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var moveType = (ShipMoveType)MoveType.GetType(MoveTypeEnum.Ship);
             moveType.UseSlaveBase(slave);
-            var velAccel = 8.0f; //per s
-            var maxVelForward = 52.9f; //per s
+            var velAccel = 2.0f; //per s
+            var maxVelForward = 12.9f; //per s
             var maxVelBackward = -5.0f;
 
             if (slave.Bounded == null)
@@ -72,14 +72,9 @@ namespace AAEmu.Game.Core.Managers.World
 
             var diffX = newX - slave.Position.X;
             var diffY = newY - slave.Position.Y;
-            slave.SetPosition(newX, newY, slave.Position.Z);
-            foreach (var doodad in slave.AttachedDoodads)
-            {
-                doodad.SetPosition(doodad.Position.X + diffX, doodad.Position.Y + diffY, doodad.Position.Z);
-            }
-
-            slave.Bounded?.SetPosition(slave.Bounded.Position.X + diffX, slave.Bounded.Position.Y + diffY, slave.Bounded.Position.Z);
-
+            
+            slave.Move(diffX, diffY, 0);
+            
             moveType.VelX = (short) (diffX * 21900);
             moveType.VelY = (short) (diffY * 21900);
             

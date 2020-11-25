@@ -209,6 +209,14 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write((sbyte)-1);   // point
                 }
             }
+            else if (_unit is Slave slave)
+            {
+                stream.Write(slave.AttachPointId);
+                if (slave.AttachPointId > -1)
+                {
+                    stream.WriteBc(slave.OwnerObjId);
+                }
+            }
             else
             {
                 stream.Write((sbyte)-1);   // point

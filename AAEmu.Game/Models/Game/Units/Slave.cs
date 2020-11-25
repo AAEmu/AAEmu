@@ -23,6 +23,7 @@ namespace AAEmu.Game.Models.Game.Units
         public Character Bounded { get; set; }
         public Character Summoner { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
+        public List<Slave> AttachedSlaves { get; set; }
         public DateTime SpawnTime { get; set; }
         public sbyte ThrottleRequest { get; set; }
         public sbyte Throttle { get; set; }
@@ -32,6 +33,8 @@ namespace AAEmu.Game.Models.Game.Units
         public float RotSpeed { get; set; }
         public short RotationZ { get; set; }
         public float RotationDegrees { get; set; }
+        public sbyte AttachPointId { get; set; } = -1;
+        public uint OwnerObjId { get; set; }
         
 
         public override void AddVisibleObject(Character character)
@@ -56,6 +59,29 @@ namespace AAEmu.Game.Models.Game.Units
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
                 character.SendPacket(packet);
+        }
+
+        /// <summary>
+        /// Moves a slave by X, Y & Z. Also moves attached slaves, doodads & driver
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        public void Move(float x, float y, float z)
+        {
+            SetPosition(Position.X + x, Position.Y + y, Position.Z + z);
+            
+            foreach (var doodad in AttachedDoodads)
+            {
+                doodad.SetPosition(doodad.Position.X + x, doodad.Position.Y + y, doodad.Position.Z + z);
+            }
+            
+            foreach (var attachedSlave in AttachedSlaves)
+            {
+                attachedSlave.Move(x, y, z);
+            }
+            
+            Bounded?.SetPosition(Bounded.Position.X + x, Bounded.Position.Y + y, Bounded.Position.Z + z);
         }
     }
 }
