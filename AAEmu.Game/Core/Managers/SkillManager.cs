@@ -1390,7 +1390,7 @@ namespace AAEmu.Game.Core.Managers
                                 UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
                                 Value = reader.GetInt32("value"),
                                 SkillId = reader.GetUInt32("skill_id", 0),
-                                Synergy = reader.GetBoolean("synergy"),
+                                Synergy = reader.GetBoolean("synergy", true),
                             };
 
                             if (!_skillModifiers.ContainsKey(template.OwnerId))
@@ -1437,8 +1437,8 @@ namespace AAEmu.Game.Core.Managers
                                 HitSkillId = reader.GetUInt32("hit_skill_id", 0),
                                 HitType = (SkillHitType)reader.GetUInt32("hit_type_id"),
                                 BuffId = reader.GetUInt32("buff_id"),
-                                BuffFromSource = reader.GetBoolean("buff_from_source"),
-                                BuffToSource = reader.GetBoolean("buff_to_source"),
+                                BuffFromSource = reader.GetBoolean("buff_from_source", true),
+                                BuffToSource = reader.GetBoolean("buff_to_source", true),
                                 ReqSkillId = reader.GetUInt32("req_skill_id", 0),
                                 ReqBuffId = reader.GetUInt32("req_buff_id"),
                                 IsHealSpell = reader.GetBoolean("is_heal_spell", true)
@@ -1471,12 +1471,12 @@ namespace AAEmu.Game.Core.Managers
                             trigger.Id = reader.GetUInt32("id");
                             trigger.Kind = (BuffEventTriggerKind)reader.GetUInt16("event_id");
                             trigger.Effect = GetEffectTemplate(reader.GetUInt32("effect_id"));
-                            trigger.EffectOnSource = reader.GetBoolean("effect_on_source");
-                            trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount");
-                            trigger.UseOriginalSource = reader.GetBoolean("use_original_source");
+                            trigger.EffectOnSource = reader.GetBoolean("effect_on_source", true);
+                            trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount", true);
+                            trigger.UseOriginalSource = reader.GetBoolean("use_original_source", true);
                             trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                             trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
-                            trigger.Synergy = reader.GetBoolean("synergy");
+                            trigger.Synergy = reader.GetBoolean("synergy", true);
 
                             //Apparently this is possible..
                             if(trigger.Effect != null)

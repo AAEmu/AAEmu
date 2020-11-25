@@ -167,13 +167,7 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var res = 0f;
-                foreach (var bonus in GetBonuses(UnitAttribute.GlobalCooldownMul))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                CalculateWithBonuses(res, UnitAttribute.GlobalCooldownMul);
 
                 return (int)(100000f / (res + 1000f));
             }

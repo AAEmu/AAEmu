@@ -59,7 +59,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             //Safeguard to prevent accidental flagging
-            if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target))
+            if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
                 return;
             target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source.Skill, time) { AbLevel = abLevel });
             

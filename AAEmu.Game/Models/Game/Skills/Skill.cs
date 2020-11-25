@@ -651,19 +651,25 @@ namespace AAEmu.Game.Models.Game.Skills
                 else if (damageType == DamageType.Ranged)
                     return SkillHitType.RangedDodge;
             }
-            else if (Rand.Next(0f, 100f) < (target.BlockRate - bullsEyeMod))
+            if (Rand.Next(0f, 100f) < (target.BlockRate - bullsEyeMod))
             {
                 if (damageType == DamageType.Melee)
                     return SkillHitType.MeleeBlock;
                 else if (damageType == DamageType.Ranged)
                     return SkillHitType.RangedBlock;
             }
-            else if (Rand.Next(0F, 100f) < (target.MeleeParryRate - bullsEyeMod))
+            if (Rand.Next(0F, 100f) < (target.MeleeParryRate - bullsEyeMod))
             {
                 if (damageType == DamageType.Melee)
                     return SkillHitType.MeleeParry;
+                if(damageType == DamageType.Ranged 
+                    && target.Effects.CheckBuff((uint)BuffConstants.EQUIP_DUALWIELD_BUFF)
+                    && target.Effects.CheckBuff((uint)BuffConstants.DUALWIELD_PROFICIENCY))
+                {
+                    return SkillHitType.MeleeParry;
+                }
             }
-            else if (Rand.Next(0f, 100f) < (target.RangedParryRate - bullsEyeMod))
+            if (Rand.Next(0f, 100f) < (target.RangedParryRate - bullsEyeMod))
             {
                 if (damageType == DamageType.Ranged)
                     return SkillHitType.RangedParry;

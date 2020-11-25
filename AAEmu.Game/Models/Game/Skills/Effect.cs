@@ -163,6 +163,7 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             lock (_lock)
             {
+                Triggers.UnsubscribeEvents();
                 Owner.Effects.RemoveEffect(this);
                 Template.Dispel(Caster, Owner, this, replace);
             }

@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.World;
@@ -58,6 +59,7 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var trgIsFlagged = other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF);
 
+                //check safezone
                 if (other.Faction.MotherId != 0 && other.Faction.MotherId == zone.FactionId 
                     && !me.IsActivelyHostile(other) && !trgIsFlagged)
                 {
@@ -74,10 +76,15 @@ namespace AAEmu.Game.Models.Game.Units
                     return true;
                 }
             }
+            else
+            {
+                //handle non-players. Do we need to check target is Npc?
 
-            //This check is for npcs
-            if (zone.FactionId > 0 && target.Faction.MotherId == zone.FactionId)
-                return false;
+                //Check if npc is protected by safe zone
+                if (zone.FactionId != 0 && target.Faction.MotherId == zone.FactionId)
+                    return false;
+            }
+            
 
             return relation == RelationState.Hostile;
         }

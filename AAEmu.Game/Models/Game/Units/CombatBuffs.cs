@@ -1,13 +1,15 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
 {
     public class CombatBuffs
     {
+        private static Logger _log = LogManager.GetCurrentClassLogger();
         private BaseUnit _owner;
         private Dictionary<SkillHitType, List<CombatBuffTemplate>> _cbuffsByHitType;
 
@@ -56,11 +58,20 @@ namespace AAEmu.Game.Models.Game.Units
                 //     caster = attacker;
                 // if (cb.BuffToSource)
                 //     target = unit;
-                
+
                 // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
-                
+
+                _log.Warn("[{0}, Req:{1}] BTS: {2} BFS: {3} HT: {4}", cb.BuffId, cb.ReqBuffId, cb.BuffToSource, cb.BuffFromSource, cb.HitType);
+
                 var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
-                _owner.Effects.AddEffect(new Effect(_owner, attacker, new SkillCasterUnit(), buffTempl, null, DateTime.Now));
+                //if (cb.BuffToSource)
+                Unit source = (Unit)attacker;
+                Unit target = (Unit)attacker;
+                if (!cb.BuffToSource)
+                    target = (Unit)_owner;
+                if (cb.BuffFromSource)
+                    source = (Unit)_owner;
+                _owner.Effects.AddEffect(new Effect(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.Now) { AbLevel = 50 });
             }
         }
     }
