@@ -213,7 +213,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
-            if (AttachPoint != 255)
+            if (AttachPoint != 255 && AttachPosition != null)
             {
                 stream.WritePosition(AttachPosition.X, AttachPosition.Y, AttachPosition.Z);
                 stream.Write(Helpers.ConvertRotation(AttachPosition.RotationX)); //''
