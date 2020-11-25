@@ -65,7 +65,7 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.HealDpsInc)]
         public virtual int HDpsInc { get; set; }
         [UnitAttribute(UnitAttribute.MeleeAntiMissMul)]
-        public virtual float MeleeAccuracy { get; set; }
+        public virtual float MeleeAccuracy { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.MeleeCritical)]
         public virtual float MeleeCritical { get; set; }
         [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
@@ -73,7 +73,7 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
         public virtual float MeleeCriticalMul { get; set; }
         [UnitAttribute(UnitAttribute.RangedAntiMiss)]
-        public virtual float RangedAccuracy { get; set; }
+        public virtual float RangedAccuracy { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.RangedCritical)]
         public virtual float RangedCritical { get; set; }
         [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
@@ -81,7 +81,7 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.RangedCriticalMul)]
         public virtual float RangedCriticalMul { get; set; }
         [UnitAttribute(UnitAttribute.SpellAntiMiss)]
-        public virtual float SpellAccuracy { get; set; }
+        public virtual float SpellAccuracy { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.SpellCritical)]
         public virtual float SpellCritical { get; set; }
         [UnitAttribute(UnitAttribute.SpellCriticalBonus)]
@@ -362,6 +362,19 @@ namespace AAEmu.Game.Models.Game.Units
             }
             return result;
         }
+
+        protected double CalculateWithBonuses(double value, UnitAttribute attr)
+        {
+            foreach (var bonus in GetBonuses(attr))
+            {
+                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    value += (value * bonus.Value / 100f);
+                else
+                    value += bonus.Value;
+            }
+            return value;
+        }
+
         public void SendPacket(GamePacket packet)
         {
             Connection?.SendPacket(packet);
