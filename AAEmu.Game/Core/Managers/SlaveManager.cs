@@ -91,17 +91,14 @@ namespace AAEmu.Game.Core.Managers
 
         public void BindSlave(GameConnection connection, uint tlId)
         {
-            // TODO
             var unit = connection.ActiveChar;
-            // var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
-            // if (activeSlaveInfo == null) return;
             var slave = _tlSlaves[tlId];
-            
             
             unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, slave.ObjId), true);
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, slave.ObjId), true);
             unit.CurrentTarget = slave;
             unit.BroadcastPacket(new SCSlaveBoundPacket(unit.Id, slave.ObjId), true);
+            slave.Bounded = unit;
         }
 
         // TODO - GameConnection connection

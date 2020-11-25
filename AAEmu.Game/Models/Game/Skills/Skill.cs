@@ -267,6 +267,16 @@ namespace AAEmu.Game.Models.Game.Skills
                 positionUnit.Position.WorldId = caster.Position.WorldId;
                 positionUnit.Region = caster.Region;
                 target = positionUnit;
+            } else if (Template.TargetType == SkillTargetType.BallisticPos)
+            {
+                var positionTarget = (SkillCastPositionTarget)targetCaster;
+                var positionUnit = new BaseUnit();
+                positionUnit.ObjId = uint.MaxValue;
+                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
+                positionUnit.Position.ZoneId = caster.Position.ZoneId;
+                positionUnit.Position.WorldId = caster.Position.WorldId;
+                positionUnit.Region = caster.Region;
+                target = positionUnit;
             }
 
             return target;
