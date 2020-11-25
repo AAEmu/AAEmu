@@ -77,15 +77,15 @@ namespace AAEmu.Game.Core.Managers
             var unit = connection.ActiveChar;
             var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
             if (activeSlaveInfo == null) return;
-            unit.SendPacket(new SCUnitDetachedPacket(unit.ObjId, 5));
+            unit.BroadcastPacket(new SCUnitDetachedPacket(unit.ObjId, 5), true);
             activeSlaveInfo.Bounded = null;
         }
         
         public void BindSlave(Character character, uint objId)
         {
             var slave = GetActiveSlaveByObjId(objId);
-            character.SendPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId));
-            character.SendPacket(new SCSlaveBoundPacket(character.Id, objId));
+            character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId), true);
+            character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
             slave.Bounded = character;
         }
 
