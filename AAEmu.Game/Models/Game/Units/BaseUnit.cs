@@ -1,5 +1,4 @@
-﻿using System;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
@@ -77,7 +76,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
 
             //This check is for npcs
-            if (target.Faction.MotherId == zone.FactionId)
+            if (zone.FactionId > 0 && target.Faction.MotherId == zone.FactionId)
                 return false;
 
             return relation == RelationState.Hostile;

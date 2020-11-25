@@ -78,6 +78,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
                 max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
             }
+
+            if (UseChargedBuff)
+            {
+                var effect = caster.Effects.GetEffectFromBuffId(ChargedBuffId);
+                if (effect != null)
+                {
+                    min += ChargedMul * effect.Charge;
+                    max += ChargedMul * effect.Charge;
+                    effect.Exit();
+                }
+            }
             
             var value = (int)Rand.Next(min, max);
             trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, value), true);

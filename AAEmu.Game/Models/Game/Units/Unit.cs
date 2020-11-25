@@ -143,6 +143,7 @@ namespace AAEmu.Game.Models.Game.Units
         public Simulation Simulation { get; set; }
         
         public UnitProcs Procs { get; set; }
+        public object ChargeLock { get; set; }
 
         public Unit()
         {
@@ -152,6 +153,7 @@ namespace AAEmu.Game.Models.Game.Units
             IsInBattle = false;
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
             Equipment.ContainerSize = 28;
+            ChargeLock = new object();
         }
 
         public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)

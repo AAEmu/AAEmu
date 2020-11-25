@@ -150,23 +150,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 levelMax += (levelModifier + 1) * lvlMd + 0.5f;
             }
 
-            
-            if (UseChargedBuff && source.Skill != null)
-            {
-                var charges = caster.Effects.GetEffectFromBuffId(ChargedBuffId)?.Charge ?? 0;
-                
-                min += charges * ChargedMul * (source.Skill.Level * ChargedLevelMul);
-                max += charges * ChargedMul * (source.Skill.Level * ChargedLevelMul);
-            }
-
-            if (UseTargetChargedBuff && source.Skill != null)
-            {
-                var charges = target.Effects.GetEffectFromBuffId(ChargedBuffId).Charge;
-                
-                min += charges * ChargedMul * (source.Skill.Level * ChargedLevelMul);
-                max += charges * ChargedMul * (source.Skill.Level * ChargedLevelMul);
-            }
-            
             // Stats/Weapon DPS
             var dpsInc = 0;
             switch (DamageType)
@@ -259,6 +242,26 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
                 max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
+            }
+            
+            if (UseChargedBuff && source.Skill != null)
+            {
+                var effect = caster.Effects.GetEffectFromBuffId(ChargedBuffId);
+                var charges = effect?.Charge ?? 0;
+                
+                min = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                max = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                effect?.Exit();
+            }
+
+            if (UseTargetChargedBuff && source.Skill != null)
+            {
+                var effect = target.Effects.GetEffectFromBuffId(ChargedBuffId);
+                var charges = effect?.Charge ?? 0;
+                
+                min = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                max = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                effect?.Exit();
             }
 
             var finalDamage = Rand.Next(min, max);

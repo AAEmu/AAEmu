@@ -1213,6 +1213,8 @@ namespace AAEmu.Game.Models.Game.Char
 
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
+            
+            ChargeLock = new object();
         }
 
         public WeaponWieldKind GetWeaponWieldKind()
