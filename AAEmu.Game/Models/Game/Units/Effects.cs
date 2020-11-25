@@ -253,7 +253,7 @@ namespace AAEmu.Game.Models.Game.Units
                 _effects.Remove(effect);
                 own.Modifiers.RemoveModifiers(effect.Template.BuffId);
                 own.CombatBuffs.RemoveCombatBuff(effect.Template.BuffId);
-                effect.Triggers.UnsubscribeEvents();
+                //effect.Triggers.UnsubscribeEvents();
             }
         }
 
@@ -274,7 +274,7 @@ namespace AAEmu.Game.Models.Game.Units
                         e.SetInUse(false, false);
                         own.Modifiers.RemoveModifiers(e.Template.BuffId);
                         own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
-                        e.Triggers.UnsubscribeEvents();
+                        //e.Triggers.UnsubscribeEvents();
                     }
                 }
             }
@@ -297,7 +297,7 @@ namespace AAEmu.Game.Models.Game.Units
                         e.SetInUse(false, false);
                         own.Modifiers.RemoveModifiers(e.Template.BuffId);
                         own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
-                        e.Triggers.UnsubscribeEvents();
+                        //e.Triggers.UnsubscribeEvents();
                         break;
                     }
                 }
@@ -321,7 +321,7 @@ namespace AAEmu.Game.Models.Game.Units
                     e.SetInUse(false, false);
                     own.Modifiers.RemoveModifiers(e.Template.BuffId);
                     own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
-                    e.Triggers.UnsubscribeEvents();
+                    //e.Triggers.UnsubscribeEvents();
                     break;
                 }
             }

@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void TriggerCombatBuffs(Unit attacker, SkillHitType type)
+        public void TriggerCombatBuffs(Unit attacker, SkillHitType type, bool IsDefendedAttack = false)
         {
             if (!_cbuffsByHitType.ContainsKey(type))
                 return;
@@ -60,18 +60,24 @@ namespace AAEmu.Game.Models.Game.Units
                 //     target = unit;
 
                 // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
+                var source = (Unit)_owner;
+                var target = (Unit)_owner;
+                if (IsDefendedAttack)
+                {
+                    //source = attacker;
+                    //target = attacker;
+                   // attacker = (Unit)_owner;
+                }
 
                 _log.Warn("[{0}, Req:{1}] BTS: {2} BFS: {3} HT: {4}", cb.BuffId, cb.ReqBuffId, cb.BuffToSource, cb.BuffFromSource, cb.HitType);
 
                 var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
                 //if (cb.BuffToSource)
-                Unit source = (Unit)attacker;
-                Unit target = (Unit)attacker;
                 if (!cb.BuffToSource)
-                    target = (Unit)_owner;
+                    target = attacker;
                 if (cb.BuffFromSource)
-                    source = (Unit)_owner;
-                _owner.Effects.AddEffect(new Effect(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.Now) { AbLevel = 50 });
+                    source = attacker;
+                _owner.Effects.AddEffect(new Effect(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.Now));
             }
         }
     }

@@ -22,15 +22,15 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             }
 
             var target = _effect.Owner;
-            owner = (Unit)_effect.Caster;
+            owner = (Unit)_effect.Owner;
             if (Template.EffectOnSource)
             {
-                target = _effect.Caster;
+                target = (Unit)_effect.Caster;
                 //do what?
             }
             if (Template.UseOriginalSource)
             {
-                owner = (Unit)_effect.Owner;
+                owner = (Unit)_effect.Caster;
             }
 
             Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_effect),

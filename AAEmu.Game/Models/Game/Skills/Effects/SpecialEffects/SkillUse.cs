@@ -26,7 +26,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             if (Rand.Next(0, 100) > chance && chance != 0)
                 return;
+            target = caster.CurrentTarget;
             var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
+            targetObj = new SkillCastUnitTarget(target?.ObjId ?? 0);
             TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(delay));
             //useSkill.ApplyEffects(caster, casterObj, target, targetObj, skillObject);
             _log.Warn("SkillId {0}, Delay {1}, Chance {2}, value4 {3}", skillId, delay, chance, value4);
