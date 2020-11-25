@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 // Ships
                 else
                 {
-                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId);
+                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId, (byte) (BondKindId + 6));
                 }
             }
         }

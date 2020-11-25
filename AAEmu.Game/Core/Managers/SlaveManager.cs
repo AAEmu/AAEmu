@@ -81,10 +81,10 @@ namespace AAEmu.Game.Core.Managers
             activeSlaveInfo.Bounded = null;
         }
         
-        public void BindSlave(Character character, uint objId)
+        public void BindSlave(Character character, uint objId, byte attachPointId, byte bondKind)
         {
             var slave = GetActiveSlaveByObjId(objId);
-            character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId), true);
+            character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPointId, bondKind, objId), true);
             character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
             slave.Bounded = character;
         }
@@ -95,10 +95,10 @@ namespace AAEmu.Game.Core.Managers
             var unit = connection.ActiveChar;
             var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
             if (activeSlaveInfo == null) return;
-            unit.SendPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, activeSlaveInfo.ObjId));
+            unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, activeSlaveInfo.ObjId), true);
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, activeSlaveInfo.ObjId), true);
             unit.CurrentTarget = activeSlaveInfo;
-            unit.SendPacket(new SCSlaveBoundPacket(unit.Id, activeSlaveInfo.ObjId));
+            unit.BroadcastPacket(new SCSlaveBoundPacket(unit.Id, activeSlaveInfo.ObjId), true);
         }
 
         // TODO - GameConnection connection
