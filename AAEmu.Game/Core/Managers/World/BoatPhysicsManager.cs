@@ -37,10 +37,16 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var moveType = (ShipMoveType)MoveType.GetType(MoveTypeEnum.Ship);
             moveType.UseSlaveBase(slave);
-            var velAccel = 2.0f; //per s
-            var maxVelForward = 12.9f; //per s
+            var velAccel = 8.0f; //per s
+            var maxVelForward = 52.9f; //per s
             var maxVelBackward = -5.0f;
 
+            if (slave.Bounded == null)
+            {
+                slave.ThrottleRequest = 0;
+                slave.SteeringRequest = 0;
+            }
+            
             ComputeThrottle(slave);
             ComputeSteering(slave);
             
@@ -54,10 +60,10 @@ namespace AAEmu.Game.Core.Managers.World
             slave.RotSpeed = Math.Max(slave.RotSpeed, -1);
             
             if (slave.Steering == 0)
-                slave.RotSpeed -= (slave.RotSpeed / 10);
+                slave.RotSpeed -= (slave.RotSpeed / 20);
 
             if (slave.Throttle == 0) // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
-                slave.Speed -= (slave.Speed / 10);
+                slave.Speed -= (slave.Speed / 45);
             
             slave.Position.RotationZ = MathUtil.ConvertDegreeToDirection(slave.RotationDegrees);
             
@@ -67,6 +73,12 @@ namespace AAEmu.Game.Core.Managers.World
             var diffX = newX - slave.Position.X;
             var diffY = newY - slave.Position.Y;
             slave.SetPosition(newX, newY, slave.Position.Z);
+            foreach (var doodad in slave.AttachedDoodads)
+            {
+                doodad.SetPosition(doodad.Position.X + diffX, doodad.Position.Y + diffY, doodad.Position.Z);
+            }
+
+            slave.Bounded?.SetPosition(slave.Bounded.Position.X + diffX, slave.Bounded.Position.Y + diffY, slave.Bounded.Position.Z);
 
             moveType.VelX = (short) (diffX * 21900);
             moveType.VelY = (short) (diffY * 21900);

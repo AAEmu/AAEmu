@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -77,12 +78,15 @@ namespace AAEmu.Game.Core.Managers
             var activeSlaveInfo = GetActiveSlaveBytlId(tlId);
             if (activeSlaveInfo == null) return;
             unit.SendPacket(new SCUnitDetachedPacket(unit.ObjId, 5));
+            activeSlaveInfo.Bounded = null;
         }
         
         public void BindSlave(Character character, uint objId)
         {
+            var slave = GetActiveSlaveByObjId(objId);
             character.SendPacket(new SCUnitAttachedPacket(character.ObjId, 1, 6, objId));
             character.SendPacket(new SCSlaveBoundPacket(character.Id, objId));
+            slave.Bounded = character;
         }
 
         public void BindSlave(GameConnection connection, uint tlId)
@@ -164,8 +168,6 @@ namespace AAEmu.Game.Core.Managers
                 AttachedDoodads = new List<Doodad>(),
                 SpawnTime = DateTime.Now
             };
-            
-
             template.Spawn();
             
             // TODO - DOODAD SERVER SIDE
@@ -195,7 +197,28 @@ namespace AAEmu.Game.Core.Managers
                 {
                     if (_attachPoints[template.ModelId].ContainsKey(doodadBinding.AttachPointId))
                     {
-                        doodad.Position = _attachPoints[template.ModelId][doodadBinding.AttachPointId];
+                        // if (doodadBinding.AttachPointId != 35)
+                        // {
+                        //     var attachPoint = _attachPoints[template.ModelId][doodadBinding.AttachPointId];
+                        //     doodad.Position = template.Position.Clone();
+                        //     doodad.Position.X += attachPoint.X;
+                        //     doodad.Position.Y += attachPoint.Y;
+                        //     doodad.Position.Z += attachPoint.Z;
+                        //     doodad.Position.RotationX += attachPoint.RotationX;
+                        //     doodad.Position.RotationY += attachPoint.RotationY;
+                        //     doodad.Position.RotationZ += attachPoint.RotationZ;
+                        // }
+                        // else
+                        // {
+                        doodad.AttachPosition = _attachPoints[template.ModelId][doodadBinding.AttachPointId];
+                        doodad.Position = template.Position.Clone();
+                        // doodad.Position.X += doodad.AttachPosition.X;
+                        // doodad.Position.Y += doodad.AttachPosition.X;
+                        // doodad.Position.Z += doodad.AttachPosition.X;
+                        // doodad.Position.RotationX += doodad.AttachPosition.RotationX;
+                        // doodad.Position.RotationY += doodad.AttachPosition.RotationY;
+                        // doodad.Position.RotationZ += doodad.AttachPosition.RotationZ;
+                        // }
                     }
                     else
                     {
@@ -352,6 +375,21 @@ namespace AAEmu.Game.Core.Managers
             foreach (var set in attachPoints)
             {
                 _attachPoints[set.ModelId] = set.AttachPoints;
+            }
+        }
+        
+        public void Initialize()
+        {
+            var sendMySlaveTask = new SendMySlaveTask();
+            TaskManager.Instance.Schedule(sendMySlaveTask, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        }
+
+        public void SendMySlavePacketToAllOwners() {
+            foreach (var (ownerObjId, slave) in _activeSlaves)
+            {
+                var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
+                owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId, slave.Hp, slave.Mp,
+                    slave.Position.X, slave.Position.Y, slave.Position.Z));
             }
         }
     }

@@ -33,6 +33,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
         public byte AttachPoint { get; set; }
+        public Point AttachPosition { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
         public uint QuestGlow { get; set; } //0 off // 1 on
@@ -212,10 +213,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
-            stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
-            stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
-            stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
-            stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
+            if (AttachPoint != 255)
+            {
+                stream.WritePosition(AttachPosition.X, AttachPosition.Y, AttachPosition.Z);
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationX)); //''
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationY)); //''
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationZ)); //''
+            }
+            else
+            {
+                stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
+                stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
+                stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
+                stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
+            }
+
             stream.Write(Scale); //The size of the object
             stream.Write(false); // hasLootItem
             stream.Write(CurrentPhaseId); // doodad_func_group_id
