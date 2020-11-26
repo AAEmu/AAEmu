@@ -293,14 +293,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (target is Unit targetUnit)
             {
+                float armor;
                 switch (DamageType)
                 {
                     case DamageType.Melee:
                     case DamageType.Ranged:
-                        reductionMul = 1.0f - targetUnit.Armor / (targetUnit.Armor + 5300.0f);
+                        armor = Math.Max(0f, targetUnit.Armor - caster.DefensePenetration);
+                        reductionMul = 1.0f - armor / (armor + 5300.0f);
                         break;
                     case DamageType.Magic:
-                        reductionMul = 1.0f - (targetUnit.MagicResistance) / (targetUnit.MagicResistance + 5300.0f);
+                        armor = Math.Max(0f, targetUnit.MagicResistance - caster.MagicPenetration);
+                        reductionMul = 1.0f - armor / (armor + 5300.0f);
                         break;
                 }
             }

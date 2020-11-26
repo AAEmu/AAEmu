@@ -168,8 +168,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var res = 0f;
-                CalculateWithBonuses(res, UnitAttribute.GlobalCooldownMul);
+                var res = CalculateWithBonuses(0, UnitAttribute.GlobalCooldownMul);
 
                 return (int)(100000f / (res + 1000f));
             }
@@ -823,6 +822,26 @@ namespace AAEmu.Game.Models.Game.Char
                 res = (int)CalculateWithBonuses(res, UnitAttribute.MagicResist);
 
                 return res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IgnoreArmor)]
+        public override int DefensePenetration
+        {
+            get
+            {
+                var res = CalculateWithBonuses(0, UnitAttribute.IgnoreArmor);
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MagicPenetration)]
+        public override int MagicPenetration
+        {
+            get
+            {
+                var res = CalculateWithBonuses(0, UnitAttribute.MagicPenetration);
+                return (int)res;
             }
         }
 

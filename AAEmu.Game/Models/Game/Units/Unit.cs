@@ -92,6 +92,10 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int Armor { get; set; }
         [UnitAttribute(UnitAttribute.MagicResist)]
         public virtual int MagicResistance { get; set; }
+        [UnitAttribute(UnitAttribute.IgnoreArmor)]
+        public virtual int DefensePenetration { get; set; }
+        [UnitAttribute(UnitAttribute.MagicPenetration)]
+        public virtual int MagicPenetration { get; set; }
         [UnitAttribute(UnitAttribute.Dodge)]
         public virtual float DodgeRate { get; set; }
         [UnitAttribute(UnitAttribute.MeleeParry)]
