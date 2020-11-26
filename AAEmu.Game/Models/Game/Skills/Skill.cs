@@ -650,12 +650,13 @@ namespace AAEmu.Game.Models.Game.Skills
             //  -Only Parry if sword equipped?
             var damageType = (DamageType)Template.DamageTypeId;
             var bullsEyeMod = (((attacker.BullsEye / 1000f) * 3f) / 100f);
+
+            if (target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
+                return SkillHitType.Immune;
+
             //Idk if this is right. Double check it
             if (!MathUtil.IsFront(attacker, target))
                 goto AlwaysHit;
-
-            if (target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(216)))
-                return SkillHitType.Immune;
 
             if (Rand.Next(0f, 100f) < (target.DodgeRate - bullsEyeMod))
             {
