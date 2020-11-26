@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Genesis.Activities;
 using AAEmu.Game.Models;
 using Discord;
 using Discord.WebSocket;
