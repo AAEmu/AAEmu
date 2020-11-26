@@ -90,6 +90,16 @@ namespace AAEmu.Game.Models.Game.Units
                     return true;
             return false;
         }
+
+        public bool CheckBuffTag(uint tagId)
+        {
+            var buffs= SkillManager.Instance.GetBuffsByTagId(tagId);
+            
+            foreach (var effect in new List<Effect>(_effects))
+                if (effect != null && buffs.Contains(effect.Template.BuffId))
+                    return true;
+            return false;
+        }
         
         public Effect GetEffectFromBuffId(uint id)
         {

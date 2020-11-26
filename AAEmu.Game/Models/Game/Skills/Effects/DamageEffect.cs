@@ -267,6 +267,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             var finalDamage = Rand.Next(min, max);
+            
+            // Buff tag increase (Hellspear's impale combo, for ex)
+            if (TargetBuffTagId > 0 && target.Effects.CheckBuffTag(TargetBuffTagId))
+            {
+                // TODO TargetBuffBonus ? (used in 3 DamageEffects)
+                finalDamage *= TargetBuffBonusMul;
+            }
 
             //toughness reduction (PVP Only)
             if (caster is Character && trg is Character)
