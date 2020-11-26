@@ -39,6 +39,22 @@ namespace AAEmu.Game.Core.Managers
 
             return null;
         }
+        
+        public Team GetTeamByObjId(uint objId)
+        {
+            foreach (var team in _activeTeams.Values)
+            {
+                foreach (var member in team.Members)
+                {
+                    if (member == null)
+                        continue;
+                    if (member.Character.ObjId == objId)
+                        return team;
+                }
+            }
+
+            return null;
+        }
 
         private Team GetActiveTeam(uint teamId)
         {

@@ -64,6 +64,14 @@ namespace AAEmu.Game.Models.Game.Team
             return false;
         }
 
+        public bool IsObjMember(uint objId)
+        {
+            foreach (var member in Members)
+                if (member?.Character != null && member.Character.ObjId == objId)
+                    return true;
+            return false;
+        }
+
         public uint GetNewOwner()
         {
             foreach (var member in Members)

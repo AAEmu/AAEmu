@@ -22,10 +22,9 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
                 case SkillTargetRelation.Party:
                     return units;
                 case SkillTargetRelation.Raid:
-                    Team.Team team = null;
-                    if (caster is Character character)  
-                        team = TeamManager.Instance.GetActiveTeamByUnit(character.Id);
-                    return team == null ? new List<T>() : units.Where(o => o is Character otherChar && team.IsMember(otherChar.Id));
+                    units = units.Append(caster);
+                    var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
+                    return team == null ? new List<T>() : units.Where(o => team.IsObjMember(o.ObjId));
                 case SkillTargetRelation.Others:
                     return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Neutral);
                 default:
