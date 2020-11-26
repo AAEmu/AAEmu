@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Units;
 
@@ -20,7 +22,10 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
                 case SkillTargetRelation.Party:
                     return units;
                 case SkillTargetRelation.Raid:
-                    return units;
+                    Team.Team team = null;
+                    if (caster is Character character)  
+                        team = TeamManager.Instance.GetActiveTeamByUnit(character.Id);
+                    return team == null ? new List<T>() : units.Where(o => o is Character otherChar && team.IsMember(otherChar.Id));
                 case SkillTargetRelation.Others:
                     return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Neutral);
                 default:
