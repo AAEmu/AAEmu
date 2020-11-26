@@ -43,7 +43,7 @@ namespace AAEmu.Game.Core.Managers.World
             _queuedTriggers = new List<AreaTrigger>();
             foreach (var trigger in _areaTriggers)
             {
-                trigger.Tick();
+                trigger?.Tick();
             }
         }
     }
