@@ -28,6 +28,7 @@ namespace AAEmu.Game
             var stopWatch = new Stopwatch();
 
             stopWatch.Start();
+            TickManager.Instance.Initialize();
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 

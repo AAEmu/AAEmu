@@ -68,6 +68,8 @@ namespace AAEmu.Game.Models.Game.Char
         public AbilityType Ability1 { get; set; }
         public AbilityType Ability2 { get; set; }
         public AbilityType Ability3 { get; set; }
+        public DateTime LastCombatActivity { get; set; }
+        public bool IsInCombat { get; set; }
         public bool IgnoreSkillCooldowns { get; set; }
         public string FactionName { get; set; }
         public uint Family { get; set; }

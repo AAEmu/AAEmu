@@ -326,15 +326,18 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var attacker = caster as Character;
             if (trgCharacter != null)
             {
+                trgCharacter.IsInCombat = true;
+                trgCharacter.LastCombatActivity = DateTime.Now;
                 if (attacker != null)
                 {
-                    //maybe move this to character class SetHostility
                     trgCharacter.SetHostileActivity(attacker);
                 }
                 trgCharacter.Procs.RollProcsForKind(ProcChanceKind.TakeDamageAny);
             }    
             if (attacker != null)
             {
+                attacker.IsInCombat = true;
+                attacker.LastCombatActivity = DateTime.Now;
                 attacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
             }
 

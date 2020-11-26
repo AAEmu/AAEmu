@@ -81,10 +81,24 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return null;
         }
 
+        public void CombatTick()
+        {
+            //Not sure if we should put htis here or world
+            foreach(var character in WorldManager.Instance.GetAllCharacters())
+            {
+                if (character.IsInCombat && character.LastCombatActivity.AddSeconds(30) < DateTime.Now)
+                {
+                    character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
+                    character.IsInCombat = false;
+                }
+            }
+        }
+
         public void Load()
         {
             Log.Info("Loading character templates...");
 
+            TickManager.Instance.OnTick += CombatTick;
             using (var connection = SQLite.CreateConnection())
             {
                 var temp = new Dictionary<uint, byte>();
