@@ -64,19 +64,24 @@ namespace AAEmu.Game.Models.Game.Units
                 var target = (Unit)_owner;
                 if (IsDefendedAttack)
                 {
-                    //source = attacker;
-                    //target = attacker;
-                   // attacker = (Unit)_owner;
+                   if (cb.BuffToSource)
+                       target = attacker;
+                   if (cb.BuffFromSource)
+                       source = attacker;
+                }
+                else
+                {
+                    if (cb.BuffToSource)
+                        target = (Unit)_owner;
+                    if (cb.BuffFromSource)
+                        source = (Unit)_owner;
                 }
 
                 _log.Warn("[{0}, Req:{1}] BTS: {2} BFS: {3} HT: {4}", cb.BuffId, cb.ReqBuffId, cb.BuffToSource, cb.BuffFromSource, cb.HitType);
 
                 var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
                 //if (cb.BuffToSource)
-                if (!cb.BuffToSource)
-                    target = attacker;
-                if (cb.BuffFromSource)
-                    source = attacker;
+                
                 _owner.Effects.AddEffect(new Effect(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.Now));
             }
         }
