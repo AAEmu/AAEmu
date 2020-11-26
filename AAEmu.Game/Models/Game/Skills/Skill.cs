@@ -654,6 +654,9 @@ namespace AAEmu.Game.Models.Game.Skills
             if (!MathUtil.IsFront(attacker, target))
                 goto AlwaysHit;
 
+            if (target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(216)))
+                return SkillHitType.Immune;
+
             if (Rand.Next(0f, 100f) < (target.DodgeRate - bullsEyeMod))
             {
                 if (damageType == DamageType.Melee)
@@ -721,7 +724,8 @@ namespace AAEmu.Game.Models.Game.Skills
                     || hitType == SkillHitType.RangedDodge
                     || hitType == SkillHitType.RangedParry
                     || hitType == SkillHitType.RangedBlock
-                    || hitType == SkillHitType.RangedMiss;
+                    || hitType == SkillHitType.RangedMiss
+                    || hitType == SkillHitType.Immune;
             }
             _log.Error($"Unit[{objId}] was not found in the CbtDiceRolls.");
             return true;

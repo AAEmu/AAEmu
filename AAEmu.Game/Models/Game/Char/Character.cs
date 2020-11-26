@@ -922,7 +922,6 @@ namespace AAEmu.Game.Models.Game.Char
                 res = CalculateWithBonuses(res, UnitAttribute.MeleeParry);
                 res = (res * (1f / Facets) * 100f);
                 res += CalculateWithBonuses(0f, UnitAttribute.MeleeParryMul) / 10f;
-                return 120f;
                 return (float)res;
             }
         }

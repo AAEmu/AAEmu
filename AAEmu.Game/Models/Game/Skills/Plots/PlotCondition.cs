@@ -169,7 +169,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     || hitType == SkillHitType.RangedDodge
                     || hitType == SkillHitType.RangedParry
                     || hitType == SkillHitType.RangedBlock
-                    || hitType == SkillHitType.RangedMiss;
+                    || hitType == SkillHitType.RangedMiss
+                    || hitType == SkillHitType.Immune;
             }
             return true; // Every CombatDiceResult is a NotCondition -> false makes it true.
         }
