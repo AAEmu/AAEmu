@@ -511,8 +511,9 @@ namespace AAEmu.Game.Core.Managers.World
             }
             else if(shape.Type == AreaShapeType.Cuboid)
             {
+                var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
                 _log.Warn("AreaShape[Cuboid] Not Implemented.");
-                return GetAround<T>(obj, 5);
+                return GetAround<T>(obj, (float) diagonal);
             }
             else
             {
