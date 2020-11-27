@@ -58,6 +58,43 @@ namespace AAEmu.Game.Models.Game.Units
             return false;
         }
 
+        public bool CheckDamageImmune(DamageType damageType)
+        {
+            foreach (var effect in new List<Effect>(_effects))
+            {
+                if (effect == null)
+                    continue;
+                BuffTemplate template = null;
+                if (effect.Template is BuffEffect buffEffect)
+                    template = buffEffect.Buff;
+                if (effect.Template is BuffTemplate buffTemplate)
+                    template = buffTemplate;
+
+                if (template == null)
+                    continue;
+                
+                switch(damageType)
+                {
+                    case DamageType.Melee:
+                        if (template.MeleeImmune) return true;
+                        continue;
+                    case DamageType.Magic:
+                        if (template.SpellImmune) return true;
+                        continue;
+                    case DamageType.Ranged:
+                        if (template.RangedImmune) return true;
+                        continue;
+                    case DamageType.Siege:
+                        if (template.SiegeImmune) return true;
+                        continue;
+                    default:
+                        continue;
+                }
+            }
+
+            return false;
+        }
+
         public List<Effect> GetEffectsByType(Type effectType)
         {
             var temp = new List<Effect>();

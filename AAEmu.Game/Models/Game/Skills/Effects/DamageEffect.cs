@@ -81,6 +81,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             }
 
+            if (target.Effects.CheckDamageImmune(DamageType))
+            {
+                target.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 1, 0)
+                {
+                    HitType = SkillHitType.Immune
+                }, false);
+                return;
+            }
+
             var weapon = caster?.Equipment.GetItemBySlot(WeaponSlotId);
             var holdable = (WeaponTemplate)weapon?.Template;
 
@@ -353,7 +362,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
             caster.CombatBuffs.TriggerCombatBuffs(target as Unit, hitType);
-            
             var packet = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value, absorbed)
             {
                 HoldableId = (byte)(holdable?.HoldableTemplate?.Id ?? 0),
