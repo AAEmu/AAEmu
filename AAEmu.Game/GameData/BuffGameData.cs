@@ -10,7 +10,7 @@ using Microsoft.Data.Sqlite;
 namespace AAEmu.Game.GameData
 {
     [GameData]
-    public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader<BuffGameData>
+    public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
     {
         private Dictionary<uint, List<BuffModifier>> _buffModifiers;
         

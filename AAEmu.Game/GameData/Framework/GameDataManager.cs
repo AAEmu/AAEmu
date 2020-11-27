@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils.DB;
@@ -53,8 +54,14 @@ namespace AAEmu.Game.GameData.Framework
                 if (type.GetCustomAttributes(typeof(GameDataAttribute), true).Length <= 0)
                     continue;
 
-                var e = (IGameDataLoader)Activator.CreateInstance(type);
-                Register(e);
+                if (!type.GetInterfaces().Contains(typeof(IGameDataLoader)))
+                {
+                    _logger.Error("[GameData] {0} does not inherit IGameDataLoader", type.Name);
+                    continue;
+                }
+
+                var e = type.BaseType?.GetProperty("Instance")?.GetValue(null);
+                Register((IGameDataLoader)e);
             }
         }
         
