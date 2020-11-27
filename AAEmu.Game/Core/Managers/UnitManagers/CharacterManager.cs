@@ -81,7 +81,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return null;
         }
 
-        public void CombatTick()
+        public void CombatTick(TimeSpan delta)
         {
             //Not sure if we should put htis here or world
             foreach(var character in WorldManager.Instance.GetAllCharacters())

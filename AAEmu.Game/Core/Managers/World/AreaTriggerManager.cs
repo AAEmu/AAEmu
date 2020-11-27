@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
@@ -36,7 +36,7 @@ namespace AAEmu.Game.Core.Managers.World
             _removeQueue.Add(trigger);
         }
         
-        public void Tick()
+        public void Tick(TimeSpan delta)
         {
             if (_addQueue?.Count > 0) 
                 _areaTriggers.AddRange(_addQueue);
