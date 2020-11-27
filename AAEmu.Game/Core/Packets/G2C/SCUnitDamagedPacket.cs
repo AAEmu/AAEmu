@@ -34,11 +34,12 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_skillCaster);
             stream.WriteBc(_casterId);
             stream.WriteBc(_targetId);
-            stream.Write((byte)0); // crimeState
+            stream.Write((byte)1); // crimeState
             stream.WritePisc(_damage, _absorbed, 0);
             stream.WritePisc(0, 0, _manaBurn);
             stream.Write(HoldableId); // hol
-            stream.Write((ushort)(288 | (ushort)HitType)); // de
+            stream.Write((ushort)(557 | (ushort)HitType)); // de
+            // stream.Write((ushort)623);
             stream.Write((byte)1); // flag
             stream.Write((byte)1); // result -> to debug info
             // TODO debug info

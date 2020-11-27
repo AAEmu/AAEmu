@@ -36,6 +36,7 @@ namespace AAEmu.Game.Models.Game.World
         
         
         public uint SkillId { get; set; }
+        public uint TlId { get; set; }
         public SkillTargetRelation TargetRelation { get; set; }
         public BuffTemplate InsideBuffTemplate { get; set; }
         public List<EffectTemplate> EffectPerTick { get; set; }
@@ -106,8 +107,9 @@ namespace AAEmu.Game.Models.Game.World
                 {
                     if (effect is BuffEffect buffEffect && unit.Effects.CheckBuff(buffEffect.BuffId))
                         continue;
-                    
-                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), new CastSkill(SkillId, 0), new EffectSource(), new SkillObject(), DateTime.Now);
+                    var eff = unit.Effects.GetEffectFromBuffId(InsideBuffTemplate.BuffId);
+
+                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), new CastBuff(eff), new EffectSource(), new SkillObject(), DateTime.Now);
                 }
             }
         }
@@ -117,10 +119,10 @@ namespace AAEmu.Game.Models.Game.World
         {
             _tickCount++;
             // every 200 ms
-            if (_tickCount % 4 == 0)
+            // if (_tickCount % 4 == 0)
                 UpdateUnits();
             if (TickRate > 0 )
-                if ((_tickCount*50) % TickRate == 0)
+                if ((_tickCount*200) % TickRate == 0)
                     ApplyEffects();
         }
     }
