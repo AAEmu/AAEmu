@@ -270,7 +270,8 @@ namespace AAEmu.Game.Models.Game.Units
 
                 if (effect.Template.BuffId > 0)
                 {
-                    owner.Modifiers.AddModifiers(effect.Template.BuffId);
+                    owner.SkillModifiersCache.AddModifiers(effect.Template.BuffId);
+                    owner.BuffModifiersCache.AddModifiers(effect.Template.BuffId);
                     owner.CombatBuffs.AddCombatBuffs(effect.Template.BuffId);
                 }
                 
@@ -298,7 +299,8 @@ namespace AAEmu.Game.Models.Game.Units
 
                 effect.SetInUse(false, false);
                 _effects.Remove(effect);
-                own.Modifiers.RemoveModifiers(effect.Template.BuffId);
+                own.SkillModifiersCache.RemoveModifiers(effect.Template.BuffId);
+                own.BuffModifiersCache.RemoveModifiers(effect.Template.BuffId);
                 own.CombatBuffs.RemoveCombatBuff(effect.Template.BuffId);
                 //effect.Triggers.UnsubscribeEvents();
             }
@@ -319,7 +321,8 @@ namespace AAEmu.Game.Models.Game.Units
                         e.Template.Dispel(e.Caster, e.Owner, e);
                         _effects.Remove(e);
                         e.SetInUse(false, false);
-                        own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                        own.SkillModifiersCache.RemoveModifiers(e.Template.BuffId);
+                        own.BuffModifiersCache.RemoveModifiers(e.Template.BuffId);
                         own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
                         //e.Triggers.UnsubscribeEvents();
                     }
@@ -342,7 +345,8 @@ namespace AAEmu.Game.Models.Game.Units
                         e.Template.Dispel(e.Caster, e.Owner, e);
                         _effects.Remove(e);
                         e.SetInUse(false, false);
-                        own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                        own.SkillModifiersCache.RemoveModifiers(e.Template.BuffId);
+                        own.BuffModifiersCache.RemoveModifiers(e.Template.BuffId);
                         own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
                         //e.Triggers.UnsubscribeEvents();
                         break;
@@ -366,7 +370,8 @@ namespace AAEmu.Game.Models.Game.Units
                     e.Template.Dispel(e.Caster, e.Owner, e);
                     _effects.Remove(e);
                     e.SetInUse(false, false);
-                    own.Modifiers.RemoveModifiers(e.Template.BuffId);
+                    own.SkillModifiersCache.RemoveModifiers(e.Template.BuffId);
+                    own.BuffModifiersCache.RemoveModifiers(e.Template.BuffId);
                     own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
                     //e.Triggers.UnsubscribeEvents();
                     break;

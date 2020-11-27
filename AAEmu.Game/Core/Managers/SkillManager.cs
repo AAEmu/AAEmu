@@ -26,6 +26,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, PassiveBuffTemplate> _passiveBuffs;
         private Dictionary<uint, EffectType> _types;
         private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
+        private Dictionary<uint, List<uint>> _buffTags;
         private Dictionary<uint, List<uint>> _taggedBuffs;
         private Dictionary<uint, List<uint>> _skillTags;
         private Dictionary<uint, List<uint>> _taggedSkills;
@@ -109,6 +110,13 @@ namespace AAEmu.Game.Core.Managers
             _log.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
             
             return _effects[type][id];
+        }
+
+        public List<uint> GetBuffTags(uint buffId)
+        {
+            if (_buffTags.ContainsKey(buffId))
+                return _buffTags[buffId];
+            return new List<uint>();
         }
 
         public List<uint> GetBuffsByTagId(uint tagId)
@@ -232,6 +240,7 @@ namespace AAEmu.Game.Core.Managers
                 "PlayLogEffect"
              */
 
+            _buffTags = new Dictionary<uint, List<uint>>();
             _taggedBuffs = new Dictionary<uint, List<uint>>();
             _skillModifiers = new Dictionary<uint, List<SkillModifier>>();
             _skillTags = new Dictionary<uint, List<uint>>();
@@ -1364,6 +1373,11 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var tagId = reader.GetUInt32("tag_id");
                             var buffId = reader.GetUInt32("buff_id");
+
+                            if (!_buffTags.ContainsKey(buffId))
+                                _buffTags.Add(buffId, new List<uint>());
+                            _buffTags[buffId].Add(tagId);
+
                             if (!_taggedBuffs.ContainsKey(tagId))
                                 _taggedBuffs.Add(tagId, new List<uint>());
                             _taggedBuffs[tagId].Add(buffId);

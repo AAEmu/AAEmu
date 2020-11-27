@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+﻿ using System.Collections.Generic;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -9,16 +10,16 @@ using Microsoft.Data.Sqlite;
 namespace AAEmu.Game.GameData
 {
     [GameData]
-    public class BuffGameData : GameDataLoader
+    public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader<BuffGameData>
     {
-        private static Dictionary<uint, List<BuffModifier>> _buffModifiers;
+        private Dictionary<uint, List<BuffModifier>> _buffModifiers;
         
-        public static List<BuffModifier> GetModifiersForBuff(uint ownerId)
+        public List<BuffModifier> GetModifiersForBuff(uint ownerId)
         {
             return _buffModifiers.ContainsKey(ownerId) ? _buffModifiers[ownerId] : new List<BuffModifier>();
         }
         
-        public override void Load(SqliteConnection connection)
+        public void Load(SqliteConnection connection)
         {
             _buffModifiers = new Dictionary<uint, List<BuffModifier>>();
             
@@ -52,7 +53,7 @@ namespace AAEmu.Game.GameData
             }
         }
 
-        public override void PostLoad()
+        public void PostLoad()
         {
         }
     }

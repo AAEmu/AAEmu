@@ -245,8 +245,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (source.Skill != null)
             {
-                min = (float)caster.Modifiers.ApplyModifiers(source.Skill, SkillAttribute.Damage, min);
-                max = (float)caster.Modifiers.ApplyModifiers(source.Skill, SkillAttribute.Damage, max);
+                min = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Damage, min);
+                max = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Damage, max);
             }
 
             if (source.Buff?.TickEffect != null)

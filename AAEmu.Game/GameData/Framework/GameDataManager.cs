@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using AAEmu.Commons.Utils;
@@ -10,11 +10,11 @@ namespace AAEmu.Game.GameData.Framework
     public class GameDataManager : Singleton<GameDataManager>
     {
         private Logger _logger = LogManager.GetCurrentClassLogger();
-        private List<GameDataLoader> _loaders;
+        private List<IGameDataLoader> _loaders;
 
         public GameDataManager()
         {
-            _loaders = new List<GameDataLoader>();
+            _loaders = new List<IGameDataLoader>();
         }
         
         public void LoadGameData()
@@ -53,12 +53,12 @@ namespace AAEmu.Game.GameData.Framework
                 if (type.GetCustomAttributes(typeof(GameDataAttribute), true).Length <= 0)
                     continue;
 
-                var e = (GameDataLoader)Activator.CreateInstance(type);
+                var e = (IGameDataLoader)Activator.CreateInstance(type);
                 Register(e);
             }
         }
         
-        private void Register(GameDataLoader dataLoader)
+        private void Register(IGameDataLoader dataLoader)
         {
             _loaders.Add(dataLoader);
         }

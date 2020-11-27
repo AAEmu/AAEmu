@@ -1,10 +1,13 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Collections.Generic;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -37,13 +40,15 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual float Scale => 1f;
         
         public Effects Effects { get; set; }
-        public SkillModifiers Modifiers { get; set; }
+        public SkillModifiers SkillModifiersCache { get; set; }
+        public BuffModifiers BuffModifiersCache { get; set; }
         public CombatBuffs CombatBuffs { get; set; }
 
         public BaseUnit()
         {
             Effects = new Effects(this);
-            Modifiers = new SkillModifiers();
+            SkillModifiersCache = new SkillModifiers();
+            BuffModifiersCache = new BuffModifiers();
             CombatBuffs = new CombatBuffs(this);
         }
 
@@ -100,7 +105,12 @@ namespace AAEmu.Game.Models.Game.Units
         }
         
         public virtual double ApplySkillModifiers(Skill skill, SkillAttribute attribute, double baseValue) {
-            return Modifiers.ApplyModifiers(skill, attribute, baseValue);
+            return SkillModifiersCache.ApplyModifiers(skill, attribute, baseValue);
+        }
+
+        public virtual double ApplyBuffModifers(BuffTemplate buff, BuffAttribute attr, double value)
+        {
+            return BuffModifiersCache.ApplyModifiers(buff, attr, value);
         }
     }
 }

@@ -610,7 +610,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 var baseCost = (((caster.GetAbLevel((AbilityType)Template.AbilityId)-1) * 1.6 + 8) * 3) / 3.65;
                 var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
-                var manaCost = (int)unit.Modifiers.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
+                var manaCost = (int)unit.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
                 unit.ReduceCurrentMp(null, manaCost);
             }
 
