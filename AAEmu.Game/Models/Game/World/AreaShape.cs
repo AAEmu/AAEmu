@@ -108,8 +108,13 @@ namespace AAEmu.Game.Models.Game.World
                     if (effect is BuffEffect buffEffect && unit.Effects.CheckBuff(buffEffect.BuffId))
                         continue;
                     var eff = unit.Effects.GetEffectFromBuffId(InsideBuffTemplate.BuffId);
-
-                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), new CastBuff(eff), new EffectSource(), new SkillObject(), DateTime.Now);
+                    CastAction castAction = null;
+                    if (eff != null)
+                        castAction = new CastBuff(eff);
+                    else
+                        castAction = new CastSkill(SkillId, 0);
+                    
+                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), castAction, new EffectSource(), new SkillObject(), DateTime.Now);
                 }
             }
         }

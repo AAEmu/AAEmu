@@ -108,11 +108,11 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
                 if (trigger == null)
                 {
-                    _log.Warn("Unimplemented BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
+                    _log.Trace("Unimplemented BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
                 }
                 else
                 {
-                    _log.Warn("Subscribed BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
+                    _log.Trace("Subscribed BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
                 }
             }
         }
