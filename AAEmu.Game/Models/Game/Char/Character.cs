@@ -20,6 +20,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -435,11 +436,11 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
-                var res = weapon?.Dps ?? 0;
-                res += Str / 5f;
+                var res = (weapon?.Dps ?? 0) * 1000f;
+                res += Str / 5f * 1000f;
                 res = (float)CalculateWithBonuses(res, UnitAttribute.MainhandDps);
 
-                return (int)(res * 1000);
+                return (int)(res);
             }
         }
 
@@ -485,11 +486,11 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
-                var res = weapon?.Dps ?? 0;
-                res += Dex / 5f;
+                var res = (weapon?.Dps ?? 0) * 1000f;
+                res += Dex / 5f * 1000f;
                 res = (float)CalculateWithBonuses(res, UnitAttribute.RangedDps);
 
-                return (int)(res * 1000);
+                return (int)res;
             }
         }
 
@@ -521,11 +522,11 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
-                var res = weapon?.MDps ?? 0;
-                // res += Int / 5f;
-                res = CalculateWithBonuses(res, UnitAttribute.SpellDps);
+                var res = (weapon?.MDps ?? 0) * 1000f;
+                res += Int / 5f * 1000f;
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDps);
 
-                return (int)(res * 1000);
+                return (int)(res);
             }
         }
 
@@ -558,9 +559,9 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 var res = weapon?.HDps ?? 0;
-                res += Spi / 5f;
+                res += Spi / 5f * 1000f;
                 res = CalculateWithBonuses(res, UnitAttribute.HealDps);
-                return (int)(res * 1000);
+                return (int)res;
             }
         }
 
@@ -1188,6 +1189,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (!moved)
                 return;
+            Effects.TriggerRemoveOn(BuffRemoveOn.Move);
 
             if (Position.ZoneId == lastZoneKey)
                 return;

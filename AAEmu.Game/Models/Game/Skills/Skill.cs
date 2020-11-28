@@ -40,6 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public ushort TlId { get; set; }
         public PlotState ActivePlotState { get; set; }
         public Dictionary<uint, SkillHitType> HitTypes { get; set; }
+        public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
         private bool _bypassGcd;
 
         //public bool isAutoAttack;
@@ -75,13 +76,15 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
+            caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill);
+
             if (skillObject == null)
             {
                 skillObject = new SkillObject();
             }
 
             var target = GetInitialTarget(caster, casterCaster, targetCaster);
-
+            InitialTarget = target;
             if (target == null)
                 return;//We should try to make sure this doesnt happen
 
@@ -382,6 +385,10 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.ChannelingBuffId != 0)
             {
                 caster.Effects.RemoveEffect(Template.ChannelingBuffId, Template.Id);
+            }
+            if (Template.ChannelingTargetBuffId != 0)
+            {
+                InitialTarget.Effects.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
             }
 
             channelDoodad?.Delete();

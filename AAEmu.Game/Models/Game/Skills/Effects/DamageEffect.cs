@@ -76,10 +76,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         {
             _log.Debug("DamageEffect");
 
-            if (!(target is Unit))
+            var trg = target as Unit;
+            if (target == null)
             {
                 return;
             }
+
+            trg.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackedEtc);
+            caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackEtc);
 
             if (target.Effects.CheckDamageImmune(DamageType))
             {
@@ -92,8 +96,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var weapon = caster?.Equipment.GetItemBySlot(WeaponSlotId);
             var holdable = (WeaponTemplate)weapon?.Template;
-
-            var trg = (Unit)target;
 
             var hitType = SkillHitType.Invalid;
             if ((source?.Skill?.HitTypes.TryGetValue(trg.ObjId, out hitType) ?? false )
@@ -253,6 +255,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
                 max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
+
+                caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtcDot);
+                trg.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtcDot);
+
+                if (DamageType == DamageType.Magic)
+                {
+                    caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageSpellDot);
+                    trg.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedSpellDot);
+                }
             }
             
             if (UseChargedBuff && source.Skill != null)
@@ -391,10 +402,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (value > 0)
             {
                 caster.Events.OnDamage(this, new OnDamageArgs {
-                    Attacker = caster
-                    
+                    Attacker = caster 
                 });
+                caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtc);
                 trg.Events.OnDamaged(this, new OnDamagedArgs { });
+                trg.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtc);
             }
         }
     }

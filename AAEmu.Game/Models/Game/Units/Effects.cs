@@ -474,6 +474,77 @@ namespace AAEmu.Game.Models.Game.Units
                     e.Exit();
         }
 
+        public void TriggerRemoveOn(BuffRemoveOn on, uint value = 0)
+        {
+            foreach (var effect in new List<Effect>(_effects))
+            {
+                BuffTemplate template;
+                if (effect.Template is BuffEffect buffEffect)
+                    template = buffEffect.Buff;
+                else if (effect.Template is BuffTemplate buffTemplate)
+                    template = buffTemplate;
+                else
+                    continue;
+
+                if (template.RemoveOnAttackBuffTrigger && on == BuffRemoveOn.AttackBuffTrigger)
+                    effect.Exit();
+                else if (template.RemoveOnAttackedBuffTrigger && on == BuffRemoveOn.AttackedBuffTrigger)
+                    effect.Exit();
+                else if (template.RemoveOnAttackedEtc && on == BuffRemoveOn.AttackedEtc)
+                    effect.Exit();
+                else if (template.RemoveOnAttackedEtcDot && on == BuffRemoveOn.AttackedEtcDot)
+                    effect.Exit();
+                else if (template.RemoveOnAttackedSpellDot && on == BuffRemoveOn.AttackedSpellDot)
+                    effect.Exit();
+                else if (template.RemoveOnAttackEtc && on == BuffRemoveOn.AttackEtc)
+                    effect.Exit();
+                else if (template.RemoveOnAttackEtcDot && on == BuffRemoveOn.AttackEtcDot)
+                    effect.Exit();
+                else if (template.RemoveOnAttackSpellDot && on == BuffRemoveOn.AttackSpellDot)
+                    effect.Exit();
+                else if (template.RemoveOnAutoAttack && on == BuffRemoveOn.AutoAttack)
+                    effect.Exit();
+                else if (template.RemoveOnDamageBuffTrigger && on == BuffRemoveOn.DamageBuffTrigger)
+                    effect.Exit();
+                else if (template.RemoveOnDamagedBuffTrigger && on == BuffRemoveOn.DamagedBuffTrigger)
+                    effect.Exit();
+                else if (template.RemoveOnDamagedEtc && on == BuffRemoveOn.DamagedEtc)
+                    effect.Exit();
+                else if (template.RemoveOnDamagedEtcDot && on == BuffRemoveOn.DamagedEtcDot)
+                    effect.Exit();
+                else if (template.RemoveOnDamagedSpellDot && on == BuffRemoveOn.DamagedSpellDot)
+                    effect.Exit();
+                else if (template.RemoveOnDamageEtc && on == BuffRemoveOn.DamageEtc)
+                    effect.Exit();
+                else if (template.RemoveOnDamageEtcDot && on == BuffRemoveOn.DamageEtcDot)
+                    effect.Exit();
+                else if (template.RemoveOnDamageSpellDot && on == BuffRemoveOn.DamageSpellDot)
+                    effect.Exit();
+                else if (template.RemoveOnDeath && on == BuffRemoveOn.Death)
+                    effect.Exit();
+                else if (template.RemoveOnExempt && on == BuffRemoveOn.Exempt)
+                    effect.Exit();
+                else if (template.RemoveOnInteraction && on == BuffRemoveOn.Interaction)
+                    effect.Exit();
+                else if (template.RemoveOnLand && on == BuffRemoveOn.Land)
+                    effect.Exit();
+                else if (template.RemoveOnMount && on == BuffRemoveOn.Mount)
+                    effect.Exit();
+                else if (template.RemoveOnMove && on == BuffRemoveOn.Move)
+                    effect.Exit();
+                else if (template.RemoveOnSourceDead && on == BuffRemoveOn.SourceDead && value == effect.Caster.ObjId)
+                    effect.Exit();//Need to investigate this one
+                else if (template.RemoveOnStartSkill && on == BuffRemoveOn.StartSkill)
+                    effect.Exit();
+                else if (template.RemoveOnUnmount && on == BuffRemoveOn.Unmount)
+                    effect.Exit();
+                else if (template.RemoveOnUseSkill && on == BuffRemoveOn.UseSkill)
+                    effect.Exit();
+                else
+                    continue;
+            }
+        }
+
         public void RemoveEffectsOnDeath()
         {
             var own = GetOwner();

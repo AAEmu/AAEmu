@@ -163,8 +163,24 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 state.Caster.BroadcastPacket(packets, true);
         }
 
+        private void EndPlotChannel(PlotState state)
+        {
+            var caster = state.Caster;
+            var skill = state.ActiveSkill;
+            if (skill.Template.ChannelingBuffId != 0)
+            {
+                //Doesnt work for some reason...
+                caster.Effects.RemoveBuff(skill.Template.ChannelingBuffId);
+            }
+            if (skill.Template.ChannelingTargetBuffId != 0)
+            {
+                skill.InitialTarget.Effects.RemoveBuff(skill.Template.ChannelingTargetBuffId);
+            }
+        }
+
         private void DoPlotEnd(PlotState state)
         {
+            EndPlotChannel(state);
             state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
 
             if (state.Caster is Character character && character.IgnoreSkillCooldowns)
