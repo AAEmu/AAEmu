@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -232,6 +233,21 @@ namespace AAEmu.Game.Models.Game.Units
                 }
 
                 effect.Duration = effect.Template.GetDuration(effect.AbLevel);
+                if (effect.Template is BuffTemplate buffTempl)
+                {
+                    effect.Duration = (int) effect.Caster.BuffModifiersCache.ApplyModifiers(buffTempl,
+                        BuffAttribute.Duration, effect.Duration);
+                    effect.Duration = (int) effect.Owner.BuffModifiersCache.ApplyModifiers(buffTempl,
+                        BuffAttribute.InDuration, effect.Duration);
+                } 
+                else if (effect.Template is BuffEffect buffEff)
+                {
+                    effect.Duration = (int) effect.Caster.BuffModifiersCache.ApplyModifiers(buffEff.Buff,
+                        BuffAttribute.Duration, effect.Duration);
+                    effect.Duration = (int) effect.Owner.BuffModifiersCache.ApplyModifiers(buffEff.Buff,
+                        BuffAttribute.InDuration, effect.Duration);
+                }
+
                 if (effect.Duration > 0 && effect.StartTime == DateTime.MinValue)
                 {
                     effect.StartTime = DateTime.Now;
