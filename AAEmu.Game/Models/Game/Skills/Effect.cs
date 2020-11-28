@@ -204,10 +204,10 @@ namespace AAEmu.Game.Models.Game.Skills
             switch (Template)
             {
                 case BuffEffect buffEffect:
-                    stream.WritePisc(Charge, buffEffect.Buff.GetDuration(AbLevel) / 10, 0, (long)(buffEffect.Buff.Tick / 10));
+                    stream.WritePisc(Charge, /*buffEffect.Buff.GetDuration(AbLevel)*/Duration / 10, 0, (long)(buffEffect.Buff.Tick / 10));
                     break;
                 case BuffTemplate buffTemplate:
-                    stream.WritePisc(Charge, buffTemplate.GetDuration(AbLevel) / 10, 0, (long)(buffTemplate.Tick / 10));
+                    stream.WritePisc(Charge, /*buffTemplate.GetDuration(AbLevel)*/ Duration / 10, 0, (long)(buffTemplate.Tick / 10));
                     break;
                 default:
                     Template.WriteData(stream, AbLevel);
