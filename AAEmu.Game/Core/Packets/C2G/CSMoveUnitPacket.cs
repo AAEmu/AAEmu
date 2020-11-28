@@ -46,6 +46,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rotDegX, rotDegY, rotDegZ);
 
                     // Connection.ActiveChar.SendMessage("Client: " + vmt.RotationZ + ". Yaw (deg): " + (yaw * 180 / Math.PI) + ". Reverse: " + reverseZ);
+                    var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(myObjId);
+                    if (slave == null)
+                        return;
+                    
+                    slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
+                    slave.BroadcastPacket(new SCOneUnitMovementPacket(objId, vmt), true);
                 }
                 
                 var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(objId);
