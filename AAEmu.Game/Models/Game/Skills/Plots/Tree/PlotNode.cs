@@ -29,6 +29,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             Children = new List<PlotNode>();
         }
 
+        private bool IsChannelStart()
+        {
+            foreach(var child in Children)
+            {
+                if (child.ParentNextEvent.Channeling == true)
+                    return true;
+            }
+            return false;
+        }
+
         public int ComputeDelayMs(PlotState state, PlotTargetInfo targetInfo)
         {
             return ParentNextEvent.GetDelay(state, targetInfo, Parent);
@@ -50,7 +60,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             {
                 try
                 {
-                    eff.ApplyEffect(state, targetInfo, Event, ref flag);
+                    eff.ApplyEffect(state, targetInfo, Event, ref flag, IsChannelStart());
                 }
                 catch (Exception e)
                 {

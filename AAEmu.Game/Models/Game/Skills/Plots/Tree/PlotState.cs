@@ -21,6 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         public BaseUnit Target { get; set; }
         public SkillCastTarget TargetCaster { get; set; }
         public SkillObject SkillObject { get; set; }
+        public List<(BaseUnit unit, uint buffId)> ChanneledBuffs { get; set; }
 
         public Dictionary<uint,List<GameObject>> HitObjects { get; set; }
 
@@ -37,6 +38,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             
             HitObjects = new Dictionary<uint, List<GameObject>>();
             Tickets = new Dictionary<uint, int>();
+            ChanneledBuffs = new List<(BaseUnit, uint)>();
             Variables = new int[12];
         }
 

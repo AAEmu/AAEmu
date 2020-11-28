@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots
@@ -15,11 +16,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public uint ActualId { get; set; }
         public string ActualType { get; set; }
         
-        public void ApplyEffect(PlotState state, PlotTargetInfo targetInfo, PlotEventTemplate evt, ref byte flag)
+        public void ApplyEffect(PlotState state, PlotTargetInfo targetInfo, PlotEventTemplate evt, ref byte flag, bool channeled = false)
         {
             var template = SkillManager.Instance.GetEffectTemplate(ActualId, ActualType);
 
-            if (template is BuffEffect)
+            var buffTemplate = template as BuffTemplate;
+            var buffEffect = template as BuffEffect;
+            if (buffTemplate != null || buffEffect != null)
                 flag = 6; //idk what this does?  
 
             Unit source;
@@ -63,6 +66,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                         break;
                     default:
                         throw new InvalidOperationException("This can't happen");
+                }
+
+                if (channeled && (buffTemplate != null || buffEffect != null))
+                {
+                    if (buffTemplate != null)
+                        state.ChanneledBuffs.Add((target, buffTemplate.BuffId));
+                    else if (buffEffect != null)
+                        state.ChanneledBuffs.Add((target, buffEffect.BuffId));
                 }
 
                 template.Apply(
