@@ -45,17 +45,22 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 {
                     var nodewatch = new Stopwatch();
                     nodewatch.Start();
-                    if (state.CancellationRequested() && state.IsCasting)
+                    if (state.CancellationRequested())
                     {
-                        state.Caster.BroadcastPacket(
-                            new SCPlotCastingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
-                            true
-                        );
-                        state.Caster.BroadcastPacket(
-                            new SCPlotChannelingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
-                            true
-                        );
-                        break;
+                        if (state.IsCasting)
+                        {
+                            state.Caster.BroadcastPacket(
+                                new SCPlotCastingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
+                                true
+                            );
+                            state.Caster.BroadcastPacket(
+                                new SCPlotChannelingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
+                                true
+                            );
+                        }
+
+                        DoPlotEnd(state);
+                        return;
                     }
                     var item = queue.Dequeue();
                     var now = DateTime.Now;

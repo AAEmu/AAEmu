@@ -112,5 +112,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             return BuffModifiersCache.ApplyModifiers(buff, attr, value);
         }
+
+        public virtual void InterruptSkills() {}
     }
 }

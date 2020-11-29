@@ -286,9 +286,13 @@ namespace AAEmu.Game.Models.Game.Units
 
                 if (effect.Template.BuffId > 0)
                 {
+                    var bufft = SkillManager.Instance.GetBuffTemplate(effect.Template.BuffId);
                     owner.SkillModifiersCache.AddModifiers(effect.Template.BuffId);
                     owner.BuffModifiersCache.AddModifiers(effect.Template.BuffId);
                     owner.CombatBuffs.AddCombatBuffs(effect.Template.BuffId);
+
+                    if (bufft.Stun || bufft.Silence || bufft.Sleep)
+                        owner.InterruptSkills();
                 }
                 
                 if (effect.Duration > 0)

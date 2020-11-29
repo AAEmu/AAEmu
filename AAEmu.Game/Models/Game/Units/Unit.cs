@@ -214,6 +214,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public virtual void DoDie(Unit killer)
         {
+            InterruptSkills();
             Effects.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
             var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
@@ -430,5 +431,21 @@ namespace AAEmu.Game.Models.Game.Units
             return "FailedParse";
         }
         */
+
+        public override void InterruptSkills()
+        {
+            ActivePlotState?.RequestCancellation();
+            if (SkillTask == null)
+                return;
+            switch (SkillTask)
+            {
+                case EndChannelingTask ect:
+                    ect.Skill.Stop(this, ect._channelDoodad);
+                    break;
+                default:
+                    SkillTask.Skill.Stop(this);
+                    break;
+            }
+        }
     }
 }
