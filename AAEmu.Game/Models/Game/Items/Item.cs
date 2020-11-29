@@ -76,7 +76,7 @@ namespace AAEmu.Game.Models.Game.Items
         public DateTime UnpackTime { get => _unpackTime; set { _unpackTime = value; _isDirty = true; } }
         public uint ImageItemTemplateId { get => _imageItemTemplateId; set { _imageItemTemplateId = value; _isDirty = true; } }
 
-        public virtual byte DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
+        public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
         // Helper
         public ItemContainer _holdingContainer { get; set; }
@@ -151,7 +151,7 @@ namespace AAEmu.Game.Models.Game.Items
             stream.Write(Grade);
             stream.Write((byte)ItemFlags); //bounded
             stream.Write(Count);
-            stream.Write(DetailType);
+            stream.Write((byte)DetailType);
             WriteDetails(stream);
             stream.Write(CreateTime);
             stream.Write(LifespanMins);

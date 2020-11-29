@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.Items
 {
     public class Summon : Item
     {
-        public override byte DetailType => 3;
+        public override ItemDetailType DetailType => ItemDetailType.Mate;
 
         public Summon()
         {

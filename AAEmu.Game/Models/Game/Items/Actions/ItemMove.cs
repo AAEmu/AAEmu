@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemMove(SlotType fromSlotType, byte fromSlot, ulong fromItemId, SlotType toSlotType, byte toSlot, ulong toItemId)
         {
-            _type = 8;
+            _type = ItemAction.SwapSlot;
             _fromSlotType = fromSlotType;
             _fromSlot = fromSlot;
             _fromItemId = fromItemId;

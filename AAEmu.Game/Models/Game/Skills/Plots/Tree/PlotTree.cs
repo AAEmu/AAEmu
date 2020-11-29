@@ -142,7 +142,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     }
 
                     if (nodewatch.ElapsedMilliseconds > 100)
-                        _log.Warn($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
+                        _log.Trace($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
                 }
 
                 FlushExecutionQueue(executeQueue, state);
@@ -152,7 +152,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
             
             DoPlotEnd(state);
-            _log.Debug("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
+            _log.Trace("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
         }
         
         private void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
