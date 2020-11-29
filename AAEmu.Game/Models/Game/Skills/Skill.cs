@@ -51,14 +51,16 @@ namespace AAEmu.Game.Models.Game.Skills
             HitTypes = new Dictionary<uint, SkillHitType>();
         }
 
-        public Skill(SkillTemplate template)
+        public Skill(SkillTemplate template, Unit owner = null)
         {
             HitTypes = new Dictionary<uint, SkillHitType>();
             Id = template.Id;
             Template = template;
-            Level = 1;
+            if (owner != null)
+                Level = (template.LevelStep > 0 ? (byte)(((owner.GetAbLevel((AbilityType)template.AbilityId) - (template.AbilityLevel)) / template.LevelStep) + 1) : (byte)1);
+            else
+                Level = 1;
         }
-
         public void Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
         {
             _bypassGcd = bypassGcd;
