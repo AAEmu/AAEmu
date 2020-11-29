@@ -91,7 +91,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 return;//We should try to make sure this doesnt happen
 
             TlId = (ushort)TlIdManager.Instance.GetNextId();
-            _log.Warn(Template.DamageTypeId);
             if (Template.Plot != null)
             {
                 Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
