@@ -1,38 +1,26 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
+using AAEmu.Game.Models.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCEmblemStreamSendStatusPacket : StreamPacket
     {
-        public TCEmblemStreamSendStatusPacket() : base(0x0B)
+        private Ucc _ucc;
+        private EmblemStreamStatus _emblemStreamStatus;
+        public TCEmblemStreamSendStatusPacket(Ucc ucc, EmblemStreamStatus status) : base(0x0B)
         {
+            _ucc = ucc;
+            _emblemStreamStatus = status;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((long) 0); // type
+            stream.Write((long) _ucc.Id); // type
             stream.Write((int) 0); // total
-            // ----------------
-            /*
-            v2 = (char *)this;
-            a2->Reader->ReadInt32("pat1", (char *)this, 0);
-            a2->Reader->ReadInt32("pat2", v2 + 4, 0);
-            a2->Reader->ReadInt32("r", v2 + 8, 0);
-            a2->Reader->ReadInt32("g", v2 + 12, 0);
-            a2->Reader->ReadInt32("b", v2 + 16, 0);
-            a2->Reader->ReadInt32("r", v2 + 20, 0);
-            a2->Reader->ReadInt32("g", v2 + 24, 0);
-            a2->Reader->ReadInt32("b", v2 + 28, 0);
-            v2 += 32;
-            a2->Reader->ReadInt32("r", v2, 0);
-            a2->Reader->ReadInt32("g", v2 + 4, 0);
-            return a2->Reader->ReadInt32("b", v2 + 8, 0);
-            */
-            // ----------------
-            stream.Write((ulong) 0); // modified
+            _ucc.Write(stream);
             
-            stream.Write((byte) 0); // status
+            stream.Write((byte) _emblemStreamStatus); // status
 
             return stream;
         }

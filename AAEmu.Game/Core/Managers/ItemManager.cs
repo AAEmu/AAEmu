@@ -1004,6 +1004,10 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+                
+                // HACKFIX FOR CREST INK
+                var uccItemTemplate = new UccTemplate {Id = 17663};
+                _templates.Add(uccItemTemplate.Id, uccItemTemplate);
 
                 using (var command = connection.CreateCommand())
                 {
