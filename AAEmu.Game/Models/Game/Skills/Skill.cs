@@ -91,7 +91,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 return;//We should try to make sure this doesnt happen
 
             TlId = SkillManager.Instance.NextId();
-            _log.Warn(TlId);
             if (Template.Plot != null)
             {
                 Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
@@ -354,11 +353,7 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.BroadcastPacket(new SCSkillStoppedPacket(caster.ObjId, Id), true);
             caster.AutoAttackTask = null;
             caster.IsAutoAttack = false; // turned off auto attack
-<<<<<<< Updated upstream
-            TlIdManager.Instance.ReleaseId(TlId);
-=======
             SkillManager.Instance.ReleaseId(TlId);
->>>>>>> Stashed changes
         }
 
         public void StartChanneling(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -631,11 +626,7 @@ namespace AAEmu.Game.Models.Game.Skills
             }
 
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
-<<<<<<< Updated upstream
-            TlIdManager.Instance.ReleaseId(TlId);
-=======
             SkillManager.Instance.ReleaseId(TlId);
->>>>>>> Stashed changes
 
             if (caster is Character character1 && character1.IgnoreSkillCooldowns)
                 character1.ResetSkillCooldown(Template.Id, false);
@@ -655,11 +646,7 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.BroadcastPacket(new SCCastingStoppedPacket(TlId, 0), true);
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             caster.SkillTask = null;
-<<<<<<< Updated upstream
-            TlIdManager.Instance.ReleaseId(TlId);
-=======
             SkillManager.Instance.ReleaseId(TlId);
->>>>>>> Stashed changes
 
             if (caster is Character character && character.IgnoreSkillCooldowns)
                 character.ResetSkillCooldown(Template.Id, false);
