@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Managers
             while(true)
             {
                 OnTick.Invoke();
-                Thread.Sleep(200);
+                Thread.Sleep(20);
             }
         }
 
@@ -30,31 +30,40 @@ namespace AAEmu.Game.Core.Managers
         {
             var TickThread = new Thread(TickLoop);
             TickThread.Start();
+            OnTick.Subscribe(Test, TimeSpan.FromMilliseconds(200));
+        }
+
+        public static void Test(TimeSpan delta)
+        {
+            _log.Warn("Test Delta: {0}", delta.TotalMilliseconds);
         }
     }
 
     public class TickEventEntity
     {
-        public TickEventHandler.OnTickEvent Event;
-        public TimeSpan LastExecution;
+        public TickEventHandler.OnTickEvent Event { get; }
+        public TimeSpan LastExecution {get; set;}
+        public TimeSpan TickRate { get; }
 
-        public TickEventEntity(TickEventHandler.OnTickEvent ev)
+        public TickEventEntity(TickEventHandler.OnTickEvent ev, TimeSpan tickRate)
         {
             Event = ev;
+            TickRate = tickRate;
         }
     }
     public class TickEventHandler
     {
         public delegate void OnTickEvent(TimeSpan delta);
         private List<TickEventEntity> _eventList;
-        private Queue<OnTickEvent> _eventsToAdd;
+        private Queue<TickEventEntity> _eventsToAdd;
         private Queue<OnTickEvent> _eventsToRemove;
         private Stopwatch _sw;
+        private object _lock = new object();
 
         public TickEventHandler()
         {
             _eventList = new List<TickEventEntity>();
-            _eventsToAdd = new Queue<OnTickEvent>();
+            _eventsToAdd = new Queue<TickEventEntity>();
             _eventsToRemove = new Queue<OnTickEvent>();
             _sw = new Stopwatch();
             _sw.Start();
@@ -62,12 +71,12 @@ namespace AAEmu.Game.Core.Managers
 
         public void Invoke()
         {
-            lock (_eventsToAdd)
+            lock (_lock)
             {
                 while (_eventsToAdd.Count > 0)
                 {
                     var ev = _eventsToAdd.Dequeue();
-                    _eventList.Add(new TickEventEntity(ev));
+                    _eventList.Add(ev);
                 }
                 while (_eventsToRemove.Count > 0)
                 {
@@ -81,26 +90,39 @@ namespace AAEmu.Game.Core.Managers
             foreach (var ev in _eventList)
             {
                 var delta = _sw.Elapsed - ev.LastExecution;
-                ev.LastExecution = _sw.Elapsed;
-                ev.Event(delta);
+                if (delta > ev.TickRate)
+                {
+                    ev.LastExecution = _sw.Elapsed;
+                    ev.Event(delta);
+                }
+            }
+        }
+
+        public void Subscribe(OnTickEvent tickEvent, TimeSpan tickRate = default)
+        {
+            lock (_lock)
+            {
+                _eventsToAdd.Enqueue(new TickEventEntity(tickEvent, tickRate));
+            }
+        }
+
+        public void UnSubscribe(OnTickEvent tickEvent)
+        {
+            lock (_lock)
+            {
+                _eventsToRemove.Enqueue(tickEvent);
             }
         }
 
         public static TickEventHandler operator +(TickEventHandler handler, OnTickEvent tickEvent)
         {
-            lock (handler._eventsToAdd)
-            {
-                handler._eventsToAdd.Enqueue(tickEvent);
-            }
+            handler.Subscribe(tickEvent);
             return handler;
         }
 
         public static TickEventHandler operator -(TickEventHandler handler, OnTickEvent tickEvent)
         {
-            lock (handler._eventsToAdd)
-            {
-                handler._eventsToRemove.Enqueue(tickEvent);
-            }
+            handler.UnSubscribe(tickEvent);
             return handler;
         }
     }
