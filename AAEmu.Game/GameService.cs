@@ -53,7 +53,6 @@ namespace AAEmu.Game
             MailIdManager.Instance.Initialize();
 
             GameDataManager.Instance.LoadGameData();
-            GameDataManager.Instance.PostLoadGameData();
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
             QuestManager.Instance.Load();
@@ -112,6 +111,7 @@ namespace AAEmu.Game
             SpecialtyManager.Instance.Initialize();
             BoatPhysicsManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
+            GameDataManager.Instance.PostLoadGameData();
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
 

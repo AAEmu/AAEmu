@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
@@ -67,6 +68,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public float TargetHealthMul { get; set; }
         public int TargetHealthAdd { get; set; }
         public bool FireProc { get; set; }
+        public List<BonusTemplate> Bonuses { get; set; } = new List<BonusTemplate>();
 
         public override bool OnActionTime => false;
 
@@ -81,6 +83,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 return;
             }
+
+            if (Bonuses != null)
+            {
+                foreach(var bonus in Bonuses)
+                {
+                    caster.AddBonus(2, new Bonus { Template = bonus, Value = bonus.Value });
+                }
+            }
+
+            _log.Warn("CriticalRate: {0}", caster.GetAttribute(UnitAttribute.MeleeCritical));
 
             trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackedEtc);
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackEtc);
@@ -342,6 +354,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
+
+            if (Bonuses != null)
+            {
+                caster.Bonuses[2] = new List<Bonus>();
+            }
 
             if (caster.GetRelationStateTo(trg) == RelationState.Friendly)
             {

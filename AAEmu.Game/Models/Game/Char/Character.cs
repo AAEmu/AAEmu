@@ -613,6 +613,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.MeleeCritical);
                 res = res * (1f / Facets) * 100;
+                res = res + (MeleeCriticalMul / 10);
                 return (float)res;
             }
         }
@@ -671,6 +672,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.RangedCritical);
                 res = res * (1f / Facets) * 100;
+                res = res + (RangedCriticalMul / 10);
                 return (float)res;
             }
         }
@@ -728,6 +730,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.SpellCritical);
                 res = res * (1f / Facets) * 100;
+                res = res + (SpellCriticalMul / 10);
                 return (float)res;
             }
         }
