@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -188,6 +189,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             //Should we check if it was a channeled skill?
             if (state.CancellationRequested())
                 state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
+
+            SkillManager.Instance.ReleaseId(state.ActiveSkill.TlId);
         }
     }
 }

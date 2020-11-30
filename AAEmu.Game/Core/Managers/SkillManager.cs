@@ -35,11 +35,41 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
         private Dictionary<uint, SkillReagent> _skillReagents;
         private Dictionary<uint, SkillProduct> _skillProducts;
+        private HashSet<ushort> _skillIds = new HashSet<ushort>();
+        private ushort _skillIdIndex = 1;
         /**
          * Events
          */
         public event EventHandler OnSkillsLoaded;
 
+
+        public ushort NextId()
+        {
+            lock (_skillIds)
+            {
+                var id = _skillIdIndex;
+                while (_skillIds.Contains(id))
+                {
+                    if (id == ushort.MaxValue)
+                        id = 1;
+                    else
+                        id++;
+                }
+                _skillIds.Add(id);
+                _skillIdIndex = (ushort)(id + 1u);
+                if (_skillIdIndex == 0)
+                    _skillIdIndex = 1;
+                return id;
+            }
+        }
+
+        public void ReleaseId(ushort id)
+        {
+            lock (_skillIds)
+            {
+                _skillIds.Remove(id);
+            }
+        }
 
         public SkillTemplate GetSkillTemplate(uint id)
         {
