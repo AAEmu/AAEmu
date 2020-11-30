@@ -35,7 +35,7 @@ namespace AAEmu.Game.Core.Managers
 
         public static void Test(TimeSpan delta)
         {
-            _log.Warn("Test Delta: {0}", delta.TotalMilliseconds);
+            // _log.Warn("Test Delta: {0}", delta.TotalMilliseconds);
         }
     }
 

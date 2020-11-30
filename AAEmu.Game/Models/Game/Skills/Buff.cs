@@ -16,14 +16,15 @@ namespace AAEmu.Game.Models.Game.Skills
         Finished
     }
 
-    public class Effect
+    public class Buff
     {
         private object _lock = new object();
         private int _count;
 
         public uint Index { get; set; }
         public Skill Skill { get; set; }
-        public EffectTemplate Template { get; set; }
+        // public EffectTemplate Template { get; set; }
+        public BuffTemplate Template { get; set; }
         public Unit Caster { get; set; }
         public SkillCaster SkillCaster { get; set; }
         public BaseUnit Owner { get; set; }
@@ -39,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public BuffEvents Events { get;}
         public BuffTriggersHandler Triggers { get;}
 
-        public Effect(BaseUnit owner, Unit caster, SkillCaster skillCaster, EffectTemplate template, Skill skill, DateTime time)
+        public Buff(BaseUnit owner, Unit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
         {
             Owner = owner;
             Caster = caster;
@@ -164,7 +165,7 @@ namespace AAEmu.Game.Models.Game.Skills
             lock (_lock)
             {
                 Triggers.UnsubscribeEvents();
-                Owner.Effects.RemoveEffect(this);
+                Owner.Buffs.RemoveEffect(this);
                 Template.Dispel(Caster, Owner, this, replace);
             }
         }
@@ -201,18 +202,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void WriteData(PacketStream stream)
         {
-            switch (Template)
-            {
-                case BuffEffect buffEffect:
-                    stream.WritePisc(Charge, /*buffEffect.Buff.GetDuration(AbLevel)*/Duration / 10, 0, (long)(buffEffect.Buff.Tick / 10));
-                    break;
-                case BuffTemplate buffTemplate:
-                    stream.WritePisc(Charge, /*buffTemplate.GetDuration(AbLevel)*/ Duration / 10, 0, (long)(buffTemplate.Tick / 10));
-                    break;
-                default:
-                    Template.WriteData(stream, AbLevel);
-                    break;
-            }
+            stream.WritePisc(Charge, Duration / 10, 0, (long)(Template.Tick / 10));
         }
         
         /// <summary>

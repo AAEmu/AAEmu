@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
         public override void Execute(object sender, EventArgs eventArgs)
         {
             var args = eventArgs as OnBuffStartedArgs;
-            _log.Warn("Buff[{0}] {1} executed. Applying {2}[{3}]!", _effect?.Template?.BuffId, this?.GetType()?.Name, Template?.Effect?.GetType().Name, Template?.Effect?.Id);
+            _log.Warn("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, this?.GetType()?.Name, Template?.Effect?.GetType().Name, Template?.Effect?.Id);
             _log.Info("test");//Template.Effect.Apply()
 
             if (!(_owner is Unit owner))
@@ -21,24 +21,24 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
                 return;
             }
 
-            var target = _effect.Owner;
-            owner = (Unit)_effect.Owner;
+            var target = _buff.Owner;
+            owner = (Unit)_buff.Owner;
             if (Template.EffectOnSource)
             {
-                target = (Unit)_effect.Caster;
+                target = (Unit)_buff.Caster;
                 //do what?
             }
             if (Template.UseOriginalSource)
             {
-                owner = (Unit)_effect.Caster;
+                owner = (Unit)_buff.Caster;
             }
 
-            Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_effect),
+            Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
                 new EffectSource(), // TODO : EffectSource Type trigger 
                 null, DateTime.Now);
         }
 
-        public StartedBuffTrigger(Effect owner, BuffTriggerTemplate template) : base(owner, template)
+        public StartedBuffTrigger(Buff owner, BuffTriggerTemplate template) : base(owner, template)
         {
 
         }

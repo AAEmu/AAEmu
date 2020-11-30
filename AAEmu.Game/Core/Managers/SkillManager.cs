@@ -26,6 +26,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, PassiveBuffTemplate> _passiveBuffs;
         private Dictionary<uint, EffectType> _types;
         private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
+        private Dictionary<uint, BuffTemplate> _buffs;
         private Dictionary<uint, List<uint>> _buffTags;
         private Dictionary<uint, List<uint>> _taggedBuffs;
         private Dictionary<uint, List<uint>> _skillTags;
@@ -100,8 +101,11 @@ namespace AAEmu.Game.Core.Managers
 
         public BuffTemplate GetBuffTemplate(uint id)
         {
-            if(_effects["Buff"].ContainsKey(id))
-                return (BuffTemplate)_effects["Buff"][id];
+            // if(_effects["Buff"].ContainsKey(id))
+            //     return (BuffTemplate)_effects["Buff"][id];
+            // return null;
+            if (_buffs.ContainsKey(id))
+                return _buffs[id];
             return null;
         }
 
@@ -260,6 +264,7 @@ namespace AAEmu.Game.Core.Managers
             _effects.Add("TrainCraftEffect", new Dictionary<uint, EffectTemplate>());
             _effects.Add("SkillController", new Dictionary<uint, EffectTemplate>());
             _effects.Add("ResetAoeDiminishingEffect", new Dictionary<uint, EffectTemplate>());
+            _buffs = new Dictionary<uint, BuffTemplate>();
             // TODO 
             /*
                 "CinemaEffect"
@@ -631,7 +636,8 @@ namespace AAEmu.Game.Core.Managers
                             template.FreezeShip = reader.GetBoolean("freeze_ship", true);
                             template.CrowdFriendly = reader.GetBoolean("crowd_friendly", true);
                             template.CrowdHostile = reader.GetBoolean("crowd_hostile", true);
-                            _effects["Buff"].Add(template.Id, template);
+                            // _effects["Buff"].Add(template.Id, template);
+                            _buffs.Add(template.Id, template);
                         }
                     }
                 }
@@ -646,8 +652,8 @@ namespace AAEmu.Game.Core.Managers
                             var template = new BuffEffect();
                             template.Id = reader.GetUInt32("id");
                             var buffId = reader.GetUInt32("buff_id");
-                            if (_effects["Buff"].ContainsKey(buffId))
-                                template.Buff = (BuffTemplate)_effects["Buff"][buffId];
+                            if (_buffs.ContainsKey(buffId))
+                                template.Buff = _buffs[buffId];
                             template.Chance = reader.GetInt32("chance");
                             template.Stack = reader.GetInt32("stack");
                             template.AbLevel = reader.GetInt32("ab_level");
@@ -664,7 +670,7 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("buff_id");
-                            var template = (BuffTemplate)_effects["Buff"][buffId];
+                            var template = _buffs[buffId];
                             template.TickEffect = new TickEffect();
                             template.TickEffect.EffectId = reader.GetUInt32("effect_id");
                             template.TickEffect.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
@@ -681,9 +687,9 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("owner_id");
-                            if (!_effects["Buff"].ContainsKey(buffId))
+                            if (!_buffs.ContainsKey(buffId))
                                 continue;
-                            var buff = (BuffTemplate)_effects["Buff"][buffId];
+                            var buff = _buffs[buffId];
                             var template = new BonusTemplate();
                             template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
                             template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");
@@ -702,9 +708,9 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("buff_id");
-                            if (!_effects["Buff"].ContainsKey(buffId))
+                            if (!_buffs.ContainsKey(buffId))
                                 continue;
-                            var buff = (BuffTemplate)_effects["Buff"][buffId];
+                            var buff = _buffs[buffId];
                             var template = new DynamicBonusTemplate();
                             template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
                             template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");

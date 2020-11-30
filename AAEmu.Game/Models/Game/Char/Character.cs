@@ -1189,7 +1189,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (!moved)
                 return;
-            Effects.TriggerRemoveOn(BuffRemoveOn.Move);
+            Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
 
             if (Position.ZoneId == lastZoneKey)
                 return;

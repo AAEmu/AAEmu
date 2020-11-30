@@ -82,7 +82,7 @@ namespace AAEmu.Game.Models.Game.Units
                 var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
                 //if (cb.BuffToSource)
                 
-                _owner.Effects.AddEffect(new Effect(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.Now));
+                _owner.Buffs.AddBuff(new Buff(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.Now));
             }
         }
     }

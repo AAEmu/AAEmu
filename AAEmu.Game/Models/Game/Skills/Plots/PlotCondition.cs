@@ -117,7 +117,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             //     return caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
             // else if (eventCondition.TargetId == PlotEffectTarget.Target)
             //     return target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
-            return target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
+            return target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
         }
 
         private static bool ConditionWeaponEquipStatus(Unit caster, SkillCaster casterCaster, BaseUnit target,

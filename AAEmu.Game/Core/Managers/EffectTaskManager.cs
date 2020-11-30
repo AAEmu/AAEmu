@@ -10,11 +10,11 @@ namespace AAEmu.Game.Core.Managers
         /// <summary>
         /// Pre-Variant of dispel effects...
         /// </summary>
-        /// <param name="effect"></param>
+        /// <param name="buff"></param>
         /// <param name="interval">milliseconds</param>
-        public void AddDispelTask(Effect effect, double interval)
+        public void AddDispelTask(Buff buff, double interval)
         {
-            var task = new DispelTask(effect);
+            var task = new DispelTask(buff);
             TaskManager.Instance.Schedule(task, TimeSpan.FromMilliseconds(interval)); // TODO create normal effect schedule
         }
     }

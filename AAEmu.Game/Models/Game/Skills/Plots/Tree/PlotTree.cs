@@ -173,7 +173,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         {
             foreach(var pair in state.ChanneledBuffs)
             {
-                pair.unit.Effects.RemoveBuff(pair.buffId);
+                pair.unit.Buffs.RemoveBuff(pair.buffId);
             }
         }
 

@@ -175,7 +175,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (Hp <= 0)
                 return;
 
-            var absorptionEffects = Effects.GetAbsorptionEffects().ToList();
+            var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
             if (absorptionEffects.Count > 0)
             {
                 // Handle damage absorb
@@ -215,7 +215,7 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual void DoDie(Unit killer)
         {
             InterruptSkills();
-            Effects.RemoveEffectsOnDeath();
+            Buffs.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
             var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
             if (lootDropItems.Count > 0)
@@ -301,11 +301,11 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.RETRIBUTION_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
-                Effects.AddEffect(new Effect(this, this, casterObj, buff, null, DateTime.Now));
+                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
             }
             else
             {
-                Effects.RemoveBuff((uint) BuffConstants.RETRIBUTION_BUFF);
+                Buffs.RemoveBuff((uint) BuffConstants.RETRIBUTION_BUFF);
             }
         }
 
@@ -316,11 +316,11 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.BLOODLUST_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
-                Effects.AddEffect(new Effect(this, this, casterObj, buff, null, DateTime.Now));
+                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
             }
             else
             {
-                Effects.RemoveBuff((uint) BuffConstants.BLOODLUST_BUFF);
+                Buffs.RemoveBuff((uint) BuffConstants.BLOODLUST_BUFF);
             }
             BroadcastPacket(new SCForceAttackSetPacket(ObjId, ForceAttack), true);
         }

@@ -20,9 +20,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         {
             var template = SkillManager.Instance.GetEffectTemplate(ActualId, ActualType);
 
-            var buffTemplate = template as BuffTemplate;
             var buffEffect = template as BuffEffect;
-            if (buffTemplate != null || buffEffect != null)
+            if (buffEffect != null)
                 flag = 6; //idk what this does?  
 
             Unit source;
@@ -68,13 +67,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                         throw new InvalidOperationException("This can't happen");
                 }
 
-                if (channeled && (buffTemplate != null || buffEffect != null))
-                {
-                    if (buffTemplate != null)
-                        state.ChanneledBuffs.Add((target, buffTemplate.BuffId));
-                    else if (buffEffect != null)
-                        state.ChanneledBuffs.Add((target, buffEffect.BuffId));
-                }
+                if (channeled && buffEffect != null)
+                    state.ChanneledBuffs.Add((target, buffEffect.BuffId));
 
                 template.Apply(
                     source,

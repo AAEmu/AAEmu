@@ -82,10 +82,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             }
 
-            trg.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackedEtc);
-            caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackEtc);
+            trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackedEtc);
+            caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackEtc);
 
-            if (target.Effects.CheckDamageImmune(DamageType))
+            if (target.Buffs.CheckDamageImmune(DamageType))
             {
                 target.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 1, 0)
                 {
@@ -256,19 +256,19 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
                 max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
 
-                caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtcDot);
-                trg.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtcDot);
+                caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtcDot);
+                trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtcDot);
 
                 if (DamageType == DamageType.Magic)
                 {
-                    caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageSpellDot);
-                    trg.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedSpellDot);
+                    caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageSpellDot);
+                    trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedSpellDot);
                 }
             }
             
             if (UseChargedBuff && source.Skill != null)
             {
-                var effect = caster.Effects.GetEffectFromBuffId(ChargedBuffId);
+                var effect = caster.Buffs.GetEffectFromBuffId(ChargedBuffId);
                 var charges = effect?.Charge ?? 0;
                 
                 min = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
@@ -278,7 +278,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (UseTargetChargedBuff && source.Skill != null)
             {
-                var effect = target.Effects.GetEffectFromBuffId(ChargedBuffId);
+                var effect = target.Buffs.GetEffectFromBuffId(ChargedBuffId);
                 var charges = effect?.Charge ?? 0;
                 
                 min = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
@@ -289,7 +289,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var finalDamage = Rand.Next(min, max);
             
             // Buff tag increase (Hellspear's impale combo, for ex)
-            if (TargetBuffTagId > 0 && target.Effects.CheckBuffTag(TargetBuffTagId))
+            if (TargetBuffTagId > 0 && target.Buffs.CheckBuffTag(TargetBuffTagId))
             {
                 // TODO TargetBuffBonus ? (used in 3 DamageEffects)
                 finalDamage *= TargetBuffBonusMul;
@@ -345,7 +345,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (caster.GetRelationStateTo(trg) == RelationState.Friendly)
             {
-                if (!trg.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF))
+                if (!trg.Buffs.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF))
                 {
                     caster.SetCriminalState(true);
                 }
@@ -404,9 +404,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 caster.Events.OnDamage(this, new OnDamageArgs {
                     Attacker = caster 
                 });
-                caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtc);
+                caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtc);
                 trg.Events.OnDamaged(this, new OnDamagedArgs { });
-                trg.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtc);
+                trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtc);
             }
         }
     }

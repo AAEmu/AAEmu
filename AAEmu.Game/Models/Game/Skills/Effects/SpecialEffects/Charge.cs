@@ -16,19 +16,19 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             lock (caster.ChargeLock)
             {
-                var buff = caster.Effects.GetEffectFromBuffId((uint)buffId);
+                var buff = caster.Buffs.GetEffectFromBuffId((uint)buffId);
                 var template = SkillManager.Instance.GetBuffTemplate((uint)buffId);
 
                 var chargeDelta = Rand.Next(minCharge, maxCharge);
                 var oldCharge = buff?.Charge ?? 0;
 
                 var newEffect =
-                    new Effect(target, caster, casterObj, template, skill, time)
+                    new Buff(target, caster, casterObj, template, skill, time)
                     {
                         Charge = Math.Min(chargeDelta, template.MaxCharge)
                     };
                 
-                caster.Effects.AddEffect(newEffect, buff?.Index ?? 0);
+                caster.Buffs.AddBuff(newEffect, buff?.Index ?? 0);
 
                 var newCharge = Math.Min(oldCharge + chargeDelta, template.MaxCharge);
                 newEffect.Charge = newCharge;

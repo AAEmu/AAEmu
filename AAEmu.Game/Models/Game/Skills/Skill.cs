@@ -78,7 +78,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
-            caster.Effects.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill);
+            caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill);
 
             if (skillObject == null)
             {
@@ -101,7 +101,7 @@ namespace AAEmu.Game.Models.Game.Skills
             // TODO : Add check for range
             var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
 
-            var effects = caster.Effects.GetEffectsByType(typeof(BuffTemplate));
+            var effects = caster.Buffs.GetEffectsByType(typeof(BuffTemplate));
             foreach (var effect in effects)
             {
                 if (((BuffTemplate)effect.Template).RemoveOnStartSkill || ((BuffTemplate)effect.Template).RemoveOnUseSkill)
@@ -109,10 +109,10 @@ namespace AAEmu.Game.Models.Game.Skills
                     effect.Exit();
                 }
             }
-            effects = caster.Effects.GetEffectsByType(typeof(BuffEffect));
+            effects = caster.Buffs.GetEffectsByType(typeof(BuffEffect));
             foreach (var effect in effects)
             {
-                if (((BuffEffect)effect.Template).Buff.RemoveOnStartSkill || ((BuffEffect)effect.Template).Buff.RemoveOnUseSkill)
+                if (effect.Template.RemoveOnStartSkill)
                 {
                     effect.Exit();
                 }
@@ -382,11 +382,11 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.SkillTask = null;
             if (Template.ChannelingBuffId != 0)
             {
-                caster.Effects.RemoveEffect(Template.ChannelingBuffId, Template.Id);
+                caster.Buffs.RemoveEffect(Template.ChannelingBuffId, Template.Id);
             }
             if (Template.ChannelingTargetBuffId != 0)
             {
-                InitialTarget.Effects.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
+                InitialTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
             }
 
             channelDoodad?.Delete();
@@ -512,22 +512,22 @@ namespace AAEmu.Game.Models.Game.Skills
                         continue;
                     }
 
-                    if (effect.SourceBuffTagId > 0 && !caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
+                    if (effect.SourceBuffTagId > 0 && !caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
                     {
                         continue;
                     }
 
-                    if (effect.SourceNoBuffTagId > 0 && caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceNoBuffTagId)))
+                    if (effect.SourceNoBuffTagId > 0 && caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceNoBuffTagId)))
                     {
                         continue;
                     }
 
-                    if (effect.TargetBuffTagId > 0 && !target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
+                    if (effect.TargetBuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
                     {
                         continue;
                     }
 
-                    if (effect.TargetNoBuffTagId > 0 && target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
+                    if (effect.TargetNoBuffTagId > 0 && target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
                     {
                         continue;
                     }
@@ -641,7 +641,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
             if (Template.ToggleBuffId != 0)
             {
-                caster.Effects.RemoveEffect(Template.ToggleBuffId, Template.Id);
+                caster.Buffs.RemoveEffect(Template.ToggleBuffId, Template.Id);
             }
             caster.BroadcastPacket(new SCCastingStoppedPacket(TlId, 0), true);
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
@@ -662,7 +662,7 @@ namespace AAEmu.Game.Models.Game.Skills
             var damageType = (DamageType)Template.DamageTypeId;
             var bullsEyeMod = (((attacker.BullsEye / 1000f) * 3f) / 100f);
 
-            if (target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
+            if (target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
                 return SkillHitType.Immune;
 
             //Idk if this is right. Double check it
@@ -688,8 +688,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 if (damageType == DamageType.Melee)
                     return SkillHitType.MeleeParry;
                 if(damageType == DamageType.Ranged 
-                    && target.Effects.CheckBuff((uint)BuffConstants.EQUIP_DUALWIELD_BUFF)
-                    && target.Effects.CheckBuff((uint)BuffConstants.DUALWIELD_PROFICIENCY))
+                    && target.Buffs.CheckBuff((uint)BuffConstants.EQUIP_DUALWIELD_BUFF)
+                    && target.Buffs.CheckBuff((uint)BuffConstants.DUALWIELD_PROFICIENCY))
                 {
                     return SkillHitType.MeleeParry;
                 }

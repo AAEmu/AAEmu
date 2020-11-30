@@ -14,10 +14,10 @@ namespace AAEmu.Game.Models.Game.Skills
     public class BuffTriggersHandler
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        private Effect _owner;
+        private Buff _owner;
         private List<BuffTrigger> _triggers;
 
-        public BuffTriggersHandler(Effect buff)
+        public BuffTriggersHandler(Buff buff)
         {
             _triggers = new List<BuffTrigger>();
             _owner = buff;
@@ -25,13 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void SubscribeEvents()
         {
-            uint buffId;
-            if (_owner.Template is BuffEffect buffEffect)
-                buffId = buffEffect.BuffId;
-            else if (_owner.Template is BuffTemplate buffTemplate)
-                buffId = buffTemplate.BuffId;
-            else
-                return;
+            uint buffId = _owner.Template.BuffId;
 
             var triggerTemplates = SkillManager.Instance.GetBuffTriggerTemplates(buffId);
 

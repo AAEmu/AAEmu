@@ -112,13 +112,13 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
             {
-                var effects = unit.Effects.GetEffectsByType(typeof(BuffTemplate));
+                var effects = unit.Buffs.GetEffectsByType(typeof(BuffTemplate));
                 foreach (var effect in effects)
                     if (((BuffTemplate)effect.Template).RemoveOnMove)
                         effect.Exit();
-                effects = unit.Effects.GetEffectsByType(typeof(BuffEffect));
+                effects = unit.Buffs.GetEffectsByType(typeof(BuffEffect));
                 foreach (var effect in effects)
-                    if (((BuffEffect)effect.Template).Buff.RemoveOnMove)
+                    if (effect.Template.RemoveOnMove)
                         effect.Exit();
             }
         }

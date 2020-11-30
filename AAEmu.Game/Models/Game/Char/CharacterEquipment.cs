@@ -39,9 +39,9 @@ namespace AAEmu.Game.Models.Game.Char
 
         private void ApplyWeaponWieldBuff()
         {
-            Effects.RemoveBuff((uint)BuffConstants.EQUIP_DUALWIELD_BUFF);
-            Effects.RemoveBuff((uint)BuffConstants.EQUIP_SHIELD_BUFF);
-            Effects.RemoveBuff((uint)BuffConstants.EQUIP_TWOHANDED_BUFF);
+            Buffs.RemoveBuff((uint)BuffConstants.EQUIP_DUALWIELD_BUFF);
+            Buffs.RemoveBuff((uint)BuffConstants.EQUIP_SHIELD_BUFF);
+            Buffs.RemoveBuff((uint)BuffConstants.EQUIP_TWOHANDED_BUFF);
 
             BuffTemplate buffTemplate = null;
             switch (GetWeaponWieldKind())
@@ -66,8 +66,8 @@ namespace AAEmu.Game.Models.Game.Char
 
             if(buffTemplate != null)
             {
-                var effect = new Effect(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now);
-                Effects.AddEffect(effect);
+                var effect = new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now);
+                Buffs.AddBuff(effect);
             }
 
         }
@@ -106,7 +106,7 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     if (setCount.Value >= bonus.NumPieces)
                     {
-                        if (Effects.CheckBuff(bonus.BuffId))
+                        if (Buffs.CheckBuff(bonus.BuffId))
                         {
                             appliedBuffs.Add(bonus.BuffId);
                             continue;
@@ -114,17 +114,17 @@ namespace AAEmu.Game.Models.Game.Char
                         var buffTemplate = SkillManager.Instance.GetBuffTemplate(bonus.BuffId);
 
                         var newEffect =
-                            new Effect(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now)
+                            new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now)
                             {
                                 AbLevel = itemLevels[setCount.Key]
                             };
-                        Effects.AddEffect(newEffect);
+                        Buffs.AddBuff(newEffect);
                         appliedBuffs.Add(bonus.BuffId);
                     }
                     else //This needs to be revised? Will we ever remove more than 1 item at a time?
                     {
-                        if (Effects.CheckBuff(bonus.BuffId) && !appliedBuffs.Contains(bonus.BuffId))
-                            Effects.RemoveBuff(bonus.BuffId);
+                        if (Buffs.CheckBuff(bonus.BuffId) && !appliedBuffs.Contains(bonus.BuffId))
+                            Buffs.RemoveBuff(bonus.BuffId);
                     }
                 }
             }
@@ -133,7 +133,7 @@ namespace AAEmu.Game.Models.Game.Char
         private void ApplyArmorGradeBuff()
         {
             // Clear any existing armor grade buffs
-            Effects.RemoveBuffs(145, 1);
+            Buffs.RemoveBuffs(145, 1);
             
             // Get armor pieces by kind
             var armorPieces = new Dictionary<ArmorType, List<Armor>>();
@@ -186,12 +186,12 @@ namespace AAEmu.Game.Models.Game.Char
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(armorGradeBuff.BuffId);
                 
                 var newEffect =
-                    new Effect(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
+                    new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
                     {
                         AbLevel = (uint) gradeBuffAbLevel
                     };
 
-                Effects.AddEffect(newEffect);
+                Buffs.AddBuff(newEffect);
             }
         }
 
@@ -199,9 +199,9 @@ namespace AAEmu.Game.Models.Game.Char
         {
             if(itemRemoved != null && itemRemoved.Template.BuffId != 0) // remove previous buff
             {
-                if(Effects.CheckBuff(itemRemoved.Template.BuffId))
+                if(Buffs.CheckBuff(itemRemoved.Template.BuffId))
                 {
-                    Effects.RemoveBuff(itemRemoved.Template.BuffId);
+                    Buffs.RemoveBuff(itemRemoved.Template.BuffId);
                 }
             }
 
@@ -209,12 +209,12 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(itemAdded.Template.BuffId);
                 var newEffect =
-                    new Effect(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
+                    new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                     {
                         AbLevel = 1
                     };
 
-                Effects.AddEffect(newEffect);
+                Buffs.AddBuff(newEffect);
             }
 
             if(itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 
@@ -225,12 +225,12 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         var buffTemplate = SkillManager.Instance.GetBuffTemplate(item.Template.BuffId);
                         var newEffect =
-                            new Effect(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
+                            new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                             {
                                 AbLevel = 1
                             };
 
-                        Effects.AddEffect(newEffect);
+                        Buffs.AddBuff(newEffect);
                     }
                 }
             }

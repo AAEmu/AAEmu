@@ -10,50 +10,40 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Units
 {
-    public class Effects
+    public class Buffs
     {
         private readonly object _lock = new object();
         private uint _nextIndex;
 
         private WeakReference _owner;
-        private readonly List<Effect> _effects;
+        private readonly List<Buff> _effects;
 
-        public Effects()
+        public Buffs()
         {
             _nextIndex = 1;
-            _effects = new List<Effect>();
+            _effects = new List<Buff>();
         }
 
-        public Effects(BaseUnit owner)
+        public Buffs(BaseUnit owner)
         {
             SetOwner(owner);
             _nextIndex = 1;
-            _effects = new List<Effect>();
+            _effects = new List<Buff>();
         }
 
         public bool CheckBuffImmune(uint buffId)
         {
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
             {
                 if (effect == null)
                     continue;
-                switch (effect.Template)
-                {
-                    case BuffTemplate template when template.ImmuneBuffTagId == 0:
-                        return false;
-                    case BuffTemplate template:
-                    {
-                        var buffs = SkillManager.Instance.GetBuffsByTagId(template.ImmuneBuffTagId);
-                        return buffs != null && buffs.Contains(buffId);
-                    }
-                    case BuffEffect buffEffect when buffEffect.Buff.ImmuneBuffTagId == 0:
-                        return false;
-                    case BuffEffect buffEffect:
-                    {
-                        var buffs = SkillManager.Instance.GetBuffsByTagId(buffEffect.Buff.ImmuneBuffTagId);
-                        return buffs != null && buffs.Contains(buffId);
-                    }
-                }
+
+                if (effect.Template.ImmuneBuffTagId == 0)
+                    continue;
+                
+                var buffs = SkillManager.Instance.GetBuffsByTagId(effect.Template.ImmuneBuffTagId);
+                if (buffs != null && buffs.Contains(buffId))
+                    return true;
             }
 
             return false;
@@ -61,15 +51,11 @@ namespace AAEmu.Game.Models.Game.Units
 
         public bool CheckDamageImmune(DamageType damageType)
         {
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
             {
                 if (effect == null)
                     continue;
-                BuffTemplate template = null;
-                if (effect.Template is BuffEffect buffEffect)
-                    template = buffEffect.Buff;
-                if (effect.Template is BuffTemplate buffTemplate)
-                    template = buffTemplate;
+                var template = effect.Template;
 
                 if (template == null)
                     continue;
@@ -96,26 +82,26 @@ namespace AAEmu.Game.Models.Game.Units
             return false;
         }
 
-        public List<Effect> GetEffectsByType(Type effectType)
+        public List<Buff> GetEffectsByType(Type effectType)
         {
-            var temp = new List<Effect>();
-            foreach (var effect in new List<Effect>(_effects))
+            var temp = new List<Buff>();
+            foreach (var effect in new List<Buff>(_effects))
                 if (effect.Template.GetType() == effectType)
                     temp.Add(effect);
             return temp;
         }
 
-        public Effect GetEffectByIndex(uint index)
+        public Buff GetEffectByIndex(uint index)
         {
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
                 if (effect.Index == index)
                     return effect;
             return null;
         }
 
-        public Effect GetEffectByTemplate(EffectTemplate template)
+        public Buff GetEffectByTemplate(BuffTemplate template)
         {
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
                 if (effect.Template == template)
                     return effect;
             return null;
@@ -123,7 +109,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public bool CheckBuff(uint id)
         {
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
                 if (effect != null && effect.Template.BuffId > 0 && effect.Template.BuffId == id)
                     return true;
             return false;
@@ -133,15 +119,15 @@ namespace AAEmu.Game.Models.Game.Units
         {
             var buffs= SkillManager.Instance.GetBuffsByTagId(tagId);
             
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
                 if (effect != null && buffs.Contains(effect.Template.BuffId))
                     return true;
             return false;
         }
         
-        public Effect GetEffectFromBuffId(uint id)
+        public Buff GetEffectFromBuffId(uint id)
         {
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
                 if (effect != null && effect.Template.BuffId > 0 && effect.Template.BuffId == id)
                     return effect;
             return null;
@@ -151,7 +137,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (ids == null)
                 return false;
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
                 if (effect != null && effect.Template.BuffId > 0 && ids.Contains(effect.Template.BuffId))
                     return true;
             return false;
@@ -160,58 +146,35 @@ namespace AAEmu.Game.Models.Game.Units
         public int GetBuffCountById(uint buffId)
         {
             var count = 0;
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
                 if (effect.Template.BuffId == buffId)
                     count++;
             return count;
         }
 
-        public void GetAllBuffs(List<Effect> goodBuffs, List<Effect> badBuffs, List<Effect> hiddenBuffs)
+        public void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs)
         {
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var buff in new List<Buff>(_effects))
             {
-                if (effect.Passive) continue;
-                switch (effect.Template)
+                if (buff.Passive) continue;
+                switch (buff.Template.Kind)
                 {
-                    case BuffTemplate template:
-                        switch (template.Kind)
-                        {
-                            case BuffKind.Good:
-                                goodBuffs.Add(effect);
-                                break;
-                            case BuffKind.Bad:
-                                badBuffs.Add(effect);
-                                break;
-                            case BuffKind.Hidden:
-                                hiddenBuffs.Add(effect);
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException();
-                        }
-
+                    case BuffKind.Good:
+                        goodBuffs.Add(buff);
                         break;
-                    case BuffEffect buffEffect:
-                        switch (buffEffect.Buff.Kind)
-                        {
-                            case BuffKind.Good:
-                                goodBuffs.Add(effect);
-                                break;
-                            case BuffKind.Bad:
-                                badBuffs.Add(effect);
-                                break;
-                            case BuffKind.Hidden:
-                                hiddenBuffs.Add(effect);
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException();
-                        }
-
+                    case BuffKind.Bad:
+                        badBuffs.Add(buff);
                         break;
+                    case BuffKind.Hidden:
+                        hiddenBuffs.Add(buff);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             }
         }
 
-        public void AddEffect(Effect effect, uint index = 0)
+        public void AddBuff(Buff buff, uint index = 0)
         {
             lock (_lock)
             {
@@ -219,94 +182,66 @@ namespace AAEmu.Game.Models.Game.Units
                 if (owner == null)
                     return;
 
-                effect.State = EffectState.Created;
+                buff.State = EffectState.Created;
                 if (index == 0)
                 {
-                    effect.Index = _nextIndex; // TODO need safe increment...
+                    buff.Index = _nextIndex; // TODO need safe increment...
 
                     if (++_nextIndex == uint.MaxValue)
                         _nextIndex = 1;
                 }
                 else
                 {
-                    effect.Index = index;
+                    buff.Index = index;
                 }
 
-                effect.Duration = effect.Template.GetDuration(effect.AbLevel);
-                if (effect.Template is BuffTemplate buffTempl)
+                buff.Duration = buff.Template.GetDuration(buff.AbLevel);
+                buff.Duration = (int) buff.Caster.BuffModifiersCache.ApplyModifiers(buff.Template,
+                    BuffAttribute.Duration, buff.Duration);
+                buff.Duration = (int) buff.Owner.BuffModifiersCache.ApplyModifiers(buff.Template,
+                    BuffAttribute.InDuration, buff.Duration);
+                
+                if (buff.Duration > 0 && buff.StartTime == DateTime.MinValue)
                 {
-                    effect.Duration = (int) effect.Caster.BuffModifiersCache.ApplyModifiers(buffTempl,
-                        BuffAttribute.Duration, effect.Duration);
-                    effect.Duration = (int) effect.Owner.BuffModifiersCache.ApplyModifiers(buffTempl,
-                        BuffAttribute.InDuration, effect.Duration);
-                } 
-                else if (effect.Template is BuffEffect buffEff)
-                {
-                    effect.Duration = (int) effect.Caster.BuffModifiersCache.ApplyModifiers(buffEff.Buff,
-                        BuffAttribute.Duration, effect.Duration);
-                    effect.Duration = (int) effect.Owner.BuffModifiersCache.ApplyModifiers(buffEff.Buff,
-                        BuffAttribute.InDuration, effect.Duration);
+                    buff.StartTime = DateTime.Now;
+                    buff.EndTime = buff.StartTime.AddMilliseconds(buff.Duration);
                 }
 
-                if (effect.Duration > 0 && effect.StartTime == DateTime.MinValue)
-                {
-                    effect.StartTime = DateTime.Now;
-                    effect.EndTime = effect.StartTime.AddMilliseconds(effect.Duration);
-                }
+                Buff last = null;
+                if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
+                    foreach (var e in new List<Buff>(_effects))
+                        if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                            if (e.GetTimeLeft() < buff.GetTimeLeft())
+                                last = e;
+                last?.Exit(index > 0 && last.Template.Id == buff.Template.Id);
 
-                switch (effect.Template)
-                {
-                    case BuffTemplate buffTemplate:
-                    {
-                        Effect last = null;
-                        if (buffTemplate.MaxStack > 0 && GetBuffCountById(effect.Template.BuffId) >= buffTemplate.MaxStack)
-                            foreach (var e in new List<Effect>(_effects))
-                                if (e != null && e.InUse && e.Template.BuffId == effect.Template.BuffId)
-                                    if (e.GetTimeLeft() < effect.GetTimeLeft())
-                                        last = e;
-                        last?.Exit(index > 0 && last.Template.Id == effect.Template.Id);
-                        break;
-                    }
-                    case BuffEffect buffEffect:
-                    {
-                        Effect last = null;
-                        if (buffEffect.Buff.MaxStack > 0 && GetBuffCountById(effect.Template.BuffId) >= buffEffect.Buff.MaxStack)
-                            foreach (var e in new List<Effect>(_effects))
-                                if (e != null && e.InUse && e.Template.BuffId == effect.Template.BuffId)
-                                    if (last == null || e.GetTimeLeft() < last.GetTimeLeft())
-                                        last = e;
-                        last?.Exit(index > 0 && last.Template.Id == effect.Template.Id);
-                        break;
-                    }
-                }
+                _effects.Add(buff);
+                buff.Triggers.SubscribeEvents();
+                buff.Events.OnBuffStarted(buff, new OnBuffStartedArgs());
 
-                _effects.Add(effect);
-                effect.Triggers.SubscribeEvents();
-                effect.Events.OnBuffStarted(effect, new OnBuffStartedArgs());
-
-                if (effect.Template.BuffId > 0)
+                if (buff.Template.BuffId > 0)
                 {
-                    var bufft = SkillManager.Instance.GetBuffTemplate(effect.Template.BuffId);
-                    owner.SkillModifiersCache.AddModifiers(effect.Template.BuffId);
-                    owner.BuffModifiersCache.AddModifiers(effect.Template.BuffId);
-                    owner.CombatBuffs.AddCombatBuffs(effect.Template.BuffId);
+                    var bufft = SkillManager.Instance.GetBuffTemplate(buff.Template.BuffId);
+                    owner.SkillModifiersCache.AddModifiers(buff.Template.BuffId);
+                    owner.BuffModifiersCache.AddModifiers(buff.Template.BuffId);
+                    owner.CombatBuffs.AddCombatBuffs(buff.Template.BuffId);
 
                     if (bufft.Stun || bufft.Silence || bufft.Sleep)
                         owner.InterruptSkills();
                 }
                 
-                if (effect.Duration > 0)
-                    effect.SetInUse(true, false);
+                if (buff.Duration > 0)
+                    buff.SetInUse(true, false);
                 else
                 {
-                    effect.InUse = true;
-                    effect.State = EffectState.Acting;
-                    effect.Template.Start(effect.Caster, owner, effect); // TODO поменять на target
+                    buff.InUse = true;
+                    buff.State = EffectState.Acting;
+                    buff.Template.Start(buff.Caster, owner, buff); // TODO поменять на target
                 }
             }
         }
 
-        public void RemoveEffect(Effect effect)
+        public void RemoveEffect(Buff buff)
         {
             lock (_lock)
             {
@@ -314,14 +249,14 @@ namespace AAEmu.Game.Models.Game.Units
                 if (own == null)
                     return;
 
-                if (effect == null || _effects == null || !_effects.Contains(effect))
+                if (buff == null || _effects == null || !_effects.Contains(buff))
                     return;
 
-                effect.SetInUse(false, false);
-                _effects.Remove(effect);
-                own.SkillModifiersCache.RemoveModifiers(effect.Template.BuffId);
-                own.BuffModifiersCache.RemoveModifiers(effect.Template.BuffId);
-                own.CombatBuffs.RemoveCombatBuff(effect.Template.BuffId);
+                buff.SetInUse(false, false);
+                _effects.Remove(buff);
+                own.SkillModifiersCache.RemoveModifiers(buff.Template.BuffId);
+                own.BuffModifiersCache.RemoveModifiers(buff.Template.BuffId);
+                own.CombatBuffs.RemoveCombatBuff(buff.Template.BuffId);
                 //effect.Triggers.UnsubscribeEvents();
             }
         }
@@ -334,7 +269,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (_effects != null)
             {
-                foreach (var e in new List<Effect>(_effects))
+                foreach (var e in new List<Buff>(_effects))
                 {
                     if (e != null && e.Template.Id == templateId && e.Skill.Template.Id == skillId)
                     {
@@ -358,7 +293,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (_effects != null)
             {
-                foreach (var e in new List<Effect>(_effects))
+                foreach (var e in new List<Buff>(_effects))
                 {
                     if (e != null && e.Index == index)
                     {
@@ -383,7 +318,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (_effects == null) 
                 return;
-            foreach (var e in new List<Effect>(_effects))
+            foreach (var e in new List<Buff>(_effects))
             {
                 if (e != null && e.Template.BuffId == buffId)
                 {
@@ -409,19 +344,10 @@ namespace AAEmu.Game.Models.Game.Units
             
             if (_effects == null)
                 return;
-            foreach (var e in new List<Effect>(_effects))
-                if (e != null)
+            foreach (var buff in new List<Buff>(_effects))
+                if (buff != null)
                 {
-                    BuffTemplate buffTemplate = null;
-                    switch (e.Template)
-                    {
-                        case BuffEffect buffEffect:
-                            buffTemplate = buffEffect.Buff;
-                            break;
-                        case BuffTemplate buffTempl:
-                            buffTemplate = buffTempl;
-                            break;
-                    }
+                    var buffTemplate = buff.Template;
 
                     if (buffTemplate == null)
                         continue;
@@ -433,7 +359,7 @@ namespace AAEmu.Game.Models.Game.Units
                     if (buffTagId > 0 && !taggedBuffs.Contains(buffTemplate.Id))
                         continue;
                     
-                    e.Exit();
+                    buff.Exit();
                     count--;
                     if (count == 0)
                         return;
@@ -450,15 +376,11 @@ namespace AAEmu.Game.Models.Game.Units
                 return;
 
             var buffIds = SkillManager.Instance.GetBuffsByTagId(buffTagId);
-            foreach (var e in new List<Effect>(_effects))
+            foreach (var e in new List<Buff>(_effects))
                 if (e != null)
                 {
-                    switch (e.Template)
-                    {
-                        case BuffTemplate template when !buffIds.Contains(template.Id):
-                        case BuffEffect effect when !buffIds.Contains(effect.Buff.Id):
-                            continue;
-                    }
+                    if (!buffIds.Contains(e.Template.BuffId))
+                        continue;
 
                     e.Exit();
                     count--;
@@ -473,22 +395,16 @@ namespace AAEmu.Game.Models.Game.Units
             if (own == null)
                 return;
 
-            foreach (var e in new List<Effect>(_effects))
+            foreach (var e in new List<Buff>(_effects))
                 if (e != null /* && (e.Template.Skill == null || e.Template.Skill.Type != SkillTypes.Passive)*/)
                     e.Exit();
         }
 
         public void TriggerRemoveOn(BuffRemoveOn on, uint value = 0)
         {
-            foreach (var effect in new List<Effect>(_effects))
+            foreach (var effect in new List<Buff>(_effects))
             {
-                BuffTemplate template;
-                if (effect.Template is BuffEffect buffEffect)
-                    template = buffEffect.Buff;
-                else if (effect.Template is BuffTemplate buffTemplate)
-                    template = buffTemplate;
-                else
-                    continue;
+                var template = effect.Template;
 
                 if (template.RemoveOnAttackBuffTrigger && on == BuffRemoveOn.AttackBuffTrigger)
                     effect.Exit();
@@ -555,9 +471,8 @@ namespace AAEmu.Game.Models.Game.Units
             if (own == null)
                 return;
 
-            foreach (var e in new List<Effect>(_effects))
-                if (e != null && (e.Template is BuffTemplate template && template.RemoveOnDeath ||
-                                  e.Template is BuffEffect effect && effect.Buff.RemoveOnDeath))
+            foreach (var e in new List<Buff>(_effects))
+                if (e != null && e.Template.RemoveOnDeath)
                     e.Exit();
         }
 
@@ -572,9 +487,8 @@ namespace AAEmu.Game.Models.Game.Units
             if (own == null)
                 return;
 
-            foreach (var e in new List<Effect>(_effects))
-                if (e != null && (e.Template is BuffTemplate template && template.Stealth ||
-                                  e.Template is BuffEffect effect && effect.Buff.Stealth))
+            foreach (var e in new List<Buff>(_effects))
+                if (e != null && e.Template.Stealth)
                     e.Exit();
         }
 
@@ -583,20 +497,9 @@ namespace AAEmu.Game.Models.Game.Units
             return _owner?.Target as BaseUnit;
         }
 
-        public IEnumerable<Effect> GetAbsorptionEffects()
+        public IEnumerable<Buff> GetAbsorptionEffects()
         {
-            return _effects.Where(e =>
-            {
-                switch (e.Template)
-                {
-                    case BuffTemplate bt:
-                        return bt.DamageAbsorptionTypeId > 0;
-                    case BuffEffect be:
-                        return be.Buff.DamageAbsorptionTypeId > 0;
-                    default:
-                        return false;
-                }
-            });
+            return _effects.Where(e => e.Template.DamageAbsorptionTypeId > 0);
         }
     }
 }

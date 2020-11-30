@@ -39,14 +39,14 @@ namespace AAEmu.Game.Models.Game.Units
 
         public virtual float Scale => 1f;
         
-        public Effects Effects { get; set; }
+        public Buffs Buffs { get; set; }
         public SkillModifiers SkillModifiersCache { get; set; }
         public BuffModifiers BuffModifiersCache { get; set; }
         public CombatBuffs CombatBuffs { get; set; }
 
         public BaseUnit()
         {
-            Effects = new Effects(this);
+            Buffs = new Buffs(this);
             SkillModifiersCache = new SkillModifiers();
             BuffModifiersCache = new BuffModifiers();
             CombatBuffs = new CombatBuffs(this);
@@ -62,7 +62,7 @@ namespace AAEmu.Game.Models.Game.Units
             var zone = ZoneManager.Instance.GetZoneByKey(target.Position.ZoneId);
             if (this is Character me && target is Character other)
             {
-                var trgIsFlagged = other.Effects.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF);
+                var trgIsFlagged = other.Buffs.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF);
 
                 //check safezone
                 if (other.Faction.MotherId != 0 && other.Faction.MotherId == zone.FactionId 

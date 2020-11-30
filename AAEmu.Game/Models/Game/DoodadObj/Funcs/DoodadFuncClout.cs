@@ -89,13 +89,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             
             foreach (var effectId in Effects)
             {
-                var effect = SkillManager.Instance.GetEffectTemplate(effectId);
+                var effect = SkillManager.Instance.GetBuffTemplate(effectId);
                 foreach (var unit in units)
                 {
-                    var existingEffect = unit.Effects.GetEffectByTemplate(effect);
+                    var existingEffect = unit.Buffs.GetEffectByTemplate(effect);
                     if (existingEffect == null)
                     {
-                        unit.Effects.AddEffect(new Effect(unit, caster, new SkillCasterUnit(caster.ObjId), effect, null,
+                        unit.Buffs.AddBuff(new Buff(unit, caster, new SkillCasterUnit(caster.ObjId), effect, null,
                             DateTime.Now));
                     }
                     else

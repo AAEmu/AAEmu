@@ -21,15 +21,15 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null);
 
-        public virtual void Start(Unit caster, BaseUnit owner, Effect effect)
+        public virtual void Start(Unit caster, BaseUnit owner, Buff buff)
         {
         }
 
-        public virtual void TimeToTimeApply(Unit caster, BaseUnit owner, Effect effect)
+        public virtual void TimeToTimeApply(Unit caster, BaseUnit owner, Buff buff)
         {
         }
 
-        public virtual void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
+        public virtual void Dispel(Unit caster, BaseUnit owner, Buff buff, bool replaced = false)
         {
         }
 

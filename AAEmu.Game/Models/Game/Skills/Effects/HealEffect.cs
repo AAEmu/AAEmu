@@ -81,7 +81,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (UseChargedBuff)
             {
-                var effect = caster.Effects.GetEffectFromBuffId(ChargedBuffId);
+                var effect = caster.Buffs.GetEffectFromBuffId(ChargedBuffId);
                 if (effect != null)
                 {
                     min += ChargedMul * effect.Charge;

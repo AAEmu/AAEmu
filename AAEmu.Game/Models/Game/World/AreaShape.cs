@@ -84,7 +84,7 @@ namespace AAEmu.Game.Models.Game.World
         public void OnLeave(Unit unit)
         {
             if (InsideBuffTemplate != null)
-                unit.Effects.RemoveBuff(InsideBuffTemplate.BuffId);
+                unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
         }
 
         public void OnDelete()
@@ -93,7 +93,7 @@ namespace AAEmu.Game.Models.Game.World
             {
                 foreach (var unit in Units)
                 {
-                    unit.Effects.RemoveBuff(InsideBuffTemplate.BuffId);
+                    unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
                 }
             }
         }
@@ -105,9 +105,9 @@ namespace AAEmu.Game.Models.Game.World
             {
                 foreach (var effect in EffectPerTick)
                 {
-                    if (effect is BuffEffect buffEffect && unit.Effects.CheckBuff(buffEffect.BuffId))
+                    if (effect is BuffEffect buffEffect && unit.Buffs.CheckBuff(buffEffect.BuffId))
                         continue;
-                    var eff = unit.Effects.GetEffectFromBuffId(InsideBuffTemplate.BuffId);
+                    var eff = unit.Buffs.GetEffectFromBuffId(InsideBuffTemplate.BuffId);
                     CastAction castAction = null;
                     if (eff != null)
                         castAction = new CastBuff(eff);
