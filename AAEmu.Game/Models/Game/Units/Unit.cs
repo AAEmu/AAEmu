@@ -392,13 +392,16 @@ namespace AAEmu.Game.Models.Game.Units
         
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
+            if (Position == baseUnit.Position)
+                return 0.0f;
+            
             var rawDist = MathUtil.CalculateDistance(this.Position, baseUnit.Position, includeZAxis);
 
             rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
             if (baseUnit is Unit unit)
                 rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
             
-            return rawDist;
+            return Math.Max(rawDist, 0);
         }
 
         public virtual int GetAbLevel(AbilityType type)
