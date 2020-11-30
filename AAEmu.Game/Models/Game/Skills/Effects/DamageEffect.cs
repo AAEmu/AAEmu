@@ -79,7 +79,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             _log.Debug("DamageEffect");
 
             var trg = target as Unit;
-            if (target == null)
+            if (trg == null || trg.Hp <= 0)
             {
                 return;
             }
