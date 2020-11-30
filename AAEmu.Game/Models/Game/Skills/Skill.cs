@@ -353,7 +353,7 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.BroadcastPacket(new SCSkillStoppedPacket(caster.ObjId, Id), true);
             caster.AutoAttackTask = null;
             caster.IsAutoAttack = false; // turned off auto attack
-            TlIdManager.Instance.ReleaseId(TlId);
+            // TlIdManager.Instance.ReleaseId(TlId);
         }
 
         public void StartChanneling(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -626,7 +626,7 @@ namespace AAEmu.Game.Models.Game.Skills
             }
 
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
-            TlIdManager.Instance.ReleaseId(TlId);
+            // TlIdManager.Instance.ReleaseId(TlId);
 
             if (caster is Character character1 && character1.IgnoreSkillCooldowns)
                 character1.ResetSkillCooldown(Template.Id, false);
@@ -646,7 +646,7 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.BroadcastPacket(new SCCastingStoppedPacket(TlId, 0), true);
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             caster.SkillTask = null;
-            TlIdManager.Instance.ReleaseId(TlId);
+            // TlIdManager.Instance.ReleaseId(TlId);
 
             if (caster is Character character && character.IgnoreSkillCooldowns)
                 character.ResetSkillCooldown(Template.Id, false);
