@@ -88,7 +88,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 foreach(var bonus in Bonuses)
                 {
-                    caster.AddBonus(2, new Bonus { Template = bonus, Value = bonus.Value });
+                    caster.AddBonus(uint.MaxValue, new Bonus { Template = bonus, Value = bonus.Value });
                 }
             }
 
@@ -357,7 +357,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (Bonuses != null)
             {
-                caster.Bonuses[2] = new List<Bonus>();
+                caster.Bonuses[uint.MaxValue] = new List<Bonus>();
             }
 
             if (caster.GetRelationStateTo(trg) == RelationState.Friendly)
