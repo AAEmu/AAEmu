@@ -30,12 +30,6 @@ namespace AAEmu.Game.Core.Managers
         {
             var TickThread = new Thread(TickLoop);
             TickThread.Start();
-            OnTick.Subscribe(Test, TimeSpan.FromMilliseconds(200));
-        }
-
-        public static void Test(TimeSpan delta)
-        {
-            // _log.Warn("Test Delta: {0}", delta.TotalMilliseconds);
         }
     }
 

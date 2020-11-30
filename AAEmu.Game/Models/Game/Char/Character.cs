@@ -558,7 +558,7 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
-                var res = weapon?.HDps ?? 0;
+                var res = (weapon?.HDps ?? 0) * 1000;
                 res += Spi / 5f * 1000f;
                 res = CalculateWithBonuses(res, UnitAttribute.HealDps);
                 return (int)res;

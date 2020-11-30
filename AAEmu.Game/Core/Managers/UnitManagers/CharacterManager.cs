@@ -98,7 +98,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             Log.Info("Loading character templates...");
 
-            TickManager.Instance.OnTick += CombatTick;
+            TickManager.Instance.OnTick.Subscribe(CombatTick, TimeSpan.FromMilliseconds(1000));
             using (var connection = SQLite.CreateConnection())
             {
                 var temp = new Dictionary<uint, byte>();
