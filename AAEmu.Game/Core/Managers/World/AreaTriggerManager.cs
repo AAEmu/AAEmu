@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Managers.World
         
         public void Initialize()
         {
-            TickManager.Instance.OnTick += Tick;
+            TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(200));
         }
 
         public void AddAreaTrigger(AreaTrigger trigger)
@@ -43,7 +43,7 @@ namespace AAEmu.Game.Core.Managers.World
             _addQueue = new List<AreaTrigger>();
             foreach (var trigger in _areaTriggers)
             {
-                trigger?.Tick();
+                trigger?.Tick(delta);
             }
 
             foreach (var triggerToRemove in _removeQueue)

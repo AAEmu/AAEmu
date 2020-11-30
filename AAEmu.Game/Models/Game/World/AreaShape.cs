@@ -41,7 +41,7 @@ namespace AAEmu.Game.Models.Game.World
         public BuffTemplate InsideBuffTemplate { get; set; }
         public List<EffectTemplate> EffectPerTick { get; set; }
         public int TickRate { get; set; }
-        private int _tickCount = 0;
+        private DateTime _lastTick = DateTime.MinValue;
 
         public AreaTrigger()
         {
@@ -120,15 +120,15 @@ namespace AAEmu.Game.Models.Game.World
         }
 
         // Called every 50ms
-        public void Tick()
+        public void Tick(TimeSpan delta)
         {
-            _tickCount++;
-            // every 200 ms
-            // if (_tickCount % 4 == 0)
-                UpdateUnits();
-            if (TickRate > 0 )
-                if ((_tickCount*200) % TickRate == 0)
+            UpdateUnits();
+            if (TickRate > 0)
+                if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
+                {
                     ApplyEffects();
+                    _lastTick = DateTime.UtcNow;
+                }
         }
     }
 }
