@@ -671,10 +671,11 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var buffId = reader.GetUInt32("buff_id");
                             var template = _buffs[buffId];
-                            template.TickEffect = new TickEffect();
-                            template.TickEffect.EffectId = reader.GetUInt32("effect_id");
-                            template.TickEffect.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
-                            template.TickEffect.TargetNoBuffTagId = reader.GetUInt32("target_nobuff_tag_id", 0);
+                            var tickEffect = new TickEffect();
+                            tickEffect.EffectId = reader.GetUInt32("effect_id");
+                            tickEffect.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
+                            tickEffect.TargetNoBuffTagId = reader.GetUInt32("target_nobuff_tag_id", 0);
+                            template.TickEffects.Add(tickEffect);
                         }
                     }
                 }

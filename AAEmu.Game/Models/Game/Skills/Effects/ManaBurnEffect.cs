@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             min += (lvlMd - levelModifier * lvlMd) + 0.5f;
             max += (levelModifier + 1) * lvlMd + 0.5f;
             
-            if (source.Buff?.TickEffect != null)
+            if (source.Buff?.TickEffects.Count > 0)
             {
                 min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
                 max = (float) (max * (source.Buff.Tick / source.Buff.Duration));

@@ -158,12 +158,13 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool CrowdHostile { get; set; }
         public bool OnActionTime => Tick > 0;
 
-        public TickEffect TickEffect { get; set; }
+        public List<TickEffect> TickEffects { get; set; }
         public List<BonusTemplate> Bonuses { get; set; }
         public List<DynamicBonusTemplate> DynamicBonuses { get; set; }
 
         public BuffTemplate()
         {
+            TickEffects = new List<TickEffect>();
             Bonuses = new List<BonusTemplate>();
             DynamicBonuses = new List<DynamicBonusTemplate>();
         }
@@ -215,20 +216,20 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
 
         public void TimeToTimeApply(Unit caster, BaseUnit owner, Buff buff)
         {
-            if (TickEffect != null)
+            if (TickAreaRadius > 0)
             {
-                if (TickAreaRadius > 0)
-                {
-                    DoAreaTick(caster, owner, buff);
+                DoAreaTick(caster, owner, buff);
+                return;
+            }
+            foreach (var tickEff in TickEffects)
+            {
+                if (tickEff.TargetBuffTagId > 0 &&
+                    !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
                     return;
-                }
-                if (TickEffect.TargetBuffTagId > 0 &&
-                    !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetBuffTagId)))
+                if (tickEff.TargetNoBuffTagId > 0 &&
+                    owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
                     return;
-                if (TickEffect.TargetNoBuffTagId > 0 &&
-                    owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetNoBuffTagId)))
-                    return;
-                var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
+                var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
                 var targetObj = new SkillCastUnitTarget(owner.ObjId);
                 var skillObj = new SkillObject(); // TODO ?
                 eff.Apply(caster, buff.SkillCaster, owner, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
@@ -237,36 +238,48 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
 
         public void DoAreaTick(Unit caster, BaseUnit owner, Buff buff)
         {
-            var units = WorldManager.Instance.GetAround<Unit>(caster, TickAreaRadius) as IEnumerable<Unit>;
-            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units);
+            var units = WorldManager.Instance.GetAround<Unit>(owner, TickAreaRadius);
+            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units) as List<Unit>;
+            if (units == null)
+                units = new List<Unit>();
+
+            if (owner == null)
+                owner = caster;
+
+            var ownerUnit = owner as Unit;
             if (TickAreaExcludeSource)
             {
-                units = units.Where(trg => trg.ObjId != caster.ObjId);
+                if(ownerUnit != null)
+                    units.Remove(ownerUnit);
             }
             else
             {
-                if (!units.Contains(caster))
-                    units.Append(caster);
+                if (!units.Contains(owner) && ownerUnit != null)
+                    units.Add(ownerUnit);
             }
 
-            var source = owner;
-            if (TickAreaUseOriginSource)
-                source = caster;
-
-            var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
+            var source = caster;
+            //if (TickAreaUseOriginSource)
+                //source = (Unit)owner;
             var skillObj = new SkillObject(); // TODO ?
 
-            foreach (var trg in units)
-            {
-                if (TickEffect.TargetBuffTagId > 0 &&
-                    !trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetBuffTagId)))
-                    continue;
-                if (TickEffect.TargetNoBuffTagId > 0 &&
-                    trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetNoBuffTagId)))
-                    continue;
 
-                var targetObj = new SkillCastUnitTarget(trg.ObjId);
-                eff.Apply((Unit)source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
+            foreach(var tickEff in TickEffects)
+            {
+                var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
+
+                foreach (var trg in units)
+                {
+                    if (tickEff.TargetBuffTagId > 0 &&
+                        !trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                        continue;
+                    if (tickEff.TargetNoBuffTagId > 0 &&
+                        trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                        continue;
+
+                    var targetObj = new SkillCastUnitTarget(trg.ObjId);
+                    eff.Apply((Unit)source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
+                }
             }
         }
 

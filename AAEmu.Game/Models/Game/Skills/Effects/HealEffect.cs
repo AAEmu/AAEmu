@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -73,7 +73,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             min = variableDamage + levelMin;
             max = variableDamage + levelMax;
             
-            if (source.Buff?.TickEffect != null)
+            if (source.Buff?.TickEffects.Count > 0)
             {
                 min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
                 max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
