@@ -782,7 +782,6 @@ namespace AAEmu.Game.Models.Game.Char
                 res = CalculateWithBonuses(res, UnitAttribute.HealCritical);
                 res = res * (1f / Facets) * 100;
                 res = res + (HealCriticalMul / 10);
-                res = 50f;
                 return (float)res;
             }
         }
