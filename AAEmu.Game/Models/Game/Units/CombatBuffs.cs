@@ -81,8 +81,8 @@ namespace AAEmu.Game.Models.Game.Units
 
                 var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
                 //if (cb.BuffToSource)
-                
-                _owner.Buffs.AddBuff(new Buff(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.Now));
+                if (!_owner.Buffs.CheckBuffImmune(cb.BuffId))
+                    _owner.Buffs.AddBuff(new Buff(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.Now));
             }
         }
     }

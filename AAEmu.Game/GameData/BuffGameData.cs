@@ -1,5 +1,6 @@
 ﻿ using System.Collections.Generic;
-using AAEmu.Commons.Utils;
+ using System.Linq;
+ using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills;
  using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -15,6 +16,7 @@ namespace AAEmu.Game.GameData
     {
         private Dictionary<uint, List<BuffModifier>> _buffModifiers;
         private Dictionary<uint, BuffTolerance> _buffTolerances;
+        private Dictionary<uint, BuffTolerance> _buffTolerancesById;
         
         public List<BuffModifier> GetModifiersForBuff(uint ownerId)
         {
@@ -30,6 +32,7 @@ namespace AAEmu.Game.GameData
         {
             _buffModifiers = new Dictionary<uint, List<BuffModifier>>();
             _buffTolerances = new Dictionary<uint, BuffTolerance>();
+            _buffTolerancesById = new Dictionary<uint, BuffTolerance>();
             
             using (var command = connection.CreateCommand())
             {
@@ -75,10 +78,38 @@ namespace AAEmu.Game.GameData
                             BuffTagId = reader.GetUInt32("buff_tag_id"),
                             StepDuration = reader.GetUInt32("step_duration"),
                             FinalStepBuffId = reader.GetUInt32("final_step_buff_id"),
-                            CharacterTimeReduction = reader.GetUInt32("character_time_reduction")
+                            CharacterTimeReduction = reader.GetUInt32("character_time_reduction"),
+                            Steps = new List<BuffToleranceStep>()
                         };
 
                         _buffTolerances.Add(template.BuffTagId, template);
+                        _buffTolerancesById.Add(template.Id, template);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM buff_tolerance_steps";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var buffToleranceId = reader.GetUInt32("buff_tolerance_id");
+                        if (!_buffTolerancesById.ContainsKey(buffToleranceId))
+                            continue;
+                        var buffTolerance = _buffTolerancesById[buffToleranceId];
+                        var template = new BuffToleranceStep()
+                        {
+                            Id = reader.GetUInt32("id"),
+                            BuffTolerance = buffTolerance,
+                            HitChance = reader.GetUInt32("hit_chance"),
+                            TimeReduction = reader.GetUInt32("time_reduction")
+                        };
+
+                        buffTolerance.Steps.Add(template);
                     }
                 }
             }
@@ -86,6 +117,10 @@ namespace AAEmu.Game.GameData
 
         public void PostLoad()
         {
+            foreach (var buffToleranceId in _buffTolerances.Keys)
+            {
+                _buffTolerances[buffToleranceId].Steps = _buffTolerances[buffToleranceId].Steps.OrderBy(st => st.Id).ToList();
+            }
         }
     }
 }

@@ -19,11 +19,13 @@ namespace AAEmu.Game.Models.Game.Units
 
         private WeakReference _owner;
         private readonly List<Buff> _effects;
+        private readonly Dictionary<uint, BuffToleranceCounter> _toleranceCounters;
 
         public Buffs()
         {
             _nextIndex = 1;
             _effects = new List<Buff>();
+            _toleranceCounters = new Dictionary<uint, BuffToleranceCounter>();
         }
 
         public Buffs(BaseUnit owner)
@@ -31,6 +33,7 @@ namespace AAEmu.Game.Models.Game.Units
             SetOwner(owner);
             _nextIndex = 1;
             _effects = new List<Buff>();
+            _toleranceCounters = new Dictionary<uint, BuffToleranceCounter>();
         }
 
         public bool CheckBuffImmune(uint buffId)
@@ -178,6 +181,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void AddBuff(Buff buff, uint index = 0)
         {
+            var finalToleranceBuffId = 0u;
             lock (_lock)
             {
                 var owner = GetOwner();
@@ -196,22 +200,57 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     buff.Index = index;
                 }
+                
+                var buffIds = SkillManager.Instance.GetBuffTags(buff.Template.Id);
+                var buffTolerance = buffIds
+                    .Select(buffId => BuffGameData.Instance.GetBuffToleranceForBuffTag(buffId))
+                    .SingleOrDefault(t => t != null);
+                if (buffTolerance != null && _toleranceCounters.ContainsKey(buffTolerance.Id) && !CheckBuff(buffTolerance.FinalStepBuffId))
+                {
+                    var counter = _toleranceCounters[buffTolerance.Id];
+                    if (DateTime.Now > counter.LastStep + TimeSpan.FromSeconds(buffTolerance.StepDuration))
+                        counter.CurrentStep = buffTolerance.GetFirstStep();
+                    else
+                    {
+                        var nextStep = buffTolerance.GetStepAfter(counter.CurrentStep);
+                        if (nextStep.TimeReduction <= counter.CurrentStep.TimeReduction)
+                        {
+                            // Apply immune buff
+                            finalToleranceBuffId = counter.Tolerance.FinalStepBuffId;
+                            // reset to first
+                            counter.CurrentStep = buffTolerance.GetFirstStep();
+                        }
+                        else
+                        {
+                            counter.CurrentStep = nextStep;
+                        }
+                    }
+
+                    counter.LastStep = DateTime.Now;
+                } 
+                else if (buffTolerance != null)
+                {
+                    _toleranceCounters.Add(buffTolerance.Id, new BuffToleranceCounter()
+                    {
+                        Tolerance = buffTolerance,
+                        CurrentStep = buffTolerance.GetFirstStep(),
+                        LastStep = DateTime.Now
+                    });
+                }
 
                 buff.Duration = buff.Template.GetDuration(buff.AbLevel);
                 buff.Duration = (int) buff.Caster.BuffModifiersCache.ApplyModifiers(buff.Template,
                     BuffAttribute.Duration, buff.Duration);
                 buff.Duration = (int) buff.Owner.BuffModifiersCache.ApplyModifiers(buff.Template,
                     BuffAttribute.InDuration, buff.Duration);
-
-                if (buff.Caster is Character && buff.Owner is Character)
+                
+                if (buffTolerance != null)
                 {
-                    var buffIds = SkillManager.Instance.GetBuffTags(buff.Template.Id);
-                    var buffTolerances = buffIds.Select(buffId => BuffGameData.Instance.GetBuffToleranceForBuffTag(buffId)).Where(t => t != null);
-
-                    foreach (var buffTolerance in buffTolerances)
-                    {
-                        buff.Duration = (int)(buff.Duration * (buffTolerance.CharacterTimeReduction / 100.0));
-                    }
+                    var counter = _toleranceCounters[buffTolerance.Id];
+                    buff.Duration = (int)(buff.Duration * ((100 - counter.CurrentStep.TimeReduction) / 100.0));
+                    
+                    if (buff.Caster is Character && buff.Owner is Character)
+                        buff.Duration = (int)(buff.Duration * ((100 - buffTolerance.CharacterTimeReduction) / 100.0));
                 }
                 
                 if (buff.Duration > 0 && buff.StartTime == DateTime.MinValue)
@@ -251,6 +290,11 @@ namespace AAEmu.Game.Models.Game.Units
                     buff.State = EffectState.Acting;
                     buff.Template.Start(buff.Caster, owner, buff); // TODO поменять на target
                 }
+            }
+            
+            if (finalToleranceBuffId > 0)
+            {
+                AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, SkillManager.Instance.GetBuffTemplate(finalToleranceBuffId), buff.Skill, DateTime.Now));
             }
         }
 
