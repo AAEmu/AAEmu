@@ -138,7 +138,8 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.CastingTime > 0)
             {
                 // var origTime = Template.CastingTime * caster.Cas
-                var castTime = (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime);
+                var castTime = (int)(caster.CastTimeMul *
+                    caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime));
 
                 if (caster is Character chara)
                 {

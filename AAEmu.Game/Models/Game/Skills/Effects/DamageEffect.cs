@@ -92,8 +92,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
 
-            _log.Warn("CriticalRate: {0}", caster.GetAttribute(UnitAttribute.MeleeCritical));
-
             trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackedEtc);
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackEtc);
 

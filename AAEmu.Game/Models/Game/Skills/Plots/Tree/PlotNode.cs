@@ -72,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             double castTime = Event.NextEvents
                  .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling))
                  .Max(nextEvent => nextEvent.Delay / 10 as int?) ?? 0;
-            castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime);
+            castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime) * state.Caster.CastTimeMul;
             castTime = Math.Max(castTime, 0);
 
             if (castTime > 0)

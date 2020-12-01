@@ -45,6 +45,8 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int MpRegen { get; set; }
         [UnitAttribute(UnitAttribute.PersistentManaRegen)]
         public virtual int PersistentMpRegen { get; set; } = 30;
+        [UnitAttribute(UnitAttribute.CastingTimeMul)]
+        public virtual float CastTimeMul { get; set; } = 1f;
         public virtual float LevelDps { get; set; }
         [UnitAttribute(UnitAttribute.MainhandDps)]
         public virtual int Dps { get; set; }

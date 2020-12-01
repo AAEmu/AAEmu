@@ -410,6 +410,18 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.CastingTimeMul)]
+        public override float CastTimeMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.CastingTimeMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)Math.Max(res, 0f);
+            }
+        }
+
         public override float LevelDps
         {
             get
