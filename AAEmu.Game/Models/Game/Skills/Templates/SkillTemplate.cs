@@ -92,6 +92,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public int CombatDiceId { get; set; }
         public int CustomGcd { get; set; }
         public bool CancelOngoingBuffs { get; set; }
+        public uint CancelOngoingBuffExceptionTagId { get; set; }
         public bool SourceCannotUseWhileWalk { get; set; }
         public bool SourceMountMate { get; set; }
         public bool CheckTerrain { get; set; }

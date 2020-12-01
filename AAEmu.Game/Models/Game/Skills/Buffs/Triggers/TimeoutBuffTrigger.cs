@@ -22,18 +22,19 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             }
 
             var target = _buff.Owner;
-            owner = (Unit)_buff.Owner;
-            if (Template.EffectOnSource)
-            {
-                target = (Unit)_buff.Caster;
-                //do what?
-            }
+            var source = (Unit)_buff.Owner;
+            
             if (Template.UseOriginalSource)
             {
-                owner = (Unit)_buff.Caster;
+                source = _buff.Caster;
+            }
+            
+            if (Template.EffectOnSource)
+            {
+                target = source;
             }
 
-            Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
+            Template.Effect.Apply(source, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
                 new EffectSource(_buff?.Skill), // TODO : EffectSource Type trigger 
                 null, DateTime.Now);
         }

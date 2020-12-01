@@ -42,6 +42,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public Dictionary<uint, SkillHitType> HitTypes { get; set; }
         public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
         private bool _bypassGcd;
+        public bool Cancelled { get; set; } = false;
 
         //public bool isAutoAttack;
         //public SkillTask autoAttackTask;
@@ -78,7 +79,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
             }
 
-            caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill);
+            if (Template.CancelOngoingBuffs)
+                caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
 
             if (skillObject == null)
             {
@@ -101,22 +103,22 @@ namespace AAEmu.Game.Models.Game.Skills
             // TODO : Add check for range
             var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
 
-            var effects = caster.Buffs.GetEffectsByType(typeof(BuffTemplate));
-            foreach (var effect in effects)
-            {
-                if (((BuffTemplate)effect.Template).RemoveOnStartSkill || ((BuffTemplate)effect.Template).RemoveOnUseSkill)
-                {
-                    effect.Exit();
-                }
-            }
-            effects = caster.Buffs.GetEffectsByType(typeof(BuffEffect));
-            foreach (var effect in effects)
-            {
-                if (effect.Template.RemoveOnStartSkill)
-                {
-                    effect.Exit();
-                }
-            }
+            // var effects = caster.Buffs.GetEffectsByType(typeof(BuffTemplate));
+            // foreach (var effect in effects)
+            // {
+            //     if (((BuffTemplate)effect.Template).RemoveOnStartSkill || ((BuffTemplate)effect.Template).RemoveOnUseSkill)
+            //     {
+            //         effect.Exit();
+            //     }
+            // }
+            // effects = caster.Buffs.GetEffectsByType(typeof(BuffEffect));
+            // foreach (var effect in effects)
+            // {
+            //     if (effect.Template.RemoveOnStartSkill)
+            //     {
+            //         effect.Exit();
+            //     }
+            // }
 
             //Maybe we should do this somewhere else?
             if (Template.DefaultGcd)
@@ -135,16 +137,33 @@ namespace AAEmu.Game.Models.Game.Skills
             
             if (Template.CastingTime > 0)
             {
-                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+                // var origTime = Template.CastingTime * caster.Cas
+                var castTime = (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime);
+
+                if (caster is Character chara)
+                {
+                }
+                
+                if (castTime < 0)
+                    castTime = 0;
+                
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
+                {
+                    CastTime = castTime
+                }, true);
+                
                 caster.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
-                TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(Template.CastingTime));
+                TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(castTime));
             }
             else if (caster is Character && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
             {
                 caster.IsAutoAttack = true; // enable auto attack
                 caster.SkillId = Id;
                 caster.TlId = TlId;
-                caster.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject), true);
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject)
+                {
+                    CastTime = Template.CastingTime
+                }, true);
 
                 caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
                 TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
@@ -646,6 +665,7 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.BroadcastPacket(new SCCastingStoppedPacket(TlId, 0), true);
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             caster.SkillTask = null;
+            Cancelled = true;
             SkillManager.Instance.ReleaseId(TlId);
 
             if (caster is Character character && character.IgnoreSkillCooldowns)

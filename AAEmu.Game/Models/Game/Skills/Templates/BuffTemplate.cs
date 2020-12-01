@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
@@ -31,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool RemoveOnSourceDead { get; set; }
         public uint LinkBuffId { get; set; }
         public int TickManaCost { get; set; }
-        public uint StackRuleId { get; set; }
+        public BuffStackRule StackRule { get; set; }
         public int InitMinCharge { get; set; }
         public int InitMaxCharge { get; set; }
         public int MaxStack { get; set; }

@@ -386,6 +386,7 @@ namespace AAEmu.Game.Core.Managers
                             template.CombatDiceId = reader.GetInt32("combat_dice_id");
                             template.CustomGcd = reader.GetInt32("custom_gcd");
                             template.CancelOngoingBuffs = reader.GetBoolean("cancel_ongoing_buffs", true);
+                            template.CancelOngoingBuffExceptionTagId = reader.GetUInt32("cancel_ongoing_buff_exception_tag_id", 0);
                             template.SourceCannotUseWhileWalk =
                                 reader.GetBoolean("source_cannot_use_while_walk", true);
                             template.SourceMountMate = reader.GetBoolean("source_mount_mate", true);
@@ -481,7 +482,7 @@ namespace AAEmu.Game.Core.Managers
                             template.RemoveOnSourceDead = reader.GetBoolean("remove_on_source_dead", true);
                             template.LinkBuffId = reader.GetUInt32("link_buff_id", 0);
                             template.TickManaCost = reader.GetInt32("tick_mana_cost");
-                            template.StackRuleId = reader.GetUInt32("stack_rule_id");
+                            template.StackRule = (BuffStackRule)reader.GetUInt32("stack_rule_id");
                             template.InitMinCharge = reader.GetInt32("init_min_charge");
                             template.InitMaxCharge = reader.GetInt32("init_max_charge");
                             template.MaxStack = reader.GetInt32("max_stack");

@@ -260,11 +260,22 @@ namespace AAEmu.Game.Models.Game.Units
                 }
 
                 Buff last = null;
-                if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
-                    foreach (var e in new List<Buff>(_effects))
-                        if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
-                            if (e.GetTimeLeft() < buff.GetTimeLeft())
-                                last = e;
+                switch (buff.Template.StackRule)
+                {
+                    case BuffStackRule.Refresh:
+                        foreach (var e in new List<Buff>(_effects))
+                            if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                                if (e.GetTimeLeft() < buff.GetTimeLeft())
+                                    last = e;
+                        break;
+                    default:
+                        if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
+                            foreach (var e in new List<Buff>(_effects))
+                                if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                                    if (e.GetTimeLeft() < buff.GetTimeLeft())
+                                        last = e;
+                        break;
+                }
                 last?.Exit(index > 0 && last.Template.Id == buff.Template.Id);
 
                 _effects.Add(buff);
@@ -512,7 +523,16 @@ namespace AAEmu.Game.Models.Game.Units
                 else if (template.RemoveOnSourceDead && on == BuffRemoveOn.SourceDead && value == effect.Caster.ObjId)
                     effect.Exit();//Need to investigate this one
                 else if (template.RemoveOnStartSkill && on == BuffRemoveOn.StartSkill)
-                    effect.Exit();
+                {
+                    if (value == 0)
+                        effect.Exit();
+                    else
+                    {
+                        var tags = SkillManager.Instance.GetBuffTags(effect.Template.BuffId);
+                        if (!tags.Contains(value))
+                            effect.Exit();   
+                    }
+                }
                 else if (template.RemoveOnUnmount && on == BuffRemoveOn.Unmount)
                     effect.Exit();
                 else if (template.RemoveOnUseSkill && on == BuffRemoveOn.UseSkill)
