@@ -517,7 +517,7 @@ namespace AAEmu.Game.Core.Managers
                             template.GroupId = reader.GetUInt32("group_id", 0);
                             template.GroupRank = reader.GetInt32("group_rank");
                             template.PerUnitCreation = reader.GetBoolean("per_unit_creation");
-                            template.TickAuraRadius = reader.GetFloat("tick_area_radius");
+                            template.TickAreaRadius = reader.GetFloat("tick_area_radius");
                             template.TickAreaRelationId = reader.GetUInt32("tick_area_relation_id");
                             template.RemoveOnMove = reader.GetBoolean("remove_on_move", true);
                             template.UseSourceFaction = reader.GetBoolean("use_source_faction", true);

@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
@@ -63,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public uint GroupId { get; set; }
         public int GroupRank { get; set; }
         public bool PerUnitCreation { get; set; }
-        public float TickAuraRadius { get; set; }
+        public float TickAreaRadius { get; set; }
         public uint TickAreaRelationId { get; set; }
         public bool RemoveOnMove { get; set; }
         public bool UseSourceFaction { get; set; }
@@ -214,6 +217,11 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         {
             if (TickEffect != null)
             {
+                if (TickAreaRadius > 0)
+                {
+                    DoAreaTick(caster, owner, buff);
+                    return;
+                }
                 if (TickEffect.TargetBuffTagId > 0 &&
                     !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetBuffTagId)))
                     return;
@@ -224,6 +232,41 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 var targetObj = new SkillCastUnitTarget(owner.ObjId);
                 var skillObj = new SkillObject(); // TODO ?
                 eff.Apply(caster, buff.SkillCaster, owner, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
+            }
+        }
+
+        public void DoAreaTick(Unit caster, BaseUnit owner, Buff buff)
+        {
+            var units = WorldManager.Instance.GetAround<Unit>(caster, TickAreaRadius) as IEnumerable<Unit>;
+            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units);
+            if (TickAreaExcludeSource)
+            {
+                units = units.Where(trg => trg.ObjId != caster.ObjId);
+            }
+            else
+            {
+                if (!units.Contains(caster))
+                    units.Append(caster);
+            }
+
+            var source = owner;
+            if (TickAreaUseOriginSource)
+                source = caster;
+
+            var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
+            var skillObj = new SkillObject(); // TODO ?
+
+            foreach (var trg in units)
+            {
+                if (TickEffect.TargetBuffTagId > 0 &&
+                    !trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetBuffTagId)))
+                    continue;
+                if (TickEffect.TargetNoBuffTagId > 0 &&
+                    trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetNoBuffTagId)))
+                    continue;
+
+                var targetObj = new SkillCastUnitTarget(trg.ObjId);
+                eff.Apply((Unit)source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
             }
         }
 
