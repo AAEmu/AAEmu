@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -200,6 +202,17 @@ namespace AAEmu.Game.Models.Game.Units
                     BuffAttribute.Duration, buff.Duration);
                 buff.Duration = (int) buff.Owner.BuffModifiersCache.ApplyModifiers(buff.Template,
                     BuffAttribute.InDuration, buff.Duration);
+
+                if (buff.Caster is Character && buff.Owner is Character)
+                {
+                    var buffIds = SkillManager.Instance.GetBuffTags(buff.Template.Id);
+                    var buffTolerances = buffIds.Select(buffId => BuffGameData.Instance.GetBuffToleranceForBuffTag(buffId)).Where(t => t != null);
+
+                    foreach (var buffTolerance in buffTolerances)
+                    {
+                        buff.Duration = (int)(buff.Duration * (buffTolerance.CharacterTimeReduction / 100.0));
+                    }
+                }
                 
                 if (buff.Duration > 0 && buff.StartTime == DateTime.MinValue)
                 {
