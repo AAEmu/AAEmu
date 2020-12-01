@@ -1016,7 +1016,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.Block);
                 res = (res * (1f / Facets) * 100f);
-                res += CalculateWithBonuses(0f, UnitAttribute.Block) / 10f;
+                res += CalculateWithBonuses(0f, UnitAttribute.BlockMul) / 10f;
                 return (float)res;
             }
         }
