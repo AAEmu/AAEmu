@@ -90,6 +90,12 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual float SpellCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.SpellCriticalMul)]
         public virtual float SpellCriticalMul { get; set; }
+        [UnitAttribute(UnitAttribute.HealCritical)]
+        public virtual float HealCritical { get; set; }
+        [UnitAttribute(UnitAttribute.HealCriticalBonus)]
+        public virtual float HealCriticalBonus { get; set; }
+        [UnitAttribute(UnitAttribute.HealCriticalMul)]
+        public virtual float HealCriticalMul { get; set; }
         [UnitAttribute(UnitAttribute.Armor)]
         public virtual int Armor { get; set; }
         [UnitAttribute(UnitAttribute.MagicResist)]

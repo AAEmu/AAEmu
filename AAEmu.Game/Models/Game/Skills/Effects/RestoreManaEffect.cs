@@ -61,7 +61,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // max += (int)((caster.MDps + caster.MDpsInc) * 0.001f * unk2 + 0.5f);
 
             var value = Rand.Next(min, max);
-            trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, trg.ObjId, 1, value), true);
+            trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, trg.ObjId, 1, 13, value), true);
             trg.Mp += value;
             trg.Mp = Math.Min(trg.Mp, trg.MaxMp);
             trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);

@@ -769,6 +769,46 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.HealCritical)]
+        public override float HealCritical
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.HealCritical);
+                var parameters = new Dictionary<string, double>();
+                parameters["spi"] = Spi; //Str not needed, but maybe we use later
+                var res = formula.Evaluate(parameters);
+                res = CalculateWithBonuses(res, UnitAttribute.HealCritical);
+                res = res * (1f / Facets) * 100;
+                res = res + (HealCriticalMul / 10);
+                res = 50f;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.HealCriticalBonus)]
+        public override float HealCriticalBonus
+        {
+            get
+            {
+                var res = 1500f;
+                res = (float)CalculateWithBonuses(res, UnitAttribute.HealCriticalBonus);
+                return (res - 1000f) / 10f;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.HealCriticalMul)]
+        public override float HealCriticalMul
+        {
+            get
+            {
+                double res = 0;
+                res = CalculateWithBonuses(res, UnitAttribute.HealCriticalMul);
+                return (float)res;
+            }
+        }
+
         [UnitAttribute(UnitAttribute.Armor)]
         public override int Armor
         {

@@ -39,6 +39,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (!(target is Unit))
                 return;
             var trg = (Unit)target;
+
             var min = 0.0f;
             var max = 0.0f;
             if (UseFixedHeal)
@@ -89,9 +90,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     effect.Exit();
                 }
             }
-            
+
+            bool criticalHeal = Rand.Next(0f, 100f) < caster.HealCritical;
+
             var value = (int)Rand.Next(min, max);
-            trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, value), true);
+
+            if (criticalHeal)
+                value = (int)(value * (1 + (caster.HealCriticalBonus / 100)));
+
+            byte healHitType = criticalHeal ? (byte)11 : (byte)13;
+
+            trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, healHitType, value), true);
             trg.Hp += value;
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
             trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);

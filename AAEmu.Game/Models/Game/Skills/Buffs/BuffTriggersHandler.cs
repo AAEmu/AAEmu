@@ -159,6 +159,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     case Buffs.BuffEventTriggerKind.RemoveOnDamage:
                         break;
                     case Buffs.BuffEventTriggerKind.Death:
+                        _owner.Caster.Events.OnDeath -= trigger.Execute;
                         break;
                     case Buffs.BuffEventTriggerKind.Unmount:
                         break;
