@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             // Compute gear buff
             ApplyWeaponWieldBuff();
-            ApplyArmorGradeBuff();
+            ApplyArmorGradeBuff(itemAdded, itemRemoved);
             ApplyEquipItemSetBonuses();
         }
 
@@ -130,8 +130,14 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        private void ApplyArmorGradeBuff()
+        private void ApplyArmorGradeBuff(Item itemAdded, Item itemRemoved)
         {
+            if (!(itemAdded == null || itemRemoved == null))
+                return;
+
+            if (!(itemAdded is Armor) && !(itemRemoved is Armor))
+                return;
+            
             // Clear any existing armor grade buffs
             Buffs.RemoveBuffs(145, 1);
             
