@@ -31,6 +31,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 
             equipItem.RuneId = skillItem.ItemTemplateId;
             
+            character.SendPacket(new SCItemSocketingLunastoneResultPacket(true, targetItem.Id, skillItem.ItemTemplateId));
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));
         }
     }

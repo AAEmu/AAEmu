@@ -422,6 +422,42 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.MeleeDamageMul)]
+        public override float MeleeDamageMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.MeleeDamageMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
+        
+        [UnitAttribute(UnitAttribute.RangedDamageMul)]
+        public override float RangedDamageMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.RangedDamageMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
+        
+        [UnitAttribute(UnitAttribute.SpellDamageMul)]
+        public override float SpellDamageMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.SpellDamageMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
+
         public override float LevelDps
         {
             get

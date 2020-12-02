@@ -234,13 +234,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 case DamageType.Melee:
                     // damageMultiplier = caster.Dps???
-                    damageMultiplier = 1.0f;
+                    damageMultiplier = caster.MeleeDamageMul;
                     break;
                 case DamageType.Magic:
-                    damageMultiplier = 1.0f;
+                    damageMultiplier = caster.SpellDamageMul;
                     break;
                 case DamageType.Ranged:
-                    damageMultiplier = 1.0f;
+                    damageMultiplier = caster.RangedDamageMul;
                     break;
                 case DamageType.Siege:
                     // TODO 

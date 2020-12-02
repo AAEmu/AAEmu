@@ -120,6 +120,12 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int Flexibility { get; set; }
         [UnitAttribute(UnitAttribute.Facets)]
         public virtual int Facets { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeDamageMul)]
+        public virtual float MeleeDamageMul { get; set; }
+        [UnitAttribute(UnitAttribute.RangedDamageMul)]
+        public virtual float RangedDamageMul { get; set; }
+        [UnitAttribute(UnitAttribute.SpellDamageMul)]
+        public virtual float SpellDamageMul { get; set; }
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
