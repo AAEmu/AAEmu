@@ -139,7 +139,8 @@ namespace AAEmu.Game.Models.Game.Items
                 parameters["item_level"] = template.Level;
                 parameters["item_grade"] = grade.HoldableDps;
                 var formulaRes = formula.Evaluate(parameters);
-                formulaRes *= (TemperPhysical / 100.0f);
+                if (TemperPhysical > 100)
+                    formulaRes *= (TemperPhysical / 100.0f);
                 return (float) formulaRes;
             }
         }
@@ -155,7 +156,8 @@ namespace AAEmu.Game.Models.Game.Items
                 parameters["item_level"] = template.Level;
                 parameters["item_grade"] = grade.HoldableMagicDps;
                 var formulaRes = formula.Evaluate(parameters);
-                formulaRes *= (TemperMagical / 100.0f);
+                if (TemperMagical > 100)
+                    formulaRes *= (TemperMagical / 100.0f);
                 return formulaRes;
             }
         }
@@ -172,7 +174,8 @@ namespace AAEmu.Game.Models.Game.Items
                 parameters["item_grade"] = grade.HoldableMagicDps;
 
                 var formulaRes = formula.Evaluate(parameters);
-                formulaRes *= (TemperMagical / 100.0f);
+                if (TemperMagical > 100)
+                    formulaRes *= (TemperMagical / 100.0f);
                 return formulaRes;
             }
         }
@@ -189,7 +192,8 @@ namespace AAEmu.Game.Models.Game.Items
                 parameters["item_grade"] = grade.HoldableArmor;
                 
                 var formulaResult = formula.Evaluate(parameters);
-                formulaResult *= (TemperPhysical / 100.0f);
+                if (TemperPhysical > 100)
+                    formulaResult *= (TemperPhysical / 100.0f);
                 return (int)formulaResult;
             }
         }
