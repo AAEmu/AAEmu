@@ -1283,6 +1283,15 @@ namespace AAEmu.Game.Models.Game.Char
             SendErrorMessage(ErrorMessageType.ClosedZone);
         }
 
+        public void DoFallDamage(ushort fallVel)
+        {
+            var fallDmg = Math.Min(Hp,(int)(Hp * ((fallVel-5000) / 20000f)));
+            ReduceCurrentHp(this, fallDmg);
+
+            //todo stun & maybe adjust formula?
+            _log.Warn("FallDamage: Vel{0} DmgPerc: {1}", fallVel, (int)((fallVel - 5000) / 200f));
+        }
+
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;

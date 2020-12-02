@@ -89,20 +89,26 @@ namespace AAEmu.Game.Core.Packets.C2G
                 RemoveEffects(Connection.ActiveChar, moveType);
 
                 // This will allow you to walk on a boat, but crashes other clients. Not sure why yet.
-                if (moveType is UnitMoveType mType && (mType.ActorFlags & 0x20) != 0)
+                var mType = moveType as UnitMoveType;
+                if (mType != null && (mType.ActorFlags & 0x20) != 0)
                 {
                     Connection
                         .ActiveChar
                         .SetPosition(mType.X2 + mType.X, mType.Y2 + mType.Y, mType.Z2 + mType.Z, mType.RotationX, mType.RotationY, mType.RotationZ);
+
+                    //do we need it for boats?
+                    if (mType.FallVel > 0)
+                        Connection.ActiveChar.DoFallDamage(mType.FallVel);
                 }
                 else
                 {
                     Connection
                         .ActiveChar
                         .SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                    
-                }
 
+                    if (mType != null && mType.FallVel > 0)
+                        Connection.ActiveChar.DoFallDamage(mType.FallVel);
+                }
                 
                 Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
             }

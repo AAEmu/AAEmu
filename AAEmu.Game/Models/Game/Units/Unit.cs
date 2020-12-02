@@ -225,6 +225,9 @@ namespace AAEmu.Game.Models.Game.Units
             InterruptSkills();
             Buffs.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
+            if (killer == this)
+                return;
+
             var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
             if (lootDropItems.Count > 0)
             {
