@@ -19,8 +19,8 @@ namespace AAEmu.Game.Core.Managers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private List<AuctionItem> _auctionItems;
-        private List<long> _deletedAuctionItemIds;
+        public List<AuctionItem> _auctionItems;
+        public List<long> _deletedAuctionItemIds;
 
         private static int MaxListingFee = 1000000; // 100g
 
@@ -284,7 +284,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        private string GetLocalizedItemNameById(uint id)
+        public string GetLocalizedItemNameById(uint id)
         {
             return LocalizationManager.Instance.Get("items", "name", id, ItemManager.Instance.GetTemplate(id).Name ?? "");
         }
