@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Managers
             
             var modelType = _modelTypes[modelId];
 
-            if (!_models[modelType.SubType].ContainsKey(modelType.SubId))
+            if (!_models.ContainsKey(modelType.SubType) || !_models[modelType.SubType].ContainsKey(modelType.SubId))
                 return null;
             
             return (ActorModel) _models[modelType.SubType][modelType.SubId];

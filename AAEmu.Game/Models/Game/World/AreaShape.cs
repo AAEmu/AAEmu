@@ -100,6 +100,9 @@ namespace AAEmu.Game.Models.Game.World
 
         public void ApplyEffects()
         {
+            if (InsideBuffTemplate == null)
+                return;
+            
             var unitsToApply = SkillTargetingUtil.FilterWithRelation(TargetRelation, Caster, Units);
             foreach (var unit in unitsToApply)
             {
