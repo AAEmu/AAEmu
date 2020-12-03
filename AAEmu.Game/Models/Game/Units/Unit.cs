@@ -297,12 +297,12 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void StartRegen()
         {
-            if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp || Hp == 0)
-            {
-                return;
-            }
-            _regenTask = new UnitPointsRegenTask(this);
-            TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+            // if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp || Hp == 0)
+            // {
+            //     return;
+            // }
+            // _regenTask = new UnitPointsRegenTask(this);
+            // TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
 
         public async void StopRegen()
@@ -474,6 +474,22 @@ namespace AAEmu.Game.Models.Game.Units
                 default:
                     SkillTask.Skill.Stop(this);
                     break;
+            }
+        }
+
+        public bool IsDead
+        {
+            get
+            {
+                return Hp <= 0;
+            }
+        }
+
+        public bool NeedsRegen
+        {
+            get
+            {
+                return Hp < MaxHp || Mp < MaxMp;
             }
         }
     }

@@ -308,6 +308,12 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Cast(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
+            if (caster is Character character)
+            {
+                character.LastCast = DateTime.Now;
+                character.IsInPostCast = true;
+            }
+            
             caster.SkillTask = null;
             if (Id == 2 || Id == 3 || Id == 4)
             {

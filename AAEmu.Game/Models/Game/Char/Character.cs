@@ -70,7 +70,9 @@ namespace AAEmu.Game.Models.Game.Char
         public AbilityType Ability2 { get; set; }
         public AbilityType Ability3 { get; set; }
         public DateTime LastCombatActivity { get; set; }
+        public DateTime LastCast { get; set; }
         public bool IsInCombat { get; set; }
+        public bool IsInPostCast { get; set; }
         public bool IgnoreSkillCooldowns { get; set; }
         public string FactionName { get; set; }
         public uint Family { get; set; }
@@ -312,7 +314,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = formula.Evaluate(parameters);
-                res += Spi / 10;
+                // res += Spi / 10;
                 res = CalculateWithBonuses(res, UnitAttribute.HealthRegen);
 
                 return (int)res;
@@ -335,8 +337,8 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = formula.Evaluate(parameters);
-                res /= 5; // TODO ...
                 res = CalculateWithBonuses(res, UnitAttribute.PersistentHealthRegen);
+                res /= 5;
 
                 return (int)res;
             }
@@ -1327,7 +1329,7 @@ namespace AAEmu.Game.Models.Game.Char
             //todo stun & maybe adjust formula?
             _log.Warn("FallDamage: Vel{0} DmgPerc: {1}", fallVel, (int)((fallVel - 5000) / 200f));
         }
-
+        
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;
