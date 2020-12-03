@@ -462,7 +462,7 @@ namespace AAEmu.Game.Models.Game.World
 
                 var finalrad = sqrad;
                 if (useModelSize)
-                    finalrad += obj.ModelSize;
+                    finalrad += (obj.ModelSize * obj.ModelSize);
                 
                 var dx = obj.Position.X - x;
                 dx *= dx;

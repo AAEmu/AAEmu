@@ -33,6 +33,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 // I think value1 is fixed, and value2 is based on skill level somehow.
                 var manaCost = character.SkillModifiersCache.ApplyModifiers(skill, SkillAttribute.ManaCost, value1 + value2);
                 character.ReduceCurrentMp(null, (int)manaCost);
+                
+                character.LastCast = DateTime.Now;
+                character.IsInPostCast = true;
                 // TODO / 10
             }
         }

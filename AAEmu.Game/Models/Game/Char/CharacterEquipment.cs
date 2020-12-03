@@ -133,15 +133,12 @@ namespace AAEmu.Game.Models.Game.Char
 
         private void ApplyArmorGradeBuff(Item itemAdded, Item itemRemoved)
         {
-            if (!(itemAdded == null || itemRemoved == null))
+            if ((itemAdded != null || itemRemoved != null) && (!(itemAdded is Armor) && !(itemRemoved is Armor)))
                 return;
 
-            if (!(itemAdded is Armor) && !(itemRemoved is Armor))
-                return;
-            
             // Clear any existing armor grade buffs
             Buffs.RemoveBuffs(145, 1);
-            
+
             // Get armor pieces by kind
             var armorPieces = new Dictionary<ArmorType, List<Armor>>();
             foreach (var item in Equipment.Items)
@@ -152,13 +149,14 @@ namespace AAEmu.Game.Models.Game.Char
                 if (!(item.Template is ArmorTemplate armorTemplate))
                     continue;
 
-                if (armorTemplate.SlotTemplate.SlotTypeId == (ulong) EquipmentItemSlotType.Back)
+                if (armorTemplate.SlotTemplate.SlotTypeId == (ulong)EquipmentItemSlotType.Back)
                     continue;
 
                 if (!armorPieces.ContainsKey((ArmorType)armorTemplate.KindTemplate.TypeId))
                     armorPieces.Add((ArmorType)armorTemplate.KindTemplate.TypeId, new List<Armor>());
                 armorPieces[(ArmorType)armorTemplate.KindTemplate.TypeId].Add(armor);
             }
+
             if (armorPieces.Count() == 0)
                 return;
             // Get kind with most pieces
@@ -172,9 +170,9 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (piecesToAccountForBuff.Count < 4)
                 return;
-            
+
             // Get only pieces >= arcane
-            var piecesAboveArcane = piecesToAccountForBuff.Where(p => p.Grade >= (int) ItemGrade.Arcane).ToList();
+            var piecesAboveArcane = piecesToAccountForBuff.Where(p => p.Grade >= (int)ItemGrade.Arcane).ToList();
             if (piecesAboveArcane.Count < 4)
                 return;
 
@@ -184,18 +182,19 @@ namespace AAEmu.Game.Models.Game.Char
             var abLevel = totalLevel * 0.40670554f;
             var gradeBuffAbLevel = (abLevel * abLevel) / 15 + 30;
             var lowestGrade = piecesAboveArcane.Min(a => a.Grade);
-            
+
             // Apply buff 
             if (piecesAboveArcane.First().Template is ArmorTemplate armorTemp)
             {
                 var type = armorTemp.WearableTemplate.TypeId;
-                var armorGradeBuff = ItemManager.Instance.GetArmorGradeBuff((ArmorType)type, (ItemGrade) lowestGrade);
+                var armorGradeBuff =
+                    ItemManager.Instance.GetArmorGradeBuff((ArmorType)type, (ItemGrade)lowestGrade);
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(armorGradeBuff.BuffId);
-                
+
                 var newEffect =
                     new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
                     {
-                        AbLevel = (uint) gradeBuffAbLevel
+                        AbLevel = (uint)gradeBuffAbLevel
                     };
 
                 Buffs.AddBuff(newEffect);

@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("HealEffect");
+            _log.Debug("HealEffect {0}", Id);
 
             if (!(target is Unit))
                 return;
@@ -42,11 +42,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var min = 0.0f;
             var max = 0.0f;
-            if (UseFixedHeal)
-            {
-                min += FixedMin;
-                max += FixedMax;
-            }
 
             var levelMin = 0.0f;
             var levelMax = 0.0f;
@@ -92,13 +87,19 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             bool criticalHeal = Rand.Next(0f, 100f) < caster.HealCritical;
-
+            
             var value = (int)Rand.Next(min, max);
 
             if (criticalHeal)
                 value = (int)(value * (1 + (caster.HealCriticalBonus / 100)));
 
             value = (int) (value * trg.IncomingHealMul);
+            
+            if (UseFixedHeal)
+            {
+                value = Rand.Next(FixedMin, FixedMax);
+            }
+            
             value = (int) (value * caster.HealMul);
 
             byte healHitType = criticalHeal ? (byte)11 : (byte)13;

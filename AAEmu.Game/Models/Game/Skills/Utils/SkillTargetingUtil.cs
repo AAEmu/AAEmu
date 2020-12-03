@@ -18,13 +18,13 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
                 case SkillTargetRelation.Friendly:
                     return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Friendly && !caster.CanAttack(o));
                 case SkillTargetRelation.Hostile:
-                    return units.Where(o => caster.CanAttack(o));
+                    return units.Where(caster.CanAttack);
                 case SkillTargetRelation.Party:
                     return units;
                 case SkillTargetRelation.Raid:
-                    units = units.Append(caster);
                     var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
-                    return team == null ? new List<T>() : units.Where(o => team.IsObjMember(o.ObjId));
+                    units = team == null ? new List<T>() : units.Where(o => team.IsObjMember(o.ObjId));
+                    return units.Append(caster);
                 case SkillTargetRelation.Others:
                     return units.Where(o => caster.GetRelationStateTo(o) == RelationState.Neutral);
                 default:

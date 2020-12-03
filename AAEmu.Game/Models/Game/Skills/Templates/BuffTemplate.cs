@@ -240,7 +240,6 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public void DoAreaTick(Unit caster, BaseUnit owner, Buff buff)
         {
             var units = WorldManager.Instance.GetAround<Unit>(owner, TickAreaRadius);
-            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units).ToList();
 
             if (owner == null)
                 owner = caster;
@@ -256,6 +255,8 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 if (!units.Contains(owner) && ownerUnit != null)
                     units.Add(ownerUnit);
             }
+            
+            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units).ToList();
 
             var source = caster;
             //if (TickAreaUseOriginSource)

@@ -308,13 +308,10 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Cast(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
-            if (caster is Character character)
-            {
-                character.LastCast = DateTime.Now;
-                character.IsInPostCast = true;
-            }
-            
             caster.SkillTask = null;
+            
+            ConsumeMana(caster);
+
             if (Id == 2 || Id == 3 || Id == 4)
             {
                 if (caster is Character && caster.CurrentTarget == null)
@@ -510,19 +507,20 @@ namespace AAEmu.Game.Models.Game.Skills
 
                 foreach (var target in effectedTargets)
                 {
+                    var relationState = caster.GetRelationStateTo(target);
                     if (effect.StartLevel > caster.Level || effect.EndLevel < caster.Level)
                     {
                         continue;
                     }
 
-                    if (effect.Friendly && !effect.NonFriendly && caster.GetRelationStateTo(target) != RelationState.Friendly)
+                    if (effect.Friendly && !effect.NonFriendly && relationState != RelationState.Friendly)
                     {
                         continue;
                     }
 
-                    if (!effect.Friendly && effect.NonFriendly && caster.GetRelationStateTo(target) != RelationState.Hostile)
+                    if (!effect.Friendly && effect.NonFriendly && relationState != RelationState.Hostile)
                     {
-                        if (caster.GetRelationStateTo(target) == RelationState.Friendly && !caster.ForceAttack)
+                        if ((relationState == RelationState.Friendly && !caster.ForceAttack) || caster.ObjId == target.ObjId)
                         {
                             continue;
                         }
@@ -643,14 +641,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
             }
 
-            if (Template.Cost > 0 && caster is Unit unit)
-            {
-                var baseCost = (((caster.GetAbLevel((AbilityType)Template.AbilityId)-1) * 1.6 + 8) * 3) / 3.65;
-                var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
-                var manaCost = (int)unit.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
-                unit.ReduceCurrentMp(null, manaCost);
-            }
-
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             SkillManager.Instance.ReleaseId(TlId);
 
@@ -768,6 +758,19 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             _log.Error($"Unit[{objId}] was not found in the CbtDiceRolls.");
             return true;
+        }
+
+        public void ConsumeMana(Unit caster)
+        {
+            var baseCost = (((caster.GetAbLevel((AbilityType)Template.AbilityId)-1) * 1.6 + 8) * 3) / 3.65;
+            var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
+            var manaCost = (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
+            caster.ReduceCurrentMp(null, manaCost);
+            if (caster is Character character)
+            {
+                character.LastCast = DateTime.Now;
+                character.IsInPostCast = true;
+            }
         }
 
     }
