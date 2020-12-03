@@ -263,7 +263,7 @@ namespace AAEmu.Game.Core.Managers
             return auctionItemsFound;
         }
 
-        private AuctionItem GetCheapestAuctionItem(ulong itemId)
+        public AuctionItem GetCheapestAuctionItem(ulong itemId)
         {
             var tempList = new List<AuctionItem>();
 
