@@ -228,7 +228,7 @@ namespace AAEmu.Game.Models.Game.Char
                     var newEffect =
                         new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.UtcNow)
                         {
-                            AbLevel = 1
+                            AbLevel = (uint)itemAdded.Template.Level
                         };
 
                     Buffs.AddBuff(newEffect);
@@ -241,11 +241,13 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     if(item.Template.BuffId != 0)
                     {
-                        var buffTemplate = SkillManager.Instance.GetBuffTemplate(item.Template.BuffId);
+                        var buffTemplate = ItemGameData.Instance.GetItemBuff(item?.TemplateId ?? 0, item?.Grade ?? 0);
+                        if (buffTemplate == null)
+                            buffTemplate = SkillManager.Instance.GetBuffTemplate(item?.Template.BuffId ?? 0);
                         var newEffect =
                             new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                             {
-                                AbLevel = 1
+                                AbLevel = (uint)item.Template.Level
                             };
 
                         Buffs.AddBuff(newEffect);
