@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
@@ -203,24 +204,35 @@ namespace AAEmu.Game.Models.Game.Char
 
         private void ApplyEquipEffects(Item itemAdded, Item itemRemoved)
         {
-            if(itemRemoved != null && itemRemoved.Template.BuffId != 0) // remove previous buff
+            if (itemRemoved != null)
             {
-                if(Buffs.CheckBuff(itemRemoved.Template.BuffId))
+                var itemRemovedBuff = ItemGameData.Instance.GetItemBuff(itemRemoved?.TemplateId ?? 0, itemRemoved?.Grade ?? 0);
+                if (itemRemovedBuff == null)
+                    itemRemovedBuff = SkillManager.Instance.GetBuffTemplate(itemRemoved?.Template.BuffId ?? 0);
+                if (itemRemovedBuff != null) // remove previous buff
                 {
-                    Buffs.RemoveBuff(itemRemoved.Template.BuffId);
+                    if (Buffs.CheckBuff(itemRemovedBuff.Id))
+                    {
+                        Buffs.RemoveBuff(itemRemovedBuff.Id);
+                    }
                 }
             }
 
-            if(itemAdded != null && itemAdded.Template.BuffId != 0) // add buff from equipped item
+            if(itemAdded != null)
             {
-                var buffTemplate = SkillManager.Instance.GetBuffTemplate(itemAdded.Template.BuffId);
-                var newEffect =
-                    new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
-                    {
-                        AbLevel = 1
-                    };
+                var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded?.TemplateId ?? 0, itemAdded?.Grade ?? 0);
+                if (itemAddedBuff == null)
+                    itemAddedBuff = SkillManager.Instance.GetBuffTemplate(itemAdded?.Template.BuffId ?? 0);
+                if (itemAddedBuff != null) // add buff from equipped item
+                {
+                    var newEffect =
+                        new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.UtcNow)
+                        {
+                            AbLevel = 1
+                        };
 
-                Buffs.AddBuff(newEffect);
+                    Buffs.AddBuff(newEffect);
+                }
             }
 
             if(itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 
