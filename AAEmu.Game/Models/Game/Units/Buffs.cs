@@ -204,7 +204,7 @@ namespace AAEmu.Game.Models.Game.Units
                 var buffIds = SkillManager.Instance.GetBuffTags(buff.Template.Id);
                 var buffTolerance = buffIds
                     .Select(buffId => BuffGameData.Instance.GetBuffToleranceForBuffTag(buffId))
-                    .SingleOrDefault(t => t != null);
+                    .FirstOrDefault(t => t != null);
                 if (buffTolerance != null && _toleranceCounters.ContainsKey(buffTolerance.Id) && !CheckBuff(buffTolerance.FinalStepBuffId))
                 {
                     var counter = _toleranceCounters[buffTolerance.Id];

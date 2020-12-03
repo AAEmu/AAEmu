@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void TriggerCombatBuffs(Unit attacker, SkillHitType type, bool IsDefendedAttack = false)
+        public void TriggerCombatBuffs(Unit attacker, Unit receiver, SkillHitType type, bool IsDefendedAttack = false)
         {
             if (!_cbuffsByHitType.ContainsKey(type))
                 return;
@@ -52,30 +52,40 @@ namespace AAEmu.Game.Models.Game.Units
                 return;
             foreach (var cb in buffs)
             {
-                // var caster = unit;
-                // var target = attacker;
-                // if (cb.BuffFromSource)
-                //     caster = attacker;
-                // if (cb.BuffToSource)
-                //     target = unit;
+                // // var caster = unit;
+                // // var target = attacker;
+                // // if (cb.BuffFromSource)
+                // //     caster = attacker;
+                // // if (cb.BuffToSource)
+                // //     target = unit;
+                //
+                // // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
+                // var source = (Unit)_owner;
+                // var target = (Unit)_owner;
+                // if (IsDefendedAttack)
+                // {
+                //    if (cb.BuffToSource)
+                //        target = attacker;
+                //    if (cb.BuffFromSource)
+                //        source = attacker;
+                // }
+                // else
+                // {
+                //     if (cb.BuffToSource)
+                //         target = (Unit)_owner;
+                //     if (cb.BuffFromSource)
+                //         source = (Unit)_owner;
+                // }
 
-                // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
-                var source = (Unit)_owner;
-                var target = (Unit)_owner;
-                if (IsDefendedAttack)
-                {
-                   if (cb.BuffToSource)
-                       target = attacker;
-                   if (cb.BuffFromSource)
-                       source = attacker;
-                }
-                else
-                {
-                    if (cb.BuffToSource)
-                        target = (Unit)_owner;
-                    if (cb.BuffFromSource)
-                        source = (Unit)_owner;
-                }
+                // If BTS and we're not attacking, doesn't apply
+                if (cb.BuffToSource && _owner != attacker)
+                    return;
+                // If not BTS and we're attacking, doesn't apply
+                if (!cb.BuffToSource && _owner == attacker)
+                    return;
+                
+                var target = unit;
+                var source = unit;
 
                 _log.Warn("[{0}, Req:{1}] BTS: {2} BFS: {3} HT: {4}", cb.BuffId, cb.ReqBuffId, cb.BuffToSource, cb.BuffFromSource, cb.HitType);
 
