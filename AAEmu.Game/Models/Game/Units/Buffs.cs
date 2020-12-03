@@ -265,7 +265,9 @@ namespace AAEmu.Game.Models.Game.Units
                     case BuffStackRule.Refresh:
                         foreach (var e in new List<Buff>(_effects))
                             if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
-                                if (e.GetTimeLeft() < buff.GetTimeLeft())
+                                if (buff.GetTimeLeft() < e.GetTimeLeft())
+                                    return;
+                                else
                                     last = e;
                         break;
                     default:
