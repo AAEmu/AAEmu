@@ -562,7 +562,7 @@ CREATE TABLE `auction_house` (
   `bidder_name` varchar(45) NOT NULL,
   `bid_money` int NOT NULL,
   `extra` int NOT NULL,
-  `item_name` varchar(45) NOT NULL,
+  `item_name` varchar(100) NOT NULL,
   `category_a` int NOT NULL,
   `category_b` int NOT NULL,
   `category_c` int NOT NULL,

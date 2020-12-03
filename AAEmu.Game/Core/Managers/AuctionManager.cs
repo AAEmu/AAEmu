@@ -19,11 +19,10 @@ namespace AAEmu.Game.Core.Managers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public List<AuctionItem> _auctionItems;
-        public Dictionary<uint, string> _en_localizations;
-        public List<long> _deletedAuctionItemIds;
+        private List<AuctionItem> _auctionItems;
+        private List<long> _deletedAuctionItemIds;
 
-        public static int MaxListingFee = 1000000; // 100g
+        private static int MaxListingFee = 1000000; // 100g
 
         public void ListAuctionItem(Character player, ulong itemId, int startPrice, int buyoutPrice, byte duration)
         {
@@ -51,7 +50,7 @@ namespace AAEmu.Game.Core.Managers
             player.SendPacket(new SCAuctionPostedPacket(newAuctionItem));
         }
 
-        public void RemoveAuctionItemSold(AuctionItem itemToRemove, string buyer, int soldAmount)
+        private void RemoveAuctionItemSold(AuctionItem itemToRemove, string buyer, int soldAmount)
         {
             if (_auctionItems.Contains(itemToRemove))
             {
@@ -64,55 +63,55 @@ namespace AAEmu.Game.Core.Managers
                 var moneyToSend = new int[3];
                 moneyToSend[0] = (int)moneyAfterFee;
 
-                // var emptyItemList = new Item[10].ToList();
-                // var emptyMoneyArray = new int[3];
-
                 // TODO: Read this from saved data
                 var recalculatedFee = (itemToRemove.DirectMoney * .01) * (itemToRemove.Duration + 1);
                 if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
 
-                var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
-                sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (int)(soldAmount - moneyAfterFee));
-                sellMail.Send();
-                // MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Succesfull Listing", $"{GetLocalizedItemNameById(itemToRemove.ItemID)} sold!", 1, moneyToSend, 0, emptyItemList); //Send money to seller
-
+                if (itemToRemove.ClientName != "")
+                {
+                    var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
+                    sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (int)(soldAmount - moneyAfterFee));
+                    sellMail.Send();   
+                }
+                
                 var buyMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
                 var buyerId = NameManager.Instance.GetCharacterId(buyer);
                 buyMail.FinalizeForSaleBuyer(buyerId);
                 buyMail.Send();
-                // MailManager.Instance.SendMail(0, buyer, "Auction House", "Succesfull Purchase", "See attached.", 1, emptyMoneyArray, 1, itemList); //Send items to buyer
 
                 RemoveAuctionItem(itemToRemove);
             }
         }
 
-        public void RemoveAuctionItemFail(AuctionItem itemToRemove)
+        private void RemoveAuctionItemFail(AuctionItem itemToRemove)
         {
-            if (_auctionItems.Contains(itemToRemove))
+            if (!_auctionItems.Contains(itemToRemove))
+                return;
+            
+            if (itemToRemove.BidderName != "") //Player won the bid. 
             {
-                if (itemToRemove.BidderName != "") //Player won the bid. 
-                {
-                    RemoveAuctionItemSold(itemToRemove, itemToRemove.BidderName, itemToRemove.BidMoney);
-                    return;
-                }
-                else //Item did not sell by end of the timer. 
-                {
-                    var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(itemToRemove.ItemID);
-                    var newItem = ItemManager.Instance.Create(itemTemplate.Id, (int)itemToRemove.StackSize, itemToRemove.Grade);
-                    var itemList = new Item[10].ToList();
-                    itemList[0] = newItem;
+                RemoveAuctionItemSold(itemToRemove, itemToRemove.BidderName, itemToRemove.BidMoney);
+                return;
+            }
+            else //Item did not sell by end of the timer. 
+            {
+                var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(itemToRemove.ItemID);
+                var newItem = ItemManager.Instance.Create(itemTemplate.Id, (int)itemToRemove.StackSize, itemToRemove.Grade);
+                var itemList = new Item[10].ToList();
+                itemList[0] = newItem;
 
-                    // TODO: Read this from saved data
-                    var recalculatedFee = (itemToRemove.DirectMoney * .01) * (itemToRemove.Duration + 1);
-                    if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+                // TODO: Read this from saved data
+                var recalculatedFee = (itemToRemove.DirectMoney * .01) * (itemToRemove.Duration + 1);
+                if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
 
+                if (itemToRemove.ClientName != "")
+                {
                     var failMail = new MailForAuction(newItem, itemToRemove.ClientId, itemToRemove.DirectMoney, (int)recalculatedFee);
                     failMail.FinalizeForFail();
-                    failMail.Send();
-                    //MailManager.Instance.SendMail(0, itemToRemove.ClientName, "Auction House", "Failed Listing", "See attached.", 1, new int[3], 0, itemList);
-
-                    RemoveAuctionItem(itemToRemove);
+                    failMail.Send();   
                 }
+
+                RemoveAuctionItem(itemToRemove);
             }
         }
 
@@ -120,45 +119,38 @@ namespace AAEmu.Game.Core.Managers
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
 
-            if (auctionItem.BidderName != "") // Someone has already bid on the item and we do not want to remove it. 
-                return;
+            if (auctionItem.BidderName != "") return;// Someone has already bid on the item and we do not want to remove it. 
 
-            if(auctionItem != null)
-            {
-                var moneyToSubtract = auctionItem.DirectMoney * .1f;
-                var itemList = new Item[10].ToList();
-                var newItem = ItemManager.Instance.Create(auctionItem.ItemID, (int)auctionItem.StackSize, auctionItem.Grade);
-                itemList[0] = newItem;
+            var moneyToSubtract = auctionItem.DirectMoney * .1f;
+            var itemList = new Item[10].ToList();
+            var newItem = ItemManager.Instance.Create(auctionItem.ItemID, (int)auctionItem.StackSize, auctionItem.Grade);
+            itemList[0] = newItem;
 
-                // TODO: Read this from saved data
-                var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
-                if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+            // TODO: Read this from saved data
+            var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
+            if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
 
-                var cancelMail = new MailForAuction(newItem, auctionItem.ClientId, auctionItem.DirectMoney, (int)recalculatedFee);
-                cancelMail.FinalizeForCancel();
-                cancelMail.Send();
-                // MailManager.Instance.SendMail(0, auctionItem.ClientName, "AuctionHouse", "Cancelled Listing", "See attaached.", 1, new int[3], 0, itemList);
+            var cancelMail = new MailForAuction(newItem, auctionItem.ClientId, auctionItem.DirectMoney, (int)recalculatedFee);
+            cancelMail.FinalizeForCancel();
+            cancelMail.Send();
+            // MailManager.Instance.SendMail(0, auctionItem.ClientName, "AuctionHouse", "Cancelled Listing", "See attaached.", 1, new int[3], 0, itemList);
 
-                RemoveAuctionItem(auctionItem);
-                player.SendPacket(new SCAuctionCanceledPacket(auctionItem));
-            }
+            RemoveAuctionItem(auctionItem);
+            player.SendPacket(new SCAuctionCanceledPacket(auctionItem));
         }
 
-        public AuctionItem GetAuctionItemFromID(ulong auctionId)
+        private AuctionItem GetAuctionItemFromID(ulong auctionId)
         {
-            for (int i = 0; i < _auctionItems.Count; i++)
-            {
-                if (_auctionItems[i].ID == auctionId)
-                    return _auctionItems[i];
-            }
-            return null;
+            var item = _auctionItems.Single(c => c.ID == auctionId);
+
+            return item;
         }
         public void BidOnAuctionItem(Character player, ulong auctionId, int bidAmount)
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
             if (auctionItem != null)
             {
-                if (bidAmount >= auctionItem.DirectMoney) //Buy now
+                if (bidAmount >= auctionItem.DirectMoney && auctionItem.DirectMoney != 0) //Buy now
                 {
                     player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
                     RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
@@ -242,7 +234,7 @@ namespace AAEmu.Game.Core.Managers
             if (searchTemplate.Page > 0)
             {
                 var startingItemNumber = (int)(searchTemplate.Page * 9);
-                var endingitemNumber = (int)((searchTemplate.Page * 9) + 8);
+                var endingitemNumber = (int)((searchTemplate.Page * 9) + 9);
                 if (auctionItemsFound.Count > startingItemNumber)
                 {
                     var tempItemList = new List<AuctionItem>();
@@ -271,7 +263,7 @@ namespace AAEmu.Game.Core.Managers
             return auctionItemsFound;
         }
 
-        public AuctionItem GetCheapestAuctionItem(ulong itemId)
+        private AuctionItem GetCheapestAuctionItem(ulong itemId)
         {
             var tempList = new List<AuctionItem>();
 
@@ -292,7 +284,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public string GetLocalizedItemNameById(uint id)
+        private string GetLocalizedItemNameById(uint id)
         {
             return LocalizationManager.Instance.Get("items", "name", id, ItemManager.Instance.GetTemplate(id).Name ?? "");
         }
@@ -310,6 +302,11 @@ namespace AAEmu.Game.Core.Managers
 
         public void RemoveAuctionItem(AuctionItem itemToRemove)
         {
+            if (itemToRemove.ClientName == "") //Testing feature. Relists an item if the server listed it. 
+            {
+                itemToRemove.EndTime = DateTime.Now.AddSeconds(172800);
+                return;
+            }
             lock (_auctionItems)
             {
                 lock (_deletedAuctionItemIds)
@@ -356,14 +353,11 @@ namespace AAEmu.Game.Core.Managers
         {
             var newItem = itemToList;
 
-            if (newItem == null) //TODO
-                return null;
-
             ulong timeLeft;
             switch (duration)
             {
                 case 0:
-                    timeLeft = 21600; //6 hourse
+                    timeLeft = 21600; //6 hours
                     break;
                 case 1:
                     timeLeft = 43200; //12 hours
@@ -378,7 +372,7 @@ namespace AAEmu.Game.Core.Managers
                     timeLeft = 21600; //default to 6 hours
                     break;
             }
-
+            
             var newAuctionItem = new AuctionItem
             {
                 ID = GetNextId(),
