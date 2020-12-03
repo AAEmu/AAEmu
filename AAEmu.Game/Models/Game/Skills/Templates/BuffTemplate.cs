@@ -240,9 +240,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public void DoAreaTick(Unit caster, BaseUnit owner, Buff buff)
         {
             var units = WorldManager.Instance.GetAround<Unit>(owner, TickAreaRadius);
-            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units) as List<Unit>;
-            if (units == null)
-                units = new List<Unit>();
+            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units).ToList();
 
             if (owner == null)
                 owner = caster;
