@@ -126,6 +126,10 @@ namespace AAEmu.Game.Core.Managers
         {
             return _lootDropItems.ContainsKey(npcId) ? _lootDropItems[npcId] : new List<Item>();
         }
+        public List<ItemTemplate> GetAllItems()
+        {
+            return _templates.Values.ToList();
+        }
         public List<Item> CreateLootDropItems(uint npcId)
         {
             var items = GetLootDropItems(npcId);
