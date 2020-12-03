@@ -459,6 +459,30 @@ namespace AAEmu.Game.Models.Game.Char
                 return (float)res;
             }
         }
+        
+        [UnitAttribute(UnitAttribute.IncomingHealMul)]
+        public override float IncomingHealMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingHealMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
+        
+        [UnitAttribute(UnitAttribute.HealMul)]
+        public override float HealMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.HealMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
 
         public override float LevelDps
         {

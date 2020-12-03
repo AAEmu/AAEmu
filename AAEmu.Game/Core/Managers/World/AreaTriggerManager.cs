@@ -12,6 +12,9 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly List<AreaTrigger> _areaTriggers;
         private List<AreaTrigger> _addQueue;
         private List<AreaTrigger> _removeQueue;
+        
+        private object _addLock = new object();
+        private object _remLock = new object();
 
         public AreaTriggerManager()
         {
@@ -27,30 +30,44 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void AddAreaTrigger(AreaTrigger trigger)
         {
-            _addQueue.Add(trigger);
+            lock (_addLock)
+            {
+                _addQueue.Add(trigger);
+            }
         }
 
         public void RemoveAreaTrigger(AreaTrigger trigger)
         {
             trigger.OnDelete();
-            _removeQueue.Add(trigger);
+            lock (_remLock)
+            {
+                _removeQueue.Add(trigger);
+            }
         }
         
         public void Tick(TimeSpan delta)
         {
-            if (_addQueue?.Count > 0) 
-                _areaTriggers.AddRange(_addQueue);
-            _addQueue = new List<AreaTrigger>();
+            lock (_addLock)
+            {
+                if (_addQueue?.Count > 0)
+                    _areaTriggers.AddRange(_addQueue);
+                _addQueue = new List<AreaTrigger>();
+            }
+
             foreach (var trigger in _areaTriggers)
             {
                 trigger?.Tick(delta);
             }
 
-            foreach (var triggerToRemove in _removeQueue)
+            lock (_remLock)
             {
-                _areaTriggers.Remove(triggerToRemove);
+                foreach (var triggerToRemove in _removeQueue)
+                {
+                    _areaTriggers.Remove(triggerToRemove);
+                }
+
+                _removeQueue = new List<AreaTrigger>();
             }
-            _removeQueue = new List<AreaTrigger>();
         }
     }
 }

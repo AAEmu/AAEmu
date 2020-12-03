@@ -135,6 +135,10 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual float RangedDamageMul { get; set; }
         [UnitAttribute(UnitAttribute.SpellDamageMul)]
         public virtual float SpellDamageMul { get; set; }
+        [UnitAttribute(UnitAttribute.IncomingHealMul)]
+        public virtual float IncomingHealMul { get; set; }
+        [UnitAttribute(UnitAttribute.HealMul)]
+        public virtual float HealMul { get; set; }
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }

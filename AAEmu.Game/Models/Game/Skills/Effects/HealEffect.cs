@@ -98,6 +98,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (criticalHeal)
                 value = (int)(value * (1 + (caster.HealCriticalBonus / 100)));
 
+            value = (int) (value * trg.IncomingHealMul);
+            value = (int) (value * caster.HealMul);
+
             byte healHitType = criticalHeal ? (byte)11 : (byte)13;
 
             trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, healHitType, value), true);
