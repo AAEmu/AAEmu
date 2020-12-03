@@ -28,6 +28,15 @@ namespace AAEmu.Game.Models.Game.Units
         public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
+
+        public override float ModelSize
+        {
+            get
+            {
+                return ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
+            }
+        }
+
         public byte Level { get; set; }
         public int Hp { get; set; }
         [UnitAttribute(UnitAttribute.GlobalCooldownMul)]

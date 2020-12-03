@@ -487,14 +487,17 @@ namespace AAEmu.Game.Core.Managers.World
             return result;
         }
 
-        public List<T> GetAround<T>(GameObject obj, float radius) where T : class
+        public List<T> GetAround<T>(GameObject obj, float radius, bool useModelSize = false) where T : class
         {
             var result = new List<T>();
             if (obj.Region == null)
                 return result;
 
+            if (useModelSize)
+                radius += obj.ModelSize;
+
             foreach (var neighbor in obj.Region.GetNeighbors())
-                neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius);
+                neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius, useModelSize);
 
             return result;
         }
