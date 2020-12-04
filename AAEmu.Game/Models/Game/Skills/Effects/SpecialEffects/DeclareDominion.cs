@@ -1,7 +1,10 @@
 using System;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
 
@@ -110,6 +113,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             
             // Broadcast packet to the entire server
             WorldManager.Instance.BroadcastPacketToServer(new SCDominionDataPacket(dominion, true, true));
+            if (caster is Character character)
+            {
+                // character.Inventory.Equipment.
+                var backpack = character.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
+                character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillReagents, backpack.TemplateId, 1, backpack);
+            }
         }
     }
 }
