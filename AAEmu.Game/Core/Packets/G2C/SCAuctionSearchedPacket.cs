@@ -27,6 +27,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_page);
             stream.Write(_count);
+            Random random = new Random();
 
             if (_count > 0)
             {
@@ -51,7 +52,6 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(item.ClientName);
                     stream.Write(item.StartMoney);
                     stream.Write(item.DirectMoney);
-                    Random random = new Random();
                     var offset = (ulong)random.Next(0, 10); //Adds offset to timeleft to prevent client from guessing it. 
                     stream.Write(item.TimeLeft + offset);
                     stream.Write(item.BidWorldID);
