@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -22,9 +22,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (BuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(BuffTagId)))
                 return;
-            if (DispelCount > 0)
+            if (DispelCount > 0 && caster.CanAttack(target))
                 target.Buffs.RemoveBuffs(BuffKind.Good, DispelCount, BuffTagId); //TODO ....
-            if (CureCount > 0)
+            if (CureCount > 0 && !caster.CanAttack(target))
                 target.Buffs.RemoveBuffs(BuffKind.Bad, CureCount, BuffTagId);
         }
     }
