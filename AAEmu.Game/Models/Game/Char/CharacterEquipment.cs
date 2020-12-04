@@ -146,7 +146,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
 
             // Clear any existing armor grade buffs
-            Buffs.RemoveBuffs(145, 1);
+            Buffs.RemoveBuffs((uint) BuffConstants.ARMOR_BUFF_TAG, 1);
 
             // Get armor pieces by kind
             var armorPieces = new Dictionary<ArmorType, List<Armor>>();
@@ -166,7 +166,7 @@ namespace AAEmu.Game.Models.Game.Char
                 armorPieces[(ArmorType)armorTemplate.KindTemplate.TypeId].Add(armor);
             }
 
-            if (armorPieces.Count() == 0)
+            if (!armorPieces.Any())
                 return;
             // Get kind with most pieces
             var piecesOfKind = armorPieces.First();
@@ -179,6 +179,49 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (piecesToAccountForBuff.Count < 4)
                 return;
+
+            var finalArmorTemplate = piecesToAccountForBuff.First().Template as ArmorTemplate;
+            if (finalArmorTemplate == null)
+                return;
+            
+            if (piecesToAccountForBuff.Count == 7)
+            {
+                BuffTemplate templ = null;
+                switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
+                {
+                    case ArmorType.Cloth:
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.CLOTH_7P);
+                        break;
+                    case ArmorType.Leather:
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.LEATHER_7P);
+                        break;
+                    case ArmorType.Metal:
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.PLATE_7P);
+                        break;
+                }
+                
+                if (templ != null)
+                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.Now));
+            }
+            else
+            {
+                BuffTemplate templ = null;
+                switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
+                {
+                    case ArmorType.Cloth:
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.CLOTH_4P);
+                        break;
+                    case ArmorType.Leather:
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.LEATHER_4P);
+                        break;
+                    case ArmorType.Metal:
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.PLATE_4P);
+                        break;
+                }
+                
+                if (templ != null)
+                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.Now));
+            }
 
             // Get only pieces >= arcane
             var piecesAboveArcane = piecesToAccountForBuff.Where(p => p.Grade >= (int)ItemGrade.Arcane).ToList();
