@@ -37,7 +37,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             foreach (var buffToRemove in buffsToRemove)
             {
-                if (!_cbuffsByHitType.ContainsKey(buffToRemove.HitType))
+                if (_cbuffsByHitType.ContainsKey(buffToRemove.HitType))
                     _cbuffsByHitType[buffToRemove.HitType].Remove(buffToRemove);
             }
         }
