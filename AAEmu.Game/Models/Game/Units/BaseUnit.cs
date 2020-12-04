@@ -95,7 +95,7 @@ namespace AAEmu.Game.Models.Game.Units
             return relation == RelationState.Hostile;
         }
 
-        public RelationState GetRelationStateTo(BaseUnit unit) => this.Faction.GetRelationState(unit.Faction);
+        public RelationState GetRelationStateTo(BaseUnit unit) => this.Faction?.GetRelationState(unit.Faction) ?? RelationState.Neutral;
 
         public virtual void AddBonus(uint bonusIndex, Bonus bonus)
         {
