@@ -107,25 +107,34 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     if (setCount.Value >= bonus.NumPieces)
                     {
-                        if (Buffs.CheckBuff(bonus.BuffId))
+                        if (bonus.BuffId != 0)
                         {
-                            appliedBuffs.Add(bonus.BuffId);
-                            continue;
-                        }
-                        var buffTemplate = SkillManager.Instance.GetBuffTemplate(bonus.BuffId);
-
-                        var newEffect =
-                            new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now)
+                            if (Buffs.CheckBuff(bonus.BuffId))
                             {
-                                AbLevel = itemLevels[setCount.Key]
-                            };
-                        Buffs.AddBuff(newEffect);
-                        appliedBuffs.Add(bonus.BuffId);
+                                appliedBuffs.Add(bonus.BuffId);
+                                continue;
+                            }
+                            var buffTemplate = SkillManager.Instance.GetBuffTemplate(bonus.BuffId);
+
+                            var newEffect =
+                                new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now)
+                                {
+                                    AbLevel = itemLevels[setCount.Key]
+                                };
+                            Buffs.AddBuff(newEffect);
+                            appliedBuffs.Add(bonus.BuffId);
+                        }
+                        if (bonus.ItemProcId != 0)
+                        {
+                            Procs.AddProc(bonus.ItemProcId);
+                        }
                     }
                     else //This needs to be revised? Will we ever remove more than 1 item at a time?
                     {
-                        if (Buffs.CheckBuff(bonus.BuffId) && !appliedBuffs.Contains(bonus.BuffId))
+                        if (bonus.BuffId != 0 && Buffs.CheckBuff(bonus.BuffId) && !appliedBuffs.Contains(bonus.BuffId))
                             Buffs.RemoveBuff(bonus.BuffId);
+                        if (bonus.ItemProcId != 0)
+                            Procs.RemoveProc(bonus.ItemProcId);
                     }
                 }
             }

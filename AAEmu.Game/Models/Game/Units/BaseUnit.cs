@@ -86,8 +86,9 @@ namespace AAEmu.Game.Models.Game.Units
                 //handle non-players. Do we need to check target is Npc?
 
                 //Check if npc is protected by safe zone
-                if (zone.FactionId != 0 && target.Faction.MotherId == zone.FactionId)
-                    return false;
+                //TODO fix npc safety
+                //if (zone.FactionId != 0 && target.Faction.MotherId == zone.FactionId)
+                    //return false;
             }
             
 

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Procs;
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             var proc = new ItemProc(procId);
             _procs.Add(proc);
-            if (_procsByChanceKind.ContainsKey(proc.Template.ChanceKind))
+            if (!_procsByChanceKind.ContainsKey(proc.Template.ChanceKind))
                 _procsByChanceKind.Add(proc.Template.ChanceKind, new List<ItemProc>());
             _procsByChanceKind[proc.Template.ChanceKind].Add(proc);
         }

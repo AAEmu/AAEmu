@@ -82,7 +82,7 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
         public virtual float MeleeCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
-        public virtual float MeleeCriticalMul { get; set; }
+        public virtual float MeleeCriticalMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.RangedAntiMiss)]
         public virtual float RangedAccuracy { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.RangedCritical)]
@@ -90,7 +90,7 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
         public virtual float RangedCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.RangedCriticalMul)]
-        public virtual float RangedCriticalMul { get; set; }
+        public virtual float RangedCriticalMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.SpellAntiMiss)]
         public virtual float SpellAccuracy { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.SpellCritical)]
@@ -98,7 +98,7 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.SpellCriticalBonus)]
         public virtual float SpellCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.SpellCriticalMul)]
-        public virtual float SpellCriticalMul { get; set; }
+        public virtual float SpellCriticalMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.HealCritical)]
         public virtual float HealCritical { get; set; }
         [UnitAttribute(UnitAttribute.HealCriticalBonus)]
