@@ -510,13 +510,13 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 var radius = shape.Value1;
                 var height = shape.Value2;
-                return GetAround<T>(obj, radius);
+                return GetAround<T>(obj, radius, true);
             }
             else if(shape.Type == AreaShapeType.Cuboid)
             {
                 var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
                 _log.Warn("AreaShape[Cuboid] Not Implemented.");
-                return GetAround<T>(obj, (float) diagonal);
+                return GetAround<T>(obj, (float) diagonal, true);
             }
             else
             {
