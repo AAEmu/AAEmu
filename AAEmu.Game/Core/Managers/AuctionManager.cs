@@ -206,7 +206,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 var itemTemplateList = ItemManager.Instance.GetAllItems();
                 var query = from item in itemTemplateList
-                    where ((searchTemplate.ItemName != "") ? item.Name.ToLower().Contains(searchTemplate.ItemName.ToLower()) : true)
+                    where ((searchTemplate.ItemName != "") ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true)
                     where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.AuctionCategoryA : true)
                     where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.AuctionCategoryB : true)
                     where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.AuctionCategoryC : true)
