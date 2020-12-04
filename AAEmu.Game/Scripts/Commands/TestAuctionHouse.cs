@@ -42,7 +42,6 @@ namespace AAEmu.Game.Scripts.Commands
                     ID = AuctionManager.Instance.GetNextId(),
                     Duration = 5,
                     ItemID = item.Id,
-                    ItemName = AuctionManager.Instance.GetLocalizedItemNameById(item.Id),
                     ObjectID = 0,
                     Grade = 0,
                     Flags = 0,
@@ -60,15 +59,12 @@ namespace AAEmu.Game.Scripts.Commands
                     ClientName = "",
                     StartMoney = 0,
                     DirectMoney = 1,
-                    TimeLeft = 172800,
                     BidWorldID = 0,
                     BidderId = 0,
                     BidderName = "",
                     BidMoney = 0,
                     Extra = 0,
-                    CategoryA = (uint)item.AuctionCategoryA,
-                    CategoryB = (uint)item.AuctionCategoryB,
-                    CategoryC = (uint)item.AuctionCategoryC
+                    IsDirty = true
                 };
                 
                 AuctionManager.Instance.AddAuctionItem(newAuctionItem);

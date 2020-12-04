@@ -22,6 +22,7 @@ using AAEmu.Game.Utils.DB;
 using Microsoft.CodeAnalysis.Text;
 using MySql.Data.MySqlClient;
 using NLog;
+using Quartz.Util;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -455,7 +456,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             item.Grade = grade;
-            
+
             if(item.Template.BindType == ItemBindType.BindOnPickup) // Bind on pickup.
                 item.SetFlag(ItemFlag.SoulBound);
 
@@ -957,7 +958,7 @@ namespace AAEmu.Game.Core.Managers
                             var id = reader.GetUInt32("id");
                             var template = _templates.ContainsKey(id) ? _templates[id] : new ItemTemplate();
                             template.Id = id;
-                            template.Name = reader.IsDBNull("name") ? "" : reader.GetString("name");
+                            template.Name = LocalizationManager.Instance.Get("items", "name", id);
                             template.Category_Id = reader.GetInt32("category_id");
                             template.Level = reader.GetInt32("level");
                             template.Price = reader.GetInt32("price");
