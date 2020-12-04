@@ -270,6 +270,14 @@ namespace AAEmu.Game.Models.Game.Units
                                 else
                                     last = e;
                         break;
+                    case BuffStackRule.ChargeRefresh:
+                        foreach (var e in new List<Buff>(_effects))
+                            if (e != null && e.InUse && e.Template.BuffId == buff.Template.BuffId)
+                                if (buff.Charge < e.Charge)
+                                    return;
+                                else
+                                    last = e;
+                        break;
                     default:
                         if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
                             foreach (var e in new List<Buff>(_effects))
