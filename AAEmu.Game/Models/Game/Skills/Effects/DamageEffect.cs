@@ -264,8 +264,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (source.Buff?.TickEffects.Count > 0)
             {
-                min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
-                max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
+                min += (float) (min * (source.Buff.Tick / source.Buff.Duration));
+                max += (float) (max * (source.Buff.Tick / source.Buff.Duration));
 
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtcDot);
                 trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtcDot);
@@ -282,8 +282,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 var effect = caster.Buffs.GetEffectFromBuffId(ChargedBuffId);
                 var charges = effect?.Charge ?? 0;
                 
-                min = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
-                max = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                min += charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                max += charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
                 effect?.Exit();
             }
 
@@ -292,8 +292,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 var effect = target.Buffs.GetEffectFromBuffId(ChargedBuffId);
                 var charges = effect?.Charge ?? 0;
                 
-                min = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
-                max = charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                min += charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                max += charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
                 effect?.Exit();
             }
 
