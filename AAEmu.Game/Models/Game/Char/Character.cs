@@ -22,6 +22,7 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -1350,6 +1351,8 @@ namespace AAEmu.Game.Models.Game.Char
             var fallDmg = Math.Min(Hp,(int)(Hp * ((fallVel-5000) / 20000f)));
             ReduceCurrentHp(this, fallDmg);
 
+            SendPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint) fallDmg));
+            
             //todo stun & maybe adjust formula?
             _log.Warn("FallDamage: Vel{0} DmgPerc: {1}", fallVel, (int)((fallVel - 5000) / 200f));
         }
