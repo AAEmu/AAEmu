@@ -91,7 +91,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = (int)Rand.Next(min, max);
 
             if (criticalHeal)
+            {
                 value = (int)(value * (1 + (caster.HealCriticalBonus / 100)));
+                caster.CombatBuffs.TriggerCombatBuffs(caster, trg, SkillHitType.SpellCritical);
+            }
 
             value = (int) (value * trg.IncomingHealMul);
             
