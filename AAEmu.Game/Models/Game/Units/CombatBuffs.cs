@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void TriggerCombatBuffs(Unit attacker, Unit receiver, SkillHitType type, bool IsDefendedAttack = false)
+        public void TriggerCombatBuffs(Unit attacker, Unit receiver, SkillHitType type, bool isHeal)
         {
             if (!_cbuffsByHitType.ContainsKey(type))
                 return;
@@ -77,12 +77,15 @@ namespace AAEmu.Game.Models.Game.Units
                 //         source = (Unit)_owner;
                 // }
 
+                if (cb.IsHealSpell != isHeal)
+                    continue;
+
                 // If BTS and we're not attacking, doesn't apply
                 if (cb.BuffToSource && _owner != attacker)
-                    return;
+                    continue;
                 // If not BTS and we're attacking, doesn't apply
                 if (!cb.BuffToSource && _owner == attacker)
-                    return;
+                    continue;
                 
                 var target = unit;
                 var source = unit;

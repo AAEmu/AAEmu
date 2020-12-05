@@ -117,8 +117,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     HitType = hitType
                 };
                 // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
-                trg.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, true);
-                caster.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, true);
+                trg.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, false);
+                caster.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, false);
                 caster.BroadcastPacket(missPacket, true);
                 return;
             }
@@ -388,8 +388,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
-            caster.CombatBuffs.TriggerCombatBuffs(caster, target as Unit, hitType);
-            target.CombatBuffs.TriggerCombatBuffs(caster, target as Unit, hitType);
+            caster.CombatBuffs.TriggerCombatBuffs(caster, target as Unit, hitType, false);
+            target.CombatBuffs.TriggerCombatBuffs(caster, target as Unit, hitType, false);
             var packet = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value, absorbed)
             {
                 HoldableId = (byte)(holdable?.HoldableTemplate?.Id ?? 0),
