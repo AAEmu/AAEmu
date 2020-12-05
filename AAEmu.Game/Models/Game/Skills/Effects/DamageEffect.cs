@@ -347,12 +347,22 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
             var value = (int)(finalDamage * reductionMul);
             var absorbed = (int)(finalDamage * (1.0f - reductionMul));
+            var healthStolen = (int)(value * (HealthStealRatio / 100.0f));
+            var manaStolen = (int)(value * (ManaStealRatio / 100.0f));
 
             //Safeguard to prevent accidental flagging
             if (!caster.CanAttack(trg))
                 return;
             trg.ReduceCurrentHp(caster, value);
             caster.SummarizeDamage += value;
+
+            if (healthStolen > 0 || manaStolen > 0)
+            {
+                caster.Hp = Math.Min(caster.MaxHp, caster.Hp + healthStolen);
+                caster.Mp = Math.Min(caster.MaxMp, caster.Mp + manaStolen);
+                caster.BroadcastPacket(new SCUnitPointsPacket(caster.ObjId, caster.Hp, caster.Mp), true);
+            }
+
 
             if (Bonuses != null)
             {
