@@ -336,6 +336,9 @@ namespace AAEmu.Game.Models.Game.Units
                 own.BuffModifiersCache.RemoveModifiers(buff.Template.BuffId);
                 own.CombatBuffs.RemoveCombatBuff(buff.Template.BuffId);
                 //effect.Triggers.UnsubscribeEvents();
+                
+                if (buff.Template.Gliding)
+                    TriggerRemoveOn(BuffRemoveOn.Land);
             }
         }
 
