@@ -242,6 +242,8 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual void DoDie(Unit killer)
         {
             InterruptSkills();
+
+            Events.OnDeath(this, new OnDeathArgs { });
             Buffs.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
             if (killer == this)
@@ -280,8 +282,6 @@ namespace AAEmu.Game.Models.Game.Units
 
                 killer.CurrentTarget = null;
             }
-
-            Events.OnDeath(this, new OnDeathArgs { });
         }
 
         private async void StopAutoSkill(Unit character)
