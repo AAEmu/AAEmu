@@ -154,12 +154,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var min = 0.0f;
             var max = 0.0f;
-            
-            if (UseFixedDamage)
-            {
-                min += FixedMin;
-                max += FixedMax;
-            }
 
             // Used for NPCs, I think
             var levelMin = 0.0f;
@@ -297,6 +291,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 effect?.Exit();
             }
 
+            if (UseFixedDamage)
+            {
+                min = FixedMin;
+                max = FixedMax;
+            }
+            
             var finalDamage = Rand.Next(min, max);
             
             // Buff tag increase (Hellspear's impale combo, for ex)

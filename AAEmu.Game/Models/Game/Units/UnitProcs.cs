@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Procs;
@@ -44,7 +45,11 @@ namespace AAEmu.Game.Models.Game.Units
             
             foreach (var proc in procs)
             {
+                if (proc.LastProc.AddSeconds(proc.Template.CooldownSec) <= DateTime.Now)
+                    continue;
+
                 proc.Apply(Owner);
+                proc.LastProc = DateTime.Now;
             }
         }
     }
