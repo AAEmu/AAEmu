@@ -1297,6 +1297,12 @@ namespace AAEmu.Game.Models.Game.Char
             // TODO : Teleport to Growlgate
             // TODO : Leave guild
         }
+
+        public void SetFaction(uint factionId)
+        {
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, factionId, false), true);
+            Faction = FactionManager.Instance.GetFaction(factionId);
+        }
         
         public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {

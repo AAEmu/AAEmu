@@ -10,33 +10,48 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register("pirate", this);
+            CommandManager.Instance.Register("set_faction", this);
         }
 
         public string GetCommandLineHelp()
         {
-            return "(target) <true||false>";
+            return "<nuian||haranyan||elf||firran||pirate>";
         }
 
         public string GetCommandHelpText()
         {
-            return "Makes target pirate/revert back to original faction";
+            return "Sets your faction";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length == 0)
             {
-                character.SendMessage("[Pirate] " + CommandManager.CommandPrefix + "pirate (target) <true||false>");
+                character.SendMessage("[Faction] " + CommandManager.CommandPrefix + "faction <nuian||haranyan||elf||firran||pirate>");
                 return;
             }
 
-            var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+            var newFactionId = 0u;
 
-            if (bool.TryParse(args[firstarg + 0], out var isPirate))
-                targetPlayer.SetPirate(isPirate);
+            var factionString = args[0];
+            if (factionString == "nuian")
+                newFactionId = 101u;
+            else if (factionString == "elf")
+                newFactionId = 103u;
+            else if (factionString == "haranyan")
+                newFactionId = 109u;
+            else if (factionString == "firran")
+                newFactionId = 113u;
+            else if (factionString == "pirate")
+                newFactionId = 161u;
+            else if (factionString == "red")
+                newFactionId = 159u;
+            else if (factionString == "blue")
+                newFactionId = 160u;
             else
-                character.SendMessage("|cFFFF0000[Pirate] Throw parse bool!|r");
+                character.SendMessage("Invalid faction");
+            
+            character.SetFaction(newFactionId);
         }
     }
 }
