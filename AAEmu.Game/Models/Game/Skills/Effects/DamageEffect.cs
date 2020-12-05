@@ -264,8 +264,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (source.Buff?.TickEffects.Count > 0)
             {
-                min += (float) (min * (source.Buff.Tick / source.Buff.Duration));
-                max += (float) (max * (source.Buff.Tick / source.Buff.Duration));
+                min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
+                max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
 
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtcDot);
                 trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtcDot);
