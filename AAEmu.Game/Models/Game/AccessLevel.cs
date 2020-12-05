@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using System;
 
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game
                 if(result != null)
                     return result.level;
             
-            return 0;
+            return 100;
         }
 
         public static void Load()
