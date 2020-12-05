@@ -462,7 +462,7 @@ namespace AAEmu.Game.Models.Game.Char
                 double res = 0d;
                 res = CalculateWithBonuses(res, UnitAttribute.IncomingSpellDamageMul);
                 res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
-                res = res / 10;
+                res = res / 1000;
                 res = 1 + res;
                 return (float)res;
             }
