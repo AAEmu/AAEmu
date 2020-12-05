@@ -335,13 +335,22 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 switch (DamageType)
                 {
                     case DamageType.Melee:
+                        armor = Math.Max(0f, targetUnit.Armor - caster.DefensePenetration);
+                        reductionMul = 1.0f - armor / (armor + 5300.0f);
+                        finalDamage = finalDamage * targetUnit.IncomingMeleeDamageMul;
+                        break;
                     case DamageType.Ranged:
                         armor = Math.Max(0f, targetUnit.Armor - caster.DefensePenetration);
                         reductionMul = 1.0f - armor / (armor + 5300.0f);
+                        finalDamage = finalDamage * targetUnit.IncomingRangedDamageMul;
                         break;
                     case DamageType.Magic:
                         armor = Math.Max(0f, targetUnit.MagicResistance - caster.MagicPenetration);
                         reductionMul = 1.0f - armor / (armor + 5300.0f);
+                        finalDamage = finalDamage * targetUnit.IncomingSpellDamageMul;
+                        break;
+                    default:
+                        finalDamage = finalDamage * targetUnit.IncomingDamageMul;
                         break;
                 }
             }

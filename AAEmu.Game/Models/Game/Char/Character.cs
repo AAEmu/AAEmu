@@ -413,6 +413,61 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.IncomingDamageMul)]
+        public override float IncomingDamageMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
+                res = res / 1000;
+                res = 1 + res;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IncomingMeleeDamageMul)]
+        public override float IncomingMeleeDamageMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingMeleeDamageMul);
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
+                res = res / 1000;
+                res = 1 + res;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IncomingRangedDamageMul)]
+        public override float IncomingRangedDamageMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingRangedDamageMul);
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
+                res = res / 1000;
+                res = 1 + res;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IncomingSpellDamageMul)]
+        public override float IncomingSpellDamageMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingSpellDamageMul);
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
+                res = res / 10;
+                res = 1 + res;
+                return (float)res;
+            }
+        }
+
         [UnitAttribute(UnitAttribute.CastingTimeMul)]
         public override float CastTimeMul
         {
