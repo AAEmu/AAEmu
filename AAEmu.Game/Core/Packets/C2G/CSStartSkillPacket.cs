@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
             if (flagType > 0) skillObject.Read(stream);
 
-            _log.Debug("StartSkill: Id {0}, flag {1}", skillId, flag);
+            _log.Trace("StartSkill: Id {0}, flag {1}", skillId, flag);
 
             if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
             {

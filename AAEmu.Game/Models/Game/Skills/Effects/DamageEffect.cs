@@ -76,7 +76,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
             CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("DamageEffect");
+            _log.Trace("DamageEffect");
 
             var trg = target as Unit;
             if (trg == null || trg.Hp <= 0)

@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
         {
             var args = eventArgs as OnDamageArgs;
 
-            _log.Warn("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff.Template.BuffId, this.GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
+            _log.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff.Template.BuffId, this.GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
 
             if (!(_owner is Unit owner))
             {

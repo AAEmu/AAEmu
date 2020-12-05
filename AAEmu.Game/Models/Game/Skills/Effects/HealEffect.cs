@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("HealEffect {0}", Id);
+            _log.Trace("HealEffect {0}", Id);
 
             if (!(target is Unit))
                 return;
