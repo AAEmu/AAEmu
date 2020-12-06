@@ -40,6 +40,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             var trg = (Unit)target;
 
+            if (trg.Hp <= 0)
+                return;
+
             var min = 0.0f;
             var max = 0.0f;
 
@@ -107,7 +110,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             byte healHitType = criticalHeal ? (byte)11 : (byte)13;
 
-            trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, healHitType, value), true);
+            var packet = new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, healHitType, value);
+            if (packetBuilder != null)
+                packetBuilder.AddPacket(packet);
+            else
+                trg.BroadcastPacket(packet, true);
+            
             trg.Hp += value;
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
             trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);

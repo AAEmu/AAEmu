@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -16,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public uint ActualId { get; set; }
         public string ActualType { get; set; }
         
-        public void ApplyEffect(PlotState state, PlotTargetInfo targetInfo, PlotEventTemplate evt, ref byte flag, bool channeled = false)
+        public void ApplyEffect(PlotState state, PlotTargetInfo targetInfo, PlotEventTemplate evt, ref byte flag, bool channeled = false, CompressedGamePackets gamePackets = null)
         {
             var template = SkillManager.Instance.GetEffectTemplate(ActualId, ActualType);
 
@@ -75,7 +76,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     state.CasterCaster,
                     target,
                     state.TargetCaster,
-                    new CastPlot(evt.PlotId, state.ActiveSkill.TlId, evt.Id, state.ActiveSkill.Template.Id), new EffectSource(state.ActiveSkill), state.SkillObject, DateTime.Now);
+                    new CastPlot(evt.PlotId, state.ActiveSkill.TlId, evt.Id, state.ActiveSkill.Template.Id),
+                    new EffectSource(state.ActiveSkill), 
+                    state.SkillObject,
+                    DateTime.Now,
+                    gamePackets);
             }
         }
     }
