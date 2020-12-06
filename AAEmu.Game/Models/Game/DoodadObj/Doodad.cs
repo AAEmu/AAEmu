@@ -70,7 +70,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         public void Use(Unit unit, uint skillId)
         {
-            _log.Warn("Using phase {0}", CurrentPhaseId);
+            _log.Trace("Using phase {0}", CurrentPhaseId);
             // Get all doodad_funcs
             var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
 
@@ -107,7 +107,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         public void DoPhase(Unit unit, uint skillId)
         {
-            _log.Warn("Doing phase {0}", CurrentPhaseId);
+            _log.Trace("Doing phase {0}", CurrentPhaseId);
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
 
             OverridePhase = 0;
@@ -132,7 +132,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <param name="funcGroupId">New phase to go to</param>
         public void GoToPhase(Unit unit, int funcGroupId, uint skillId = 0)
         {
-            _log.Warn("Going to phase {0}", funcGroupId);
+            _log.Trace("Going to phase {0}", funcGroupId);
             if (funcGroupId == -1)
             {
                 // Delete doodad
@@ -148,7 +148,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId)
         {
-            _log.Warn("Going to phase {0} and using it", funcGroupId);
+            _log.Trace("Going to phase {0} and using it", funcGroupId);
             if (funcGroupId == -1)
             {
                 // Delete doodad
