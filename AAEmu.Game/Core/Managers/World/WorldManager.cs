@@ -43,7 +43,7 @@ namespace AAEmu.Game.Core.Managers.World
         Was originally set to 1, recommended 3 and max 5
         anything higher is overkill as you can't target it anymore in the client at that distance
         */
-        public const sbyte REGION_NEIGHBORHOOD_SIZE = 3;
+        public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
 
         public WorldManager()
         {
