@@ -353,7 +353,7 @@ CREATE TABLE `housings` (
   `sell_to` int(10) unsigned NOT NULL,
   `sell_price` bigint(20) NOT NULL,
   PRIMARY KEY (`account_id`,`owner`,`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Records of housings
