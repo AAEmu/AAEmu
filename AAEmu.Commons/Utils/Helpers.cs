@@ -59,7 +59,13 @@ namespace AAEmu.Commons.Utils
 
         public static DateTime UnixTime(long time)
         {
-            return time == 0 ? DateTime.MinValue : _unixDate.AddSeconds(time);
+            if (time > DateTime.MaxValue.Second)
+                return DateTime.MaxValue;
+
+            if (time < DateTime.MinValue.Second)
+                return DateTime.MinValue;
+            
+            return _unixDate.AddSeconds(time);
         }
 
         public static long UnixTimeNow()
