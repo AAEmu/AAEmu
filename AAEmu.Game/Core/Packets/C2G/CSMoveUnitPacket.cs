@@ -53,6 +53,13 @@ namespace AAEmu.Game.Core.Packets.C2G
                     slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
                     slave.BroadcastPacket(new SCOneUnitMovementPacket(objId, vmt), true);
                 }
+
+                if (moveType is UnitMoveType dmt /*&& TODO : check target has Telekinesis buff */)
+                {
+                    var unit = WorldManager.Instance.GetUnit(objId);
+                    unit.SetPosition(dmt.X, dmt.Y, dmt.Z);
+                    unit.BroadcastPacket(new SCOneUnitMovementPacket(objId, dmt), true);
+                }
                 
                 var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(objId);
                 if (mateInfo == null) return;

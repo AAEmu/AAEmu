@@ -386,6 +386,12 @@ namespace AAEmu.Game.Models.Game.Skills
                 var buff = SkillManager.Instance.GetBuffTemplate(Template.ChannelingBuffId);
                 buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
             }
+            
+            if (Template.ChannelingTargetBuffId != 0)
+            {
+                var buff = SkillManager.Instance.GetBuffTemplate(Template.ChannelingTargetBuffId);
+                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
+            }
 
             Doodad doodad = null;
             if (Template.ChannelingDoodadId > 0)
