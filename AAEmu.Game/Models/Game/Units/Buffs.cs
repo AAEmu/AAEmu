@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public bool CheckBuffImmune(uint buffId)
         {
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
             {
                 if (effect == null)
                     continue;
@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public bool CheckDamageImmune(DamageType damageType)
         {
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
             {
                 if (effect == null)
                     continue;
@@ -90,7 +90,7 @@ namespace AAEmu.Game.Models.Game.Units
         public List<Buff> GetEffectsByType(Type effectType)
         {
             var temp = new List<Buff>();
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
                 if (effect.Template.GetType() == effectType)
                     temp.Add(effect);
             return temp;
@@ -98,7 +98,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public Buff GetEffectByIndex(uint index)
         {
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
                 if (effect.Index == index)
                     return effect;
             return null;
@@ -106,7 +106,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public Buff GetEffectByTemplate(BuffTemplate template)
         {
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
                 if (effect.Template == template)
                     return effect;
             return null;
@@ -114,7 +114,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public bool CheckBuff(uint id)
         {
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
                 if (effect != null && effect.Template.BuffId > 0 && effect.Template.BuffId == id)
                     return true;
             return false;
@@ -124,7 +124,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             var buffs= SkillManager.Instance.GetBuffsByTagId(tagId);
             
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
                 if (effect != null && buffs.Contains(effect.Template.BuffId))
                     return true;
             return false;
@@ -132,7 +132,7 @@ namespace AAEmu.Game.Models.Game.Units
         
         public Buff GetEffectFromBuffId(uint id)
         {
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
                 if (effect != null && effect.Template.BuffId > 0 && effect.Template.BuffId == id)
                     return effect;
             return null;
@@ -142,7 +142,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (ids == null)
                 return false;
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
                 if (effect != null && effect.Template.BuffId > 0 && ids.Contains(effect.Template.BuffId))
                     return true;
             return false;
@@ -151,7 +151,7 @@ namespace AAEmu.Game.Models.Game.Units
         public int GetBuffCountById(uint buffId)
         {
             var count = 0;
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
                 if (effect.Template.BuffId == buffId)
                     count++;
             return count;
@@ -159,7 +159,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs)
         {
-            foreach (var buff in new List<Buff>(_effects))
+            foreach (var buff in _effects.ToList())
             {
                 if (buff.Passive) continue;
                 switch (buff.Template.Kind)
@@ -350,7 +350,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (_effects != null)
             {
-                foreach (var e in new List<Buff>(_effects))
+                foreach (var e in _effects.ToList())
                 {
                     if (e != null && e.Template.Id == templateId && e.Skill.Template.Id == skillId)
                     {
@@ -374,7 +374,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (_effects != null)
             {
-                foreach (var e in new List<Buff>(_effects))
+                foreach (var e in _effects.ToList())
                 {
                     if (e != null && e.Index == index)
                     {
@@ -399,7 +399,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (_effects == null) 
                 return;
-            foreach (var e in new List<Buff>(_effects))
+            foreach (var e in _effects.ToList())
             {
                 if (e != null && e.Template.BuffId == buffId)
                 {
@@ -425,7 +425,7 @@ namespace AAEmu.Game.Models.Game.Units
             
             if (_effects == null)
                 return;
-            foreach (var buff in new List<Buff>(_effects))
+            foreach (var buff in _effects.ToList())
                 if (buff != null)
                 {
                     var buffTemplate = buff.Template;
@@ -457,7 +457,7 @@ namespace AAEmu.Game.Models.Game.Units
                 return;
 
             var buffIds = SkillManager.Instance.GetBuffsByTagId(buffTagId);
-            foreach (var e in new List<Buff>(_effects))
+            foreach (var e in _effects.ToList())
                 if (e != null)
                 {
                     if (!buffIds.Contains(e.Template.BuffId))
@@ -476,14 +476,14 @@ namespace AAEmu.Game.Models.Game.Units
             if (own == null)
                 return;
 
-            foreach (var e in new List<Buff>(_effects))
+            foreach (var e in _effects.ToList())
                 if (e != null /* && (e.Template.Skill == null || e.Template.Skill.Type != SkillTypes.Passive)*/)
                     e.Exit();
         }
 
         public void TriggerRemoveOn(BuffRemoveOn on, uint value = 0)
         {
-            foreach (var effect in new List<Buff>(_effects))
+            foreach (var effect in _effects.ToList())
             {
                 var template = effect.Template;
 
@@ -561,7 +561,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (own == null)
                 return;
 
-            foreach (var e in new List<Buff>(_effects))
+            foreach (var e in _effects.ToList())
                 if (e != null && e.Template.RemoveOnDeath)
                     e.Exit();
         }
@@ -577,7 +577,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (own == null)
                 return;
 
-            foreach (var e in new List<Buff>(_effects))
+            foreach (var e in _effects.ToList())
                 if (e != null && e.Template.Stealth)
                     e.Exit();
         }
