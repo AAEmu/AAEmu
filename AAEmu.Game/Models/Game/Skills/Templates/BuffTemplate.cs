@@ -287,6 +287,10 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         {
             foreach (var template in Bonuses)
                 owner.RemoveBonus(buff.Index, template.Attribute);
+            var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
+            foreach (var requiringBuff in requiringBuffs.ToList())
+                requiringBuff.Exit();
+            
             if (!buff.Passive && !replaced)
                 owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
         }

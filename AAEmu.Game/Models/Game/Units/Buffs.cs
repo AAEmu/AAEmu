@@ -138,6 +138,11 @@ namespace AAEmu.Game.Models.Game.Units
             return null;
         }
 
+        public IEnumerable<Buff> GetBuffsRequiring(uint buffId)
+        {
+            return _effects.Where(b => b.Template.RequireBuffId == buffId);
+        }
+
         public bool CheckBuffs(List<uint> ids)
         {
             if (ids == null)
