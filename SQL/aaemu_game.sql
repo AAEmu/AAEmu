@@ -347,8 +347,13 @@ CREATE TABLE `housings` (
   `current_step` tinyint(4) NOT NULL,
   `current_action` int(11) NOT NULL DEFAULT '0',
   `permission` tinyint(4) NOT NULL,
+  `place_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `protected_until` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `faction_id` int(10) unsigned NOT NULL DEFAULT '1',
+  `sell_to` int(10) unsigned NOT NULL,
+  `sell_price` bigint(20) NOT NULL,
   PRIMARY KEY (`account_id`,`owner`,`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 
 -- ----------------------------
 -- Records of housings

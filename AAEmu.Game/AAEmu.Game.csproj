@@ -29,14 +29,11 @@
     
     <ItemGroup>
         <Compile Remove="Scripts\**\**" />
-        <Compile Include="Scripts\Commands\HouseBindingMove.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
         <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
         <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
     </ItemGroup>
-
+    
     <ItemGroup>
         <PackageReference Include="Jace" Version="0.9.2" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="2.10.0" />
@@ -57,6 +54,12 @@
       <Reference Include="DotNet.Config">
         <HintPath>DotNet.Config.dll</HintPath>
       </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Core\Packets\G2C\SCHouseTaxInfoPacket.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
     </ItemGroup>
 
     <ItemGroup>
@@ -85,9 +88,6 @@
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\SpawnGrid.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestMails.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\TestZoneState.cs">

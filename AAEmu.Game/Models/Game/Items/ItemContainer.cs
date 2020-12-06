@@ -313,7 +313,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="templateId">Item templateId to search for</param>
         /// <param name="amountToConsume">Amount of item units to consume</param>
         /// <param name="preferredItem">If not null, use this Item as primairy source for consume</param>
-        /// <returns>True on success, False if there aren't enough item units or otherwise fails to update the container</returns>
+        /// <returns>The amount of items that was actually consumed, 0 when failed or not found</returns>
         public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume,Item preferredItem)
         {
             if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out var count))

@@ -9,7 +9,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
-    class MailForSpeciality : BaseMail
+    public class MailForSpeciality : BaseMail
     {
         private Character _sender;
         private uint _crafterId;

@@ -6,6 +6,8 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -41,6 +43,7 @@ namespace AAEmu.Game.Models.Game.Housing
         private HousingPermission _permission;
         private int _numAction;
         private DateTime _placeDate;
+        private DateTime _protectionEndDate;
 
         /// <summary>
         /// IsDirty flag for Houses, not all properties are taken into account here as most of the data that needs to be updated will never change
@@ -103,11 +106,16 @@ namespace AAEmu.Game.Models.Game.Housing
                 }
             }
         }
-        public DateTime PlaceDate { get => _placeDate; set { _placeDate = value; _isDirty = true; } }
-
         public override int MaxHp => Template.Hp;
         public override UnitCustomModelParams ModelParams { get; set; }
         public HousingPermission Permission { get => _permission; set { _permission = value; _isDirty = true; } }
+
+        public DateTime PlaceDate { get => _placeDate; set { _placeDate = value; _isDirty = true; } }
+        public DateTime ProtectionEndDate { get => _protectionEndDate; set { _protectionEndDate = value; _isDirty = true; } }
+        public DateTime TaxDueDate { get => _protectionEndDate.AddDays(-7); }
+        public uint SellToPlayerId { get; set; }
+        public uint SellPrice { get; set; }
+
 
         public House()
         {
@@ -115,6 +123,7 @@ namespace AAEmu.Game.Models.Game.Housing
             ModelParams = new UnitCustomModelParams();
             AttachedDoodads = new List<Doodad>();
             IsDirty = true;
+            Events.OnDeath += OnDeath ;
         }
 
         public void AddBuildAction()
@@ -136,10 +145,6 @@ namespace AAEmu.Game.Models.Game.Housing
                     else
                     {
                         CurrentStep = -1;
-
-                        // Save moved to SaveManager
-                        //using (var connection = MySQL.CreateConnection())
-                        //    Save(connection);
                     }
                 }
             }
@@ -213,6 +218,13 @@ namespace AAEmu.Game.Models.Game.Housing
                 character.SendPacket(new SCDoodadsRemovedPacket(last, temp));
             }
         }
+
+        public override void BroadcastPacket(GamePacket packet, bool self)
+        {
+            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
+                character.SendPacket(packet);
+        }
+
         #endregion
 
         public bool Save(MySqlConnection connection, MySqlTransaction transaction = null)
@@ -226,8 +238,8 @@ namespace AAEmu.Game.Models.Game.Housing
 
                 command.CommandText =
                     "REPLACE INTO `housings` " +
-                    "(`id`,`account_id`,`owner`,`co_owner`,`template_id`,`name`,`x`,`y`,`z`,`rotation_z`,`current_step`,`current_action`,`permission`) " +
-                    "VALUES(@id,@account_id,@owner,@co_owner,@template_id,@name,@x,@y,@z,@rotation_z,@current_step,@current_action,@permission)";
+                    "(`id`,`account_id`,`owner`,`co_owner`,`template_id`,`name`,`x`,`y`,`z`,`rotation_z`,`current_step`,`current_action`,`permission`,`place_date`,`protected_until`,`faction_id`,`sell_to`,`sell_price`) " +
+                    "VALUES(@id,@account_id,@owner,@co_owner,@template_id,@name,@x,@y,@z,@rotation_z,@current_step,@current_action,@permission,@placedate,@protecteduntil,@factionid,@sellto,@sellprice)";
 
                 command.Parameters.AddWithValue("@id", Id);
                 command.Parameters.AddWithValue("@account_id", AccountId);
@@ -242,20 +254,29 @@ namespace AAEmu.Game.Models.Game.Housing
                 command.Parameters.AddWithValue("@current_step", CurrentStep);
                 command.Parameters.AddWithValue("@current_action", NumAction);
                 command.Parameters.AddWithValue("@permission", (byte)Permission);
+                command.Parameters.AddWithValue("@placedate", PlaceDate);
+                command.Parameters.AddWithValue("@protecteduntil", ProtectionEndDate);
+                command.Parameters.AddWithValue("@factionid", Faction.Id);
+                command.Parameters.AddWithValue("@sellto", SellToPlayerId);
+                command.Parameters.AddWithValue("@sellprice", SellPrice);
                 command.ExecuteNonQuery();
             }
+
+            IsDirty = false;
             return true;
         }
 
         public PacketStream Write(PacketStream stream)
         {
             var ownerName = NameManager.Instance.GetCharacterName(OwnerId);
+            var sellToPlayerName = NameManager.Instance.GetCharacterName(SellToPlayerId);
 
             stream.Write(TlId);
             stream.Write(Id); // dbId
             stream.WriteBc(ObjId);
             stream.Write(TemplateId);
-            stream.Write(0); // ht
+            stream.WritePisc(ModelId, 0);
+            //stream.Write(ModelId); // ht
             stream.Write(CoOwnerId); // type(id)
             stream.Write(OwnerId); // type(id)
             stream.Write(ownerName ?? "");
@@ -272,17 +293,24 @@ namespace AAEmu.Game.Models.Game.Housing
                 stream.Write(AllAction); // allstep
                 stream.Write(CurrentAction); // curstep
             }
-
-            stream.Write(0); // payMoneyAmount
+            
+            stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
             stream.Write(Helpers.ConvertLongX(Position.X));
             stream.Write(Helpers.ConvertLongY(Position.Y));
             stream.Write(Position.Z);
-            stream.Write(Template.Name); // house // TODO max length 128
+            stream.Write(Name); // house // TODO max length 128
             stream.Write(true); // allowRecover
-            stream.Write(0); // moneyAmount
-            stream.Write(0u); // type(id)
-            stream.Write(""); // sellToName
+            stream.Write(SellPrice); // Sale moneyAmount
+            stream.Write(SellToPlayerId); // type(id)
+            stream.Write(sellToPlayerName??""); // sellToName
             return stream;
         }
+
+        public void OnDeath(object sender, EventArgs args)
+        {
+            _log.Debug("House died ObjId:{0} - TemplateId:{1} - {2}", ObjId, TemplateId, Name);
+            HousingManager.Instance.RemoveDeadHouse(this);
+        }
+
     }
 }

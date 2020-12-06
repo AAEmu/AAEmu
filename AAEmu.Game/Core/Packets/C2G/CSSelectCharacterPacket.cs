@@ -54,6 +54,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Quests.SendCompleted();
 
                 Connection.ActiveChar.Actability.Send();
+                Connection.ActiveChar.Mails.SendUnreadMailCount();
                 Connection.ActiveChar.Appellations.Send();
                 Connection.ActiveChar.Portals.Send();
                 Connection.ActiveChar.Friends.Send();
