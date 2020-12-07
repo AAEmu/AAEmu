@@ -4,11 +4,14 @@ using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.AreaTriggers;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
 {
     public class AreaTriggerManager : Singleton<AreaTriggerManager>
     {
+        private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+        
         private readonly List<AreaTrigger> _areaTriggers;
         private List<AreaTrigger> _addQueue;
         private List<AreaTrigger> _removeQueue;
@@ -47,26 +50,33 @@ namespace AAEmu.Game.Core.Managers.World
         
         public void Tick(TimeSpan delta)
         {
-            lock (_addLock)
+            try
             {
-                if (_addQueue?.Count > 0)
-                    _areaTriggers.AddRange(_addQueue);
-                _addQueue = new List<AreaTrigger>();
-            }
-
-            foreach (var trigger in _areaTriggers)
-            {
-                trigger?.Tick(delta);
-            }
-
-            lock (_remLock)
-            {
-                foreach (var triggerToRemove in _removeQueue)
+                lock (_addLock)
                 {
-                    _areaTriggers.Remove(triggerToRemove);
+                    if (_addQueue?.Count > 0)
+                        _areaTriggers.AddRange(_addQueue);
+                    _addQueue = new List<AreaTrigger>();
                 }
 
-                _removeQueue = new List<AreaTrigger>();
+                foreach (var trigger in _areaTriggers)
+                {
+                    trigger?.Tick(delta);
+                }
+
+                lock (_remLock)
+                {
+                    foreach (var triggerToRemove in _removeQueue)
+                    {
+                        _areaTriggers.Remove(triggerToRemove);
+                    }
+
+                    _removeQueue = new List<AreaTrigger>();
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Error in AreaTrigger tick !");
             }
         }
     }
