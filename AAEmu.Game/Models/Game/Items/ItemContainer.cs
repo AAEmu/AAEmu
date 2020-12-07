@@ -66,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Items
         {
             if (_containerSize < 0)
             {
-                _freeSlotCount = 999; // Should be more than enough
+                _freeSlotCount = 9999; // Should be more than enough
                 return;
             }
             Items.Sort();
@@ -468,6 +468,33 @@ namespace AAEmu.Game.Models.Game.Items
             }
             GetAllItemsByTemplate(itemToAdd.TemplateId, itemToAdd.Grade, out currentItems, out var currentTotalItemCount);
             return (currentItems.Count * itemToAdd.Template.MaxCount) - currentTotalItemCount + (FreeSlotCount * itemToAdd.Template.MaxCount);
+        }
+
+        /// <summary>
+        /// Check if all of the given items in the ItemList are able to fit into the container. Takes into account item grades, but fails to take into account items with counts more than expected max stack size
+        /// </summary>
+        /// <param name="items"></param>
+        /// <returns>Returns true if enough room</returns>
+        public bool CanItemListFit(List<Item> items)
+        {
+            var presumedFreeSpace = FreeSlotCount;
+            if (items.Count <= presumedFreeSpace)
+                return true;
+
+            foreach (var item in items)
+            {
+                var thisItemFreeSpace = SpaceLeftForItem(item, out _);
+                var freeFullSlots = thisItemFreeSpace / item.Template.MaxCount;
+                var freePartialSlot = thisItemFreeSpace % item.Template.MaxCount;
+                var fullSlotsNeeded = item.Count / item.Template.MaxCount;
+                var partialSlotNeeded = item.Count % item.Template.MaxCount;
+
+                presumedFreeSpace -= fullSlotsNeeded;
+                if (freePartialSlot < partialSlotNeeded)
+                    presumedFreeSpace--;
+            }
+
+            return (presumedFreeSpace >= 0);
         }
 
 
