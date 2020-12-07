@@ -47,6 +47,8 @@ namespace AAEmu.Game
             }
 
             connection.Close();
+            
+            AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>
@@ -91,6 +93,15 @@ namespace AAEmu.Game
             configurationBuilder.Bind(AppConfiguration.Instance);
 
             LogManager.Configuration = new XmlLoggingConfiguration(FileManager.AppPath + "NLog.config", false);
+        }
+        
+        private static void OnUnhandledException(
+            object sender, UnhandledExceptionEventArgs e)
+        {
+            string exceptionStr = e.ExceptionObject.ToString();
+            //Should be Logger.LogFatal(exceptionStr);
+            _log.Error(exceptionStr);
+            _log.Fatal(exceptionStr);
         }
     }
 }
