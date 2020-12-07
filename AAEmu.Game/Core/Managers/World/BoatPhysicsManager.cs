@@ -25,8 +25,8 @@ namespace AAEmu.Game.Core.Managers.World
         
         private CollisionSystem _collisionSystem;
         private Jitter.World _physWorld;
-        private Dictionary<uint, RigidBody> _rigidBodies;
         private Buoyancy _buoyancy;
+        private uint _tickCount = 0;
 
         public void Initialize()
         {
@@ -35,7 +35,6 @@ namespace AAEmu.Game.Core.Managers.World
             _buoyancy = new Buoyancy(_physWorld);
             // _buoyancy.UseOwnFluidArea(DefineFluidArea());
             _buoyancy.FluidBox = new JBBox(new JVector(0, 0, 0), new JVector(100000, 100, 100000));
-            _rigidBodies = new Dictionary<uint, RigidBody>();
             
             thread = new Thread(PhysicsThread);
             thread.Start();
@@ -47,33 +46,47 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 Thread.Sleep(1000 / 60);
                 _physWorld.Step(1 / 60.0f, false);
+                _tickCount++;
 
                 foreach (var slave in SlaveManager.Instance.GetActiveSlavesByKinds(new[] {SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat}))
                 {
                     if (slave.SpawnTime.AddSeconds(8) > DateTime.Now)
                         continue;
-                    
-                    if (!_rigidBodies.ContainsKey(slave.TlId))
-                    {
-                        var rigidBody = new RigidBody(new BoxShape(8.0f, 7.0f, 4.0f))
-                        {
-                            Position = new JVector(slave.Position.X - 4.0f, slave.Position.Z - 3.5f, slave.Position.Y - 2.0f)
-                        };
 
-                        _rigidBodies.Add(slave.TlId, rigidBody);
-                        _buoyancy.Add(rigidBody, 3);
-                        _physWorld.AddBody(rigidBody);
-                    }
-
-                    var slaveRigidBody = _rigidBodies[slave.TlId];
+                    var slaveRigidBody = slave.RigidBody;
+                    if (slaveRigidBody == null)
+                        continue;
                     
                     var xDelt = slaveRigidBody.Position.X - slave.Position.X;
                     var yDelt = slaveRigidBody.Position.Z - slave.Position.Y;
                     var zDelt = slaveRigidBody.Position.Y - slave.Position.Z;
-                    slave.Move(xDelt, yDelt, 0);
-                    BoatPhysicsTick(slave, slaveRigidBody); 
+                    
+                    if (_tickCount % 6 == 0)
+                    {
+                        slave.Move(xDelt, yDelt, zDelt);
+                        BoatPhysicsTick(slave, slaveRigidBody);
+                    }
                 }
             }
+        }
+
+        public void AddShip(Slave slave)
+        {
+            var rigidBody = new RigidBody(new BoxShape(8.0f, 7.0f, 4.0f))
+            {
+                Position = new JVector(slave.Position.X - 4.0f, slave.Position.Z - 3.5f, slave.Position.Y - 2.0f)
+            };
+                    
+            _buoyancy.Add(rigidBody, 3);
+            _physWorld.AddBody(rigidBody);
+            slave.RigidBody = rigidBody;
+        }
+
+        public void RemoveShip(Slave slave)
+        {
+            if (slave.RigidBody == null) return;
+            _buoyancy.Remove(slave.RigidBody);
+            _physWorld.RemoveBody(slave.RigidBody);
         }
 
         public void BoatPhysicsTick(Slave slave, RigidBody rigidBody)
@@ -110,8 +123,8 @@ namespace AAEmu.Game.Core.Managers.World
             var ypr = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = ypr.Item1 + (90 * (Math.PI/ 180.0f));
             
-            rigidBody.AddForce(new JVector(slave.Throttle * 50 * (float)Math.Cos(slaveRotRad), 0.0f, slave.Throttle * 50 * (float)Math.Sin(slaveRotRad)));
-            rigidBody.AddTorque(new JVector(0, -slave.Steering * 20, 0));
+            rigidBody.AddForce(new JVector(slave.Throttle * 250 * (float)Math.Cos(slaveRotRad), 0.0f, slave.Throttle * 250 * (float)Math.Sin(slaveRotRad)));
+            rigidBody.AddTorque(new JVector(0, -slave.Steering * 90, 0));
             
             // rigidBody.
 

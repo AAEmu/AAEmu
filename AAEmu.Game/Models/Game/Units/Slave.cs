@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.DoodadObj;
+using Jitter.Dynamics;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -35,6 +36,7 @@ namespace AAEmu.Game.Models.Game.Units
         public float RotationDegrees { get; set; }
         public sbyte AttachPointId { get; set; } = -1;
         public uint OwnerObjId { get; set; }
+        public RigidBody RigidBody { get; set; }
         
 
         public override void AddVisibleObject(Character character)

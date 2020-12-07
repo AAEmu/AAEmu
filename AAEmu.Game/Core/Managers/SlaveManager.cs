@@ -118,6 +118,7 @@ namespace AAEmu.Game.Core.Managers
                 attachedSlave.Delete();
             }
 
+            BoatPhysicsManager.Instance.RemoveShip(activeSlaveInfo);
             owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
@@ -276,6 +277,10 @@ namespace AAEmu.Game.Core.Managers
 
             _tlSlaves.Add(template.TlId, template);
             _activeSlaves.Add(owner.ObjId, template);
+            
+            if (new[] {SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat}.Contains(template.Template.SlaveKind))
+                BoatPhysicsManager.Instance.AddShip(template);
+            
             owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId, template.Hp, template.Mp,
                 template.Position.X, template.Position.Y, template.Position.Z));
         }
