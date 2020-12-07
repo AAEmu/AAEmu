@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             if ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Casting ?? false))
                 state.IsCasting = false;
 
-            if (Event.HasSpecialEffects() || castTime > 0)
+            if (Event.HasSpecialEffects() || castTime > 0 || Event.Conditions.Count > 0)
             {
                 var skill = state.ActiveSkill;
                 var unkId = ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false)) ? state.Caster.ObjId : 0;
@@ -101,7 +101,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                 var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
                     targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);
-                
+
                 if (packets != null)
                     packets.AddPacket(packet);
                 else
