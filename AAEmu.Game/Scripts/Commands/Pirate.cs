@@ -49,8 +49,11 @@ namespace AAEmu.Game.Scripts.Commands
             else if (factionString == "blue")
                 newFactionId = 160u;
             else
+            {
                 character.SendMessage("Invalid faction");
-            
+                return;
+            }
+
             character.SetFaction(newFactionId);
         }
     }

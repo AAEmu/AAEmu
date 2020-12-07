@@ -71,12 +71,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var variableDamage = (max * minCastBonus * 0.001f);
             min = variableDamage + levelMin;
             max = variableDamage + levelMax;
-            
+
+            var tickModifier = 1.0f;
             if (source.Buff?.TickEffects.Count > 0)
             {
-                min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
-                max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
+                tickModifier = (float) (source.Buff.Tick / source.Buff.Duration);
             }
+            
+            min *= tickModifier;
+            max *= tickModifier;
 
             if (UseChargedBuff)
             {
@@ -104,6 +107,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (UseFixedHeal)
             {
                 value = Rand.Next(FixedMin, FixedMax);
+                value = (int) (value * tickModifier);
             }
             
             value = (int) (value * caster.HealMul);
