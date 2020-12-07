@@ -65,7 +65,14 @@ namespace AAEmu.Game
                     services.AddSingleton<IHostedService, DiscordBotService>();
                 });
 
-            await builder.RunConsoleAsync();
+            try
+            {
+                await builder.RunConsoleAsync();
+            }
+            catch (Exception e)
+            {
+                _log.Fatal(e, "FATAL!!!!!!!!!!!!!!!!!! Unhandled exception");
+            }
         }
         
         private static void Initialization()
