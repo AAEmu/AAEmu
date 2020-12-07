@@ -51,10 +51,20 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
                     else
                         abLevel = (uint)template.AbilityLevel;
+
+                    //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen
+                    abLevel = (uint)Math.Max(template.AbilityLevel, (int)abLevel);
                 }
                 else if (source.Buff != null)
                 {
                     //not sure?
+                }
+            }
+            else
+            {
+                if(source.Skill != null)
+                {
+                    abLevel = (uint)source.Skill.Template.AbilityLevel;
                 }
             }
 

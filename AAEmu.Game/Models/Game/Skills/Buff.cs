@@ -134,6 +134,8 @@ namespace AAEmu.Game.Models.Game.Skills
                         }
                     }
 
+                    //Buff seems to come to natural expiration here
+                    Events.OnTimeout(this, new OnTimeoutArgs());
                     State = EffectState.Finishing;
                     break;
                 }

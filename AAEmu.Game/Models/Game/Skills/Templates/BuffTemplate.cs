@@ -189,10 +189,20 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                         abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
                     else
                         abLevel = (uint)template.AbilityLevel;
+
+                    //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen
+                    abLevel = (uint)Math.Max(template.AbilityLevel, (int)abLevel);
                 }
                 else if (source.Buff != null)
                 {
                     //not sure?
+                }
+            }
+            else
+            {
+                if (source.Skill != null)
+                {
+                    abLevel = (uint)source.Skill.Template.AbilityLevel;
                 }
             }
             target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source?.Skill, time) { AbLevel = abLevel });
@@ -302,7 +312,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
 
         public int GetDuration(uint abLevel)
         {
-            return (LevelDuration * (int)abLevel) + Duration;
+            return Math.Max(0, (LevelDuration * (int)abLevel) + Duration);
         }
 
         public double GetTick()

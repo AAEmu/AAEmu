@@ -117,7 +117,6 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             //TODO These invokes need to be moved to better locations
             //TODO: Make sure this is when buff time runs out?
-            _owner.Events.OnTimeout(_owner, new OnTimeoutArgs());
             //Not sure if this is for expiration or for being dispelled aka Purged
             _owner.Events.OnDispelled(_owner, new OnDispelledArgs());
             foreach (var trigger in _triggers)
