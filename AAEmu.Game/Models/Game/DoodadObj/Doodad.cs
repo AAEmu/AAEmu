@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public void Use(Unit unit, uint skillId, uint recursionDepth = 0)
         {
             recursionDepth++;
-            if (recursionDepth % 100 == 0)
+            if (recursionDepth % 10 == 0)
                 _log.Warn("Doodad {0} (TemplateId {1}) might be looping indefinitely. {2} recursionDepth.", ObjId, TemplateId, recursionDepth);
             _log.Trace("Using phase {0}", CurrentPhaseId);
             // Get all doodad_funcs
@@ -80,20 +80,27 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             // Apply them
             var nextFunc = 0;
             var isUse = false;
-            foreach (var func in funcs)
+            try
             {
-                if (func.SkillId > 0 && func.SkillId == skillId)
+                foreach (var func in funcs)
                 {
-                    func.Use(unit, this, skillId, func.NextPhase);
-                    if (func.NextPhase != 0) nextFunc = func.NextPhase;
-                    if (func.FuncType == "DoodadFuncUse") isUse = true;
+                    if (func.SkillId > 0 && func.SkillId == skillId)
+                    {
+                        func.Use(unit, this, skillId, func.NextPhase);
+                        if (func.NextPhase != 0) nextFunc = func.NextPhase;
+                        if (func.FuncType == "DoodadFuncUse") isUse = true;
+                    }
+                    else if (func.SkillId == 0)
+                    {
+                        func.Use(unit, this, skillId);
+                        if (func.NextPhase != 0) nextFunc = func.NextPhase;
+                        if (func.FuncType == "DoodadFuncUse") isUse = true;
+                    }
                 }
-                else if (func.SkillId == 0)
-                {
-                    func.Use(unit, this, skillId);
-                    if (func.NextPhase != 0) nextFunc = func.NextPhase;
-                    if (func.FuncType == "DoodadFuncUse") isUse = true;
-                }
+            }
+            catch (Exception e)
+            {
+                _log.Fatal(e, "Doodad func crashed !");
             }
 
             if (nextFunc == 0)
@@ -111,18 +118,25 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public void DoPhase(Unit unit, uint skillId, uint recursionDepth = 0)
         {
             recursionDepth++;
-            if (recursionDepth % 100 == 0)
+            if (recursionDepth % 10 == 0)
                 _log.Warn("Doodad {0} (TemplateId {1}) might be phasing indefinitely. {2} recursionDepth.", ObjId, TemplateId, recursionDepth);
             
             _log.Trace("Doing phase {0}", CurrentPhaseId);
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
 
             OverridePhase = 0;
-            foreach (var phaseFunc in phaseFuncs)
+            try
             {
-                phaseFunc.Use(unit, this, skillId);
-                if (OverridePhase > 0)
-                    break;
+                foreach (var phaseFunc in phaseFuncs)
+                {
+                    phaseFunc.Use(unit, this, skillId);
+                    if (OverridePhase > 0)
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Fatal(e, "Doodad phase crashed!");
             }
 
             if (OverridePhase > 0)
