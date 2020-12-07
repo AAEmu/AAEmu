@@ -66,15 +66,8 @@ namespace AAEmu.Game
                     services.AddSingleton<IHostedService, GameService>();
                     services.AddSingleton<IHostedService, DiscordBotService>();
                 });
-
-            try
-            {
-                await builder.RunConsoleAsync();
-            }
-            catch (Exception e)
-            {
-                _log.Fatal(e, "FATAL!!!!!!!!!!!!!!!!!! Unhandled exception");
-            }
+            
+            await builder.RunConsoleAsync();
         }
         
         private static void Initialization()
@@ -98,8 +91,7 @@ namespace AAEmu.Game
         private static void OnUnhandledException(
             object sender, UnhandledExceptionEventArgs e)
         {
-            string exceptionStr = e.ExceptionObject.ToString();
-            //Should be Logger.LogFatal(exceptionStr);
+            var exceptionStr = e.ExceptionObject.ToString();
             _log.Error(exceptionStr);
             _log.Fatal(exceptionStr);
         }
