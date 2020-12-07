@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -31,6 +33,12 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (flagType > 0) skillObject.Read(stream);
 
             _log.Trace("StartSkill: Id {0}, flag {1}", skillId, flag);
+            if (skillCaster is SkillCasterUnit scu)
+            {
+                var unit = WorldManager.Instance.GetUnit(scu.ObjId);
+                if (unit is Character character)
+                    _log.Debug("{0} is using skill {1}", character.Name, skillId);
+            }
 
             if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
             {

@@ -107,7 +107,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 else
                     state.Caster.BroadcastPacket(packet, true);
                 
-                _log.Debug($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
+                _log.Trace($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
             }
         }
     }
