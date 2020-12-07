@@ -1139,6 +1139,12 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.FallDamageMul)]
+        public float FallDamageMul
+        {
+            get=> (float)CalculateWithBonuses(1d, UnitAttribute.Block);
+        }
+
         #endregion
 
         public Character(UnitCustomModelParams modelParams)

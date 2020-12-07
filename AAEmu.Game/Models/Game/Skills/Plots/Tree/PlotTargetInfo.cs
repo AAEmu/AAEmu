@@ -120,7 +120,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             posUnit.Position.X = x;
             posUnit.Position.Y = y;
-            posUnit.Position.Z = PreviousTarget.Position.Z;
+            posUnit.Position.Z = PreviousTarget.Position.Z + (args.HeightOffset / 1000f);
             posUnit.Position.RotationZ = rotZ;
             // TODO use heightmap for Z coord 
             
@@ -205,7 +205,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             posUnit.Position.X = x;
             posUnit.Position.Y = y;
-            posUnit.Position.Z = PreviousTarget.Position.Z;
+            posUnit.Position.Z = PreviousTarget.Position.Z + (args.HeightOffset / 1000f);
             posUnit.Position.RotationZ = rotZ;
             // TODO use heightmap for Z coord 
 
