@@ -471,34 +471,6 @@ namespace AAEmu.Game.Models.Game.Items
         }
 
         /// <summary>
-        /// Check if all of the given items in the ItemList are able to fit into the container. Takes into account item grades, but fails to take into account items with counts more than expected max stack size
-        /// </summary>
-        /// <param name="items"></param>
-        /// <returns>Returns true if enough room</returns>
-        public bool CanItemListFit(List<Item> items)
-        {
-            var presumedFreeSpace = FreeSlotCount;
-            if (items.Count <= presumedFreeSpace)
-                return true;
-
-            foreach (var item in items)
-            {
-                var thisItemFreeSpace = SpaceLeftForItem(item, out _);
-                var freeFullSlots = thisItemFreeSpace / item.Template.MaxCount;
-                var freePartialSlot = thisItemFreeSpace % item.Template.MaxCount;
-                var fullSlotsNeeded = item.Count / item.Template.MaxCount;
-                var partialSlotNeeded = item.Count % item.Template.MaxCount;
-
-                presumedFreeSpace -= fullSlotsNeeded;
-                if (freePartialSlot < partialSlotNeeded)
-                    presumedFreeSpace--;
-            }
-
-            return (presumedFreeSpace >= 0);
-        }
-
-
-        /// <summary>
         /// Returns a list of items in the order of their slot, unused slots return null
         /// </summary>
         /// <returns>Ordered list slots with items</returns>
