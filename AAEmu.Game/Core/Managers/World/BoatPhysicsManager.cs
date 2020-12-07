@@ -64,9 +64,10 @@ namespace AAEmu.Game.Core.Managers.World
 
                     var slaveRigidBody = _rigidBodies[slave.TlId];
                     
-                    slave.Position.X = slaveRigidBody.Position.X;
-                    slave.Position.Y = slaveRigidBody.Position.Z;
-                    slave.Position.Z = slaveRigidBody.Position.Y;
+                    var xDelt = slaveRigidBody.Position.X - slave.Position.X;
+                    var yDelt = slaveRigidBody.Position.Z - slave.Position.Y;
+                    var zDelt = slaveRigidBody.Position.Y - slave.Position.Z;
+                    slave.Move(xDelt, yDelt, zDelt);
                     BoatPhysicsTick(slave, slaveRigidBody); 
                 }
             }
