@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units;
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateCharacterPacket : GamePacket
     {
-        public CSCreateCharacterPacket() : base(0x022, 1)
+        public CSCreateCharacterPacket() : base(CSOffsets.CSCreateCharacterPacket, 1)
         {
         }
 

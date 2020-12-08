@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFactionDeclareHostilePacket : GamePacket
     {
-        public CSFactionDeclareHostilePacket() : base(0x019, 1)
+        public CSFactionDeclareHostilePacket() : base(CSOffsets.CSFactionDeclareHostilePacket, 1)
         {
         }
 

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUnbondDoodadPacket : GamePacket
     {
-        public CSUnbondDoodadPacket() : base(0x0cd, 1)
+        public CSUnbondDoodadPacket() : base(CSOffsets.CSUnbondDoodadPacket, 1)
         {
         }
 

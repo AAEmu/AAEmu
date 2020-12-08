@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUnhangPacket : GamePacket
     {
-        public CSUnhangPacket() : base(0x0cc, 1)
+        public CSUnhangPacket() : base(CSOffsets.CSUnhangPacket, 1)
         {
         }
 

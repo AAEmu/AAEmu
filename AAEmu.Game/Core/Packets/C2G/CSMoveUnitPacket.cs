@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMoveUnitPacket : GamePacket
     {
-        public CSMoveUnitPacket() : base(0x089, 1)
+        public CSMoveUnitPacket() : base(CSOffsets.CSMoveUnitPacket, 1)
         {
         }
 

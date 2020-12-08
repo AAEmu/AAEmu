@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNotifyInGameCompletedPacket : GamePacket
     {
-        public CSNotifyInGameCompletedPacket() : base(0x02a, 1)
+        public CSNotifyInGameCompletedPacket() : base(CSOffsets.CSNotifyInGameCompletedPacket, 1)
         {
         }
 

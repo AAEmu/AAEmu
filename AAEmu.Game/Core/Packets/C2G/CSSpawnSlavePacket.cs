@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSpawnSlavePacket : GamePacket
     {
-        public CSSpawnSlavePacket() : base(0x02e, 1)
+        public CSSpawnSlavePacket() : base(CSOffsets.CSSpawnSlavePacket, 1)
         {
         }
 

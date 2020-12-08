@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReturnMailPacket : GamePacket
     {
-        public CSReturnMailPacket() : base(0x0a1, 1)
+        public CSReturnMailPacket() : base(CSOffsets.CSReturnMailPacket, 1)
         {
         }
 

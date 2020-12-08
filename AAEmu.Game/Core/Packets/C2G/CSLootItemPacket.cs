@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLootItemPacket : GamePacket
     {
-        public CSLootItemPacket() : base(0x08f, 1)
+        public CSLootItemPacket() : base(CSOffsets.CSLootItemPacket, 1)
         {
         }
 

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRemoveMatePacket : GamePacket
     {
-        public CSRemoveMatePacket() : base(0x0a4, 1)
+        public CSRemoveMatePacket() : base(CSOffsets.CSRemoveMatePacket, 1)
         {
         }
 

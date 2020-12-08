@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartedCinemaPacket : GamePacket
     {
-        public CSStartedCinemaPacket() : base(0x0cf, 1)
+        public CSStartedCinemaPacket() : base(CSOffsets.CSStartedCinemaPacket, 1)
         {
         }
 

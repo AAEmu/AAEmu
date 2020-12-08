@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRequestHouseTaxPacket : GamePacket
     {
-        public CSRequestHouseTaxPacket() : base(0x05c, 1)
+        public CSRequestHouseTaxPacket() : base(CSOffsets.CSRequestHouseTaxPacket, 1)
         {
         }
 

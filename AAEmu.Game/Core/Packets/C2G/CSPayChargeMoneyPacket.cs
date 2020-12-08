@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSPayChargeMoneyPacket : GamePacket
     {
-        public CSPayChargeMoneyPacket() : base(0x0a0, 1)
+        public CSPayChargeMoneyPacket() : base(CSOffsets.CSPayChargeMoneyPacket, 1)
         {
         }
 

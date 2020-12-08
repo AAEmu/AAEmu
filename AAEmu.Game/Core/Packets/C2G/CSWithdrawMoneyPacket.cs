@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSWithdrawMoneyPacket : GamePacket
     {
-        public CSWithdrawMoneyPacket() : base(0x048, 1)
+        public CSWithdrawMoneyPacket() : base(CSOffsets.CSWithdrawMoneyPacket, 1)
         {
         }
 

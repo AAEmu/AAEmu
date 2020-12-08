@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMakeTeamOwnerPacket : GamePacket
     {
-        public CSMakeTeamOwnerPacket() : base(0x07f, 1)
+        public CSMakeTeamOwnerPacket() : base(CSOffsets.CSMakeTeamOwnerPacket, 1)
         {
         }
 

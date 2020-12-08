@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReplyExpeditionInvitationPacket : GamePacket
     {
-        public CSReplyExpeditionInvitationPacket() : base(0x00d, 1)
+        public CSReplyExpeditionInvitationPacket() : base(CSOffsets.CSReplyExpeditionInvitationPacket, 1)
         {
         }
 

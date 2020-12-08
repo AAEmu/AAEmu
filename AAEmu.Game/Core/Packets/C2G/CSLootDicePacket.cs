@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLootDicePacket : GamePacket
     {
-        public CSLootDicePacket() : base(0x091, 1)
+        public CSLootDicePacket() : base(CSOffsets.CSLootDicePacket, 1)
         {
         }
 

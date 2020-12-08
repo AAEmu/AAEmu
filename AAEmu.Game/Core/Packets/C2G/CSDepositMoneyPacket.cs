@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDepositMoneyPacket : GamePacket
     {
-        public CSDepositMoneyPacket() : base(0x047, 1)
+        public CSDepositMoneyPacket() : base(CSOffsets.CSDepositMoneyPacket, 1)
         {
         }
 

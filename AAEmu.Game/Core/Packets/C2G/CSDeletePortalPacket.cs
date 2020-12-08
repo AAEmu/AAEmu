@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeletePortalPacket : GamePacket
     {
-        public CSDeletePortalPacket() : base(0x0df, 1)
+        public CSDeletePortalPacket() : base(CSOffsets.CSDeletePortalPacket, 1)
         {
         }
 

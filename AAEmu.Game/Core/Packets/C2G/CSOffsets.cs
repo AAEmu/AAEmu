@@ -8,7 +8,7 @@
         public const ushort CSLeaveWorldPacket = 0x001;
         public const ushort CSCancelLeaveWorldPacket = 0x002;
         public const ushort CSCreateExpeditionPacket = 0x004;
-        //public const ushort CSChangeExpeditionSponsorPacket = 0x005; // TODO : this packet seems like it has been removed.
+        public const ushort CSChangeExpeditionSponsorPacket = 0xfff; // TODO : this packet seems like it has been removed.
         public const ushort CSChangeExpeditionRolePolicyPacket = 0x006;
         public const ushort CSChangeExpeditionMemberRolePacket = 0x007;
         public const ushort CSChangeExpeditionOwnerPacket = 0x008;
@@ -49,7 +49,7 @@
         public const ushort CSDestroySlavePacket = 0x030;
         public const ushort CSBindSlavePacket = 0x031;
         public const ushort CSDiscardSlavePacket = 0x032;
-        //public const ushort CSChangeSlaveTargetPacket = 0x031; // TODO: this packet is not in the offsets
+        public const ushort CSChangeSlaveTargetPacket = 0xfff; // TODO: this packet is not in the offsets
         public const ushort CSChangeSlaveNamePacket = 0x034;
         public const ushort CSRepairSlaveItemsPacket = 0x035;
         public const ushort CSTurretStatePacket = 0x036;
@@ -65,8 +65,8 @@
         public const ushort CSSellBackpackGoodsPacket = 0x042;
         public const ushort CSSpecialtyRatioPacket = 0x043;
         public const ushort CSListSpecialtyGoodsPacket = 0x044;
-        //public const ushort CSBuySpecialtyItemPacket = 0x043; // TODO: this packet is not in the offsets
-        //public const ushort CSSpecialtyRecordLoadPacket = 0x044; // TODO: this packet is not in the offsets
+        public const ushort CSBuySpecialtyItemPacket = 0xfff; // TODO: this packet is not in the offsets
+        public const ushort CSSpecialtyRecordLoadPacket = 0xfff; // TODO: this packet is not in the offsets
         public const ushort CSDepositMoneyPacket = 0x047;
         public const ushort CSWithdrawMoneyPacket = 0x048;
         public const ushort CSConvertItemLookPacket = 0x049;
@@ -86,7 +86,7 @@
         public const ushort CSDecorateHousePacket = 0x058;
         public const ushort CSChangeHouseNamePacket = 0x059;
         public const ushort CSChangeHousePermissionPacket = 0x05a;
-        //public const ushort CSChangeHousePayPacket = 0x05b; // TODO: this packet is not in the offsets
+        public const ushort CSChangeHousePayPacket = 0xfff; // TODO: this packet is not in the offsets
         public const ushort CSRequestHouseTaxPacket = 0x05c;
         // 0x5c unk packet
         public const ushort CSAllowHousingRecoverPacket = 0x05d;
@@ -121,7 +121,7 @@
         public const ushort CSLeaveTeamPacket = 0x07d;
         public const ushort CSKickTeamMemberPacket = 0x07e;
         public const ushort CSMakeTeamOwnerPacket = 0x07f;
-        //public const ushort CSSetTeamOfficerPacket = 0x07e; // TODO: this packet is not in the offsets 
+        public const ushort CSSetTeamOfficerPacket = 0xfff; // TODO: this packet is not in the offsets 
         public const ushort CSConvertToRaidTeamPacket = 0x080;
         public const ushort CSMoveTeamMemberPacket = 0x081;
         public const ushort CSChangeLootingRulePacket = 0x083;
@@ -134,7 +134,7 @@
         public const ushort CSSkillControllerStatePacket = 0x08a;
         public const ushort CSCreateSkillControllerPacket = 0x08b;
         public const ushort CSActiveWeaponChangedPacket = 0x08c;
-        //public const ushort CSChangeItemLookPacket = 0x08d; // TODO: this packet is not in the offsets 
+        public const ushort CSChangeItemLookPacket = 0xfff; // TODO: this packet is not in the offsets 
         public const ushort CSLootOpenBagPacket = 0x08e;
         public const ushort CSLootItemPacket = 0x08f;
         public const ushort CSLootCloseBagPacket = 0x090;
@@ -154,7 +154,7 @@
         public const ushort CSPayChargeMoneyPacket = 0x0a0;
         public const ushort CSDeleteMailPacket = 0x0a1;
         public const ushort CSReportSpamPacket = 0x0a3;
-        //public const ushort CSReturnMailPacket = 0x0a1; // TODO: this packet is not in the offsets 
+        public const ushort CSReturnMailPacket = 0xfff; // TODO: this packet is not in the offsets 
         public const ushort CSRemoveMatePacket = 0x0a4;
         public const ushort CSChangeMateTargetPacket = 0x0a5;
         public const ushort CSChangeMateNamePacket = 0x0a6;
@@ -197,8 +197,8 @@
         public const ushort CSStartQuestContextPacket = 0x0d5;
         public const ushort CSCompleteQuestContextPacket = 0x0d6;
         public const ushort CSDropQuestContextPacket = 0x0d7;
-        //public const ushort CSResetQuestContextPacket = 0x0d4; // TODO: this packet is not in the offsets 
-        //public const ushort CSAcceptCheatQuestContextPacket = 0x0d5; // TODO: this packet is not in the offsets 
+        public const ushort CSResetQuestContextPacket = 0xfff; // TODO: this packet is not in the offsets 
+        public const ushort CSAcceptCheatQuestContextPacket = 0xfff; // TODO: this packet is not in the offsets 
         public const ushort CSQuestTalkMadePacket = 0x0da;
         public const ushort CSQuestStartWithPacket = 0x0db;
         public const ushort CSTryQuestCompleteAsLetItDonePacket = 0x0dd;
@@ -211,7 +211,7 @@
         public const ushort CSEnteredInstantGameWorldPacket = 0x0e4;
         public const ushort CSLeaveInstantGamePacket = 0x0e5;
         public const ushort CSCreateDoodadPacket = 0x0e6;
-        //public const ushort CSSaveDoodadUccStringPacket = 0x0e3; // TODO: this packet is not in the offsets 
+        public const ushort CSSaveDoodadUccStringPacket = 0xfff; // TODO: this packet is not in the offsets 
         public const ushort CSNaviTeleportPacket = 0x0e7;
         public const ushort CSNaviOpenPortalPacket = 0x0e8;
         public const ushort CSChangeDoodadPhasePacket = 0x0e9;
@@ -237,7 +237,7 @@
         public const ushort CSUpgradeExpertLimitPacket = 0x0ff;
         public const ushort CSDowngradeExpertLimitPacket = 0x100;
         public const ushort CSExpandExpertPacket = 0x101;
-        //public const ushort CSSearchListPacket = 0x100; // TODO: this packet is not in the offsets 
+        public const ushort CSSearchListPacket = 0xfff; // TODO: this packet is not in the offsets 
         public const ushort CSAddFriendPacket = 0x104;
         public const ushort CSDeleteFriendPacket = 0x105;
         public const ushort CSCharDetailPacket = 0x106;
@@ -275,5 +275,9 @@
         public const ushort CSSetupSecondPassword = 0x140;
         // 0x141 unk packet
         // 0x142 unk packet
+
+        // no such packets
+        public const ushort CSUpdateNationalTaxRatePacket = 0xfff;
+        public const ushort CSSetCraftingPayPacket = 0xfff;
     }
 }

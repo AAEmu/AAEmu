@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRollDicePacket : GamePacket
     {
-        public CSRollDicePacket() : base(0x0bd, 1)
+        public CSRollDicePacket() : base(CSOffsets.CSRollDicePacket, 1)
         {
         }
 

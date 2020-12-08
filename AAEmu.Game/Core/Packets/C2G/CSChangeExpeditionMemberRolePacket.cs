@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeExpeditionMemberRolePacket : GamePacket
     {
-        public CSChangeExpeditionMemberRolePacket() : base(0x007, 1)
+        public CSChangeExpeditionMemberRolePacket() : base(CSOffsets.CSChangeExpeditionMemberRolePacket, 1)
         {
         }
 

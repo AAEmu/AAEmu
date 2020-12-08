@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDiscardSlavePacket : GamePacket
     {
-        public CSDiscardSlavePacket() : base(0x032, 1)
+        public CSDiscardSlavePacket() : base(CSOffsets.CSDiscardSlavePacket, 1)
         {
         }
 

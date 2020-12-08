@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSLeaveWorldPacket, 1, typeof(CSLeaveWorldPacket));
             RegisterPacket(CSOffsets.CSCancelLeaveWorldPacket, 1, typeof(CSCancelLeaveWorldPacket));
             RegisterPacket(CSOffsets.CSCreateExpeditionPacket, 1, typeof(CSCreateExpeditionPacket));
-            //RegisterPacket(0x005, 1, typeof(CSChangeExpeditionSponsorPacket)); TODO : this packet seems like it has been removed.
+            RegisterPacket(0x005, 1, typeof(CSChangeExpeditionSponsorPacket)); // TODO: this packet seems like it has been removed.
             RegisterPacket(CSOffsets.CSChangeExpeditionRolePolicyPacket, 1, typeof(CSChangeExpeditionRolePolicyPacket));
             RegisterPacket(CSOffsets.CSChangeExpeditionMemberRolePacket, 1, typeof(CSChangeExpeditionMemberRolePacket));
             RegisterPacket(CSOffsets.CSChangeExpeditionOwnerPacket, 1, typeof(CSChangeExpeditionOwnerPacket));
@@ -65,7 +65,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSDestroySlavePacket, 1, typeof(CSDestroySlavePacket));
             RegisterPacket(CSOffsets.CSBindSlavePacket, 1, typeof(CSBindSlavePacket));
             RegisterPacket(CSOffsets.CSDiscardSlavePacket, 1, typeof(CSDiscardSlavePacket));
-            //RegisterPacket(0x031, 1, typeof(CSChangeSlaveTargetPacket)); TODOCSOffsets.the this packet is not in the offsets
+            //RegisterPacket(0x031, 1, typeof(CSChangeSlaveTargetPacket)); TODO: the this packet is not in the offsets
             RegisterPacket(CSOffsets.CSChangeSlaveNamePacket, 1, typeof(CSChangeSlaveNamePacket));
             RegisterPacket(CSOffsets.CSRepairSlaveItemsPacket, 1, typeof(CSRepairSlaveItemsPacket));
             RegisterPacket(CSOffsets.CSTurretStatePacket, 1, typeof(CSTurretStatePacket));

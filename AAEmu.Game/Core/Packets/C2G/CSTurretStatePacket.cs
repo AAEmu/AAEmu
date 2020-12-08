@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTurretStatePacket : GamePacket
     {
-        public CSTurretStatePacket() : base(0x036, 1)
+        public CSTurretStatePacket() : base(CSOffsets.CSTurretStatePacket, 1)
         {
         }
 

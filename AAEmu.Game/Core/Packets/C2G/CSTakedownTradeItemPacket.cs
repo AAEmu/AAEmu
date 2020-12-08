@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTakedownTradeItemPacket : GamePacket
     {
-        public CSTakedownTradeItemPacket() : base(0x0f2, 1)
+        public CSTakedownTradeItemPacket() : base(CSOffsets.CSTakedownTradeItemPacket, 1)
         {
         }
 

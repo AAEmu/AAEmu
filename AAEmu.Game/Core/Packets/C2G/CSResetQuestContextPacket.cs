@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSResetQuestContextPacket : GamePacket
     {
-        public CSResetQuestContextPacket() : base(0x0d4, 1)
+        public CSResetQuestContextPacket() : base(CSOffsets.CSResetQuestContextPacket, 1)
         {
         }
 

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSwapCofferItemsPacket : GamePacket
     {
-        public CSSwapCofferItemsPacket() : base(0x040, 1)
+        public CSSwapCofferItemsPacket() : base(CSOffsets.CSSwapCofferItemsPacket, 1)
         {
         }
 

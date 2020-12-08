@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCofferInteractionPacket : GamePacket
     {
-        public CSCofferInteractionPacket() : base(0x06c, 1)
+        public CSCofferInteractionPacket() : base(CSOffsets.CSCofferInteractionPacket, 1)
         {
         }
 

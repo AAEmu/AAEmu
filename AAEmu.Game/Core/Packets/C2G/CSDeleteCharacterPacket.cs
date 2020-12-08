@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeleteCharacterPacket : GamePacket
     {
-        public CSDeleteCharacterPacket() : base(0x023, 1)
+        public CSDeleteCharacterPacket() : base(CSOffsets.CSDeleteCharacterPacket, 1)
         {
         }
 

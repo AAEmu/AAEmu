@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeExpeditionSponsorPacket : GamePacket
     {
-        public CSChangeExpeditionSponsorPacket() : base(0x005, 1)
+        public CSChangeExpeditionSponsorPacket() : base(CSOffsets.CSChangeExpeditionSponsorPacket, 1)
         {
         }
 

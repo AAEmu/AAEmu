@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListSpecialtyGoodsPacket : GamePacket
     {
-        public CSListSpecialtyGoodsPacket() : base(0x044, 1)
+        public CSListSpecialtyGoodsPacket() : base(CSOffsets.CSListSpecialtyGoodsPacket, 1)
         {
         }
 

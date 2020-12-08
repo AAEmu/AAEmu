@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeleteFriendPacket : GamePacket
     {
-        public CSDeleteFriendPacket() : base(0x105, 1) // 0x102
+        public CSDeleteFriendPacket() : base(CSOffsets.CSDeleteFriendPacket, 1)
         {
         }
 

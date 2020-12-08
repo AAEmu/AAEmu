@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReplyImprisonOrTrialPacket : GamePacket
     {
-        public CSReplyImprisonOrTrialPacket() : base(0x06f, 1)
+        public CSReplyImprisonOrTrialPacket() : base(CSOffsets.CSReplyImprisonOrTrialPacket, 1)
         {
         }
 

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRankCharacterPacket : GamePacket
     {
-        public CSRankCharacterPacket() : base(0x12F, 1)
+        public CSRankCharacterPacket() : base(CSOffsets.CSRankCharacterPacket, 1)
         {
         }
 

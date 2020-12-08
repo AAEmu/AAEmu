@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateDoodadPacket : GamePacket
     {
-        public CSCreateDoodadPacket() : base(0x0e6, 1)
+        public CSCreateDoodadPacket() : base(CSOffsets.CSCreateDoodadPacket, 1)
         {
         }
 

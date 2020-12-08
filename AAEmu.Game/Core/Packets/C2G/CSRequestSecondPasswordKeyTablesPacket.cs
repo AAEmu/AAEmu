@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRequestSecondPasswordKeyTablesPacket :GamePacket
     {
-        public CSRequestSecondPasswordKeyTablesPacket() : base(0x125, 1)
+        public CSRequestSecondPasswordKeyTablesPacket() : base(CSOffsets.CSRequestSecondPasswordKeyTablesPacket, 1)
         {
         }
 

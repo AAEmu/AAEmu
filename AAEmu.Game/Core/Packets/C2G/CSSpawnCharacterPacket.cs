@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSpawnCharacterPacket : GamePacket
     {
-        public CSSpawnCharacterPacket() : base(0x026, 1)
+        public CSSpawnCharacterPacket() : base(CSOffsets.CSSpawnCharacterPacket, 1)
         {
         }
 
