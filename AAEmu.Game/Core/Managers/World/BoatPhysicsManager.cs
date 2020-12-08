@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
@@ -63,6 +64,7 @@ namespace AAEmu.Game.Core.Managers.World
                     
                     if (_tickCount % 6 == 0)
                     {
+                        _physWorld.CollisionSystem.Detect(true);
                         slave.Move(xDelt, yDelt, zDelt);
                         BoatPhysicsTick(slave, slaveRigidBody);
                     }
@@ -72,9 +74,14 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void AddShip(Slave slave)
         {
-            var rigidBody = new RigidBody(new BoxShape(8.0f, 7.0f, 4.0f))
+            var shipModel = ModelManager.Instance.GetShipModel(slave.ModelId);
+            if (shipModel == null)
+                return;
+            
+            var rigidBody = new RigidBody(new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY))
             {
-                Position = new JVector(slave.Position.X - 4.0f, slave.Position.Z - 3.5f, slave.Position.Y - 2.0f)
+                Position = new JVector(slave.Position.X - (shipModel.MassBoxSizeX / 2.0f), slave.Position.Z - (shipModel.MassBoxSizeZ / 2.0f), slave.Position.Y - (shipModel.MassBoxSizeY / 2.0f)),
+                // Mass = shipModel.Mass
             };
                     
             _buoyancy.Add(rigidBody, 3);
@@ -105,6 +112,7 @@ namespace AAEmu.Game.Core.Managers.World
             
             ComputeThrottle(slave);
             ComputeSteering(slave);
+            slave.RigidBody.IsActive = true;
             
             slave.Speed += (slave.Throttle * 0.00787401575f) * (velAccel / 20f);
             slave.Speed = Math.Min(slave.Speed, maxVelForward);
@@ -123,17 +131,15 @@ namespace AAEmu.Game.Core.Managers.World
             var ypr = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = ypr.Item1 + (90 * (Math.PI/ 180.0f));
             
-            rigidBody.AddForce(new JVector(slave.Throttle * 250 * (float)Math.Cos(slaveRotRad), 0.0f, slave.Throttle * 250 * (float)Math.Sin(slaveRotRad)));
-            rigidBody.AddTorque(new JVector(0, -slave.Steering * 90, 0));
-            
-            // rigidBody.
+            rigidBody.AddForce(new JVector(slave.Throttle * rigidBody.Mass * (float)Math.Cos(slaveRotRad), 0.0f, slave.Throttle * rigidBody.Mass * (float)Math.Sin(slaveRotRad)));
+            rigidBody.AddTorque(new JVector(0, -slave.Steering * (rigidBody.Mass * 2), 0));
 
             var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(ypr.Item3, ypr.Item2, ypr.Item1);
             moveType.RotationX = rotX;
             moveType.RotationY = rotY;
             moveType.RotationZ = rotZ;
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
-            _log.Debug("X: {0}", slave.Position.Z);
+            // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
         }
         
         public void ComputeThrottle(Slave slave)
