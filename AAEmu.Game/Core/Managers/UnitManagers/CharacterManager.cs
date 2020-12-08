@@ -103,7 +103,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             foreach (var character in WorldManager.Instance.GetAllCharacters())
             {
-                if (character.IsDead || !character.NeedsRegen)
+                if (character.IsDead || !character.NeedsRegen || character.IsDrowning)
                     continue;
 
                 if (character.IsInCombat)
@@ -121,11 +121,23 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
             }
         }
+        
+        public void BreathTick(TimeSpan delta)
+        {
+            foreach (var character in WorldManager.Instance.GetAllCharacters())
+            {
+                if(character.IsDead || !character.IsUnderWater)
+                    continue;
+                
+                character.DoChangeBreath();
+            }
+        }
 
         public void Load()
         {
             Log.Info("Loading character templates...");
 
+            TickManager.Instance.OnTick.Subscribe(BreathTick, TimeSpan.FromMilliseconds(1000));
             TickManager.Instance.OnTick.Subscribe(CombatTick, TimeSpan.FromMilliseconds(1000));
             TickManager.Instance.OnTick.Subscribe(RegenTick, TimeSpan.FromMilliseconds(1000));
             using (var connection = SQLite.CreateConnection())

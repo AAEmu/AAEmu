@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -139,6 +140,19 @@ namespace AAEmu.Game.Models.Game.Char
 
         private bool _inParty;
         private bool _isOnline;
+
+        private bool _isUnderWater;
+        public bool IsUnderWater
+        {
+            get { return _isUnderWater; }
+            set
+            {
+                _isUnderWater = value;
+                if (!_isUnderWater)
+                    Breath = LungCapacity;
+                SendPacket(new SCUnderWaterPacket(_isUnderWater));
+            }
+        }
 
         public bool InParty
         {
@@ -1138,6 +1152,12 @@ namespace AAEmu.Game.Models.Game.Char
                 return (float)res;
             }
         }
+        
+        [UnitAttribute(UnitAttribute.LungCapacity)]
+        public uint LungCapacity
+        {
+            get => (uint)CalculateWithBonuses(60000, UnitAttribute.LungCapacity);
+        }
 
         [UnitAttribute(UnitAttribute.FallDamageMul)]
         public float FallDamageMul
@@ -1151,6 +1171,8 @@ namespace AAEmu.Game.Models.Game.Char
         {
             _options = new Dictionary<ushort, string>();
             _hostilePlayers = new ConcurrentDictionary<uint, DateTime>();
+
+            Breath = LungCapacity;
 
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
@@ -1371,8 +1393,14 @@ namespace AAEmu.Game.Models.Game.Char
             var lastZoneKey = Position.ZoneId;
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
+            if (!IsUnderWater && Position.Z < 98) //TODO: Need way to determine when player is under any body of water. 
+                IsUnderWater = true;
+            else if (IsUnderWater && Position.Z > 98)
+                IsUnderWater = false;
+            
             if (!moved)
                 return;
+
             Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
 
             if (Position.ZoneId == lastZoneKey)
@@ -1488,6 +1516,28 @@ namespace AAEmu.Game.Models.Game.Char
         {
             using (var connection = MySQL.CreateConnection())
                 return Load(connection, characterId);
+        }
+
+        public uint Breath { get; set; }
+        
+        public bool IsDrowning
+        {
+            get { return (Breath <= 0); }
+        }
+
+        public void DoChangeBreath()
+        {
+            if (IsDrowning)
+            {
+                var damageAmount = MaxHp * .1;
+                ReduceCurrentHp(this, (int)damageAmount);
+                SendPacket(new SCEnvDamagePacket(EnvSource.Drowning, ObjId, (uint)damageAmount));
+            }
+            else
+            {
+                Breath -= 1000; //1 second
+                SendPacket(new SCSetBreathPacket(Breath));   
+            }
         }
 
         #region Database
