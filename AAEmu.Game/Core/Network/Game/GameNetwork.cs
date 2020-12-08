@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSLeaveWorldPacket, 1, typeof(CSLeaveWorldPacket));
             RegisterPacket(CSOffsets.CSCancelLeaveWorldPacket, 1, typeof(CSCancelLeaveWorldPacket));
             RegisterPacket(CSOffsets.CSCreateExpeditionPacket, 1, typeof(CSCreateExpeditionPacket));
-            RegisterPacket(0x005, 1, typeof(CSChangeExpeditionSponsorPacket)); // TODO: this packet seems like it has been removed.
+            //RegisterPacket(0x005, 1, typeof(CSChangeExpeditionSponsorPacket)); // TODO: this packet seems like it has been removed.
             RegisterPacket(CSOffsets.CSChangeExpeditionRolePolicyPacket, 1, typeof(CSChangeExpeditionRolePolicyPacket));
             RegisterPacket(CSOffsets.CSChangeExpeditionMemberRolePacket, 1, typeof(CSChangeExpeditionMemberRolePacket));
             RegisterPacket(CSOffsets.CSChangeExpeditionOwnerPacket, 1, typeof(CSChangeExpeditionOwnerPacket));
