@@ -15,6 +15,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
+        }
+
+        public override void Execute()
+        {
             Connection.ActiveChar.IsOnline = true;
             
             Connection.ActiveChar.Spawn();
