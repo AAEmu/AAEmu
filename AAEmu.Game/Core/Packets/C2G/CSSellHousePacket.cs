@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellHousePacket : GamePacket
     {
-        public CSSellHousePacket() : base(0x05e, 1) //TODO 1.0 opcode: 0x05c
+        public CSSellHousePacket() : base(CSOffsets.CSSellHousePacket, 1)
         {
         }
 

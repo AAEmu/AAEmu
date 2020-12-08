@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
     public class CSAuctionSearchPacket : GamePacket
     {
 
-        public CSAuctionSearchPacket() : base(0x0b8, 1)
+        public CSAuctionSearchPacket() : base(CSOffsets.CSAuctionSearchPacket, 1)
         {
         }
 
@@ -36,23 +36,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             _sTemplate.SortOrder = stream.ReadByte();
 
             var foundItems = AuctionManager.Instance.GetAuctionItems(_sTemplate);
-
-            _log.Warn($"PlayerName: {_sTemplate.Player.Name}, " +
-                $"ItemName: {_sTemplate.ItemName}, " +
-                $"ExactMatch: {_sTemplate.ExactMatch}, " +
-                $"Grade: {_sTemplate.Grade}, " +
-                $"CategoryA: {_sTemplate.CategoryA}, " +
-                $"CategoryB: {_sTemplate.CategoryB}, " +
-                $"CategoryC: {_sTemplate.CategoryC}, " +
-                $"Page: {_sTemplate.Page}, " +
-                $"PlayerId: {_sTemplate.PlayerId}, " +
-                $"Filter: {_sTemplate.Filter}, " +
-                $"WorldID: {_sTemplate.WorldID}, " +
-                $"MinItemLevel: {_sTemplate.MinItemLevel}, " +
-                $"MaxItemLevel: {_sTemplate.MaxItemLevel}, " +
-                $"SortKind: {_sTemplate.SortKind}, " +
-                $"SortOrder: {_sTemplate.SortKind}");
-
+            
             Connection.SendPacket(new SCAuctionSearchedPacket(foundItems, _sTemplate.Page));
         }
     }

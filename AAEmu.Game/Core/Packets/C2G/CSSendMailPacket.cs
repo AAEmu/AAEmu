@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendMailPacket : GamePacket
     {
-        public CSSendMailPacket() : base(0x098, 1)
+        public CSSendMailPacket() : base(CSOffsets.CSSendMailPacket, 1)
         {
         }
 

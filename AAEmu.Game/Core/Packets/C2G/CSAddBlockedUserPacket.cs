@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAddBlockedUserPacket : GamePacket
     {
-        public CSAddBlockedUserPacket() : base(0x107, 1)
+        public CSAddBlockedUserPacket() : base(CSOffsets.CSAddBlockedUserPacket, 1)
         {
         }
 

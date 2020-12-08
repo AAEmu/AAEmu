@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAuctionLowestPricePacket : GamePacket
     {
-        public CSAuctionLowestPricePacket() : base(0x0bc, 1)
+        public CSAuctionLowestPricePacket() : base(CSOffsets.CSAuctionLowestPricePacket, 1)
         {
         }
 

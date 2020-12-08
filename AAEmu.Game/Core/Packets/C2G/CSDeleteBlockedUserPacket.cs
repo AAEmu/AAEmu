@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeleteBlockedUserPacket : GamePacket
     {
-        public CSDeleteBlockedUserPacket() : base(0x108, 1)
+        public CSDeleteBlockedUserPacket() : base(CSOffsets.CSDeleteBlockedUserPacket, 1)
         {
         }
 

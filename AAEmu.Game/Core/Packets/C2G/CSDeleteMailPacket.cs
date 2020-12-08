@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeleteMailPacket : GamePacket
     {
-        public CSDeleteMailPacket() : base(0x0a1, 1)
+        public CSDeleteMailPacket() : base(CSOffsets.CSDeleteMailPacket, 1)
         {
         }
 

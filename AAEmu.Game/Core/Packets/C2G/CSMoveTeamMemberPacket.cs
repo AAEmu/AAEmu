@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMoveTeamMemberPacket : GamePacket
     {
-        public CSMoveTeamMemberPacket() : base(0x081, 1)
+        public CSMoveTeamMemberPacket() : base(CSOffsets.CSMoveTeamMemberPacket, 1)
         {
         }
 

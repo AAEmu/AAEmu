@@ -7,13 +7,12 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSICSBuyGoodPacket : GamePacket
     {
-        public CSICSBuyGoodPacket() : base(0x11d, 1)
+        public CSICSBuyGoodPacket() : base(CSOffsets.CSICSBuyGoodPacket, 1)
         {
         }
 

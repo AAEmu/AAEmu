@@ -66,7 +66,7 @@ namespace AAEmu.Game.Models.Game.Items
         {
             if (_containerSize < 0)
             {
-                _freeSlotCount = 999; // Should be more than enough
+                _freeSlotCount = 9999; // Should be more than enough
                 return;
             }
             Items.Sort();
@@ -469,7 +469,6 @@ namespace AAEmu.Game.Models.Game.Items
             GetAllItemsByTemplate(itemToAdd.TemplateId, itemToAdd.Grade, out currentItems, out var currentTotalItemCount);
             return (currentItems.Count * itemToAdd.Template.MaxCount) - currentTotalItemCount + (FreeSlotCount * itemToAdd.Template.MaxCount);
         }
-
 
         /// <summary>
         /// Returns a list of items in the order of their slot, unused slots return null

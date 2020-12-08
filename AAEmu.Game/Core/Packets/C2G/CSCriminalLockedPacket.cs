@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCriminalLockedPacket : GamePacket
     {
-        public CSCriminalLockedPacket() : base(0x06e, 1)
+        public CSCriminalLockedPacket() : base(CSOffsets.CSCriminalLockedPacket, 1)
         {
         }
 

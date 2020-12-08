@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSPremiumServieceMsgPacket : GamePacket
     {
-        public CSPremiumServieceMsgPacket() : base(0x13c, 1)
+        public CSPremiumServieceMsgPacket() : base(CSOffsets.CSPremiumServieceMsgPacket, 1)
         {
         }
 

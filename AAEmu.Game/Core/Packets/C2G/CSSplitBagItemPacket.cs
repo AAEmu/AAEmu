@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSplitBagItemPacket : GamePacket
     {
-        public CSSplitBagItemPacket() : base(0x039, 1)
+        public CSSplitBagItemPacket() : base(CSOffsets.CSSplitBagItemPacket, 1)
         {
         }
 

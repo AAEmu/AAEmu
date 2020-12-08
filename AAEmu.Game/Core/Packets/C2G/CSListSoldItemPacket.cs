@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListSoldItemPacket : GamePacket
     {
-        public CSListSoldItemPacket() : base(0x0b1, 1)
+        public CSListSoldItemPacket() : base(CSOffsets.CSListSoldItemPacket, 1)
         {
         }
 

@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSExpandSlotsPacket : GamePacket
     {
-        public CSExpandSlotsPacket() : base(0x041, 1)
+        public CSExpandSlotsPacket() : base(CSOffsets.CSExpandSlotsPacket, 1)
         {
         }
 

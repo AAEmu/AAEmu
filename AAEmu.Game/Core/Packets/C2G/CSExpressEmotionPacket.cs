@@ -1,11 +1,12 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSExpressEmotionPacket : GamePacket
     {
-        public CSExpressEmotionPacket() : base(0x0ad, 1)
+        public CSExpressEmotionPacket() : base(CSOffsets.CSExpressEmotionPacket, 1)
         {
         }
 

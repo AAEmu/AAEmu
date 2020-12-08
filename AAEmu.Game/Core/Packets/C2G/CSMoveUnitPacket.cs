@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         private uint _objId;
         private MoveType _moveType;
         
-        public CSMoveUnitPacket() : base(0x089, 1)
+        public CSMoveUnitPacket() : base(CSOffsets.CSMoveUnitPacket, 1)
         {
         }
 

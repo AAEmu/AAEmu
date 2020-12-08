@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReplyInviteJuryPacket : GamePacket
     {
-        public CSReplyInviteJuryPacket() : base(0x071, 1)
+        public CSReplyInviteJuryPacket() : base(CSOffsets.CSReplyInviteJuryPacket, 1)
         {
         }
 

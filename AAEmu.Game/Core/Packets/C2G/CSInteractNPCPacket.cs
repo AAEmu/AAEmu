@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSInteractNPCPacket : GamePacket
     {
-        public CSInteractNPCPacket() : base(0x065, 1)
+        public CSInteractNPCPacket() : base(CSOffsets.CSInteractNPCPacket, 1)
         {
         }
 

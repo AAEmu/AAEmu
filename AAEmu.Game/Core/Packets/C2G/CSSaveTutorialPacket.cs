@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSaveTutorialPacket : GamePacket
     {
-        public CSSaveTutorialPacket() : base(0x0f5, 1)
+        public CSSaveTutorialPacket() : base(CSOffsets.CSSaveTutorialPacket, 1)
         {
         }
 

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTakeAttachmentItemPacket : GamePacket
     {
-        public CSTakeAttachmentItemPacket() : base(0x09d, 1)
+        public CSTakeAttachmentItemPacket() : base(CSOffsets.CSTakeAttachmentItemPacket, 1)
         {
         }
 
@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var id = stream.ReadUInt64();
             var grade = stream.ReadByte();
             var flags = stream.ReadByte();
-            var count = stream.ReadInt32();
+            var count = stream.ReadUInt32();
             var detailType = stream.ReadByte();
 
             var creationTime = stream.ReadDateTime();

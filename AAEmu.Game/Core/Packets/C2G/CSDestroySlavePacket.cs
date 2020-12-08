@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDestroySlavePacket : GamePacket
     {
-        public CSDestroySlavePacket() : base(0x030, 1)
+        public CSDestroySlavePacket() : base(CSOffsets.CSDestroySlavePacket, 1)
         {
         }
 

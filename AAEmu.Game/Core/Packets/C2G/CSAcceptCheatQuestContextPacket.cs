@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAcceptCheatQuestContextPacket : GamePacket
     {
-        public CSAcceptCheatQuestContextPacket() : base(0x0d5, 1)
+        public CSAcceptCheatQuestContextPacket() : base(CSOffsets.CSAcceptCheatQuestContextPacket, 1)
         {
         }
 

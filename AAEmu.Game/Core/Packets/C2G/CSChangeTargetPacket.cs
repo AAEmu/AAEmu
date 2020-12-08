@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeTargetPacket : GamePacket
     {
-        public CSChangeTargetPacket() : base(0x02c, 1)
+        public CSChangeTargetPacket() : base(CSOffsets.CSChangeTargetPacket, 1)
         {
         }
 

@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSQuestTalkMadePacket : GamePacket
     {
-        public CSQuestTalkMadePacket() : base(0x0da, 1)
+        public CSQuestTalkMadePacket() : base(CSOffsets.CSQuestTalkMadePacket, 1)
         {
         }
 

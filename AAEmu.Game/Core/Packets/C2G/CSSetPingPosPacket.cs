@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetPingPosPacket : GamePacket
     {
-        public CSSetPingPosPacket() : base(0x087, 1)
+        public CSSetPingPosPacket() : base(CSOffsets.CSSetPingPosPacket, 1)
         {
         }
 

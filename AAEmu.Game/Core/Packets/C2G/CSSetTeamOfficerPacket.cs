@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetTeamOfficerPacket : GamePacket
     {
-        public CSSetTeamOfficerPacket() : base(0x07e, 1)
+        public CSSetTeamOfficerPacket() : base(CSOffsets.CSSetTeamOfficerPacket, 1)
         {
         }
 

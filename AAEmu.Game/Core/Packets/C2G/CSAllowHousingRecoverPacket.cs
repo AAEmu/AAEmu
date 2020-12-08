@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAllowHousingRecoverPacket : GamePacket
     {
-        public CSAllowHousingRecoverPacket() : base(0x05d, 1)
+        public CSAllowHousingRecoverPacket() : base(CSOffsets.CSAllowHousingRecoverPacket, 1)
         {
         }
 

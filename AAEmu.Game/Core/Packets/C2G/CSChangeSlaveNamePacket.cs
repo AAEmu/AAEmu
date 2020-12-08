@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeSlaveNamePacket : GamePacket
     {
-        public CSChangeSlaveNamePacket() : base(0x034, 1)
+        public CSChangeSlaveNamePacket() : base(CSOffsets.CSChangeSlaveNamePacket, 1)
         {
         }
 

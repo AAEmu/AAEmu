@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAuctionMyBidListPacket : GamePacket
     {
-        public CSAuctionMyBidListPacket() : base(0x0bb, 1)
+        public CSAuctionMyBidListPacket() : base(CSOffsets.CSAuctionMyBidListPacket, 1)
         {
         }
 
