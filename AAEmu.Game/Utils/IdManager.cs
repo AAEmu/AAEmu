@@ -25,8 +25,6 @@ namespace AAEmu.Game.Utils
         private readonly bool _distinct;
         private readonly object _lock = new object();
 
-        private readonly List<uint> _releaseQueue;
-
         public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude,
             bool distinct = false)
         {
@@ -38,7 +36,6 @@ namespace AAEmu.Game.Utils
             _distinct = distinct;
             _freeIdSize = (int) (_lastId - _firstId);
             PrimeFinder.Init();
-            _releaseQueue = new List<uint>();
         }
 
         public bool Initialize()
@@ -142,12 +139,7 @@ namespace AAEmu.Game.Utils
             }
         }
 
-        public void ReleaseId(uint id)
-        {
-            _releaseQueue.Add(id);
-        }
-        
-        public void ReleaseIdFromSet(uint usedObjectId)
+        public void ReleaseId(uint usedObjectId)
         {
             var objectId = (int) (usedObjectId - _firstId);
             if (objectId > -1)
@@ -164,7 +156,7 @@ namespace AAEmu.Game.Utils
         public void ReleaseId(IEnumerable<uint> usedObjectIds)
         {
             foreach (var id in usedObjectIds)
-                ReleaseIdFromSet(id);
+                ReleaseId(id);
         }
 
         public uint GetNextId()
@@ -190,13 +182,6 @@ namespace AAEmu.Game.Utils
                 }
 
                 _nextFreeId = nextFree;
-                
-                if (_releaseQueue.Count > 0)
-                {
-                    ReleaseId(_releaseQueue);
-                    _releaseQueue.Clear();
-                }
-
                 return (uint) newId + _firstId;
             }
         }
