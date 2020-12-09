@@ -66,6 +66,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                     case UnitMoveType dmt:
                     {
                         var unit = WorldManager.Instance.GetUnit(_objId);
+                        if (unit == null)
+                            break;
                         unit.SetPosition(dmt.X, dmt.Y, dmt.Z);
                         unit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
                         break;
