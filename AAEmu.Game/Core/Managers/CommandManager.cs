@@ -80,6 +80,8 @@ namespace AAEmu.Game.Core.Managers
 
             var words = SplitCommandString(text);
             // var words = text.Split(' ');
+            if (words == null || words.Count() == 0)
+                return false;
             var thisCommand = words[0].ToLower();
 
             // Only enable the force_scripts_reload when we don't have anything loaded, this is simply a failsafe function in case

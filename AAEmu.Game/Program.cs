@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
+using AAEmu.Game.Genesis;
 using AAEmu.Game.Models;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Extensions.Configuration;
@@ -46,6 +47,8 @@ namespace AAEmu.Game
             }
 
             connection.Close();
+            
+            AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>
@@ -61,8 +64,9 @@ namespace AAEmu.Game
                 {
                     services.AddOptions();
                     services.AddSingleton<IHostedService, GameService>();
+                    services.AddSingleton<IHostedService, DiscordBotService>();
                 });
-
+            
             await builder.RunConsoleAsync();
         }
         
@@ -82,6 +86,14 @@ namespace AAEmu.Game
             configurationBuilder.Bind(AppConfiguration.Instance);
 
             LogManager.Configuration = new XmlLoggingConfiguration(FileManager.AppPath + "NLog.config", false);
+        }
+        
+        private static void OnUnhandledException(
+            object sender, UnhandledExceptionEventArgs e)
+        {
+            var exceptionStr = e.ExceptionObject.ToString();
+            _log.Error(exceptionStr);
+            _log.Fatal(exceptionStr);
         }
     }
 }

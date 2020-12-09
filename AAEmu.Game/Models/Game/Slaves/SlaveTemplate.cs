@@ -22,12 +22,14 @@ namespace AAEmu.Game.Models.Game.Slaves
         public List<SlaveInitialBuffs> InitialBuffs { get; }
         public List<SlavePassiveBuffs> PassiveBuffs { get; }
         public List<SlaveDoodadBindings> DoodadBindings { get; }
+        public List<SlaveBindings> SlaveBindings { get; }
 
         public SlaveTemplate()
         {
             InitialBuffs = new List<SlaveInitialBuffs>();
             PassiveBuffs = new List<SlavePassiveBuffs>();
             DoodadBindings = new List<SlaveDoodadBindings>();
+            SlaveBindings = new List<SlaveBindings>();
         }
     }
 }

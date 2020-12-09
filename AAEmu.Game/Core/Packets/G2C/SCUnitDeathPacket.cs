@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(_objId);
             stream.Write(_killReason);
             // ---------------
-            stream.Write(0u); // resurrectionWaitingTime
+            stream.Write(15000u); // resurrectionWaitingTime
             stream.Write(0); // lostExp
             stream.Write((byte) 0); // deathDurabilityLossRatio
             // ---------------

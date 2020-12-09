@@ -29,6 +29,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             _log.Debug("InteractionEffect, Action: {0}", classType); // TODO help to debug...
 
+            caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
+
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
             action.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
 

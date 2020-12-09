@@ -26,18 +26,18 @@ namespace AAEmu.Game.Models.Game.Skills
             // owner.Modifiers.AddModifiers(Template.BuffId);
             var template = SkillManager.Instance.GetBuffTemplate(Template.BuffId);
             var newEffect =
-                new Effect(owner, owner, new SkillCasterUnit(), template, null, DateTime.Now)
+                new Buff(owner, owner, new SkillCasterUnit(), template, null, DateTime.Now)
                 {
                     Passive = true
                 };
 
-            owner.Effects.AddEffect(newEffect);
+            owner.Buffs.AddBuff(newEffect);
         }
 
         public void Remove(Unit owner)
         {
             // owner.Modifiers.RemoveModifiers(Template.BuffId);
-            owner.Effects.RemoveBuff(Template.BuffId);
+            owner.Buffs.RemoveBuff(Template.BuffId);
         }
     }
 }

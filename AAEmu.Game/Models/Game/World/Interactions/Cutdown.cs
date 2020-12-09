@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
@@ -15,6 +16,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             {
                 // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, doodad, skillId);
                 doodad.Use(caster, skillId);
+                caster.BroadcastPacket(new SCVegetationCutdowningPacket(caster.ObjId, doodad.ObjId), true);
             }
         }
     }

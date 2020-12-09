@@ -10,15 +10,15 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
     abstract class BuffTrigger
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
-        protected Effect _effect;
+        protected Buff _buff;
         protected readonly BaseUnit _owner;
         public BuffTriggerTemplate Template { get; set; }
         public abstract void Execute(object sender, EventArgs args);
 
-        public BuffTrigger(Effect effect, BuffTriggerTemplate template)
+        public BuffTrigger(Buff buff, BuffTriggerTemplate template)
         {
-            _effect = effect;
-            _owner = _effect.Owner;
+            _buff = buff;
+            _owner = _buff.Owner;
             Template = template;
         }
     }

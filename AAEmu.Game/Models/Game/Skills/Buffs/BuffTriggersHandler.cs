@@ -14,10 +14,10 @@ namespace AAEmu.Game.Models.Game.Skills
     public class BuffTriggersHandler
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        private Effect _owner;
+        private Buff _owner;
         private List<BuffTrigger> _triggers;
 
-        public BuffTriggersHandler(Effect buff)
+        public BuffTriggersHandler(Buff buff)
         {
             _triggers = new List<BuffTrigger>();
             _owner = buff;
@@ -25,13 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void SubscribeEvents()
         {
-            uint buffId;
-            if (_owner.Template is BuffEffect buffEffect)
-                buffId = buffEffect.BuffId;
-            else if (_owner.Template is BuffTemplate buffTemplate)
-                buffId = buffTemplate.BuffId;
-            else
-                return;
+            uint buffId = _owner.Template.BuffId;
 
             var triggerTemplates = SkillManager.Instance.GetBuffTriggerTemplates(buffId);
 
@@ -90,6 +84,9 @@ namespace AAEmu.Game.Models.Game.Skills
                     case Buffs.BuffEventTriggerKind.RemoveOnDamage:
                         break;
                     case Buffs.BuffEventTriggerKind.Death:
+                        trigger = new DeathBuffTrigger(_owner, triggerTemplate);
+                        _owner.Caster.Events.OnDeath += trigger.Execute;
+                        _triggers.Add(trigger);
                         break;
                     case Buffs.BuffEventTriggerKind.Unmount:
                         break;
@@ -108,11 +105,11 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
                 if (trigger == null)
                 {
-                    _log.Warn("Unimplemented BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
+                    _log.Trace("Unimplemented BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
                 }
                 else
                 {
-                    _log.Warn("Subscribed BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
+                    _log.Trace("Subscribed BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
                 }
             }
         }
@@ -120,7 +117,6 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             //TODO These invokes need to be moved to better locations
             //TODO: Make sure this is when buff time runs out?
-            _owner.Events.OnTimeout(_owner, new OnTimeoutArgs());
             //Not sure if this is for expiration or for being dispelled aka Purged
             _owner.Events.OnDispelled(_owner, new OnDispelledArgs());
             foreach (var trigger in _triggers)
@@ -162,6 +158,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     case Buffs.BuffEventTriggerKind.RemoveOnDamage:
                         break;
                     case Buffs.BuffEventTriggerKind.Death:
+                        _owner.Caster.Events.OnDeath -= trigger.Execute;
                         break;
                     case Buffs.BuffEventTriggerKind.Unmount:
                         break;

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -19,7 +21,9 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -67,6 +71,10 @@ namespace AAEmu.Game.Models.Game.Char
         public AbilityType Ability1 { get; set; }
         public AbilityType Ability2 { get; set; }
         public AbilityType Ability3 { get; set; }
+        public DateTime LastCombatActivity { get; set; }
+        public DateTime LastCast { get; set; }
+        public bool IsInCombat { get; set; }
+        public bool IsInPostCast { get; set; }
         public bool IgnoreSkillCooldowns { get; set; }
         public string FactionName { get; set; }
         public uint Family { get; set; }
@@ -126,11 +134,25 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterSkills Skills { get; set; }
         public CharacterCraft Craft { get; set; }
 
-        public int AccessLevel { get; set;}
+        public int AccessLevel { get; set; }
         public Point LocalPingPosition { get; set; } // added as a GM command helper
+        private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
 
         private bool _inParty;
         private bool _isOnline;
+
+        private bool _isUnderWater;
+        public bool IsUnderWater
+        {
+            get { return _isUnderWater; }
+            set
+            {
+                _isUnderWater = value;
+                if (!_isUnderWater)
+                    Breath = LungCapacity;
+                SendPacket(new SCUnderWaterPacket(_isUnderWater));
+            }
+        }
 
         public bool InParty
         {
@@ -159,27 +181,32 @@ namespace AAEmu.Game.Models.Game.Char
 
         #region Attributes
 
+        [UnitAttribute(UnitAttribute.GlobalCooldownMul)]
+        public override float GlobalCooldownMul
+        {
+            get
+            {
+                var res = CalculateWithBonuses(0, UnitAttribute.GlobalCooldownMul);
+
+                return (int)(100000f / (res + 1000f));
+            }
+        }
+
         [UnitAttribute(UnitAttribute.Str)]
         public int Str
         {
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Str);
-                var parameters = new Dictionary<string, double> {["level"] = Level};
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
                 var result = formula.Evaluate(parameters);
-                var res = (int)result;
+                var res = result;
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Str;
-                foreach (var bonus in GetBonuses(UnitAttribute.Str))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.Str);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -189,20 +216,14 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dex);
-                var parameters = new Dictionary<string, double> {["level"] = Level};
-                var res = (int)formula.Evaluate(parameters);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = formula.Evaluate(parameters);
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Dex;
-                foreach (var bonus in GetBonuses(UnitAttribute.Dex))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.Dex);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -212,20 +233,14 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Sta);
-                var parameters = new Dictionary<string, double> {["level"] = Level};
-                var res = (int)formula.Evaluate(parameters);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = formula.Evaluate(parameters);
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Sta;
-                foreach (var bonus in GetBonuses(UnitAttribute.Sta))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.Sta);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -235,20 +250,14 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Int);
-                var parameters = new Dictionary<string, double> {["level"] = Level};
-                var res = (int)formula.Evaluate(parameters);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = formula.Evaluate(parameters);
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Int;
-                foreach (var bonus in GetBonuses(UnitAttribute.Int))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.Int);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -257,20 +266,14 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Spi);
-                var parameters = new Dictionary<string, double> {["level"] = Level};
-                var res = (int)formula.Evaluate(parameters);
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = formula.Evaluate(parameters);
                 foreach (var item in Inventory.Equipment.Items)
                     if (item is EquipItem equip)
                         res += equip.Spi;
-                foreach (var bonus in GetBonuses(UnitAttribute.Spi))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.Spi);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -280,17 +283,11 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Fai);
-                var parameters = new Dictionary<string, double> {["level"] = Level};
-                var res = (int)formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.Fai))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var res = formula.Evaluate(parameters);
+                res = CalculateWithBonuses(res, UnitAttribute.Fai);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -309,16 +306,10 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
-                var res = (int)formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                var res = formula.Evaluate(parameters);
+                res = CalculateWithBonuses(res, UnitAttribute.MaxHealth);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -337,17 +328,11 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
-                var res = (int)formula.Evaluate(parameters);
-                res += Spi / 10;
-                foreach (var bonus in GetBonuses(UnitAttribute.HealthRegen))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                var res = formula.Evaluate(parameters);
+                // res += Spi / 10;
+                res = CalculateWithBonuses(res, UnitAttribute.HealthRegen);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -366,17 +351,11 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
-                var res = (int)formula.Evaluate(parameters);
-                res /= 5; // TODO ...
-                foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                var res = formula.Evaluate(parameters);
+                res = CalculateWithBonuses(res, UnitAttribute.PersistentHealthRegen);
+                res /= 5;
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -395,16 +374,10 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
-                var res = (int)formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                var res = formula.Evaluate(parameters);
+                res = CalculateWithBonuses(res, UnitAttribute.MaxMana);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -423,17 +396,11 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
-                var res = (int)formula.Evaluate(parameters);
+                var res = formula.Evaluate(parameters);
                 res += Spi / 10;
-                foreach (var bonus in GetBonuses(UnitAttribute.ManaRegen))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.ManaRegen);
 
-                return res;
+                return (int)res;
             }
         }
 
@@ -452,17 +419,138 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
-                var res = (int)formula.Evaluate(parameters);
+                var res = formula.Evaluate(parameters);
                 res /= 5; // TODO ...
-                foreach (var bonus in GetBonuses(UnitAttribute.PersistentManaRegen))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.PersistentManaRegen);
 
-                return res;
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IncomingDamageMul)]
+        public override float IncomingDamageMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
+                res = res / 1000;
+                res = 1 + res;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IncomingMeleeDamageMul)]
+        public override float IncomingMeleeDamageMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingMeleeDamageMul);
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
+                res = res / 1000;
+                res = 1 + res;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IncomingRangedDamageMul)]
+        public override float IncomingRangedDamageMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingRangedDamageMul);
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
+                res = res / 1000;
+                res = 1 + res;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IncomingSpellDamageMul)]
+        public override float IncomingSpellDamageMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingSpellDamageMul);
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingDamageMul);
+                res = res / 1000;
+                res = 1 + res;
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.CastingTimeMul)]
+        public override float CastTimeMul
+        {
+            get
+            {
+                double res = 0d;
+                res = CalculateWithBonuses(res, UnitAttribute.CastingTimeMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)Math.Max(res, 0f);
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MeleeDamageMul)]
+        public override float MeleeDamageMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.MeleeDamageMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
+        
+        [UnitAttribute(UnitAttribute.RangedDamageMul)]
+        public override float RangedDamageMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.RangedDamageMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
+        
+        [UnitAttribute(UnitAttribute.SpellDamageMul)]
+        public override float SpellDamageMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.SpellDamageMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
+        
+        [UnitAttribute(UnitAttribute.IncomingHealMul)]
+        public override float IncomingHealMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.IncomingHealMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
+            }
+        }
+        
+        [UnitAttribute(UnitAttribute.HealMul)]
+        public override float HealMul
+        {
+            get
+            {
+                double res = 0f;
+                res = CalculateWithBonuses(res, UnitAttribute.HealMul);
+                res = (res + 1000.00000000) / 1000;
+                return (float)res;
             }
         }
 
@@ -492,17 +580,11 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
-                var res = weapon?.Dps ?? 0;
-                res += Str / 5f;
-                foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                var res = (weapon?.Dps ?? 0) * 1000f;
+                res += Str / 5f * 1000f;
+                res = (float)CalculateWithBonuses(res, UnitAttribute.MainhandDps);
 
-                return (int)(res * 1000);
+                return (int)(res);
             }
         }
 
@@ -522,13 +604,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.MeleeDpsInc);
 
                 return (int)res;
             }
@@ -542,13 +618,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
                 var res = weapon?.Dps ?? 0;
                 // res += Str / 10f;
-                foreach (var bonus in GetBonuses(UnitAttribute.OffhandDps))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = (float)CalculateWithBonuses(res, UnitAttribute.OffhandDps);
 
                 return (int)(res * 1000);
             }
@@ -560,17 +630,11 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
-                var res = weapon?.Dps ?? 0;
-                res += Dex / 5f;
-                foreach (var bonus in GetBonuses(UnitAttribute.RangedDps))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                var res = (weapon?.Dps ?? 0) * 1000f;
+                res += Dex / 5f * 1000f;
+                res = (float)CalculateWithBonuses(res, UnitAttribute.RangedDps);
 
-                return (int)(res * 1000);
+                return (int)res;
             }
         }
 
@@ -590,13 +654,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.RangedDpsInc))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.RangedDpsInc);
 
                 return (int)res;
             }
@@ -608,17 +666,11 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
-                var res = weapon?.MDps ?? 0;
-                // res += Int / 5f;
-                foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value * 0.001f;
-                }
+                var res = (weapon?.MDps ?? 0) * 1000f;
+                res += Int / 5f * 1000f;
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDps);
 
-                return (int)(res * 1000);
+                return (int)(res);
             }
         }
 
@@ -638,13 +690,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 parameters["fai"] = Fai;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.SpellDpsInc);
 
                 return (int)res;
             }
@@ -655,17 +701,11 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var weapon = (Weapon) Inventory.Equipment.GetItemBySlot((int) EquipmentItemSlot.Mainhand);
-                var res = weapon?.HDps ?? 0;
-                res += Spi / 5f;
-                foreach(var bonus in GetBonuses(UnitAttribute.HealDps))
-                {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (int) (res * 1000);
+                var weapon = (Weapon)Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
+                var res = (weapon?.HDps ?? 0) * 1000;
+                res += Spi / 5f * 1000f;
+                res = CalculateWithBonuses(res, UnitAttribute.HealDps);
+                return (int)res;
             }
         }
 
@@ -680,14 +720,8 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["level"] = Level;
                 parameters["spi"] = Spi;
                 var res = formula.Evaluate(parameters);
-                foreach(var bonus in GetBonuses(UnitAttribute.HealDpsInc))
-                {
-                    if(bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (int) res;
+                res = CalculateWithBonuses(res, UnitAttribute.HealDpsInc);
+                return (int)res;
             }
         }
 
@@ -702,13 +736,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["str"] = Str; //Str not needed, but maybe we use later
                 parameters["spi"] = Spi;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.MeleeAntiMiss))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.MeleeAntiMiss);
                 res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
                 res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
                 res = (Math.Abs(res) + res) / 2f;
@@ -727,14 +755,9 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["str"] = Str; //Str not needed, but maybe we use later
                 parameters["dex"] = Dex;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCritical))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                res = res * (1f/Facets) * 100;
+                res = CalculateWithBonuses(res, UnitAttribute.MeleeCritical);
+                res = res * (1f / Facets) * 100;
+                res = res + (MeleeCriticalMul / 10);
                 return (float)res;
             }
         }
@@ -745,15 +768,9 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var res = 1500f;
-                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCriticalBonus))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res* bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = (float)CalculateWithBonuses(res, UnitAttribute.MeleeCriticalBonus);
                 return (res - 1000f) / 10f;
-}
+            }
         }
 
         [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
@@ -762,13 +779,7 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 float res = 0;
-                foreach (var bonus in GetBonuses(UnitAttribute.MeleeCriticalMul))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = (float)CalculateWithBonuses(res, UnitAttribute.MeleeCriticalMul);
                 return res;
             }
         }
@@ -784,13 +795,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["dex"] = Dex; //Str not needed, but maybe we use later
                 parameters["spi"] = Spi;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.RangedAntiMiss))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.RangedAntiMiss);
                 res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
                 res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
                 res = (Math.Abs(res) + res) / 2f;
@@ -809,14 +814,9 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["dex"] = Dex; //Str not needed, but maybe we use later
                 parameters["int"] = Int;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.RangedCritical))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.RangedCritical);
                 res = res * (1f / Facets) * 100;
+                res = res + (RangedCriticalMul / 10);
                 return (float)res;
             }
         }
@@ -827,13 +827,7 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var res = 1500f;
-                foreach (var bonus in GetBonuses(UnitAttribute.RangedCriticalBonus))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = (float)CalculateWithBonuses(res, UnitAttribute.RangedCriticalBonus);
                 return (res - 1000f) / 10f;
             }
         }
@@ -844,13 +838,7 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 float res = 0;
-                foreach (var bonus in GetBonuses(UnitAttribute.RangedCriticalMul))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = (float)CalculateWithBonuses(res, UnitAttribute.RangedCriticalMul);
                 return res;
             }
         }
@@ -866,13 +854,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 parameters["spi"] = Spi;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.SpellAntiMiss))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.SpellAntiMiss);
                 res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
                 res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
                 res = (Math.Abs(res) + res) / 2f;
@@ -890,14 +872,10 @@ namespace AAEmu.Game.Models.Game.Char
                 var parameters = new Dictionary<string, double>();
                 parameters["int"] = Int; //Str not needed, but maybe we use later
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.SpellCritical))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.SpellCritical);
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCritical);
                 res = res * (1f / Facets) * 100;
+                res = res + (SpellCriticalMul / 10);
                 return (float)res;
             }
         }
@@ -908,13 +886,8 @@ namespace AAEmu.Game.Models.Game.Char
             get
             {
                 var res = 1500f;
-                foreach (var bonus in GetBonuses(UnitAttribute.SpellCriticalBonus))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellCriticalBonus);
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCriticalBonus);
                 return (res - 1000f) / 10f;
             }
         }
@@ -924,15 +897,49 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                float res = 0;
-                foreach (var bonus in GetBonuses(UnitAttribute.SpellCriticalMul))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return res;
+                double res = 0;
+                res = CalculateWithBonuses(res, UnitAttribute.SpellCriticalMul);
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCriticalMul);
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.HealCritical)]
+        public override float HealCritical
+        {
+            get
+            {
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.HealCritical);
+                var parameters = new Dictionary<string, double>();
+                parameters["spi"] = Spi; //Str not needed, but maybe we use later
+                var res = formula.Evaluate(parameters);
+                res = CalculateWithBonuses(res, UnitAttribute.HealCritical);
+                res = res * (1f / Facets) * 100;
+                res = res + (HealCriticalMul / 10);
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.HealCriticalBonus)]
+        public override float HealCriticalBonus
+        {
+            get
+            {
+                var res = 1500f;
+                res = (float)CalculateWithBonuses(res, UnitAttribute.HealCriticalBonus);
+                return (res - 1000f) / 10f;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.HealCriticalMul)]
+        public override float HealCriticalMul
+        {
+            get
+            {
+                double res = 0;
+                res = CalculateWithBonuses(res, UnitAttribute.HealCriticalMul);
+                return (float)res;
             }
         }
 
@@ -967,13 +974,7 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
 
-                foreach (var bonus in GetBonuses(UnitAttribute.Armor))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = (int)CalculateWithBonuses(res, UnitAttribute.Armor);
 
                 return res;
             }
@@ -1008,15 +1009,29 @@ namespace AAEmu.Game.Models.Game.Char
                     }
                 }
 
-                foreach (var bonus in GetBonuses(UnitAttribute.MagicResist))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = (int)CalculateWithBonuses(res, UnitAttribute.MagicResist);
 
                 return res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.IgnoreArmor)]
+        public override int DefensePenetration
+        {
+            get
+            {
+                var res = CalculateWithBonuses(0, UnitAttribute.IgnoreArmor);
+                return (int)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.MagicPenetration)]
+        public override int MagicPenetration
+        {
+            get
+            {
+                var res = CalculateWithBonuses(0, UnitAttribute.MagicPenetration);
+                return (int)res;
             }
         }
 
@@ -1025,15 +1040,8 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var res = 0f;
-                foreach (var bonus in GetBonuses(UnitAttribute.BattleResist))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (int)res;
+                var res = (int)CalculateWithBonuses(0, UnitAttribute.BattleResist);
+                return res;
             }
         }
 
@@ -1042,15 +1050,8 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var res = 0f;
-                foreach (var bonus in GetBonuses(UnitAttribute.BullsEye))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (int)res;
+                var res = (int)CalculateWithBonuses(0, UnitAttribute.BullsEye);
+                return res;
             }
         }
 
@@ -1059,15 +1060,8 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get
             {
-                var res = 0f;
-                foreach (var bonus in GetBonuses(UnitAttribute.Flexibility))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (int)res;
+                var res = (int)CalculateWithBonuses(0, UnitAttribute.Flexibility);
+                return res;
             }
         }
 
@@ -1081,13 +1075,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var parameters = new Dictionary<string, double>();
                 parameters["level"] = Level;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.Facets))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+                res = CalculateWithBonuses(res, UnitAttribute.Facets);
                 return (int)res;
             }
         }
@@ -1103,14 +1091,10 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["dex"] = Dex;
                 parameters["int"] = Int;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.Dodge))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (float)(res * (1f/Facets) * 100f);
+                res = CalculateWithBonuses(res, UnitAttribute.Dodge);
+                res = (res * (1f / Facets) * 100f);
+                res += CalculateWithBonuses(0f, UnitAttribute.DodgeMul) / 10f;
+                return (float)res;
             }
         }
 
@@ -1125,14 +1109,10 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["str"] = Str;
                 parameters["sta"] = Sta;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.MeleeParry))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (float)(res * (1f / Facets) * 100f);
+                res = CalculateWithBonuses(res, UnitAttribute.MeleeParry);
+                res = (res * (1f / Facets) * 100f);
+                res += CalculateWithBonuses(0f, UnitAttribute.MeleeParryMul) / 10f;
+                return (float)res;
             }
         }
 
@@ -1143,14 +1123,10 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 //RangedParry Formula == 0
                 double res = 0;
-                foreach (var bonus in GetBonuses(UnitAttribute.RangedParry))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (float)(res * (1f / Facets) * 100f);
+                res = CalculateWithBonuses(res, UnitAttribute.RangedParry);
+                res = (res * (1f / Facets) * 100f);
+                res += CalculateWithBonuses(0f, UnitAttribute.RangedParryMul) / 10f;
+                return (float)res;
             }
         }
 
@@ -1173,15 +1149,23 @@ namespace AAEmu.Game.Models.Game.Char
                 var parameters = new Dictionary<string, double>();
                 parameters["str"] = Str;
                 var res = formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.Block))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
-                return (float)(res * (1f / Facets) * 100f);
+                res = CalculateWithBonuses(res, UnitAttribute.Block);
+                res = (res * (1f / Facets) * 100f);
+                res += CalculateWithBonuses(0f, UnitAttribute.BlockMul) / 10f;
+                return (float)res;
             }
+        }
+        
+        [UnitAttribute(UnitAttribute.LungCapacity)]
+        public uint LungCapacity
+        {
+            get => (uint)CalculateWithBonuses(60000, UnitAttribute.LungCapacity);
+        }
+
+        [UnitAttribute(UnitAttribute.FallDamageMul)]
+        public float FallDamageMul
+        {
+            get=> (float)CalculateWithBonuses(1d, UnitAttribute.Block);
         }
 
         #endregion
@@ -1189,15 +1173,20 @@ namespace AAEmu.Game.Models.Game.Char
         public Character(UnitCustomModelParams modelParams)
         {
             _options = new Dictionary<ushort, string>();
+            _hostilePlayers = new ConcurrentDictionary<uint, DateTime>();
+
+            Breath = LungCapacity;
 
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
+            
+            ChargeLock = new object();
         }
 
         public WeaponWieldKind GetWeaponWieldKind()
         {
             var item = Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
-            if (item.Template is WeaponTemplate weapon)
+            if (item != null && item.Template is WeaponTemplate weapon)
             {
                 var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
                 if (slotId == EquipmentItemSlotType.TwoHanded)
@@ -1221,6 +1210,24 @@ namespace AAEmu.Game.Models.Game.Char
             return WeaponWieldKind.None;
         }
 
+        public void SetHostileActivity(Character attacker)
+        {
+            if (_hostilePlayers.ContainsKey(attacker.ObjId))
+                _hostilePlayers[attacker.ObjId] = DateTime.Now;
+            else
+                _hostilePlayers.TryAdd(attacker.ObjId, DateTime.Now);
+        }
+
+        public bool IsActivelyHostile(Character target)
+        {
+            if(_hostilePlayers.TryGetValue(target.ObjId, out var value))
+            {
+                //Maybe get the time to stay hostile from db?
+                return value.AddSeconds(30) > DateTime.Now;
+            }
+            return false;
+        }
+
         public void AddExp(int exp, bool shouldAddAbilityExp)
         {
             var expMultiplier = 1d;
@@ -1230,7 +1237,7 @@ namespace AAEmu.Game.Models.Game.Char
                 expMultiplier = xpm / 100f;
             var totalExp = Math.Round(expMultiplier * exp);
             exp = (int)totalExp;
-            Expirience += exp;
+            Expirience = Math.Max(Expirience + exp, ExpirienceManager.Instance.GetExpForLevel(55));
             if (shouldAddAbilityExp)
                 Abilities.AddActiveExp(exp); // TODO ... or all?
             SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));
@@ -1376,6 +1383,12 @@ namespace AAEmu.Game.Models.Game.Char
             // TODO : Teleport to Growlgate
             // TODO : Leave guild
         }
+
+        public void SetFaction(uint factionId)
+        {
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, factionId, false), true);
+            Faction = FactionManager.Instance.GetFaction(factionId);
+        }
         
         public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {
@@ -1383,8 +1396,15 @@ namespace AAEmu.Game.Models.Game.Char
             var lastZoneKey = Position.ZoneId;
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
+            if (!IsUnderWater && Position.Z < 98) //TODO: Need way to determine when player is under any body of water. 
+                IsUnderWater = true;
+            else if (IsUnderWater && Position.Z > 98)
+                IsUnderWater = false;
+            
             if (!moved)
                 return;
+
+            Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
 
             if (Position.ZoneId == lastZoneKey)
                 return;
@@ -1424,6 +1444,17 @@ namespace AAEmu.Game.Models.Game.Char
             SendErrorMessage(ErrorMessageType.ClosedZone);
         }
 
+        public void DoFallDamage(ushort fallVel)
+        {
+            var fallDmg = Math.Min(Hp,(int)(Hp * ((fallVel-5000) / 20000f)));
+            ReduceCurrentHp(this, fallDmg);
+
+            SendPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint) fallDmg));
+            
+            //todo stun & maybe adjust formula?
+            _log.Warn("FallDamage: Vel{0} DmgPerc: {1}", fallVel, (int)((fallVel - 5000) / 200f));
+        }
+        
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;
@@ -1488,6 +1519,28 @@ namespace AAEmu.Game.Models.Game.Char
         {
             using (var connection = MySQL.CreateConnection())
                 return Load(connection, characterId);
+        }
+
+        public uint Breath { get; set; }
+        
+        public bool IsDrowning
+        {
+            get { return (Breath <= 0); }
+        }
+
+        public void DoChangeBreath()
+        {
+            if (IsDrowning)
+            {
+                var damageAmount = MaxHp * .1;
+                ReduceCurrentHp(this, (int)damageAmount);
+                SendPacket(new SCEnvDamagePacket(EnvSource.Drowning, ObjId, (uint)damageAmount));
+            }
+            else
+            {
+                Breath -= 1000; //1 second
+                SendPacket(new SCSetBreathPacket(Breath));   
+            }
         }
 
         #region Database

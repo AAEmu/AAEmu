@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
@@ -165,9 +166,18 @@ namespace AAEmu.Game.Scripts.Commands
             GMItemKitConfig jsonkit = new GMItemKitConfig();
             try
             {
-                string data = File.ReadAllText("Scripts\\Commands\\kits.json");
+                // string data = File.ReadAllText("Scripts\\Commands\\kits.json");
                 // _log.Info("data: " + data);
-                jsonkit = JsonConvert.DeserializeObject<GMItemKitConfig>(data);
+                // jsonkit = JsonConvert.DeserializeObject<GMItemKitConfig>(data);
+                
+                var contents = FileManager.GetFileContents($"{FileManager.AppPath}Scripts/Commands/kits.json");
+                if (string.IsNullOrWhiteSpace(contents))
+                    throw new IOException($"File {FileManager.AppPath}Scripts/Commands/kits.json doesn't exists or is empty.");
+                jsonkit = JsonConvert.DeserializeObject<GMItemKitConfig>(contents);
+
+                // if (!JsonHelper.TryDeserializeObject(contents, out _config, out _)) // TODO here can out Exception
+                //     throw new Exception(
+                //         $"Kits: Parse {FileManager.AppPath}Scripts/Commands/kits.json file");
                 kitconfig.itemkits.AddRange(jsonkit.itemkits);
             }
             catch (Exception x)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -34,18 +34,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("HealEffect");
+            _log.Trace("HealEffect {0}", Id);
 
             if (!(target is Unit))
                 return;
             var trg = (Unit)target;
+
+            if (trg.Hp <= 0)
+                return;
+
             var min = 0.0f;
             var max = 0.0f;
-            if (UseFixedHeal)
-            {
-                min += FixedMin;
-                max += FixedMax;
-            }
 
             var levelMin = 0.0f;
             var levelMax = 0.0f;
@@ -72,15 +71,55 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var variableDamage = (max * minCastBonus * 0.001f);
             min = variableDamage + levelMin;
             max = variableDamage + levelMax;
-            
-            if (source.Buff?.TickEffect != null)
+
+            var tickModifier = 1.0f;
+            if (source.Buff?.TickEffects.Count > 0)
             {
-                min = (float) (min * (source.Buff.Tick / source.Buff.Duration));
-                max = (float) (max * (source.Buff.Tick / source.Buff.Duration));
+                tickModifier = (float) (source.Buff.Tick / source.Buff.Duration);
             }
             
+            min *= tickModifier;
+            max *= tickModifier;
+
+            if (UseChargedBuff)
+            {
+                var effect = caster.Buffs.GetEffectFromBuffId(ChargedBuffId);
+                if (effect != null)
+                {
+                    min += ChargedMul * effect.Charge;
+                    max += ChargedMul * effect.Charge;
+                    effect.Exit();
+                }
+            }
+
+            bool criticalHeal = Rand.Next(0f, 100f) < caster.HealCritical;
+            
             var value = (int)Rand.Next(min, max);
-            trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, value), true);
+
+            if (criticalHeal)
+            {
+                value = (int)(value * (1 + (caster.HealCriticalBonus / 100)));
+                caster.CombatBuffs.TriggerCombatBuffs(caster, trg, SkillHitType.SpellCritical, true);
+            }
+
+            value = (int) (value * trg.IncomingHealMul);
+            
+            if (UseFixedHeal)
+            {
+                value = Rand.Next(FixedMin, FixedMax);
+                value = (int) (value * tickModifier);
+            }
+            
+            value = (int) (value * caster.HealMul);
+
+            byte healHitType = criticalHeal ? (byte)11 : (byte)13;
+
+            var packet = new SCUnitHealedPacket(castObj, casterObj, target.ObjId, 0, healHitType, value);
+            if (packetBuilder != null)
+                packetBuilder.AddPacket(packet);
+            else
+                trg.BroadcastPacket(packet, true);
+            
             trg.Hp += value;
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
             trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);

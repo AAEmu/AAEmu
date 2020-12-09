@@ -72,20 +72,20 @@ namespace AAEmu.Game.Models.Game.Skills
 
     public class CastBuff : CastAction
     {
-        private Effect _effect;
+        private Buff _buff;
 
-        public CastBuff(Effect effect)
+        public CastBuff(Buff buff)
         {
             Type = CastType.Buff;
-            _effect = effect;
+            _buff = buff;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(_effect.Template.BuffId);
-            stream.WriteBc(_effect.Owner.ObjId);
-            stream.Write(_effect.Index);
+            stream.Write(_buff.Template.BuffId);
+            stream.WriteBc(_buff.Owner.ObjId);
+            stream.Write(_buff.Index);
             stream.Write(true); // t
             stream.Write(false); // t
             return stream;

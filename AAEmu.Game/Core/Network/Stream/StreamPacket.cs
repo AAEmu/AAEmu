@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Network.Stream
             }
             
             //_log.Debug("StreamPacket: S->C {1}\n{0}", ps, this.ToString().Substring(23));
-            _log.Debug("StreamPacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
+            _log.Trace("StreamPacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
 
             return ps;
         }
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Network.Stream
         public override PacketBase<StreamConnection> Decode(PacketStream ps)
         {
             //_log.Debug("StreamPacket: C->S {1}\n{0}", ps, this.ToString().Substring(23));
-            _log.Debug("StreamPacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
+            _log.Trace("StreamPacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
 
             try
             {

@@ -89,10 +89,17 @@ namespace AAEmu.Game.Core.Managers
 
             task.Trigger = triggerBuild.Build();
             task.ExecuteCount = 0;
-            task.MaxCount = count;
+            task.MaxCount = repeatInterval == null ? 0 : count;
             task.ScheduleTime = Helpers.UnixTimeNowInMilli();
 
-            await _generalScheduler.ScheduleJob(job, task.Trigger);
+            try
+            {
+                await _generalScheduler.ScheduleJob(job, task.Trigger);
+            }
+            catch (Exception e)
+            {
+                _log.Error(e, "Error scheduling task");
+            }
         }
 
         public async Task<bool> Cancel(Task task)

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             _slotType = item.SlotType;
             _slot = (byte)item.Slot;
             _bits = (byte)item.ItemFlags;
-            _type = 0xA; // 10
+            _type = ItemAction.SetFlagsBits; // 10
             // 10 image
             // 20 unwrapp
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using AAEmu.Game.Models.Game.World;
+using Microsoft.VisualBasic.CompilerServices;
 
 namespace AAEmu.Game.Utils
 {
@@ -72,6 +73,76 @@ namespace AAEmu.Game.Utils
             return ConvertDirectionToDegree(direction) * Math.PI / 180.0;
         }
 
+        public static (float, float, float) GetYawPitchRollFromQuat(Quaternion quat)
+        {
+            var roll = (float)Math.Atan2(2 * (quat.W * quat.X + quat.Y * quat.Z),
+                1 - 2 * (quat.X * quat.X + quat.Y * quat.Y));
+            var sinp = 2 * (quat.W * quat.Y - quat.Z * quat.X);
+            var pitch = 0.0f;
+            if (Math.Abs(sinp) >= 1)
+                pitch = (float)Math.CopySign(Math.PI / 2, sinp);
+            else
+            {
+                pitch = (float)Math.Asin(sinp);
+            }
+
+            var yaw = (float)Math.Atan2(2 * (quat.W * quat.Z + quat.X * quat.Y), 1 - 2 * (quat.Y * quat.Y + quat.Z * quat.Z));
+
+            return (roll, pitch, yaw);
+        }
+        
+        public static (float, float, float) GetSlaveRotationInDegrees(short rotX, short rotY, short rotZ)
+        {
+            var quatX = rotX * 0.00003052f;
+            var quatY = rotY * 0.00003052f;
+            var quatZ = rotZ * 0.00003052f;
+            var quatNorm = quatX * quatX + quatY * quatY + quatZ * quatZ;
+
+            var quatW = 0.0f;
+            if (quatNorm < 0.99750)
+            {
+                quatW = (float)Math.Sqrt(1.0 - quatNorm);
+            }
+
+            var quat = new Quaternion(quatX, quatY, quatZ, quatW);
+            //
+            // var roll = (float)Math.Atan2(2 * (quat.W * quat.X + quat.Y * quat.Z),
+            //     1 - 2 * (quat.X * quat.X + quat.Y * quat.Y));
+            // var sinp = 2 * (quat.W * quat.Y - quat.Z * quat.X);
+            // var pitch = 0.0f;
+            // if (Math.Abs(sinp) >= 1)
+            //     pitch = (float)Math.CopySign(Math.PI / 2, sinp);
+            // else
+            // {
+            //     pitch = (float)Math.Asin(sinp);
+            // }
+            //
+            // var yaw = (float)Math.Atan2(2 * (quat.W * quat.Z + quat.X * quat.Y), 1 - 2 * (quat.Y * quat.Y + quat.Z * quat.Z));
+
+            return GetYawPitchRollFromQuat(quat);
+        }
+
+        public static (short, short, short) GetSlaveRotationFromDegrees(float degX, float degY, float degZ)
+        {
+            var reverseQuat = Quaternion.CreateFromYawPitchRoll(degZ, degX, degY);
+            return ((short)(reverseQuat.X / 0.00003052f), (short)(reverseQuat.Z / 0.00003052f),
+                (short)(reverseQuat.Y / 0.00003052f));
+        }
+        
+        public static (short, short, short) GetSlaveRotationFromQuat(Quaternion quaternion)
+        {
+            return ((short)(quaternion.X / 0.00003052f), (short)(quaternion.Z / 0.00003052f),
+                (short)(quaternion.Y / 0.00003052f));
+        }
+
+        public static (float, float) AddDistanceToFrontDeg(float distance, float x, float y, float deg)
+        {
+            var rad = deg * Math.PI / 180.0;
+            var newX = (distance * (float)Math.Cos(rad)) + x;
+            var newY = (distance * (float)Math.Sin(rad)) + y;
+            return (newX, newY);
+        }
+        
         public static (float, float) AddDistanceToFront(float distance, float x, float y, sbyte rotZ)
         {
             var rad = ConvertDirectionToRadian(rotZ);

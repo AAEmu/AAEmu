@@ -22,6 +22,8 @@ namespace AAEmu.Game.Models.Tasks.Skills
 
         public override void Execute()
         {
+            if (Skill.Cancelled)
+                return;
             Skill.Cast(_caster, _casterCaster, _target, _targetCaster, _skillObject);
         }
     }

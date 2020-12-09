@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -21,19 +21,19 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null);
 
-        public virtual void Start(Unit caster, BaseUnit owner, Effect effect)
+        public virtual void Start(Unit caster, BaseUnit owner, Buff buff)
         {
         }
 
-        public virtual void TimeToTimeApply(Unit caster, BaseUnit owner, Effect effect)
+        public virtual void TimeToTimeApply(Unit caster, BaseUnit owner, Buff buff)
         {
         }
 
-        public virtual void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
+        public virtual void Dispel(Unit caster, BaseUnit owner, Buff buff, bool replaced = false)
         {
         }
 
-        public virtual int GetDuration()
+        public virtual int GetDuration(uint abLevel)
         {
             return 0;
         }
@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
             return 0;
         }
 
-        public virtual void WriteData(PacketStream stream)
+        public virtual void WriteData(PacketStream stream, uint abLevel)
         {
         }
     }

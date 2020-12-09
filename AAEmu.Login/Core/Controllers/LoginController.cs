@@ -102,6 +102,7 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastLogin = DateTime.Now;
                         connection.LastIp = connection.Ip;
 
+                        _log.Info("{0} connected.", connection.AccountName);
                         connection.SendPacket(new ACJoinResponsePacket(0, 6));
                         connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
                     }

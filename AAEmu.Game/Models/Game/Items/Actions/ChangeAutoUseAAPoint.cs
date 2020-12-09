@@ -2,14 +2,14 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class ItemUnk18 : ItemTask
+    public class ChangeAutoUseAAPoint : ItemTask
     {
         private readonly byte _change;
 
-        public ItemUnk18(byte change)
+        public ChangeAutoUseAAPoint(byte change)
         {
             _change = change;
-            _type = 0x12; // 18
+            _type = ItemAction.ChangeAutoUseAaPoint; // 18
         }
 
         public override PacketStream Write(PacketStream stream)

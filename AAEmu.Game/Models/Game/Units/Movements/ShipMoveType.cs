@@ -1,3 +1,4 @@
+using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
@@ -59,6 +60,27 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             stream.Write(Stuck);
 
             return stream;
+        }
+        
+        public void UseSlaveBase(Slave slave)
+        {
+            X = slave.Position.X;
+            Y = slave.Position.Y;
+            Z = slave.Position.Z;
+            RotationX = slave.Position.RotationX;
+            RotationY = slave.Position.RotationY;
+            RotationZ = slave.Position.RotationZ;
+            VelX = 0;
+            VelY = 0;
+            VelZ = 0;
+            AngVelX = 0;
+            AngVelY = 0;
+            AngVelZ = 0;
+            ZoneId = (ushort) slave.Position.ZoneId;
+            Time = (uint)(DateTime.Now - slave.SpawnTime).TotalMilliseconds;
+            Stuck = false;
+            Throttle = slave.ThrottleRequest;
+            Steering = slave.SteeringRequest;
         }
     }
 }

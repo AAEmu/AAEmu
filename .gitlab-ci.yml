@@ -1,0 +1,32 @@
+image: mcr.microsoft.com/dotnet/core/sdk:3.1
+
+stages:
+  - build
+  - artifacts
+  
+variables:
+  test: "AAEmu.Test"
+
+build:
+  stage: build
+  script:
+    - dotnet restore
+    - dotnet build
+
+game_artifacts:
+  stage: artifacts
+  artifacts:
+    paths:
+      - publish/
+  script:
+    - dotnet publish -c Release -o ../publish AAEmu.Game/AAEmu.Game.csproj
+    - cp -r /builds/genesis/publish/ /host/game
+    
+login_artifacts:
+  stage: artifacts
+  artifacts:
+    paths:
+      - publish/
+  script:
+    - dotnet publish -c Release -o ../publish AAEmu.Login/AAEmu.Login.csproj
+    - cp -r /builds/genesis/publish/ /host/login

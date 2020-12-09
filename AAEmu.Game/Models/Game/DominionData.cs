@@ -74,7 +74,7 @@ namespace AAEmu.Game.Models.Game
         public byte MaxGates { get; set; }
         public byte MaxWalls { get; set; }
         public short RadiusDeclare { get; set; }
-        public short RadiusDominion { get; set; }
+        public ushort RadiusDominion { get; set; }
         public short RadiusOffenseHq { get; set; }
         public short RadiusSiege { get; set; }
 

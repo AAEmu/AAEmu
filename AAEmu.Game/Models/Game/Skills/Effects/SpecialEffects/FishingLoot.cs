@@ -27,13 +27,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value4)
         {
             _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", target.Position.ZoneId, value1, target.Name, targetObj.ObjId);
-
-
-            //TODO: Need a way to determine if saltwater or freshwater fishing. I currently only use the seawater table for loot. 
+            
+            var lootTableId = new uint();
             var zoneId = ZoneManager.Instance.GetZoneByKey(target.Position.ZoneId).GroupId;
-            var lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingSeaLootPackId;
-
-            //TODO: Should likely make a lootmanager to handle these cases. 
+            
+            if(target.Position.Z > 101)
+                lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingLandLootPackId;
+            else
+                lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingSeaLootPackId;
+            
             var lootPacks = ItemManager.Instance.GetLootPacks(lootTableId);
 
             if (lootPacks != null)

@@ -26,6 +26,8 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, PassiveBuffTemplate> _passiveBuffs;
         private Dictionary<uint, EffectType> _types;
         private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
+        private Dictionary<uint, BuffTemplate> _buffs;
+        private Dictionary<uint, List<uint>> _buffTags;
         private Dictionary<uint, List<uint>> _taggedBuffs;
         private Dictionary<uint, List<uint>> _skillTags;
         private Dictionary<uint, List<uint>> _taggedSkills;
@@ -34,11 +36,41 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
         private Dictionary<uint, SkillReagent> _skillReagents;
         private Dictionary<uint, SkillProduct> _skillProducts;
+        private HashSet<ushort> _skillIds = new HashSet<ushort>();
+        private ushort _skillIdIndex = 1;
         /**
          * Events
          */
         public event EventHandler OnSkillsLoaded;
 
+
+        public ushort NextId()
+        {
+            lock (_skillIds)
+            {
+                var id = _skillIdIndex;
+                while (_skillIds.Contains(id))
+                {
+                    if (id == ushort.MaxValue)
+                        id = 1;
+                    else
+                        id++;
+                }
+                _skillIds.Add(id);
+                _skillIdIndex = (ushort)(id + 1u);
+                if (_skillIdIndex == 0)
+                    _skillIdIndex = 1;
+                return id;
+            }
+        }
+
+        public void ReleaseId(ushort id)
+        {
+            lock (_skillIds)
+            {
+                _skillIds.Remove(id);
+            }
+        }
 
         public SkillTemplate GetSkillTemplate(uint id)
         {
@@ -69,8 +101,11 @@ namespace AAEmu.Game.Core.Managers
 
         public BuffTemplate GetBuffTemplate(uint id)
         {
-            if(_effects["Buff"].ContainsKey(id))
-                return (BuffTemplate)_effects["Buff"][id];
+            // if(_effects["Buff"].ContainsKey(id))
+            //     return (BuffTemplate)_effects["Buff"][id];
+            // return null;
+            if (_buffs.ContainsKey(id))
+                return _buffs[id];
             return null;
         }
 
@@ -109,6 +144,13 @@ namespace AAEmu.Game.Core.Managers
             _log.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
             
             return _effects[type][id];
+        }
+
+        public List<uint> GetBuffTags(uint buffId)
+        {
+            if (_buffTags.ContainsKey(buffId))
+                return _buffTags[buffId];
+            return new List<uint>();
         }
 
         public List<uint> GetBuffsByTagId(uint tagId)
@@ -222,6 +264,7 @@ namespace AAEmu.Game.Core.Managers
             _effects.Add("TrainCraftEffect", new Dictionary<uint, EffectTemplate>());
             _effects.Add("SkillController", new Dictionary<uint, EffectTemplate>());
             _effects.Add("ResetAoeDiminishingEffect", new Dictionary<uint, EffectTemplate>());
+            _buffs = new Dictionary<uint, BuffTemplate>();
             // TODO 
             /*
                 "CinemaEffect"
@@ -232,6 +275,7 @@ namespace AAEmu.Game.Core.Managers
                 "PlayLogEffect"
              */
 
+            _buffTags = new Dictionary<uint, List<uint>>();
             _taggedBuffs = new Dictionary<uint, List<uint>>();
             _skillModifiers = new Dictionary<uint, List<SkillModifier>>();
             _skillTags = new Dictionary<uint, List<uint>>();
@@ -342,6 +386,7 @@ namespace AAEmu.Game.Core.Managers
                             template.CombatDiceId = reader.GetInt32("combat_dice_id");
                             template.CustomGcd = reader.GetInt32("custom_gcd");
                             template.CancelOngoingBuffs = reader.GetBoolean("cancel_ongoing_buffs", true);
+                            template.CancelOngoingBuffExceptionTagId = reader.GetUInt32("cancel_ongoing_buff_exception_tag_id", 0);
                             template.SourceCannotUseWhileWalk =
                                 reader.GetBoolean("source_cannot_use_while_walk", true);
                             template.SourceMountMate = reader.GetBoolean("source_mount_mate", true);
@@ -437,7 +482,7 @@ namespace AAEmu.Game.Core.Managers
                             template.RemoveOnSourceDead = reader.GetBoolean("remove_on_source_dead", true);
                             template.LinkBuffId = reader.GetUInt32("link_buff_id", 0);
                             template.TickManaCost = reader.GetInt32("tick_mana_cost");
-                            template.StackRuleId = reader.GetUInt32("stack_rule_id");
+                            template.StackRule = (BuffStackRule)reader.GetUInt32("stack_rule_id");
                             template.InitMinCharge = reader.GetInt32("init_min_charge");
                             template.InitMaxCharge = reader.GetInt32("init_max_charge");
                             template.MaxStack = reader.GetInt32("max_stack");
@@ -473,7 +518,7 @@ namespace AAEmu.Game.Core.Managers
                             template.GroupId = reader.GetUInt32("group_id", 0);
                             template.GroupRank = reader.GetInt32("group_rank");
                             template.PerUnitCreation = reader.GetBoolean("per_unit_creation");
-                            template.TickAuraRadius = reader.GetFloat("tick_area_radius");
+                            template.TickAreaRadius = reader.GetFloat("tick_area_radius");
                             template.TickAreaRelationId = reader.GetUInt32("tick_area_relation_id");
                             template.RemoveOnMove = reader.GetBoolean("remove_on_move", true);
                             template.UseSourceFaction = reader.GetBoolean("use_source_faction", true);
@@ -592,9 +637,8 @@ namespace AAEmu.Game.Core.Managers
                             template.FreezeShip = reader.GetBoolean("freeze_ship", true);
                             template.CrowdFriendly = reader.GetBoolean("crowd_friendly", true);
                             template.CrowdHostile = reader.GetBoolean("crowd_hostile", true);
-                            // TEMPORARY FIX FOR FEAR DEBUFF -> WHY NEGATIVE ?
-                            if (template.Duration < 0) template.Duration = -template.Duration;
-                            _effects["Buff"].Add(template.Id, template);
+                            // _effects["Buff"].Add(template.Id, template);
+                            _buffs.Add(template.Id, template);
                         }
                     }
                 }
@@ -609,8 +653,8 @@ namespace AAEmu.Game.Core.Managers
                             var template = new BuffEffect();
                             template.Id = reader.GetUInt32("id");
                             var buffId = reader.GetUInt32("buff_id");
-                            if (_effects["Buff"].ContainsKey(buffId))
-                                template.Buff = (BuffTemplate)_effects["Buff"][buffId];
+                            if (_buffs.ContainsKey(buffId))
+                                template.Buff = _buffs[buffId];
                             template.Chance = reader.GetInt32("chance");
                             template.Stack = reader.GetInt32("stack");
                             template.AbLevel = reader.GetInt32("ab_level");
@@ -627,11 +671,12 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("buff_id");
-                            var template = (BuffTemplate)_effects["Buff"][buffId];
-                            template.TickEffect = new TickEffect();
-                            template.TickEffect.EffectId = reader.GetUInt32("effect_id");
-                            template.TickEffect.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
-                            template.TickEffect.TargetNoBuffTagId = reader.GetUInt32("target_nobuff_tag_id", 0);
+                            var template = _buffs[buffId];
+                            var tickEffect = new TickEffect();
+                            tickEffect.EffectId = reader.GetUInt32("effect_id");
+                            tickEffect.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
+                            tickEffect.TargetNoBuffTagId = reader.GetUInt32("target_nobuff_tag_id", 0);
+                            template.TickEffects.Add(tickEffect);
                         }
                     }
                 }
@@ -644,9 +689,9 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("owner_id");
-                            if (!_effects["Buff"].ContainsKey(buffId))
+                            if (!_buffs.ContainsKey(buffId))
                                 continue;
-                            var buff = (BuffTemplate)_effects["Buff"][buffId];
+                            var buff = _buffs[buffId];
                             var template = new BonusTemplate();
                             template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
                             template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");
@@ -665,9 +710,9 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var buffId = reader.GetUInt32("buff_id");
-                            if (!_effects["Buff"].ContainsKey(buffId))
+                            if (!_buffs.ContainsKey(buffId))
                                 continue;
-                            var buff = (BuffTemplate)_effects["Buff"][buffId];
+                            var buff = _buffs[buffId];
                             var template = new DynamicBonusTemplate();
                             template.Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id");
                             template.ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id");
@@ -1366,6 +1411,11 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var tagId = reader.GetUInt32("tag_id");
                             var buffId = reader.GetUInt32("buff_id");
+
+                            if (!_buffTags.ContainsKey(buffId))
+                                _buffTags.Add(buffId, new List<uint>());
+                            _buffTags[buffId].Add(tagId);
+
                             if (!_taggedBuffs.ContainsKey(tagId))
                                 _taggedBuffs.Add(tagId, new List<uint>());
                             _taggedBuffs[tagId].Add(buffId);
@@ -1392,7 +1442,7 @@ namespace AAEmu.Game.Core.Managers
                                 UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
                                 Value = reader.GetInt32("value"),
                                 SkillId = reader.GetUInt32("skill_id", 0),
-                                Synergy = reader.GetBoolean("synergy"),
+                                Synergy = reader.GetBoolean("synergy", true),
                             };
 
                             if (!_skillModifiers.ContainsKey(template.OwnerId))
@@ -1439,8 +1489,8 @@ namespace AAEmu.Game.Core.Managers
                                 HitSkillId = reader.GetUInt32("hit_skill_id", 0),
                                 HitType = (SkillHitType)reader.GetUInt32("hit_type_id"),
                                 BuffId = reader.GetUInt32("buff_id"),
-                                BuffFromSource = reader.GetBoolean("buff_from_source"),
-                                BuffToSource = reader.GetBoolean("buff_to_source"),
+                                BuffFromSource = reader.GetBoolean("buff_from_source", true),
+                                BuffToSource = reader.GetBoolean("buff_to_source", true),
                                 ReqSkillId = reader.GetUInt32("req_skill_id", 0),
                                 ReqBuffId = reader.GetUInt32("req_buff_id"),
                                 IsHealSpell = reader.GetBoolean("is_heal_spell", true)
@@ -1473,12 +1523,12 @@ namespace AAEmu.Game.Core.Managers
                             trigger.Id = reader.GetUInt32("id");
                             trigger.Kind = (BuffEventTriggerKind)reader.GetUInt16("event_id");
                             trigger.Effect = GetEffectTemplate(reader.GetUInt32("effect_id"));
-                            trigger.EffectOnSource = reader.GetBoolean("effect_on_source");
-                            trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount");
-                            trigger.UseOriginalSource = reader.GetBoolean("use_original_source");
+                            trigger.EffectOnSource = reader.GetBoolean("effect_on_source", true);
+                            trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount", true);
+                            trigger.UseOriginalSource = reader.GetBoolean("use_original_source", true);
                             trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                             trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
-                            trigger.Synergy = reader.GetBoolean("synergy");
+                            trigger.Synergy = reader.GetBoolean("synergy", true);
 
                             //Apparently this is possible..
                             if(trigger.Effect != null)

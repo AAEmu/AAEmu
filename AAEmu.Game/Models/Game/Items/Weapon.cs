@@ -138,7 +138,10 @@ namespace AAEmu.Game.Models.Game.Items
                 var parameters = new Dictionary<string, double>();
                 parameters["item_level"] = template.Level;
                 parameters["item_grade"] = grade.HoldableDps;
-                return (float)formula.Evaluate(parameters);
+                var formulaRes = formula.Evaluate(parameters);
+                if (TemperPhysical > 100)
+                    formulaRes *= (TemperPhysical / 100.0f);
+                return (float) formulaRes;
             }
         }
 
@@ -152,7 +155,10 @@ namespace AAEmu.Game.Models.Game.Items
                 var parameters = new Dictionary<string, double>();
                 parameters["item_level"] = template.Level;
                 parameters["item_grade"] = grade.HoldableMagicDps;
-                return formula.Evaluate(parameters);
+                var formulaRes = formula.Evaluate(parameters);
+                if (TemperMagical > 100)
+                    formulaRes *= (TemperMagical / 100.0f);
+                return formulaRes;
             }
         }
         
@@ -166,7 +172,11 @@ namespace AAEmu.Game.Models.Game.Items
                 var parameters = new Dictionary<string, double>();
                 parameters["item_level"] = template.Level;
                 parameters["item_grade"] = grade.HoldableMagicDps;
-                return formula.Evaluate(parameters);
+
+                var formulaRes = formula.Evaluate(parameters);
+                if (TemperMagical > 100)
+                    formulaRes *= (TemperMagical / 100.0f);
+                return formulaRes;
             }
         }
 
@@ -180,7 +190,11 @@ namespace AAEmu.Game.Models.Game.Items
                 var parameters = new Dictionary<string, double>();
                 parameters["item_level"] = template.Level;
                 parameters["item_grade"] = grade.HoldableArmor;
-                return (int)formula.Evaluate(parameters);
+                
+                var formulaResult = formula.Evaluate(parameters);
+                if (TemperPhysical > 100)
+                    formulaResult *= (TemperPhysical / 100.0f);
+                return (int)formulaResult;
             }
         }
 

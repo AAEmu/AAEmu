@@ -36,11 +36,12 @@ namespace AAEmu.Game.Models.Game.World
         
         
         public uint SkillId { get; set; }
+        public uint TlId { get; set; }
         public SkillTargetRelation TargetRelation { get; set; }
         public BuffTemplate InsideBuffTemplate { get; set; }
         public List<EffectTemplate> EffectPerTick { get; set; }
         public int TickRate { get; set; }
-        private int _tickCount = 0;
+        private DateTime _lastTick = DateTime.MinValue;
 
         public AreaTrigger()
         {
@@ -83,7 +84,7 @@ namespace AAEmu.Game.Models.Game.World
         public void OnLeave(Unit unit)
         {
             if (InsideBuffTemplate != null)
-                unit.Effects.RemoveBuff(InsideBuffTemplate.BuffId);
+                unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
         }
 
         public void OnDelete()
@@ -92,36 +93,45 @@ namespace AAEmu.Game.Models.Game.World
             {
                 foreach (var unit in Units)
                 {
-                    unit.Effects.RemoveBuff(InsideBuffTemplate.BuffId);
+                    unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
                 }
             }
         }
 
         public void ApplyEffects()
         {
+            if (InsideBuffTemplate == null)
+                return;
+            
             var unitsToApply = SkillTargetingUtil.FilterWithRelation(TargetRelation, Caster, Units);
             foreach (var unit in unitsToApply)
             {
                 foreach (var effect in EffectPerTick)
                 {
-                    if (effect is BuffEffect buffEffect && unit.Effects.CheckBuff(buffEffect.BuffId))
+                    if (effect is BuffEffect buffEffect && unit.Buffs.CheckBuff(buffEffect.BuffId))
                         continue;
+                    var eff = unit.Buffs.GetEffectFromBuffId(InsideBuffTemplate.BuffId);
+                    CastAction castAction = null;
+                    if (eff != null)
+                        castAction = new CastBuff(eff);
+                    else
+                        castAction = new CastSkill(SkillId, 0);
                     
-                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), new CastSkill(SkillId, 0), new EffectSource(), new SkillObject(), DateTime.Now);
+                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), castAction, new EffectSource(), new SkillObject(), DateTime.Now);
                 }
             }
         }
 
         // Called every 50ms
-        public void Tick()
+        public void Tick(TimeSpan delta)
         {
-            _tickCount++;
-            // every 200 ms
-            if (_tickCount % 4 == 0)
-                UpdateUnits();
-            if (TickRate > 0 )
-                if ((_tickCount*50) % TickRate == 0)
+            UpdateUnits();
+            if (TickRate > 0)
+                if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
+                {
                     ApplyEffects();
+                    _lastTick = DateTime.UtcNow;
+                }
         }
     }
 }

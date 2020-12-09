@@ -7,26 +7,29 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCBuffCreatedPacket : GamePacket
     {
-        private readonly Effect _effect;
+        private readonly Buff _buff;
 
-        public SCBuffCreatedPacket(Effect effect) : base(SCOffsets.SCBuffCreatedPacket, 1)
+        public SCBuffCreatedPacket(Buff buff) : base(SCOffsets.SCBuffCreatedPacket, 1)
         {
-            _effect = effect;
+            _buff = buff;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_effect.SkillCaster);
-            stream.Write((_effect.Caster is Character character) ? character.Id : 0); // casterId
-            stream.WriteBc(_effect.Owner.ObjId); // targetBcId
-            stream.Write(_effect.Index);
-            stream.Write(_effect.Template.BuffId); // buffId
-            stream.Write(_effect.Caster.Level); // sourceLevel
-            stream.Write((short) _effect.AbLevel); // sourceAbLevel
+            stream.Write(_buff.SkillCaster);
+            stream.Write((_buff.Caster is Character character) ? character.Id : 0); // casterId
+            stream.WriteBc(_buff.Owner.ObjId); // targetBcId
+            stream.Write(_buff.Index);
+            stream.Write(_buff.Template.BuffId); // buffId
+            stream.Write(_buff.Caster.Level); // sourceLevel
+            stream.Write((short) _buff.AbLevel); // sourceAbLevel
             //TODO: Fix this applying CD to wrong skill
-            //stream.Write(_effect.Skill?.Template.Id ?? 0); // skillId
-            stream.Write(0); // skillId
-            _effect.WriteData(stream);
+            //stream.Write(_effect.Skill?.Template.Id ?? 0); // skillId\
+            if (_buff.Skill != null && _buff.Skill.Template.ToggleBuffId == _buff.Template.Id)
+                stream.Write(_buff.Skill.Template.Id); // skillId
+            else
+                stream.Write(0);
+            _buff.WriteData(stream);
             return stream;
         }
     }

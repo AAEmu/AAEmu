@@ -11,26 +11,35 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
     {
         public override void Execute(object sender, EventArgs eventArgs)
         {
-            var args = eventArgs as OnAttackArgs;
-            _log.Warn("Buff[{0}] {1} executed. Applying {2}[{3}]!", _effect?.Template?.BuffId, this.GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
+            var args = eventArgs as OnTimeoutArgs;
+            _log.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff?.Template?.BuffId, this.GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
             //Template.Effect.Apply()
 
             if (!(_owner is Unit owner))
             {
-                _log.Warn("AttackTrigger owner is not a Unit");
+                _log.Warn("Owner is not a Unit");
                 return;
             }
 
-            var target = owner;
+            var target = _buff.Owner;
+            var source = (Unit)_buff.Owner;
+            
+            if (Template.UseOriginalSource)
+            {
+                source = _buff.Caster;
+            }
+            
             if (Template.EffectOnSource)
-                target = args.Attacker;
+            {
+                target = source;
+            }
 
-            Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_effect),
-                new EffectSource(), // TODO : EffectSource Type trigger 
+            Template.Effect.Apply(source, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
+                new EffectSource(_buff?.Skill), // TODO : EffectSource Type trigger 
                 null, DateTime.Now);
         }
 
-        public TimeoutBuffTrigger(Effect owner, BuffTriggerTemplate template) : base(owner, template)
+        public TimeoutBuffTrigger(Buff owner, BuffTriggerTemplate template) : base(owner, template)
         {
 
         }

@@ -29,6 +29,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             Children = new List<PlotNode>();
         }
 
+        private bool IsChannelStart()
+        {
+            foreach(var child in Children)
+            {
+                if (child.ParentNextEvent.Channeling == true)
+                    return true;
+            }
+            return false;
+        }
+
         public int ComputeDelayMs(PlotState state, PlotTargetInfo targetInfo)
         {
             return ParentNextEvent.GetDelay(state, targetInfo, Parent);
@@ -50,7 +60,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             {
                 try
                 {
-                    eff.ApplyEffect(state, targetInfo, Event, ref flag);
+                    eff.ApplyEffect(state, targetInfo, Event, ref flag, IsChannelStart());
                 }
                 catch (Exception e)
                 {
@@ -62,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             double castTime = Event.NextEvents
                  .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling))
                  .Max(nextEvent => nextEvent.Delay / 10 as int?) ?? 0;
-            castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime);
+            castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime) * state.Caster.CastTimeMul;
             castTime = Math.Max(castTime, 0);
 
             if (castTime > 0)
@@ -70,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             if ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Casting ?? false))
                 state.IsCasting = false;
 
-            if (Event.HasSpecialEffects() || castTime > 0)
+            if (Event.HasSpecialEffects() || castTime > 0 || Event.Conditions.Count > 0)
             {
                 var skill = state.ActiveSkill;
                 var unkId = ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false)) ? state.Caster.ObjId : 0;
@@ -91,13 +101,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                 var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
                     targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);
-                
+
                 if (packets != null)
                     packets.AddPacket(packet);
                 else
                     state.Caster.BroadcastPacket(packet, true);
                 
-                _log.Debug($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
+                _log.Trace($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
             }
         }
     }

@@ -39,12 +39,12 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
 
             var newEffect =
-                new Effect(character, character, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
+                new Buff(character, character, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
                 {
                     AbLevel = abLevel
                 };
 
-            character.Effects.AddEffect(newEffect);
+            character.Buffs.AddBuff(newEffect);
         }
     }
 }

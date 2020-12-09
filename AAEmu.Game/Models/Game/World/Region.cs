@@ -443,7 +443,7 @@ namespace AAEmu.Game.Models.Game.World
             return result;
         }
 
-        public List<T> GetList<T>(List<T> result, uint exclude, float x, float y, float sqrad) where T : class
+        public List<T> GetList<T>(List<T> result, uint exclude, float x, float y, float sqrad, bool useModelSize = false) where T : class
         {
             GameObject[] temp;
             lock (_objectsLock)
@@ -459,13 +459,18 @@ namespace AAEmu.Game.Models.Game.World
                 var item = obj as T;
                 if (item == null || obj.ObjId == exclude)
                     continue;
+
+                var finalrad = sqrad;
+                if (useModelSize)
+                    finalrad += (obj.ModelSize * obj.ModelSize);
+                
                 var dx = obj.Position.X - x;
                 dx *= dx;
-                if (dx > sqrad)
+                if (dx > finalrad)
                     continue;
                 var dy = obj.Position.Y - y;
                 dy *= dy;
-                if (dx + dy < sqrad)
+                if (dx + dy < finalrad)
                     result.Add(item);
             }
 

@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}," +
+            _log.Trace("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}," +
                        " ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}," +
                        " TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}",
                 Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
@@ -59,53 +59,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     await Task.Delay(Duration);
                     if (NextPhase == -1) 
                         owner.Delete();
-                    // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId, NextPhase);
                     owner.GoToPhase(caster, NextPhase);
                     AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });
             }
-            
-            // Tick logic
-            // If tick is > 0 we apply the BuffId to every player in the AoeShape 
-            // if (Tick > 0)
-            // {
-            //     Task.Run(async () =>
-            //     {
-            //         await ScheduleTick(caster, owner);
-            //     });
-            // }
-
-            // Area Trigger logic
-            // If tick is == 0 we create an AreaTrigger which applies the effect everytime someone enters the area
-        }
-
-        private async Task ScheduleTick(Unit caster, Doodad owner)
-        {
-            if (owner == null) return;
-            await Task.Delay(Tick);
-            var buff = SkillManager.Instance.GetBuffTemplate(BuffId);
-            var units = WorldManager.Instance.GetAroundByShape<Unit>(owner,
-                WorldManager.Instance.GetAreaShapeById(AoeShapeId));
-            
-            foreach (var effectId in Effects)
-            {
-                var effect = SkillManager.Instance.GetEffectTemplate(effectId);
-                foreach (var unit in units)
-                {
-                    var existingEffect = unit.Effects.GetEffectByTemplate(effect);
-                    if (existingEffect == null)
-                    {
-                        unit.Effects.AddEffect(new Effect(unit, caster, new SkillCasterUnit(caster.ObjId), effect, null,
-                            DateTime.Now));
-                    }
-                    else
-                    {
-                        // Refresh duration of buff
-                    }
-                }
-            }
-
-            ScheduleTick(caster, owner);
         }
     }
 }

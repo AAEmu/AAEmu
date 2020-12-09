@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -45,17 +46,22 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 {
                     var nodewatch = new Stopwatch();
                     nodewatch.Start();
-                    if (state.CancellationRequested() && state.IsCasting)
+                    if (state.CancellationRequested())
                     {
-                        state.Caster.BroadcastPacket(
-                            new SCPlotCastingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
-                            true
-                        );
-                        state.Caster.BroadcastPacket(
-                            new SCPlotChannelingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
-                            true
-                        );
-                        break;
+                        if (state.IsCasting)
+                        {
+                            state.Caster.BroadcastPacket(
+                                new SCPlotCastingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
+                                true
+                            );
+                            state.Caster.BroadcastPacket(
+                                new SCPlotChannelingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
+                                true
+                            );
+                        }
+
+                        DoPlotEnd(state);
+                        return;
                     }
                     var item = queue.Dequeue();
                     var now = DateTime.Now;
@@ -137,7 +143,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                     }
 
                     if (nodewatch.ElapsedMilliseconds > 100)
-                        _log.Warn($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
+                        _log.Trace($"Event:{node.Event.Id} Took {nodewatch.ElapsedMilliseconds} to finish.");
                 }
 
                 FlushExecutionQueue(executeQueue, state);
@@ -147,7 +153,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             }
             
             DoPlotEnd(state);
-            _log.Debug("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
+            _log.Trace("Tree with ID {0} has finished executing took {1}ms", PlotId, treeWatch.ElapsedMilliseconds);
         }
         
         private void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
@@ -163,9 +169,18 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 state.Caster.BroadcastPacket(packets, true);
         }
 
+        private void EndPlotChannel(PlotState state)
+        {
+            foreach(var pair in state.ChanneledBuffs)
+            {
+                pair.unit.Buffs.RemoveBuff(pair.buffId);
+            }
+        }
+
         private void DoPlotEnd(PlotState state)
         {
             state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
+            EndPlotChannel(state);
 
             if (state.Caster is Character character && character.IgnoreSkillCooldowns)
                 character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
@@ -174,6 +189,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             //Should we check if it was a channeled skill?
             if (state.CancellationRequested())
                 state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
+
+            SkillManager.Instance.ReleaseId(state.ActiveSkill.TlId);
         }
     }
 }

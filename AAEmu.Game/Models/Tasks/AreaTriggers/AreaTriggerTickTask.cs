@@ -1,3 +1,4 @@
+﻿using System;
 using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Models.Tasks.AreaTriggers
@@ -6,7 +7,7 @@ namespace AAEmu.Game.Models.Tasks.AreaTriggers
     {
         public override void Execute()
         {
-            AreaTriggerManager.Instance.Tick();
+            AreaTriggerManager.Instance.Tick(TimeSpan.Zero);
         }
     }
 }

@@ -1,601 +1,1205 @@
 {
     "itemkits": [
-        // Regrade
+	//Consumables
+		{
+            // Desert Fire
+            "names": [ "consumables" ],
+            "id": 19042,
+            "count": 1000
+        },
+		{
+            // Nui's Nova
+            "names": [ "consumables" ],
+            "id": 19043,
+            "count": 100
+        },
+		{
+            // Mossy Pool
+            "names": [ "consumables" ],
+            "id": 31775,
+            "count": 1000
+        },
+		{
+            // Kraken's Might
+            "names": [ "consumables" ],
+            "id": 19041,
+            "count": 100
+        },
+		{
+            // Expansion Scroll
+            "names": [ "consumables" ],
+            "id": 8000025,
+            "count": 10
+        },
+    // Mag Lake Cloth
         {
-            // Resplendent Weapon Re-Grade Scroll
-            "names": [ "regrade" ],
-            "id": 28296,
+            // Mag Lake Hood
+            "names": [ "lake_cloth" ],
+            "id": 20556,
             "grade": 5,
-            "count": 100
+            "count": 1
         },
         {
-            // Resplendent Armor Re-Grade Scroll
-            "names": [ "regrade" ],
-            "id": 28297,
+            // Mag Lake Shirt
+            "names": [ "lake_cloth" ],
+            "id": 20583,
             "grade": 5,
-            "count": 100
+            "count": 1
+        },
+        {
+            // Mag Lake Pants
+            "names": [ "lake_cloth" ],
+            "id": 20610,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lake Gloves
+            "names": [ "lake_cloth" ],
+            "id": 20637,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lake Shoes
+            "names": [ "lake_cloth" ],
+            "id": 20664,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lake Sleeves
+            "names": [ "lake_cloth" ],
+            "id": 20691,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lake Sash
+            "names": [ "lake_cloth" ],
+            "id": 20718,
+            "grade": 5,
+            "count": 1
+        },
+
+	// Mag Meadow Cloth
+        {
+            // Mag Meadow Hood
+            "names": [ "meadow_cloth" ],
+            "id": 20557,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Meadow Shirt
+            "names": [ "meadow_cloth" ],
+            "id": 20584,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Meadow Pants
+            "names": [ "meadow_cloth" ],
+            "id": 20611,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Meadow Gloves
+            "names": [ "meadow_cloth" ],
+            "id": 20638,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Meadow Shoes
+            "names": [ "meadow_cloth" ],
+            "id": 20665,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Meadow Sleeves
+            "names": [ "meadow_cloth" ],
+            "id": 20692,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Meadow Sash
+            "names": [ "meadow_cloth" ],
+            "id": 20719,
+            "grade": 5,
+            "count": 1
+        },
+
+// Mag Ocean Cloth
+        {
+            // Mag Ocean Hood
+            "names": [ "ocean_cloth" ],
+            "id": 20555,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Ocean Shirt
+            "names": [ "ocean_cloth" ],
+            "id": 20582,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Ocean Pants
+            "names": [ "ocean_cloth" ],
+            "id": 20609,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Ocean Gloves
+            "names": [ "ocean_cloth" ],
+            "id": 20636,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Ocean Shoes
+            "names": [ "ocean_cloth" ],
+            "id": 20663,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Ocean Sleeves
+            "names": [ "ocean_cloth" ],
+            "id": 20690,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Ocean Sash
+            "names": [ "ocean_cloth" ],
+            "id": 20717,
+            "grade": 5,
+            "count": 1
+        },
+
+// Mag Stone Cloth
+        {
+            // Mag Stone Hood
+            "names": [ "stone_cloth" ],
+            "id": 20558,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Stone Shirt
+            "names": [ "stone_cloth" ],
+            "id": 20585,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Stone Pants
+            "names": [ "stone_cloth" ],
+            "id": 20612,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Stone Gloves
+            "names": [ "stone_cloth" ],
+            "id": 20639,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Stone Shoes
+            "names": [ "stone_cloth" ],
+            "id": 20666,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Stone Sleeves
+            "names": [ "stone_cloth" ],
+            "id": 20693,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Stone Sash
+            "names": [ "stone_cloth" ],
+            "id": 20720,
+            "grade": 5,
+            "count": 1
+        },
+
+// Mag Desert Leather
+        {
+            // Mag Desert Cap
+            "names": [ "desert_leather" ],
+            "id": 20747,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Desert Jerkin
+            "names": [ "desert_leather" ],
+            "id": 20774,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Desert Breeches
+            "names": [ "desert_leather" ],
+            "id": 20801,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Weapon Re-Grade Scroll
-            "names": [ "regrade" ],
-            "id": 28298,
-            "grade": 3,
-            "count": 100
+            // Mag Desert Fists
+            "names": [ "desert_leather" ],
+            "id": 20828,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Desert Boots
+            "names": [ "desert_leather" ],
+            "id": 20855,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Desert Guards
+            "names": [ "desert_leather" ],
+            "id": 20882,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Desert Belt
+            "names": [ "desert_leather" ],
+            "id": 20909,
+            "grade": 5,
+            "count": 1
+        },
+
+// Mag Lightning Leather
+        {
+            // Mag Lightning Cap
+            "names": [ "lightning_leather" ],
+            "id": 20745,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lightning Jerkin
+            "names": [ "lightning_leather" ],
+            "id": 20772,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lightning Breeches
+            "names": [ "lightning_leather" ],
+            "id": 20799,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lightning Fists
+            "names": [ "lightning_leather" ],
+            "id": 20826,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Armor Re-Grade Scroll
-            "names": [ "regrade" ],
-            "id": 28299,
-            "grade": 3,
-            "count": 100
+            // Mag Lightning Boots
+            "names": [ "lightning_leather" ],
+            "id": 20853,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lightning Guards
+            "names": [ "lightning_leather" ],
+            "id": 20880,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Lightning Belt
+            "names": [ "lightning_leather" ],
+            "id": 20907,
+            "grade": 5,
+            "count": 1
+        },
+
+// Mag Squall Leather
+        {
+            // Mag Squall Cap
+            "names": [ "squall_leather" ],
+            "id": 20746,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Squall Jerkin
+            "names": [ "squall_leather" ],
+            "id": 20773,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Squall Breeches
+            "names": [ "squall_leather" ],
+            "id": 20800,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Blank Re-Grade Scroll
-            "names": [ "regrade" ],
-            "id": 28305,
-            "grade": 0,
-            "count": 100
+            // Mag Squall Fists
+            "names": [ "squall_leather" ],
+            "id": 20827,
+            "grade": 5,
+            "count": 1
+        },
+        {
+            // Mag Squall Boots
+            "names": [ "squall_leather" ],
+            "id": 20854,
+            "grade": 5,
+            "count": 1
         },
-        // Housing
         {
-            // Design: Stone Slate Mansion
-            "names": [ "44x44", "housing" ],
-            "id": 16027,
-            "grade": 0,
+            // Mag Squall Guards
+            "names": [ "squall_leather" ],
+            "id": 20881,
+            "grade": 5,
             "count": 1
         },
         {
-            // Fellowship Plaza Design
-            "names": [ "28x28", "housing", "plaza" ],
-            "id": 31924,
-            "grade": 0,
+            // Mag Squall Belt
+            "names": [ "squall_leather" ],
+            "id": 20908,
+            "grade": 5,
             "count": 1
         },
+
+// Mag Typhoon Leather
         {
-            // Design: Tudor Slate Villa (Veranda)
-            "names": [ "28x28", "housing" ],
-            "id": 23540,
-            "grade": 0,
+            // Mag Typhoon Cap
+            "names": [ "typhoon_leather" ],
+            "id": 20744,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Swept-Roof Manor
-            "names": [ "28x28", "housing" ],
-            "id": 21193,
-            "grade": 0,
+            // Mag Typhoon Jerkin
+            "names": [ "typhoon_leather" ],
+            "id": 20771,
+            "grade": 5,
             "count": 1
         },
         {
-            // Gazebo Farm Design
-            "names": [ "24x24", "housing" ],
-            "id": 34438,
-            "grade": 0,
+            // Mag Typhoon Breeches
+            "names": [ "typhoon_leather" ],
+            "id": 20798,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Breezy Bungalow
-            "names": [ "24x24", "housing", "bungalow" ],
-            "id": 27687,
-            "grade": 0,
+            // Mag Typhoon Fists
+            "names": [ "typhoon_leather" ],
+            "id": 20825,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Tudor Slate Townhouse
-            "names": [ "24x24", "housing" ],
-            "id": 23522,
-            "grade": 0,
+            // Mag Typhoon Boots
+            "names": [ "typhoon_leather" ],
+            "id": 20852,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Tudor Slate Manor
-            "names": [ "24x24", "housing" ],
-            "id": 23513,
-            "grade": 0,
+            // Mag Typhoon Guards
+            "names": [ "typhoon_leather" ],
+            "id": 20879,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Swept-Roof Chalet (manor)
-            "names": [ "24x24", "housing" ],
-            "id": 21192,
-            "grade": 0,
+            // Mag Typhoon Belt
+            "names": [ "typhoon_leather" ],
+            "id": 20906,
+            "grade": 5,
             "count": 1
         },
+
+// Mag Desert Plate
         {
-            // Design: Thatched Farmhouse
-            "names": [ "24x24", "housing" ],
-            "id": 21165,
-            "grade": 0,
+            // Mag Desert Helm
+            "names": [ "desert_plate" ],
+            "id": 20934,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Stellar Scarecrow Farm
-            "names": [ "16x16", "scarecrow" ],
-            "id": 30015,
-            "grade": 2,
+            // Mag Desert Cuirass
+            "names": [ "desert_plate" ],
+            "id": 20961,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Swept-Roof Villa
-            "names": [ "housing", "16x16", "cottage" ],
-            "id": 21191,
-            "grade": 0,
+            // Mag Desert Greaves
+            "names": [ "desert_plate" ],
+            "id": 20988,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Tudor Slate Cottage
-            "names": [ "housing", "16x16", "cottage" ],
-            "id": 21166,
-            "grade": 0,
+            // Mag Desert Gauntlets
+            "names": [ "desert_plate" ],
+            "id": 21015,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Scarecrow Farm
-            "names": [ "housing", "16x16", "scarecrow" ],
-            "id": 15566,
-            "grade": 0,
+            // Mag Desert Sabatons
+            "names": [ "desert_plate" ],
+            "id": 21042,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Aquafarm
-            "names": [ "housing", "16x16", "aquafarm" ],
-            "id": 18664,
-            "grade": 0,
+            // Mag Desert Vambraces
+            "names": [ "desert_plate" ],
+            "id": 21069,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Scarecrow Garden
-            "names": [ "housing", "8x8", "scarecrow" ],
-            "id": 15596,
-            "grade": 0,
+            // Mag Desert Tassets
+            "names": [ "desert_plate" ],
+            "id": 21096,
+            "grade": 5,
             "count": 1
         },
+ 
+// Mag Lake Plate
         {
-            // Design: Metalwork Table
-            "names": [ "8x8", "workbench" ],
-            "id": 18459,
-            "grade": 0,
+            // Mag Lake Helm
+            "names": [ "lake_plate" ],
+            "id": 20935,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Tailoring Table 
-            "names": [ "8x8", "workbench" ],
-            "id": 18470,
-            "grade": 0,
+            // Mag Lake Cuirass
+            "names": [ "lake_plate" ],
+            "id": 20962,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Masonry Table
-            "names": [ "8x8", "workbench" ],
-            "id": 18471,
-            "grade": 0,
+            // Mag Lake Greaves
+            "names": [ "lake_plate" ],
+            "id": 20989,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Carpentry Table
-            "names": [ "8x8", "workbench" ],
-            "id": 18472,
-            "grade": 0,
+            // Mag Lake Gauntlets
+            "names": [ "lake_plate" ],
+            "id": 21016,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: Leatherwork Table
-            "names": [ "8x8", "workbench" ],
-            "id": 18481,
-            "grade": 0,
+            // Mag Lake Sabatons
+            "names": [ "lake_plate" ],
+            "id": 21043,
+            "grade": 5,
             "count": 1
         },
         {
-            // Design: General Merchant Machine
-            "names": [ "8x8", "workbench" ],
-            "id": 32120,
-            "grade": 9,
+            // Mag Lake Vambraces
+            "names": [ "lake_plate" ],
+            "id": 21070,
+            "grade": 5,
             "count": 1
         },
-        // Raw Materials
         {
-            // Iron Ore
-            "names": [ "raw", "iron" ],
-            "id": 8022,
-            "grade": 0,
-            "count": 1000
+            // Mag Lake Tassets
+            "names": [ "lake_plate" ],
+            "id": 21097,
+            "grade": 5,
+            "count": 1
         },
+
+// Mag Quake Plate
         {
-            // Log
-            "names": [ "raw", "wood" ],
-            "id": 8017,
-            "grade": 0,
-            "count": 1000
+            // Mag Quake Helm
+            "names": [ "quake_plate" ],
+            "id": 20933,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Stone
-            "names": [ "raw", "stone" ],
-            "id": 8008,
-            "grade": 0,
-            "count": 1000
+            // Mag Quake Cuirass
+            "names": [ "quake_plate" ],
+            "id": 20960,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Cotton
-            "names": [ "raw", "fabric" ],
-            "id": 8357,
-            "grade": 0,
-            "count": 1000
+            // Mag Quake Greaves
+            "names": [ "quake_plate" ],
+            "id": 20987,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Wool
-            "names": [ "raw", "fabric" ],
-            "id": 8053,
-            "grade": 0,
-            "count": 1000
+            // Mag Quake Gauntlets
+            "names": [ "quake_plate" ],
+            "id": 21014,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Pelt
-            "names": [ "raw", "leather" ],
-            "id": 8007,
-            "grade": 0,
-            "count": 1000
+            // Mag Quake Sabatons
+            "names": [ "quake_plate" ],
+            "id": 21041,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Iron Ingot
-            "names": [ "raw", "iron" ],
-            "id": 8318,
-            "grade": 0,
-            "count": 100
+            // Mag Quake Vambraces
+            "names": [ "quake_plate" ],
+            "id": 21068,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Lumber
-            "names": [ "raw", "wood" ],
-            "id": 8337,
-            "grade": 0,
-            "count": 100
+            // Mag Quake Tassets
+            "names": [ "quake_plate" ],
+            "id": 21095,
+            "grade": 5,
+            "count": 1
         },
+ 
+// Mag Sunset Plate
         {
-            // Stone Brick
-            "names": [ "raw", "stone" ],
-            "id": 8343,
-            "grade": 0,
-            "count": 100
+            // Mag Sunset Helm
+            "names": [ "sunset_plate" ],
+            "id": 20936,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Fabric
-            "names": [ "raw", "fabric" ],
-            "id": 8256,
-            "grade": 0,
-            "count": 100
+            // Mag Sunset Cuirass
+            "names": [ "sunset_plate" ],
+            "id": 20963,
+            "grade": 5,
+            "count": 1
         },
         {
-            // Leather
-            "names": [ "raw", "leather" ],
-            "id": 16327,
-            "grade": 0,
-            "count": 100
+            // Mag Sunset Greaves
+            "names": [ "sunset_plate" ],
+            "id": 20990,
+            "grade": 5,
+            "count": 1
         },
-        // Mounts
         {
-            // White Elk
-            "names": [ "mounts", "elk" ],
-            "id": 23662,
-            "grade": 6,
+            // Mag Sunset Gauntlets
+            "names": [ "sunset_plate" ],
+            "id": 21017,
+            "grade": 5,
             "count": 1
         },
         {
-            // Coalmane Snowlion
-            "names": [ "mounts", "snowlion" ],
-            "id": 15561,
-            "grade": 6,
+            // Mag Sunset Sabatons
+            "names": [ "sunset_plate" ],
+            "id": 21044,
+            "grade": 5,
             "count": 1
         },
         {
-            // Palomino Yata
-            "names": [ "mounts", "yata" ],
-            "id": 26630,
-            "grade": 6,
+            // Mag Sunset Vambraces
+            "names": [ "sunset_plate" ],
+            "id": 21071,
+            "grade": 5,
             "count": 1
         },
         {
-            // Zebra
-            "names": [ "mounts" ],
-            "id": 26052,
-            "grade": 6,
+            // Mag Sunset Tassets
+            "names": [ "sunset_plate" ],
+            "id": 21098,
+            "grade": 5,
             "count": 1
         },
+
+// CR Plate
         {
-            // Black Arrow
-            "names": [ "mounts" ],
-            "id": 28138,
-            "grade": 6,
+            // CR Plate Helm
+            "names": [ "cr_plate" ],
+            "id": 19333,
+            "grade": 5,
             "count": 1
         },
         {
-            // Emberwild Charger
-            "names": [ "mounts" ],
-            "id": 26427,
-            "grade": 6,
+            // CR Plate Cuirass
+            "names": [ "cr_plate" ],
+            "id": 19334,
+            "grade": 5,
             "count": 1
         },
         {
-            // Heifer
-            "names": [ "mounts", "cow" ],
-            "id": 19604,
-            "grade": 6,
+            // CR Plate Greaves
+            "names": [ "cr_plate" ],
+            "id": 19338,
+            "grade": 5,
             "count": 1
         },
         {
-            // Companion Crust
-            "names": [ "mounts", "exp" ],
-            "id": 29040,
-            "grade": 0,
-            "count": 100
+            // CR Plate Gauntlets
+            "names": [ "cr_plate" ],
+            "id": 19336,
+            "grade": 5,
+            "count": 1
         },
-        // Delphinad Weapons
         {
-            // Sealed Delphinad Dagger
-            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_dagger" ],
-            "id": 23865,
-            "grade": 7,
+            // CR Plate Sabatons
+            "names": [ "cr_plate" ],
+            "id": 19339,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Sword
-            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_sword" ],
-            "id": 23869,
-            "grade": 7,
+            // CR Plate Vambraces
+            "names": [ "cr_plate" ],
+            "id": 19335,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Katana
-            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_katana" ],
-            "id": 23873,
-            "grade": 7,
+            // CR Plate Tassets
+            "names": [ "cr_plate" ],
+            "id": 19337,
+            "grade": 5,
             "count": 1
         },
+
+ // GR Plate
         {
-            // Sealed Delphinad Axe
-            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_axe" ],
-            "id": 23877,
-            "grade": 7,
+            // GR Plate Helm
+            "names": [ "gr_plate" ],
+            "id": 27293,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Club
-            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_club" ],
-            "id": 23881,
-            "grade": 7,
+            // GR Plate Cuirass
+            "names": [ "gr_plate" ],
+            "id": 27294,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Shortspear
-            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_shortspear" ],
-            "id": 23885,
-            "grade": 7,
+            // GR Plate Greaves
+            "names": [ "gr_plate" ],
+            "id": 27298,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Staff
-            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_staff" ],
-            "id": 23889,
-            "grade": 7,
+            // GR Plate Gauntlets
+            "names": [ "gr_plate" ],
+            "id": 27296,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Bow
-            "names": [ "delphinad_weapons", "delphinad_ranged" ],
-            "id": 23893,
-            "grade": 7,
+            // GR Plate Sabatons
+            "names": [ "gr_plate" ],
+            "id": 27299,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Shield
-            "names": [ "delphinad_weapons", "delphinad_shield" ],
-            "id": 23897,
-            "grade": 7,
+            // GR Plate Vambraces
+            "names": [ "gr_plate" ],
+            "id": 27295,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Greatsword
-            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_greatsword" ],
-            "id": 23900,
-            "grade": 7,
+            // GR Plate Tassets
+            "names": [ "gr_plate" ],
+            "id": 27297,
+            "grade": 5,
             "count": 1
         },
+
+ // Harrod Plate
         {
-            // Sealed Delphinad Nodachi
-            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_nodachi" ],
-            "id": 23903,
-            "grade": 7,
+            // Harrod Helm
+            "names": [ "harrod_plate" ],
+            "id": 19348,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad GreatAxe
-            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_greataxe" ],
-            "id": 23906,
-            "grade": 7,
+            // Harrod Cuirass
+            "names": [ "harrod_plate" ],
+            "id": 19349,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad GreatClub
-            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_greatclub" ],
-            "id": 23909,
-            "grade": 7,
+            // Harrod Greaves
+            "names": [ "harrod_plate" ],
+            "id": 19353,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad LongSpear
-            "names": [ "delphinad_weapons", "delphinad_2h", "delphinad_longspear" ],
-            "id": 23912,
-            "grade": 7,
+            // Harrod Gauntlets
+            "names": [ "harrod_plate" ],
+            "id": 19351,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Scepter
-            "names": [ "delphinad_weapons", "delphinad_1h", "delphinad_scepter" ],
-            "id": 23915,
-            "grade": 7,
+            // Harrod Sabatons
+            "names": [ "harrod_plate" ],
+            "id": 19354,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Lute
-            "names": [ "delphinad_weapons", "delphinad_instrument", "delphinad_lute" ],
-            "id": 23918,
-            "grade": 7,
+            // Harrod Vambraces
+            "names": [ "harrod_plate" ],
+            "id": 19350,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Flute
-            "names": [ "delphinad_weapons", "delphinad_instrument", "delphinad_flute" ],
-            "id": 23921,
-            "grade": 7,
+            // Harrod Tassets
+            "names": [ "harrod_plate" ],
+            "id": 19352,
+            "grade": 5,
             "count": 1
         },
-        // Sealed Delphinad Cloth
+
+ // GHA Cloth
         {
-            // Sealed Delphinad Hood
-            "names": [ "delphinad_cloth" ],
-            "id": 23946,
-            "grade": 7,
+            // GHA Cloth Hood
+            "names": [ "gha_cloth" ],
+            "id": 26922,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Shirt
-            "names": [ "delphinad_cloth" ],
-            "id": 23947,
-            "grade": 7,
+            // GHA Cloth Shirt
+            "names": [ "gha_cloth" ],
+            "id": 26923,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Pants
-            "names": [ "delphinad_cloth" ],
-            "id": 23948,
-            "grade": 7,
+            // GHA Cloth Pants
+            "names": [ "gha_cloth" ],
+            "id": 26924,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Gloves
-            "names": [ "delphinad_cloth" ],
-            "id": 23949,
-            "grade": 7,
+            // GHA Cloth Gloves
+            "names": [ "gha_cloth" ],
+            "id": 26925,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Shoes
-            "names": [ "delphinad_cloth" ],
-            "id": 23950,
-            "grade": 7,
+            // GHA Cloth Shoes
+            "names": [ "gha_cloth" ],
+            "id": 26926,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Sleeves
-            "names": [ "delphinad_cloth" ],
-            "id": 23951,
-            "grade": 7,
+            // GHA Cloth Sleeves
+            "names": [ "gha_cloth" ],
+            "id": 26943,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Sash
-            "names": [ "delphinad_cloth" ],
-            "id": 23952,
-            "grade": 7,
+            // GHA Cloth Sash
+            "names": [ "gha_cloth" ],
+            "id": 26942,
+            "grade": 5,
             "count": 1
         },
-        // Sealed Delphinad Leather
+
+  // GHA Leather
         {
-            // Sealed Delphinad Cap
-            "names": [ "delphinad_leather" ],
-            "id": 23974,
-            "grade": 7,
+            // GHA Leather Cap
+            "names": [ "gha_leather" ],
+            "id": 26927,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Jerkin
-            "names": [ "delphinad_leather" ],
-            "id": 23975,
-            "grade": 7,
+            // GHA Leather Jerkin
+            "names": [ "gha_leather" ],
+            "id": 26928,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Breeches
-            "names": [ "delphinad_leather" ],
-            "id": 23976,
-            "grade": 7,
+            // GHA Leather Breeches
+            "names": [ "gha_leather" ],
+            "id": 26929,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Fists
-            "names": [ "delphinad_leather" ],
-            "id": 23977,
-            "grade": 7,
+            // GHA Leather Fists
+            "names": [ "gha_leather" ],
+            "id": 26930,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Boots
-            "names": [ "delphinad_leather" ],
-            "id": 23978,
-            "grade": 7,
+            // GHA Leather Boots
+            "names": [ "gha_leather" ],
+            "id": 26931,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Guards
-            "names": [ "delphinad_leather" ],
-            "id": 23979,
-            "grade": 7,
+            // GHA Leather Guards
+            "names": [ "gha_leather" ],
+            "id": 26944,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Belt
-            "names": [ "delphinad_leather" ],
-            "id": 23980,
-            "grade": 7,
+            // GHA Leather Belt
+            "names": [ "gha_leather" ],
+            "id": 26945,
+            "grade": 5,
             "count": 1
         },
-        // Sealed Delphinad Plate
+
+  // GHA Plate
         {
-            // Sealed Delphinad Helm
-            "names": [ "delphinad_plate" ],
-            "id": 24002,
-            "grade": 7,
+            // GHA Plate Helm
+            "names": [ "gha_plate" ],
+            "id": 26932,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Cuirass
-            "names": [ "delphinad_plate" ],
-            "id": 24003,
-            "grade": 7,
+            // GHA Plate Cuirass
+            "names": [ "gha_plate" ],
+            "id": 26933,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Greaves
-            "names": [ "delphinad_plate" ],
-            "id": 24004,
-            "grade": 7,
+            // GHA Plate Greaves
+            "names": [ "gha_plate" ],
+            "id": 26934,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Gauntlets
-            "names": [ "delphinad_plate" ],
-            "id": 24005,
-            "grade": 7,
+            // GHA Plate Gauntlets
+            "names": [ "gha_plate" ],
+            "id": 26935,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Sabatons
-            "names": [ "delphinad_plate" ],
-            "id": 24006,
-            "grade": 7,
+            // GHA Plate Sabatons
+            "names": [ "gha_plate" ],
+            "id": 26936,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Vambraces
-            "names": [ "delphinad_plate" ],
-            "id": 24007,
-            "grade": 7,
+            // GHA Plate Vambraces
+            "names": [ "gha_plate" ],
+            "id": 26948,
+            "grade": 5,
             "count": 1
         },
         {
-            // Sealed Delphinad Tassets
-            "names": [ "delphinad_plate" ],
-            "id": 24008,
-            "grade": 7,
+            // GHA Plate Tassets
+            "names": [ "gha_plate" ],
+            "id": 26947,
+            "grade": 5,
+            "count": 1
+        },
+	//Gliders
+	    {
+            // Sloth Glider
+            "names": [ "glider" ],
+            "id": 30621,
+            "count": 1
+        },
+	    {
+            // Red Dragon Glider 
+            "names": [ "glider" ],
+            "id": 18175,
+            "count": 1
+        },
+	    {
+            // Ezi's Glider
+            "names": [ "glider" ],
+            "id": 18174,
+            "count": 1
+        },
+	    {
+            // Legendary Dragon Wings
+            "names": [ "glider" ],
+            "id": 29039,
+            "count": 1
+        },
+	    {
+            // Feathered Dragon Glider
+            "names": [ "glider" ],
+            "id": 18173,
+            "count": 1
+        },
+
+	//Accesories
+		{
+			// Magnificent Earth Necklace
+			"names": [ "accessories" ],
+			"id": 31619,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Flame Necklace
+			"names": [ "accessories" ],
+			"id": 31620,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Life Necklace
+			"names": [ "accessories" ],
+			"id": 31621,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Wind Necklace
+			"names": [ "accessories" ],
+			"id": 31622,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Wave Necklace
+			"names": [ "accessories" ],
+			"id": 31623,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Earth Earring
+			"names": [ "accessories" ],
+			"id": 31624,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Flame Earring
+			"names": [ "accessories" ],
+			"id": 31625,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Wind Earring
+			"names": [ "accessories" ],
+			"id": 31626,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Wave Earring
+			"names": [ "accessories" ],
+			"id": 31627,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Life Earring
+			"names": [ "accessories" ],
+			"id": 31628,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Earth Ring
+			"names": [ "accessories" ],
+			"id": 31629,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Flame Ring
+			"names": [ "accessories" ],
+			"id": 31630,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Wave Ring
+			"names": [ "accessories" ],
+			"id": 31631,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Wind Ring
+			"names": [ "accessories" ],
+			"id": 31632,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Life Ring	
+			"names": [ "accessories" ],
+			"id": 31633,
+			"grade": 5,
+			"count": 1
+		},
+		
+	//Weapon Kit
+	    {
+            // Mag Flame Nodachi
+            "names": [ "2hmelee" ],
+            "id": 20285,
+            "grade": 5,
+            "count": 1
+        },		
+	    {
+            // Mag Lightning Nodachi
+            "names": [ "2hmelee" ],
+            "id": 20284,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Gale Nodachi
+            "names": [ "2hmelee" ],
+            "id": 20286,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Flame Greatsword
+            "names": [ "2hmelee" ],
+            "id": 20245,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Meadow Staff
+            "names": [ "2hmagic" ],
+            "id": 20437,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Desert Sword
+            "names": [ "1hmelee" ],
+            "id": 20223,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Squall Dagger
+            "names": [ "1hmelee" ],
+            "id": 20196,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Wave Scepter
+            "names": [ "1hmagic" ],
+            "id": 20418,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Obsidian Club
+            "names": [ "1hclub" ],
+            "id": 34609,
+            "grade": 5,
+            "count": 1
+        },
+	//Shields
+	    {
+			// Magnificent Quake Shield
+			"names": [ "shields" ],
+			"id": 20528,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Desert Shield
+			"names": [ "shields" ],
+			"id": 20529,
+			"grade": 5,
+			"count": 1
+		},
+		{
+			// Magnificent Lake Shield
+			"names": [ "shields" ],
+			"id": 20530,
+			"grade": 5,
+			"count": 1
+		},
+	    {
+            // Mag Volcano Bow
+            "names": [ "bow" ],
+            "id": 20462,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Lightning Bow
+            "names": [ "bow" ],
+            "id": 20463,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Tidal Bow
+            "names": [ "bow" ],
+            "id": 20464,
+            "grade": 5,
+            "count": 1
+        },
+	    {
+            // Mag Sunset Bow
+            "names": [ "bow" ],
+            "id": 20465,
+            "grade": 5,
             "count": 1
         }
-
     ]
 }

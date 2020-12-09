@@ -14,6 +14,12 @@ namespace AAEmu.Game.Core.Network.Game
         {
             Level = level;
         }
+        
+        /// <summary>
+        /// This is called in Encode after Read() in the case of GamePackets
+        /// The purpose is to separate packet data from packet behavior
+        /// </summary>
+        public virtual void Execute(){}
 
         public override PacketStream Encode()
         {
@@ -71,6 +77,7 @@ namespace AAEmu.Game.Core.Network.Game
             try
             {
                 Read(ps);
+                Execute();
             }
             catch (Exception ex)
             {

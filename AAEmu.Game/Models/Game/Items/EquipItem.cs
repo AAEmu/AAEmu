@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Items
 {
     public class EquipItem : Item
     {
-        public override byte DetailType => 1;
+        public override ItemDetailType DetailType => ItemDetailType.Equipment;
 
         public byte Durability { get; set; }
         public uint RuneId { get; set; }

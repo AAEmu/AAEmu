@@ -2234,7 +2234,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             //     }
             // }
             if (obj is Unit unit)
-                doodad.DoPhase(unit);
+                doodad.DoPhase(unit, 0);
 
             return doodad;
         }
