@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers.Id;
+﻿using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Utils;
 using Xunit;
 
@@ -33,7 +33,7 @@ namespace AAEmu.Tests
             
             id = ObjectIdManager.Instance.GetNextId();
             // We get the next ID and THEN release
-            Assert.Equal(firstId+2, id);
+            Assert.Equal(firstId+1, id);
         }
 
         [Fact]
