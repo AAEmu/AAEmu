@@ -64,8 +64,8 @@ namespace AAEmu.Game.Core.Managers.World
                     
                     if (_tickCount % 6 == 0)
                     {
+                        slave.Move(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y);
                         _physWorld.CollisionSystem.Detect(true);
-                        slave.Move(xDelt, yDelt, zDelt);
                         BoatPhysicsTick(slave, slaveRigidBody);
                     }
                 }

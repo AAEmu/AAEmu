@@ -69,21 +69,24 @@ namespace AAEmu.Game.Models.Game.Units
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <param name="z"></param>
-        public void Move(float x, float y, float z)
+        public void Move(float newX, float newY, float newZ)
         {
-            SetPosition(Position.X + x, Position.Y + y, Position.Z + z);
+            var xD = newX - Position.X;
+            var yD = newY - Position.Y;
+            var zD = newZ - Position.Z;
+            SetPosition(newX, newY, newZ);
             
             foreach (var doodad in AttachedDoodads)
             {
-                doodad.SetPosition(doodad.Position.X + x, doodad.Position.Y + y, doodad.Position.Z + z);
+                doodad.SetPosition(doodad.Position.X + xD, doodad.Position.Y + yD, doodad.Position.Z + zD);
             }
             
             foreach (var attachedSlave in AttachedSlaves)
             {
-                attachedSlave.Move(x, y, z);
+                attachedSlave.Move(newX, newY, newZ);
             }
             
-            Bounded?.SetPosition(Bounded.Position.X + x, Bounded.Position.Y + y, Bounded.Position.Z + z);
+            Bounded?.SetPosition(Bounded.Position.X + xD, Bounded.Position.Y + yD, Bounded.Position.Z + zD);
         }
     }
 }
