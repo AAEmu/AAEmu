@@ -189,7 +189,8 @@ namespace AAEmu.Game.Core.Managers
                 CreateTime = DateTime.Now,
                 Id = ++itemId,
                 Count = Rand.Next(unit.Level * 5, unit.Level * 400),
-                MadeUnitId = npcId
+                MadeUnitId = 0
+                // MadeUnitId = npcId
             };
             items.Add(item2);
             _lootDropItems.Add(npcId, items);
@@ -1354,7 +1355,7 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@id", item.Id);
                         command.Parameters.AddWithValue("@type", item.GetType().ToString());
                         command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                        command.Parameters.AddWithValue("@slot_type", item.SlotType);
+                        command.Parameters.AddWithValue("@slot_type", item.SlotType.ToString());
                         command.Parameters.AddWithValue("@slot", item.Slot);
                         command.Parameters.AddWithValue("@count", item.Count);
                         command.Parameters.AddWithValue("@details", details.GetBytes());

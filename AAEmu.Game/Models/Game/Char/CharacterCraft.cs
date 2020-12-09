@@ -88,11 +88,12 @@ namespace AAEmu.Game.Models.Game.Char
                 // Check if we're crafting a tradepack, if so, try to remove currently equipped backpack slot
                 if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
                 {
-                    Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount);
+                    Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct,
+                        product.ItemId, product.Amount, -1, Owner.Id);
                 }
                 else
                 {
-                    if (!Owner.Inventory.TryEquipNewBackPack(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount))
+                    if (!Owner.Inventory.TryEquipNewBackPack(Items.Actions.ItemTaskType.CraftPickupProduct, product.ItemId, product.Amount,-1,Owner.Id))
                     {
                         CancelCraft();
                         return;

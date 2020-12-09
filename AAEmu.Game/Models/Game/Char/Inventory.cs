@@ -30,6 +30,7 @@ namespace AAEmu.Game.Models.Game.Char
         public ItemContainer Bag { get; private set; }
         public ItemContainer Warehouse { get; private set; }
         public ItemContainer MailAttachments { get; private set; }
+        public ItemContainer SystemContainer { get; private set; }
 
         public Inventory(Character owner)
         {
@@ -54,10 +55,12 @@ namespace AAEmu.Game.Models.Game.Char
                 _itemContainers.Add(st, newContainer);
                 switch (st)
                 {
+                    /*
                     case SlotType.Equipment:
                         newContainer.ContainerSize = 28; // 28 equipment slots for 1.2 client
                         Equipment = newContainer;
                         break;
+                    */
                     case SlotType.Inventory:
                         newContainer.ContainerSize = Owner.NumInventorySlots;
                         Bag = newContainer;
@@ -67,7 +70,12 @@ namespace AAEmu.Game.Models.Game.Char
                         Warehouse = newContainer;
                         break;
                     case SlotType.Mail:
+                        newContainer.PartOfPlayerInventory = false;
                         MailAttachments = newContainer;
+                        break;
+                    case SlotType.System:
+                        newContainer.PartOfPlayerInventory = false;
+                        SystemContainer = newContainer;
                         break;
                 }
             }
@@ -576,13 +584,13 @@ namespace AAEmu.Game.Models.Game.Char
             return true;
         }
 
-        public bool TryEquipNewBackPack(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1)
+        public bool TryEquipNewBackPack(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1, uint crafterId = 0)
         {
             // Remove player backpack
             if (Owner.Inventory.TakeoffBackpack(taskType, true))
             {
                 // Put tradepack in their backpack slot
-                return Owner.Inventory.Equipment.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd);
+                return Owner.Inventory.Equipment.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd, crafterId);
             }
             return false;
         }
