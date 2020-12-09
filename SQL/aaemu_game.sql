@@ -563,3 +563,11 @@ CREATE TABLE `auction_house` (
   `extra` int NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+
+DROP TABLE IF EXISTS `accounts`;
+CREATE TABLE `accounts` (
+  `account_id` INT NOT NULL,
+  `credits` INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`account_id`)
+)  ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;

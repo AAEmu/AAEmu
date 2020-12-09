@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Utils.DB;
@@ -12,6 +13,96 @@ namespace AAEmu.Game.Core.Managers
 
         private List<CashShopItem> _cashShopItem;
         private Dictionary<uint, CashShopItemDetail> _cashShopItemDetail;
+        private Dictionary<uint, object> _locks = new Dictionary<uint, object>();
+
+        public int GetAccountCredits(uint accountId)
+        {
+            object accLock;
+            lock(_locks)
+            {
+                if (!_locks.TryGetValue(accountId, out accLock))
+                {
+                    accLock = new object();
+                    _locks.Add(accountId, accLock);
+                }
+            }
+            lock (accLock)
+            {
+                try
+                {
+                    using (var connection = MySQL.CreateConnection())
+                    {
+                        using (var command = connection.CreateCommand())
+                        {
+                            command.CommandText = "SELECT credits FROM accounts WHERE account_id = @acc_id";
+                            command.Parameters["@acc_id"].Value = accountId;
+                            command.Prepare();
+                            using (var reader = command.ExecuteReader())
+                            {
+                                if (reader.Read())
+                                {
+                                    return reader.GetInt32("credits");
+                                }
+                                else
+                                {
+                                    command.CommandText = "INSERT INTO accounts (account_id, credits) VALUES (@acc_id, 0)";
+                                    command.Parameters["@acc_id"].Value = accountId;
+                                    command.Prepare();
+                                    command.ExecuteNonQuery();
+                                    return 0;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e.Message);
+                    return 0;
+                }
+            }
+        }
+
+        public bool AddCredits(uint accountId, int creditsAmt)
+        {
+            object accLock;
+            lock (_locks)
+            {
+                if (!_locks.TryGetValue(accountId, out accLock))
+                {
+                    accLock = new object();
+                    _locks.Add(accountId, accLock);
+                }
+            }
+            lock (accLock)
+            {
+                try
+                {
+                    using (var connection = MySQL.CreateConnection())
+                    {
+                        using (var command = connection.CreateCommand())
+                        {
+                            command.CommandText = 
+                                "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits) ON DUPLICATE KEY UPDATE credits = credits + @credits";
+                            command.Parameters["@acc_id"].Value = accountId;
+                            command.Parameters["@credit_amt"].Value = creditsAmt;
+                            command.Prepare();
+                            if (command.ExecuteNonQuery() > 0)
+                                return true;
+                            else
+                                return false;
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e.Message);
+                    return false;
+                }
+            }
+        }
+
+        public bool RemoveCredits(uint accountId, int credits) => AddCredits(accountId, -credits);
 
         public void Load()
         {
