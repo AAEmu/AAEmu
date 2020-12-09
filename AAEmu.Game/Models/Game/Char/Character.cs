@@ -873,6 +873,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int; //Str not needed, but maybe we use later
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.SpellCritical);
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCritical);
                 res = res * (1f / Facets) * 100;
                 res = res + (SpellCriticalMul / 10);
                 return (float)res;
@@ -886,6 +887,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var res = 1500f;
                 res = (float)CalculateWithBonuses(res, UnitAttribute.SpellCriticalBonus);
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCriticalBonus);
                 return (res - 1000f) / 10f;
             }
         }
@@ -897,6 +899,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 double res = 0;
                 res = CalculateWithBonuses(res, UnitAttribute.SpellCriticalMul);
+                res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCriticalMul);
                 return (float)res;
             }
         }
