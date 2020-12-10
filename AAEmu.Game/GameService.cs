@@ -37,6 +37,7 @@ namespace AAEmu.Game
             TradeIdManager.Instance.Initialize();
 
             ItemIdManager.Instance.Initialize();
+            DoodadIdManager.Instance.Initialize();
             ChatManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
             FamilyIdManager.Instance.Initialize();

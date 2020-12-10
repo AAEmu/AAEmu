@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -11,6 +12,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
+using AAEmu.Game.Utils.DB;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
@@ -21,6 +23,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public uint TemplateId { get; set; }
+        public uint DbId { get; set; }
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
         public uint FuncGroupId { get; set; }
@@ -46,6 +49,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         
         public uint CurrentPhaseId { get; set; }
         public uint OverridePhase { get; set; }
+        private bool _deleted = false;
 
         public Doodad()
         {
@@ -144,6 +148,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 CurrentPhaseId = OverridePhase;
                 DoPhase(unit, skillId, recursionDepth);
             }
+
+            if (!_deleted) 
+                Save();
         }
 
         /// <summary>
@@ -267,6 +274,56 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(Data); // data
 
             return stream;
+        }
+
+        public override void Delete()
+        {
+            base.Delete();
+            _deleted = true;
+
+            if (DbId > 0)
+            {
+                using (var connection = MySQL.CreateConnection())
+                {
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = "DELETE FROM doodads WHERE id = @id";
+                        command.Parameters.AddWithValue("@id", DbId);
+                        command.Prepare();
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        public void Save()
+        {
+            DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
+            using (var connection = MySQL.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = 
+                        "REPLACE INTO doodads (id, owner_id, owner_type, template_id, current_phase_id, plant_time, growth_time, phase_time, x, y, z, rotation_x, rotation_y, rotation_z) " +
+                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @rotation_x, @rotation_y, @rotation_z)";
+                    command.Parameters.AddWithValue("@id", DbId);
+                    command.Parameters.AddWithValue("@owner_id", OwnerId);
+                    command.Parameters.AddWithValue("@owner_type", OwnerType);
+                    command.Parameters.AddWithValue("@template_id", TemplateId);
+                    command.Parameters.AddWithValue("@current_phase_id", CurrentPhaseId);
+                    command.Parameters.AddWithValue("@plant_time", PlantTime);
+                    command.Parameters.AddWithValue("@growth_time", GrowthTime);
+                    command.Parameters.AddWithValue("@phase_time", DateTime.MinValue);
+                    command.Parameters.AddWithValue("@x", Position.X);
+                    command.Parameters.AddWithValue("@y", Position.Y);
+                    command.Parameters.AddWithValue("@z", Position.Z);
+                    command.Parameters.AddWithValue("@rotation_x", Position.RotationX);
+                    command.Parameters.AddWithValue("@rotation_y", Position.RotationY);
+                    command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
+                    command.Prepare();
+                    command.ExecuteNonQuery();
+                }
+            }
         }
     }
 }
