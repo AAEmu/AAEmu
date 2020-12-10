@@ -196,6 +196,8 @@ CREATE TABLE `characters` (
   `vocation_point` int(11) NOT NULL,
   `crime_point` int(11) NOT NULL,
   `crime_record` int(11) NOT NULL,
+  `pvp_honor` int(11) NOT NULL DEFAULT 0,
+  `hostile_faction_kills` int(11) NOT NULL DEFAULT 0,
   `delete_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `transfer_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `delete_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',

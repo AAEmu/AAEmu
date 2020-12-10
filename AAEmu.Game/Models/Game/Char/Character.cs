@@ -1605,6 +1605,8 @@ namespace AAEmu.Game.Models.Game.Char
                         character.VocationPoint = reader.GetInt32("vocation_point");
                         character.CrimePoint = reader.GetInt16("crime_point");
                         character.CrimeRecord = reader.GetInt32("crime_record");
+                        character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
+                        character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                         character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                         character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                         character.DeleteTime = reader.GetDateTime("delete_time");
@@ -1710,6 +1712,8 @@ namespace AAEmu.Game.Models.Game.Char
                         character.VocationPoint = reader.GetInt32("vocation_point");
                         character.CrimePoint = reader.GetInt16("crime_point");
                         character.CrimeRecord = reader.GetInt32("crime_record");
+                        character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
+                        character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                         character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                         character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                         character.DeleteTime = reader.GetDateTime("delete_time");
@@ -1859,8 +1863,8 @@ namespace AAEmu.Game.Models.Game.Char
                     // ----
                     command.CommandText =
                         "REPLACE INTO `characters` " +
-                        "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
-                        "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
+                        "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`hostile_faction_kills`,`pvp_honor`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
+                        "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@hostile_faction_kills,@pvp_honor,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
 
                     command.Parameters.AddWithValue("@id", Id);
                     command.Parameters.AddWithValue("@account_id", AccountId);
@@ -1904,6 +1908,8 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@vocation_point", VocationPoint);
                     command.Parameters.AddWithValue("@crime_point", CrimePoint);
                     command.Parameters.AddWithValue("@crime_record", CrimeRecord);
+                    command.Parameters.AddWithValue("@hostile_faction_kills", HostileFactionKills);
+                    command.Parameters.AddWithValue("@pvp_honor", HonorGainedInCombat);
                     command.Parameters.AddWithValue("@delete_request_time", DeleteRequestTime);
                     command.Parameters.AddWithValue("@transfer_request_time", TransferRequestTime);
                     command.Parameters.AddWithValue("@delete_time", DeleteTime);
