@@ -200,13 +200,13 @@ namespace AAEmu.Game.Core.Managers
                 doodad.SetScale(doodadBinding.Scale);
 
                 doodad.CurrentPhaseId = doodad.GetFuncGroupId();
+                doodad.Position = template.Position.Clone();
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {
                     if (_attachPoints[template.ModelId].ContainsKey(doodadBinding.AttachPointId))
                     {
                         doodad.AttachPosition = _attachPoints[template.ModelId][doodadBinding.AttachPointId];
-                        doodad.Position = template.Position.Clone();
                     }
                     else
                     {
@@ -215,7 +215,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 else
                 {
-                    doodad.Position = new Point(0f, 3.204f, 12588.96f, 0, 0, 0);
+                    doodad.AttachPosition = new Point(0f, 3.204f, 12588.96f, 0, 0, 0);
                     _log.Warn("Model id: {0} has no attach point information");
                 }
 
