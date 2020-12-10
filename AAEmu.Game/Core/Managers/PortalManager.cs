@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks.World;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using Portal = AAEmu.Game.Models.Game.Portal;
@@ -203,6 +204,9 @@ namespace AAEmu.Game.Core.Managers
                 TeleportPosition = portalPointDestination
             };
             portalUnitModel.Spawn();
+
+            var killTask = new KillPortalTask(portalUnitModel);
+            TaskManager.Instance.Schedule(killTask, TimeSpan.FromSeconds(30));
         }
 
         public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)

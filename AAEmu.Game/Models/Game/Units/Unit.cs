@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -254,7 +255,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             Events.OnDeath(this, new OnDeathArgs { });
             Buffs.RemoveEffectsOnDeath();
-            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
+            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.Damage, killer), true);
             if (killer == this)
                 return;
 
