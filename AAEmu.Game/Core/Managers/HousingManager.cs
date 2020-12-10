@@ -89,25 +89,6 @@ namespace AAEmu.Game.Core.Managers
             {
                 _log.Info("Loading Housing Information ...");
 
-                /*
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM housing_areas";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                    {
-                        while (reader.Read())
-                        {
-                            var template = new HousingAreas();
-                            template.Id = reader.GetUInt32("id");
-                            template.Name = reader.GetString("name");
-                            template.GroupId = reader.GetUInt32("housing_group_id");
-                            housingAreas.Add(template.Id, template);
-                        }
-                    }
-                }
-                */
-
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM item_housings";
@@ -719,36 +700,6 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        /*
-        public bool GetWeeklyTaxInfo(House house, out int weeklyTax, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate)
-        {
-            weeklyTax = 0;
-            heavyHouseCount = 0;
-            normalHouseCount = 0;
-            hostileTaxRate = 0; // NOTE: When castles are added, this needs to be updated depending on ruling guild's settings
-
-            Dictionary<uint, House> userHouses = new Dictionary<uint, House>();
-            if (GetByAccountId(userHouses, house.AccountId) <= 0)
-                return false;
-
-            foreach (var h in userHouses)
-            {
-                if (h.Value.Template.HeavyTax)
-                    heavyHouseCount++;
-                else
-                    normalHouseCount++;
-            }
-
-            var taxMultiplier = (heavyHouseCount < MAX_HEAVY_TAX_COUNTED ? heavyHouseCount : MAX_HEAVY_TAX_COUNTED) * 0.5f;
-            if (heavyHouseCount < 3)
-                taxMultiplier = 1f;
-
-            weeklyTax = (int)Math.Ceiling(house.Template.Taxation.Tax * taxMultiplier);
-
-            return true;
-        }
-        */
-
         public void UpdateTaxInfo(House house)
         {
             var isDemolished = (house.ProtectionEndDate <= DateTime.UtcNow);
@@ -778,14 +729,14 @@ namespace AAEmu.Game.Core.Managers
                     var newMail = new MailForTax(house);
                     newMail.FinalizeMail();
                     newMail.Send();
-                    _log.Debug("New Tax Mail sent for {0} owned by {1}",house.Name, house.OwnerId);
+                    _log.Trace("New Tax Mail sent for {0} owned by {1}",house.Name, house.OwnerId);
                 }
                 else
                 {
                     foreach (var mail in allMails)
                     {
                         MailForTax.UpdateTaxInfo(mail, house);
-                        _log.Debug("Tax Mail {0} updated for {1} ({2}) owned by {3}", mail.Id, house.Name, house.Id,
+                        _log.Trace("Tax Mail {0} updated for {1} ({2}) owned by {3}", mail.Id, house.Name, house.Id,
                             house.OwnerId);
                     }
                 }
@@ -894,7 +845,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (newMail != null)
             {
-                _log.Debug("Demolition mail sent to {0}", newMail.ReceiverName);
+                _log.Trace("Demolition mail sent to {0}", newMail.ReceiverName);
             }
         }
 
@@ -1054,7 +1005,7 @@ namespace AAEmu.Game.Core.Managers
             isCheckingTaxTiming = true;
             try
             {
-                _log.Trace("CheckHousingTaxes");
+                // _log.Trace("CheckHousingTaxes");
                 var expiredHouseList = new List<House>();
                 foreach (var house in _houses)
                 {

@@ -15,7 +15,6 @@ namespace AAEmu.Game.Core.Packets.C2G
             var tl = stream.ReadUInt16();
             var moneyAmount = stream.ReadUInt32();
 
-            _log.Debug("BuyHouse, Tl: {0}, MoneyAmount: {1}", tl, moneyAmount);
             HousingManager.Instance.BuyHouse(tl, moneyAmount, Connection.ActiveChar);
         }
     }
