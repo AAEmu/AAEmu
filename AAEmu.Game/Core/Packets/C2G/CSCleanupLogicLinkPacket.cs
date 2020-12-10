@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCleanupLogicLinkPacket : GamePacket
     {
-        public CSCleanupLogicLinkPacket() : base(0x0f7, 1)
+        public CSCleanupLogicLinkPacket() : base(CSOffsets.CSCleanupLogicLinkPacket, 1)
         {
         }
 

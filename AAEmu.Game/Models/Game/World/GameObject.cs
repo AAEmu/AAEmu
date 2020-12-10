@@ -23,6 +23,7 @@ namespace AAEmu.Game.Models.Game.World
         public DateTime Despawn { get; set; }
         public virtual bool IsVisible { get; set; }
         public GameObject ParentObj { get; set; }
+        public virtual float ModelSize { get; set; } = 0f; 
 
         public virtual void SetPosition(Point pos)
         {

@@ -198,7 +198,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(ObjId);
+            stream.WriteBc(ObjId);
             return stream;
         }
     }

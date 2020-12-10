@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeItemLookPacket : GamePacket
     {
-        public CSChangeItemLookPacket() : base(0x08d, 1)
+        public CSChangeItemLookPacket() : base(CSOffsets.CSChangeItemLookPacket, 1)
         {
         }
 

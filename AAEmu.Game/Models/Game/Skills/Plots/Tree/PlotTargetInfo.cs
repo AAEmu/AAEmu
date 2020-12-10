@@ -109,10 +109,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             //TODO Optimize rotation calc 
             var rotZ = PreviousTarget.Position.RotationZ;
             if (args.Angle != 0)
-                rotZ = MathUtil.ConvertDegreeToDirection(args.Angle + MathUtil.ConvertDirectionToDegree(PreviousTarget.Position.RotationZ));
+                rotZ = MathUtil.ConvertDegreeToDirection(-args.Angle + MathUtil.ConvertDirectionToDegree(PreviousTarget.Position.RotationZ));
 
             float x, y;
-            if (args.Distance > 0)
+            if (args.Distance != 0)
                 (x, y) = MathUtil.AddDistanceToFront((args.Distance / 1000.0f) - 0.01f, PreviousTarget.Position.X, PreviousTarget.Position.Y, rotZ);
             // We substract 0.1 here to help with floating point errors
             else
@@ -120,7 +120,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             posUnit.Position.X = x;
             posUnit.Position.Y = y;
-            posUnit.Position.Z = PreviousTarget.Position.Z;
+            posUnit.Position.Z = PreviousTarget.Position.Z + (args.HeightOffset / 1000f);
             posUnit.Position.RotationZ = rotZ;
             // TODO use heightmap for Z coord 
             
@@ -198,14 +198,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
             float x, y;
             float distance = Rand.Next(0, (float)args.Distance);
-            if (distance > 0)
+            if (distance != 0)
                 (x, y) = MathUtil.AddDistanceToFront(distance / 1000, PreviousTarget.Position.X, PreviousTarget.Position.Y, rotZ);
             else
                 (x, y) = (PreviousTarget.Position.X, PreviousTarget.Position.Y);
 
             posUnit.Position.X = x;
             posUnit.Position.Y = y;
-            posUnit.Position.Z = PreviousTarget.Position.Z;
+            posUnit.Position.Z = PreviousTarget.Position.Z + (args.HeightOffset / 1000f);
             posUnit.Position.RotationZ = rotZ;
             // TODO use heightmap for Z coord 
 

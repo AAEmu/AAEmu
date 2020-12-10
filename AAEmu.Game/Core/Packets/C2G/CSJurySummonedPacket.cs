@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSJurySummonedPacket : GamePacket
     {
-        public CSJurySummonedPacket() : base(0x072, 1)
+        public CSJurySummonedPacket() : base(CSOffsets.CSJurySummonedPacket, 1)
         {
         }
 

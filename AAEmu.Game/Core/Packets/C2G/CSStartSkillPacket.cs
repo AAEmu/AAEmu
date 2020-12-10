@@ -1,13 +1,15 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartSkillPacket : GamePacket
     {
-        public CSStartSkillPacket() : base(0x052, 1)
+        public CSStartSkillPacket() : base(CSOffsets.CSStartSkillPacket, 1)
         {
         }
 
@@ -30,7 +32,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             var skillObject = SkillObject.GetByType((SkillObjectType)flagType);
             if (flagType > 0) skillObject.Read(stream);
 
-            _log.Debug("StartSkill: Id {0}, flag {1}", skillId, flag);
+            _log.Trace("StartSkill: Id {0}, flag {1}", skillId, flag);
+            if (skillCaster is SkillCasterUnit scu)
+            {
+                var unit = WorldManager.Instance.GetUnit(scu.ObjId);
+                if (unit is Character character)
+                    _log.Debug("{0} is using skill {1}", character.Name, skillId);
+            }
 
             if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
             {
@@ -48,7 +56,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
             {
-                var skill = Connection.ActiveChar.Skills.Skills[skillId];
+                var template = SkillManager.Instance.GetSkillTemplate(skillId);
+                var skill = new Skill(template, Connection.ActiveChar);
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else if (skillId > 0 && Connection.ActiveChar.Skills.IsVariantOfSkill(skillId))
@@ -57,10 +66,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else
+            {
                 _log.Warn("StartSkill: Id {0}, undefined use type", skillId);
                 //If its a valid skill cast it. This fixes interactions with quest items/doodads.
                 var unskill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-                if(unskill != null) unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                if (unskill != null) unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+            }
         }
     }
 }

@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartInteractionPacket : GamePacket
     {
-        public CSStartInteractionPacket() : base(0x068, 1)
+        public CSStartInteractionPacket() : base(CSOffsets.CSStartInteractionPacket, 1)
         {
         }
 

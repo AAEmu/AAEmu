@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateHousePacket : GamePacket
     {
-        public CSCreateHousePacket() : base(0x057, 1) //TODO 1.0 opcode: 0x055
+        public CSCreateHousePacket() : base(CSOffsets.CSCreateHousePacket, 1)
         {
         }
 

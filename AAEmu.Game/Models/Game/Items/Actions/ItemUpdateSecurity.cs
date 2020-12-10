@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             _isUnsecureExcess = isUnsecureExcess;
             _isUnsecureSet = isUnsecureSet;
             _isUnpack = isUnpack;
-            _type = 0xB; // 11
+            _type = ItemAction.UpdateFlags; // 11
         }
 
         public override PacketStream Write(PacketStream stream)

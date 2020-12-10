@@ -2,20 +2,20 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class AmountUnk02 : ItemTask
+    public class ItemRemoveCrafting : ItemTask
     {
-        private readonly int _amount;
+        private readonly ulong _id;
 
-        public AmountUnk02(int amount)
+        public ItemRemoveCrafting(ulong id)
         {
-            _type = 0x11; // 17
-            _amount = amount;
+            _id = id;
+            _type = ItemAction.RemoveCrafting; // 12
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(_amount);
+            stream.Write(_id);
             return stream;
         }
     }

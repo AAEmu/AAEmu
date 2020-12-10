@@ -29,7 +29,8 @@ namespace AAEmu.Game.Models.Game.Faction
 
         public RelationState GetRelationState(SystemFaction otherFaction)
         {
-
+            if (otherFaction == null) return RelationState.Neutral;
+            
             var factionId = MotherId != 0 ? MotherId : Id;
             var otherFactionId = otherFaction.MotherId != 0 ? otherFaction.MotherId : otherFaction.Id;
 

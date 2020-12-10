@@ -2,20 +2,20 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class ItemUnk12 : ItemTask
+    public class ChangeBankAAPoint : ItemTask
     {
-        private readonly ulong _id;
+        private readonly int _amount;
 
-        public ItemUnk12(ulong id)
+        public ChangeBankAAPoint(int amount)
         {
-            _id = id;
-            _type = 0xC; // 12
+            _type = ItemAction.ChangeBankAaPoint; // 17
+            _amount = amount;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
-            stream.Write(_id);
+            stream.Write(_amount);
             return stream;
         }
     }

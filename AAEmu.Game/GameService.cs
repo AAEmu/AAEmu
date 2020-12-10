@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
+using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
@@ -27,6 +28,7 @@ namespace AAEmu.Game
             var stopWatch = new Stopwatch();
 
             stopWatch.Start();
+            TickManager.Instance.Initialize();
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
@@ -52,6 +54,7 @@ namespace AAEmu.Game
             QuestIdManager.Instance.Initialize();
             MailIdManager.Instance.Initialize();
 
+            GameDataManager.Instance.LoadGameData();
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
             QuestManager.Instance.Load();
@@ -108,6 +111,9 @@ namespace AAEmu.Game
             SaveManager.Instance.Initialize();
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
+            BoatPhysicsManager.Instance.Initialize();
+            SlaveManager.Instance.Initialize();
+            GameDataManager.Instance.PostLoadGameData();
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
 

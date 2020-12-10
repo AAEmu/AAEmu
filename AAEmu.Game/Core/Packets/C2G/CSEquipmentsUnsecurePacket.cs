@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEquipmentsUnsecurePacket : GamePacket
     {
-        public CSEquipmentsUnsecurePacket() : base(0x04d, 1)
+        public CSEquipmentsUnsecurePacket() : base(CSOffsets.CSEquipmentsUnsecurePacket, 1)
         {
         }
 

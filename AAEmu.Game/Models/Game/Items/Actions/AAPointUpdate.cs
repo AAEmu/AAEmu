@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public AAPointUpdate(int amount)
         {
-            _type = 0x10; // 16
+            _type = ItemAction.ChangeAaPoint; // 16
             _amount = amount;
         }
 

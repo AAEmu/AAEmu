@@ -9,11 +9,15 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNotifyInGamePacket : GamePacket
     {
-        public CSNotifyInGamePacket() : base(0x029, 1)
+        public CSNotifyInGamePacket() : base(CSOffsets.CSNotifyInGamePacket, 1)
         {
         }
 
         public override void Read(PacketStream stream)
+        {
+        }
+
+        public override void Execute()
         {
             Connection.ActiveChar.IsOnline = true;
             

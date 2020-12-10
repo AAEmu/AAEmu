@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSConsoleCmdUsedPacket : GamePacket
     {
-        public CSConsoleCmdUsedPacket() : base(0x064, 1)
+        public CSConsoleCmdUsedPacket() : base(CSOffsets.CSConsoleCmdUsedPacket, 1)
         {
         }
 

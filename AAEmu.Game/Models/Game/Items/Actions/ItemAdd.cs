@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemAdd(Item item)
         {
-            _type = 5;
+            _type = ItemAction.Create;
             _item = item;
         }
 
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write((byte)_item.ItemFlags); // bounded
             stream.Write(_item.Count); // stack
             var details = new PacketStream();
-            details.Write(_item.DetailType);
+            details.Write((byte)_item.DetailType);
             _item.WriteDetails(details);
             stream.Write((short)128); // length details?
             stream.Write(details, false);

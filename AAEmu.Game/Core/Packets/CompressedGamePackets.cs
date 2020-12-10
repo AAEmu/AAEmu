@@ -54,7 +54,7 @@ namespace AAEmu.Game.Core.Packets
             }
 
             foreach (var packet in Packets)
-                _log.Debug("DD04 - GamePacket: S->C type {0:X3} {1}", packet.TypeId, packet.ToString().Substring(23));
+                _log.Trace("DD04 - GamePacket: S->C type {0:X3} {1}", packet.TypeId, packet.ToString().Substring(23));
             return ps;
         }
 

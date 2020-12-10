@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -16,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public int Stack { get; set; }
         public int AbLevel { get; set; }
         public BuffTemplate Buff { get; set; }
-        public override uint BuffId => Buff.BuffId;
+        public override uint BuffId => Buff.Id;
         public override bool OnActionTime => Buff.Tick > 0;
 
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
@@ -34,68 +35,49 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
             if (Rand.Next(0, 101) > Chance)
                 return;
-            if (Buff.RequireBuffId > 0 && !target.Effects.CheckBuff(Buff.RequireBuffId))
+            if (Buff.RequireBuffId > 0 && !target.Buffs.CheckBuff(Buff.RequireBuffId))
                 return; // TODO send error?
-            if (target.Effects.CheckBuffImmune(Buff.Id))
+            if (target.Buffs.CheckBuffImmune(Buff.Id))
                 return; // TODO send error of immune?
-            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source.Skill, time));
-            
-            if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly && caster != target)
-                caster.SetCriminalState(true);
-        }
 
-        public override void Start(Unit caster, BaseUnit owner, Effect effect)
-        {
-            foreach (var template in Buff.Bonuses)
+            uint abLevel = 1;
+            if (caster is Character character)
             {
-                var bonus = new Bonus();
-                bonus.Template = template;
-                bonus.Value = (int) (template.Value + (template.LinearLevelBonus * (effect.AbLevel / 100)));
-                owner.AddBonus(effect.Index, bonus);
+                if (source.Skill != null)
+                {
+                    var template = source.Skill.Template;
+                    var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
+                    if (template.LevelStep != 0)
+                        abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    else
+                        abLevel = (uint)template.AbilityLevel;
+
+                    //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen
+                    abLevel = (uint)Math.Max(template.AbilityLevel, (int)abLevel);
+                }
+                else if (source.Buff != null)
+                {
+                    //not sure?
+                }
+            }
+            else
+            {
+                if(source.Skill != null)
+                {
+                    abLevel = (uint)source.Skill.Template.AbilityLevel;
+                }
             }
 
-            effect.Charge = Rand.Next(Buff.InitMinCharge, Buff.InitMaxCharge);
-            if (!effect.Passive)
-                owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
-        }
-
-        public override void TimeToTimeApply(Unit caster, BaseUnit owner, Effect effect)
-        {
-            if (Buff.TickEffect == null)
+            //Safeguard to prevent accidental flagging
+            if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
                 return;
-            if (Buff.TickEffect.TargetBuffTagId > 0 &&
-                !owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(Buff.TickEffect.TargetBuffTagId)))
-                return;
-            if (Buff.TickEffect.TargetNoBuffTagId > 0 &&
-                owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(Buff.TickEffect.TargetNoBuffTagId)))
-                return;
-            var eff = SkillManager.Instance.GetEffectTemplate(Buff.TickEffect.EffectId);
-            var targetObj = new SkillCastUnitTarget(owner.ObjId);
-            var skillObj = new SkillObject(); // TODO ?
-            eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), new EffectSource(Buff), skillObj, DateTime.Now);
-        }
-
-        public override void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
-        {
-            foreach (var template in Buff.Bonuses)
-                owner.RemoveBonus(effect.Index, template.Attribute);
-            if (!effect.Passive && !replaced)
-                owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
-        }
-
-        public override void WriteData(PacketStream stream)
-        {
-            stream.WritePisc(0, Buff.Duration / 10, 0, (long)(Buff.Tick / 10)); // TODO unk, Duration / 10, unk / 10, Tick / 10
-        }
-
-        public override int GetDuration()
-        {
-            return Buff.Duration;
-        }
-
-        public override double GetTick()
-        {
-            return Buff.Tick;
+            target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
+            
+            if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly 
+                && caster != target && !target.Buffs.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF))
+            {
+                caster.SetCriminalState(true);
+            }
         }
     }
 }

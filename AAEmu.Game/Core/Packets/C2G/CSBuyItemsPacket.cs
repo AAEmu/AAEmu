@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBuyItemsPacket : GamePacket
     {
-        public CSBuyItemsPacket() : base(0x0ae, 1)
+        public CSBuyItemsPacket() : base(CSOffsets.CSBuyItemsPacket, 1)
         {
         }
 

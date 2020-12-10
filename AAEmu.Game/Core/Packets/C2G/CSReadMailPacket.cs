@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReadMailPacket : GamePacket
     {
-        public CSReadMailPacket() : base(0x09c, 1)
+        public CSReadMailPacket() : base(CSOffsets.CSReadMailPacket, 1)
         {
         }
 

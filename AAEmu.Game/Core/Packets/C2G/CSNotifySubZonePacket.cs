@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNotifySubZonePacket : GamePacket
     {
-        public CSNotifySubZonePacket() : base(0x112, 1)
+        public CSNotifySubZonePacket() : base(CSOffsets.CSNotifySubZonePacket, 1)
         {
         }
 

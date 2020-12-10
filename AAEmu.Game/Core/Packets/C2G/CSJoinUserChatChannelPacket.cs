@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSJoinUserChatChannelPacket : GamePacket
     {
-        public CSJoinUserChatChannelPacket() : base(0x061, 1)
+        public CSJoinUserChatChannelPacket() : base(CSOffsets.CSJoinUserChatChannelPacket, 1)
         {
         }
 

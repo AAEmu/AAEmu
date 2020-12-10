@@ -1,5 +1,5 @@
 ﻿using System;
-
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
 using NLog;
@@ -25,6 +25,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             // TODO ...
             _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            if (caster is Character character)
+            {
+                character.IsInPostCast = true;
+                character.LastCast = DateTime.Now;
+            }
         }
     }
 }

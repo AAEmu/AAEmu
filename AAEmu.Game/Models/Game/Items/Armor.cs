@@ -150,6 +150,8 @@ namespace AAEmu.Game.Models.Game.Items
                 parameters["item_grade"] = grade.WearableArmor;
                 var res = formula.Evaluate(parameters);
                 res = res * template.KindTemplate.ArmorRatio * 0.0099999998f;
+                if (TemperPhysical > 100)
+                    res = res * (TemperPhysical / 100.0f);
                 return (int) (res * template.SlotTemplate.Coverage * 0.0099999998f);
             }
         }
@@ -166,6 +168,8 @@ namespace AAEmu.Game.Models.Game.Items
                 parameters["item_grade"] = grade.WearableMagicResistance;
                 var res = formula.Evaluate(parameters);
                 res = res * template.KindTemplate.MagicResistanceRatio * 0.0099999998f;
+                if (TemperMagical > 100)
+                    res = res * (TemperMagical / 100.0f);
                 return (int) (res * template.SlotTemplate.Coverage * 0.0099999998f);
             }
         }

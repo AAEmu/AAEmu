@@ -28,8 +28,19 @@ namespace AAEmu.Game.Models.Game.Units
         public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
+
+        public override float ModelSize
+        {
+            get
+            {
+                return ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
+            }
+        }
+
         public byte Level { get; set; }
         public int Hp { get; set; }
+        [UnitAttribute(UnitAttribute.GlobalCooldownMul)]
+        public virtual float GlobalCooldownMul { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.MaxHealth)]
         public virtual int MaxHp { get; set; }
         [UnitAttribute(UnitAttribute.HealthRegen)]
@@ -43,6 +54,8 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int MpRegen { get; set; }
         [UnitAttribute(UnitAttribute.PersistentManaRegen)]
         public virtual int PersistentMpRegen { get; set; } = 30;
+        [UnitAttribute(UnitAttribute.CastingTimeMul)]
+        public virtual float CastTimeMul { get; set; } = 1f;
         public virtual float LevelDps { get; set; }
         [UnitAttribute(UnitAttribute.MainhandDps)]
         public virtual int Dps { get; set; }
@@ -63,33 +76,43 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.HealDpsInc)]
         public virtual int HDpsInc { get; set; }
         [UnitAttribute(UnitAttribute.MeleeAntiMissMul)]
-        public virtual float MeleeAccuracy { get; set; }
+        public virtual float MeleeAccuracy { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.MeleeCritical)]
         public virtual float MeleeCritical { get; set; }
         [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
         public virtual float MeleeCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.MeleeCriticalMul)]
-        public virtual float MeleeCriticalMul { get; set; }
+        public virtual float MeleeCriticalMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.RangedAntiMiss)]
-        public virtual float RangedAccuracy { get; set; }
+        public virtual float RangedAccuracy { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.RangedCritical)]
         public virtual float RangedCritical { get; set; }
         [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
         public virtual float RangedCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.RangedCriticalMul)]
-        public virtual float RangedCriticalMul { get; set; }
+        public virtual float RangedCriticalMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.SpellAntiMiss)]
-        public virtual float SpellAccuracy { get; set; }
+        public virtual float SpellAccuracy { get; set; } = 100f;
         [UnitAttribute(UnitAttribute.SpellCritical)]
         public virtual float SpellCritical { get; set; }
         [UnitAttribute(UnitAttribute.SpellCriticalBonus)]
         public virtual float SpellCriticalBonus { get; set; }
         [UnitAttribute(UnitAttribute.SpellCriticalMul)]
-        public virtual float SpellCriticalMul { get; set; }
+        public virtual float SpellCriticalMul { get; set; } = 1f;
+        [UnitAttribute(UnitAttribute.HealCritical)]
+        public virtual float HealCritical { get; set; }
+        [UnitAttribute(UnitAttribute.HealCriticalBonus)]
+        public virtual float HealCriticalBonus { get; set; }
+        [UnitAttribute(UnitAttribute.HealCriticalMul)]
+        public virtual float HealCriticalMul { get; set; }
         [UnitAttribute(UnitAttribute.Armor)]
         public virtual int Armor { get; set; }
         [UnitAttribute(UnitAttribute.MagicResist)]
         public virtual int MagicResistance { get; set; }
+        [UnitAttribute(UnitAttribute.IgnoreArmor)]
+        public virtual int DefensePenetration { get; set; }
+        [UnitAttribute(UnitAttribute.MagicPenetration)]
+        public virtual int MagicPenetration { get; set; }
         [UnitAttribute(UnitAttribute.Dodge)]
         public virtual float DodgeRate { get; set; }
         [UnitAttribute(UnitAttribute.MeleeParry)]
@@ -106,6 +129,24 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int Flexibility { get; set; }
         [UnitAttribute(UnitAttribute.Facets)]
         public virtual int Facets { get; set; }
+        [UnitAttribute(UnitAttribute.MeleeDamageMul)]
+        public virtual float MeleeDamageMul { get; set; }
+        [UnitAttribute(UnitAttribute.RangedDamageMul)]
+        public virtual float RangedDamageMul { get; set; }
+        [UnitAttribute(UnitAttribute.SpellDamageMul)]
+        public virtual float SpellDamageMul { get; set; }
+        [UnitAttribute(UnitAttribute.IncomingHealMul)]
+        public virtual float IncomingHealMul { get; set; }
+        [UnitAttribute(UnitAttribute.HealMul)]
+        public virtual float HealMul { get; set; }
+        [UnitAttribute(UnitAttribute.IncomingDamageMul)]
+        public virtual float IncomingDamageMul { get; set; } = 1f;
+        [UnitAttribute(UnitAttribute.IncomingMeleeDamageMul)]
+        public virtual float IncomingMeleeDamageMul { get; set; } = 1f;
+        [UnitAttribute(UnitAttribute.IncomingRangedDamageMul)]
+        public virtual float IncomingRangedDamageMul { get; set; } = 1f;
+        [UnitAttribute(UnitAttribute.IncomingSpellDamageMul)]
+        public virtual float IncomingSpellDamageMul { get; set; } = 1f;
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
@@ -141,6 +182,7 @@ namespace AAEmu.Game.Models.Game.Units
         public Simulation Simulation { get; set; }
         
         public UnitProcs Procs { get; set; }
+        public object ChargeLock { get; set; }
 
         public Unit()
         {
@@ -150,6 +192,7 @@ namespace AAEmu.Game.Models.Game.Units
             IsInBattle = false;
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
             Equipment.ContainerSize = 28;
+            ChargeLock = new object();
         }
 
         public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
@@ -167,7 +210,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (Hp <= 0)
                 return;
 
-            var absorptionEffects = Effects.GetAbsorptionEffects().ToList();
+            var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
             if (absorptionEffects.Count > 0)
             {
                 // Handle damage absorb
@@ -206,8 +249,14 @@ namespace AAEmu.Game.Models.Game.Units
 
         public virtual void DoDie(Unit killer)
         {
-            Effects.RemoveEffectsOnDeath();
+            InterruptSkills();
+
+            Events.OnDeath(this, new OnDeathArgs { });
+            Buffs.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
+            if (killer == this)
+                return;
+
             var lootDropItems = ItemManager.Instance.CreateLootDropItems(ObjId);
             if (lootDropItems.Count > 0)
             {
@@ -241,8 +290,6 @@ namespace AAEmu.Game.Models.Game.Units
 
                 killer.CurrentTarget = null;
             }
-
-            Events.OnDeath(this, new OnDeathArgs { });
         }
 
         private async void StopAutoSkill(Unit character)
@@ -262,12 +309,12 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void StartRegen()
         {
-            if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp || Hp == 0)
-            {
-                return;
-            }
-            _regenTask = new UnitPointsRegenTask(this);
-            TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+            // if (_regenTask != null || Hp >= MaxHp && Mp >= MaxMp || Hp == 0)
+            // {
+            //     return;
+            // }
+            // _regenTask = new UnitPointsRegenTask(this);
+            // TaskManager.Instance.Schedule(_regenTask, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
         }
 
         public async void StopRegen()
@@ -292,11 +339,11 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.RETRIBUTION_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
-                Effects.AddEffect(new Effect(this, this, casterObj, buff, null, DateTime.Now));
+                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
             }
             else
             {
-                Effects.RemoveBuff((uint) BuffConstants.RETRIBUTION_BUFF);
+                Buffs.RemoveBuff((uint) BuffConstants.RETRIBUTION_BUFF);
             }
         }
 
@@ -307,11 +354,11 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.BLOODLUST_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
-                Effects.AddEffect(new Effect(this, this, casterObj, buff, null, DateTime.Now));
+                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
             }
             else
             {
-                Effects.RemoveBuff((uint) BuffConstants.BLOODLUST_BUFF);
+                Buffs.RemoveBuff((uint) BuffConstants.BLOODLUST_BUFF);
             }
             BroadcastPacket(new SCForceAttackSetPacket(ObjId, ForceAttack), true);
         }
@@ -358,6 +405,19 @@ namespace AAEmu.Game.Models.Game.Units
             }
             return result;
         }
+
+        protected double CalculateWithBonuses(double value, UnitAttribute attr)
+        {
+            foreach (var bonus in GetBonuses(attr))
+            {
+                if (bonus.Template.ModifierType == UnitModifierType.Percent)
+                    value += (value * bonus.Value / 100f);
+                else
+                    value += bonus.Value;
+            }
+            return value;
+        }
+
         public void SendPacket(GamePacket packet)
         {
             Connection?.SendPacket(packet);
@@ -370,13 +430,16 @@ namespace AAEmu.Game.Models.Game.Units
         
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
+            if (Position == baseUnit.Position)
+                return 0.0f;
+            
             var rawDist = MathUtil.CalculateDistance(this.Position, baseUnit.Position, includeZAxis);
 
             rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
             if (baseUnit is Unit unit)
                 rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
             
-            return rawDist;
+            return Math.Max(rawDist, 0);
         }
 
         public virtual int GetAbLevel(AbilityType type)
@@ -409,5 +472,37 @@ namespace AAEmu.Game.Models.Game.Units
             return "FailedParse";
         }
         */
+
+        public override void InterruptSkills()
+        {
+            ActivePlotState?.RequestCancellation();
+            if (SkillTask == null)
+                return;
+            switch (SkillTask)
+            {
+                case EndChannelingTask ect:
+                    ect.Skill.Stop(this, ect._channelDoodad);
+                    break;
+                default:
+                    SkillTask.Skill.Stop(this);
+                    break;
+            }
+        }
+
+        public bool IsDead
+        {
+            get
+            {
+                return Hp <= 0;
+            }
+        }
+
+        public bool NeedsRegen
+        {
+            get
+            {
+                return Hp < MaxHp || Mp < MaxMp;
+            }
+        }
     }
 }

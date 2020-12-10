@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellItemsPacket : GamePacket
     {
-        public CSSellItemsPacket() : base(0x0b0, 1)
+        public CSSellItemsPacket() : base(CSOffsets.CSSellItemsPacket, 1)
         {
         }
 

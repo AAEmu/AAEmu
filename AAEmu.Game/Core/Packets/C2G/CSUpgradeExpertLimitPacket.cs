@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUpgradeExpertLimitPacket : GamePacket
     {
-        public CSUpgradeExpertLimitPacket() : base(0x0ff, 1)
+        public CSUpgradeExpertLimitPacket() : base(CSOffsets.CSUpgradeExpertLimitPacket, 1)
         {
         }
 

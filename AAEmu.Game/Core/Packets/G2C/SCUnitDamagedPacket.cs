@@ -12,6 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _targetId;
         private readonly int _damage;
         private readonly int _absorbed;
+        public int _manaBurn;
         
         public byte HoldableId { get; set; }
         public SkillHitType HitType { get; set; }
@@ -35,9 +36,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(_targetId);
             stream.Write((byte)0); // crimeState
             stream.WritePisc(_damage, _absorbed, 0);
-            stream.WritePisc(0, 0, 0);
+            stream.WritePisc(0, 0, _manaBurn);
             stream.Write(HoldableId); // hol
             stream.Write((ushort)(288 | (ushort)HitType)); // de
+            // stream.Write((ushort)623);
             stream.Write((byte)1); // flag
             stream.Write((byte)1); // result -> to debug info
             // TODO debug info

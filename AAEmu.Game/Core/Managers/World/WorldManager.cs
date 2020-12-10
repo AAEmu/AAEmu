@@ -43,7 +43,7 @@ namespace AAEmu.Game.Core.Managers.World
         Was originally set to 1, recommended 3 and max 5
         anything higher is overkill as you can't target it anymore in the client at that distance
         */
-        public const sbyte REGION_NEIGHBORHOOD_SIZE = 3;
+        public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
 
         public WorldManager()
         {
@@ -487,14 +487,17 @@ namespace AAEmu.Game.Core.Managers.World
             return result;
         }
 
-        public List<T> GetAround<T>(GameObject obj, float radius) where T : class
+        public List<T> GetAround<T>(GameObject obj, float radius, bool useModelSize = false) where T : class
         {
             var result = new List<T>();
             if (obj.Region == null)
                 return result;
 
+            if (useModelSize)
+                radius += obj.ModelSize;
+
             foreach (var neighbor in obj.Region.GetNeighbors())
-                neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius);
+                neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius, useModelSize);
 
             return result;
         }
@@ -507,12 +510,13 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 var radius = shape.Value1;
                 var height = shape.Value2;
-                return GetAround<T>(obj, radius);
+                return GetAround<T>(obj, radius, true);
             }
             else if(shape.Type == AreaShapeType.Cuboid)
             {
+                var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
                 _log.Warn("AreaShape[Cuboid] Not Implemented.");
-                return GetAround<T>(obj, 5);
+                return GetAround<T>(obj, (float) diagonal, true);
             }
             else
             {

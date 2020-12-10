@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSearchListPacket : GamePacket
     {
-        public CSSearchListPacket() : base(0x100, 1)
+        public CSSearchListPacket() : base(CSOffsets.CSSearchListPacket, 1)
         {
         }
 

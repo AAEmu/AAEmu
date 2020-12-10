@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLeaveTeamPacket : GamePacket
     {
-        public CSLeaveTeamPacket() : base(0x07d, 1)
+        public CSLeaveTeamPacket() : base(CSOffsets.CSLeaveTeamPacket, 1)
         {
         }
 

@@ -2,16 +2,16 @@
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class AmountUnk01 : ItemTask
+    public class ChangeGamePoint : ItemTask
     {
         private readonly byte _kind;
         private readonly int _amount;
 
-        public AmountUnk01(byte kind, int amount)
+        public ChangeGamePoint(byte kind, int amount)
         {
             _amount = amount;
             _kind = kind;
-            _type = 3;
+            _type = ItemAction.ChangeGamePoint;
         }
 
         public override PacketStream Write(PacketStream stream)

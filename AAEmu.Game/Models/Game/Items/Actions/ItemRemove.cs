@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemRemove(Item item)
         {
-            _type = 7;
+            _type = ItemAction.Remove;
 
             _itemId = item.Id;
             _slotType = item.SlotType;

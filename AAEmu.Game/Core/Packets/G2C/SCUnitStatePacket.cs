@@ -209,6 +209,14 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write((sbyte)-1);   // point
                 }
             }
+            else if (_unit is Slave slave)
+            {
+                stream.Write(slave.AttachPointId);
+                if (slave.AttachPointId > -1)
+                {
+                    stream.WriteBc(slave.OwnerObjId);
+                }
+            }
             else
             {
                 stream.Write((sbyte)-1);   // point
@@ -428,25 +436,25 @@ namespace AAEmu.Game.Core.Packets.G2C
                 }
             }
 
-            var goodBuffs = new List<Effect>();
-            var badBuffs = new List<Effect>();
-            var hiddenBuffs = new List<Effect>();
+            var goodBuffs = new List<Buff>();
+            var badBuffs = new List<Buff>();
+            var hiddenBuffs = new List<Buff>();
 
             // TODO: Fix the patron and auction house license buff issue
             if (_unit is Character)
             {
-                if (!_unit.Effects.CheckBuff(8000011)) //TODO Wrong place
+                if (!_unit.Buffs.CheckBuff(8000011)) //TODO Wrong place
                 {
-                    _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
+                    _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
                 }
 
-                if (!_unit.Effects.CheckBuff(8000012)) //TODO Wrong place
+                if (!_unit.Buffs.CheckBuff(8000012)) //TODO Wrong place
                 {
-                    _unit.Effects.AddEffect(new Effect(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
+                    _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
                 }
             }
 
-            _unit.Effects.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
+            _unit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
 
             stream.Write((byte)goodBuffs.Count); // TODO max 32
             foreach (var effect in goodBuffs)

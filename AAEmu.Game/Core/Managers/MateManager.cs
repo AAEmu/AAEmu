@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mate;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -111,7 +112,7 @@ namespace AAEmu.Game.Core.Managers
                 mateInfo.Att1 = character.ObjId;
                 mateInfo.Reason1 = reason;
             }
-
+            character.Buffs.TriggerRemoveOn(BuffRemoveOn.Mount);
             _log.Debug("MountMate. mountTlId: {0}, att1: {1}, att2 {2}, reason: {3}", mateInfo.TlId, mateInfo.Att1, mateInfo.Att2, reason);
         }
 
@@ -143,6 +144,7 @@ namespace AAEmu.Game.Core.Managers
 
             character.Events.OnUnmount(character, new OnUnmountArgs { });
 
+            character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
             _log.Debug("UnMountMate. mountTlId: {0}, objId: {1}, att: {2}, reason: {3}", mateInfo.TlId, targetObj.ObjId, unMounted, reason);
         }
 

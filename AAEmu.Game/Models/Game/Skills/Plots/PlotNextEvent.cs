@@ -69,15 +69,15 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                 .Max(o => (int?)o.Value[2]) ?? 0;
         }
 
-        public int GetDelay(PlotState instance, PlotTargetInfo eventInstance, PlotNode node)
+        public int GetDelay(PlotState state, PlotTargetInfo eventInstance, PlotNode node)
         {
-            var animTime = GetAnimDelay(node.Event.Effects);
+            var animTime = (int)(GetAnimDelay(node.Event.Effects) * (state.Caster.GlobalCooldownMul/100f));
             var projectileTime = GetProjectileDelay(eventInstance.Source, eventInstance.Target);
             var skillCtrlTime = GetSkillControllerDelay(node);
             var delay = animTime + projectileTime + skillCtrlTime;
             if (Casting)
-                delay += (int)instance.Caster.ApplySkillModifiers(instance.ActiveSkill, Static.SkillAttribute.CastTime,
-                    Delay);
+                delay += (int)(state.Caster.ApplySkillModifiers(state.ActiveSkill, Static.SkillAttribute.CastTime,
+                    Delay) * state.Caster.CastTimeMul);
             else
                 delay += Delay;
             return Math.Clamp(delay, 0, int.MaxValue);

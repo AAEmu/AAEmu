@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBuyHousePacket : GamePacket
     {
-        public CSBuyHousePacket() : base(0x060, 1) //TODO 1.0 opcode: 0x05e
+        public CSBuyHousePacket() : base(CSOffsets.CSBuyHousePacket, 1)
         {
         }
 

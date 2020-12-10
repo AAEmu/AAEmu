@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemRemoveSlot(Item item)
         {
-            _type = 0xD; // 13
+            _type = ItemAction.Seize; // 13
 
             _itemId = item.Id;
             _slotType = item.SlotType;
@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemRemoveSlot(ulong itemId,SlotType slotType,byte slot)
         {
-            _type = 0xD; // 13
+            _type = ItemAction.Seize; // 13
 
             _itemId = itemId;
             _slotType = slotType;

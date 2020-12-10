@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRemoveBuffPacket : GamePacket
     {
-        public CSRemoveBuffPacket() : base(0x055, 1)
+        public CSRemoveBuffPacket() : base(CSOffsets.CSRemoveBuffPacket, 1)
         {
         }
 
@@ -20,15 +20,11 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (Connection.ActiveChar.ObjId != objId)
                 return;
-            var effect = Connection.ActiveChar.Effects.GetEffectByIndex(buffId);
+            var effect = Connection.ActiveChar.Buffs.GetEffectByIndex(buffId);
             if (effect == null)
                 return;
-            if (effect.Template is BuffTemplate template)
-                if (template.Kind == BuffKind.Good)
-                    effect.Exit();
-            if (effect.Template is BuffEffect buffEffect)
-                if (buffEffect.Buff.Kind == BuffKind.Good)
-                    effect.Exit();
+            if (effect.Template.Kind == BuffKind.Good)
+                effect.Exit();
         }
     }
 }

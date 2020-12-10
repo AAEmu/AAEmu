@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRepairPetItemsPacket : GamePacket
     {
-        public CSRepairPetItemsPacket() : base(0x0b5, 1)
+        public CSRepairPetItemsPacket() : base(CSOffsets.CSRepairPetItemsPacket, 1)
         {
         }
 

@@ -27,7 +27,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(item.Grade);
                 stream.Write((byte)0);
                 stream.Write(item.Count);
-                stream.Write(item.DetailType);
+                stream.Write((byte)item.DetailType);
                 stream.Write(item.CreateTime);
                 stream.Write(item.LifespanMins);
                 stream.Write(item.MadeUnitId);

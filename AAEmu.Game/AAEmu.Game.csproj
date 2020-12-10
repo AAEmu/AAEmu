@@ -35,7 +35,9 @@
     </ItemGroup>
     
     <ItemGroup>
+        <PackageReference Include="Discord.Net" Version="2.2.0" />
         <PackageReference Include="Jace" Version="0.9.2" />
+        <PackageReference Include="JitterPhysics" Version="0.2.0.20" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="2.10.0" />
         <PackageReference Include="Microsoft.Data.Sqlite" Version="2.2.1" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
@@ -64,6 +66,9 @@
 
     <ItemGroup>
       <None Update="Scripts\Commands\ReloadConfigs.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
+      <None Update="Scripts\Commands\ClearCombat.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\TestFSets.cs">

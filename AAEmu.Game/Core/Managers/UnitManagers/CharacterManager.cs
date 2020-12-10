@@ -81,10 +81,65 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return null;
         }
 
+        public void CombatTick(TimeSpan delta)
+        {
+            //Not sure if we should put htis here or world
+            foreach(var character in WorldManager.Instance.GetAllCharacters())
+            {
+                if (character.IsInCombat && character.LastCombatActivity.AddSeconds(30) < DateTime.Now)
+                {
+                    character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
+                    character.IsInCombat = false;
+                }
+                
+                if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.Now)
+                {
+                    character.IsInPostCast = false;
+                }
+            }
+        }
+
+        public void RegenTick(TimeSpan delta)
+        {
+            foreach (var character in WorldManager.Instance.GetAllCharacters())
+            {
+                if (character.IsDead || !character.NeedsRegen || character.IsDrowning)
+                    continue;
+
+                if (character.IsInCombat)
+                    character.Hp += character.PersistentHpRegen;
+                else
+                    character.Hp += character.HpRegen;
+
+                if (character.IsInPostCast)
+                    character.Mp += character.PersistentMpRegen;
+                else
+                    character.Mp += character.MpRegen;
+
+                character.Hp = Math.Min(character.Hp, character.MaxHp);
+                character.Mp = Math.Min(character.Mp, character.MaxMp);
+                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+            }
+        }
+        
+        public void BreathTick(TimeSpan delta)
+        {
+            foreach (var character in WorldManager.Instance.GetAllCharacters())
+            {
+                if(character.IsDead || !character.IsUnderWater)
+                    continue;
+                
+                character.DoChangeBreath();
+            }
+        }
+
         public void Load()
         {
             Log.Info("Loading character templates...");
 
+            TickManager.Instance.OnTick.Subscribe(BreathTick, TimeSpan.FromMilliseconds(1000));
+            TickManager.Instance.OnTick.Subscribe(CombatTick, TimeSpan.FromMilliseconds(1000));
+            TickManager.Instance.OnTick.Subscribe(RegenTick, TimeSpan.FromMilliseconds(1000));
             using (var connection = SQLite.CreateConnection())
             {
                 var temp = new Dictionary<uint, byte>();

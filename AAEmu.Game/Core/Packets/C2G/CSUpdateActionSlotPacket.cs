@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUpdateActionSlotPacket : GamePacket
     {
-        public CSUpdateActionSlotPacket() : base(0x0b6, 1)
+        public CSUpdateActionSlotPacket() : base(CSOffsets.CSUpdateActionSlotPacket, 1)
         {
         }
 

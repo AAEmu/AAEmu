@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Skills;
+﻿using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.Skills
@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Tasks.Skills
 
         public override void Execute()
         {
-            _skill.Use(_caster, _casterCaster, _targetCaster, _skillObject);
+            _skill.Use(_caster, _casterCaster, _targetCaster, _skillObject, true);
         }
     }
 }

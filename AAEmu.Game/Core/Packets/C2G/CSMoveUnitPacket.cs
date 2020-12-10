@@ -1,47 +1,96 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Collections.Generic;
+using System.Linq;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Skills.Effects;
-using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMoveUnitPacket : GamePacket
     {
-        public CSMoveUnitPacket() : base(0x089, 1)
+        private uint _objId;
+        private MoveType _moveType;
+        
+        public CSMoveUnitPacket() : base(CSOffsets.CSMoveUnitPacket, 1)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            var objId = stream.ReadBc();
-            var myObjId = Connection.ActiveChar.ObjId;
+            _objId = stream.ReadBc();
+            
             var type = (MoveTypeEnum)stream.ReadByte();
-            var moveType = MoveType.GetType(type);
-            stream.Read(moveType);
+            _moveType = MoveType.GetType(type);
+            stream.Read(_moveType);
+        }
 
-            if (objId != myObjId) // Can be mate
+        public override void Execute()
+        {
+            // TODO: We can probably rewrite this
+            if (_objId != Connection.ActiveChar.ObjId) // Can be mate
             {
-                var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(objId);
+                switch (_moveType)
+                {
+                    case ShipRequestMoveType srmt:
+                    {
+                        // TODO : Get by ObjId
+                        var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+                        if (slave == null)
+                            return;
+
+                        slave.ThrottleRequest = srmt.Throttle;
+                        slave.SteeringRequest = srmt.Steering;
+                        break;
+                    }
+                    case VehicleMoveType vmt:
+                    {
+                        var (rotDegX, rotDegY, rotDegZ) =
+                            MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
+                        var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rotDegX, rotDegY, rotDegZ);
+
+                        var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+                        if (slave == null)
+                            return;
+                    
+                        slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
+                        slave.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
+                        break;
+                    }
+                    // TODO : check target has Telekinesis buff
+                    case UnitMoveType dmt:
+                    {
+                        var unit = WorldManager.Instance.GetUnit(_objId);
+                        if (unit == null)
+                            break;
+                        unit.SetPosition(dmt.X, dmt.Y, dmt.Z);
+                        unit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
+                        break;
+                    }
+                }
+
+                var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(_objId);
                 if (mateInfo == null) return;
 
-                RemoveEffects(mateInfo, moveType);
-                mateInfo.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                mateInfo.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
+                RemoveEffects(mateInfo, _moveType);
+                mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
 
+                var movements = new List<(uint, MoveType)> {(_objId, _moveType)};
+
+                // Att1 & Att2 should be handled by mate.SetPosition, no need for them to be here
                 if (mateInfo.Att1 > 0)
                 {
-
                     var owner = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att1);
                     if (owner != null)
                     {
-                        RemoveEffects(owner, moveType);
-                        owner.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                        owner.BroadcastPacket(new SCOneUnitMovementPacket(owner.ObjId, moveType), false);
+                        RemoveEffects(owner, _moveType);
+                        owner.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                        movements.Add((owner.ObjId, _moveType));
                     }
                 }
 
@@ -50,47 +99,49 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var passenger = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att2);
                     if (passenger != null)
                     {
-                        RemoveEffects(passenger, moveType);
-                        passenger.SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                        passenger.BroadcastPacket(new SCOneUnitMovementPacket(passenger.ObjId, moveType), false);
+                        RemoveEffects(passenger, _moveType);
+                        passenger.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                        movements.Add((passenger.ObjId, _moveType));
                     }
                 }
+                
+                mateInfo.BroadcastPacket(new SCUnitMovementsPacket(movements.ToArray()), false);
             }
             else
             {
-                RemoveEffects(Connection.ActiveChar, moveType);
+                RemoveEffects(Connection.ActiveChar, _moveType);
 
-                // This will allow you to walk on a boat, but crashes other clients. Not sure why yet.
-                if ((moveType.Flags & 0x20) != 0 && (moveType is UnitMoveType mType))
+                if (!(_moveType is UnitMoveType mType))
+                    return;
+                
+                if ((mType.ActorFlags & 0x20) != 0)
                 {
                     Connection
                         .ActiveChar
-                        .SetPosition(mType.X2 + mType.X, mType.Y2 + mType.Y, mType.Z2 + mType.Z, mType.RotationX, mType.RotationY, mType.RotationZ);
+                        .SetPosition(mType.X2, mType.Y2, mType.Z2, mType.RotationX, mType.RotationY, mType.RotationZ);
+
+                    //do we need it for boats?
+                    if (mType.FallVel > 0)
+                        Connection.ActiveChar.DoFallDamage(mType.FallVel);
                 }
                 else
                 {
                     Connection
                         .ActiveChar
-                        .SetPosition(moveType.X, moveType.Y, moveType.Z, moveType.RotationX, moveType.RotationY, moveType.RotationZ);
-                    
+                        .SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+
+                    if (mType.FallVel > 0)
+                        Connection.ActiveChar.DoFallDamage(mType.FallVel);
                 }
-                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(objId, moveType), false);
+                
+                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, _moveType), false);
             }
         }
 
         private static void RemoveEffects(BaseUnit unit, MoveType moveType)
         {
             if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
-            {
-                var effects = unit.Effects.GetEffectsByType(typeof(BuffTemplate));
-                foreach (var effect in effects)
-                    if (((BuffTemplate)effect.Template).RemoveOnMove)
-                        effect.Exit();
-                effects = unit.Effects.GetEffectsByType(typeof(BuffEffect));
-                foreach (var effect in effects)
-                    if (((BuffEffect)effect.Template).Buff.RemoveOnMove)
-                        effect.Exit();
-            }
+                unit.Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
         }
     }
 }

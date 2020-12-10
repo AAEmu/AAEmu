@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 if (npc.TemplateId != NpcId)
                     continue;
-                npc.Effects.RemoveAllEffects();
+                npc.Buffs.RemoveAllEffects();
                 npc.Delete();
             }
         }

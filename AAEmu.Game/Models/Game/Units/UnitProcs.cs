@@ -1,3 +1,4 @@
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
@@ -23,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             var proc = new ItemProc(procId);
             _procs.Add(proc);
-            if (_procsByChanceKind.ContainsKey(proc.Template.ChanceKind))
+            if (!_procsByChanceKind.ContainsKey(proc.Template.ChanceKind))
                 _procsByChanceKind.Add(proc.Template.ChanceKind, new List<ItemProc>());
             _procsByChanceKind[proc.Template.ChanceKind].Add(proc);
         }
@@ -44,7 +45,11 @@ namespace AAEmu.Game.Models.Game.Units
             
             foreach (var proc in procs)
             {
+                if (proc.LastProc.AddSeconds(proc.Template.CooldownSec) <= DateTime.Now)
+                    continue;
+
                 proc.Apply(Owner);
+                proc.LastProc = DateTime.Now;
             }
         }
     }

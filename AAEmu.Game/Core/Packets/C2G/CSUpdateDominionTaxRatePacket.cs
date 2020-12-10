@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUpdateDominionTaxRatePacket : GamePacket
     {
-        public CSUpdateDominionTaxRatePacket() : base(0x012, 1)
+        public CSUpdateDominionTaxRatePacket() : base(CSOffsets.CSUpdateDominionTaxRatePacket, 1)
         {
         }
 

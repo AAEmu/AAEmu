@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSConstructHouseTaxPacket : GamePacket
     {
-        public CSConstructHouseTaxPacket() : base(0x056, 1)
+        public CSConstructHouseTaxPacket() : base(CSOffsets.CSConstructHouseTaxPacket, 1)
         {
         }
 

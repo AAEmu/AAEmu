@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSelectCharacterPacket : GamePacket
     {
-        public CSSelectCharacterPacket() : base(0x025, 1)
+        public CSSelectCharacterPacket() : base(CSOffsets.CSSelectCharacterPacket, 1)
         {
         }
 

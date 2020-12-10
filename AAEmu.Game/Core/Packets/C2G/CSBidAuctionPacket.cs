@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBidAuctionPacket : GamePacket
     {
-        public CSBidAuctionPacket() : base(0x0b9, 1)
+        public CSBidAuctionPacket() : base(CSOffsets.CSBidAuctionPacket, 1)
         {
         }
 

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSConvertItemLookPacket : GamePacket
     {
-        public CSConvertItemLookPacket() : base(0x049, 1)
+        public CSConvertItemLookPacket() : base(CSOffsets.CSConvertItemLookPacket, 1)
         {
         }
 

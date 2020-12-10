@@ -29,8 +29,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (caster is Character character)
             {
                 _log.Debug("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
-                var manaCost = character.Modifiers.ApplyModifiers(skill, SkillAttribute.ManaCost, value2);
+                // TODO: Value1 is used by Mana Stars, value2 is used by other skills. They are never used both at once.
+                // I think value1 is fixed, and value2 is based on skill level somehow.
+                var manaCost = character.SkillModifiersCache.ApplyModifiers(skill, SkillAttribute.ManaCost, value1 + value2);
                 character.ReduceCurrentMp(null, (int)manaCost);
+                
+                character.LastCast = DateTime.Now;
+                character.IsInPostCast = true;
                 // TODO / 10
             }
         }

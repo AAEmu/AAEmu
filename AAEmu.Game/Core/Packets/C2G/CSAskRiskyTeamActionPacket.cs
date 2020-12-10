@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAskRiskyTeamActionPacket : GamePacket
     {
-        public CSAskRiskyTeamActionPacket() : base(0x087, 1)
+        public CSAskRiskyTeamActionPacket() : base(CSOffsets.CSAskRiskyTeamActionPacket, 1)
         {
         }
 

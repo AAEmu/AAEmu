@@ -35,9 +35,6 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            _log.Warn("SCPlotEventPacket: tl = {0}, eventId {1}, skillId {2}, type {3}, targetId {4}, item {5}, objId {6}, castingTime {7}, targetUnitCount {8}, flag {9}",
-                _tl, _eventId, _skillId, _caster.Type, _target.UnitId, _itemId, _objId, _castingTime, _targetUnitCount, _flag);
-
             stream.Write(_tl);      // tl
             stream.Write(_eventId); // eventId
             stream.Write(_skillId); // skillId

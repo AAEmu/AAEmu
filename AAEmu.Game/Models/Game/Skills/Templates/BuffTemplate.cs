@@ -1,17 +1,24 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates
 {
-    public class BuffTemplate : EffectTemplate
+    public class BuffTemplate
     {
+        public uint Id { get; set; }
+        public uint BuffId => Id;
         public uint AnimStartId { get; set; }
         public uint AnimEndId { get; set; }
         public int Duration { get; set; }
@@ -25,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool RemoveOnSourceDead { get; set; }
         public uint LinkBuffId { get; set; }
         public int TickManaCost { get; set; }
-        public uint StackRuleId { get; set; }
+        public BuffStackRule StackRule { get; set; }
         public int InitMinCharge { get; set; }
         public int InitMaxCharge { get; set; }
         public int MaxStack { get; set; }
@@ -60,7 +67,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public uint GroupId { get; set; }
         public int GroupRank { get; set; }
         public bool PerUnitCreation { get; set; }
-        public float TickAuraRadius { get; set; }
+        public float TickAreaRadius { get; set; }
         public uint TickAreaRelationId { get; set; }
         public bool RemoveOnMove { get; set; }
         public bool UseSourceFaction { get; set; }
@@ -150,82 +157,165 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public bool FreezeShip { get; set; }
         public bool CrowdFriendly { get; set; }
         public bool CrowdHostile { get; set; }
-        public override bool OnActionTime => Tick > 0;
+        public bool OnActionTime => Tick > 0;
 
-        public TickEffect TickEffect { get; set; }
+        public List<TickEffect> TickEffects { get; set; }
         public List<BonusTemplate> Bonuses { get; set; }
         public List<DynamicBonusTemplate> DynamicBonuses { get; set; }
 
         public BuffTemplate()
         {
+            TickEffects = new List<TickEffect>();
             Bonuses = new List<BonusTemplate>();
             DynamicBonuses = new List<DynamicBonusTemplate>();
         }
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
+        public void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            if (RequireBuffId > 0 && !target.Effects.CheckBuff(RequireBuffId))
+            if (RequireBuffId > 0 && !target.Buffs.CheckBuff(RequireBuffId))
                 return; //TODO send error?
-            if (target.Effects.CheckBuffImmune(Id))
+            if (target.Buffs.CheckBuffImmune(Id))
                 return; //TODO  error of immune?
-            target.Effects.AddEffect(new Effect(target, caster, casterObj, this, source?.Skill, time));
+            uint abLevel = 1;
+            if (caster is Character character)
+            {
+                if (source.Skill != null)
+                {
+                    var template = source.Skill.Template;
+                    var abilityLevel = character.GetAbLevel((AbilityType)source.Skill.Template.AbilityId);
+                    if (template.LevelStep != 0)
+                        abLevel = (uint)((abilityLevel / template.LevelStep) * template.LevelStep);
+                    else
+                        abLevel = (uint)template.AbilityLevel;
+
+                    //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen
+                    abLevel = (uint)Math.Max(template.AbilityLevel, (int)abLevel);
+                }
+                else if (source.Buff != null)
+                {
+                    //not sure?
+                }
+            }
+            else
+            {
+                if (source.Skill != null)
+                {
+                    abLevel = (uint)source.Skill.Template.AbilityLevel;
+                }
+            }
+            target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source?.Skill, time) { AbLevel = abLevel });
         }
 
-        public override void Start(Unit caster, BaseUnit owner, Effect effect)
+        public void Start(Unit caster, BaseUnit owner, Buff buff)
         {
             foreach (var template in Bonuses)
             {
                 var bonus = new Bonus();
                 bonus.Template = template;
-                bonus.Value = (int) (template.Value + (template.LinearLevelBonus * (effect.AbLevel / 100)));
-                owner.AddBonus(effect.Index, bonus);
+                bonus.Value = (int) Math.Round(template.Value + (template.LinearLevelBonus * (buff.AbLevel / 100f)));
+                owner.AddBonus(buff.Index, bonus);
             }
 
-            if (effect.Charge == 0)
-                effect.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
+            if (buff.Charge == 0)
+                buff.Charge = Rand.Next(InitMinCharge, InitMaxCharge);
             
-            if (!effect.Passive)
-                owner.BroadcastPacket(new SCBuffCreatedPacket(effect), true);
+            if (!buff.Passive)
+                owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
         }
 
-        public override void TimeToTimeApply(Unit caster, BaseUnit owner, Effect effect)
+        public void TimeToTimeApply(Unit caster, BaseUnit owner, Buff buff)
         {
-            if (TickEffect != null)
+            if (TickAreaRadius > 0)
             {
-                if (TickEffect.TargetBuffTagId > 0 &&
-                    !owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetBuffTagId)))
+                DoAreaTick(caster, owner, buff);
+                return;
+            }
+            foreach (var tickEff in TickEffects)
+            {
+                if (tickEff.TargetBuffTagId > 0 &&
+                    !owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
                     return;
-                if (TickEffect.TargetNoBuffTagId > 0 &&
-                    owner.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(TickEffect.TargetNoBuffTagId)))
+                if (tickEff.TargetNoBuffTagId > 0 &&
+                    owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
                     return;
-                var eff = SkillManager.Instance.GetEffectTemplate(TickEffect.EffectId);
+                var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
                 var targetObj = new SkillCastUnitTarget(owner.ObjId);
                 var skillObj = new SkillObject(); // TODO ?
-                eff.Apply(caster, effect.SkillCaster, owner, targetObj, new CastBuff(effect), null, skillObj, DateTime.Now);
+                eff.Apply(caster, buff.SkillCaster, owner, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
             }
         }
 
-        public override void Dispel(Unit caster, BaseUnit owner, Effect effect, bool replaced = false)
+        public void DoAreaTick(Unit caster, BaseUnit owner, Buff buff)
+        {
+            var units = WorldManager.Instance.GetAround<Unit>(owner, TickAreaRadius);
+
+            if (owner == null)
+                owner = caster;
+
+            var ownerUnit = owner as Unit;
+            if (TickAreaExcludeSource)
+            {
+                if(ownerUnit != null)
+                    units.Remove(ownerUnit);
+            }
+            else
+            {
+                if (!units.Contains(owner) && ownerUnit != null)
+                    units.Add(ownerUnit);
+            }
+            
+            units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, caster, units).ToList();
+
+            var source = caster;
+            //if (TickAreaUseOriginSource)
+                //source = (Unit)owner;
+            var skillObj = new SkillObject(); // TODO ?
+
+
+            foreach(var tickEff in TickEffects)
+            {
+                var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
+
+                foreach (var trg in units)
+                {
+                    if (tickEff.TargetBuffTagId > 0 &&
+                        !trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetBuffTagId)))
+                        continue;
+                    if (tickEff.TargetNoBuffTagId > 0 &&
+                        trg.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
+                        continue;
+
+                    var targetObj = new SkillCastUnitTarget(trg.ObjId);
+                    eff.Apply((Unit)source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
+                }
+            }
+        }
+
+        public void Dispel(Unit caster, BaseUnit owner, Buff buff, bool replaced = false)
         {
             foreach (var template in Bonuses)
-                owner.RemoveBonus(effect.Index, template.Attribute);
-            if (!effect.Passive && !replaced)
-                owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, effect.Index), true);
+                owner.RemoveBonus(buff.Index, template.Attribute);
+            var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
+            foreach (var requiringBuff in requiringBuffs.ToList())
+                requiringBuff.Exit();
+            
+            if (!buff.Passive && !replaced)
+                owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
         }
 
-        public override void WriteData(PacketStream stream)
+        public void WriteData(PacketStream stream, uint abLevel)
         {
-            stream.WritePisc(0, Duration / 10, 0, (long) (Tick / 10)); // unk, Duration, unk / 10, Tick
+            stream.WritePisc(0, GetDuration(abLevel) / 10, 0, (long) (Tick / 10)); // unk, Duration, unk / 10, Tick
         }
 
-        public override int GetDuration()
+        public int GetDuration(uint abLevel)
         {
-            return Duration;
+            return Math.Max(0, (LevelDuration * (int)abLevel) + Duration);
         }
 
-        public override double GetTick()
+        public double GetTick()
         {
             return Tick;
         }

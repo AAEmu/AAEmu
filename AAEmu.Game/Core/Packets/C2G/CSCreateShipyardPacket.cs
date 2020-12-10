@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateShipyardPacket : GamePacket
     {
-        public CSCreateShipyardPacket() : base(0x0fc, 1)
+        public CSCreateShipyardPacket() : base(CSOffsets.CSCreateShipyardPacket, 1)
         {
         }
 

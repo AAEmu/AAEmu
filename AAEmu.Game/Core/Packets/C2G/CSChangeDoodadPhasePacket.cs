@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeDoodadPhasePacket : GamePacket
     {
-        public CSChangeDoodadPhasePacket() : base(0x0e9, 1)
+        public CSChangeDoodadPhasePacket() : base(CSOffsets.CSChangeDoodadPhasePacket, 1)
         {
         }
 

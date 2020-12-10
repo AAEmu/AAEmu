@@ -33,6 +33,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
         public byte AttachPoint { get; set; }
+        public Point AttachPosition { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
         public uint QuestGlow { get; set; } //0 off // 1 on
@@ -67,34 +68,46 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// This "uses" the doodad. Using a doodad means running its functions in doodad_funcs
         /// </summary>
-        public void Use(Unit unit, uint skillId)
+        public void Use(Unit unit, uint skillId, uint recursionDepth = 0)
         {
-            _log.Debug("Using phase {0}", CurrentPhaseId);
+            recursionDepth++;
+            if (recursionDepth % 10 == 0)
+                _log.Warn("Doodad {0} (TemplateId {1}) might be looping indefinitely. {2} recursionDepth.", ObjId, TemplateId, recursionDepth);
+            _log.Trace("Using phase {0}", CurrentPhaseId);
             // Get all doodad_funcs
             var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
 
             // Apply them
             var nextFunc = 0;
             var isUse = false;
-            var startPhase = CurrentPhaseId;
-            foreach (var func in funcs)
+            try
             {
-                if (func.SkillId > 0 && func.SkillId == skillId)
+                foreach (var func in funcs)
                 {
-                    func.Use(unit, this, skillId, func.NextPhase);
-                    if (func.NextPhase != 0) nextFunc = func.NextPhase;
-                    if (func.FuncType == "DoodadFuncUse") isUse = true;
-                }
-                else if (func.SkillId == 0)
-                {
-                    func.Use(unit, this, skillId);
-                    if (func.NextPhase != 0) nextFunc = func.NextPhase;
-                    if (func.FuncType == "DoodadFuncUse") isUse = true;
+                    if (func.SkillId > 0 && func.SkillId == skillId)
+                    {
+                        func.Use(unit, this, skillId, func.NextPhase);
+                        if (func.NextPhase != 0) nextFunc = func.NextPhase;
+                        if (func.FuncType == "DoodadFuncUse") isUse = true;
+                    }
+                    else if (func.SkillId == 0)
+                    {
+                        func.Use(unit, this, skillId);
+                        if (func.NextPhase != 0) nextFunc = func.NextPhase;
+                        if (func.FuncType == "DoodadFuncUse") isUse = true;
+                    }
                 }
             }
+            catch (Exception e)
+            {
+                _log.Fatal(e, "Doodad func crashed !");
+            }
+
+            if (nextFunc == 0)
+                return;
 
             if (isUse)
-                GoToPhaseAndUse(unit, nextFunc, skillId);
+                GoToPhaseAndUse(unit, nextFunc, skillId, recursionDepth);
             else
                 GoToPhase(unit, nextFunc);
         }
@@ -102,23 +115,34 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// <summary>
         /// This executes a doodad's phase. Phase functions start as soon as the doodad switches to a new phase.
         /// </summary>
-        public void DoPhase(Unit unit)
+        public void DoPhase(Unit unit, uint skillId, uint recursionDepth = 0)
         {
-            _log.Debug("Doing phase {0}", CurrentPhaseId);
+            recursionDepth++;
+            if (recursionDepth % 10 == 0)
+                _log.Warn("Doodad {0} (TemplateId {1}) might be phasing indefinitely. {2} recursionDepth.", ObjId, TemplateId, recursionDepth);
+            
+            _log.Trace("Doing phase {0}", CurrentPhaseId);
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
 
             OverridePhase = 0;
-            foreach (var phaseFunc in phaseFuncs)
+            try
             {
-                phaseFunc.Use(unit, this, 0);
-                if (OverridePhase > 0)
-                    break;
+                foreach (var phaseFunc in phaseFuncs)
+                {
+                    phaseFunc.Use(unit, this, skillId);
+                    if (OverridePhase > 0)
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Fatal(e, "Doodad phase crashed!");
             }
 
             if (OverridePhase > 0)
             {
                 CurrentPhaseId = OverridePhase;
-                DoPhase(unit);
+                DoPhase(unit, skillId, recursionDepth);
             }
         }
 
@@ -127,9 +151,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         /// <param name="unit">Unit who triggered the change</param>
         /// <param name="funcGroupId">New phase to go to</param>
-        public void GoToPhase(Unit unit, int funcGroupId)
+        public void GoToPhase(Unit unit, int funcGroupId, uint skillId = 0)
         {
-            _log.Debug("Going to phase {0}", funcGroupId);
+            _log.Trace("Going to phase {0}", funcGroupId);
             if (funcGroupId == -1)
             {
                 // Delete doodad
@@ -138,14 +162,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             else
             {
                 CurrentPhaseId = (uint)funcGroupId;
-                DoPhase(unit);
+                DoPhase(unit, skillId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
             }
         }
 
-        public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId)
+        public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId, uint recursionDepth = 0)
         {
-            _log.Debug("Going to phase {0}", funcGroupId);
+            recursionDepth++;
+            _log.Trace("Going to phase {0} and using it", funcGroupId);
             if (funcGroupId == -1)
             {
                 // Delete doodad
@@ -154,9 +179,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             else
             {
                 CurrentPhaseId = (uint)funcGroupId;
-                DoPhase(unit);
+                DoPhase(unit, skillId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
-                Use(unit, skillId);
+                Use(unit, skillId, recursionDepth);
             }
         }
 
@@ -210,10 +235,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
-            stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
-            stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
-            stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
-            stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
+            if (AttachPoint != 255 && AttachPosition != null)
+            {
+                stream.WritePosition(AttachPosition.X, AttachPosition.Y, AttachPosition.Z);
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationX)); //''
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationY)); //''
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationZ)); //''
+            }
+            else
+            {
+                stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
+                stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
+                stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
+                stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
+            }
+
             stream.Write(Scale); //The size of the object
             stream.Write(false); // hasLootItem
             stream.Write(CurrentPhaseId); // doodad_func_group_id

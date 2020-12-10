@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
     public class CSChangeMateEquipmentPacket : GamePacket
     {
         // TODO fix struct
-        public CSChangeMateEquipmentPacket() : base(0x0a9, 1)
+        public CSChangeMateEquipmentPacket() : base(CSOffsets.CSChangeMateEquipmentPacket, 1)
         {
         }
 
