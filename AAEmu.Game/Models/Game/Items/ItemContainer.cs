@@ -361,9 +361,9 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="amountToAdd">Number of item units to add</param>
         /// <param name="gradeToAdd">Overrides default grade if possible</param>
         /// <returns></returns>
-        public bool AcquireDefaultItem(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd = -1)
+        public bool AcquireDefaultItem(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd = -1, uint crafterId = 0)
         {
-            return AcquireDefaultItemEx(taskType, templateId, amountToAdd, gradeToAdd, out _, out _);
+            return AcquireDefaultItemEx(taskType, templateId, amountToAdd, gradeToAdd, out _, out _, crafterId);
         }
 
         /// <summary>
@@ -375,7 +375,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="gradeToAdd">Overrides default grade if possible</param>
         /// <param name="updatedItemsList">A List of the newly added or updated items</param>
         /// <returns></returns>
-        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList)
+        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId)
         {
             newItemsList = new List<Item>();
             updatedItemsList = new List<Item>();
@@ -422,6 +422,12 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 var addAmount = Math.Min(amountToAdd, template.MaxCount);
                 var newItem = ItemManager.Instance.Create(templateId, addAmount, (byte)gradeToAdd, true);
+                // Add name if marked as crafter (single stack items only)
+                if ((crafterId > 0) && (newItem.Template.MaxCount == 1))
+                {
+                    newItem.MadeUnitId = crafterId;
+                    newItem.WorldId = 1; // TODO: proper world id handling
+                }
                 amountToAdd -= addAmount;
                 var prefSlot = -1;
                 if ((newItem.Template is BackpackTemplate) && (ContainerType == SlotType.Equipment))

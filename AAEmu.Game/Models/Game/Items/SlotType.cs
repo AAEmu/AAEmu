@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Items
         Inventory = 2,
         Bank = 3,
         Trade = 4,
-        Mail = 5
+        Mail = 5,
+        System = 0xFF 
     }
 }

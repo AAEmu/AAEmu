@@ -368,7 +368,7 @@ CREATE TABLE `items` (
   `id` bigint(20) unsigned NOT NULL,
   `type` varchar(100) NOT NULL,
   `template_id` int(11) unsigned NOT NULL,
-  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail') NOT NULL,
+  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System') NOT NULL,
   `slot` int(11) NOT NULL,
   `count` int(11) NOT NULL,
   `details` blob,
