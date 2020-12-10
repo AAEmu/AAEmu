@@ -45,10 +45,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             var targetChar = thisChar;
             if (receiverName != string.Empty)
                 targetChar =  WorldManager.Instance.GetCharacter(receiverName);
-            if (targetChar == null)
+
+            //Disabling gifting for this test
+            //if (targetChar == null)
+            if (thisChar != targetChar)
             {
                 // TODO: Add support for gifting (to offline players)
-                thisChar.SendMessage("Target player must be online to gift!");
+                //thisChar.SendMessage("Target player must be online to gift!");
+                thisChar.SendMessage("Gifting is currently disabled. Sorry!");
                 Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
                 return;
             }
@@ -60,7 +64,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 return;
             }
 
-            var thisCharAaPoints = 10000; // TODO: thisChar.aaPoints;
+            var thisCharAaPoints = CashShopManager.Instance.GetAccountCredits(Connection.AccountId); // TODO: thisChar.aaPoints;
             if (totalCost > thisCharAaPoints)
             {
                 thisChar.SendErrorMessage(ErrorMessageType.IngameShopNotEnoughAaPoint); // Not sure if this is the correct error
@@ -78,12 +82,22 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             foreach(var ci in buyList)
             {
-                if (!targetChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, ci.ItemTemplateId, (int)(ci.BuyCount + ci.BonusCount)))
+                if (CashShopManager.Instance.RemoveCredits(Connection.AccountId, (int)ci.Price))
                 {
-                    // Something went wrong here
-                    targetChar.SendErrorMessage(ErrorMessageType.BagFull);
+                    if (!targetChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, ci.ItemTemplateId, (int)(ci.BuyCount + ci.BonusCount)))
+                    {
+                        // Something went wrong here
+                        if (!CashShopManager.Instance.AddCredits(Connection.AccountId, (int)ci.Price))
+                        {
+                            //Need to make sure this never happens somehow..
+                            _log.Error("Failed to restore credits for failed delivery to AccountId: {0} for Credits: {1}", Connection.AccountId, ci.Price);
+                        }
+                        targetChar.SendErrorMessage(ErrorMessageType.BagFull);
+                    }
                 }
             }
+            Connection.SendPacket(new SCICSCashPointPacket(CashShopManager.Instance.GetAccountCredits(Connection.AccountId)));
+
 
             _log.Warn("ICSBuyGood");
 

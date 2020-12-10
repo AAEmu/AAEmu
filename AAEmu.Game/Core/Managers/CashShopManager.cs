@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -14,6 +15,17 @@ namespace AAEmu.Game.Core.Managers
         private List<CashShopItem> _cashShopItem;
         private Dictionary<uint, CashShopItemDetail> _cashShopItemDetail;
         private Dictionary<uint, object> _locks = new Dictionary<uint, object>();
+
+        public void CreditDisperseTick(TimeSpan delta)
+        {
+            var characters = WorldManager.Instance.GetAllCharacters();
+            
+            foreach(var character in characters)
+            {
+                AddCredits(character.AccountId, 100);
+                character.SendMessage("You have received 100 credits.");
+            }
+        }
 
         public int GetAccountCredits(uint accountId)
         {
@@ -35,7 +47,7 @@ namespace AAEmu.Game.Core.Managers
                         using (var command = connection.CreateCommand())
                         {
                             command.CommandText = "SELECT credits FROM accounts WHERE account_id = @acc_id";
-                            command.Parameters["@acc_id"].Value = accountId;
+                            command.Parameters.AddWithValue("@acc_id", accountId);
                             command.Prepare();
                             using (var reader = command.ExecuteReader())
                             {
@@ -45,8 +57,8 @@ namespace AAEmu.Game.Core.Managers
                                 }
                                 else
                                 {
+                                    reader.Close();
                                     command.CommandText = "INSERT INTO accounts (account_id, credits) VALUES (@acc_id, 0)";
-                                    command.Parameters["@acc_id"].Value = accountId;
                                     command.Prepare();
                                     command.ExecuteNonQuery();
                                     return 0;
@@ -83,9 +95,9 @@ namespace AAEmu.Game.Core.Managers
                         using (var command = connection.CreateCommand())
                         {
                             command.CommandText = 
-                                "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits) ON DUPLICATE KEY UPDATE credits = credits + @credits";
-                            command.Parameters["@acc_id"].Value = accountId;
-                            command.Parameters["@credit_amt"].Value = creditsAmt;
+                                "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits_amt) ON DUPLICATE KEY UPDATE credits = credits + @credits_amt";
+                            command.Parameters.AddWithValue("@acc_id", accountId);
+                            command.Parameters.AddWithValue("@credits_amt", creditsAmt);
                             command.Prepare();
                             if (command.ExecuteNonQuery() > 0)
                                 return true;
@@ -96,7 +108,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e.Message);
+                    _log.Error("{0}\n{1}", e.Message, e.StackTrace);
                     return false;
                 }
             }
@@ -167,6 +179,11 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
+        }
+
+        public void Initialize()
+        {
+            TickManager.Instance.OnTick.Subscribe(CreditDisperseTick, TimeSpan.FromMinutes(0.5));
         }
 
         public List<CashShopItem> GetCashShopItems()
