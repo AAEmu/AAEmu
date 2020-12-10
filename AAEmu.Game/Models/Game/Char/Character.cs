@@ -1237,7 +1237,7 @@ namespace AAEmu.Game.Models.Game.Char
                 expMultiplier = xpm / 100f;
             var totalExp = Math.Round(expMultiplier * exp);
             exp = (int)totalExp;
-            Expirience = Math.Max(Expirience + exp, ExpirienceManager.Instance.GetExpForLevel(55));
+            Expirience += exp;
             if (shouldAddAbilityExp)
                 Abilities.AddActiveExp(exp); // TODO ... or all?
             SendPacket(new SCExpChangedPacket(ObjId, exp, shouldAddAbilityExp));

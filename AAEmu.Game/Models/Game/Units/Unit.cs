@@ -130,15 +130,16 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.Facets)]
         public virtual int Facets { get; set; }
         [UnitAttribute(UnitAttribute.MeleeDamageMul)]
-        public virtual float MeleeDamageMul { get; set; }
+        public virtual float MeleeDamageMul { get; set; } = 1.0f;
         [UnitAttribute(UnitAttribute.RangedDamageMul)]
-        public virtual float RangedDamageMul { get; set; }
+        public virtual float RangedDamageMul { get; set; } = 1.0f;
         [UnitAttribute(UnitAttribute.SpellDamageMul)]
-        public virtual float SpellDamageMul { get; set; }
+        public virtual float SpellDamageMul { get; set; } = 1.0f;
+
         [UnitAttribute(UnitAttribute.IncomingHealMul)]
-        public virtual float IncomingHealMul { get; set; }
+        public virtual float IncomingHealMul { get; set; } = 1.0f;
         [UnitAttribute(UnitAttribute.HealMul)]
-        public virtual float HealMul { get; set; }
+        public virtual float HealMul { get; set; }  = 1.0f;
         [UnitAttribute(UnitAttribute.IncomingDamageMul)]
         public virtual float IncomingDamageMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.IncomingMeleeDamageMul)]
