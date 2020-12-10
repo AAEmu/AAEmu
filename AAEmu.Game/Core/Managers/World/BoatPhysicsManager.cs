@@ -77,11 +77,15 @@ namespace AAEmu.Game.Core.Managers.World
             var shipModel = ModelManager.Instance.GetShipModel(slave.ModelId);
             if (shipModel == null)
                 return;
-            
+
+            var oriY = MathUtil.ConvertDirectionToDegree(slave.Position.RotationZ);
+            oriY -= 90.0f;
+
             var rigidBody = new RigidBody(new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY))
             {
                 Position = new JVector(slave.Position.X - (shipModel.MassBoxSizeX / 2.0f), slave.Position.Z - (shipModel.MassBoxSizeZ / 2.0f), slave.Position.Y - (shipModel.MassBoxSizeY / 2.0f)),
                 // Mass = shipModel.Mass
+                Orientation = JMatrix.CreateRotationY((float) ((float) oriY * (Math.PI / 180.0f)))
             };
                     
             _buoyancy.Add(rigidBody, 3);

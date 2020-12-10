@@ -57,8 +57,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                         var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
                         if (slave == null)
                             return;
-                    
-                        slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
+
+                        slave.Position.RotationX = MathUtil.ConvertRadianToDirection(rotDegX);
+                        slave.Position.RotationY = MathUtil.ConvertRadianToDirection(rotDegY);
+                        slave.Position.RotationZ = MathUtil.ConvertRadianToDirection(rotDegZ);
+                        slave.Move(vmt.X, vmt.Y, vmt.Z);
+                        // slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
                         slave.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
                         break;
                     }

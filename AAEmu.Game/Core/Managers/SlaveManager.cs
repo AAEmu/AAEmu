@@ -149,10 +149,15 @@ namespace AAEmu.Game.Core.Managers
             var objId = ObjectIdManager.Instance.GetNextId();
 
             var spawnPos = owner.Position.Clone();
-            spawnPos.X += slaveTemplate.SpawnXOffset;
-            spawnPos.Y += slaveTemplate.SpawnYOffset;
+            var (x1, y1) = MathUtil.AddDistanceToFront(slaveTemplate.SpawnXOffset, spawnPos.X, spawnPos.Y, owner.Position.RotationZ);
+            var (x2, y2) = MathUtil.AddDistanceToRight(0, x1, y1, owner.Position.RotationZ);
+            spawnPos.X = x2;
+            spawnPos.Y = y2;
             if (slaveTemplate.SlaveKind == SlaveKind.Boat)
                 spawnPos.Z = 100.0f;
+
+            var degZ = MathUtil.ConvertDirectionToDegree(spawnPos.RotationZ);
+            spawnPos.RotationZ = MathUtil.ConvertDegreeToDirection(degZ + 90);
 
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
