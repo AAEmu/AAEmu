@@ -328,7 +328,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if (isUntouchable)
             {
-                if (house.Effects.CheckBuff(BUFF_UNTOUCHABLE))
+                if (house.Buffs.CheckBuff(BUFF_UNTOUCHABLE))
                     return;
 
                 // Permanent Untouchable buff, should only be removed when failed tax payment, or demolishing by hand
@@ -336,7 +336,7 @@ namespace AAEmu.Game.Core.Managers
                 if (protectionBuffTemplate != null)
                 {
                     var casterObj = new Models.Game.Skills.SkillCasterUnit(house.ObjId);
-                    house.Effects.AddEffect(new Models.Game.Skills.Effect(house, house, casterObj,
+                    house.Buffs.AddBuff(new Models.Game.Skills.Buff(house, house, casterObj,
                         protectionBuffTemplate, null, System.DateTime.Now));
                 }
                 else
@@ -347,8 +347,8 @@ namespace AAEmu.Game.Core.Managers
             else
             {
                 // Remove Untouchable if it's enabled
-                if (house.Effects.CheckBuff(BUFF_UNTOUCHABLE))
-                    house.Effects.RemoveBuff(BUFF_UNTOUCHABLE);
+                if (house.Buffs.CheckBuff(BUFF_UNTOUCHABLE))
+                    house.Buffs.RemoveBuff(BUFF_UNTOUCHABLE);
             }
         }
 
@@ -356,14 +356,14 @@ namespace AAEmu.Game.Core.Managers
         {
             if (isDeteriorating)
             {
-                if (!house.Effects.CheckBuff(REMOVAL_DEBUFF))
+                if (!house.Buffs.CheckBuff(REMOVAL_DEBUFF))
                 {
                     // Permanent Untouchable buff, should only be removed when failed tax payment, or demolishing by hand
                     var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate(REMOVAL_DEBUFF);
                     if (protectionBuffTemplate != null)
                     {
                         var casterObj = new Models.Game.Skills.SkillCasterUnit(house.ObjId);
-                        house.Effects.AddEffect(new Models.Game.Skills.Effect(house, house, casterObj,
+                        house.Buffs.AddBuff(new Models.Game.Skills.Buff(house, house, casterObj,
                             protectionBuffTemplate, null, System.DateTime.Now));
                     }
                     else
@@ -375,8 +375,8 @@ namespace AAEmu.Game.Core.Managers
             else
             {
                 // Remove Untouchable if it's enabled
-                if (house.Effects.CheckBuff(REMOVAL_DEBUFF))
-                    house.Effects.RemoveBuff(REMOVAL_DEBUFF);
+                if (house.Buffs.CheckBuff(REMOVAL_DEBUFF))
+                    house.Buffs.RemoveBuff(REMOVAL_DEBUFF);
             }
         }
 

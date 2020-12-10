@@ -52,10 +52,10 @@ namespace AAEmu.Game.Scripts.Commands
             var a0 = args[0].ToLower();
             if ((a0 == "view") || (a0 == "v"))
             {
-                var goodBuffs = new List<Effect>();
-                var badBuffs = new List<Effect>();
-                var hiddenBuffs = new List<Effect>();
-                selectedUnit.Effects.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
+                var goodBuffs = new List<Buff>();
+                var badBuffs = new List<Buff>();
+                var hiddenBuffs = new List<Buff>();
+                selectedUnit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs);
 
                 if (goodBuffs.Count + badBuffs.Count + hiddenBuffs.Count > 0)
                 {
@@ -115,16 +115,16 @@ namespace AAEmu.Game.Scripts.Commands
                 var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
                 targetObj.ObjId = targetUnit.ObjId;
 
-                var newEffect = new Effect(targetUnit, sourceUnit, casterObj, buffTemplate, null, System.DateTime.Now)
+                var newBuff = new Buff(targetUnit, sourceUnit, casterObj, buffTemplate, null, System.DateTime.Now)
                 {
                     AbLevel = abLevel
                 };
-                targetUnit.Effects.AddEffect(newEffect);
+                targetUnit.Buffs.AddBuff(newBuff);
             }
             if (buffIdInt < 0)
             {
-                if (selectedUnit.Effects.CheckBuff(buffId))
-                    selectedUnit.Effects.RemoveBuff(buffId);
+                if (selectedUnit.Buffs.CheckBuff(buffId))
+                    selectedUnit.Buffs.RemoveBuff(buffId);
                 else
                 {
                     character.SendMessage("|cFFFF0000[AddBuff] Target didn't have buff to remove|r", buffId);
