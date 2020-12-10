@@ -52,7 +52,7 @@ namespace AAEmu.Game.Core.Managers
             return _activeSlaves.Where(s => kinds.Contains(s.Value.Template.SlaveKind)).Select(s => s.Value);
         }
 
-        private Slave GetActiveSlaveByObjId(uint objId)
+        public Slave GetActiveSlaveByObjId(uint objId)
         {
             foreach (var slave in _activeSlaves.Values)
             {
@@ -72,12 +72,11 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void UnbindSlave(GameConnection connection, uint tlId)
+        public void UnbindSlave(Character character, uint tlId)
         {
             // TODO
-            var unit = connection.ActiveChar;
             var slave = _tlSlaves[tlId];
-            unit.BroadcastPacket(new SCUnitDetachedPacket(unit.ObjId, 5), true);
+            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, 5), true);
             slave.Bounded = null;
         }
         
@@ -93,7 +92,9 @@ namespace AAEmu.Game.Core.Managers
         {
             var unit = connection.ActiveChar;
             var slave = _tlSlaves[tlId];
-            
+            if (slave.Bounded != null)
+                return;
+                
             unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, slave.ObjId), true);
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, slave.ObjId), true);
             unit.CurrentTarget = slave;
@@ -106,6 +107,9 @@ namespace AAEmu.Game.Core.Managers
         {
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
             if (activeSlaveInfo == null) return;
+            
+            if (activeSlaveInfo.Bounded != null)
+                UnbindSlave(activeSlaveInfo.Bounded, activeSlaveInfo.TlId);
 
             foreach (var doodad in activeSlaveInfo.AttachedDoodads)
             {

@@ -504,7 +504,11 @@ namespace AAEmu.Game.Models.Game.Skills
                         effectedTargets.Add(caster);//Diff between Source and SourceOnce?
                         break;
                     case SkillEffectApplicationMethod.SourceOnce:
-                        effectedTargets.Add(caster);//idk
+                        // TODO: HACKFIX for owner's mark
+                        if (casterCaster.Type == SkillCasterType.Unk3 && targetSelf is Slave)
+                            effectedTargets = targets;
+                        else
+                            effectedTargets.Add(caster);//idk
                         break;
                     case SkillEffectApplicationMethod.SourceToPos:
                         effectedTargets = targets;
