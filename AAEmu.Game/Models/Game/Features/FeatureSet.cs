@@ -16,7 +16,9 @@ namespace AAEmu.Game.Models.Game.Features
         public FeatureSet()
         {
             //You can set some values here or alter the default fset
-            
+
+            // Initialization of fset moved to FeatureManager
+            /*
             //Disables Auction Button
             //Set(Feature.hudAuctionButton, false);
             //Enables family invites
@@ -29,6 +31,7 @@ namespace AAEmu.Game.Models.Game.Features
             Set(Feature.secondpass, false);
             Set(Feature.ingameshopSecondpass, false);
             Set(Feature.itemSecure, false);
+            */
         }
 
         private (byte byteIndex, byte bitIndex) GetIndexes(Feature feature)

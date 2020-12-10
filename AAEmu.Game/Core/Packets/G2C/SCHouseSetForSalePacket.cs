@@ -6,16 +6,16 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCHouseSetForSalePacket : GamePacket
     {
         private readonly ushort _tl;
-        private readonly int _moneyAmount;
-        private readonly uint _unkId;
+        private readonly uint _moneyAmount;
+        private readonly uint _sellToPlayerId;
         private readonly string _sellToName;
         private readonly string _houseName;
         
-        public SCHouseSetForSalePacket(ushort tl, int moneyAmount, uint unkId, string sellToName, string houseName) : base(SCOffsets.SCHouseSetForSalePacket, 1)
+        public SCHouseSetForSalePacket(ushort tl, uint moneyAmount, uint sellToPlayerId, string sellToName, string houseName) : base(SCOffsets.SCHouseSetForSalePacket, 1)
         {
             _tl = tl;
             _moneyAmount = moneyAmount;
-            _unkId = unkId;
+            _sellToPlayerId = sellToPlayerId;
             _sellToName = sellToName;
             _houseName = houseName;
         }
@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_tl);
             stream.Write(_moneyAmount);
-            stream.Write(_unkId);
+            stream.Write(_sellToPlayerId);
             stream.Write(_sellToName);
             stream.Write(_houseName);
             return stream;

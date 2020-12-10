@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
         {
             if (target is House house && caster is Character character)
-                HousingManager.Instance.Demolish(character.Connection, house);
+                HousingManager.Instance.Demolish(character.Connection, house, false);
         }
     }
 }

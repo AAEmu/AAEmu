@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -6,9 +7,9 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -22,7 +23,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<mailtype> [sendername] [title] [body] [money] [extraflag] [attachmentitems ID/Counts]";
+            return "<mailtype> [sendername] [title] [body] [money] [billing] [attachmentitems ID/Counts]";
         }
 
         public string GetCommandHelpText()
@@ -50,8 +51,6 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     s += string.Format("{0}={1}", (byte)t, t.ToString());
                     s += "  ";
-                    if ((byte)t == 25) // Max on 1.2, we don't need to list more
-                        break;
                 }
                 character.SendMessage(s);
                 return;
@@ -66,13 +65,20 @@ namespace AAEmu.Game.Scripts.Commands
                     case "list":
                         character.SendMessage("[TestMail] List of Mails");
                         foreach (var m in MailManager.Instance.GetCurrentMailList(character))
-                            character.SendMessage("{0} - {1} - {2}", m.Value.Id, m.Value.MailType, m.Value.Title);
+                            character.SendMessage("{0} - {1} - ({3}) {2}", m.Value.Id, m.Value.MailType, m.Value.Title, m.Value.Header.Status);
                         character.SendMessage("[TestMail] End of List");
                         return;
                     case "clear":
                         character.SendMessage("[TestMail] Clear List of Mails");
                         foreach (var m in MailManager.Instance.GetCurrentMailList(character))
                             character.Mails.DeleteMail(m.Value.Id, false);
+                        return;
+                    case "tax":
+                        character.SendMessage("[TestMail] This command is deprecated, please use \"/house taxmail\" instead.");
+                        return;
+                    case "check":
+                        character.Mails.SendUnreadMailCount();
+                        character.SendMessage("[TestMail] {0} unread mails", character.Mails.unreadMailCount.Received);
                         return;
                     default:
                         if (MailType.TryParse(args[0], out MailType mTypeByName))
@@ -94,12 +100,11 @@ namespace AAEmu.Game.Scripts.Commands
 
                 mail.MailType = mType;
                 mail.Title = "TestMail " + mType.ToString();
+                mail.ReceiverName = character.Name;
 
                 mail.Header.SenderId = character.Id;
                 mail.Header.SenderName = character.Name;
                 mail.Header.ReceiverId = character.Id;
-                mail.Header.ReceiverName = character.Name;
-                mail.Body.ReceiverName = character.Name;
 
                 mail.Header.Attachments = 0;
                 mail.Header.Extra = 0;
@@ -147,14 +152,14 @@ namespace AAEmu.Game.Scripts.Commands
                 if (args.Length > 5)
                 {
                     var n = args[5];
-                    if (int.TryParse(n, out var extraFlag))
+                    if (int.TryParse(n, out var billing))
                     {
-                        mail.Header.Extra = extraFlag;
-                        character.SendMessage("[TestMail] Extra: {0}", extraFlag);
+                        mail.Body.BillingAmount = billing;
+                        character.SendMessage("[TestMail] BillingCost: {0}", billing);
                     }
                     else
                     {
-                        character.SendMessage("[TestMail] Extra Flag parse error");
+                        character.SendMessage("[TestMail] Billing Cost parse error");
                     }
                 }
 

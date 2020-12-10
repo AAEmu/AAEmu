@@ -33,7 +33,7 @@
         <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
     </ItemGroup>
-
+    
     <ItemGroup>
         <PackageReference Include="Discord.Net" Version="2.2.0" />
         <PackageReference Include="Jace" Version="0.9.2" />
@@ -56,6 +56,12 @@
       <Reference Include="DotNet.Config">
         <HintPath>DotNet.Config.dll</HintPath>
       </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Core\Packets\G2C\SCHouseTaxInfoPacket.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Compile>
     </ItemGroup>
 
     <ItemGroup>
@@ -87,9 +93,6 @@
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\SpawnGrid.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestMails.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
       <None Update="Scripts\Commands\TestZoneState.cs">

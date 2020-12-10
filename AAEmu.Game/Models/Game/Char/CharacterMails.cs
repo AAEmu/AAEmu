@@ -60,16 +60,22 @@ namespace AAEmu.Game.Models.Game.Char
         {
             if (MailManager.Instance._allPlayerMails.TryGetValue(id, out var mail))
             {
-                if (mail.Header.Status == 0 && !isSent)
+                if ((mail.Header.Status == MailStatus.Unread) && !isSent)
                 {
                     unreadMailCount.Received -= 1;
-                    mail.Header.OpenDate = DateTime.UtcNow;
+                    mail.OpenDate = DateTime.UtcNow;
                     mail.Header.Status = MailStatus.Read;
+                    mail.IsDelivered = true;
                 }
                 Self.SendPacket(new SCMailBodyPacket(false, isSent, mail.Body, true, unreadMailCount));
                 Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, mail.Header.Status));
-                Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
+                SendUnreadMailCount();
             }
+        }
+
+        public void SendUnreadMailCount()
+        {
+            Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
         }
 
         public bool SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(Items.SlotType, byte)> itemSlots)
@@ -241,7 +247,7 @@ namespace AAEmu.Game.Models.Game.Char
                     thisMail.Header.Status = MailStatus.Read;
                     unreadMailCount.Received--;
                     Self.SendPacket(new SCMailStatusUpdatedPacket(false, mailId, MailStatus.Read));
-                    Self.SendPacket(new SCCountUnreadMailPacket(unreadMailCount));
+                    SendUnreadMailCount();
                 }
 
                 // TODO: Make sure attachment settings and mail info is sent back correctly 
@@ -257,8 +263,11 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (MailManager.Instance._allPlayerMails[id].Header.Attachments <= 0)
                 {
-                    if (MailManager.Instance._allPlayerMails[id].Header.Status == 0)
+                    if (MailManager.Instance._allPlayerMails[id].Header.Status != MailStatus.Read)
+                    {
+                        unreadMailCount.Received--;
                         Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, unreadMailCount));
+                    }
                     else
                         Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, unreadMailCount));
                     MailManager.Instance.DeleteMail(id);
@@ -282,7 +291,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
 
                 SendMailToPlayer(thisMail.Header.Type, thisMail.Header.SenderName, thisMail.Header.Title, thisMail.Body.Text, 
-                    thisMail.Header.Attachments, thisMail.Body.CopperCoins, thisMail.Body.MoneyAmount1, thisMail.Body.MoneyAmount2,
+                    thisMail.Header.Attachments, thisMail.Body.CopperCoins, thisMail.Body.BillingAmount, thisMail.Body.MoneyAmount2,
                         thisMail.Header.Extra, itemSlots);
 
                 DeleteMail(id, false);
