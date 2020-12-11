@@ -327,25 +327,59 @@ namespace AAEmu.Game.Models.Game.Items
 
             var totalConsumed = 0;
             var itemTasks = new List<ItemTask>();
-            foreach (var i in foundItems)
+
+            // Try to consume preferred item first
+            if ((amountToConsume > 0) && (preferredItem != null))
             {
-                var toRemove = Math.Min(i.Count, amountToConsume);
-                i.Count -= toRemove;
+                // Remove this entry from our list
+                if (!foundItems.Remove(preferredItem))
+                {
+                    // Preferred item was not found in our list of found items, something is wrong here
+                    return 0;
+                }
+                
+                var toRemove = Math.Min(preferredItem.Count, amountToConsume);
+                preferredItem.Count -= toRemove;
                 amountToConsume -= toRemove;
 
-                if (i.Count > 0)
+                if (preferredItem.Count > 0)
                 {
-                    Owner?.Inventory.OnConsumedItem(i, toRemove);
-                    itemTasks.Add(new ItemCountUpdate(i, -toRemove));
+                    Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
+                    itemTasks.Add(new ItemCountUpdate(preferredItem, -toRemove));
                 }
                 else
                 {
-                    RemoveItem(taskType, i, true); // Normally, this can never fail
+                    RemoveItem(taskType, preferredItem, true); // Normally, this can never fail
                 }
+
                 totalConsumed += toRemove;
-                if (amountToConsume <= 0)
-                    break; // We are done with the list, leave the rest as is
             }
+
+            // Check all remaining items
+            if (amountToConsume > 0)
+            {
+                foreach (var i in foundItems)
+                {
+                    var toRemove = Math.Min(i.Count, amountToConsume);
+                    i.Count -= toRemove;
+                    amountToConsume -= toRemove;
+
+                    if (i.Count > 0)
+                    {
+                        Owner?.Inventory.OnConsumedItem(i, toRemove);
+                        itemTasks.Add(new ItemCountUpdate(i, -toRemove));
+                    }
+                    else
+                    {
+                        RemoveItem(taskType, i, true); // Normally, this can never fail
+                    }
+
+                    totalConsumed += toRemove;
+                    if (amountToConsume <= 0)
+                        break; // We are done with the list, leave the rest as is
+                }
+            }
+
             // We use Invalid when doing internals, don't send to client
             if (taskType != ItemTaskType.Invalid)
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
@@ -442,6 +476,7 @@ namespace AAEmu.Game.Models.Game.Items
             }
             if (taskType != ItemTaskType.Invalid)
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            UpdateFreeSlotCount();
             return (itemTasks.Count > 0);
         }
 
