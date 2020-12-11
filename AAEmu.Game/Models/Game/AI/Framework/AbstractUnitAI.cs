@@ -7,7 +7,6 @@ namespace AAEmu.Game.Models.Game.AI.Framework
     /// </summary>
     public abstract class AbstractUnitAI : AbstractAI
     {
-        public Point IdlePosition { get; set; }
         
         // TODO : Implement all of these. They are taken from template.lua
         
