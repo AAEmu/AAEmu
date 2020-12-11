@@ -398,7 +398,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         if (c > userBoundTaxCount)
                             c = userBoundTaxCount;
-                        character.Inventory.ConsumeItem(new SlotType[] { SlotType.Inventory }, Models.Game.Items.Actions.ItemTaskType.Mail, Item.BoundTaxCertificate, c, null);
+                        character.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.Mail, Item.BoundTaxCertificate, c, null);
                         consumedCerts -= c;
                     }
                     c = consumedCerts;
@@ -406,7 +406,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         if (c > userTaxCount)
                             c = userTaxCount;
-                        character.Inventory.ConsumeItem(new SlotType[] { SlotType.Inventory }, Models.Game.Items.Actions.ItemTaskType.Mail, Item.TaxCertificate, c, null);
+                        character.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.Mail, Item.TaxCertificate, c, null);
                         consumedCerts -= c;
                     }
 
