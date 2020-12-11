@@ -1,3 +1,4 @@
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.AI.Framework
@@ -14,7 +15,7 @@ namespace AAEmu.Game.Models.Game.AI.Framework
         // public abstract void OnActionDone();
 
         // called when the AI sees a living enemy
-        // public abstract void OnPlayerSeen();
+        public virtual void OnEnemySeen(Unit enemy) {}
 
         // called when AI gets at close distance to an enemy
         // public abstract void OnCloseContact();
@@ -41,7 +42,7 @@ namespace AAEmu.Game.Models.Game.AI.Framework
         // public abstract void OnDamage();
         
         // called when AI is damaged by an enemy AI
-        // public abstract void OnEnemyDamage();
+        public virtual void OnEnemyDamage(Unit enemy){}
 
         // called when a member of same species dies nearby
         // public abstract void OnSomebodyDied();

@@ -10,8 +10,7 @@ namespace AAEmu.Game.Models.Game.AI.Framework
     {
         public GameObject Owner { get; set; }
         public Point IdlePosition { get; set; }
-        public Point TargetPosition { get; set; }
-        
-        public List<AbstractGoal> Goals { get; set; }
+        public FSM StateMachine { get; set; } = new FSM();
+        public abstract uint GetNextState(State previous);
     }
 }
