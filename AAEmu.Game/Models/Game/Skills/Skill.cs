@@ -179,7 +179,7 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             var target = (BaseUnit)caster;
             // HACKFIX : Mounts
-            if (caster == null && (skillCaster.Type == SkillCasterType.Unk3 || skillCaster.Type == SkillCasterType.Unit))
+            if (skillCaster.Type == SkillCasterType.Unk3)
                 target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
 
             if (Template.TargetType == SkillTargetType.Self)
