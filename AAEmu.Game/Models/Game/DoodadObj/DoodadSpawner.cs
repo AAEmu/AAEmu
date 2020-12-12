@@ -16,10 +16,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         
         public Doodad Last { get; set; }
 
-        public override Doodad Spawn(uint objId, ulong itemID, uint charID) //Mostly used for player created spawns
+        public override Doodad Spawn(uint objId, ulong itemId, uint charId) //Mostly used for player created spawns
         {
 
-            Character character = WorldManager.Instance.GetCharacterByObjId(charID);
+            Character character = WorldManager.Instance.GetCharacterByObjId(charId);
             var doodad = DoodadManager.Instance.Create(objId, UnitId, character);
 
             if (doodad == null)
@@ -30,8 +30,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             doodad.Spawner = this;
             doodad.Position = Position.Clone();
-            doodad.QuestGlow = 0u; //TODO make this OOP
-            doodad.ItemId = itemID;
+            doodad.QuestGlow = 0u; // TODO: make this OOP
+            doodad.ItemId = itemId;
 
             if (Scale > 0)
                 doodad.SetScale(Scale);
@@ -47,7 +47,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             return doodad;
         }
 
-        public override Doodad Spawn(uint objId) //TODO clean up each doodad uses the same call
+        public override Doodad Spawn(uint objId) // TODO: clean up each doodad uses the same call
         {  
             var doodad = DoodadManager.Instance.Create(objId, UnitId, null);
             if (doodad == null)

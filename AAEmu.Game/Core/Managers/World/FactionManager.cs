@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
@@ -12,7 +12,15 @@ namespace AAEmu.Game.Core.Managers.World
 {
     public enum Factions
     {
-        FACTION_PIRATE = 161
+        FACTION_FRIENDLY = 1,
+        FACTION_NEUTRAL = 2,
+        FACTION_HOSTILE = 3,
+        FACTION_MONSTROSITY = 115,
+        FACTION_ANIMAL = 116,
+        FACTION_RED_TEAM = 159,
+        FACTION_BLUE_TEAM = 160,
+        FACTION_PIRATE = 161,
+        FACTION_FISH = 172,
     }
     
     public class FactionManager : Singleton<FactionManager>

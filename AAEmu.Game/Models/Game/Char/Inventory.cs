@@ -30,6 +30,7 @@ namespace AAEmu.Game.Models.Game.Char
         public ItemContainer Bag { get; private set; }
         public ItemContainer Warehouse { get; private set; }
         public ItemContainer MailAttachments { get; private set; }
+        public ItemContainer SystemContainer { get; private set; }
 
         public Inventory(Character owner)
         {
@@ -54,10 +55,12 @@ namespace AAEmu.Game.Models.Game.Char
                 _itemContainers.Add(st, newContainer);
                 switch (st)
                 {
+                    /*
                     case SlotType.Equipment:
                         newContainer.ContainerSize = 28; // 28 equipment slots for 1.2 client
                         Equipment = newContainer;
                         break;
+                    */
                     case SlotType.Inventory:
                         newContainer.ContainerSize = Owner.NumInventorySlots;
                         Bag = newContainer;
@@ -67,7 +70,12 @@ namespace AAEmu.Game.Models.Game.Char
                         Warehouse = newContainer;
                         break;
                     case SlotType.Mail:
+                        newContainer.PartOfPlayerInventory = false;
                         MailAttachments = newContainer;
+                        break;
+                    case SlotType.System:
+                        newContainer.PartOfPlayerInventory = false;
+                        SystemContainer = newContainer;
                         break;
                 }
             }
@@ -121,33 +129,16 @@ namespace AAEmu.Game.Models.Game.Char
             SendFragmentedInventory(SlotType.Bank, (byte)Owner.NumBankSlots, Warehouse.GetSlottedItemsList().ToArray());
         }
 
-        public Item AddItem(ItemTaskType taskType, Item item)
-        {
-            if (!_itemContainers.TryGetValue(item.SlotType, out var targetContainer))
-                throw new Exception(string.Format("Inventory.AddItem(); Item has a slottype that has no supported container"));
-
-            if (targetContainer.AddOrMoveExistingItem(taskType, item, item.Slot))
-                return item;
-            else
-                return null;
-        }
-
-        public bool RemoveItem(ItemTaskType taskType, Item item, bool release)
-        {
-            bool res = false;
-            foreach (var c in _itemContainers)
-                res |= c.Value.RemoveItem(taskType, item, release);
-            return res;
-        }
-
         /// <summary>
-        /// Consumes a item in specified container list, if the list is null, Bag -> Warehouse -> Equipment order is used. This function does not verify the total item count and will consume as much as possible
+        /// Consumes a item in specified container list, if the list is null, Bag -> Warehouse -> Equipment order is used.
+        /// This function does not verify the total item count and will consume as much as possible
+        /// It is recommended to use the ConsumeItem function of a ItemContainer itself as much as possible
         /// </summary>
-        /// <param name="containersToCheck"></param>
+        /// <param name="containersToCheck">Array of ItemContainers to check, if null, Inventory + Equipment + WaveHouse is used in that order</param>
         /// <param name="taskType"></param>
-        /// <param name="templateId"></param>
-        /// <param name="amountToConsume"></param>
-        /// <param name="preferredItem"></param>
+        /// <param name="templateId">Item TemplateId to consume</param>
+        /// <param name="amountToConsume">Number of units to Consume</param>
+        /// <param name="preferredItem">preferred Item to take units from</param>
         /// <returns></returns>
         public int ConsumeItem(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
         {
@@ -155,7 +146,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (containersToCheck != null)
                 containerList = containersToCheck;
             else
-                containerList = new SlotType[3] { SlotType.Inventory, SlotType.Bank, SlotType.Equipment };
+                containerList = new SlotType[3] {SlotType.Inventory, SlotType.Equipment, SlotType.Bank};
             var res = 0;
             foreach (var cli in containerList)
             {
@@ -576,13 +567,13 @@ namespace AAEmu.Game.Models.Game.Char
             return true;
         }
 
-        public bool TryEquipNewBackPack(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1)
+        public bool TryEquipNewBackPack(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1, uint crafterId = 0)
         {
             // Remove player backpack
             if (Owner.Inventory.TakeoffBackpack(taskType, true))
             {
                 // Put tradepack in their backpack slot
-                return Owner.Inventory.Equipment.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd);
+                return Owner.Inventory.Equipment.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd, crafterId);
             }
             return false;
         }

@@ -27,6 +27,7 @@ namespace AAEmu.Game.Scripts.Commands
         public void Execute(Character character, string[] args)
         {
             var list = CommandManager.Instance.GetCommandKeys();
+            list.Sort();
 
             if (args.Length > 0)
             {

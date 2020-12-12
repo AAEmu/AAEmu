@@ -313,7 +313,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="templateId">Item templateId to search for</param>
         /// <param name="amountToConsume">Amount of item units to consume</param>
         /// <param name="preferredItem">If not null, use this Item as primairy source for consume</param>
-        /// <returns>True on success, False if there aren't enough item units or otherwise fails to update the container</returns>
+        /// <returns>The amount of items that was actually consumed, 0 when failed or not found</returns>
         public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume,Item preferredItem)
         {
             if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out var count))
@@ -327,25 +327,59 @@ namespace AAEmu.Game.Models.Game.Items
 
             var totalConsumed = 0;
             var itemTasks = new List<ItemTask>();
-            foreach (var i in foundItems)
+
+            // Try to consume preferred item first
+            if ((amountToConsume > 0) && (preferredItem != null))
             {
-                var toRemove = Math.Min(i.Count, amountToConsume);
-                i.Count -= toRemove;
+                // Remove this entry from our list
+                if (!foundItems.Remove(preferredItem))
+                {
+                    // Preferred item was not found in our list of found items, something is wrong here
+                    return 0;
+                }
+                
+                var toRemove = Math.Min(preferredItem.Count, amountToConsume);
+                preferredItem.Count -= toRemove;
                 amountToConsume -= toRemove;
 
-                if (i.Count > 0)
+                if (preferredItem.Count > 0)
                 {
-                    Owner?.Inventory.OnConsumedItem(i, toRemove);
-                    itemTasks.Add(new ItemCountUpdate(i, -toRemove));
+                    Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
+                    itemTasks.Add(new ItemCountUpdate(preferredItem, -toRemove));
                 }
                 else
                 {
-                    RemoveItem(taskType, i, true); // Normally, this can never fail
+                    RemoveItem(taskType, preferredItem, true); // Normally, this can never fail
                 }
+
                 totalConsumed += toRemove;
-                if (amountToConsume <= 0)
-                    break; // We are done with the list, leave the rest as is
             }
+
+            // Check all remaining items
+            if (amountToConsume > 0)
+            {
+                foreach (var i in foundItems)
+                {
+                    var toRemove = Math.Min(i.Count, amountToConsume);
+                    i.Count -= toRemove;
+                    amountToConsume -= toRemove;
+
+                    if (i.Count > 0)
+                    {
+                        Owner?.Inventory.OnConsumedItem(i, toRemove);
+                        itemTasks.Add(new ItemCountUpdate(i, -toRemove));
+                    }
+                    else
+                    {
+                        RemoveItem(taskType, i, true); // Normally, this can never fail
+                    }
+
+                    totalConsumed += toRemove;
+                    if (amountToConsume <= 0)
+                        break; // We are done with the list, leave the rest as is
+                }
+            }
+
             // We use Invalid when doing internals, don't send to client
             if (taskType != ItemTaskType.Invalid)
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
@@ -361,9 +395,9 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="amountToAdd">Number of item units to add</param>
         /// <param name="gradeToAdd">Overrides default grade if possible</param>
         /// <returns></returns>
-        public bool AcquireDefaultItem(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd = -1)
+        public bool AcquireDefaultItem(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd = -1, uint crafterId = 0)
         {
-            return AcquireDefaultItemEx(taskType, templateId, amountToAdd, gradeToAdd, out _, out _);
+            return AcquireDefaultItemEx(taskType, templateId, amountToAdd, gradeToAdd, out _, out _, crafterId);
         }
 
         /// <summary>
@@ -375,7 +409,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="gradeToAdd">Overrides default grade if possible</param>
         /// <param name="updatedItemsList">A List of the newly added or updated items</param>
         /// <returns></returns>
-        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList)
+        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId)
         {
             newItemsList = new List<Item>();
             updatedItemsList = new List<Item>();
@@ -422,6 +456,12 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 var addAmount = Math.Min(amountToAdd, template.MaxCount);
                 var newItem = ItemManager.Instance.Create(templateId, addAmount, (byte)gradeToAdd, true);
+                // Add name if marked as crafter (single stack items only)
+                if ((crafterId > 0) && (newItem.Template.MaxCount == 1))
+                {
+                    newItem.MadeUnitId = crafterId;
+                    newItem.WorldId = 1; // TODO: proper world id handling
+                }
                 amountToAdd -= addAmount;
                 var prefSlot = -1;
                 if ((newItem.Template is BackpackTemplate) && (ContainerType == SlotType.Equipment))
@@ -436,6 +476,7 @@ namespace AAEmu.Game.Models.Game.Items
             }
             if (taskType != ItemTaskType.Invalid)
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
+            UpdateFreeSlotCount();
             return (itemTasks.Count > 0);
         }
 

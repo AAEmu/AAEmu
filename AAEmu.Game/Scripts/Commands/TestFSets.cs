@@ -29,14 +29,10 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            // TODO actually hold this in server memory
-            var fset = new FeatureSet();
-            fset.Set(Feature.allowFamilyChanges, true);
-
             foreach (var fObj in Enum.GetValues(typeof(Feature)))
             {
                 var f = (Feature)fObj;
-                if (fset.Check(f))
+                if (FeaturesManager.Fsets.Check(f))
                     character.SendMessage("[Feature] |cFF00FF00ON  |cFF80FF80" + f.ToString() + "|r");
                 else
                     character.SendMessage("[Feature] |cFFFF0000OFF |cFF802020" + f.ToString() + "|r");

@@ -349,6 +349,11 @@ CREATE TABLE `housings` (
   `current_step` tinyint(4) NOT NULL,
   `current_action` int(11) NOT NULL DEFAULT '0',
   `permission` tinyint(4) NOT NULL,
+  `place_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `protected_until` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `faction_id` int(10) unsigned NOT NULL DEFAULT '1',
+  `sell_to` int(10) unsigned NOT NULL DEFAULT '0',
+  `sell_price` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`account_id`,`owner`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -365,7 +370,7 @@ CREATE TABLE `items` (
   `id` bigint(20) unsigned NOT NULL,
   `type` varchar(100) NOT NULL,
   `template_id` int(11) unsigned NOT NULL,
-  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail') NOT NULL,
+  `slot_type` enum('Equipment','Inventory','Bank','Trade','Mail','System') NOT NULL,
   `slot` int(11) NOT NULL,
   `count` int(11) NOT NULL,
   `details` blob,

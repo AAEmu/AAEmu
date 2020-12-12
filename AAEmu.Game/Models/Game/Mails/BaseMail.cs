@@ -18,21 +18,28 @@ namespace AAEmu.Game.Models.Game.Mails
         private MailType _mailType;
         private string _title;
         private string _receiverName;
+        private bool _isDirty;
+        private MailHeader _header;
+        private MailBody _body;
+        private DateTime _openDate;
 
-        public long Id { get => _id; set { _id = value; Header.mailId = value; Body.mailId = value; } }
-        public MailType MailType { get => _mailType; set { _mailType = value; Header.Type = value; Body.Type = value; } }
-        public string Title { get => _title; set { _title = value; Header.Title = value; Body.Title = value; } }
-        public string ReceiverName { get => _receiverName; set { _receiverName = value; Header.ReceiverName = value; Body.ReceiverName = value; } }
+        public long Id { get => _id; set { _id = value; _isDirty = true; } }
+        public MailType MailType { get => _mailType; set { _mailType = value; _isDirty = true; } }
+        public string Title { get => _title; set { _title = value; _isDirty = true; } }
+        public string ReceiverName { get => _receiverName; set { _receiverName = value; _isDirty = true; } }
+        public DateTime OpenDate { get => _openDate; set { _openDate = value; _isDirty = true; } }
 
-        public MailHeader Header { get; set; }
-        public MailBody Body { get; set; }
+        public MailHeader Header { get => _header; set { _header = value; _isDirty = true; } }
+        public MailBody Body { get => _body; set { _body = value; _isDirty = true; } }
 
-        public bool IsDelivered;
+        // Local helpers
+        public bool IsDelivered { get; set; }
+        public bool IsDirty { get => _isDirty; set => _isDirty = value; }
 
         public BaseMail()
         {
-            Header = new MailHeader();
-            Body = new MailBody();
+            Header = new MailHeader(this);
+            Body = new MailBody(this);
             IsDelivered = false;
         }
 
@@ -55,7 +62,7 @@ namespace AAEmu.Game.Models.Game.Mails
             var res = (byte)Body.Attachments.Count;
             if (Body.CopperCoins != 0)
                 res++;
-            if (Body.MoneyAmount1 != 0)
+            if (Body.BillingAmount != 0)
                 res++;
             if (Body.MoneyAmount2 != 0)
                 res++;
@@ -71,7 +78,7 @@ namespace AAEmu.Game.Models.Game.Mails
         public void AttachMoney(int copperCoinsAmount, int money1Amount = 0, int money2Amount = 0)
         {
             Body.CopperCoins = copperCoinsAmount;
-            Body.MoneyAmount1 = money1Amount;
+            Body.BillingAmount = money1Amount;
             Body.MoneyAmount2 = money2Amount;
             Header.Attachments = GetTotalAttachmentCount();
         }

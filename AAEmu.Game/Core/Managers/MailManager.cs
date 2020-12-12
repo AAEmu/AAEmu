@@ -19,6 +19,8 @@ using NLog.Targets;
 using System.ComponentModel.DataAnnotations;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Tasks.Mails;
+using AAEmu.Game.Models.Game.Error;
+using AAEmu.Game.Models.Game.Features;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -86,68 +88,10 @@ namespace AAEmu.Game.Core.Managers
         }
 
         [Obsolete("SendMail() is deprecated. Use Send() of a BaseMail descendant instead.")]
-        public void SendMail(MailType type, string receiverName, string senderName, string title, string text, byte attachments, int[] moneyAmounts, long extra, List<Item> items)
+        public void SendMail(MailType type, string receiverName, string senderName, string title, string text,
+            byte attachments, int[] moneyAmounts, long extra, List<Item> items)
         {
-            var mailTemplate = new BaseMail();
-            mailTemplate.Id = MailIdManager.Instance.GetNextId();
-            var senderId = NameManager.Instance.GetCharacterId(senderName);
-            var receiverId = NameManager.Instance.GetCharacterId(receiverName);
-
-            mailTemplate.Header = new MailHeader()
-            {
-                mailId = mailTemplate.Id,
-                Type = type,
-                Status = MailStatus.Unread,
-                Title = title,
-                SenderId = senderId,
-                SenderName = senderName,
-                Attachments = attachments,
-                ReceiverId = receiverId,
-                ReceiverName = receiverName,
-                OpenDate = DateTime.MinValue,
-                Returned = false,
-                Extra = 0
-            };
-
-            foreach (var item in items)
-            {
-                if (item != null)
-                {
-                    item.SlotType = SlotType.Mail;
-                    item.OwnerId = receiverId;
-                }
-            }
-
-            mailTemplate.Body = new MailBody()
-            {
-                mailId = mailTemplate.Id,
-                Type = mailTemplate.Header.Type,
-                ReceiverName = mailTemplate.Header.ReceiverName,
-                Title = mailTemplate.Header.Title,
-                Text = text,
-                CopperCoins = moneyAmounts[0],
-                MoneyAmount1 = moneyAmounts[1],
-                MoneyAmount2 = moneyAmounts[2],
-                SendDate = DateTime.UtcNow,
-                RecvDate = DateTime.UtcNow,
-                OpenDate = mailTemplate.Header.OpenDate,
-            };
-
-            var newOwnerId = NameManager.Instance.GetCharacterId(receiverName);
-            foreach (var i in items)
-            {
-                if (i != null)
-                {
-                    i.OwnerId = newOwnerId;
-                    mailTemplate.Body.Attachments.Add(i);
-                }
-            }
-
-            // Remove from delete list if it's a recycled Id
-            if (_deletedMailIds.Contains(mailTemplate.Id))
-                _deletedMailIds.Remove(mailTemplate.Id);
-            _allPlayerMails.Add(mailTemplate.Id, mailTemplate);
-            NotifyNewMailByNameIfOnline(mailTemplate, receiverName);
+            throw new Exception("SendMail is deprecated, use BaseMail.Send() instead");
         }
 
         public bool DeleteMail(long id)
@@ -188,23 +132,22 @@ namespace AAEmu.Game.Core.Managers
                             tempMail.Title = reader.GetString("title");
                             tempMail.MailType = (MailType)reader.GetInt32("type");
                             tempMail.ReceiverName = reader.GetString("receiver_name");
+                            tempMail.OpenDate = reader.GetDateTime("open_date");
 
                             tempMail.Header.Status = (MailStatus)reader.GetInt32("status");
                             tempMail.Header.SenderId = reader.GetUInt32("sender_id");
                             tempMail.Header.SenderName = reader.GetString("sender_name");
                             tempMail.Header.Attachments = (byte)reader.GetInt32("attachment_count");
                             tempMail.Header.ReceiverId = reader.GetUInt32("receiver_id");
-                            tempMail.Header.OpenDate = reader.GetDateTime("open_date");
                             tempMail.Header.Returned = (reader.GetInt32("returned") != 0);
-                            tempMail.Header.Extra = reader.GetUInt32("extra");
+                            tempMail.Header.Extra = reader.GetInt64("extra");
 
                             tempMail.Body.Text = reader.GetString("text");
                             tempMail.Body.CopperCoins = reader.GetInt32("money_amount_1");
-                            tempMail.Body.MoneyAmount1 = reader.GetInt32("money_amount_2");
+                            tempMail.Body.BillingAmount = reader.GetInt32("money_amount_2");
                             tempMail.Body.MoneyAmount2 = reader.GetInt32("money_amount_3");
                             tempMail.Body.SendDate = reader.GetDateTime("send_date");
                             tempMail.Body.RecvDate = reader.GetDateTime("received_date");
-                            tempMail.Body.OpenDate = tempMail.Header.OpenDate;
 
                             // Read/Load Items
                             tempMail.Body.Attachments.Clear();
@@ -228,17 +171,18 @@ namespace AAEmu.Game.Core.Managers
                             var attachmentCount = tempMail.Body.Attachments.Count;
                             if (tempMail.Body.CopperCoins > 0)
                                 attachmentCount++;
-                            if (tempMail.Body.MoneyAmount1 > 0)
+                            if (tempMail.Body.BillingAmount > 0)
                                 attachmentCount++;
                             if (tempMail.Body.MoneyAmount2 > 0)
                                 attachmentCount++;
                             if (attachmentCount != tempMail.Header.Attachments)
-                                _log.Warn("Attachment count listed in mailId {0} did not match the number of attachments, possible mail or item corruption !");
+                                _log.Warn("Attachment count listed in mailId {0} did not match the number of attachments, possible mail or item corruption !", tempMail.Id);
                             // Reset the attachment counter
                             tempMail.Header.Attachments = (byte)attachmentCount;
 
                             // Set internal delivered flag
                             tempMail.IsDelivered = (tempMail.Body.RecvDate <= DateTime.UtcNow);
+                            tempMail.IsDirty = false;
 
                             // Remove from delete list if it's a recycled Id
                             if (_deletedMailIds.Contains(tempMail.Id))
@@ -281,6 +225,8 @@ namespace AAEmu.Game.Core.Managers
 
             foreach (var mtbs in _allPlayerMails)
             {
+                if (!mtbs.Value.IsDirty)
+                    continue;
                 using (var command = connection.CreateCommand())
                 {
                     command.Connection = connection;
@@ -316,7 +262,7 @@ namespace AAEmu.Game.Core.Managers
                     command.Parameters.AddWithValue("@returned", mtbs.Value.Header.Returned ? 1 : 0);
                     command.Parameters.AddWithValue("@extra", mtbs.Value.Header.Extra);
                     command.Parameters.AddWithValue("@money1", mtbs.Value.Body.CopperCoins);
-                    command.Parameters.AddWithValue("@money2", mtbs.Value.Body.MoneyAmount1);
+                    command.Parameters.AddWithValue("@money2", mtbs.Value.Body.BillingAmount);
                     command.Parameters.AddWithValue("@money3", mtbs.Value.Body.MoneyAmount2);
 
                     for (var i = 0; i < MailBody.MaxMailAttachments; i++)
@@ -329,6 +275,7 @@ namespace AAEmu.Game.Core.Managers
 
                     command.ExecuteNonQuery();
                     updatedCount++;
+                    mtbs.Value.IsDirty = false;
                 }
 
             }
@@ -338,16 +285,17 @@ namespace AAEmu.Game.Core.Managers
 
         #endregion
 
-        public Dictionary<long, BaseMail> GetCurrentMailList(Character c)
+        public Dictionary<long, BaseMail> GetCurrentMailList(Character character)
         {
-            var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == c.Id || x.Value.Header.SenderId == c.Id)).ToDictionary(x => x.Key, x => x.Value);
-            c.Mails.unreadMailCount.Received = 0;
+            var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
+            character.Mails.unreadMailCount.Received = 0;
             foreach (var mail in tempMails)
             {
-                if ((mail.Value.Header.Status == 0) && (mail.Value.Header.SenderId != c.Id))
+                //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
+                if (mail.Value.Header.Status != MailStatus.Read)
                 {
-                    c.Mails.unreadMailCount.Received += 1;
-                    c.SendPacket(new SCGotMailPacket(mail.Value.Header, c.Mails.unreadMailCount, false, null));
+                    character.Mails.unreadMailCount.Received += 1;
+                    character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, null));
                     mail.Value.IsDelivered = true;
                 }
             }
@@ -358,16 +306,30 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Trace("NotifyNewMailByNameIfOnline() - {0}", receiverName);
             // If unread and ready to deliver
-            if ((m.Header.Status == 0) && (m.Body.RecvDate <= DateTime.UtcNow))
+            if ((m.Header.Status != MailStatus.Read) && (m.Body.RecvDate <= DateTime.UtcNow) && (m.IsDelivered == false))
             {
                 var player = WorldManager.Instance.GetCharacter(receiverName);
                 if (player != null)
                 {
-                    player.Mails.unreadMailCount.Received += 1;
+                    player.Mails.unreadMailCount.Received++;
                     player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.unreadMailCount, false, null));
                     m.IsDelivered = true;
                     return true;
                 }
+            }
+            return false;
+        }
+
+        public bool NotifyDeleteMailByNameIfOnline(BaseMail m, string receiverName)
+        {
+            _log.Trace("NotifyDeleteMailByNameIfOnline() - {0}", receiverName);
+            var player = WorldManager.Instance.GetCharacter(receiverName);
+            if (player != null)
+            {
+                if (m.Header.Status != MailStatus.Read)
+                    player.Mails.unreadMailCount.Received--;
+                player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.unreadMailCount));
+                return true;
             }
             return false;
         }
@@ -387,5 +349,157 @@ namespace AAEmu.Game.Core.Managers
             // TODO: Return expired mails back to owner if undelivered/unread
         }
 
+        public bool PayChargeMoney(Character character, long mailId, bool autoUseAAPoint)
+        {
+            var mail = GetMailById(mailId);
+            if (mail == null)
+            {
+                character.SendErrorMessage(ErrorMessageType.MailInvalid);
+                return false;
+            }
+
+            // Only tax mail supported
+            if (mail.MailType != MailType.Billing)
+            {
+                character.SendErrorMessage(ErrorMessageType.MailInvalid);
+                return false;
+            }
+
+            var houseId = (uint)(mail.Header.Extra & 0xFFFFFFFF); // Extract house DB Id from Extra
+            var houseZoneGroup = ((mail.Header.Extra >> 48) & 0xFFFF); // Extract zone group Id from Extra
+            var house = HousingManager.Instance.GetHouseById(houseId);
+
+            if (house == null)
+            {
+                character.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
+                return false;
+            }
+
+            if (FeaturesManager.Fsets.Check(Feature.taxItem))
+            {
+                // use Tax Certificates as payment
+                // TODO: grab these values from DB somewhere ?
+                var userTaxCount = character.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
+                var userBoundTaxCount = character.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
+                var totatUserTaxCount = userTaxCount + userBoundTaxCount;
+                var consumedCerts = (int)Math.Ceiling(mail.Body.BillingAmount / 10000f);
+
+                if (totatUserTaxCount < consumedCerts)
+                {
+                    // Not enough certs
+                    character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+                    return false;
+                }
+                else
+                {
+                    var c = consumedCerts;
+                    // Use Bound First
+                    if ((userBoundTaxCount > 0) && (c > 0))
+                    {
+                        if (c > userBoundTaxCount)
+                            c = userBoundTaxCount;
+                        character.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.Mail, Item.BoundTaxCertificate, c, null);
+                        consumedCerts -= c;
+                    }
+                    c = consumedCerts;
+                    if ((userTaxCount > 0) && (c > 0))
+                    {
+                        if (c > userTaxCount)
+                            c = userTaxCount;
+                        character.Inventory.Bag.ConsumeItem(Models.Game.Items.Actions.ItemTaskType.Mail, Item.TaxCertificate, c, null);
+                        consumedCerts -= c;
+                    }
+
+                    if (consumedCerts != 0)
+                        _log.Error("Something went wrong when paying tax for mailId {0}", mail.Id);
+
+                    mail.Body.BillingAmount = consumedCerts ;
+
+                }
+            }
+            else
+            {
+                // use gold as payment
+                if (mail.Body.BillingAmount > character.Money)
+                {
+                    // Not enough gold
+                    character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+                    return false;
+                }
+                else
+                {
+                    character.SubtractMoney(SlotType.Inventory, mail.Body.BillingAmount);
+                }
+
+            }
+
+            if (!HousingManager.Instance.PayWeeklyTax(house))
+                _log.Error("Could not update protection time when paying taxes, mailId {0}", mail.Id);
+            else
+            {
+                if (mail.Header.Status != MailStatus.Read)
+                {
+                    mail.Header.Status = MailStatus.Read;
+                    character.Mails.unreadMailCount.Received--;
+                }
+
+                character.SendPacket(new SCChargeMoneyPaid(mail.Id));
+                character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.unreadMailCount));
+                DeleteMail(mail);
+                character.Mails.SendUnreadMailCount();
+            }
+
+            return true;
+        }
+
+        public void ExtractExtraForHouse(long extra, out ushort zoneGroupId, out uint houseId)
+        {
+            houseId = (uint)(extra & 0xFFFFFFFF); // Extract house DB Id from Extra
+            zoneGroupId = (ushort)((extra >> 48) & 0xFFFF); // Extract zone group Id from Extra
+        }
+
+
+        public void DeleteHouseMails(uint houseId)
+        {
+            var deleteList = new List<long>();
+            // Check which mails to remove
+            foreach(var m in _allPlayerMails)
+            {
+                if (m.Value.MailType == MailType.Billing)
+                {
+                    ExtractExtraForHouse(m.Value.Header.Extra, out _, out var hId);
+                    if (houseId == hId)
+                    {
+                        deleteList.Add(m.Value.Id);
+                    }
+                }
+            }
+            // Actually remove them by Id
+            foreach (var d in deleteList)
+            {
+                var mail = GetMailById(d);
+                NotifyDeleteMailByNameIfOnline(mail, mail.ReceiverName);
+                DeleteMail(mail);
+            }
+        }
+        
+        public List<BaseMail> GetMyHouseMails(uint houseId)
+        {
+            var resultList = new List<BaseMail>();
+            // Check which mails to remove
+            foreach(var m in _allPlayerMails)
+            {
+                if (m.Value.MailType == MailType.Billing)
+                {
+                    ExtractExtraForHouse(m.Value.Header.Extra, out _, out var hId);
+                    if (houseId == hId)
+                    {
+                        resultList.Add(m.Value);
+                    }
+                }
+            }
+            return resultList;
+        }
+        
     }
 }

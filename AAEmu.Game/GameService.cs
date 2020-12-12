@@ -32,6 +32,8 @@ namespace AAEmu.Game
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
 
+            FeaturesManager.Instance.Initialize();
+            ConfigurationManager.Instance.Load();
             LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();

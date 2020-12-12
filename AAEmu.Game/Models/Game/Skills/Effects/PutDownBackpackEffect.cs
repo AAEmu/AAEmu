@@ -30,13 +30,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             Item item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
             if (item == null) return;
 
-            if (character.Inventory.Equipment.RemoveItem(Items.Actions.ItemTaskType.DropBackpack, item, true))
+            if (character.Inventory.SystemContainer.AddOrMoveExistingItem(Items.Actions.ItemTaskType.DropBackpack, item, (int)EquipmentItemSlot.Backpack))
             {
-                //TODO: save to database and who placed it down and item template shouldn't be used.
-
                 // Spawn doodad
-                _log.Debug("[PutDownPackEffect");
-                var (newX, newY) = MathUtil.AddDistanceToFront(1, character.Position.X, character.Position.Y, character.Position.RotationZ);
+                _log.Debug("PutDownPackEffect");
+                var (newX, newY) = MathUtil.AddDistanceToFront(1f, character.Position.X, character.Position.Y, character.Position.RotationZ);
                 var pos = character.Position.Clone();
 
                 pos.X = newX;
@@ -47,8 +45,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 doodadSpawner.Id = 0;
                 doodadSpawner.UnitId = BackpackDoodadId;
                 doodadSpawner.Position = pos;
-                var doodad = doodadSpawner.Spawn(0);
-                doodad.ItemId = item.TemplateId;
+                var doodad = doodadSpawner.Spawn(0,item.Id,character.ObjId);
             }
         }
     }

@@ -61,7 +61,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                 if ((args.Length > firstarg + 0) && (uint.TryParse(args[firstarg + 0], out uint argcontainerId)))
                 {
-                    if ((argcontainerId >= 0) && (argcontainerId <= (byte)SlotType.Mail))
+                    if (((argcontainerId >= 0) && (argcontainerId <= (byte)SlotType.Mail)) || (argcontainerId == (byte)SlotType.System))
                         containerId = (SlotType)argcontainerId;
                     else
                     {

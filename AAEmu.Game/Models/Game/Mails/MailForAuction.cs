@@ -9,7 +9,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
-    class MailForAuction : BaseMail
+    public class MailForAuction : BaseMail
     {
         private uint _buyerId;
         private uint _sellerId;
