@@ -766,6 +766,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
             Position.X = newX;
             Position.Y = newY;
+            Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(Position.ZoneId, Position.X, Position.Y) : Position.Z;
             Position.RotationZ = rotZ;
             
             moveType.X = newX;
