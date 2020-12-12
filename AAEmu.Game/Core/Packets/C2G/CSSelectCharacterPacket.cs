@@ -82,6 +82,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.SendOption(1);
                 Connection.ActiveChar.SendOption(2);
                 Connection.ActiveChar.SendOption(5);
+                
+                Connection.ActiveChar.OnZoneChange(0,Connection.ActiveChar.Position.ZoneId);
             }
             else
             {
