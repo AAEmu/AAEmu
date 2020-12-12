@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.World;
+using Jace.Util;
 
 namespace AAEmu.Game.Models.Game.AI.Utils
 {
@@ -29,6 +30,20 @@ namespace AAEmu.Game.Models.Game.AI.Utils
                 newPosition.Z = terrainHeight;
             
             return newPosition;
+        }
+
+        public static bool IsOutOfIdleArea(AbstractAI AI)
+        {
+            var distToIdlePos = AAEmu.Game.Utils.MathUtil.CalculateDistance(AI.Owner.Position, AI.IdlePosition, true);
+            var range = 15;
+            
+            // if (isGroupMember)
+            //     then
+            //         range = 50;
+            // end
+            if (distToIdlePos > range) 
+                return true;
+            return false;
         }
     }
 }

@@ -3,6 +3,14 @@ using System.Collections.Generic;
 
 namespace AAEmu.Game.Models.Game.AI.Framework
 {
+    public enum States
+    {
+        Idle = 0,
+        Roaming = 1,
+        MovingToTarget = 2,
+        UsingCombatSkills = 3
+    }
+    
     public class State
     {
         protected AbstractAI AI;
@@ -13,7 +21,7 @@ namespace AAEmu.Game.Models.Game.AI.Framework
 
     public class FSM
     {
-        protected Dictionary<uint, State> _states = new Dictionary<uint, State>();
+        protected Dictionary<States, State> _states = new Dictionary<States, State>();
         protected State _currentState;
         
         public FSM() {}
@@ -21,6 +29,11 @@ namespace AAEmu.Game.Models.Game.AI.Framework
         public void Tick(TimeSpan delta)
         {
             _currentState?.Tick(delta);
+        }
+
+        public State GetCurrentState()
+        {
+            return _currentState;
         }
         
         public void SetCurrentState(State state)
@@ -30,12 +43,12 @@ namespace AAEmu.Game.Models.Game.AI.Framework
             _currentState?.Enter();
         }
 
-        public void AddState(uint key, State state)
+        public void AddState(States key, State state)
         {
             _states.Add(key, state);
         }
 
-        public State GetState(uint key)
+        public State GetState(States key)
         {
             return _states.TryGetValue(key, out var state) ? state : null;
         }

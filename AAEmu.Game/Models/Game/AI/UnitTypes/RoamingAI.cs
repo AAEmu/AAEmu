@@ -5,14 +5,6 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.AI.UnitTypes
 {
-    enum RoamingStates : uint
-    {
-        Idle = 0,
-        Roaming = 1, // Going to roaming target
-        TrackingEnemy = 2, // Going to enemy
-        Fighting = 3 // Use spell -> Track
-    }
-    
     public class RoamingAI : AbstractUnitAI
     {
         /*
@@ -26,8 +18,8 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
 
         public RoamingAI()
         {
-            StateMachine.AddState((uint) RoamingStates.Idle, new IdleState(3));
-            StateMachine.AddState((uint) RoamingStates.Roaming, new RoamingState());
+            StateMachine.AddState(Framework.States.Idle, new IdleState(3));
+            StateMachine.AddState(Framework.States.Roaming, new RoamingState());
         }
 
         public override void OnEnemyDamage(Unit enemy)
@@ -40,16 +32,16 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
             // Go to track target state
         }
 
-        public override uint GetNextState(State previous)
+        public override Framework.States GetNextState(State previous)
         {
             switch (previous)
             {
                 case IdleState idleState:
-                    return (uint) RoamingStates.Roaming;
+                    return Framework.States.Roaming;
                 case RoamingState roamingState:
-                    return (uint)RoamingStates.Idle;
+                    return Framework.States.Idle;
                 default:
-                    return (uint) RoamingStates.Idle;
+                    return Framework.States.Idle;
             }
         }
     }

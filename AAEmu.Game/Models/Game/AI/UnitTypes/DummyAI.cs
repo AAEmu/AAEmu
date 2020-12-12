@@ -4,9 +4,9 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
 {
     public class DummyAI : AbstractUnitAI
     {
-        public override uint GetNextState(State previous)
+        public override Framework.States GetNextState(State previous)
         {
-            return 0;
+            return Framework.States.Idle;
         }
     }
 }
