@@ -8,9 +8,11 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
     {
         public HoldPositionAI()
         {
-            StateMachine.AddState(Framework.States.Idle, new IdleState());
-            StateMachine.AddState(Framework.States.MovingToTarget, new MoveToTargetState());
-            StateMachine.AddState(Framework.States.UsingCombatSkills, new UseCombatSkills());
+            StateMachine.AddState(Framework.States.Idle, new IdleState() {AI = this});
+            StateMachine.AddState(Framework.States.MovingToTarget, new MoveToTargetState() {AI = this});
+            StateMachine.AddState(Framework.States.UsingCombatSkills, new UseCombatSkills() {AI = this});
+            
+            StateMachine.SetCurrentState(StateMachine.GetState(Framework.States.Idle));
         }
 
         public override void OnEnemyDamage(Unit enemy)

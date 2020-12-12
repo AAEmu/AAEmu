@@ -22,11 +22,12 @@ namespace AAEmu.Game.Models.Game.AI.States
         
         public override void Enter()
         {
+            _log.Debug("Entering IdleState for at most {0} seconds", _maxIdleTime);
             // Pick time to Idle
             if (_maxIdleTime > 0)
             {
                 _stateStart = DateTime.UtcNow;
-                _idleTimeSpan = TimeSpan.FromSeconds(Rand.Next(0, 3));
+                _idleTimeSpan = TimeSpan.FromSeconds(Rand.Next(0, _maxIdleTime));
             }
         }
 

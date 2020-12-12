@@ -113,6 +113,7 @@ namespace AAEmu.Game
             BoatPhysicsManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
             CashShopManager.Instance.Initialize();
+            AIManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);

@@ -4,12 +4,17 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Json;
 using AAEmu.Game.Models.Tasks.UnitMove;
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -29,6 +34,8 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
+        public AbstractUnitAI AI { get; set; }
+        
         #region Attributes
         [UnitAttribute(UnitAttribute.Str)]
         public int Str
@@ -741,6 +748,64 @@ namespace AAEmu.Game.Models.Game.NPChar
 
                 TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
             }
+            
+            AI?.OnEnemyDamage(attacker);
+        }
+
+        public void MoveTowards(Unit other, float distance)
+        {
+            var targetDist = MathUtil.CalculateDistance(Position, other.Position);
+            var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+            moveType.DeltaMovement = new sbyte[3];
+
+            var travelDist = Math.Min(targetDist, distance);
+            var angle = MathUtil.CalculateAngleFrom(this, other);
+            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Position.X, Position.Y, rotZ);
+            var (velX, velY) = MathUtil.AddDistanceToFront(2000, 0, 0, rotZ);
+
+            Position.X = newX;
+            Position.Y = newY;
+            Position.RotationZ = rotZ;
+            
+            moveType.X = newX;
+            moveType.Y = newY;
+            moveType.Z = Position.Z;
+            moveType.VelX = (short) velX;
+            moveType.VelY = (short) velY;
+            moveType.RotationX = 0;
+            moveType.RotationY = 0;
+            moveType.RotationZ = Position.RotationZ;
+            moveType.Flags = 4;     // 5-walk, 4-run, 3-stand still
+            moveType.DeltaMovement = new sbyte[3];
+            moveType.DeltaMovement[0] = 0;
+            moveType.DeltaMovement[1] = 127;
+            moveType.DeltaMovement[2] = 0;
+            moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
+            
+            BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
+        }
+        
+        public void StopMovement()
+        {
+            var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+            moveType.X = Position.X;
+            moveType.Y = Position.Y;
+            moveType.Z = Position.Z;
+            moveType.RotationX = 0;
+            moveType.RotationY = 0;
+            moveType.RotationZ = Position.RotationZ;
+            moveType.Flags = 4;
+            moveType.DeltaMovement = new sbyte[3];
+            moveType.DeltaMovement[0] = 0;
+            moveType.DeltaMovement[1] = 0;
+            moveType.DeltaMovement[2] = 0;
+            moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
+            BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }
     }
 }
