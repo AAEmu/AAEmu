@@ -14,6 +14,7 @@
         LEATHER_4P = 715,
         LEATHER_7P = 716,
         PLATE_4P = 717,
-        PLATE_7P = 740
+        PLATE_7P = 740,
+        EQUIPMENT_BUFF_TAG = 156
     }
 }
