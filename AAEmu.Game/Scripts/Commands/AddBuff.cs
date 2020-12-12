@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -28,10 +28,10 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            if (!uint.TryParse(args[0], out var buffId))
+            if (args.Length < 1 || !uint.TryParse(args[0], out var buffId))
                 return;
 
-            if (!uint.TryParse(args[1], out var abLevel))
+            if (args.Length < 2 || !uint.TryParse(args[1], out var abLevel))
                 abLevel = 1u;
 
             var buffTemplate = SkillManager.Instance.GetBuffTemplate(buffId);
