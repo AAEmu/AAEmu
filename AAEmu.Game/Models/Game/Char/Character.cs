@@ -1409,14 +1409,47 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (Position.ZoneId == lastZoneKey)
                 return;
+            
+            OnZoneChange(lastZoneKey,Position.ZoneId);
+        }
 
+        public void OnZoneChange(uint lastZoneKey, uint newZoneKey)
+        {
             // We switched zonekeys, we need to do some checks
             var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
-            var newZone = ZoneManager.Instance.GetZoneByKey(Position.ZoneId);
+            var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);
             var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
             var newZoneGroupId = (short)(newZone?.GroupId ?? 0);
             if (lastZoneGroupId == newZoneGroupId)
                 return;
+
+            // Handle Zone Buffs
+            if (lastZone != null)
+            {
+                // Remove the old zone buff if needed
+                var lastZoneGroup = ZoneManager.Instance.GetZoneGroupById(lastZone.GroupId);
+                if ((lastZoneGroup != null) && (lastZoneGroup.BuffId != 0))
+                {
+                    // Remove the applied buff from last zonegroup
+                    Buffs.RemoveBuff(lastZoneGroup.BuffId);
+                }
+            }
+            if (newZone != null)
+            {
+                // Apply the new zone buff if needed
+                var newZoneGroup = ZoneManager.Instance.GetZoneGroupById(newZone.GroupId);
+                if ((newZoneGroup != null) && (newZoneGroup.BuffId != 0))
+                {
+                    // Add buff from new zonegroup
+                    var buffTemplate = SkillManager.Instance.GetBuffTemplate(newZoneGroup.BuffId);
+                    if (buffTemplate != null)
+                    {
+                        var casterObj = new SkillCasterUnit(ObjId);
+                        var newZoneBuff = new Buff(this, this, casterObj, buffTemplate, null, System.DateTime.Now);
+                        Buffs.AddBuff(newZoneBuff);
+                    }
+                }
+            }
 
             // Ok, we actually changed zone groups, we'll leave to do some chat channel stuff
             if (lastZoneGroupId != 0)
@@ -1433,13 +1466,13 @@ namespace AAEmu.Game.Models.Game.Char
                             if (!thisChar.isGM)
                             {
                                 // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
-                                // TODO: Remove backpack immediatly
+                                // TODO: Remove backpack immediately
                             }
                             */
             // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour
             if (newZone != null)
                 SendMessage(ChatType.System,
-                    "|cFFFF0000You have entered a closed zone ({0} - {1})!\nPlease leave immediatly!|r",
+                    "|cFFFF0000You have entered a closed zone ({0} - {1})!\nPlease leave immediately!|r",
                     newZone.ZoneKey, newZone.Name);
             // Send the error message
             SendErrorMessage(ErrorMessageType.ClosedZone);

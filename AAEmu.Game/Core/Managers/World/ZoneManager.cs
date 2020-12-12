@@ -107,7 +107,8 @@ namespace AAEmu.Game.Core.Managers.World
                             template.PirateDesperado = reader.GetBoolean("pirate_desperado", true);
                             template.FishingSeaLootPackId = reader.GetUInt32("fishing_sea_loot_pack_id", 0);
                             template.FishingLandLootPackId = reader.GetUInt32("fishing_land_loot_pack_id", 0);
-                            // TODO 1.2 // template.BuffId = reader.GetUInt32("buff_id", 0);
+                            // 1.2 added BuffId
+                            template.BuffId = reader.GetUInt32("buff_id", 0);
                             _groups.Add(template.Id, template);
                         }
                     }
