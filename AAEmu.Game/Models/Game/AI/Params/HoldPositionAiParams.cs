@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.AI.Params
 
         public void Parse(string data)
         {
-            using (var aiParams = new Lua())
+            using (var aiParams = new AiLua())
             {
                 aiParams.DoString($"data = {{\n{data}\n}}");
 
