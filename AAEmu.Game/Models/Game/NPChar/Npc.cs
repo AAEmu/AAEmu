@@ -756,7 +756,6 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             var targetDist = MathUtil.CalculateDistance(Position, other.Position);
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-            moveType.DeltaMovement = new sbyte[3];
 
             var travelDist = Math.Min(targetDist, distance);
             var angle = MathUtil.CalculateAngleFrom(this, other);
@@ -769,15 +768,16 @@ namespace AAEmu.Game.Models.Game.NPChar
             Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(Position.ZoneId, Position.X, Position.Y) : Position.Z;
             Position.RotationZ = rotZ;
             
-            moveType.X = newX;
-            moveType.Y = newY;
+            moveType.X = Position.X;
+            moveType.Y = Position.Y;
             moveType.Z = Position.Z;
             moveType.VelX = (short) velX;
             moveType.VelY = (short) velY;
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = Position.RotationZ;
-            moveType.Flags = 4;     // 5-walk, 4-run, 3-stand still
+            moveType.ActorFlags = 4;     // 5-walk, 4-run, 3-stand still
+            
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 127;
