@@ -43,6 +43,7 @@ namespace AAEmu.Game.Core.Network.Connections
         public Dictionary<uint, House> Houses;
         
         public Task LeaveTask { get; set; }
+        public DateTime LastPing { get; set; }
 
         public GameConnection(Session session)
         {
