@@ -359,8 +359,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var healthStolen = (int)(value * (HealthStealRatio / 100.0f));
             var manaStolen = (int)(value * (ManaStealRatio / 100.0f));
 
-            if (caster is Character)
-                value *= 100;
             //Safeguard to prevent accidental flagging
             if (!caster.CanAttack(trg))
                 return;
