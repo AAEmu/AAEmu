@@ -1480,15 +1480,38 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void DoFallDamage(ushort fallVel)
         {
-            var fallDmg = Math.Min(Hp,(int)(Hp * ((fallVel-5000) / 20000f)));
-            ReduceCurrentHp(this, fallDmg);
+            var fallDmg = Math.Min(MaxHp, (int)(MaxHp * ((fallVel - 8600) / 15000f)));
+            var minHpLeft = MaxHp / 20; //5% of hp 
+            var maxDmgLeft = Hp - minHpLeft; // Max damage one can take 
 
-            SendPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint) fallDmg));
-            
-            //todo stun & maybe adjust formula?
-            _log.Warn("FallDamage: Vel{0} DmgPerc: {1}", fallVel, (int)((fallVel - 5000) / 200f));
+            if (fallVel >= 32000)
+            {
+                ReduceCurrentHp(this, Hp); //This is instant death so should be first
+            }
+            else
+            {
+                if (fallDmg < maxDmgLeft)
+                {
+                    ReduceCurrentHp(this, fallDmg); //If you can take the hit without reaching 5% hp left take it
+                }
+                else
+                {
+                    var duration = 500 * (fallDmg / minHpLeft);
+
+                    var buff = SkillManager.Instance.GetBuffTemplate(1391);
+                    var casterObj = new SkillCasterUnit(ObjId);
+                    Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now), 0, duration);
+
+                    if (Hp > minHpLeft)
+                        ReduceCurrentHp(this, maxDmgLeft); //Leaves you at 5% hp no matter what
+                }
+            }
+
+            SendPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)fallDmg));
+            //todo stun & maybe adjust formula & need to detect water landing?
+            _log.Warn("FallDamage: Vel {0} DmgPerc: {1}, Damage {2}", fallVel, (int)((fallVel - 8600) / 150f), fallDmg);
         }
-        
+
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;

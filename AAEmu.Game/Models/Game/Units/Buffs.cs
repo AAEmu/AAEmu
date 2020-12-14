@@ -184,7 +184,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void AddBuff(Buff buff, uint index = 0)
+        public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)
         {
             var finalToleranceBuffId = 0u;
             lock (_lock)
@@ -257,7 +257,10 @@ namespace AAEmu.Game.Models.Game.Units
                     if (buff.Caster is Character && buff.Owner is Character)
                         buff.Duration = (int)(buff.Duration * ((100 - buffTolerance.CharacterTimeReduction) / 100.0));
                 }
-                
+
+                if (forcedDuration != 0)
+                    buff.Duration = forcedDuration;
+
                 if (buff.Duration > 0 && buff.StartTime == DateTime.MinValue)
                 {
                     buff.StartTime = DateTime.Now;
