@@ -12,6 +12,11 @@ namespace AAEmu.Game.Utils
         {
             return CalculateAngleFrom(obj1.Position.X, obj1.Position.Y, obj2.Position.X, obj2.Position.Y);
         }
+        
+        public static double CalculateAngleFrom(Point p1, Point p2)
+        {
+            return CalculateAngleFrom(p1.X, p1.Y, p2.X, p2.Y);
+        }
 
         // Return degree value of object 2 to the horizontal line with object 1 being the origin
         public static double CalculateAngleFrom(float obj1X, float obj1Y, float obj2X, float obj2Y)

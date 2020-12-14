@@ -10,7 +10,8 @@ namespace AAEmu.Game.Models.Game.AI.Framework
         Roaming = 1,
         MovingToTarget = 2,
         UsingCombatSkills = 3,
-        AlmightyAttack = 4
+        AlmightyAttack = 4,
+        ReturnToIdle = 5,
     }
     
     public class State

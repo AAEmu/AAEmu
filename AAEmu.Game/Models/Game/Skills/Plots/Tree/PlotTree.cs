@@ -191,6 +191,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
 
             SkillManager.Instance.ReleaseId(state.ActiveSkill.TlId);
+            state.Caster?.OnSkillEnd(state.ActiveSkill);
+            
+            if (state.Caster?.ActivePlotState == state)
+                state.Caster.ActivePlotState = null;
         }
     }
 }

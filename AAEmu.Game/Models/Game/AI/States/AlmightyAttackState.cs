@@ -20,6 +20,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         public AlmightNpcParams AiParams { get; set; }
         private DateTime _lastSkillEnd = DateTime.MinValue;
         private float _currentDelay = 0.0f;
+        private float _nextDelay = 0.0f;
         private int _sequenceIndex = 0;
         
         public override void Enter()
@@ -38,15 +39,30 @@ namespace AAEmu.Game.Models.Game.AI.States
 
         public override void Tick(TimeSpan delta)
         {
+            if (Target == null || Target.IsDead)
+            {
+                GoToReturnToIdle();
+                return;
+            }
+
             // Check distance to aggro list, top to bottom
                 // If no one is within return distance, reset HP, MP and go back to idle position
+            // TODO : Use aggro list, not single target
             var distanceToTarget = MathUtil.CalculateDistance(AI.Owner.Position, Target.Position, true);
             if (distanceToTarget > OwnerTemplate.ReturnDistance)
             {
-                // Go to return state
+                GoToReturnToIdle();
+                return;
+            }
+            
+            var distanceToIdle = MathUtil.CalculateDistance(AI.Owner.Position, AI.IdlePosition, true);
+            if (distanceToIdle > OwnerTemplate.AbsoluteReturnDistance)
+            {
+                GoToReturnToIdle();
+                return;
             }
 
-            if (Npc.SkillTask != null)
+            if (Npc.SkillTask != null || Npc.ActivePlotState != null)
                 return;
             
             if (_lastSkillEnd + TimeSpan.FromSeconds(_currentDelay) > DateTime.UtcNow)
@@ -63,8 +79,9 @@ namespace AAEmu.Game.Models.Game.AI.States
                 return;
             
             var skill = new Skill(SkillManager.Instance.GetSkillTemplate(nextAiSkill.SkillId));
-            _currentDelay = nextAiSkill.Delay; // TODO : Apply delay when skill **ends**
-
+            // _currentDelay = nextAiSkill.Delay + (skill.Template.CastingTime / 1000.0f) + (skill.Template.ChannelingTime / 1000.0f); // TODO : Apply delay when skill **ends**
+            _nextDelay = nextAiSkill.Delay;
+            
             var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
             skillCaster.ObjId = Npc.ObjId;
 
@@ -94,6 +111,19 @@ namespace AAEmu.Game.Models.Game.AI.States
                 return null;
             
             return aiSkill;
+        }
+
+        private void GoToReturnToIdle()
+        {
+            Npc.InterruptSkills();
+            var returnToIdleState = AI.StateMachine.GetState(Framework.States.ReturnToIdle);
+            AI.StateMachine.SetCurrentState(returnToIdleState);
+        }
+
+        public void OnSkillEnd(Skill skill)
+        {
+            _currentDelay = _nextDelay;
+            _nextDelay = 0.0f;
         }
     }
 }

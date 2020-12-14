@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -752,13 +753,13 @@ namespace AAEmu.Game.Models.Game.NPChar
             AI?.OnEnemyDamage(attacker);
         }
 
-        public void MoveTowards(Unit other, float distance)
+        public void MoveTowards(Point other, float distance)
         {
-            var targetDist = MathUtil.CalculateDistance(Position, other.Position);
+            var targetDist = MathUtil.CalculateDistance(Position, other);
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             var travelDist = Math.Min(targetDist, distance);
-            var angle = MathUtil.CalculateAngleFrom(this, other);
+            var angle = MathUtil.CalculateAngleFrom(this.Position, other);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
             var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Position.X, Position.Y, rotZ);
             var (velX, velY) = MathUtil.AddDistanceToFront(2000, 0, 0, rotZ);
@@ -807,6 +808,11 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
+        }
+
+        public override void OnSkillEnd(Skill skill)
+        {
+            AI?.OnSkillEnd(skill);
         }
     }
 }

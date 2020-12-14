@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             // if (PreviousDistance > AI.Params.CombatRange)
             if (PreviousDistance > 2.5f)
             {
-                npc.MoveTowards(Target, 3.4f * (delta.Milliseconds / 1000.0f));
+                npc.MoveTowards(Target.Position, 3.4f * (delta.Milliseconds / 1000.0f));
             }
             else
             {

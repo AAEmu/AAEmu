@@ -508,5 +508,10 @@ namespace AAEmu.Game.Models.Game.Units
                 return Hp < MaxHp || Mp < MaxMp;
             }
         }
+
+        public virtual void OnSkillEnd(Skill skill)
+        {
+            
+        }
     }
 }

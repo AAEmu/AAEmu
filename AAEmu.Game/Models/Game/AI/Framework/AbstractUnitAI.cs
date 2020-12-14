@@ -1,3 +1,4 @@
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -8,6 +9,7 @@ namespace AAEmu.Game.Models.Game.AI.Framework
     /// </summary>
     public abstract class AbstractUnitAI : AbstractAI
     {
+        public virtual void OnSkillEnd(Skill skill) {}
         
         // TODO : Implement all of these. They are taken from template.lua
         
