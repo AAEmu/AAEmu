@@ -662,6 +662,7 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             caster.BroadcastPacket(new SCCastingStoppedPacket(TlId, 0), true);
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
+            caster.OnSkillEnd(this);
             caster.SkillTask = null;
             Cancelled = true;
             SkillManager.Instance.ReleaseId(TlId);
