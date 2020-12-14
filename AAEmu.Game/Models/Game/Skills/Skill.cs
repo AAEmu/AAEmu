@@ -62,7 +62,7 @@ namespace AAEmu.Game.Models.Game.Skills
             else
                 Level = 1;
         }
-        public void Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
+        public SkillResult Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
         {
             _bypassGcd = bypassGcd;
             if (!_bypassGcd)
@@ -70,10 +70,10 @@ namespace AAEmu.Game.Models.Game.Skills
                 lock (caster.GCDLock)
                 {
                     if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.Now)
-                        return;
+                        return SkillResult.CooldownTime;
 
                     if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
-                        return;
+                        return SkillResult.CooldownTime;
 
                     caster.SkillLastUsed = DateTime.Now;
                 }
@@ -90,35 +90,22 @@ namespace AAEmu.Game.Models.Game.Skills
             var target = GetInitialTarget(caster, casterCaster, targetCaster);
             InitialTarget = target;
             if (target == null)
-                return;//We should try to make sure this doesnt happen
+                return SkillResult.NoTarget;//We should try to make sure this doesnt happen
 
             TlId = SkillManager.Instance.NextId();
             if (Template.Plot != null)
             {
                 Task.Run(() => Template.Plot.Run(caster, casterCaster, target, targetCaster, skillObject, this));
                 if (Template.PlotOnly)
-                    return;
+                    return SkillResult.Success;
             }
 
-            // TODO : Add check for range
-            var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
-
-            // var effects = caster.Buffs.GetEffectsByType(typeof(BuffTemplate));
-            // foreach (var effect in effects)
-            // {
-            //     if (((BuffTemplate)effect.Template).RemoveOnStartSkill || ((BuffTemplate)effect.Template).RemoveOnUseSkill)
-            //     {
-            //         effect.Exit();
-            //     }
-            // }
-            // effects = caster.Buffs.GetEffectsByType(typeof(BuffEffect));
-            // foreach (var effect in effects)
-            // {
-            //     if (effect.Template.RemoveOnStartSkill)
-            //     {
-            //         effect.Exit();
-            //     }
-            // }
+            // var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
+            // var targetDist = caster.GetDistanceTo(target, true);
+            // if (targetDist < Template.MinRange)
+            //     return SkillResult.TooCloseRange;
+            // if (targetDist > skillRange)
+            //     return SkillResult.TooFarRange;
 
             //Maybe we should do this somewhere else?
             if (Template.DefaultGcd)
@@ -173,6 +160,8 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 Cast(caster, casterCaster, target, targetCaster, skillObject);
             }
+
+            return SkillResult.Success;
         }
 
         private BaseUnit GetInitialTarget(Unit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
@@ -311,6 +300,7 @@ namespace AAEmu.Game.Models.Game.Skills
             caster.SkillTask = null;
             
             ConsumeMana(caster);
+            caster.Cooldowns.AddCooldown(Template.Id, (uint) Template.CooldownTime);
 
             if (Id == 2 || Id == 3 || Id == 4)
             {

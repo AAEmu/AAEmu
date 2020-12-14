@@ -38,7 +38,8 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            npc.AI = new HoldPositionAI {Owner = npc, IdlePosition = npc.Position.Clone()};
+            npc.Patrol = null;
+            npc.AI = new AlmightyNpcAI() {Owner = npc, IdlePosition = npc.Position.Clone()};
             AIManager.Instance.AddAI(npc.AI);
         }
     }

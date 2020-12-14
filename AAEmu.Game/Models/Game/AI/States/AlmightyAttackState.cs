@@ -1,29 +1,99 @@
 using System;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Framework;
+using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.States
 {
     public class AlmightyAttackState : State
     {
+        // TODO : Use aggro list
+        public Unit Target { get; set; }
+        public Npc Npc { get; set; }
+        public NpcTemplate OwnerTemplate { get; set; }
+        public AlmightNpcParams AiParams { get; set; }
+        private DateTime _lastSkillEnd = DateTime.MinValue;
+        private float _currentDelay = 0.0f;
+        private int _sequenceIndex = 0;
+        
         public override void Enter()
         {
             if (!(AI.Owner is Npc npc))
+            {
                 _log.Error("State applied to invalid unit type");
-            
-            // TODO : Save ref to ai params
+                return;
+            }
+
+            Npc = npc;
+            AiParams = AiGameData.Instance.ANTHALON;
+            OwnerTemplate = npc.Template;
+            _lastSkillEnd = DateTime.MinValue;
         }
 
         public override void Tick(TimeSpan delta)
         {
             // Check distance to aggro list, top to bottom
                 // If no one is within return distance, reset HP, MP and go back to idle position
+            var distanceToTarget = MathUtil.CalculateDistance(AI.Owner.Position, Target.Position, true);
+            if (distanceToTarget > OwnerTemplate.ReturnDistance)
+            {
+                // Go to return state
+            }
 
-            // Add to delay timer
+            if (Npc.SkillTask != null)
+                return;
             
-            // Get next skill
+            if (_lastSkillEnd + TimeSpan.FromSeconds(_currentDelay) > DateTime.UtcNow)
+                return; 
+
+            var aiSkillList = GetNextAiSkills();
+            if (aiSkillList == null)
+                return;
+
+            var skillIndex = Math.Min(aiSkillList.Skills.Count - 1, Rand.Next(0, aiSkillList.Skills.Count)); // hacky, not sure if rand is inclusive
+            var nextAiSkill = aiSkillList.Skills[skillIndex]; // TODO: Do we pick at random ? 
+
+            if (Npc.Cooldowns.CheckCooldown(nextAiSkill.SkillId))
+                return;
             
-            // Cast next skill
+            var skill = new Skill(SkillManager.Instance.GetSkillTemplate(nextAiSkill.SkillId));
+            _currentDelay = nextAiSkill.Delay; // TODO : Apply delay when skill **ends**
+
+            var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
+            skillCaster.ObjId = Npc.ObjId;
+
+            var skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+            skillCastTarget.ObjId = Target.ObjId;
+
+            var skillObject = SkillObject.GetByType(SkillObjectType.None);
+
+            skill.Use(Npc, skillCaster, skillCastTarget, skillObject, true);
+        }
+
+        private AiSkillList GetNextAiSkills()
+        {
+            if (_sequenceIndex >= AiParams.AiSkillLists.Count)
+                _sequenceIndex = 0;
+
+            var aiSkill = AiParams.AiSkillLists[_sequenceIndex];
+
+            _sequenceIndex++;
+
+            var hpPercent = (Npc.Hp / (float)Npc.MaxHp) * 100.0f;
+
+            if (hpPercent < aiSkill.HealthRangeMin || hpPercent > aiSkill.HealthRangeMax)
+                return null;
+
+            if (aiSkill.Dice > 0 && Rand.Next(0, 1000) > aiSkill.Dice)
+                return null;
+            
+            return aiSkill;
         }
     }
 }

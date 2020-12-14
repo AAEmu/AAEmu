@@ -737,17 +737,17 @@ namespace AAEmu.Game.Models.Game.NPChar
         public void OnDamageReceived(Unit attacker)
         {
             // 25 means "dummy" AI -> should not respond!
-            if (Template.AiFileId != 25 && (Patrol == null || Patrol.PauseAuto(this)))
-            {
-                CurrentTarget = attacker;
-                BroadcastPacket(new SCCombatEngagedPacket(attacker.ObjId), true); // caster
-                BroadcastPacket(new SCCombatEngagedPacket(ObjId), true);    // target
-                BroadcastPacket(new SCCombatFirstHitPacket(ObjId, attacker.ObjId, 0), true);
-                BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, attacker.ObjId), true);
-                BroadcastPacket(new SCTargetChangedPacket(ObjId, attacker.ObjId), true);
-
-                TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
-            }
+            // if (Template.AiFileId != 25 && (Patrol == null || Patrol.PauseAuto(this)))
+            // {
+            //     CurrentTarget = attacker;
+            //     BroadcastPacket(new SCCombatEngagedPacket(attacker.ObjId), true); // caster
+            //     BroadcastPacket(new SCCombatEngagedPacket(ObjId), true);    // target
+            //     BroadcastPacket(new SCCombatFirstHitPacket(ObjId, attacker.ObjId, 0), true);
+            //     BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, attacker.ObjId), true);
+            //     BroadcastPacket(new SCTargetChangedPacket(ObjId, attacker.ObjId), true);
+            //
+            //     // TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
+            // }
             
             AI?.OnEnemyDamage(attacker);
         }

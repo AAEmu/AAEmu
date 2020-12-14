@@ -5,7 +5,7 @@ using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.Params
 {
-    class AlmightNpcParams
+    public class AlmightNpcParams
     {
         public List<string> Msgs { get; set; }
         public string IdleAi { get; set; } = "hold_position";

@@ -164,6 +164,7 @@ namespace AAEmu.Game.Models.Game.Units
         public DateTime SkillLastUsed { get; set; }
         public PlotState ActivePlotState { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
+        public UnitCooldowns Cooldowns { get; set; }
         public Expedition Expedition { get; set; }
         public bool IsInBattle { get; set; }
         public bool IsInPatrol { get; set; } // so as not to run the route a second time
@@ -195,6 +196,7 @@ namespace AAEmu.Game.Models.Game.Units
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
             Equipment.ContainerSize = 28;
             ChargeLock = new object();
+            Cooldowns = new UnitCooldowns();
         }
 
         public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
