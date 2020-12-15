@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
         public AbstractUnitAI AI { get; set; }
-        public ConcurrentDictionary<uint, AggroTable> AggroTables { get; }
+        public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
         
         #region Attributes
         [UnitAttribute(UnitAttribute.Str)]
@@ -699,14 +699,14 @@ namespace AAEmu.Game.Models.Game.NPChar
         public Npc()
         {
             Name = "";
-            AggroTables = new ConcurrentDictionary<uint, AggroTable>();
+            AggroTable = new ConcurrentDictionary<uint, Aggro>();
             //Equip = new Item[28];
         }
 
         public override void DoDie(Unit killer)
         {
             base.DoDie(killer);
-            AggroTables.Clear();
+            AggroTable.Clear();
             if (killer is Character character)
             {
                 character.AddExp(KillExp, true);
@@ -741,27 +741,27 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public void ClearAggro()
         {
-            foreach(var table in AggroTables)
+            foreach(var table in AggroTable)
             {
                 var unit = WorldManager.Instance.GetUnit(table.Key);
                 if (unit != null)
                     unit.Events.OnHealed -= OnAbuserHealed;
             }
 
-            AggroTables.Clear();
+            AggroTable.Clear();
         }
 
         public void OnAbuserHealed(object sender, OnHealedArgs args)
         {
-            if (AggroTables.TryGetValue(args.Healer.ObjId, out var table))
+            if (AggroTable.TryGetValue(args.Healer.ObjId, out var table))
             {
                 table.AddAggro(AggroKind.Heal, args.HealAmount);
             }
             else
             {
-                table = new AggroTable();
+                table = new Aggro();
                 table.AddAggro(AggroKind.Heal, args.HealAmount);
-                if (AggroTables.TryAdd(args.Healer.ObjId, table))
+                if (AggroTable.TryAdd(args.Healer.ObjId, table))
                 {
                     args.Healer.Events.OnHealed += OnAbuserHealed;
                 }
@@ -782,16 +782,16 @@ namespace AAEmu.Game.Models.Game.NPChar
             //
             //     // TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
             // }
-            if (AggroTables.TryGetValue(attacker.ObjId, out var table))
+            if (AggroTable.TryGetValue(attacker.ObjId, out var table))
             {
                 table.AddAggro(AggroKind.Damage, amount);
             }
             else
             {
-                table = new AggroTable();
+                table = new Aggro();
                 table.AddAggro(AggroKind.Damage, amount);
 
-                if (AggroTables.TryAdd(attacker.ObjId, table))
+                if (AggroTable.TryAdd(attacker.ObjId, table))
                 {
                     attacker.Events.OnHealed += OnAbuserHealed;
                 }

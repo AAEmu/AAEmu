@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         Damage,
         Heal
     }
-    public class AggroTable
+    public class Aggro
     {
         private object _lock = new object();
 
