@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Framework;
 
@@ -8,23 +9,31 @@ namespace AAEmu.Game.Core.Managers
     public class AIManager : Singleton<AIManager>
     {
         public List<AbstractAI> ActiveAIs;
+        private object _aiLock;
         
         public void Initialize()
         {
             ActiveAIs = new List<AbstractAI>();
+            _aiLock = new object();
             TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100));
         }
 
         public void AddAI(AbstractAI AI)
         {
-            ActiveAIs.Add(AI);
+            lock (_aiLock)
+            {
+                ActiveAIs.Add(AI);
+            }
         }
 
         public void Tick(TimeSpan delta)
         {
-            foreach (var AI in ActiveAIs)
+            lock (_aiLock)
             {
-                AI.StateMachine.Tick(delta);
+                foreach (var AI in ActiveAIs.ToList())
+                {
+                    AI.StateMachine.Tick(delta);
+                }
             }
         }
     }

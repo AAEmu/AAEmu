@@ -75,6 +75,9 @@ namespace AAEmu.Game.Models.Game.AI.States
             if (aiSkillList == null)
                 return;
 
+            if (aiSkillList.Skills.Count <= 0)
+                return;
+
             var skillIndex = Math.Min(aiSkillList.Skills.Count - 1, Rand.Next(0, aiSkillList.Skills.Count)); // hacky, not sure if rand is inclusive
             var nextAiSkill = aiSkillList.Skills[skillIndex]; // TODO: Do we pick at random ? 
 

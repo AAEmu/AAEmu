@@ -22,7 +22,6 @@ namespace AAEmu.Game.Models.Game.AI.States
         
         public override void Enter()
         {
-            _log.Debug("Entering IdleState for at most {0} seconds", _maxIdleTime);
             // Pick time to Idle
             if (_maxIdleTime > 0)
             {
@@ -33,6 +32,9 @@ namespace AAEmu.Game.Models.Game.AI.States
 
         public override void Tick(TimeSpan delta)
         {
+            if (AI.Owner?.Position != null && AI.IdlePosition == null)
+                AI.IdlePosition = AI.Owner.Position.Clone();
+            
             if (_maxIdleTime > 0 && _stateStart + _idleTimeSpan > DateTime.UtcNow)
             {
                 var stateId = AI.GetNextState(this);

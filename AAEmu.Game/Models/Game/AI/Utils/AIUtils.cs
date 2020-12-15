@@ -2,6 +2,8 @@ using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Framework;
+using AAEmu.Game.Models.Game.AI.Params;
+using AAEmu.Game.Models.Game.AI.UnitTypes;
 using AAEmu.Game.Models.Game.World;
 using Jace.Util;
 
@@ -44,6 +46,21 @@ namespace AAEmu.Game.Models.Game.AI.Utils
             if (distToIdlePos > range) 
                 return true;
             return false;
+        }
+
+        public static AbstractUnitAI GetAiByType(AiParamType type, GameObject owner)
+        {
+            switch (type)
+            {
+                case AiParamType.AlmightyNpc:
+                    return new AlmightyNpcAI() {Owner = owner};
+                case AiParamType.BigMonsterRoaming:
+                    return new BigMonsterRoamingAI() {Owner = owner};
+                case AiParamType.Roaming:
+                    return new RoamingAI() {Owner = owner};
+                default:
+                    return null;
+            }
         }
     }
 }

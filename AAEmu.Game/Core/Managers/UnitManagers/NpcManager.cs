@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.AI.Params;
+using AAEmu.Game.Models.Game.AI.Utils;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.NPChar;
@@ -106,6 +108,19 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             npc.Hp = npc.MaxHp;
             npc.Mp = npc.MaxMp;
+
+            if (npc.Template.AiFileId > 0)
+            {
+               var ai = AIUtils.GetAiByType((AiParamType)npc.Template.AiFileId, npc);
+               if (ai == null)
+                   return npc;
+
+               // ai.Owner = npc;
+               // ai.IdlePosition ?
+               npc.AI = ai;
+               AIManager.Instance.AddAI(ai);
+            }
+            
             return npc;
         }
 

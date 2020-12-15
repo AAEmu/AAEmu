@@ -89,6 +89,7 @@ namespace AAEmu.Game
             FriendMananger.Instance.Load();
             ModelManager.Instance.Load();
 
+            AIManager.Instance.Initialize();
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
             HousingManager.Instance.Load();
@@ -115,7 +116,6 @@ namespace AAEmu.Game
             BoatPhysicsManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
             CashShopManager.Instance.Initialize();
-            AIManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
