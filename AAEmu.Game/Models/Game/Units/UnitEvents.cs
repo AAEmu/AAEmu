@@ -32,6 +32,7 @@ namespace AAEmu.Game.Models.Game.Units
         //public EventHandler<OnImmortalityArgs> OnImmortality = delegate { }; //When unit goes invuln?
         //public EventHandler<OnTimeArgs> OnTime = delegate { }; //Event for effect?
         //public EventHandler<OnTimeArgs> OnTime = delegate { }; //Add it if needed, but I think OnKill is fine?
+        public EventHandler<OnHealedArgs> OnHealed = delegate { };
     }
 
     public class OnAttackArgs : EventArgs
@@ -124,9 +125,15 @@ namespace AAEmu.Game.Models.Game.Units
 
     }
 
-    public class OnKillAny : EventArgs
+    public class OnKillAnyArgs : EventArgs
     {
 
+    }
+
+    public class OnHealedArgs : EventArgs
+    {
+        public Unit Healer { get; set; }
+        public int HealAmount { get; set; }
     }
 }
 

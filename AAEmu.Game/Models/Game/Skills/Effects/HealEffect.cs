@@ -119,10 +119,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 packetBuilder.AddPacket(packet);
             else
                 trg.BroadcastPacket(packet, true);
-            
+
             trg.Hp += value;
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
             trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+
+            trg.Events.OnHealed(this, new OnHealedArgs { Healer = caster, HealAmount = value });
         }
     }
 }

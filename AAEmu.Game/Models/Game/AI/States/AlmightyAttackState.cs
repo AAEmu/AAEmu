@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
@@ -42,7 +42,14 @@ namespace AAEmu.Game.Models.Game.AI.States
             if (OwnerTemplate == null)
                 return;
             
-            if (Target == null || Target.IsDead)
+            if (Target.IsDead)
+            {
+                //get a new target
+
+                GoToReturnToIdle(); //Remove once aggro finished
+                return;
+            }
+            if (Target == null)
             {
                 GoToReturnToIdle();
                 return;
@@ -110,7 +117,8 @@ namespace AAEmu.Game.Models.Game.AI.States
 
             var hpPercent = (Npc.Hp / (float)Npc.MaxHp) * 100.0f;
 
-            if (hpPercent < aiSkill.HealthRangeMin || hpPercent > aiSkill.HealthRangeMax)
+            if ((hpPercent < aiSkill.HealthRangeMin && aiSkill.HealthRangeMin != 0) 
+                || (hpPercent > aiSkill.HealthRangeMax && aiSkill.HealthRangeMax != 0))
                 return null;
 
             if (aiSkill.Dice > 0 && Rand.Next(0, 1000) > aiSkill.Dice)
@@ -122,6 +130,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         private void GoToReturnToIdle()
         {
             Npc.InterruptSkills();
+            Npc.ClearAggro();
             var returnToIdleState = AI.StateMachine.GetState(Framework.States.ReturnToIdle);
             AI.StateMachine.SetCurrentState(returnToIdleState);
         }

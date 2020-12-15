@@ -425,7 +425,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
             if (trg is Npc npc/* && npc.CurrentTarget != caster*/)
             {
-                npc.OnDamageReceived(caster);
+                npc.OnDamageReceived(caster, value);
             }
 
             //Invoke even if damage is 0

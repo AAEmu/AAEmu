@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.AI;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
@@ -36,6 +38,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
         public AbstractUnitAI AI { get; set; }
+        public ConcurrentDictionary<uint, AggroTable> AggroTables { get; }
         
         #region Attributes
         [UnitAttribute(UnitAttribute.Str)]
@@ -696,13 +699,14 @@ namespace AAEmu.Game.Models.Game.NPChar
         public Npc()
         {
             Name = "";
+            AggroTables = new ConcurrentDictionary<uint, AggroTable>();
             //Equip = new Item[28];
         }
 
         public override void DoDie(Unit killer)
         {
             base.DoDie(killer);
-
+            AggroTables.Clear();
             if (killer is Character character)
             {
                 character.AddExp(KillExp, true);
@@ -735,7 +739,36 @@ namespace AAEmu.Game.Models.Game.NPChar
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
-        public void OnDamageReceived(Unit attacker)
+        public void ClearAggro()
+        {
+            foreach(var table in AggroTables)
+            {
+                var unit = WorldManager.Instance.GetUnit(table.Key);
+                if (unit != null)
+                    unit.Events.OnHealed -= OnAbuserHealed;
+            }
+
+            AggroTables.Clear();
+        }
+
+        public void OnAbuserHealed(object sender, OnHealedArgs args)
+        {
+            if (AggroTables.TryGetValue(args.Healer.ObjId, out var table))
+            {
+                table.AddAggro(AggroKind.Heal, args.HealAmount);
+            }
+            else
+            {
+                table = new AggroTable();
+                table.AddAggro(AggroKind.Heal, args.HealAmount);
+                if (AggroTables.TryAdd(args.Healer.ObjId, table))
+                {
+                    args.Healer.Events.OnHealed += OnAbuserHealed;
+                }
+            }
+        }
+
+        public void OnDamageReceived(Unit attacker, int amount)
         {
             // 25 means "dummy" AI -> should not respond!
             // if (Template.AiFileId != 25 && (Patrol == null || Patrol.PauseAuto(this)))
@@ -749,7 +782,20 @@ namespace AAEmu.Game.Models.Game.NPChar
             //
             //     // TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
             // }
-            
+            if (AggroTables.TryGetValue(attacker.ObjId, out var table))
+            {
+                table.AddAggro(AggroKind.Damage, amount);
+            }
+            else
+            {
+                table = new AggroTable();
+                table.AddAggro(AggroKind.Damage, amount);
+
+                if (AggroTables.TryAdd(attacker.ObjId, table))
+                {
+                    attacker.Events.OnHealed += OnAbuserHealed;
+                }
+            }
             AI?.OnEnemyDamage(attacker);
         }
 
