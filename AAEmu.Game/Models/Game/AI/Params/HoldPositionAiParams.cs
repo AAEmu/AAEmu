@@ -2,19 +2,22 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
-using NLua;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.Params
 {
-    class HoldPositionAiParams
+    class HoldPositionAiParams : AiParams
     {
+        private Logger _log = LogManager.GetCurrentClassLogger();
+        public override AiParamType Type => AiParamType.HoldPosition;
+        
         public int AlertDuration { get; set; }
         public bool AlertToAttack { get; set; }
         public int AlertSafeTargetRememberTime { get; set; }
         public List<uint> OnGroupLeaderDied { get; set; }
         public List<uint> OnGroupMemberDied { get; set; }
 
-        public void Parse(string data)
+        public override void Parse(string data)
         {
             using (var aiParams = new AiLua())
             {

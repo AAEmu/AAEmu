@@ -32,13 +32,16 @@ namespace AAEmu.Game.Models.Game.AI.States
             }
 
             Npc = npc;
-            AiParams = AiGameData.Instance.ANTHALON;
+            AiParams = (AlmightNpcParams) AiGameData.Instance.GetAiParamsForId((uint) npc.Template.NpcAiParamId);
             OwnerTemplate = npc.Template;
             _lastSkillEnd = DateTime.MinValue;
         }
 
         public override void Tick(TimeSpan delta)
         {
+            if (OwnerTemplate == null)
+                return;
+            
             if (Target == null || Target.IsDead)
             {
                 GoToReturnToIdle();

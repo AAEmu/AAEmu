@@ -5,8 +5,10 @@ using NLua;
 
 namespace AAEmu.Game.Models.Game.AI.Params
 {
-    public class AlmightNpcParams
+    public class AlmightNpcParams : AiParams
     {
+        public override AiParamType Type => AiParamType.AlmightyNpc;
+
         public List<string> Msgs { get; set; }
         public string IdleAi { get; set; } = "hold_position";
 
@@ -25,7 +27,7 @@ namespace AAEmu.Game.Models.Game.AI.Params
         //TODO AiPathSkillLists
         //TODO AiPathDamageSkillLists
 
-        public void Parse(string data)
+        public override void Parse(string data)
         {
             using (var aiParams = new AiLua())
             {

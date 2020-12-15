@@ -12,6 +12,7 @@ namespace AAEmu.Game.Models.Game.AI.Framework
         UsingCombatSkills = 3,
         AlmightyAttack = 4,
         ReturnToIdle = 5,
+        BigMonsterAttack = 6
     }
     
     public class State
