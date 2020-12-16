@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Commons.Utils;
@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Managers
         {
             ActiveAIs = new List<AbstractAI>();
             _aiLock = new object();
-            // TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100));
+            TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100));
         }
 
         public void AddAI(AbstractAI AI)
