@@ -2,6 +2,7 @@
 using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.AI.Params.BigMonster;
@@ -23,6 +24,21 @@ namespace AAEmu.Game.Models.Game.AI.States
         private float _currentDelay = 0.0f;
         private float _nextDelay = 0.0f;
 
+        public override void Enter()
+        {
+            base.Enter();
+            if (!(AI.Owner is Npc npc))
+            {
+                _log.Error("State applied to invalid unit type");
+                return;
+            }
+
+            Npc = npc;
+            AiParams = (BigMonsterRoamingAiParams) AiGameData.Instance.GetAiParamsForId((uint) npc.Template.NpcAiParamId);
+            OwnerTemplate = npc.Template;
+            _lastSkillEnd = DateTime.MinValue;
+        }
+        
         public override void Tick(TimeSpan delta)
         {
             if (OwnerTemplate == null)
@@ -99,7 +115,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         {
             var hpPercent = (Npc.Hp / (float)Npc.MaxHp) * 100.0f;
 
-            var useableSkills = AiParams.CombatSkills.Where(o => Npc.Cooldowns.CheckCooldown(o.SkillType));
+            var useableSkills = AiParams.CombatSkills.Where(o => !Npc.Cooldowns.CheckCooldown(o.SkillType));
 
             useableSkills = useableSkills.Where(o =>
             {
@@ -117,6 +133,7 @@ namespace AAEmu.Game.Models.Game.AI.States
 
         public void OnSkillEnd(Skill skill)
         {
+            _lastSkillEnd = DateTime.UtcNow;
             _currentDelay = _nextDelay;
             _nextDelay = 0.0f;
         }

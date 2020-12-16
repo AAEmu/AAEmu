@@ -9,10 +9,12 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
     {
         public BigMonsterRoamingAI()
         {
-            StateMachine.AddState(Framework.States.Idle, new IdleState());
-            StateMachine.AddState(Framework.States.Roaming, new RoamingState());
-            StateMachine.AddState(Framework.States.BigMonsterAttack, new BigMonsterAttackState());
-            StateMachine.AddState(Framework.States.ReturnToIdle, new ReturnToIdleState());
+            StateMachine.AddState(Framework.States.Idle, new IdleState() {AI = this});
+            StateMachine.AddState(Framework.States.Roaming, new RoamingState(){AI = this});
+            StateMachine.AddState(Framework.States.BigMonsterAttack, new BigMonsterAttackState(){AI = this});
+            StateMachine.AddState(Framework.States.ReturnToIdle, new ReturnToIdleState(){AI = this});
+            
+            StateMachine.SetCurrentState(StateMachine.GetState(Framework.States.Idle));
         }
 
         public override Framework.States GetNextState(State previous)
@@ -38,7 +40,7 @@ namespace AAEmu.Game.Models.Game.AI.UnitTypes
 
         public override void OnSkillEnd(Skill skill)
         {
-            if (StateMachine.GetCurrentState() is AlmightyAttackState aas)
+            if (StateMachine.GetCurrentState() is BigMonsterAttackState aas)
                 aas.OnSkillEnd(skill);
         }
     }

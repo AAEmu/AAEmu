@@ -144,6 +144,7 @@ namespace AAEmu.Game.Models.Game.AI.States
 
         public void OnSkillEnd(Skill skill)
         {
+            _lastSkillEnd = DateTime.UtcNow;
             _currentDelay = _nextDelay;
             _nextDelay = 0.0f;
         }
