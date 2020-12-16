@@ -11,7 +11,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.States
 {
-    public class AlmightyAttackState : State
+    public class AlmightyAttackState : AAttackState
     {
         // TODO : Use aggro list
         public Unit Target { get; set; }
@@ -25,6 +25,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         
         public override void Enter()
         {
+            base.Enter();
             if (!(AI.Owner is Npc npc))
             {
                 _log.Error("State applied to invalid unit type");
@@ -41,7 +42,13 @@ namespace AAEmu.Game.Models.Game.AI.States
         {
             if (OwnerTemplate == null)
                 return;
-            
+
+            if (HasAnyAggro() == false)
+            {
+                GoToReturnToIdle();
+                return;
+            }
+
             if (Target.IsDead)
             {
                 //get a new target

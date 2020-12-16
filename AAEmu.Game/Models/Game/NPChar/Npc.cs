@@ -860,5 +860,12 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             AI?.OnSkillEnd(skill);
         }
+
+        public void SetTarget(Unit other)
+        {
+            CurrentTarget = other;
+            BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, other.ObjId), true);
+            BroadcastPacket(new SCTargetChangedPacket(ObjId, other.ObjId), true);
+        }
     }
 }
