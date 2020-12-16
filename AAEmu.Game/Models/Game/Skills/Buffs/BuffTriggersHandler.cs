@@ -47,7 +47,7 @@ namespace AAEmu.Game.Models.Game.Skills
                         _triggers.Add(trigger);
                         break;
                     case Buffs.BuffEventTriggerKind.Damaged:
-                        trigger = new BuffTrigger(_owner, triggerTemplate);
+                        trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
                         _owner.Caster.Events.OnDamaged += trigger.Execute;
                         _triggers.Add(trigger);
                         break;
@@ -62,12 +62,23 @@ namespace AAEmu.Game.Models.Game.Skills
                         _triggers.Add(trigger);
                         break;
                     case Buffs.BuffEventTriggerKind.DamagedMelee:
+                        trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
+                        _owner.Caster.Events.OnDamagedMelee += trigger.Execute;
+                        _triggers.Add(trigger);
+                        break;
                     case Buffs.BuffEventTriggerKind.DamagedRanged:
+                        trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
+                        _owner.Caster.Events.OnDamagedRanged += trigger.Execute;
+                        _triggers.Add(trigger);
+                        break;
                     case Buffs.BuffEventTriggerKind.DamagedSpell:
+                        trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
+                        _owner.Caster.Events.OnDamagedSpell += trigger.Execute;
+                        _triggers.Add(trigger);
+                        break;
                     case Buffs.BuffEventTriggerKind.DamagedSiege:
-                        //Todo seperate these or add switch to Damage trigger
-                        trigger = new BuffTrigger(_owner, triggerTemplate);
-                        _owner.Caster.Events.OnDamaged += trigger.Execute;
+                        trigger = new DamagedBuffTrigger(_owner, triggerTemplate);
+                        _owner.Caster.Events.OnDamagedSiege += trigger.Execute;
                         _triggers.Add(trigger);
                         break;
                     case Buffs.BuffEventTriggerKind.Landing:
@@ -141,10 +152,16 @@ namespace AAEmu.Game.Models.Game.Skills
                         _owner.Events.OnTimeout -= trigger.Execute;
                         break;
                     case Buffs.BuffEventTriggerKind.DamagedMelee:
+                        _owner.Caster.Events.OnDamagedMelee -= trigger.Execute;
+                        break;
                     case Buffs.BuffEventTriggerKind.DamagedRanged:
+                        _owner.Caster.Events.OnDamagedRanged -= trigger.Execute;
+                        break;
                     case Buffs.BuffEventTriggerKind.DamagedSpell:
+                        _owner.Caster.Events.OnDamagedSpell -= trigger.Execute;
+                        break;
                     case Buffs.BuffEventTriggerKind.DamagedSiege:
-                        _owner.Caster.Events.OnDamaged -= trigger.Execute;
+                        _owner.Caster.Events.OnDamagedSiege -= trigger.Execute;
                         break;
                     case Buffs.BuffEventTriggerKind.Landing:
                         break;

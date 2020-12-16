@@ -107,7 +107,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (UseFixedHeal)
             {
                 value = Rand.Next(FixedMin, FixedMax);
-                value = (int) (value * tickModifier);
+                if (source.Buff != null && source.IsTrigger)
+                {
+                    value = (int)((value / 1000.0f) * source.Amount);
+                } else 
+                    value = (int) (value * tickModifier);
             }
             
             value = (int) (value * caster.HealMul);
