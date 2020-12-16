@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 
@@ -14,6 +15,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
 
         private List<Behavior> _behaviors;
         private Dictionary<Behavior, List<Transition>> _transitions;
+        private Behavior _currentBehavior;
 
         public abstract void Build();
 
@@ -37,7 +39,25 @@ namespace AAEmu.Game.Models.Game.AI.v2
         }
         
         #region Events
-
+        public void OnNoAggroTarget()
+        {
+            Transition(TransitionEvent.OnNoAggroTarget);
+        }
+        
+        public void Transition(TransitionEvent on)
+        {
+            if (!_transitions.ContainsKey(_currentBehavior))
+                return;
+            var transition = _transitions[_currentBehavior].SingleOrDefault(t => t.On == on);
+            if (transition == null)
+                return;
+            
+            var newBehavior = transition.Target;
+            
+            _currentBehavior.Exit();
+            _currentBehavior = newBehavior;
+            _currentBehavior.Enter();
+        }
         #endregion
     }
 }

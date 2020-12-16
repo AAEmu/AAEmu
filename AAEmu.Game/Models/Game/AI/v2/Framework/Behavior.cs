@@ -1,3 +1,5 @@
+using System;
+
 namespace AAEmu.Game.Models.Game.AI.v2
 {
     public enum BehaviorKind
@@ -18,10 +20,15 @@ namespace AAEmu.Game.Models.Game.AI.v2
     /// <summary>
     /// Represents an AI state. Called as such because of naming in the game's files.
     /// </summary>
-    public class Behavior
+    public abstract class Behavior
     {
         private NpcAi Ai { get; set; }
 
+        public abstract void Enter();
+        public abstract void Tick(TimeSpan delta);
+        public abstract void Exit();
+        
+        
         public Behavior AddTransition(TransitionEvent on, BehaviorKind kind)
         {
             return AddTransition(new Transition(on, Ai.GetBehavior(kind)));
@@ -29,8 +36,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
         
         public Behavior AddTransition(Transition transition)
         {
-            Ai.AddTransition(this, transition);
-            return this;
+            return Ai.AddTransition(this, transition);
         }
     }
 }
