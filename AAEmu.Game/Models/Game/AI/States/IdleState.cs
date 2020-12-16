@@ -32,9 +32,6 @@ namespace AAEmu.Game.Models.Game.AI.States
 
         public override void Tick(TimeSpan delta)
         {
-            if (AI.Owner?.Position != null && AI.IdlePosition == null)
-                AI.IdlePosition = AI.Owner.Position.Clone();
-            
             if (_maxIdleTime > 0 && _stateStart + _idleTimeSpan > DateTime.UtcNow)
             {
                 var stateId = AI.GetNextState(this);

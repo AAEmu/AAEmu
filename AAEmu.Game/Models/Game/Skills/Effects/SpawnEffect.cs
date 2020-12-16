@@ -37,6 +37,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 npc.SetPosition(target.Position);
                 if (AppConfiguration.Instance.HeightMapsEnable)
                     npc.Position.Z = WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y);
+                
+                if (npc.AI != null)
+                {
+                    npc.AI.IdlePosition = npc.Position;
+                }
+                
                 npc.Faction = caster.Faction;
                 npc.Spawn();
 
