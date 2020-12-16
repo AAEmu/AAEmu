@@ -3,13 +3,13 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCSuspectGoingBotTrial : GamePacket
+    public class SCSuspectGoingBotTrialPacket : GamePacket
     {
         private readonly uint _type;
         private readonly uint _type2;
         private readonly bool _kicked;
 
-        public SCSuspectGoingBotTrial(uint type, uint type2, bool kicked) : base(SCOffsets.SCSuspectGoingBotTrial, 1)
+        public SCSuspectGoingBotTrialPacket(uint type, uint type2, bool kicked) : base(SCOffsets.SCSuspectGoingBotTrialPacket, 1)
         {
             _type = type;
             _type2 = type2;
