@@ -44,6 +44,9 @@ namespace AAEmu.Game.Models.Game.AI.States
             if (OwnerTemplate == null)
                 return;
 
+            if (_nextDelay != 0f)
+                return;
+
             if (Target.IsDead)
             {
                 //get a new target
@@ -77,7 +80,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             if (Npc.SkillTask != null || Npc.ActivePlotState != null)
                 return;
 
-            if (_lastSkillEnd + TimeSpan.FromSeconds(_currentDelay) > DateTime.UtcNow)
+            if (_lastSkillEnd.AddSeconds(_currentDelay) > DateTime.UtcNow)
                 return;
 
             var combatSkill = GetNextAiCombatSkill();
@@ -95,8 +98,24 @@ namespace AAEmu.Game.Models.Game.AI.States
             var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
             skillCaster.ObjId = Npc.ObjId;
 
-            var skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-            skillCastTarget.ObjId = Target.ObjId;
+            SkillCastTarget skillCastTarget;
+            switch (skill.Template.TargetType)
+            {
+                case SkillTargetType.Pos:
+                    var pos = Npc.Position;
+                    skillCastTarget = new SkillCastPositionTarget() {
+                        ObjId = Npc.ObjId,
+                        PosX = pos.X,
+                        PosY = pos.Y,
+                        PosZ = pos.Z,
+                        PosRot = (float)MathUtil.ConvertDirectionToDegree(pos.RotationZ)
+                        };
+                    break;
+                default:
+                    skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                    skillCastTarget.ObjId = Target.ObjId;
+                    break;
+            }
 
             var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
@@ -119,8 +138,8 @@ namespace AAEmu.Game.Models.Game.AI.States
 
             useableSkills = useableSkills.Where(o =>
             {
-                return (hpPercent < o.HealthRangeMin && o.HealthRangeMin != 0)
-                || (hpPercent > o.HealthRangeMax && o.HealthRangeMax != 0);
+                return (hpPercent > o.HealthRangeMin || o.HealthRangeMin == 0) 
+                && (hpPercent < o.HealthRangeMax || o.HealthRangeMax == 0);
             });
 
             var filteredSkills = useableSkills.ToArray();
