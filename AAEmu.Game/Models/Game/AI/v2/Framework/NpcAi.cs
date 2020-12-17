@@ -31,32 +31,35 @@ namespace AAEmu.Game.Models.Game.AI.v2
         {
             Build();
             CheckValid();
+            GoToSpawn();
         }
         
         protected abstract void Build();
 
         private void CheckValid()
         {
-            foreach (var transition in _transitions.Values.SelectMany(transitions => transitions.Where(transition => !_behaviors.ContainsValue(transition.Target))))
+            foreach (var transition in _transitions.Values.SelectMany(transitions => transitions.Where(transition => !_behaviors.ContainsKey(transition.Kind))))
             {
                 _log.Error("Transition is invalid. Type {0} missing, while used in transition on {1}",
-                    transition.Target.GetType().Name, transition.On);
+                    transition.Kind.GetType().Name, transition.On);
             }
         }
 
         protected Behavior AddBehavior(BehaviorKind kind, Behavior behavior)
         {
+            behavior.Ai = this;
             _behaviors.Add(kind, behavior);
             return behavior;
         }
 
-        public Behavior GetBehavior(BehaviorKind kind)
+        private Behavior GetBehavior(BehaviorKind kind)
         {
-            return _behaviors[kind];
+            return !_behaviors.ContainsKey(kind) ? null : _behaviors[kind];
         }
 
         private void SetCurrentBehavior(Behavior behavior)
         {
+            _log.Debug("Leaving behavior {0}, Entering behavior {1}", _currentBehavior?.GetType().Name ?? "none", behavior?.GetType().Name ?? "none");
             _currentBehavior?.Exit();
             _currentBehavior = behavior;
             _currentBehavior?.Enter();
@@ -64,7 +67,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
 
         protected void SetCurrentBehavior(BehaviorKind kind)
         {
-            if (_behaviors.ContainsKey(kind))
+            if (!_behaviors.ContainsKey(kind))
             {
                 _log.Warn("Trying to set current behavior, but it is not valid. Missing behavior: {0}", kind);
                 return;
@@ -94,7 +97,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
             if (transition == null)
                 return;
             
-            var newBehavior = transition.Target;
+            var newBehavior = GetBehavior(transition.Kind);
             SetCurrentBehavior(newBehavior);
         }
         
@@ -102,6 +105,11 @@ namespace AAEmu.Game.Models.Game.AI.v2
         public void OnNoAggroTarget()
         {
             Transition(TransitionEvent.OnNoAggroTarget);
+        }
+
+        public void OnAggroTargetChanged()
+        {
+            Transition(TransitionEvent.OnAggroTargetChanged);
         }
         #endregion
         

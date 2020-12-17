@@ -40,6 +40,7 @@ namespace AAEmu.Game.Models.Game.AI.States
 
         public override void Tick(TimeSpan delta)
         {
+            return;
             if (OwnerTemplate == null)
                 return;
 

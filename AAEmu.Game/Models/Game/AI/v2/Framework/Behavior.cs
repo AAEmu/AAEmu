@@ -41,16 +41,15 @@ namespace AAEmu.Game.Models.Game.AI.v2
     /// </summary>
     public abstract class Behavior
     {
-        protected NpcAi Ai { get; set; }
+        public NpcAi Ai { get; set; }
 
         public abstract void Enter();
         public abstract void Tick(TimeSpan delta);
         public abstract void Exit();
-        
-        
+
         public Behavior AddTransition(TransitionEvent on, BehaviorKind kind)
         {
-            return AddTransition(new Transition(on, Ai.GetBehavior(kind)));
+            return AddTransition(new Transition(on, kind));
         }
         
         public Behavior AddTransition(Transition transition)

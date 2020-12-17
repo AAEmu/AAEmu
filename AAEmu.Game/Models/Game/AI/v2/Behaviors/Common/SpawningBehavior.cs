@@ -10,13 +10,12 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         public override void Tick(TimeSpan delta)
         {
-            // TODO: Do it properly
-            Ai.GoToIdle();
+            // TODO: This follows the game's way of doing it. This will need code later, obviously
+            Ai.GoToRunCommandSet();
         }
 
         public override void Exit()
         {
-            throw new NotImplementedException();
         }
     }
 }

@@ -13,12 +13,13 @@ namespace AAEmu.Game.Models.Game.AI.v2
     public class Transition
     {
         public TransitionEvent On { get; set; }
-        public Behavior Target { get; set; }
+        // public Behavior Target { get; set; }
+        public BehaviorKind Kind { get; set; }
 
-        public Transition(TransitionEvent on, Behavior target)
+        public Transition(TransitionEvent on, BehaviorKind target)
         {
             On = on;
-            Target = target;
+            Kind = target;
         }
     }
 }

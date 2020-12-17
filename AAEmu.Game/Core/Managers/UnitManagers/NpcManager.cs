@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.AI.Utils;
+using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.NPChar;
@@ -119,6 +120,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                // ai.IdlePosition ?
                npc.AI = ai;
                AIManager.Instance.AddAI(ai);
+            }
+
+            if (npc.TemplateId == 8952)
+            {
+                var newAi = new AlmightyNpcAiCharacter {Owner = npc};
+                AIManager.Instance.AddAi(newAi);
+                newAi.Start();
+                npc.Ai = newAi;
             }
             
             return npc;

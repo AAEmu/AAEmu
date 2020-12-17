@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI;
 using AAEmu.Game.Models.Game.AI.Framework;
+using AAEmu.Game.Models.Game.AI.v2;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -37,9 +38,11 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
-        public AbstractUnitAI AI { get; set; }
+        public AbstractUnitAI AI { get; set; } // old framework
+        public NpcAi Ai { get; set; } // New framework
         public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
-        
+        public uint CurrentAggroTarget { get; set; }
+
         #region Attributes
         [UnitAttribute(UnitAttribute.Str)]
         public int Str
@@ -796,6 +799,16 @@ namespace AAEmu.Game.Models.Game.NPChar
                     attacker.Events.OnHealed += OnAbuserHealed;
                 }
             }
+
+            var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
+            if (CurrentAggroTarget != topAbuser)
+            {
+                CurrentAggroTarget = topAbuser; 
+                var unit = WorldManager.Instance.GetUnit(topAbuser);
+                SetTarget(unit);
+                Ai?.OnAggroTargetChanged();
+            }
+
             AI?.OnEnemyDamage(attacker);
         }
 
@@ -864,8 +877,8 @@ namespace AAEmu.Game.Models.Game.NPChar
         public void SetTarget(Unit other)
         {
             CurrentTarget = other;
-            BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, other.ObjId), true);
-            BroadcastPacket(new SCTargetChangedPacket(ObjId, other.ObjId), true);
+            BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
+            BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         }
     }
 }
