@@ -57,7 +57,7 @@
         public const ushort CSInteractGimmickPacket = 0x0ca;
         public const ushort CSEditorAddGimmickPacket = 0x001;
         public const ushort CSWorldRayCastingPacket = 0x020;
-        public const ushort CSListCharacterPacket = 0xfff;
+        public const ushort CSListCharacterPacket = 0x0f7;
         public const ushort CSRefreshInCharacterListPacket = 0x019;
         public const ushort SCDeleteCharacterPacket = 0x0ad;
         public const ushort CSCancelCharacterDeletePacket = 0x0e3;
@@ -72,7 +72,7 @@
         public const ushort CSChangeAppellationPacket = 0x08a;
         public const ushort CSStartedCinemaPacket = 0x07b;
         public const ushort CSHSResponsePacket = 0x0f2;
-        public const ushort CSHGResponsePacket = 0x043;
+        public const ushort CSHgResponsePacket = 0x043;
         public const ushort CSBroadcastVisualOptionPacket = 0x034;
         public const ushort CSRestrictCheckPacket = 0x06a;
         public const ushort CSICSMenuListPacket = 0x08c;
@@ -91,7 +91,8 @@
         public const ushort CSCreateCharacterPacket = 0x072;
         public const ushort CSEditCharacterPacket = 0x028;
         public const ushort CSTeleportEndedPacket = 0x080;
-        public const ushort CSUnkPacket_0x03e = 0x03e;
+        public const ushort CSAesXorKeyPacket = 0x03e;
+        public const ushort CSAesXorKey_05_Packet = 0x03e;
         public const ushort CSNotifySubZonePacket = 0x0ee;
         public const ushort CSSaveTutorialPacket = 0x029;
         public const ushort CSRequestUIDataPacket = 0x046;
@@ -288,7 +289,7 @@
         public const ushort CSTradeLockPacket = 0x0d3;
         public const ushort CSTradeOkPacket = 0x00e;
         public const ushort CSPutupTradeMoneyPacket = 0x053;
-        public const ushort CSUnkPacket_0x0f = 0x0f7;
+        //public const ushort CSUnkPacket_0x0f = 0x0f7;
 
         // no such packets
         public const ushort CSSetCraftingPayPacket = 0xfff;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
@@ -40,6 +41,26 @@ namespace AAEmu.Game.Core.Network.Game
                         .Write((byte)0) // hash
                         .Write((byte)0); // count
                 }
+                if (Level == 5)
+                {
+                    //пакет от сервера DD05 шифруем с помощью XOR
+                    var bodyCrc = new PacketStream()
+                        .Write(EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId))
+                        .Write(TypeId)
+                        .Write(this);
+
+                    var crc8 = EncryptionManager.Instance.Crc8(bodyCrc); //посчитали CRC пакета
+
+                    var data = new PacketStream();
+                    data
+                        .Write(crc8) // CRC
+                        .Write(bodyCrc, false); // data
+
+                    var encrypt = EncryptionManager.Instance.StoCEncrypt(data);
+                    body = new PacketStream();
+                    body.Write(encrypt, false);
+                    EncryptionManager.Instance.IncSCMsgCount(Connection.Id, Connection.AccountId);
+                }
 
                 packet.Write(body, false);
 
@@ -57,8 +78,9 @@ namespace AAEmu.Game.Core.Network.Game
                 !(TypeId == 0x06B && Level == 1) && // SCUnitMovements
                 !(TypeId == 0x06C && Level == 1)) // SCOneUnitMovement
             {
-                _log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
+                //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                 //_log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
+                _log.Warn("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
 
             }
             return ps;
@@ -71,8 +93,9 @@ namespace AAEmu.Game.Core.Network.Game
                 !(TypeId == 0x015 && Level == 2) && // FastPing
                 !(TypeId == 0x089 && Level == 1)) // CSMoveUnit
             {
-                _log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
+                //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                 //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
+                _log.Warn("GamePacket: C->S type {0:X3} {1}", TypeId, ToString().Substring(23));
             }
             try
             {

@@ -525,5 +525,6 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         // no such packets
         public const ushort SCLevelRestrictionConfigPacket = 0xfff;
+        public const ushort SCAccountAttendancePacket = 0xfff;
     }
 }

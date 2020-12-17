@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
@@ -53,7 +53,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                     var port = AppConfiguration.Instance.StreamNetwork.Port;
                     var gm = connection.GetAttribute("gmFlag") != null;
-                    connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port));
+                    connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port, connection));
                     connection.SendPacket(new ChangeStatePacket(0));
                 }
                 else

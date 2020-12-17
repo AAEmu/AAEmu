@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using AAEmu.Commons.Cryptography;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -28,6 +29,7 @@ namespace AAEmu.Game
             var stopWatch = new Stopwatch();
 
             stopWatch.Start();
+            #region Id Managers
             TickManager.Instance.Initialize();
             TaskIdManager.Instance.Initialize();
             TaskManager.Instance.Initialize();
@@ -37,7 +39,9 @@ namespace AAEmu.Game
             LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
+            #endregion
 
+            #region Gameplay Managers
             ItemIdManager.Instance.Initialize();
             ChatManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
@@ -97,7 +101,10 @@ namespace AAEmu.Game
             SpawnManager.Instance.SpawnAll();
             HousingManager.Instance.SpawnAll();
             TransferManager.Instance.SpawnAll();
+            #endregion
 
+            #region Other Managers
+            EncryptionManager.Instance.Load();
             AccessLevelManager.Instance.Load();
             CashShopManager.Instance.Load();
             ScriptCompiler.Compile();
@@ -114,6 +121,7 @@ namespace AAEmu.Game
             BoatPhysicsManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
+            #endregion
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
 
