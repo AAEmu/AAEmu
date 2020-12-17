@@ -100,12 +100,12 @@ namespace AAEmu.Game.Models.Game.Skills
                     return SkillResult.Success;
             }
 
-            // var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
-            // var targetDist = caster.GetDistanceTo(target, true);
-            // if (targetDist < Template.MinRange)
-            //     return SkillResult.TooCloseRange;
-            // if (targetDist > skillRange)
-            //     return SkillResult.TooFarRange;
+            var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
+            var targetDist = caster.GetDistanceTo(target, true);
+            if (targetDist < Template.MinRange)
+                return SkillResult.TooCloseRange;
+            if (targetDist > skillRange)
+                return SkillResult.TooFarRange;
 
             //Maybe we should do this somewhere else?
             if (Template.DefaultGcd)

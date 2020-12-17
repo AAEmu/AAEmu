@@ -161,6 +161,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 }
                             };
                             
+                            // TODO: Move this to an async method because it'll increase server startup time otherwise
                             doodad.DoPhase(null, 0);
                             doodad.Spawn();
                         }
