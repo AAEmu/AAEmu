@@ -61,7 +61,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
 
         private void SetCurrentBehavior(Behavior behavior)
         {
-            _log.Debug("Leaving behavior {0}, Entering behavior {1}", _currentBehavior?.GetType().Name ?? "none", behavior?.GetType().Name ?? "none");
+            _log.Trace("{0} leaving behavior {1}, Entering behavior {2}", Owner.Name,  _currentBehavior?.GetType().Name ?? "none", behavior?.GetType().Name ?? "none");
             _currentBehavior?.Exit();
             _currentBehavior = behavior;
             _currentBehavior?.Enter();

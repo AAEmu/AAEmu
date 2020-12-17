@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
         FlytrapAttack,
         
         // WildBoar
-        WildBoatAttack
+        WildBoarAttack
     }
     
     /// <summary>

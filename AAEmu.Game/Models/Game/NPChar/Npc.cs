@@ -38,7 +38,6 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
-        public AbstractUnitAI AI { get; set; } // old framework
         public NpcAi Ai { get; set; } // New framework
         public ConcurrentDictionary<uint, Aggro> AggroTable { get; }
         public uint CurrentAggroTarget { get; set; }
@@ -808,8 +807,6 @@ namespace AAEmu.Game.Models.Game.NPChar
                 SetTarget(unit);
                 Ai?.OnAggroTargetChanged();
             }
-
-            AI?.OnEnemyDamage(attacker);
         }
 
         public void MoveTowards(Point other, float distance)
@@ -871,7 +868,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public override void OnSkillEnd(Skill skill)
         {
-            AI?.OnSkillEnd(skill);
+            // AI?.OnSkillEnd(skill);
         }
 
         public void SetTarget(Unit other)

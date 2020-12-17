@@ -4,6 +4,9 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.AI.UnitTypes;
+using AAEmu.Game.Models.Game.AI.v2;
+using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 using Jace.Util;
 
@@ -48,16 +51,36 @@ namespace AAEmu.Game.Models.Game.AI.Utils
             return false;
         }
 
-        public static AbstractUnitAI GetAiByType(AiParamType type, GameObject owner)
+        public static NpcAi GetAiByType(AiParamType type, Npc owner)
         {
             switch (type)
             {
                 case AiParamType.AlmightyNpc:
-                    return new AlmightyNpcAI() {Owner = owner};
+                    return new AlmightyNpcAiCharacter() {Owner = owner};
+                case AiParamType.ArcherHoldPosition:
+                    return new ArcherHoldPositionAiCharacter() {Owner = owner};  
+                case AiParamType.ArcherRoaming:
+                    return new ArcherRoamingAiCharacter() {Owner = owner};
                 case AiParamType.BigMonsterRoaming:
-                    return new BigMonsterRoamingAI() {Owner = owner};
+                    return new BigMonsterRoamingAiCharacter() {Owner = owner};
+                case AiParamType.BigMonsterHoldPosition:
+                    return new BigMonsterRoamingAiCharacter() {Owner = owner};
+                case AiParamType.Default:
+                    return new DefaultAiCharacter() {Owner = owner};
+                case AiParamType.Dummy:
+                    return new DummyAiCharacter() {Owner = owner};
+                case AiParamType.Flytrap:
+                    return new FlytrapAiCharacter() {Owner = owner};
+                case AiParamType.HoldPosition:
+                    return new HoldPositionAiCharacter() {Owner = owner};
                 case AiParamType.Roaming:
-                    return new RoamingAI() {Owner = owner};
+                    return new RoamingAiCharacter() {Owner = owner};
+                case AiParamType.TowerDefenseAttacker:
+                    return new TowerDefenseAttackerAiCharacter() {Owner = owner};
+                case AiParamType.WildBoarHoldPosition:
+                    return new WildBoarHoldPositionAiCharacter() {Owner = owner};
+                case AiParamType.WildBoarRoaming:
+                    return new WildBoarRoamingAiCharacter() {Owner = owner};
                 default:
                     return null;
             }

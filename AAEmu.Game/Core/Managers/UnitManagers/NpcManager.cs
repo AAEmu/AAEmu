@@ -116,17 +116,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                if (ai == null)
                    return npc;
 
-               // ai.Owner = npc;
-               // ai.IdlePosition ?
-               npc.AI = ai;
-               AIManager.Instance.AddAI(ai);
-            }
-
-            if (npc.TemplateId == 8952)
-            {
-                npc.Ai = new AlmightyNpcAiCharacter {Owner = npc};
-                AIManager.Instance.AddAi(npc.Ai);
-                npc.Ai.Start();
+               npc.Ai = ai;
+               AIManager.Instance.AddAi(ai);
+               npc.Ai.Start();
             }
             
             return npc;
