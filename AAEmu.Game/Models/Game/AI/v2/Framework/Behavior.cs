@@ -4,17 +4,36 @@ namespace AAEmu.Game.Models.Game.AI.v2
 {
     public enum BehaviorKind
     {
-        Spawning,
-        Idle,
-        RunCommandSet,
-        Talk,
+        // Common
         Alert,
         AlmightyAttack,
+        Attack,
+        Dead,
+        Despawning,
+        DoNothing,
+        Dummy,
         FollowPath,
         FollowUnit,
+        HoldPosition,
+        Idle,
         ReturnState,
-        Dead,
-        Despawning
+        Roaming,
+        RunCommandSet,
+        Spawning,
+        Talk,
+        
+        // Archer
+        ArcherAttack,
+        
+        // BigMonster
+        BigMonsterAttack,
+        
+        // Flytrap
+        FlytrapAlert,
+        FlytrapAttack,
+        
+        // WildBoar
+        WildBoatAttack
     }
     
     /// <summary>
@@ -22,7 +41,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
     /// </summary>
     public abstract class Behavior
     {
-        private NpcAi Ai { get; set; }
+        protected NpcAi Ai { get; set; }
 
         public abstract void Enter();
         public abstract void Tick(TimeSpan delta);

@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.v2
 {
@@ -10,24 +12,65 @@ namespace AAEmu.Game.Models.Game.AI.v2
     /// </summary>
     public abstract class NpcAi
     {
+        private Logger _log = LogManager.GetCurrentClassLogger();
+        
         public Npc Owner { get; set; }
         public Point IdlePosition { get; set; }
 
-        private List<Behavior> _behaviors;
+        private Dictionary<BehaviorKind, Behavior> _behaviors;
         private Dictionary<Behavior, List<Transition>> _transitions;
         private Behavior _currentBehavior;
 
-        public abstract void Build();
-
-        protected Behavior AddBehavior(Behavior behavior)
+        public NpcAi()
         {
-            _behaviors.Add(behavior);
+            _behaviors = new Dictionary<BehaviorKind, Behavior>();
+            _transitions = new Dictionary<Behavior, List<Transition>>();
+        }
+
+        public void Start()
+        {
+            Build();
+            CheckValid();
+        }
+        
+        protected abstract void Build();
+
+        private void CheckValid()
+        {
+            foreach (var transition in _transitions.Values.SelectMany(transitions => transitions.Where(transition => !_behaviors.ContainsValue(transition.Target))))
+            {
+                _log.Error("Transition is invalid. Type {0} missing, while used in transition on {1}",
+                    transition.Target.GetType().Name, transition.On);
+            }
+        }
+
+        protected Behavior AddBehavior(BehaviorKind kind, Behavior behavior)
+        {
+            _behaviors.Add(kind, behavior);
             return behavior;
         }
 
         public Behavior GetBehavior(BehaviorKind kind)
         {
-            return null; // TODO : Return the corresponding behavior
+            return _behaviors[kind];
+        }
+
+        private void SetCurrentBehavior(Behavior behavior)
+        {
+            _currentBehavior?.Exit();
+            _currentBehavior = behavior;
+            _currentBehavior?.Enter();
+        }
+
+        protected void SetCurrentBehavior(BehaviorKind kind)
+        {
+            if (_behaviors.ContainsKey(kind))
+            {
+                _log.Warn("Trying to set current behavior, but it is not valid. Missing behavior: {0}", kind);
+                return;
+            }
+            
+            SetCurrentBehavior(_behaviors[kind]);
         }
 
         public Behavior AddTransition(Behavior source, Transition target)
@@ -37,14 +80,13 @@ namespace AAEmu.Game.Models.Game.AI.v2
             _transitions[source].Add(target);
             return source;
         }
-        
-        #region Events
-        public void OnNoAggroTarget()
+
+        public void Tick(TimeSpan delta)
         {
-            Transition(TransitionEvent.OnNoAggroTarget);
+            _currentBehavior?.Tick(delta);
         }
         
-        public void Transition(TransitionEvent on)
+        private void Transition(TransitionEvent on)
         {
             if (!_transitions.ContainsKey(_currentBehavior))
                 return;
@@ -53,10 +95,72 @@ namespace AAEmu.Game.Models.Game.AI.v2
                 return;
             
             var newBehavior = transition.Target;
-            
-            _currentBehavior.Exit();
-            _currentBehavior = newBehavior;
-            _currentBehavior.Enter();
+            SetCurrentBehavior(newBehavior);
+        }
+        
+        #region Events
+        public void OnNoAggroTarget()
+        {
+            Transition(TransitionEvent.OnNoAggroTarget);
+        }
+        #endregion
+        
+        /// <summary>
+        /// These appear to be ways to force a state change, ignoring existing transitions. 
+        /// </summary>
+        #region Go to X
+        public virtual void GoToSpawn()
+        {
+            SetCurrentBehavior(BehaviorKind.Spawning);
+        }
+        
+        public virtual void GoToIdle()
+        {
+            SetCurrentBehavior(BehaviorKind.Idle);
+        }
+        
+        public virtual void GoToRunCommandSet()
+        {
+            SetCurrentBehavior(BehaviorKind.RunCommandSet);
+        }
+        
+        public virtual void GoToTalk()
+        {
+            SetCurrentBehavior(BehaviorKind.Talk);
+        }
+        
+        public virtual void GoToAlert()
+        {
+            SetCurrentBehavior(BehaviorKind.Alert);
+        }
+        
+        public virtual void GoToCombat()
+        {
+            SetCurrentBehavior(BehaviorKind.Attack);
+        }
+        public virtual void GoToFollowPath()
+        {
+            SetCurrentBehavior(BehaviorKind.FollowPath);
+        }
+        
+        public virtual void GoToFollowUnit()
+        {
+            SetCurrentBehavior(BehaviorKind.FollowUnit);
+        }
+        
+        public virtual void GoToReturn()
+        {
+            SetCurrentBehavior(BehaviorKind.ReturnState);
+        }
+        
+        public virtual void GoToDead()
+        {
+            SetCurrentBehavior(BehaviorKind.Dead);
+        }
+        
+        public virtual void GoToDespawn()
+        {
+            SetCurrentBehavior(BehaviorKind.Despawning);
         }
         #endregion
     }

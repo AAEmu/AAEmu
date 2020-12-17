@@ -2,7 +2,7 @@ using System;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 {
-    public class AlmightyAttack : Behavior
+    public class ReturnStateBehavior : Behavior
     {
         public override void Enter()
         {

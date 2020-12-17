@@ -1,8 +1,8 @@
 using System;
 
-namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
+namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Flytrap
 {
-    public class Idle : Behavior
+    public class FlytrapAlertBehavior : Behavior
     {
         public override void Enter()
         {
