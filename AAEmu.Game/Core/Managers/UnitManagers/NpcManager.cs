@@ -124,10 +124,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             if (npc.TemplateId == 8952)
             {
-                var newAi = new AlmightyNpcAiCharacter {Owner = npc};
-                AIManager.Instance.AddAi(newAi);
-                newAi.Start();
-                npc.Ai = newAi;
+                npc.Ai = new AlmightyNpcAiCharacter {Owner = npc};
+                AIManager.Instance.AddAi(npc.Ai);
+                npc.Ai.Start();
             }
             
             return npc;

@@ -184,6 +184,13 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        public void AddBuff(uint buffId, Unit caster)
+        {
+            var buff = SkillManager.Instance.GetBuffTemplate(buffId);
+            var casterObj = new SkillCasterUnit(caster.ObjId);
+            AddBuff(new Buff(GetOwner(), caster, casterObj, buff, null, DateTime.Now));
+        }
+
         public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)
         {
             var finalToleranceBuffId = 0u;
