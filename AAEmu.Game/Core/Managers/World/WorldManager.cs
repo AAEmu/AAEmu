@@ -59,6 +59,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void ActiveRegionTick(TimeSpan delta)
         {
+            //Unused right now. Make this a sanity check?
             var sw = new Stopwatch();
             sw.Start();
             var activeRegions = new HashSet<Region>();
@@ -70,12 +71,12 @@ namespace AAEmu.Game.Core.Managers.World
                         continue;
                     if (activeRegions.Contains(region))
                         continue;
-                    region.HasPlayerActivity = false;
+                    //region.HasPlayerActivity = false;
                     if (!region.IsEmpty())
                     {
                         foreach(var activeRegion in region.GetNeighbors())
                         {
-                            activeRegion.HasPlayerActivity = true;
+                            //activeRegion.HasPlayerActivity = true;
                             activeRegions.Add(activeRegion);
                         }
                     }
@@ -249,7 +250,7 @@ namespace AAEmu.Game.Core.Managers.World
                 }
             }
 
-            TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
+            //TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
         }
 
         public InstanceWorld GetWorld(uint worldId)

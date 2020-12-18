@@ -93,7 +93,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
         {
             /*if ((!Owner?.Region?.IsEmpty() ?? false)
                 || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
-            if(Owner?.Region?.HasPlayerActivity ?? false)
+            if(!Owner?.Region?.IsEmpty() ?? false)
             {
                 _currentBehavior?.Tick(delta);
             }

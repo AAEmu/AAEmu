@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -22,7 +23,7 @@ namespace AAEmu.Game.Models.Game.World
         private GameObject[] _objects;
         private int _objectsSize, _charactersSize;
         private Region[] _neighbors;
-        public bool HasPlayerActivity { get; set; }
+        private int _playerCount;
 
         public int X { get; }
         public int Y { get; }
@@ -62,7 +63,13 @@ namespace AAEmu.Game.Models.Game.World
                     obj.Position.ZoneId = zoneId;
 
                 if (obj is Character)
+                {
                     _charactersSize++;
+                    foreach(var region in GetNeighbors())
+                    {
+                        Interlocked.Increment(ref region._playerCount);
+                    }
+                }
             }
         }
 
@@ -100,7 +107,13 @@ namespace AAEmu.Game.Models.Game.World
                 }
 
                 if (obj is Character)
+                {
                     _charactersSize--;
+                    foreach (var region in GetNeighbors())
+                    {
+                        Interlocked.Decrement(ref region._playerCount);
+                    }
+                }
             }
         }
 
@@ -227,6 +240,11 @@ namespace AAEmu.Game.Models.Game.World
         public bool IsEmpty()
         {
             return _charactersSize <= 0;
+        }
+
+        public bool HasPlayerActivity()
+        {
+            return _playerCount > 0;
         }
 
         public List<uint> GetObjectIdsList(List<uint> result, uint exclude)
