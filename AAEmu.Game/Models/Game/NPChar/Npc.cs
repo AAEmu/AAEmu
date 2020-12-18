@@ -741,7 +741,36 @@ namespace AAEmu.Game.Models.Game.NPChar
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
-        public void ClearAggro()
+        public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
+        {
+            if (AggroTable.TryGetValue(unit.ObjId, out var aggro))
+            {
+                aggro.AddAggro(kind, amount);
+            }
+            else
+            {
+                aggro = new Aggro();
+                aggro.AddAggro(AggroKind.Heal, amount);
+                if (AggroTable.TryAdd(unit.ObjId, aggro))
+                {
+                    unit.Events.OnHealed += OnAbuserHealed;
+                }
+            }
+        }
+
+        public void ClearAggroOfUnit(Unit unit)
+        {
+            if(AggroTable.TryRemove(unit.ObjId, out var value))
+            {
+                unit.Events.OnHealed -= OnAbuserHealed;
+            }
+            else
+            {
+                _log.Warn("Failed to remove unit[{0}] aggro from NPC[{1}]", unit.ObjId, this.ObjId);
+            }
+        }
+
+        public void ClearAllAggro()
         {
             foreach(var table in AggroTable)
             {
@@ -755,19 +784,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public void OnAbuserHealed(object sender, OnHealedArgs args)
         {
-            if (AggroTable.TryGetValue(args.Healer.ObjId, out var table))
-            {
-                table.AddAggro(AggroKind.Heal, args.HealAmount);
-            }
-            else
-            {
-                table = new Aggro();
-                table.AddAggro(AggroKind.Heal, args.HealAmount);
-                if (AggroTable.TryAdd(args.Healer.ObjId, table))
-                {
-                    args.Healer.Events.OnHealed += OnAbuserHealed;
-                }
-            }
+            AddUnitAggro(AggroKind.Heal, args.Healer, args.HealAmount);
         }
 
         public void OnDamageReceived(Unit attacker, int amount)
@@ -784,20 +801,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             //
             //     // TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
             // }
-            if (AggroTable.TryGetValue(attacker.ObjId, out var table))
-            {
-                table.AddAggro(AggroKind.Damage, amount);
-            }
-            else
-            {
-                table = new Aggro();
-                table.AddAggro(AggroKind.Damage, amount);
-
-                if (AggroTable.TryAdd(attacker.ObjId, table))
-                {
-                    attacker.Events.OnHealed += OnAbuserHealed;
-                }
-            }
+            AddUnitAggro(AggroKind.Damage, attacker, amount);
 
             var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
             if (CurrentAggroTarget != topAbuser)

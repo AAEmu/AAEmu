@@ -1,4 +1,7 @@
-using System;
+﻿using System;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 {
@@ -10,6 +13,35 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         public override void Tick(TimeSpan delta)
         {
+            if (!Ai.Owner.Template.Aggression)
+                return;//Remove this if we need non-aggressive npcs to search for targets
+
+            var nearbyUnits = WorldManager.Instance.GetAround<Unit>(Ai.Owner, 10 * Ai.Owner.Template.SightRangeScale);
+
+            foreach (var unit in nearbyUnits)
+            {
+                if (Ai.Owner.Template.Aggression)
+                {
+                    //Need to check for stealth detection here..
+                    if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
+                    {
+                        OnEnemySeen(unit);
+                    }
+                    else
+                    {
+                        var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner.Position, unit.Position, true);
+                        if (rangeOfUnit < 3 * Ai.Owner.Template.SightRangeScale)
+                        {
+                            OnEnemySeen(unit);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void OnEnemySeen(Unit target)
+        {
+            Ai.Owner.AddUnitAggro(NPChar.AggroKind.Damage, target, 1);
         }
 
         public override void Exit()
