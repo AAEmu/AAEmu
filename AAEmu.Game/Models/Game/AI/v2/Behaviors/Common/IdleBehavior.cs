@@ -25,14 +25,22 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                     //Need to check for stealth detection here..
                     if (Ai.Owner.Template.SightFovScale >= 2.0f || MathUtil.IsFront(Ai.Owner, unit))
                     {
-                        OnEnemySeen(unit);
+                        if (Ai.Owner.CanAttack(unit))
+                        {
+                            OnEnemySeen(unit);
+                            break;
+                        }
                     }
                     else
                     {
                         var rangeOfUnit = MathUtil.CalculateDistance(Ai.Owner.Position, unit.Position, true);
                         if (rangeOfUnit < 3 * Ai.Owner.Template.SightRangeScale)
                         {
-                            OnEnemySeen(unit);
+                            if (Ai.Owner.CanAttack(unit))
+                            {
+                                OnEnemySeen(unit);
+                                break;
+                            }
                         }
                     }
                 }
