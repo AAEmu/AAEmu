@@ -13,23 +13,35 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public delegate void OnTickEvent(TimeSpan delta);
-        public TickEventHandler OnTick = new TickEventHandler();
+        public TickEventHandler OnLowFrequencyTick = new TickEventHandler();
+        public TickEventHandler OnHighFrequencyTick = new TickEventHandler();
 
-        private void TickLoop()
+        private void LowFrequencyTickLoop()
         {
             var sw = new Stopwatch();
             sw.Start();
             while(true)
             {
-                OnTick.Invoke();
+                OnLowFrequencyTick.Invoke();
+                Thread.Sleep(20);
+            }
+        }
+        private void HighFrequencyTickLoop()
+        {
+            var sw = new Stopwatch();
+            sw.Start();
+            while (true)
+            {
+                OnHighFrequencyTick.Invoke();
                 Thread.Sleep(20);
             }
         }
 
+
         public void Initialize()
         {
-            var TickThread = new Thread(TickLoop);
-            TickThread.Start();
+            new Thread(() => LowFrequencyTickLoop()).Start();
+            new Thread(() => HighFrequencyTickLoop()).Start();
         }
     }
 
@@ -47,6 +59,8 @@ namespace AAEmu.Game.Core.Managers
     }
     public class TickEventHandler
     {
+        private static Logger _log = LogManager.GetCurrentClassLogger();
+
         public delegate void OnTickEvent(TimeSpan delta);
         private List<TickEventEntity> _eventList;
         private Queue<TickEventEntity> _eventsToAdd;
@@ -106,18 +120,6 @@ namespace AAEmu.Game.Core.Managers
             {
                 _eventsToRemove.Enqueue(tickEvent);
             }
-        }
-
-        public static TickEventHandler operator +(TickEventHandler handler, OnTickEvent tickEvent)
-        {
-            handler.Subscribe(tickEvent);
-            return handler;
-        }
-
-        public static TickEventHandler operator -(TickEventHandler handler, OnTickEvent tickEvent)
-        {
-            handler.UnSubscribe(tickEvent);
-            return handler;
         }
     }
 }

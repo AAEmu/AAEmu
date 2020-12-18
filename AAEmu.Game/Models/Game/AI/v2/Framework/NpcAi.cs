@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Models.Game.AI.v2.Params;
@@ -91,8 +91,12 @@ namespace AAEmu.Game.Models.Game.AI.v2
 
         public void Tick(TimeSpan delta)
         {
-            if (ShouldTick)
+            /*if ((!Owner?.Region?.IsEmpty() ?? false)
+                || (Owner?.Region?.AreNeighborsEmpty() ?? false))*/
+            if(Owner?.Region?.HasPlayerActivity ?? false)
+            {
                 _currentBehavior?.Tick(delta);
+            }
         }
         
         private void Transition(TransitionEvent on)

@@ -17,6 +17,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 using AAEmu.Game.Models.Game.Housing;
+using System.Diagnostics;
 
 namespace AAEmu.Game.Core.Managers.World
 {
@@ -54,6 +55,34 @@ namespace AAEmu.Game.Core.Managers.World
             _npcs = new ConcurrentDictionary<uint, Npc>();
             _characters = new ConcurrentDictionary<uint, Character>();
             _areaShapes = new ConcurrentDictionary<uint, AreaShape>();
+        }
+
+        public void ActiveRegionTick(TimeSpan delta)
+        {
+            var sw = new Stopwatch();
+            sw.Start();
+            var activeRegions = new HashSet<Region>();
+            foreach(var world in _worlds.Values)
+            {
+                foreach(var region in world.Regions)
+                {
+                    if (region == null)
+                        continue;
+                    if (activeRegions.Contains(region))
+                        continue;
+                    region.HasPlayerActivity = false;
+                    if (!region.IsEmpty())
+                    {
+                        foreach(var activeRegion in region.GetNeighbors())
+                        {
+                            activeRegion.HasPlayerActivity = true;
+                            activeRegions.Add(activeRegion);
+                        }
+                    }
+                }
+            }
+            sw.Stop();
+            _log.Warn("ActiveRegionTick took {0}ms", sw.ElapsedMilliseconds);
         }
 
         public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
@@ -219,6 +248,8 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                 }
             }
+
+            TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
         }
 
         public InstanceWorld GetWorld(uint worldId)

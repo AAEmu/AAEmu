@@ -21,6 +21,8 @@ namespace AAEmu.Game.Models.Game.World
         private readonly object _objectsLock = new object();
         private GameObject[] _objects;
         private int _objectsSize, _charactersSize;
+        private Region[] _neighbors;
+        public bool HasPlayerActivity { get; set; }
 
         public int X { get; }
         public int Y { get; }
@@ -200,7 +202,16 @@ namespace AAEmu.Game.Models.Game.World
 
         public Region[] GetNeighbors()
         {
-            return WorldManager.Instance.GetNeighbors(_worldId, X, Y);
+            //Will neighbor regions ever change?
+            if (_neighbors == null)
+            {
+                _neighbors = WorldManager.Instance.GetNeighbors(_worldId, X, Y);
+                return _neighbors;
+            }
+            else
+            {
+                return _neighbors;
+            }
         }
 
         public bool AreNeighborsEmpty()

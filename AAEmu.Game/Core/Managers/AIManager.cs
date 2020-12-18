@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _npcAis = new List<NpcAi>();
             _aiLock = new object();
-            TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100));
+            TickManager.Instance.OnHighFrequencyTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100));
         }
 
         public void AddAi(NpcAi ai)

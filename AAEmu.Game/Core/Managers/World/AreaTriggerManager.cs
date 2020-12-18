@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Managers.World
         
         public void Initialize()
         {
-            TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(200));
+            TickManager.Instance.OnLowFrequencyTick.Subscribe(Tick, TimeSpan.FromMilliseconds(200));
         }
 
         public void AddAreaTrigger(AreaTrigger trigger)
