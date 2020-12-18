@@ -716,6 +716,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
 
             Spawner?.DecreaseCount(this);
+            Ai?.GoToDead();
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)
