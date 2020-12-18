@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.AI.States
 
             if (!(AI.Owner is Npc npc))
                 return;
-            npc.ClearAggro();
+            npc.ClearAllAggro();
         }
 
         public bool HasAnyAggro()

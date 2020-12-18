@@ -813,16 +813,18 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
         }
 
-        public void MoveTowards(Point other, float distance)
+        public void MoveTowards(Point other, float distance, byte flags = 4)
         {
             var targetDist = MathUtil.CalculateDistance(Position, other);
+            if (targetDist <= 0.01f)
+                return;
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             var travelDist = Math.Min(targetDist, distance);
             var angle = MathUtil.CalculateAngleFrom(this.Position, other);
             var rotZ = MathUtil.ConvertDegreeToDirection(angle);
             var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Position.X, Position.Y, rotZ);
-            var (velX, velY) = MathUtil.AddDistanceToFront(2000, 0, 0, rotZ);
+            var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, rotZ);
 
             Position.X = newX;
             Position.Y = newY;
@@ -837,7 +839,8 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = Position.RotationZ;
-            moveType.ActorFlags = 4;     // 5-walk, 4-run, 3-stand still
+            moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
+            moveType.Flags = 4;
             
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
@@ -845,7 +848,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
+            moveType.Time = (uint) (DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
             
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }

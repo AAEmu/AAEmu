@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.AI.Utils
     {
         
         // This is taken from x2ai.lua
-        public static Point CalcNextRoamingPosition(AbstractAI ai)
+        public static Point CalcNextRoamingPosition(NpcAi ai)
         {
             var idlePos = ai.IdlePosition;
             var newPosition = idlePos.Clone();

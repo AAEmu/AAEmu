@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             // TODO : Autodisable
             
-            Ai.Owner.ClearAggro();
+            Ai.Owner.ClearAllAggro();
             // TODO: Ai.Owner.DisableAggro();
             
             var needRestorationOnReturn = true; // TODO: Use params & alertness values

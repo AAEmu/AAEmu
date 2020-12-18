@@ -15,6 +15,9 @@ namespace AAEmu.Game.Models.Game.AI.v2
     {
         private Logger _log = LogManager.GetCurrentClassLogger();
         
+        // Test
+        public bool ShouldTick { get; set; }
+        
         public Npc Owner { get; set; }
         public Point IdlePosition { get; set; }
         public AiParam Param { get; set; }
@@ -88,7 +91,8 @@ namespace AAEmu.Game.Models.Game.AI.v2
 
         public void Tick(TimeSpan delta)
         {
-            _currentBehavior?.Tick(delta);
+            if (ShouldTick)
+                _currentBehavior?.Tick(delta);
         }
         
         private void Transition(TransitionEvent on)

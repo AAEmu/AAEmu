@@ -125,7 +125,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         private void GoToReturnToIdle()
         {
             Npc.InterruptSkills();
-            Npc.ClearAggro();
+            Npc.ClearAllAggro();
             var returnToIdleState = AI.StateMachine.GetState(Framework.States.ReturnToIdle);
             AI.StateMachine.SetCurrentState(returnToIdleState);
         }

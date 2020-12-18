@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         {
             if (!(AI.Owner is Npc npc))
                 return;
-            _targetLoc = AIUtils.CalcNextRoamingPosition(AI);
+            // _targetLoc = AIUtils.CalcNextRoamingPosition(AI);
             _owner = npc;
         }
 
