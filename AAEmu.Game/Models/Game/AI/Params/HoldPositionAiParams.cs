@@ -6,7 +6,7 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.AI.Params
 {
-    class HoldPositionAiParams : AiParams
+    class HoldPositionAiParams : AiParamsOld
     {
         private Logger _log = LogManager.GetCurrentClassLogger();
         public override AiParamType Type => AiParamType.HoldPosition;

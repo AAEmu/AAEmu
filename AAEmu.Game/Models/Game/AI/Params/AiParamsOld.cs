@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.AI.Params.BigMonster;
+﻿using AAEmu.Game.Models.Game.AI.Params.BigMonster;
 
 namespace AAEmu.Game.Models.Game.AI.Params
 {
@@ -22,19 +22,19 @@ namespace AAEmu.Game.Models.Game.AI.Params
         AlmightyNpc = 27
     }
     
-    public class AiParams
+    public class AiParamsOld
     {
         public virtual AiParamType Type { get; set; } = AiParamType.None;
         public virtual void Parse(string data) {}
 
-        public static AiParams GetByType(AiParamType type)
+        public static AiParamsOld GetByType(AiParamType type)
         {
             switch (type)
             {
                 case AiParamType.HoldPosition:
                     return new HoldPositionAiParams();
                 case AiParamType.AlmightyNpc:
-                    return new AlmightNpcParams();
+                    return new AlmightyNpcAiParams();
                 case AiParamType.BigMonsterRoaming:
                     return new BigMonsterRoamingAiParams();
                 default:

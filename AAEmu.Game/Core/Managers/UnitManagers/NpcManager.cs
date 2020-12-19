@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.AI.Params;
 using AAEmu.Game.Models.Game.AI.Utils;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
@@ -35,6 +36,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (_templates.ContainsKey(templateId))
                 return _templates[templateId];
             return null;
+        }
+
+        public Dictionary<uint, NpcTemplate> GetAllTemplates()
+        {
+            return _templates;
         }
 
         public MerchantGoods GetGoods(uint id)
@@ -509,6 +515,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 _log.Info("Loaded {0} merchant packs", _goods.Count);
+            }
+        }
+
+        public void LoadAiParams()
+        {
+            foreach (var npc in _templates.Values)
+            {
+                npc.AiParams = AiGameData.Instance.GetAiParamsForId((uint)npc.NpcAiParamId);
             }
         }
 

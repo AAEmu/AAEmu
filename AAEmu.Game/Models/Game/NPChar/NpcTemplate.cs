@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -128,6 +129,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public (uint ItemId, bool NpcOnly)[] BodyItems { get; set; }
         public List<uint> Buffs { get; set; }
         public List<BonusTemplate> Bonuses { get; set; }
+        public AiParams AiParams { get; set; }
 
         public NpcTemplate()
         {

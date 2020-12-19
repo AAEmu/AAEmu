@@ -1,19 +1,24 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using AAEmu.Game.Models.Game.AI.V2.Params;
+using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
 using NLua;
 
-namespace AAEmu.Game.Models.Game.AI.Params.BigMonster
+namespace AAEmu.Game.Models.Game.AI.v2.Params.BigMonster
 {
-    public class BigMonsterRoamingAiParams : AiParamsOld
+    public class BigMonsterAiParams : AiParams
     {
-        public override AiParamType Type => AiParamType.BigMonsterRoaming;
-
         public float AlertDuration { get; set; } = 3.0f;
         public float AlertSafeTargetRememberTime { get; set; } = 5.0f;
         public bool AlertToAttack { get; set; } = true;
         public List<BigMonsterCombatSkill> CombatSkills { get; set; }
 
-        public override void Parse(string data)
+        public BigMonsterAiParams(string aiPramsString)
+        {
+            Parse(aiPramsString);
+        }
+
+        private void Parse(string data)
         {
             using (var aiParams = new AiLua())
             {

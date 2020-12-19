@@ -1,7 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Models.Game.AI.v2.Params;
+using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
+using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
@@ -15,6 +17,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 
         public override void Tick(TimeSpan delta)
         {
+            var aiParams = Ai.Owner.Template.AiParams as BigMonsterAiParams;
+            if (aiParams == null)
+                return;
             // Note: The regions used here can probably be moved to functions
             #region Move to target
             // TODO: Check that strafe = true OR that we are not in a delay
@@ -25,8 +30,10 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 
             // Get in preferred combat range OR melee attack range, not sure which yet.
             var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
-            if (distanceToTarget > Ai.Param.MeleeAttackRange)
-                Ai.Owner.MoveTowards(target.Position, 2.4f * (delta.Milliseconds / 1000.0f));
+
+            //I dont think BigMonster has MeleeAttackRange unless there is default? Maybe in entity?
+            //if (distanceToTarget > aiParams.MeleeAttackRange)
+                //Ai.Owner.MoveTowards(target.Position, 2.4f * (delta.Milliseconds / 1000.0f));
             #endregion
 
             #region Can cast next skill check
@@ -57,11 +64,11 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             // Apply that skill's delay 
         }
 
-        private List<AiSkill> RequestAvailableSkills()
+        private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams)
         {
             var healthRatio = (Ai.Owner.Hp / Ai.Owner.MaxHp) * 100;
             
-            var baseList = Ai.Param.BigMonsterCombatSkills.AsEnumerable();
+            var baseList = aiParams.CombatSkills.AsEnumerable();
 
             baseList = baseList.Where(s => s.HealthRangeMin <= healthRatio && healthRatio <= s.HealthRangeMax);
             baseList = baseList.Where(s => !Ai.Owner.Cooldowns.CheckCooldown(s.SkillType));

@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
         
         public Npc Owner { get; set; }
         public Point IdlePosition { get; set; }
-        public AiParam Param { get; set; }
+        public AiParams Param { get; set; }
 
         private Dictionary<BehaviorKind, Behavior> _behaviors;
         private Dictionary<Behavior, List<Transition>> _transitions;

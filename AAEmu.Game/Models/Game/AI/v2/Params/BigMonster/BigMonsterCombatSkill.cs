@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using NLua;
 
-namespace AAEmu.Game.Models.Game.AI.Params
+namespace AAEmu.Game.Models.Game.AI.V2.Params.BigMonster
 {
     public class BigMonsterCombatSkill
     {

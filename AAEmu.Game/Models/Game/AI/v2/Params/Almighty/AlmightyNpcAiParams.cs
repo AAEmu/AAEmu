@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using NLua;
 
-namespace AAEmu.Game.Models.Game.AI.Params
+namespace AAEmu.Game.Models.Game.AI.V2.Params
 {
-    public class AlmightyNpcAiParams : AiParamsOld
+    public class AlmightyNpcAiParams : AiParams
     {
-        public override AiParamType Type => AiParamType.AlmightyNpc;
-
         public List<string> Msgs { get; set; }
         public string IdleAi { get; set; } = "hold_position";
 
@@ -27,7 +26,12 @@ namespace AAEmu.Game.Models.Game.AI.Params
         //TODO AiPathSkillLists
         //TODO AiPathDamageSkillLists
 
-        public override void Parse(string data)
+        public AlmightyNpcAiParams(string aiParamsString)
+        {
+            Parse(aiParamsString);
+        }
+
+        private void Parse(string data)
         {
             using (var aiParams = new AiLua())
             {

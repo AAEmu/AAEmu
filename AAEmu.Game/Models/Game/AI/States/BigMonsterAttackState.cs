@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             }
 
             Npc = npc;
-            AiParams = (BigMonsterRoamingAiParams) AiGameData.Instance.GetAiParamsForId((uint) npc.Template.NpcAiParamId);
+            //AiParams = (BigMonsterRoamingAiParams) AiGameData.Instance.GetAiParamsForId((uint) npc.Template.NpcAiParamId);
             OwnerTemplate = npc.Template;
             _lastSkillEnd = DateTime.MinValue;
         }
@@ -130,7 +130,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             AI.StateMachine.SetCurrentState(returnToIdleState);
         }
 
-        private AiCombatSkill GetNextAiCombatSkill()
+        private BigMonsterCombatSkill GetNextAiCombatSkill()
         {
             var hpPercent = (Npc.Hp / (float)Npc.MaxHp) * 100.0f;
 

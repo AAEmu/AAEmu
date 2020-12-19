@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         public Unit Target { get; set; }
         public Npc Npc { get; set; }
         public NpcTemplate OwnerTemplate { get; set; }
-        public AlmightNpcParams AiParams { get; set; }
+        public AlmightyNpcAiParams AiParams { get; set; }
         private DateTime _lastSkillEnd = DateTime.MinValue;
         private float _currentDelay = 0.0f;
         private float _nextDelay = 0.0f;
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             }
 
             Npc = npc;
-            AiParams = (AlmightNpcParams) AiGameData.Instance.GetAiParamsForId((uint) npc.Template.NpcAiParamId);
+            //AiParams = (AlmightyNpcAiParams) AiGameData.Instance.GetAiParamsForId((uint) npc.Template.NpcAiParamId);
             OwnerTemplate = npc.Template;
             _lastSkillEnd = DateTime.MinValue;
         }

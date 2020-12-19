@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData.Framework;
-using AAEmu.Game.Models.Game.AI.Params;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
 using NLog;
@@ -17,8 +18,8 @@ namespace AAEmu.Game.GameData
 
         public AiParams GetAiParamsForId(uint id)
         {
-            if (_aiParams.ContainsKey(id))
-                return _aiParams[id];
+            if (_aiParams.TryGetValue(id, out var value))
+                return value;
             return null;
         }
         
@@ -26,18 +27,19 @@ namespace AAEmu.Game.GameData
         {
             _aiParams = new Dictionary<uint, AiParams>();
             
-            var fileTypeToId = new Dictionary<uint, AiParamType>();
+            var fileTypeToId = new Dictionary<uint, AiParams.AiParamType>();
             
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT ai_file_id, npc_ai_param_id FROM npcs";
+                command.CommandText = "SELECT id, ai_file_id, npc_ai_param_id FROM npcs";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
                     while (reader.Read())
                     {
-                        var type = (AiParamType)reader.GetUInt32("ai_file_id");
+                        var npcId = reader.GetUInt32("id");
+                        var type = (AiParams.AiParamType)reader.GetUInt32("ai_file_id");
                         var id = reader.GetUInt32("npc_ai_param_id");
                         if (!fileTypeToId.ContainsKey(id))
                             fileTypeToId.Add(id, type);
@@ -59,16 +61,11 @@ namespace AAEmu.Game.GameData
                             continue;
 
                         var fileType = fileTypeToId[id];
-                        
-                        var aiParams = AiParams.GetByType(fileType);
-                        if (aiParams == null)
-                            continue; // TODO : unimplemented
-
-                        var data = reader.GetString("ai_param");
                         try
                         {
-                            aiParams.Parse(data);
-                            if (!_aiParams.ContainsKey(id))
+                            var data = reader.GetString("ai_param");
+                            var aiParams = AiParams.CreateByType(fileType, data);
+                            if (aiParams != null && !_aiParams.ContainsKey(id))
                                 _aiParams.Add(id, aiParams);
                         }
                         catch (Exception e)
@@ -82,6 +79,7 @@ namespace AAEmu.Game.GameData
 
         public void PostLoad()
         {
+            NpcManager.Instance.LoadAiParams();
         }
     }
 }
