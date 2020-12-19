@@ -23,8 +23,9 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params
 
         public List<int> AiPhase { get; set; }//this might be enum 
         public List<AiSkillList> AiSkillLists { get; set; }
-        //TODO AiPathSkillLists
-        //TODO AiPathDamageSkillLists
+        public List<AiSkillList> AiPathSkillLists { get; set; }
+
+        public List<AiSkillList> AiPathDamageSkillLists { get; set; }
 
         public AlmightyNpcAiParams(string aiParamsString)
         {
@@ -57,6 +58,36 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params
                             aiSkillList.ParseLua(skillListTable);
 
                             AiSkillLists.Add(aiSkillList);
+                        }
+                    }
+                }
+
+                if (aiParams.GetTable("data.aiPathSkillLists") is LuaTable pathSkills)
+                {
+                    AiPathSkillLists = new List<AiSkillList>();
+                    foreach (var skillList in pathSkills.Values)
+                    {
+                        if (skillList is LuaTable skillListTable)
+                        {
+                            var aiSkillList = new AiSkillList();
+                            aiSkillList.ParseLua(skillListTable);
+
+                            AiPathSkillLists.Add(aiSkillList);
+                        }
+                    }
+                }
+
+                if (aiParams.GetTable("data.aiPathDamageSkillLists") is LuaTable pathDamageSkills)
+                {
+                    AiPathDamageSkillLists = new List<AiSkillList>();
+                    foreach (var skillList in pathDamageSkills.Values)
+                    {
+                        if (skillList is LuaTable skillListTable)
+                        {
+                            var aiSkillList = new AiSkillList();
+                            aiSkillList.ParseLua(skillListTable);
+
+                            AiPathDamageSkillLists.Add(aiSkillList);
                         }
                     }
                 }
