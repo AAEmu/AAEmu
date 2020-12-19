@@ -33,15 +33,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.Archer
                 CombatSkills = new List<ArcherCombatSkill>();
                 if (aiParams.GetTable("data.combatSkills") is LuaTable table)
                 {
-                    foreach (var skillList in table.Values)
-                    {
-                        if (skillList is LuaTable skillListTable)
-                        {
-                            var combatSkill = new ArcherCombatSkill();
-                            combatSkill.ParseLua(skillListTable);
-                            CombatSkills.Add(combatSkill);
-                        }
-                    }
+                    var combatSkill = new ArcherCombatSkill();
+                    combatSkill.ParseLua(table);
+                    CombatSkills.Add(combatSkill);
                 }
                 if (aiParams.GetObjectFromPath("data.maxMakeAGapCount") != null)
                     MaxMakeAGapeCount = aiParams.GetInteger("data.maxMakeAGapCount");

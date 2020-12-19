@@ -16,25 +16,37 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params.Archer
             Melee = new List<uint>();
             if (table["melee"] is LuaTable meleeSkills)
             {
-                Melee.AddRange(meleeSkills.Values as IEnumerable<uint>);
+                foreach(var value in meleeSkills.Values)
+                {
+                    Melee.Add(Convert.ToUInt32(value));
+                }
             }
 
             MakeAGap = new List<uint>();
             if (table["makeAGap"] is LuaTable makeAGapSkills)
             {
-                Melee.AddRange(makeAGapSkills.Values as IEnumerable<uint>);
+                foreach (var value in makeAGapSkills.Values)
+                {
+                    MakeAGap.Add(Convert.ToUInt32(value));
+                }
             }
 
             RangedDef = new List<uint>();
             if (table["rangedDef"] is LuaTable rangedDefSkills)
             {
-                Melee.AddRange(rangedDefSkills.Values as IEnumerable<uint>);
+                foreach (var value in rangedDefSkills.Values)
+                {
+                    RangedDef.Add(Convert.ToUInt32(value));
+                }
             }
 
             RangedStrong = new List<uint>();
-            if (table["melee"] is LuaTable rangedStrongSkills)
+            if (table["rangedStrong"] is LuaTable rangedStrongSkills)
             {
-                Melee.AddRange(rangedStrongSkills.Values as IEnumerable<uint>);
+                foreach (var value in rangedStrongSkills.Values)
+                {
+                    RangedStrong.Add(Convert.ToUInt32(value));
+                }
             }
         }
     }
