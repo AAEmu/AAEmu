@@ -8,7 +8,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 {
-    public class BigMonsterAttackBehavior : Behavior
+    public class BigMonsterAttackBehavior : BaseCombatBehavior
     {
         public override void Enter()
         {
@@ -20,48 +20,23 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             var aiParams = Ai.Owner.Template.AiParams as BigMonsterAiParams;
             if (aiParams == null)
                 return;
-            // Note: The regions used here can probably be moved to functions
-            #region Move to target
-            // TODO: Check that strafe = true OR that we are not in a delay
-            // Get target
+            
             var target = Ai.Owner.CurrentTarget;
             if (target == null)
                 return; // Technically, the aggro code should take us out of this state very soon.
-
-            // Get in preferred combat range OR melee attack range, not sure which yet.
-            var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
-
-            //I dont think BigMonster has MeleeAttackRange unless there is default? Maybe in entity?
-            //if (distanceToTarget > aiParams.MeleeAttackRange)
-                //Ai.Owner.MoveTowards(target.Position, 2.4f * (delta.Milliseconds / 1000.0f));
-            #endregion
-
-            #region Can cast next skill check
-
-            // TODO: Check we aren't currently in a delay state
-
-            // TODO: Check we aren't already casting/"active"
-
-            #endregion
             
-            // Pick a skill to use
+            if (CanStrafe)
+                MoveInRange(target, Ai.Owner.Template.AttackStartRangeScale * Ai.Owner.ModelSize, 5.4f * (delta.Milliseconds / 1000.0f));
+
+            if (!CanUseSkill)
+                return;
 
             #region Pick a skill
-
             // TODO: Get skill list
             // If skill list is empty, get Base skill
-
             #endregion
 
-            #region Use skill
-
-            
-
-            #endregion
-            
-            // Use that skill
-
-            // Apply that skill's delay 
+            UseSkill(null, Ai.Owner.CurrentTarget);
         }
 
         private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams)
