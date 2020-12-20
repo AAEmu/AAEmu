@@ -69,13 +69,13 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 lock (caster.GCDLock)
                 {
-                    if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.Now)
+                    if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow)
                         return SkillResult.CooldownTime;
 
-                    if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
+                    if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
                         return SkillResult.CooldownTime;
 
-                    caster.SkillLastUsed = DateTime.Now;
+                    caster.SkillLastUsed = DateTime.UtcNow;
                 }
             }
 
@@ -107,20 +107,6 @@ namespace AAEmu.Game.Models.Game.Skills
             if (targetDist > skillRange)
                 return SkillResult.TooFarRange;
 
-            //Maybe we should do this somewhere else?
-            if (Template.DefaultGcd)
-            {
-                //TODO Apply Attack Spped * GCD
-                if (!_bypassGcd)
-                    caster.GlobalCooldown = DateTime.Now.AddMilliseconds(1000 * (caster.GlobalCooldownMul / 100));
-            }
-            else
-            {
-                //TODO Apply Attack Speed * GCD
-                if (!_bypassGcd)
-                    caster.GlobalCooldown = 
-                        DateTime.Now.AddMilliseconds(Template.CustomGcd * (caster.GlobalCooldownMul / 100));
-            }
             
             if (Template.CastingTime > 0)
             {
@@ -297,6 +283,26 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Cast(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
+            if (Template.DefaultGcd)
+            {
+                if (caster is NPChar.Npc)
+                {
+                    if (!_bypassGcd)
+                        caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(1500 * (caster.GlobalCooldownMul / 100));
+                }
+                else
+                {
+                    if (!_bypassGcd)
+                        caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(1000 * (caster.GlobalCooldownMul / 100));
+                }
+            }
+            else
+            {
+                if (!_bypassGcd)
+                    caster.GlobalCooldown =
+                        DateTime.UtcNow.AddMilliseconds(Template.CustomGcd * (caster.GlobalCooldownMul / 100));
+            }
+
             caster.SkillTask = null;
             
             ConsumeMana(caster);
