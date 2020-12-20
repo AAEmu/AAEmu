@@ -528,10 +528,29 @@ namespace AAEmu.Game.Core.Managers.World
             if (useModelSize)
                 radius += obj.ModelSize;
 
-            foreach (var neighbor in obj.Region.GetNeighbors())
-                neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius, useModelSize);
+            if (radius > 0.0f && RadiusFitsCurrentRegion(obj, radius))
+            {
+                obj.Region.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius, useModelSize);
+            }
+            else
+            {
+                foreach (var neighbor in obj.Region.GetNeighbors())
+                    neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius, useModelSize);
+            }
 
             return result;
+        }
+
+        private bool RadiusFitsCurrentRegion(GameObject obj, float radius)
+        {
+            var xMod = obj.Position.X % REGION_SIZE;
+            if (xMod - radius < 0 || xMod + radius > REGION_SIZE)
+                return false; 
+            
+            var yMod = obj.Position.Y % REGION_SIZE;
+            if (yMod - radius < 0 || yMod + radius > REGION_SIZE)
+                return false;
+            return true;
         }
 
         public List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : class
