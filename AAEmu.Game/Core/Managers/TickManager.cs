@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using NLog;
 
@@ -13,8 +14,7 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public delegate void OnTickEvent(TimeSpan delta);
-        public TickEventHandler OnLowFrequencyTick = new TickEventHandler();
-        public TickEventHandler OnHighFrequencyTick = new TickEventHandler();
+        public TickEventHandler OnTick = new TickEventHandler();
 
         private void LowFrequencyTickLoop()
         {
@@ -22,26 +22,18 @@ namespace AAEmu.Game.Core.Managers
             sw.Start();
             while(true)
             {
-                OnLowFrequencyTick.Invoke();
+                var before = sw.Elapsed;
+                OnTick.Invoke();
+                var time = sw.Elapsed - before;
+                if(time > TimeSpan.FromMilliseconds(1))
+                    _log.Warn("Tick took {0}ms to finish", time.TotalMilliseconds);
                 Thread.Sleep(20);
             }
         }
-        private void HighFrequencyTickLoop()
-        {
-            var sw = new Stopwatch();
-            sw.Start();
-            while (true)
-            {
-                OnHighFrequencyTick.Invoke();
-                Thread.Sleep(20);
-            }
-        }
-
 
         public void Initialize()
         {
             new Thread(() => LowFrequencyTickLoop()).Start();
-            new Thread(() => HighFrequencyTickLoop()).Start();
         }
     }
 
@@ -50,11 +42,14 @@ namespace AAEmu.Game.Core.Managers
         public TickEventHandler.OnTickEvent Event { get; }
         public TimeSpan LastExecution {get; set;}
         public TimeSpan TickRate { get; }
+        public Task ActiveTask { get; set; }
+        public bool UseAsync { get; }
 
-        public TickEventEntity(TickEventHandler.OnTickEvent ev, TimeSpan tickRate)
+        public TickEventEntity(TickEventHandler.OnTickEvent ev, TimeSpan tickRate, bool useAsync)
         {
             Event = ev;
             TickRate = tickRate;
+            UseAsync = useAsync;
         }
     }
     public class TickEventHandler
@@ -100,17 +95,28 @@ namespace AAEmu.Game.Core.Managers
                 var delta = _sw.Elapsed - ev.LastExecution;
                 if (delta > ev.TickRate)
                 {
-                    ev.LastExecution = _sw.Elapsed;
-                    ev.Event(delta);
+                    if(ev.UseAsync)
+                    {
+                        if (ev.ActiveTask == null || ev.ActiveTask.IsCompleted)
+                        {
+                            ev.LastExecution = _sw.Elapsed;
+                            ev.ActiveTask = Task.Run(() => ev.Event(delta));
+                        }
+                    }
+                    else
+                    {
+                        ev.LastExecution = _sw.Elapsed;
+                        ev.Event(delta);
+                    }
                 }
             }
         }
 
-        public void Subscribe(OnTickEvent tickEvent, TimeSpan tickRate = default)
+        public void Subscribe(OnTickEvent tickEvent, TimeSpan tickRate = default, bool useAsync = false)
         {
             lock (_lock)
             {
-                _eventsToAdd.Enqueue(new TickEventEntity(tickEvent, tickRate));
+                _eventsToAdd.Enqueue(new TickEventEntity(tickEvent, tickRate, useAsync));
             }
         }
 

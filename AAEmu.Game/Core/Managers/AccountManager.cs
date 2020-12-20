@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Managers
         public AccountManager()
         {
             _accounts = new ConcurrentDictionary<uint, GameConnection>();
-            TickManager.Instance.OnLowFrequencyTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
+            TickManager.Instance.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
         }
 
         public void Add(GameConnection connection)

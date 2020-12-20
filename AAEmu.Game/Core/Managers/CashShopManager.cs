@@ -183,7 +183,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void Initialize()
         {
-            TickManager.Instance.OnLowFrequencyTick.Subscribe(CreditDisperseTick, TimeSpan.FromMinutes(5));
+            TickManager.Instance.OnTick.Subscribe(CreditDisperseTick, TimeSpan.FromMinutes(5));
         }
 
         public List<CashShopItem> GetCashShopItems()
