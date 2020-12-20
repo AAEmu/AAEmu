@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Managers
         public delegate void OnTickEvent(TimeSpan delta);
         public TickEventHandler OnTick = new TickEventHandler();
 
-        private void LowFrequencyTickLoop()
+        private void TickLoop()
         {
             var sw = new Stopwatch();
             sw.Start();
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Managers
                 var before = sw.Elapsed;
                 OnTick.Invoke();
                 var time = sw.Elapsed - before;
-                if(time > TimeSpan.FromMilliseconds(1))
+                if(time > TimeSpan.FromMilliseconds(100))
                     _log.Warn("Tick took {0}ms to finish", time.TotalMilliseconds);
                 Thread.Sleep(20);
             }
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void Initialize()
         {
-            new Thread(() => LowFrequencyTickLoop()).Start();
+            new Thread(() => TickLoop()).Start();
         }
     }
 
@@ -100,13 +100,29 @@ namespace AAEmu.Game.Core.Managers
                         if (ev.ActiveTask == null || ev.ActiveTask.IsCompleted)
                         {
                             ev.LastExecution = _sw.Elapsed;
-                            ev.ActiveTask = Task.Run(() => ev.Event(delta));
+                            ev.ActiveTask = Task.Run(() => {
+                                try
+                                {
+                                    ev.Event(delta);
+                                }
+                                catch(Exception e)
+                                {
+                                    _log.Error("{0}\n{1}", e.Message, e.StackTrace);
+                                }
+                            });
                         }
                     }
                     else
                     {
                         ev.LastExecution = _sw.Elapsed;
-                        ev.Event(delta);
+                        try
+                        {
+                            ev.Event(delta);
+                        }
+                        catch (Exception e)
+                        {
+                            _log.Error("{0}\n{1}", e.Message, e.StackTrace);
+                        }
                     }
                 }
             }
