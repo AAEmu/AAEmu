@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
@@ -108,7 +109,7 @@ namespace AAEmu.Game.Core.Managers.World
             var maxVelForward = 12.9f; //per s
             var maxVelBackward = -5.0f;
 
-            if (slave.Bounded == null)
+            if (!slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver))
             {
                 slave.ThrottleRequest = 0;
                 slave.SteeringRequest = 0;

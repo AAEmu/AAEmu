@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Units.Static;
 using Jitter.Dynamics;
 using NLog;
 
@@ -21,10 +22,11 @@ namespace AAEmu.Game.Models.Game.Units
         public uint BondingObjId { get; set; } = 0;
 
         public SlaveTemplate Template { get; set; }
-        public Character Bounded { get; set; }
+        // public Character Driver { get; set; }
         public Character Summoner { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
         public List<Slave> AttachedSlaves { get; set; }
+        public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
         public DateTime SpawnTime { get; set; }
         public sbyte ThrottleRequest { get; set; }
         public sbyte Throttle { get; set; }
@@ -86,7 +88,11 @@ namespace AAEmu.Game.Models.Game.Units
                 attachedSlave.Move(newX, newY, newZ);
             }
             
-            Bounded?.SetPosition(Bounded.Position.X + xD, Bounded.Position.Y + yD, Bounded.Position.Z + zD);
+            // Driver?.SetPosition(Driver.Position.X + xD, Driver.Position.Y + yD, Driver.Position.Z + zD);
+            foreach (var character in AttachedCharacters.Values)
+            {
+                character?.SetPosition(character.Position.X + xD, character.Position.Y + yD, character.Position.Z + zD);
+            }
         }
     }
 }

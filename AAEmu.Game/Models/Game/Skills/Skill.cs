@@ -102,12 +102,14 @@ namespace AAEmu.Game.Models.Game.Skills
 
             var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
             var targetDist = caster.GetDistanceTo(target, true);
-            if (targetDist < Template.MinRange)
-                return SkillResult.TooCloseRange;
-            if (targetDist > skillRange)
-                return SkillResult.TooFarRange;
+            if (!(target is Doodad)) // HACKFIX : Used mostly for boats, since the actual position of the doodad is the boat's origin, and not where it is displayed
+            {
+                if (targetDist < Template.MinRange)
+                    return SkillResult.TooCloseRange;
+                if (targetDist > skillRange)
+                    return SkillResult.TooFarRange;
+            }
 
-            
             if (Template.CastingTime > 0)
             {
                 // var origTime = Template.CastingTime * caster.Cas

@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
@@ -74,32 +75,40 @@ namespace AAEmu.Game.Core.Managers
 
         public void UnbindSlave(Character character, uint tlId)
         {
-            // TODO
             var slave = _tlSlaves[tlId];
             character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, 5), true);
-            slave.Bounded = null;
+            // slave.Driver = null;
+            var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
+            if (attachPoint != default)
+                slave.AttachedCharacters.Remove(attachPoint);
         }
         
         public void BindSlave(Character character, uint objId, byte attachPointId, byte bondKind)
         {
             var slave = GetActiveSlaveByObjId(objId);
+
+            if (slave.AttachedCharacters.ContainsKey((AttachPointKind)attachPointId))
+                return;
+            
             character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPointId, bondKind, objId), true);
-            character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
-            slave.Bounded = character;
+            if (attachPointId == (int) AttachPointKind.Driver)
+                character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
+            // slave.Driver = character;
+            slave.AttachedCharacters.Add((AttachPointKind)attachPointId, character);
         }
 
         public void BindSlave(GameConnection connection, uint tlId)
         {
             var unit = connection.ActiveChar;
             var slave = _tlSlaves[tlId];
-            if (slave.Bounded != null)
+            if (slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver))
                 return;
                 
             unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, slave.ObjId), true);
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, slave.ObjId), true);
             unit.CurrentTarget = slave;
             unit.BroadcastPacket(new SCSlaveBoundPacket(unit.Id, slave.ObjId), true);
-            slave.Bounded = unit;
+            slave.AttachedCharacters.Add(AttachPointKind.Driver, unit);
         }
 
         // TODO - GameConnection connection
@@ -108,8 +117,8 @@ namespace AAEmu.Game.Core.Managers
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
             if (activeSlaveInfo == null) return;
             
-            if (activeSlaveInfo.Bounded != null)
-                UnbindSlave(activeSlaveInfo.Bounded, activeSlaveInfo.TlId);
+            foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
+                UnbindSlave(character, activeSlaveInfo.TlId);
 
             foreach (var doodad in activeSlaveInfo.AttachedDoodads)
             {
@@ -183,6 +192,7 @@ namespace AAEmu.Game.Core.Managers
                 Summoner = owner,
                 AttachedDoodads = new List<Doodad>(),
                 AttachedSlaves = new List<Slave>(),
+                AttachedCharacters = new Dictionary<AttachPointKind, Character>(),
                 SpawnTime = DateTime.Now
             };
             template.Spawn();
@@ -256,6 +266,7 @@ namespace AAEmu.Game.Core.Managers
                     Summoner = owner,
                     AttachedDoodads = new List<Doodad>(),
                     AttachedSlaves = new List<Slave>(),
+                    AttachedCharacters = new Dictionary<AttachPointKind, Character>(),
                     SpawnTime = DateTime.Now,
                     AttachPointId = (sbyte) slaveBinding.AttachPointId,
                     OwnerObjId = template.ObjId
