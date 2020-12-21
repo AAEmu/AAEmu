@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.V2.Params.BigMonster;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
@@ -33,10 +36,17 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 
             #region Pick a skill
             // TODO: Get skill list
+            var selectedSkill = PickSkill(RequestAvailableSkills(aiParams));
+            var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
+            if (skillTemplate != null)
+            {
+                UseSkill(new Skill(skillTemplate), target);
+
+                //Move this to SkillEnded?
+                _delayEnd = DateTime.UtcNow.AddSeconds(selectedSkill.SkillDelay);
+            }
             // If skill list is empty, get Base skill
             #endregion
-
-            UseSkill(null, Ai.Owner.CurrentTarget);
         }
 
         private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams)
@@ -49,6 +59,23 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             baseList = baseList.Where(s => !Ai.Owner.Cooldowns.CheckCooldown(s.SkillType));
 
             return baseList.ToList();
+        }
+
+        private BigMonsterCombatSkill PickSkill(List<BigMonsterCombatSkill> skills)
+        {
+            if (skills.Count > 0)
+            {
+                return skills[Rand.Next(0, skills.Count)];
+            }
+            else
+            {
+                return new BigMonsterCombatSkill
+                {
+                    SkillType = (uint)Ai.Owner.Template.BaseSkillId,
+                    SkillDelay = Ai.Owner.Template.BaseSkillDelay,
+                    StrafeDuringDelay = Ai.Owner.Template.BaseSkillStrafe
+                };
+            }
         }
         
         public override void Exit()
