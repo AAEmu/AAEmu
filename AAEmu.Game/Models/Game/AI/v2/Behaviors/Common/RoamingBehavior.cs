@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
     public class RoamingBehavior : Behavior
     {
         private Point _targetRoamPosition;
+        private DateTime _nextRoaming;
         
         public override void Enter()
         {
@@ -16,6 +17,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         public override void Tick(TimeSpan delta)
         {
+            if (_targetRoamPosition == null && DateTime.UtcNow > _nextRoaming)
+                UpdateRoaming();
+            
             if (_targetRoamPosition == null)
                 return;
             
@@ -25,7 +29,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             {
                 Ai.Owner.StopMovement();
                 _targetRoamPosition = null;
-                UpdateRoaming();
+                _nextRoaming = DateTime.UtcNow.AddSeconds(3); // Rand 3-6 would look nice ?
             }
         }
 
@@ -36,7 +40,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         private void UpdateRoaming()
         {
             // TODO : Group member handling
-
+            
             _targetRoamPosition = AIUtils.CalcNextRoamingPosition(Ai);
         }
     }
