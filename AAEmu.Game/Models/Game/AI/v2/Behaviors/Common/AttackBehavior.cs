@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 {
-    public class AttackBehavior : Behavior
+    public class AttackBehavior : BaseCombatBehavior
     {
         public override void Enter()
         {
@@ -26,15 +26,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var skillTemplate = SkillManager.Instance.GetSkillTemplate((uint)Ai.Owner.Template.BaseSkillId);
             var skill = new Skill(skillTemplate);
 
-
-            var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
-            skillCaster.ObjId = Ai.Owner.ObjId;
-
-            var skillCastTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-            skillCastTarget.ObjId = Ai.Owner.CurrentTarget.ObjId;
-
             if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplate.Id))
-                skill.Use(Ai.Owner, skillCaster, skillCastTarget);
+                UseSkill(skill, Ai.Owner.CurrentTarget, Ai.Owner.Template.BaseSkillDelay);
         }
         
         private void GetInRange(TimeSpan delta)

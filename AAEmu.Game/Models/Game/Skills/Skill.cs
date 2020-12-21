@@ -43,6 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
         private bool _bypassGcd;
         public bool Cancelled { get; set; } = false;
+        public Action Callback { get; set; }
 
         //public bool isAutoAttack;
         //public SkillTask autoAttackTask;
@@ -649,6 +650,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
             }
 
+            Callback?.Invoke();
             caster.OnSkillEnd(this);
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
             SkillManager.Instance.ReleaseId(TlId);
@@ -670,6 +672,7 @@ namespace AAEmu.Game.Models.Game.Skills
             }
             caster.BroadcastPacket(new SCCastingStoppedPacket(TlId, 0), true);
             caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
+            Callback?.Invoke();
             caster.OnSkillEnd(this);
             caster.SkillTask = null;
             Cancelled = true;

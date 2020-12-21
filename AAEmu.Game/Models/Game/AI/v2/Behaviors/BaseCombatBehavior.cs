@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -9,6 +10,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
     public abstract class BaseCombatBehavior : Behavior
     {
         protected DateTime _delayEnd;
+        protected float _nextTimeToDelay;
         protected bool _strafeDuringDelay;
         
         public void MoveInRange(BaseUnit target, float range, float speed)
@@ -40,8 +42,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         }
         
         // UseSkill (delay)
-        public void UseSkill(Skill skill, BaseUnit target)
+        public void UseSkill(Skill skill, BaseUnit target, float delay = 0)
         {
+            _nextTimeToDelay = delay;
             var skillCaster = SkillCaster.GetByType(SkillCasterType.Unit);
             skillCaster.ObjId = Ai.Owner.ObjId;
 
@@ -67,8 +70,17 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
-            //Run this in a task maybe?
-            skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
+            skill.Callback = OnSkillEnded;
+            var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
+        }
+
+        public virtual void OnSkillEnded()
+        {
+            try
+            {
+                _delayEnd = DateTime.UtcNow.AddSeconds(_nextTimeToDelay);
+            }
+            catch (Exception e){}
         }
         
         // Check if can pick a new skill (delay, already casting)

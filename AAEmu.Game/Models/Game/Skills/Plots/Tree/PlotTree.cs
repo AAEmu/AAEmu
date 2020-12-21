@@ -191,8 +191,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
 
             SkillManager.Instance.ReleaseId(state.ActiveSkill.TlId);
-            state.Caster?.OnSkillEnd(state.ActiveSkill);
             
+            state.Caster?.OnSkillEnd(state.ActiveSkill);
+            state.ActiveSkill.Callback?.Invoke();
             if (state.Caster?.ActivePlotState == state)
                 state.Caster.ActivePlotState = null;
         }

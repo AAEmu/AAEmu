@@ -42,10 +42,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
             if (skillTemplate != null)
             {
-                UseSkill(new Skill(skillTemplate), target);
-
-                //Move this to SkillEnded?
-                _delayEnd = DateTime.UtcNow.AddSeconds(selectedSkill.SkillDelay);
+                UseSkill(new Skill(skillTemplate), target, selectedSkill.SkillDelay);
             }
             // If skill list is empty, get Base skill
             #endregion
