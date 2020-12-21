@@ -805,7 +805,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             AddUnitAggro(AggroKind.Damage, attacker, amount);
 
             var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
-            if (CurrentAggroTarget != topAbuser)
+            if ((CurrentTarget?.ObjId ?? 0) != topAbuser)
             {
                 CurrentAggroTarget = topAbuser; 
                 var unit = WorldManager.Instance.GetUnit(topAbuser);

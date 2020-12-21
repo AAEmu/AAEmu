@@ -43,6 +43,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             if (skillTemplate != null)
             {
                 UseSkill(new Skill(skillTemplate), target, selectedSkill.SkillDelay);
+                _strafeDuringDelay = selectedSkill.StrafeDuringDelay;
             }
             // If skill list is empty, get Base skill
             #endregion
@@ -50,7 +51,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 
         private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams)
         {
-            var healthRatio = (Ai.Owner.Hp / Ai.Owner.MaxHp) * 100;
+            int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
             
             var baseList = aiParams.CombatSkills.AsEnumerable();
 

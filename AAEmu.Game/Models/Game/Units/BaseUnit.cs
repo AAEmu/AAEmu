@@ -115,5 +115,10 @@ namespace AAEmu.Game.Models.Game.Units
         }
 
         public virtual void InterruptSkills() {}
+
+        public virtual bool CanSeeUnit(BaseUnit unit)
+        {
+            return true;
+        }
     }
 }
