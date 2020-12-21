@@ -16,6 +16,7 @@ namespace AAEmu.Game.Models.Game.World
         public uint ObjId { get; set; }
         public uint InstanceId { get; set; } = 1;
         public bool DisabledSetPosition { get; set; }
+        public Transform Transform { get; set; }
         public Point Position { get; set; }
         public Point WorldPosition { get; set; }
         public Region Region { get; set; }
