@@ -13,9 +13,12 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         
         public void MoveInRange(BaseUnit target, float range, float speed)
         {
-            var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
+            var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
+            // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
             if (distanceToTarget > range)
                 Ai.Owner.MoveTowards(target.Position, speed);
+            else 
+                Ai.Owner.StopMovement();
         }
 
         protected bool CanStrafe 
@@ -65,7 +68,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var skillObject = SkillObject.GetByType(SkillObjectType.None);
 
             //Run this in a task maybe?
-            skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject, true);
+            skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
         }
         
         // Check if can pick a new skill (delay, already casting)

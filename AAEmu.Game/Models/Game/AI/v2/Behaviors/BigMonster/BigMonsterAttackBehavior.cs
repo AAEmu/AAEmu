@@ -37,6 +37,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             #region Pick a skill
             // TODO: Get skill list
             var selectedSkill = PickSkill(RequestAvailableSkills(aiParams));
+            if (selectedSkill == null)
+                return;
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
             if (skillTemplate != null)
             {
@@ -64,18 +66,17 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
         private BigMonsterCombatSkill PickSkill(List<BigMonsterCombatSkill> skills)
         {
             if (skills.Count > 0)
-            {
                 return skills[Rand.Next(0, skills.Count)];
-            }
-            else
-            {
+            
+            if (!Ai.Owner.Cooldowns.CheckCooldown((uint) Ai.Owner.Template.BaseSkillId))
                 return new BigMonsterCombatSkill
                 {
                     SkillType = (uint)Ai.Owner.Template.BaseSkillId,
                     SkillDelay = Ai.Owner.Template.BaseSkillDelay,
                     StrafeDuringDelay = Ai.Owner.Template.BaseSkillStrafe
                 };
-            }
+
+            return null;
         }
         
         public override void Exit()

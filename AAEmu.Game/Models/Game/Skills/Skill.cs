@@ -131,19 +131,19 @@ namespace AAEmu.Game.Models.Game.Skills
                 caster.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
                 TaskManager.Instance.Schedule(caster.SkillTask, TimeSpan.FromMilliseconds(castTime));
             }
-            else if (caster is Character && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
-            {
-                caster.IsAutoAttack = true; // enable auto attack
-                caster.SkillId = Id;
-                caster.TlId = TlId;
-                caster.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject)
-                {
-                    CastTime = Template.CastingTime
-                }, true);
-
-                caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
-                TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
-            }
+            // else if (caster is Character && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
+            // {
+            //     caster.IsAutoAttack = true; // enable auto attack
+            //     caster.SkillId = Id;
+            //     caster.TlId = TlId;
+            //     caster.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject)
+            //     {
+            //         CastTime = Template.CastingTime
+            //     }, true);
+            //
+            //     caster.AutoAttackTask = new MeleeCastTask(this, caster, casterCaster, target, targetCaster, skillObject);
+            //     TaskManager.Instance.Schedule(caster.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
+            // }
             else
             {
                 Cast(caster, casterCaster, target, targetCaster, skillObject);
@@ -310,52 +310,52 @@ namespace AAEmu.Game.Models.Game.Skills
             ConsumeMana(caster);
             caster.Cooldowns.AddCooldown(Template.Id, (uint) Template.CooldownTime);
 
-            if (Id == 2 || Id == 3 || Id == 4)
-            {
-                if (caster is Character && caster.CurrentTarget == null)
-                {
-                    StopSkill(caster);
-                    return;
-                }
-
-                // Get a random number (from 0 to n)
-                var value = Rand.Next(0, 1);
-                // для skillId = 2
-                // 87 (35) - удар наотмаш, chr
-                //  2 (00) - удар сбоку, NPC
-                //  3 (46) - удар сбоку, chr
-                //  1 (00) - удар похож на 2 удар сбоку, NPC
-                // 91 - удар сверху (немного справа)
-                // 92 - удар наотмашь слева вниз направо
-                //  0 - удар не наносится (расстояние большое и надо подойти поближе), f=1, c=15
-                var effectDelay = new Dictionary<int, short> { { 0, 46 }, { 1, 35 } };
-                var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
-                var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
-                var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
-            
-                var trg = (Unit)target;
-                var dist = MathUtil.CalculateDistance(caster.Position, trg.Position, true);
-                if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
-                {
-                    caster.BroadcastPacket(caster is Character
-                            ? new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay[value], fireAnimId[value])
-                            : new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay2[value], fireAnimId2[value]),
-                        true);
-                }
-                else
-                {
-                    caster.BroadcastPacket(caster is Character
-                            ? new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay[value], fireAnimId[value], false)
-                            : new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay2[value], fireAnimId2[value], false),
-                        true);
-            
-                    if (caster is Character chr)
-                    {
-                        chr.SendMessage("Target is too far ...");
-                    }
-                    return;
-                }
-            }
+            // if (Id == 2 || Id == 3 || Id == 4)
+            // {
+            //     if (caster is Character && caster.CurrentTarget == null)
+            //     {
+            //         StopSkill(caster);
+            //         return;
+            //     }
+            //
+            //     // Get a random number (from 0 to n)
+            //     var value = Rand.Next(0, 1);
+            //     // для skillId = 2
+            //     // 87 (35) - удар наотмаш, chr
+            //     //  2 (00) - удар сбоку, NPC
+            //     //  3 (46) - удар сбоку, chr
+            //     //  1 (00) - удар похож на 2 удар сбоку, NPC
+            //     // 91 - удар сверху (немного справа)
+            //     // 92 - удар наотмашь слева вниз направо
+            //     //  0 - удар не наносится (расстояние большое и надо подойти поближе), f=1, c=15
+            //     var effectDelay = new Dictionary<int, short> { { 0, 46 }, { 1, 35 } };
+            //     var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
+            //     var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
+            //     var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
+            //
+            //     var trg = (Unit)target;
+            //     var dist = MathUtil.CalculateDistance(caster.Position, trg.Position, true);
+            //     if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
+            //     {
+            //         caster.BroadcastPacket(caster is Character
+            //                 ? new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay[value], fireAnimId[value])
+            //                 : new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay2[value], fireAnimId2[value]),
+            //             true);
+            //     }
+            //     else
+            //     {
+            //         caster.BroadcastPacket(caster is Character
+            //                 ? new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay[value], fireAnimId[value], false)
+            //                 : new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject, effectDelay2[value], fireAnimId2[value], false),
+            //             true);
+            //
+            //         if (caster is Character chr)
+            //         {
+            //             chr.SendMessage("Target is too far ...");
+            //         }
+            //         return;
+            //     }
+            // }
 
             if (Template.ChannelingTime > 0)
             {
