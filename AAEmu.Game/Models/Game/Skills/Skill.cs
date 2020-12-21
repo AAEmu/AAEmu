@@ -286,24 +286,13 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void Cast(Unit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
         {
-            if (Template.DefaultGcd)
+            if (!_bypassGcd)
             {
-                if (caster is NPChar.Npc)
-                {
-                    if (!_bypassGcd)
-                        caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(1500 * (caster.GlobalCooldownMul / 100));
-                }
-                else
-                {
-                    if (!_bypassGcd)
-                        caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(1000 * (caster.GlobalCooldownMul / 100));
-                }
-            }
-            else
-            {
-                if (!_bypassGcd)
-                    caster.GlobalCooldown =
-                        DateTime.UtcNow.AddMilliseconds(Template.CustomGcd * (caster.GlobalCooldownMul / 100));
+                var gcd = Template.CustomGcd;
+                if (Template.DefaultGcd) 
+                    gcd = caster is NPChar.Npc ? 1500 : 1000;
+                
+                caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (caster.GlobalCooldownMul / 100));
             }
 
             caster.SkillTask = null;
