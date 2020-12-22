@@ -29,11 +29,12 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
                 return; // Technically, the aggro code should take us out of this state very soon.
             
             if (CanStrafe)
-                MoveInRange(target, Ai.Owner.Template.AttackStartRangeScale * Ai.Owner.ModelSize, 5.4f * (delta.Milliseconds / 1000.0f));
+                MoveInRange(target, Ai.Owner.Template.AttackStartRangeScale * 4, 7f * (delta.Milliseconds / 1000.0f));
 
             if (!CanUseSkill)
                 return;
 
+            _strafeDuringDelay = false;
             #region Pick a skill
             // TODO: Get skill list
             var selectedSkill = PickSkill(RequestAvailableSkills(aiParams));

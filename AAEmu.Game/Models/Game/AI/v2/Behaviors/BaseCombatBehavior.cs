@@ -1,5 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -30,6 +32,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 return DateTime.UtcNow > _delayEnd || _strafeDuringDelay;
             }
         }
+
+        protected bool IsUsingSkill
+        {
+            get
+            {
+                return Ai.Owner.SkillTask != null || Ai.Owner.ActivePlotState != null;
+            }
+        }
         
         protected bool CanUseSkill
         {
@@ -38,6 +48,22 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 if (Ai.Owner.SkillTask != null || Ai.Owner.ActivePlotState != null)
                     return false;
                 return DateTime.UtcNow >= _delayEnd && !Ai.Owner.IsGlobalCooldowned;
+            }
+        }
+
+        public void UpdateAggro()
+        {
+
+        }
+
+        public void UpdateTarget()
+        {
+            var topAbuser = Ai.Owner.AggroTable.GetTopTotalAggroAbuserObjId();
+            if ((Ai.Owner.CurrentTarget?.ObjId ?? 0) != topAbuser)
+            {
+                Ai.Owner.CurrentAggroTarget = topAbuser;
+                var unit = WorldManager.Instance.GetUnit(topAbuser);
+                Ai.Owner.SetTarget(unit);
             }
         }
         
