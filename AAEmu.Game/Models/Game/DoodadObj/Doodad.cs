@@ -33,7 +33,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
         public byte AttachPoint { get; set; }
-        public Point AttachPosition { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
         public uint QuestGlow { get; set; } //0 off // 1 on
@@ -50,7 +49,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public Doodad()
         {
             _scale = 1f;
-            Position = new Point();
             PlantTime = DateTime.MinValue;
             AttachPoint = 255;
         }
@@ -235,16 +233,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
-            if (AttachPoint != 255 && AttachPosition != null)
+            if (AttachPoint != 255)
             {
-                stream.WritePosition(AttachPosition.X, AttachPosition.Y, AttachPosition.Z);
+                stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
                 stream.Write(Helpers.ConvertRotation(AttachPosition.RotationX)); //''
                 stream.Write(Helpers.ConvertRotation(AttachPosition.RotationY)); //''
                 stream.Write(Helpers.ConvertRotation(AttachPosition.RotationZ)); //''
             }
             else
             {
-                stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
+                stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z); //self explanatory
                 stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
                 stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
                 stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''

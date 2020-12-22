@@ -109,7 +109,7 @@ namespace AAEmu.Game.Core.Managers
                             {
                                 Name = reader.GetString("name"),
                                 CharacterId = reader.GetUInt32("id"),
-                                Position = new Point(1,reader.GetUInt32("zone_id"), reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"),0,0,0),
+                                Position = new Transform(null,1,reader.GetUInt32("zone_id"), 0,reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"),0,0,0,0),
                                 InParty = false,
                                 IsOnline = false,
                                 Race = (Race)reader.GetUInt32("race"),
@@ -162,7 +162,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 Name = friend.Name,
                 CharacterId = friend.Id,
-                Position = friend.Position.Clone(),
+                Position = friend.Transform.Clone(),
                 InParty = friend.InParty,
                 IsOnline = true,
                 Race = friend.Race,

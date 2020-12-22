@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             }
             var angle = MathUtil.CalculateAngleFrom(x, y, npc.Position.X, npc.Position.Y);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;

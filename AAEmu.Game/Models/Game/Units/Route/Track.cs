@@ -115,7 +115,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 // looks in the direction of movement
                 var angle = MathUtil.CalculateAngleFrom(npc, npc.CurrentTarget);
-                var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+                var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
                 moveType.RotationX = 0;
                 moveType.RotationY = 0;
                 moveType.RotationZ = rotZ;

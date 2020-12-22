@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game
         public AbilityType Ability1 { get; set; }
         public AbilityType Ability2 { get; set; }
         public AbilityType Ability3 { get; set; }
-        public Point Position { get; set; }
+        public Transform Position { get; set; } = new Transform(null);
         public bool InParty { get; set; }
         public bool IsOnline { get; set; }
         public DateTime LastWorldLeaveTime { get; set; }

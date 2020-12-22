@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public DateTime LastWorldLeaveTime { get; set; }
         public string Name { get; set; }
         public byte Level { get; set; }
-        public int ZoneId { get; set; }
+        public uint ZoneId { get; set; }
         public uint Id3 { get; set; } // TODO mb system faction.Id?
         public byte[] Abilities { get; set; } = {11, 11, 11};
         public byte Role { get; set; }

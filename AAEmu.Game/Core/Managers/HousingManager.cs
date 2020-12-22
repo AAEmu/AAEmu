@@ -21,6 +21,7 @@ using NLog;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Tasks.Housing;
 using Microsoft.CodeAnalysis.Text;
+using System.Numerics;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -257,10 +258,12 @@ namespace AAEmu.Game.Core.Managers
                             house.OwnerId = reader.GetUInt32("owner");
                             house.CoOwnerId = reader.GetUInt32("co_owner");
                             house.Name = reader.GetString("name");
-                            house.Position = new Point(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"));
-                            house.Position.RotationZ = reader.GetSByte("rotation_z");
-                            house.Position.WorldId = 1;
-                            house.Position.ZoneId = WorldManager.Instance.GetZoneId(house.Position.WorldId, house.Position.X, house.Position.Y);
+                            house.Transform = new Transform(house,
+                                new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
+                                Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)MathUtil.ConvertDirectionToRadian(reader.GetSByte("rotation_z")))
+                                );
+                            house.Transform.WorldId = 1;
+                            house.Transform.ZoneId = WorldManager.Instance.GetZoneId(house.Transform.WorldId, house.Transform.WorldPosition.X, house.Transform.WorldPosition.Y);
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.NumAction = reader.GetInt32("current_action");
                             house.Permission = (HousingPermission)reader.GetByte("permission");

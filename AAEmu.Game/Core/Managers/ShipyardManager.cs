@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -24,7 +25,9 @@ namespace AAEmu.Game.Core.Managers
 
         public void Create(Character owner, uint id, float x, float y, float z, short zrot, uint type1, uint type2, uint type3, int step)
         {
-            var pos = owner.Position.Clone();
+            var pos = owner.Transform.Clone();
+            pos.Local.Position = new Vector3(x, y, z);
+            pos.Local.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)MathUtil.ConvertDirectionToRadian((sbyte)zrot));
             pos.X = x;
             pos.Y = y;
             pos.Z = z;

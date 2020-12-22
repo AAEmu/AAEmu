@@ -410,7 +410,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             // looks in the direction of movement
             ////------------------взгляд_персонажа_будет(движение_куда<-движение_откуда)
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, TargetX, TargetY);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
@@ -466,7 +466,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Y = npc.Position.Y;
             moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
@@ -490,7 +490,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Y = npc.Position.Y;
             moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
             var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;

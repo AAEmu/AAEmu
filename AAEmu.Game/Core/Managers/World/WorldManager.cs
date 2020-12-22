@@ -272,8 +272,8 @@ namespace AAEmu.Game.Core.Managers.World
         public Region GetRegion(GameObject obj)
         {
             obj = GetRootObj(obj);
-            InstanceWorld world = GetWorld(obj.Position.WorldId);
-            return GetRegion(world, obj.Position.X, obj.Position.Y);
+            InstanceWorld world = GetWorld(obj.Transform.WorldId);
+            return GetRegion(world, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
         }
 
         public Region GetRegion(Point point)
@@ -497,7 +497,7 @@ namespace AAEmu.Game.Core.Managers.World
                 radius += obj.ModelSize;
 
             foreach (var neighbor in obj.Region.GetNeighbors())
-                neighbor.GetList(result, obj.ObjId, obj.Position.X, obj.Position.Y, radius * radius, useModelSize);
+                neighbor.GetList(result, obj.ObjId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y, radius * radius, useModelSize);
 
             return result;
         }
@@ -574,7 +574,7 @@ namespace AAEmu.Game.Core.Managers.World
             var validZones = ZoneManager.Instance.GetZoneKeysInZoneGroupById(zoneGroupId);
             foreach (var character in _characters.Values)
             {
-                if (!validZones.Contains(character.Position.ZoneId))
+                if (!validZones.Contains(character.Transform.ZoneId))
                     continue;
                 character.SendPacket(packet);
             }

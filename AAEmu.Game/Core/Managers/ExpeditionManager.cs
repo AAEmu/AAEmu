@@ -528,10 +528,10 @@ namespace AAEmu.Game.Core.Managers
             member.Level = character.Level;
             member.Role = (byte)(owner ? 255 : 0);
             member.Memo = "";
-            member.X = character.Position.X;
-            member.Y = character.Position.Y;
-            member.Z = character.Position.Z;
-            member.ZoneId = (int)character.Position.ZoneId;
+            member.X = character.Transform.WorldPosition.X;
+            member.Y = character.Transform.WorldPosition.Y;
+            member.Z = character.Transform.WorldPosition.Z;
+            member.ZoneId = character.Transform.ZoneId;
             member.Abilities = new[]
                 {(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3};
             member.ExpeditionId = expedition.Id;

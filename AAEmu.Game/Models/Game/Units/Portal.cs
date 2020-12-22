@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.NPChar;
+﻿using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Units
     {
         public override UnitCustomModelParams ModelParams { get; set; }
         
-        public Point TeleportPosition { get; set; }
+        public Transform TeleportPosition { get; set; }
 
         public Portal()
         {

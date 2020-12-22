@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -144,7 +145,7 @@ namespace AAEmu.Game.Core.Managers
         private bool CheckCanOpenPortal(Character owner, uint targetZoneId)
         {
             var targetContinent = ZoneManager.Instance.GetTargetIdByZoneId(targetZoneId);
-            var ownerContinent = ZoneManager.Instance.GetTargetIdByZoneId(owner.Position.ZoneId);
+            var ownerContinent = ZoneManager.Instance.GetTargetIdByZoneId(owner.Transform.ZoneId);
 
             if (targetContinent == ownerContinent)
             {
@@ -167,23 +168,19 @@ namespace AAEmu.Game.Core.Managers
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
-            var portalPointDestination = new Point
+            var portalPointDestination = new Transform(null)
             {
-                X = portalInfo.X,
-                Y = portalInfo.Y,
-                Z = portalInfo.Z,
+                LocalPosition = new Vector3(portalInfo.X, portalInfo.Y, portalInfo.Z),
                 ZoneId = portalInfo.ZoneId,
-                RotationZ = Helpers.ConvertRotation(Convert.ToInt16(portalInfo.ZRot)),
+                LocalRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, portalInfo.ZRot),
                 WorldId = WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id
             };
-            var portalPointLocation = new Point
+            var portalPointLocation = new Transform(null)
             {
-                X = portalEffectObj.X,
-                Y = portalEffectObj.Y,
-                Z = portalEffectObj.Z,
-                ZoneId = owner.Position.ZoneId,
-                RotationZ = owner.Position.RotationZ,
-                WorldId = owner.Position.WorldId
+                LocalPosition = new Vector3(portalEffectObj.X,portalEffectObj.Y,portalEffectObj.Z),
+                ZoneId = owner.Transform.ZoneId,
+                LocalRotation = owner.Transform.LocalRotation,
+                WorldId = owner.Transform.WorldId
             };
             var templateId = isExit ? 6949u : 3891u; // TODO - better way? maybe not hardcoded
             var template = NpcManager.Instance.GetTemplate(templateId);
@@ -196,7 +193,7 @@ namespace AAEmu.Game.Core.Managers
                 ModelId = template.ModelId,
                 Faction = owner.Faction, // INFO - FactionManager.Instance.GetFaction(template.FactionId)
                 Level = template.Level,
-                Position = isExit ? portalPointDestination : portalPointLocation,
+                Transform = isExit ? portalPointDestination : portalPointLocation,
                 Name = portalInfo.Name,
                 Hp = 955, // BUG - portal.MaxHp does not work 1.0
                 Mp = 290, // TODO - portal.MaxMp
@@ -224,8 +221,8 @@ namespace AAEmu.Game.Core.Managers
             // TODO - UnitPortalUsed
             // TODO - Maybe need unitstate?
             // TODO - Reason, ErrorMessage
-            character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.X,
-                portalInfo.TeleportPosition.Y, portalInfo.TeleportPosition.Z, portalInfo.TeleportPosition.RotationZ));
+            character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.WorldPosition.X,
+                portalInfo.TeleportPosition.WorldPosition.Y, portalInfo.TeleportPosition.WorldPosition.Z, portalInfo.TeleportPosition.RotationZ));
         }
 
         public void DeletePortal(Character owner, byte type, uint id)

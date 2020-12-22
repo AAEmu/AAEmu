@@ -10,7 +10,7 @@ namespace AAEmu.Game.Utils
         // Return degree value of object 2 to the horizontal line with object 1 being the origin
         public static double CalculateAngleFrom(GameObject obj1, GameObject obj2)
         {
-            return CalculateAngleFrom(obj1.Position.X, obj1.Position.Y, obj2.Position.X, obj2.Position.Y);
+            return CalculateAngleFrom(obj1.Transform.World.Position.X, obj1.Transform.World.Position.Y, obj2.Transform.World.Position.X, obj2.Transform.World.Position.Y);
         }
 
         // Return degree value of object 2 to the horizontal line with object 1 being the origin
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Utils
             return angle * (180.0 / Math.PI);
         }
 
-        public static double ConvertDirectionToDegree(sbyte direction)
+        public static double ConvertSbyteDirectionToDegree(sbyte direction)
         {
             var angle = direction * (360f / 128) + 90;
             if (angle < 0)
@@ -35,7 +35,7 @@ namespace AAEmu.Game.Utils
             return angle;
         }
 
-        public static sbyte ConvertDegreeToDirection(double degree)
+        public static sbyte ConvertDegreeToSByteDirection(double degree)
         {
             if (degree < 0)
                 degree = 360 + degree;
@@ -45,6 +45,7 @@ namespace AAEmu.Game.Utils
                 res = (sbyte)((degree - 360) / (360f / 128));
             return res;
         }
+
         public static sbyte ConvertDegreeToDoodadDirection(double degree)
         {
             while (degree < 0f)
@@ -56,10 +57,11 @@ namespace AAEmu.Game.Utils
             // When range is between -90 and 90, no rotation scaling is applied for doodads
             return (sbyte)(degree * - 1);
         }
+
         public static bool IsFront(GameObject obj1, GameObject obj2)
         {
             var degree = CalculateAngleFrom(obj1, obj2);
-            var degree2 = ConvertDirectionToDegree(obj2.Position.RotationZ);
+            var degree2 = obj2.Transform.World.ToEulerAngles().Z;
             var diff = Math.Abs(degree - degree2);
 
             if (diff >= 90 && diff <= 270)
@@ -70,7 +72,7 @@ namespace AAEmu.Game.Utils
 
         public static double ConvertDirectionToRadian(sbyte direction)
         {
-            return ConvertDirectionToDegree(direction) * Math.PI / 180.0;
+            return ConvertSbyteDirectionToDegree(direction) * Math.PI / 180.0;
         }
 
         public static (float, float, float) GetYawPitchRollFromQuat(Quaternion quat)

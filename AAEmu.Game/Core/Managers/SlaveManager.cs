@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
+using System.Numerics;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -30,7 +31,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, SlaveTemplate> _slaveTemplates;
         private Dictionary<uint, Slave> _activeSlaves;
         private Dictionary<uint, Slave> _tlSlaves;
-        public Dictionary<uint, Dictionary<int, Point>> _attachPoints;
+        public Dictionary<uint, Dictionary<int, PosistionAndRotation>> _attachPoints;
 
         private SlaveTemplate GetSlaveTemplate(uint id)
         {
@@ -148,11 +149,10 @@ namespace AAEmu.Game.Core.Managers
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
 
-            var spawnPos = owner.Position.Clone();
-            spawnPos.X += slaveTemplate.SpawnXOffset;
-            spawnPos.Y += slaveTemplate.SpawnYOffset;
+            var spawnPos = owner.Transform.Clone();
+            spawnPos.Local.Translate(slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset, 0f);
             if (slaveTemplate.SlaveKind == SlaveKind.Boat)
-                spawnPos.Z = 100.0f;
+                spawnPos.Local.Position.Z = 100.0f;
 
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
@@ -161,7 +161,7 @@ namespace AAEmu.Game.Core.Managers
                 TlId = tlId,
                 ObjId = objId,
                 TemplateId = slaveTemplate.Id,
-                Position = spawnPos,
+                Transform = spawnPos.Clone(),
                 Name = slaveTemplate.Name,
                 Level = (byte)slaveTemplate.Level,
                 ModelId = slaveTemplate.ModelId,
@@ -205,8 +205,9 @@ namespace AAEmu.Game.Core.Managers
                 {
                     if (_attachPoints[template.ModelId].ContainsKey(doodadBinding.AttachPointId))
                     {
-                        doodad.AttachPosition = _attachPoints[template.ModelId][doodadBinding.AttachPointId];
-                        doodad.Position = template.Position.Clone();
+                        doodad.Transform = template.Transform.CloneAttached(doodad);
+                        doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].Position);
+                        doodad.Transform.Local.Rotate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].Rotation);
                     }
                     else
                     {
@@ -215,7 +216,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 else
                 {
-                    doodad.Position = new Point(0f, 3.204f, 12588.96f, 0, 0, 0);
+                    doodad.Transform = new Transform(doodad, null);
                     _log.Warn("Model id: {0} has no attach point information");
                 }
 
@@ -234,7 +235,7 @@ namespace AAEmu.Game.Core.Managers
                     TlId = ctlId,
                     ObjId = cobjId,
                     TemplateId = childSlaveTemplate.Id,
-                    Position = spawnPos,
+                    Transform = spawnPos.Clone(),
                     Name = childSlaveTemplate.Name,
                     Level = (byte)childSlaveTemplate.Level,
                     ModelId = childSlaveTemplate.ModelId,
@@ -258,14 +259,19 @@ namespace AAEmu.Game.Core.Managers
                     {
                         var attachPoint = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
                         // childSlave.AttachPosition = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
+                        childSlave.Transform = template.Transform.CloneAttached(childSlave);
+                        childSlave.Transform.Local.Translate(attachPoint.Position);
+                        childSlave.Transform.Local.Rotate(attachPoint.Rotation);
+                        /*
                         childSlave.Position = template.Position.Clone();
                         childSlave.Position.X += attachPoint.X;
                         childSlave.Position.Y += attachPoint.Y;
                         childSlave.Position.Z += attachPoint.Z;
+                        */
                     }
                     else
                     {
-                        childSlave.Position = template.Position.Clone();
+                        childSlave.Transform = template.Transform.CloneAttached(childSlave);
                         _log.Warn("Model id: {0} incomplete attach point information");
                     }                    
                 }
@@ -282,7 +288,7 @@ namespace AAEmu.Game.Core.Managers
                 BoatPhysicsManager.Instance.AddShip(template);
             
             owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId, template.Hp, template.Mp,
-                template.Position.X, template.Position.Y, template.Position.Z));
+                template.Transform.World.Position.X, template.Transform.World.Position.Y, template.Transform.World.Position.Z));
         }
 
         public void Load()
@@ -442,7 +448,7 @@ namespace AAEmu.Game.Core.Managers
             else
                 _log.Warn("Slave model attach points not loaded...");
             
-            _attachPoints = new Dictionary<uint, Dictionary<int, Point>>();
+            _attachPoints = new Dictionary<uint, Dictionary<int, PosistionAndRotation>>();
             foreach (var set in attachPoints)
             {
                 _attachPoints[set.ModelId] = set.AttachPoints;
@@ -460,7 +466,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);
                 owner?.SendPacket(new SCMySlavePacket(slave.ObjId, slave.TlId, slave.Name, slave.TemplateId, slave.Hp, slave.Mp,
-                    slave.Position.X, slave.Position.Y, slave.Position.Z));
+                    slave.Transform.World.Position.X, slave.Transform.World.Position.Y, slave.Transform.World.Position.Z));
             }
         }
     }
@@ -468,6 +474,6 @@ namespace AAEmu.Game.Core.Managers
     public class SlaveModelAttachPoint
     {
         public uint ModelId;
-        public Dictionary<int, Point> AttachPoints;
+        public Dictionary<int, PosistionAndRotation> AttachPoints;
     }
 }
