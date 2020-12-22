@@ -2,6 +2,7 @@
 using AAEmu.Game.Models.Game.AI.v2.Params.Archer;
 using AAEmu.Game.Models.Game.AI.v2.Params.BigMonster;
 using AAEmu.Game.Models.Game.AI.V2.Params;
+using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Params
 {
@@ -37,13 +38,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params
                 case AiParamType.AlmightyNpc:
                     return new AlmightyNpcAiParams(aiParamsString);
                 case AiParamType.BigMonsterHoldPosition:
-                    return new BigMonsterAiParams(aiParamsString);
                 case AiParamType.BigMonsterRoaming:
                     return new BigMonsterAiParams(aiParamsString);
                 case AiParamType.ArcherHoldPosition:
-                    return new ArcherAiParams(aiParamsString);
                 case AiParamType.ArcherRoaming:
                     return new ArcherAiParams(aiParamsString);
+                case AiParamType.WildBoarRoaming:
+                case AiParamType.WildBoarHoldPosition:
+                    return new WildBoarAiParams(aiParamsString);
                 default:
                     return null;
             }
