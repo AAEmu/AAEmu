@@ -26,6 +26,11 @@ namespace AAEmu.Game.Models.Game.World
         public GameObject ParentObj { get; set; }
         public virtual float ModelSize { get; set; } = 0f; 
 
+        public GameObject()
+        {
+            Transform = new Transform(this);
+        }
+
         public virtual void SetPosition(Point pos)
         {
             if (DisabledSetPosition)
