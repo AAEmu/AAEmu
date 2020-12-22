@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace AAEmu.Game.Models.Game.World
@@ -32,7 +33,7 @@ namespace AAEmu.Game.Models.Game.World
         }
     }
 
-    public class Transform
+    public class Transform : IDisposable
     {
         private GameObject _parentObject;
         private uint _worldId;
@@ -49,8 +50,10 @@ namespace AAEmu.Game.Models.Game.World
         public uint ZoneId { get => _zoneId; set => _zoneId = value; }
         public Vector3 LocalPosition { get => _localPosRot.Position; set => _localPosRot.Position = value; }
         public Quaternion LocalRotation { get => _localPosRot.Rotation; set => _localPosRot.Rotation = value; }
+        public PosistionAndRotation LocalPosAndRot { get => _localPosRot; }
         public Vector3 WorldPosition { get => GetWorldPosition().Position; }
         public Quaternion WorldRotation { get => GetWorldPosition().Rotation; }
+        public PosistionAndRotation WorldPosAndRot { get => GetWorldPosition(); }
 
         protected void InternalInitializeTransform(GameObject parentObject)
         {
@@ -119,6 +122,23 @@ namespace AAEmu.Game.Models.Game.World
             return new Transform(null, WorldId, ZoneId, InstanceId, GetWorldPosition());
         }
 
+        ~Transform()
+        {
+            DetachAll();
+        }
+
+        public void Dispose()
+        {
+            DetachAll();
+        }
+
+        public void DetachAll()
+        {
+            Parent = null;
+            foreach (var child in Children)
+                child.Parent = null;
+        }
+
         protected void SetParent(Transform parent)
         {
             if (!parent.Equals(_parentTransform))
@@ -133,7 +153,7 @@ namespace AAEmu.Game.Models.Game.World
             }
         }
 
-        protected void InternalAttachChild(Transform child)
+        private void InternalAttachChild(Transform child)
         {
             if (!_children.Contains(child))
             {
@@ -141,7 +161,7 @@ namespace AAEmu.Game.Models.Game.World
             }
         }
 
-        protected void InternalDetachChild(Transform child)
+        private void InternalDetachChild(Transform child)
         {
             if (_children.Contains(child))
             {
@@ -153,11 +173,22 @@ namespace AAEmu.Game.Models.Game.World
         {
             if (_parentTransform == null)
                 return _localPosRot;
-            var wPos = _parentTransform.GetWorldPosition().Clone();
-            // yea yea, I know this is wrong
-            wPos.Position = wPos.Position + _localPosRot.Position;
-            wPos.Rotation = wPos.Rotation + _localPosRot.Rotation;
-            return wPos;
+            var parentPosAndRot = _parentTransform.GetWorldPosition().Clone();
+            // Is this even correct ?
+            var parentPosMatrix = Matrix4x4.CreateTranslation(parentPosAndRot.Position);
+            var parentRotMatrix = Matrix4x4.CreateFromQuaternion(parentPosAndRot.Rotation);
+            // Combine parent pos and rot
+            var resMatrix = Matrix4x4.Multiply(parentPosMatrix, parentRotMatrix);
+            // Add local position and rotation
+            var localPosMatrix = Matrix4x4.CreateTranslation(_localPosRot.Position);
+            var localRotMatrix = Matrix4x4.CreateFromQuaternion(_localPosRot.Rotation);
+            resMatrix = Matrix4x4.Multiply(resMatrix, localPosMatrix);
+            resMatrix = Matrix4x4.Multiply(resMatrix, localRotMatrix);
+            // Extract global location and split them again
+            parentPosAndRot.Position = Vector3.Transform(LocalPosition, resMatrix);
+            parentPosAndRot.Rotation = Quaternion.CreateFromRotationMatrix(resMatrix);
+            return parentPosAndRot;
         }
+
     }
 }
