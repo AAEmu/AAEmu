@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint Id { get; set; }
         public uint TemplateId { get; set; }
         public uint BondingObjId { get; set; } = 0;
-        public byte AttachPointId { get; set; } = 0;
+        public sbyte AttachPointId { get; set; } = 0;
         public TransferTemplate Template { get; set; }
         public Character Bounded { get; set; }
         public TransferSpawner Spawner { get; set; }

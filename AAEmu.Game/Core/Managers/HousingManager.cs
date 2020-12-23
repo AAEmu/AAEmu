@@ -258,7 +258,7 @@ namespace AAEmu.Game.Core.Managers
                             house.OwnerId = reader.GetUInt32("owner");
                             house.CoOwnerId = reader.GetUInt32("co_owner");
                             house.Name = reader.GetString("name");
-                            house.Transform = new Transform(house,
+                            house.Transform = new Transform(house, null,
                                 new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
                                 Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)MathUtil.ConvertDirectionToRadian(reader.GetSByte("rotation_z")))
                                 );
@@ -436,7 +436,7 @@ namespace AAEmu.Game.Core.Managers
             );
         }
 
-        public void Build(GameConnection connection, uint designId, Point position, float zRot,
+        public void Build(GameConnection connection, uint designId, float posX, float posY, float posZ, float zRot,
             ulong itemId, int moneyAmount, int ht, bool autoUseAaPoint)
         {
             // TODO validate house by range...
@@ -452,7 +452,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
 
-            var zoneId = WorldManager.Instance.GetZoneId(1, position.X, position.Y);
+            var zoneId = WorldManager.Instance.GetZoneId(1, posX, posY);
 
             var houseTemplate = _housingTemplates[designId];
             CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate);
@@ -530,11 +530,8 @@ namespace AAEmu.Game.Core.Managers
             }
 
             house.Id = HousingIdManager.Instance.GetNextId();
-            house.Position = position;
-            house.Position.RotationZ = MathUtil.ConvertRadianToDirection(zRot);
+            house.Transform = new Transform(house, null, 1, zoneId, 0, posX, posY, posZ, zRot);
 
-            house.Position.WorldId = 1;
-            house.Position.ZoneId = zoneId;
             if (house.Template.BuildSteps.Count > 0)
                 house.CurrentStep = 0;
             else

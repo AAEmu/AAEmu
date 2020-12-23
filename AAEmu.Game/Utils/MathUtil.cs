@@ -61,7 +61,7 @@ namespace AAEmu.Game.Utils
         public static bool IsFront(GameObject obj1, GameObject obj2)
         {
             var degree = CalculateAngleFrom(obj1, obj2);
-            var degree2 = obj2.Transform.World.ToEulerAngles().Z;
+            var degree2 = obj2.Transform.World.ToYawPitchRoll().Z;
             var diff = Math.Abs(degree - degree2);
 
             if (diff >= 90 && diff <= 270)

@@ -168,14 +168,14 @@ namespace AAEmu.Game.Core.Managers
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
-            var portalPointDestination = new Transform(null)
+            var portalPointDestination = new Transform(null,null)
             {
                 LocalPosition = new Vector3(portalInfo.X, portalInfo.Y, portalInfo.Z),
                 ZoneId = portalInfo.ZoneId,
                 LocalRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, portalInfo.ZRot),
                 WorldId = WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id
             };
-            var portalPointLocation = new Transform(null)
+            var portalPointLocation = new Transform(null,null)
             {
                 LocalPosition = new Vector3(portalEffectObj.X,portalEffectObj.Y,portalEffectObj.Z),
                 ZoneId = owner.Transform.ZoneId,
@@ -222,7 +222,7 @@ namespace AAEmu.Game.Core.Managers
             // TODO - Maybe need unitstate?
             // TODO - Reason, ErrorMessage
             character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.WorldPosition.X,
-                portalInfo.TeleportPosition.WorldPosition.Y, portalInfo.TeleportPosition.WorldPosition.Z, portalInfo.TeleportPosition.RotationZ));
+                portalInfo.TeleportPosition.WorldPosition.Y, portalInfo.TeleportPosition.WorldPosition.Z, portalInfo.TeleportPosition.World.ToYawPitchRoll().Z));
         }
 
         public void DeletePortal(Character owner, byte type, uint id)

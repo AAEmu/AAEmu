@@ -187,7 +187,7 @@ namespace AAEmu.Game.Core.Managers
                     TemplateId = doodadBinding.DoodadId,
                     OwnerObjId = owner.ObjId,
                     ParentObjId = template.ObjId,
-                    AttachPoint = (byte)doodadBinding.AttachPointId,
+                    AttachPoint = doodadBinding.AttachPointId,
                     OwnerId = owner.Id,
                     PlantTime = DateTime.Now,
                     OwnerType = DoodadOwnerType.Slave,
@@ -392,7 +392,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = reader.GetInt32("attach_point_id"),
+                                AttachPointId = (sbyte)reader.GetInt32("attach_point_id"),
                                 DoodadId = reader.GetUInt32("doodad_id"),
                                 Persist = reader.GetBoolean("persist"),
                                 Scale = reader.GetFloat("scale")

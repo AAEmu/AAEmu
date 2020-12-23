@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
@@ -32,7 +33,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint OwnerObjId { get; set; }
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
-        public byte AttachPoint { get; set; }
+        public sbyte AttachPoint { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
         public uint QuestGlow { get; set; } //0 off // 1 on
@@ -50,7 +51,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             _scale = 1f;
             PlantTime = DateTime.MinValue;
-            AttachPoint = 255;
+            AttachPoint = -1;
         }
 
         public void SetScale(float scale)
@@ -233,12 +234,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
-            if (AttachPoint != 255)
+            if (AttachPoint > 0)
             {
                 stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationX)); //''
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationY)); //''
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationZ)); //''
+                var localRot = Transform.Local.ToYawPitchRoll();
+                MathUtil.GetSlaveRotationFromQuat;
+                stream.Write( Helpers.ConvertRotation(localRot.X)); //''
+                stream.Write(Helpers.ConvertRotation(localRot.Y)); //''
+                stream.Write(Helpers.ConvertRotation(localRot.Z)); //''
             }
             else
             {

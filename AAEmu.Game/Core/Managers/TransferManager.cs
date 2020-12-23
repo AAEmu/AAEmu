@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -118,12 +119,12 @@ namespace AAEmu.Game.Core.Managers
             //    owner.BondingObjId 
             //}
             owner.BondingObjId = 0;    // objId
-            owner.AttachPointId = 255; // point
+            owner.AttachPointId = -1; // point
             owner.Level = 1;
             owner.Hp = 19000;
             owner.Mp = 12000;
             owner.ModelParams = new UnitCustomModelParams();
-            owner.Position = new Point();
+            owner.Transform = new Transform(owner, null);
             owner.Faction = new SystemFaction();
             owner.Patrol = null;
             owner.Faction = FactionManager.Instance.GetFaction(143);
@@ -151,14 +152,7 @@ namespace AAEmu.Game.Core.Managers
                 transfer.Hp = 19000;
                 transfer.Mp = 12000;
                 transfer.ModelParams = new UnitCustomModelParams();
-                transfer.Position = new Point();
-                transfer.Position.WorldId = 1;
-                transfer.Position.ZoneId = 179;
-                transfer.Position.X = 15565.78f;
-                transfer.Position.Y = 14841.25f;
-                transfer.Position.Z = 145.2947f;
-                transfer.Position.RotationZ = 63;
-                transfer.Faction = new SystemFaction();
+                transfer.Transform = new Transform(transfer,owner.Transform,1, 179,0,15565.78f,14841.25f,145.2947f, (float)MathUtil.ConvertDirectionToRadian((sbyte)63));
                 transfer.Patrol = null;
                 transfer.Faction = FactionManager.Instance.GetFaction(143);
 
@@ -174,15 +168,16 @@ namespace AAEmu.Game.Core.Managers
                     doodad.TemplateId = doodadBinding.DoodadId;
                     doodad.OwnerObjId = objId2;
                     doodad.ParentObjId = 0;
-                    doodad.AttachPoint = (byte)doodadBinding.AttachPointId;
-                    doodad.Position = new Point(0.00390625f, 5.785156f, 1.367f, 0, 0, 0);
+                    doodad.AttachPoint = doodadBinding.AttachPointId;
+                    doodad.Transform = new Transform(doodad, transfer.Transform, 0.00390625f, 5.785156f, 1.367f);
+                    //doodad.Position = new Point(0.00390625f, 5.785156f, 1.367f, 0, 0, 0);
                     //doodad.Position = new Point(0.00390625f, 1.634766f, 1.367f, 0, 0, 0);
                     doodad.OwnerId = 0;
                     doodad.PlantTime = DateTime.Now;
                     doodad.OwnerType = DoodadOwnerType.System;
                     doodad.DbHouseId = 0;
                     doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
-                    doodad.Data = (byte)doodadBinding.AttachPointId;
+                    doodad.Data = doodadBinding.AttachPointId;
                     doodad.SetScale(1f);
                     doodad.CurrentPhaseId = doodad.GetFuncGroupId();
 
@@ -240,7 +235,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = reader.GetByte("attach_point_id"),
+                                AttachPointId = (sbyte)reader.GetInt16("attach_point_id"),
                                 TransferId = reader.GetUInt32("transfer_id")
                             };
                             if (_templates.ContainsKey(template.OwnerId))
@@ -265,7 +260,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = reader.GetInt32("attach_point_id"),
+                                AttachPointId = (sbyte)reader.GetInt32("attach_point_id"),
                                 DoodadId = reader.GetUInt32("doodad_id"),
                             };
                             if (_templates.ContainsKey(template.OwnerId))

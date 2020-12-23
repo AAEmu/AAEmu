@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
@@ -19,19 +20,15 @@ namespace AAEmu.Game.Models.Game.Expeditions
         public uint Id3 { get; set; } // TODO mb system faction.Id?
         public byte[] Abilities { get; set; } = {11, 11, 11};
         public byte Role { get; set; }
-        public float X { get; set; }
-        public float Y { get; set; }
-        public float Z { get; set; }
+        public Vector3 Position { get; set; } = Vector3.Zero;
         public string Memo { get; set; }
         public DateTime TransferRequestedTime { get; set; }
 
         public void Refresh(Character character)
         {
             IsOnline = true;
-            X = character.Position.X;
-            Y = character.Position.Y;
-            Z = character.Position.Z;
-            ZoneId = (int)character.Position.ZoneId;
+            Position = character.Transform.World.Position;
+            ZoneId = character.Transform.ZoneId;
             Abilities = new[] {(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3};
         }
 
@@ -71,9 +68,9 @@ namespace AAEmu.Game.Models.Game.Expeditions
             foreach (var ability in Abilities)
                 stream.Write(ability);
             stream.Write(Role);
-            stream.Write(Helpers.ConvertLongX(X));
-            stream.Write(Helpers.ConvertLongY(Y));
-            stream.Write(Z);
+            stream.Write(Helpers.ConvertLongX(Position.X));
+            stream.Write(Helpers.ConvertLongY(Position.Y));
+            stream.Write(Position.Z);
             stream.Write(Memo);
             stream.Write(TransferRequestedTime);
             return stream;
