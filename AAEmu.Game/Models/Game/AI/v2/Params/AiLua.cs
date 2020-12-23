@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params
             StringBuilder aiConsts = new StringBuilder();
             //UseTypes
             aiConsts.Append("USE_SEQUENCE = 1;");
-            aiConsts.Append("USE_RANGOM = 2;");
+            aiConsts.Append("USE_RANDOM = 2;");
 
 
             //TargetTypes

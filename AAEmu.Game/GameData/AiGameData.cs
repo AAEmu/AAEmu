@@ -70,7 +70,7 @@ namespace AAEmu.Game.GameData
                         }
                         catch (Exception e)
                         {
-                            _log.Warn("Impossible to parse npc_ai_params {0}", id);
+                            _log.Warn("Impossible to parse npc_ai_params {0}\n{1}", id, e.Message);
                         }
                     }
                 }

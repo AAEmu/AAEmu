@@ -182,6 +182,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
             EndPlotChannel(state);
 
+            state.Caster.Cooldowns.AddCooldown(state.ActiveSkill.Template.Id, (uint)state.ActiveSkill.Template.CooldownTime);
+
             if (state.Caster is Character character && character.IgnoreSkillCooldowns)
                 character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
 

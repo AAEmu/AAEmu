@@ -38,8 +38,8 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params
             {
                 aiParams.DoString($"data = {{\n{data}\n}}");
                 IdleAi = (string)aiParams.GetObjectFromPath("data.idle_ai") ?? "";
-                AlertDuration = aiParams.GetInteger("data.alertDuration");
-                AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
+                AlertDuration = Convert.ToSingle(aiParams.GetObjectFromPath("data.alertDuration"));
+                AlertSafeTargetRememberTime = Convert.ToSingle(aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime"));
                 CanChangeAiUnitAttr = aiParams.GetInteger("data.canChangeAiUnitAttr");
                 MeleeAttackRange = aiParams.GetInteger("data.meleeAttackRange");
                 PreferedCombatDist = aiParams.GetInteger("data.preferedCombatDist");

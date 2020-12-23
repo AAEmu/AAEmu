@@ -28,8 +28,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             if (target == null)
                 return; // Technically, the aggro code should take us out of this state very soon.
             
-            if (CanStrafe)
-                MoveInRange(target, Ai.Owner.Template.AttackStartRangeScale * 4, 7f * (delta.Milliseconds / 1000.0f));
+            if (CanStrafe && !IsUsingSkill)
+                MoveInRange(target, Ai.Owner.Template.AttackStartRangeScale * 4, 5.4f * (delta.Milliseconds / 1000.0f));
 
             if (!CanUseSkill)
                 return;
@@ -41,8 +41,10 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             if (selectedSkill == null)
                 return;
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
-            if (skillTemplate != null)
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange)
             {
+                Ai.Owner.StopMovement();
                 UseSkill(new Skill(skillTemplate), target, selectedSkill.SkillDelay);
                 _strafeDuringDelay = selectedSkill.StrafeDuringDelay;
             }

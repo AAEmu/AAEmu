@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils;
 
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         public override void Tick(TimeSpan delta)
         {
-            Ai.Owner.MoveTowards(Ai.IdlePosition, (float) (2.4 * (delta.Milliseconds / 1000.0f))); // TODO: Get proper npc speed
+            Ai.Owner.MoveTowards(Ai.IdlePosition, 2.4f * (delta.Milliseconds / 1000.0f)); // TODO: Get proper npc speed
             
             var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Position);
             if (distanceToIdle < 1.0f)

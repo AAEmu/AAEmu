@@ -48,6 +48,15 @@ namespace AAEmu.Game.Models.Game.AI.V2.Params
                     }
                 }
             }
+            else
+            {
+                var aiSkill = new AiSkill();
+                aiSkill.SkillId = Convert.ToUInt32(table["skillType"]);
+                aiSkill.Delay = Convert.ToSingle(table["delay"]);
+                aiSkill.Strafe = Convert.ToBoolean(table["strafe"]);
+
+                Skills.Add(aiSkill);
+            }
         }
     }
     public class AiSkill

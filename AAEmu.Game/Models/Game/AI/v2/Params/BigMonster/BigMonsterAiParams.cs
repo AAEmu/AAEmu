@@ -25,11 +25,11 @@ namespace AAEmu.Game.Models.Game.AI.v2.Params.BigMonster
                 aiParams.DoString($"data = {{\n{data}\n}}");
                 
                 if (aiParams.GetObjectFromPath("data.alertDuration") != null)
-                    AlertDuration = aiParams.GetInteger("data.alertDuration");
+                    AlertDuration = Convert.ToSingle(aiParams.GetObjectFromPath("data.alertDuration"));
                 if (aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime") != null)
-                    AlertSafeTargetRememberTime = aiParams.GetInteger("data.alertSafeTargetRememberTime");
+                    AlertSafeTargetRememberTime = Convert.ToSingle(aiParams.GetObjectFromPath("data.alertSafeTargetRememberTime"));
                 if (aiParams.GetObjectFromPath("data.alertToAttack") != null)
-                    AlertToAttack = Convert.ToBoolean(aiParams.GetString("data.alertToAttack"));
+                    AlertToAttack = Convert.ToBoolean(aiParams.GetObjectFromPath("data.alertToAttack"));
 
                 CombatSkills = new List<BigMonsterCombatSkill>();
                 if (aiParams.GetTable("data.combatSkills") is LuaTable table)
