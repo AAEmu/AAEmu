@@ -23,22 +23,14 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<uint, ShipyardsTemplate> _shipyards;
 
-        public void Create(Character owner, uint id, float x, float y, float z, short zrot, uint type1, uint type2, uint type3, int step)
+        public void Create(Character owner, uint id, float x, float y, float z, float zrot, uint type1, uint type2, uint type3, int step)
         {
-            var pos = owner.Transform.Clone();
-            pos.Local.Position = new Vector3(x, y, z);
-            pos.Local.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)MathUtil.ConvertDirectionToRadian((sbyte)zrot));
-            pos.X = x;
-            pos.Y = y;
-            pos.Z = z;
-            pos.RotationZ = Helpers.ConvertRotation(zrot);
             var objId = ObjectIdManager.Instance.GetNextId();
             var template = _shipyards[id];
             var shipId = 7199u;
             var shipyard = new Shipyard
             {
                 ObjId = objId,
-                Position = pos,
                 Faction = owner.Faction,
                 Level = 1,
                 Hp = 10000,
@@ -46,14 +38,18 @@ namespace AAEmu.Game.Core.Managers
                 Name = owner.Name,
                 ModelId = template.ShipyardSteps[step].ModelId
             };
+            shipyard.Transform = owner.Transform.CloneDetached(shipyard);
+            shipyard.Transform.Local.SetPosition(x, y, z);
+            shipyard.Transform.Local.SetZRotation(zrot);
+
             shipyard.Template = new ShipyardData
             {
                 Id = shipId,
                 TemplateId = id,
-                X = pos.X,
-                Y = pos.Y,
-                Z = pos.Z,
-                zRot = pos.RotationZ,
+                X = x,
+                Y = y,
+                Z = z,
+                zRot = zrot,
                 MoneyAmount = 0,
                 Actions = 0,
                 Type = type1,

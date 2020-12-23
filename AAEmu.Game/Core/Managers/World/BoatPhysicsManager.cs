@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
@@ -58,13 +58,13 @@ namespace AAEmu.Game.Core.Managers.World
                     if (slaveRigidBody == null)
                         continue;
                     
-                    var xDelt = slaveRigidBody.Position.X - slave.Position.X;
-                    var yDelt = slaveRigidBody.Position.Z - slave.Position.Y;
-                    var zDelt = slaveRigidBody.Position.Y - slave.Position.Z;
+                    var xDelt = slaveRigidBody.Position.X - slave.Transform.World.Position.X;
+                    var yDelt = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
+                    var zDelt = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
                     
                     if (_tickCount % 6 == 0)
                     {
-                        slave.Move(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y);
+                        // slave.Move(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y);
                         _physWorld.CollisionSystem.Detect(true);
                         BoatPhysicsTick(slave, slaveRigidBody);
                     }
@@ -80,7 +80,7 @@ namespace AAEmu.Game.Core.Managers.World
             
             var rigidBody = new RigidBody(new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY))
             {
-                Position = new JVector(slave.Position.X - (shipModel.MassBoxSizeX / 2.0f), slave.Position.Z - (shipModel.MassBoxSizeZ / 2.0f), slave.Position.Y - (shipModel.MassBoxSizeY / 2.0f)),
+                Position = new JVector(slave.Transform.World.Position.X - (shipModel.MassBoxSizeX / 2.0f), slave.Transform.World.Position.Z - (shipModel.MassBoxSizeZ / 2.0f), slave.Transform.World.Position.Y - (shipModel.MassBoxSizeY / 2.0f)),
                 // Mass = shipModel.Mass
             };
                     

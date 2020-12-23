@@ -237,18 +237,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (AttachPoint > 0)
             {
                 stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
-                var localRot = Transform.Local.ToYawPitchRoll();
-                MathUtil.GetSlaveRotationFromQuat;
-                stream.Write( Helpers.ConvertRotation(localRot.X)); //''
-                stream.Write(Helpers.ConvertRotation(localRot.Y)); //''
-                stream.Write(Helpers.ConvertRotation(localRot.Z)); //''
+                var localRot = Transform.Local.ToYawPitchRollShorts();
+                stream.Write(localRot.Item1);
+                stream.Write(localRot.Item2);
+                stream.Write(localRot.Item3);
             }
             else
             {
                 stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z); //self explanatory
-                stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
-                stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
-                stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
+                var worldRot = Transform.World.ToYawPitchRollShorts();
+                stream.Write(worldRot.Item1);
+                stream.Write(worldRot.Item2);
+                stream.Write(worldRot.Item3);
             }
 
             stream.Write(Scale); //The size of the object

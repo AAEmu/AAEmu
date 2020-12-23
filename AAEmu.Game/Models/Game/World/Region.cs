@@ -54,10 +54,10 @@ namespace AAEmu.Game.Models.Game.World
                 _objects[_objectsSize] = obj;
                 _objectsSize++;
 
-                obj.Position.WorldId = _worldId;
-                var zoneId = WorldManager.Instance.GetZoneId(_worldId, obj.Position.X, obj.Position.Y);
+                obj.Transform.WorldId = _worldId;
+                var zoneId = WorldManager.Instance.GetZoneId(_worldId, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
                 if (zoneId > 0)
-                    obj.Position.ZoneId = zoneId;
+                    obj.Transform.ZoneId = zoneId;
 
                 if (obj is Character)
                     _charactersSize++;
@@ -464,11 +464,11 @@ namespace AAEmu.Game.Models.Game.World
                 if (useModelSize)
                     finalrad += (obj.ModelSize * obj.ModelSize);
                 
-                var dx = obj.Position.X - x;
+                var dx = obj.Transform.World.Position.X - x;
                 dx *= dx;
                 if (dx > finalrad)
                     continue;
-                var dy = obj.Position.Y - y;
+                var dy = obj.Transform.World.Position.Y - y;
                 dy *= dy;
                 if (dx + dy < finalrad)
                     result.Add(item);

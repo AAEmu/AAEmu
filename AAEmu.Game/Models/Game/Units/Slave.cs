@@ -63,6 +63,7 @@ namespace AAEmu.Game.Models.Game.Units
                 character.SendPacket(packet);
         }
 
+        /*
         /// <summary>
         /// Moves a slave by X, Y & Z. Also moves attached slaves, doodads & driver
         /// </summary>
@@ -88,5 +89,6 @@ namespace AAEmu.Game.Models.Game.Units
             
             Bounded?.SetPosition(Bounded.Position.X + xD, Bounded.Position.Y + yD, Bounded.Position.Z + zD);
         }
+        */
     }
 }

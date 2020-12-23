@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -15,26 +15,26 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             if (caster is Character character)
             {
-                if (ReturnPointId == 0 && character.WorldPosition != null)
+                if (ReturnPointId == 0 && character.MainWorldPosition != null)
                 {
                     character.DisabledSetPosition = true;
 
                     character.SendPacket(
                         new SCLoadInstancePacket(
                             1,
-                            character.WorldPosition.ZoneId,
-                            character.WorldPosition.X,
-                            character.WorldPosition.Y,
-                            character.WorldPosition.Z,
-                            0,
-                            0,
-                            0
+                            character.MainWorldPosition.ZoneId,
+                            character.MainWorldPosition.World.Position.X,
+                            character.MainWorldPosition.World.Position.Y,
+                            character.MainWorldPosition.World.Position.Z,
+                            character.MainWorldPosition.World.ToYawPitchRoll().X,
+                            character.MainWorldPosition.World.ToYawPitchRoll().Y,
+                            character.MainWorldPosition.World.ToYawPitchRoll().Z
                         )
                     );
 
+                    character.Transform = character.MainWorldPosition.Clone(character);
+                    character.MainWorldPosition = null;
                     character.InstanceId = 1; // TODO ....
-                    character.Position = character.WorldPosition.Clone();
-                    character.WorldPosition = null;
                 }
                 else
                 {

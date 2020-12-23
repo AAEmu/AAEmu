@@ -34,10 +34,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 character.SendPacket(
                     new SCLoadInstancePacket(
                         1,
-                        character.WorldPosition.ZoneId,
-                        character.WorldPosition.X,
-                        character.WorldPosition.Y,
-                        character.WorldPosition.Z,
+                        character.MainWorldPosition.ZoneId,
+                        character.MainWorldPosition.X,
+                        character.MainWorldPosition.Y,
+                        character.MainWorldPosition.Z,
                         0,
                         0,
                         0
@@ -45,8 +45,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 );
 
                 character.InstanceId = 1; // TODO ....
-                character.Position = character.WorldPosition.Clone();
-                character.WorldPosition = null;
+                character.Position = character.MainWorldPosition.Clone();
+                character.MainWorldPosition = null;
             }
         }
     }

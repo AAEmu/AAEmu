@@ -38,40 +38,40 @@ namespace AAEmu.Game.Core.Packets.C2G
                 switch (_moveType)
                 {
                     case ShipRequestMoveType srmt:
-                    {
-                        // TODO : Get by ObjId
-                        var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
-                        if (slave == null)
-                            return;
+                        {
+                            // TODO : Get by ObjId
+                            var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+                            if (slave == null)
+                                return;
 
-                        slave.ThrottleRequest = srmt.Throttle;
-                        slave.SteeringRequest = srmt.Steering;
-                        break;
-                    }
+                            slave.ThrottleRequest = srmt.Throttle;
+                            slave.SteeringRequest = srmt.Steering;
+                            break;
+                        }
                     case VehicleMoveType vmt:
-                    {
-                        var (rotDegX, rotDegY, rotDegZ) =
-                            MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
-                        var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rotDegX, rotDegY, rotDegZ);
+                        {
+                            var (rotDegX, rotDegY, rotDegZ) = MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
+                            var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rotDegX, rotDegY, rotDegZ);
 
-                        var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
-                        if (slave == null)
-                            return;
-                    
-                        slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
-                        slave.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
-                        break;
-                    }
+                            var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+                            if (slave == null)
+                                return;
+
+                            slave.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, vmt.RotationX, vmt.RotationY, vmt.RotationZ);
+                            // slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
+                            slave.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
+                            break;
+                        }
                     // TODO : check target has Telekinesis buff
                     case UnitMoveType dmt:
-                    {
-                        var unit = WorldManager.Instance.GetUnit(_objId);
-                        if (unit == null)
+                        {
+                            var unit = WorldManager.Instance.GetUnit(_objId);
+                            if (unit == null)
+                                break;
+                            unit.Transform.Local.SetPosition(dmt.X, dmt.Y, dmt.Z);
+                            unit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
                             break;
-                        unit.SetPosition(dmt.X, dmt.Y, dmt.Z);
-                        unit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
-                        break;
-                    }
+                        }
                 }
 
                 var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(_objId);

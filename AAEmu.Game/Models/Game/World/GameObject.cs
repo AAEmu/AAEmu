@@ -16,9 +16,15 @@ namespace AAEmu.Game.Models.Game.World
         public uint ObjId { get; set; }
         public uint InstanceId { get; set; } = 1;
         public bool DisabledSetPosition { get; set; }
+        /// <summary>
+        /// Contains position, rotation, zone and instance information
+        /// </summary>
         public Transform Transform { get; set; }
         //public Point Position { get; set; }
-        public Point WorldPosition { get; set; }
+        /// <summary>
+        /// When not null, this is the location where the character last entered a instance from
+        /// </summary>
+        public Transform MainWorldPosition { get; set; }
         public Region Region { get; set; }
         public DateTime Respawn { get; set; }
         public DateTime Despawn { get; set; }
@@ -31,37 +37,12 @@ namespace AAEmu.Game.Models.Game.World
             Transform = new Transform(this,null);
         }
 
-        public virtual void SetPosition(Point pos)
+        public virtual void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
             if (DisabledSetPosition)
                 return;
 
-            Position = pos.Clone();
-            WorldManager.Instance.AddVisibleObject(this);
-        }
-
-        public virtual void SetPosition(float x, float y, float z)
-        {
-            if (DisabledSetPosition)
-                return;
-
-            Position.X = x;
-            Position.Y = y;
-            Position.Z = z;
-            WorldManager.Instance.AddVisibleObject(this);
-        }
-
-        public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
-        {
-            if (DisabledSetPosition)
-                return;
-
-            Position.X = x;
-            Position.Y = y;
-            Position.Z = z;
-            Position.RotationX = rotationX;
-            Position.RotationY = rotationY;
-            Position.RotationZ = rotationZ;
+            Transform.Local.SetPosition(x,y,z,rotationX,rotationY,rotationZ);
             WorldManager.Instance.AddVisibleObject(this);
         }
 

@@ -530,7 +530,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             house.Id = HousingIdManager.Instance.GetNextId();
-            house.Transform = new Transform(house, null, 1, zoneId, 0, posX, posY, posZ, zRot);
+            house.Transform = new Transform(house, null, 1, zoneId, 1, posX, posY, posZ, zRot);
 
             if (house.Template.BuildSteps.Count > 0)
                 house.CurrentStep = 0;

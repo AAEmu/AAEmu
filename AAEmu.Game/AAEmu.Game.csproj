@@ -54,12 +54,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="DotNet.Config">
-        <HintPath>DotNet.Config.dll</HintPath>
-      </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
       <Compile Update="Core\Packets\G2C\SCHouseTaxInfoPacket.cs">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Compile>

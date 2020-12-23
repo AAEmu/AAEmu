@@ -195,9 +195,9 @@ namespace AAEmu.Game.Models.Game.Units
             ChargeLock = new object();
         }
 
-        public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
-            var moved = !Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z);
+            var moved = !Transform.LocalPosition.X.Equals(x) || !Transform.LocalPosition.Y.Equals(y) || !Transform.LocalPosition.Z.Equals(z);
             if (moved)
             {
                 Events.OnMovement(this, new OnMovementArgs());
@@ -430,10 +430,10 @@ namespace AAEmu.Game.Models.Game.Units
         
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
-            if (Position == baseUnit.Position)
+            if (Transform.WorldPosition.Equals(baseUnit.Transform.WorldPosition))
                 return 0.0f;
             
-            var rawDist = MathUtil.CalculateDistance(this.Position, baseUnit.Position, includeZAxis);
+            var rawDist = MathUtil.CalculateDistance(this.Transform.WorldPosition, baseUnit.Transform.WorldPosition, includeZAxis);
 
             rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
             if (baseUnit is Unit unit)

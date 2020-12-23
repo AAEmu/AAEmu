@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using AAEmu.Game.Models.Game.Team;
+using System.Numerics;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -528,9 +529,7 @@ namespace AAEmu.Game.Core.Managers
             member.Level = character.Level;
             member.Role = (byte)(owner ? 255 : 0);
             member.Memo = "";
-            member.X = character.Transform.WorldPosition.X;
-            member.Y = character.Transform.WorldPosition.Y;
-            member.Z = character.Transform.WorldPosition.Z;
+            member.Position = new Vector3(character.Transform.World.Position.X,character.Transform.World.Position.Y,character.Transform.World.Position.Z);
             member.ZoneId = character.Transform.ZoneId;
             member.Abilities = new[]
                 {(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3};
