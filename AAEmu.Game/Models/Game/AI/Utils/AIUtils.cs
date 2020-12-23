@@ -64,7 +64,7 @@ namespace AAEmu.Game.Models.Game.AI.Utils
                 case AiParamType.BigMonsterRoaming:
                     return new BigMonsterRoamingAiCharacter() {Owner = owner};
                 case AiParamType.BigMonsterHoldPosition:
-                    return new BigMonsterRoamingAiCharacter() {Owner = owner};
+                    return new BigMonsterHoldPositionAiCharacter() {Owner = owner};
                 case AiParamType.Default:
                     return new DefaultAiCharacter() {Owner = owner};
                 case AiParamType.Dummy:

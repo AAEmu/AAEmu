@@ -542,5 +542,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             // npc.Equip[(int)slot] = item;
             npc.Equipment.AddOrMoveExistingItem(0, item, (int)slot);
         }
+
+        public void BindSkillsToTemplate(uint templateId, List<NpcSkill> skills)
+        {
+            if (!_templates.ContainsKey(templateId))
+                return;
+            
+            _templates[templateId].BindSkills(skills);
+        }
     }
 }

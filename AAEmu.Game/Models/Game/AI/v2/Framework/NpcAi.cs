@@ -57,6 +57,11 @@ namespace AAEmu.Game.Models.Game.AI.v2
             return behavior;
         }
 
+        public Behavior GetCurrentBehavior()
+        {
+            return _currentBehavior;
+        }
+
         private Behavior GetBehavior(BehaviorKind kind)
         {
             return !_behaviors.ContainsKey(kind) ? null : _behaviors[kind];
