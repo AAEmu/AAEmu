@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (Ai.Owner.CurrentTarget == null)
                 return;
 
-            GetInRange(delta);
+            MoveInRange(Ai.Owner.CurrentTarget, Ai.Owner.Template.AttackStartRangeScale, 5.4f * (delta.Milliseconds / 1000.0f));
             PickSkillAndUseIt();
         }
 
@@ -28,16 +28,6 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplate.Id))
                 UseSkill(skill, Ai.Owner.CurrentTarget, Ai.Owner.Template.BaseSkillDelay);
-        }
-        
-        private void GetInRange(TimeSpan delta)
-        {
-            var dist = MathUtil.CalculateDistance(Ai.Owner.Position, Ai.Owner.CurrentTarget.Position);
-
-            if (dist > Ai.Owner.Template.AttackStartRangeScale * Ai.Owner.ModelSize)
-                Ai.Owner.MoveTowards(Ai.Owner.CurrentTarget.Position, 5.4f * (delta.Milliseconds / 1000.0f));
-            else
-                Ai.Owner.StopMovement();
         }
 
         public override void Exit()

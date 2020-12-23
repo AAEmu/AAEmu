@@ -98,6 +98,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             skill.Callback = OnSkillEnded;
             var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
+            if (result == SkillResult.Success)
+                Ai.Owner.LookTowards(target.Position);
         }
 
         public virtual void OnSkillEnded()

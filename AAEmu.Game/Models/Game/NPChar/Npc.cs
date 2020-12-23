@@ -855,6 +855,37 @@ namespace AAEmu.Game.Models.Game.NPChar
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }
         
+        public void LookTowards(Point other, byte flags = 4)
+        {
+           
+            var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+
+            var angle = MathUtil.CalculateAngleFrom(this.Position, other);
+            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+
+           Position.RotationZ = rotZ;
+            
+            moveType.X = Position.X;
+            moveType.Y = Position.Y;
+            moveType.Z = Position.Z;
+            moveType.RotationX = 0;
+            moveType.RotationY = 0;
+            moveType.RotationZ = Position.RotationZ;
+            moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
+            moveType.Flags = 4;
+            
+            moveType.DeltaMovement = new sbyte[3];
+            moveType.DeltaMovement[0] = 0;
+            moveType.DeltaMovement[1] = 0;
+            moveType.DeltaMovement[2] = 0;
+            moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
+            moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+            moveType.Time = (uint) (DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
+
+            SetPosition(Position);
+            BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
+        }
+        
         public void StopMovement()
         {
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
