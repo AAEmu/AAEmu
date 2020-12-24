@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -753,7 +754,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
             else
             {
-                aggro = new Aggro();
+                aggro = new Aggro(unit);
                 aggro.AddAggro(AggroKind.Heal, amount);
                 if (AggroTable.TryAdd(unit.ObjId, aggro))
                 {
@@ -816,15 +817,16 @@ namespace AAEmu.Game.Models.Game.NPChar
             //     // TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
             // }
             AddUnitAggro(AggroKind.Damage, attacker, amount);
+            Ai.GoToCombat();
 
-            var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
+            /*var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
             if ((CurrentTarget?.ObjId ?? 0) != topAbuser)
             {
                 CurrentAggroTarget = topAbuser; 
                 var unit = WorldManager.Instance.GetUnit(topAbuser);
                 SetTarget(unit);
                 Ai?.OnAggroTargetChanged();
-            }
+            }*/
         }
 
         public void MoveTowards(Point other, float distance, byte flags = 4)
@@ -927,7 +929,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public void SetTarget(Unit other)
         {
             CurrentTarget = other;
-            BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
+            SendPacket(new SCAggroTargetChangedPacket(ObjId, other?.ObjId ?? 0));
             BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
         }
     }

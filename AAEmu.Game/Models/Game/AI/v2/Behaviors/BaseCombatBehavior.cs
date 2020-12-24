@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.NPChar;
@@ -15,11 +16,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         protected float _nextTimeToDelay;
         protected bool _strafeDuringDelay;
         
-        public void MoveInRange(BaseUnit target, float range, float speed)
+        public void MoveInRange(BaseUnit target, TimeSpan delta)
         {
             if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep))
                 return;
-            
+
+            //Ai.Owner.Template.AttackStartRangeScale * 4, 
+            var range = Ai.Owner.Template.AttackStartRangeScale * 6;
+            var speed = 5.4f * (delta.Milliseconds / 1000.0f);
             var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
             // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
             if (distanceToTarget > range)
@@ -56,20 +60,27 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
         }
 
-        public void UpdateAggro()
+        public bool UpdateTarget()
         {
+            //We might want to optimize this somehow..
+            var aggroList = Ai.Owner.AggroTable.Values;
+            var abusers = aggroList.OrderBy(o => o.TotalAggro).Select(o => o.Owner).ToList();
 
-        }
-
-        public void UpdateTarget()
-        {
-            var topAbuser = Ai.Owner.AggroTable.GetTopTotalAggroAbuserObjId();
-            if ((Ai.Owner.CurrentTarget?.ObjId ?? 0) != topAbuser)
+            foreach(var abuser in abusers)
             {
-                Ai.Owner.CurrentAggroTarget = topAbuser;
-                var unit = WorldManager.Instance.GetUnit(topAbuser);
-                Ai.Owner.SetTarget(unit);
+                if(Ai.Owner.UnitIsVisible(abuser))
+                {
+                    Ai.Owner.CurrentAggroTarget = abuser.ObjId;
+                    Ai.Owner.SetTarget(abuser);
+                    return true;
+                }
+                else
+                {
+                    Ai.Owner.ClearAggroOfUnit(abuser);
+                }
             }
+
+            return false;
         }
         
         // UseSkill (delay)

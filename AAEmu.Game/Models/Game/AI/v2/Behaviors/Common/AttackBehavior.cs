@@ -18,10 +18,13 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         public override void Tick(TimeSpan delta)
         {
-            if (Ai.Owner.CurrentTarget == null)
+            if (!UpdateTarget())
+            {
+                Ai.GoToReturn();
                 return;
+            }
 
-            MoveInRange(Ai.Owner.CurrentTarget, Ai.Owner.Template.AttackStartRangeScale, 5.4f * (delta.Milliseconds / 1000.0f));
+            MoveInRange(Ai.Owner.CurrentTarget, delta);
             
             if (!CanUseSkill)
                 return;

@@ -4,11 +4,14 @@ using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.v2;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers
 {
     public class AIManager : Singleton<AIManager>
     {
+        private static Logger _log = LogManager.GetCurrentClassLogger();
+
         private List<NpcAi> _npcAis;
         private object _aiLock;
         
@@ -33,7 +36,14 @@ namespace AAEmu.Game.Core.Managers
             {
                 foreach (var npcai in _npcAis.ToList())
                 {
-                    npcai.Tick(delta);
+                    try
+                    {
+                        npcai.Tick(delta);
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error("{0}", e);
+                    }
                 }
             }
         }

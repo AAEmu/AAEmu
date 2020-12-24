@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.AI.v2.Params.WildBoar;
@@ -23,11 +23,13 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
                 return;
 
             _prevHealthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
-            
-            // On Combat Start Skill
-            if (Ai.Owner.CurrentTarget == null)
-                return;
 
+            if (UpdateTarget())
+            {
+                Ai.GoToReturn();
+                return;
+            }
+            // On Combat Start Skill
             var startCombatSkillId = _aiParams.OnCombatStartSkills.FirstOrDefault();
             if (startCombatSkillId == 0)
                 return;
@@ -49,7 +51,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
                 return; // Technically, the aggro code should take us out of this state very soon.
             
             if (CanStrafe)
-                MoveInRange(target, Ai.Owner.Template.AttackStartRangeScale * Ai.Owner.ModelSize, 5.4f * (delta.Milliseconds / 1000.0f));
+                MoveInRange(target, delta);
 
             if (!CanUseSkill)
                 return;

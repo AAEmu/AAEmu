@@ -24,12 +24,16 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (_aiParams == null)
                 return;
 
+            UpdateTarget();
             var target = Ai.Owner.CurrentTarget;
             if (target == null)
-                return; // Technically, the aggro code should take us out of this state very soon.
+            {
+                Ai.GoToReturn();
+                return;
+            }
 
             if (CanStrafe && !IsUsingSkill)
-                MoveInRange(target, Ai.Owner.Template.AttackStartRangeScale * 4, 5.4f * (delta.Milliseconds / 1000.0f));
+                MoveInRange(target, delta);
 
             if (!CanUseSkill)
                 return;

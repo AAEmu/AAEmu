@@ -15,6 +15,13 @@ namespace AAEmu.Game.Models.Game.NPChar
     public class Aggro
     {
         private object _lock = new object();
+        
+        public Unit Owner { get; }
+
+        public Aggro(Unit owner)
+        {
+            Owner = owner;
+        }
 
         //Considering using interlocked methods instead of a lock, need to research how they work..
         private int _damageAggro;

@@ -11,8 +11,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         public override void Enter()
         {
             // TODO : Autodisable
-            
+
             Ai.Owner.ClearAllAggro();
+            Ai.Owner.SetTarget(null);
             // TODO: Ai.Owner.DisableAggro();
             
             var needRestorationOnReturn = true; // TODO: Use params & alertness values
