@@ -758,6 +758,7 @@ namespace AAEmu.Game.Models.Game.NPChar
                 if (AggroTable.TryAdd(unit.ObjId, aggro))
                 {
                     unit.Events.OnHealed += OnAbuserHealed;
+                    unit.Events.OnDeath += OnAbuserDied;
                 }
             }
         }
@@ -767,6 +768,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             if(AggroTable.TryRemove(unit.ObjId, out var value))
             {
                 unit.Events.OnHealed -= OnAbuserHealed;
+                unit.Events.OnDeath -= OnAbuserDied;
             }
             else
             {
@@ -780,7 +782,10 @@ namespace AAEmu.Game.Models.Game.NPChar
             {
                 var unit = WorldManager.Instance.GetUnit(table.Key);
                 if (unit != null)
+                {
                     unit.Events.OnHealed -= OnAbuserHealed;
+                    unit.Events.OnDeath -= OnAbuserDied;
+                }
             }
 
             AggroTable.Clear();
@@ -789,6 +794,11 @@ namespace AAEmu.Game.Models.Game.NPChar
         public void OnAbuserHealed(object sender, OnHealedArgs args)
         {
             AddUnitAggro(AggroKind.Heal, args.Healer, args.HealAmount);
+        }
+
+        public void OnAbuserDied(object sender, OnDeathArgs args)
+        {
+            ClearAggroOfUnit(args.Victim);
         }
 
         public void OnDamageReceived(Unit attacker, int amount)

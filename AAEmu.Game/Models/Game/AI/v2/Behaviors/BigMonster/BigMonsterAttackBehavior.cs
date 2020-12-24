@@ -41,6 +41,10 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             if (selectedSkill == null)
                 return;
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
+
+            if (skillTemplate == null)
+                return;
+
             var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
             if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange)
             {

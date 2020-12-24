@@ -103,7 +103,8 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnDeathArgs : EventArgs
     {
-
+        Unit Killer { get; set; }
+        Unit Victim { get; set; }
     }
 
     public class OnUnmountArgs : EventArgs

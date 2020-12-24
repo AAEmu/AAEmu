@@ -266,7 +266,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             InterruptSkills();
 
-            Events.OnDeath(this, new OnDeathArgs { });
+            Events.OnDeath(this, new OnDeathArgs { Killer = killer, Victim =  this});
             Buffs.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.Damage, killer), true);
             if (killer == this)

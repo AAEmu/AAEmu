@@ -1,18 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.NPChar
 {
     public enum AggroKind
     {
         Damage,
-        Heal
+        Heal,
+        Etc
     }
     public class Aggro
     {
         private object _lock = new object();
-
 
         //Considering using interlocked methods instead of a lock, need to research how they work..
         private int _damageAggro;
