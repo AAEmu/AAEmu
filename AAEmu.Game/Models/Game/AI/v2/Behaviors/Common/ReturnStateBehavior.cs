@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils;
 
@@ -21,6 +22,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             {
                 // StartSkill RETURN SKILL TYPE
                 Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NPC_RETURN_BUFF, Ai.Owner);
+                Ai.Owner.Hp = Ai.Owner.MaxHp;
+                Ai.Owner.Mp = Ai.Owner.MaxMp;
+                Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp), true);
             }
 
             var alwaysTeleportOnReturn = false; // get from params
@@ -55,7 +59,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Position);
             if (distanceToIdle > 2 * 2)
             {
-                // teleport to idle
+                Ai.Owner.MoveTowards(Ai.IdlePosition, 1000000.0f);
             }
 
             OnCompletedReturnNoTeleport();

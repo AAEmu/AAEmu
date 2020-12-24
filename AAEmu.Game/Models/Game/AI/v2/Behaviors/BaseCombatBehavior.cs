@@ -60,6 +60,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
         }
 
+        // TODO: Absolute return dist
+        protected bool ShouldReturn => MathUtil.CalculateDistance(Ai.Owner.Position, Ai.IdlePosition) > Ai.Owner.Template.ReturnDistance;
+
         public bool UpdateTarget()
         {
             //We might want to optimize this somehow..

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.Archer
 
         public override void Tick(TimeSpan delta)
         {
-            if (!UpdateTarget())
+            if (!UpdateTarget() || ShouldReturn)
             {
                 Ai.GoToReturn();
                 return;

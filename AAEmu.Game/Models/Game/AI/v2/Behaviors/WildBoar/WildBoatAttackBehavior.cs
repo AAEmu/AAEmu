@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
 
             _prevHealthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
 
-            if (UpdateTarget())
+            if (!UpdateTarget() || ShouldReturn)
             {
                 Ai.GoToReturn();
                 return;

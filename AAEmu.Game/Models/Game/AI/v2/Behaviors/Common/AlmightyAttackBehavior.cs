@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             UpdateTarget();
             var target = Ai.Owner.CurrentTarget;
-            if (target == null)
+            if (target == null || ShouldReturn)
             {
                 Ai.GoToReturn();
                 return;

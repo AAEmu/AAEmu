@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             if (aiParams == null)
                 return;
 
-            if (!UpdateTarget())
+            if (!UpdateTarget() || ShouldReturn)
             {
                 Ai.GoToReturn();
                 return;
