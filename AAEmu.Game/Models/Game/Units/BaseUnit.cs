@@ -119,6 +119,8 @@ namespace AAEmu.Game.Models.Game.Units
 
         public virtual bool UnitIsVisible(BaseUnit unit)
         {
+            if (unit == null)
+                return false;
             return Region?.GetNeighbors()?.Any(o => o.Id == unit.Region.Id) ?? false;
         }
     }
