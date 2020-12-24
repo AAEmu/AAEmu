@@ -132,6 +132,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public List<BonusTemplate> Bonuses { get; set; }
         public AiParams AiParams { get; set; }
         public Dictionary<SkillUseConditionKind, List<NpcSkill>> Skills { get; set; }
+        public List<NpcPassiveBuff> PassiveBuffs { get; set; }
 
         public NpcTemplate()
         {
@@ -142,6 +143,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             Buffs = new List<uint>();
             Bonuses = new List<BonusTemplate>();
             Skills = new Dictionary<SkillUseConditionKind, List<NpcSkill>>();
+            PassiveBuffs = new List<NpcPassiveBuff>();
         }
 
         public void BindSkills(List<NpcSkill> skills)

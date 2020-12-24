@@ -60,6 +60,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (distanceToIdle > 2 * 2)
             {
                 Ai.Owner.MoveTowards(Ai.IdlePosition, 1000000.0f);
+                Ai.Owner.StopMovement();
             }
 
             OnCompletedReturnNoTeleport();

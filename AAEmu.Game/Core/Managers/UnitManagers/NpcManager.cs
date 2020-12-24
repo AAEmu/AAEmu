@@ -105,6 +105,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 buff.Apply(npc, obj, npc, null, null, new EffectSource(), null, DateTime.Now);
             }
 
+            foreach (var npcPassiveBuff in template.PassiveBuffs)
+            {
+                var passive = new PassiveBuff() { Template = npcPassiveBuff.PassiveBuff };
+                passive.Apply(npc);
+            }
+
             foreach (var bonusTemplate in template.Bonuses)
             {
                 var bonus = new Bonus();

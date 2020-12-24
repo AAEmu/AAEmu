@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -28,6 +29,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Dictionary<byte, Dictionary<uint, NpcSpawner>> _npcSpawners;
         private Dictionary<byte, Dictionary<uint, DoodadSpawner>> _doodadSpawners;
         private Dictionary<byte, Dictionary<uint, TransferSpawner>> _transferSpawners;
+        private List<Doodad> _playerDoodads;
 
         public void Load()
         {
@@ -36,6 +38,7 @@ namespace AAEmu.Game.Core.Managers.World
             _npcSpawners = new Dictionary<byte, Dictionary<uint, NpcSpawner>>();
             _doodadSpawners = new Dictionary<byte, Dictionary<uint, DoodadSpawner>>();
             _transferSpawners = new Dictionary<byte, Dictionary<uint, TransferSpawner>>();
+            _playerDoodads = new List<Doodad>();
 
             var worlds = WorldManager.Instance.GetWorlds();
             _log.Info("Loading spawns...");
@@ -161,9 +164,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 }
                             };
                             
-                            // TODO: Move this to an async method because it'll increase server startup time otherwise
-                            doodad.DoPhase(null, 0);
-                            doodad.Spawn();
+                            _playerDoodads.Add(doodad);
                         }
                     }
                 }
@@ -187,6 +188,15 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var (worldId, worldSpawners) in _transferSpawners)
                 foreach (var spawner in worldSpawners.Values)
                     spawner.SpawnAll();
+
+            Task.Run(() =>
+            {
+                foreach (var doodad in _playerDoodads)
+                {
+                    doodad.DoPhase(null, 0);
+                    doodad.Spawn();
+                }
+            });
         }
 
         public void Stop()

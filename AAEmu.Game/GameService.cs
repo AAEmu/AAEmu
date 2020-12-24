@@ -96,9 +96,6 @@ namespace AAEmu.Game
             TransferManager.Instance.Load();
 
             SpawnManager.Instance.Load();
-            SpawnManager.Instance.SpawnAll();
-            HousingManager.Instance.SpawnAll();
-            TransferManager.Instance.SpawnAll();
 
             AccessLevelManager.Instance.Load();
             CashShopManager.Instance.Load();
@@ -106,10 +103,7 @@ namespace AAEmu.Game
 
             TimeManager.Instance.Start();
             TaskManager.Instance.Start();
-            GameNetwork.Instance.Start();
-            StreamNetwork.Instance.Start();
-            LoginNetwork.Instance.Start();
-
+            
             SaveManager.Instance.Initialize();
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
@@ -117,6 +111,20 @@ namespace AAEmu.Game
             SlaveManager.Instance.Initialize();
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
+
+            var spawnSw = new Stopwatch();
+            _log.Info("Spawning units...");
+            spawnSw.Start();
+            SpawnManager.Instance.SpawnAll();
+            HousingManager.Instance.SpawnAll();
+            TransferManager.Instance.SpawnAll();
+            spawnSw.Stop();
+            _log.Info("Units spawned in {0}", spawnSw.Elapsed);
+            
+            GameNetwork.Instance.Start();
+            StreamNetwork.Instance.Start();
+            LoginNetwork.Instance.Start();
+            
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
 
