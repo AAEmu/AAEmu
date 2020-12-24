@@ -744,6 +744,9 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public void AddUnitAggro(AggroKind kind, Unit unit, int amount)
         {
+            amount = (int)(amount * (unit.AggroMul / 100.0f));
+            amount = (int)(amount * (IncomingAggroMul / 100.0f));
+
             if (AggroTable.TryGetValue(unit.ObjId, out var aggro))
             {
                 aggro.AddAggro(kind, amount);

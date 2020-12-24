@@ -149,6 +149,16 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual float IncomingRangedDamageMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.IncomingSpellDamageMul)]
         public virtual float IncomingSpellDamageMul { get; set; } = 1f;
+        [UnitAttribute(UnitAttribute.AggroMul)]
+        public float AggroMul
+        {
+            get => (float)CalculateWithBonuses(100d, UnitAttribute.AggroMul);
+        }
+        [UnitAttribute(UnitAttribute.IncomingAggroMul)]
+        public float IncomingAggroMul
+        {
+            get => (float)CalculateWithBonuses(100d, UnitAttribute.IncomingAggroMul);
+        }
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
