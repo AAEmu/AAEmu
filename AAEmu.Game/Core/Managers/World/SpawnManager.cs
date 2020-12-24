@@ -55,10 +55,8 @@ namespace AAEmu.Game.Core.Managers.World
                         {
                             if (!NpcManager.Instance.Exist(spawner.UnitId))
                                 continue; // TODO ... so mb warn here?
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager
-                                .Instance
-                                .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            spawner.Transform.WorldId = world.Id;
+                            spawner.Transform.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Transform.World.Position.X, spawner.Transform.World.Position.Y);
                             npcSpawners.Add(spawner.Id, spawner);
                         }
                     else
@@ -76,10 +74,10 @@ namespace AAEmu.Game.Core.Managers.World
                         {
                             if (!DoodadManager.Instance.Exist(spawner.UnitId))
                                 continue; // TODO ... so mb warn here?
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager
+                            spawner.Transform.WorldId = world.Id;
+                            spawner.Transform.ZoneId = WorldManager
                                 .Instance
-                                .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                .GetZoneId(world.Id, spawner.Transform.World.Position.X, spawner.Transform.World.Position.Y);
                             doodadSpawners.Add(spawner.Id, spawner);
                         }
                     else
@@ -99,10 +97,8 @@ namespace AAEmu.Game.Core.Managers.World
                         {
                             if (!TransferManager.Instance.Exist(spawner.UnitId))
                                 continue;
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager
-                                .Instance
-                                .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            spawner.Transform.WorldId = world.Id;
+                            spawner.Transform.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Transform.World.Position.X, spawner.Transform.World.Position.Y);
                             transferSpawners.Add(spawner.Id, spawner);
                         }
                     }

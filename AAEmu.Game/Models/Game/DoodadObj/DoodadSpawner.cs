@@ -29,14 +29,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             doodad.Spawner = this;
-            doodad.Position = Position.Clone();
+            doodad.Transform = this.Transform.Clone();
             doodad.QuestGlow = 0u; // TODO: make this OOP
             doodad.ItemId = itemId;
 
             if (Scale > 0)
                 doodad.SetScale(Scale);
 
-            if (doodad.Position == null)
+            if (doodad.Transform == null)
             {
                 _log.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
                 return null;
@@ -57,10 +57,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             
             doodad.Spawner = this;
-            doodad.Position = Position.Clone();
+            doodad.Transform = Transform.Clone();
             if (Scale > 0)
                 doodad.SetScale(Scale);
-            if (doodad.Position == null)
+            if (doodad.Transform == null)
             {
                 _log.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
                 return null;

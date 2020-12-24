@@ -24,15 +24,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 Id = 0,
                 UnitId = owner.TemplateId,
-                Position = character.Position.Clone()
+                Transform = character.Transform.Clone()
             };
-            var (newX2, newY2) = MathUtil.AddDistanceToFront(1, doodad.Position.X, doodad.Position.Y, doodad.Position.RotationZ); //TODO distance 1 meter
-
-            doodad.Position.X = newX2;
-            doodad.Position.Y = newY2;
-            doodad.Position.Z = AppConfiguration.Instance.HeightMapsEnable
-                ? WorldManager.Instance.GetHeight(doodad.Position.ZoneId, doodad.Position.X, doodad.Position.Y)
-                : doodad.Position.Z;
+            doodad.Transform.Local.AddDistanceToFront(1f);
+            
+            // TODO: Transform.Local is wrong for setting Z height
+            doodad.Transform.Local.Position.Z = AppConfiguration.Instance.HeightMapsEnable
+                ? WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y)
+                : doodad.Transform.Local.Position.Z;
 
             doodad.Spawn(0);
         }

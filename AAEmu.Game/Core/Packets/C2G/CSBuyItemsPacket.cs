@@ -40,7 +40,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             MerchantGoods pack = null;
             if (npc != null)
             {
-                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Position, npc.Position);
+                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, npc.Transform.World.Position);
                 if (dist > 3f) // 3m should be enough for NPC shops
                 {
                     Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.TooFarAway);
@@ -54,7 +54,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 if (doodad == null)
                     return;
-                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Position, doodad.Position);
+                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
                 if (dist > 3f) // 3m should be enough for these
                 {
                     Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.TooFarAway);

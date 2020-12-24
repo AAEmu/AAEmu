@@ -136,6 +136,17 @@ namespace AAEmu.Game.Models.Game.World
             // Is this correct ?
             Rotation *= offset;
         }
+
+        /// <summary>
+        /// Adds distance in front (only takes into account Z direction, roll)
+        /// </summary>
+        /// <param name="distance"></param>
+        public void AddDistanceToFront(float distance)
+        {
+            var ypr = ToYawPitchRoll();
+            var off = new Vector3((distance * (float)Math.Cos(ypr.Z)), (distance * (float)Math.Sin(ypr.Z)), 0);
+            Translate(off);
+        }
     }
 
     /// <summary>
@@ -372,5 +383,20 @@ namespace AAEmu.Game.Models.Game.World
             return parentPosAndRot;
         }
 
+        /// <summary>
+        /// Detaches the transform, and moves set the Local position to what is defined in the WorldSpawnPosition
+        /// </summary>
+        /// <param name="wsp">WorldSpawnPosition to copy information from</param>
+        /// <param name="newInstanceId">new InstanceId to assign to this transform, unchanged if 0</param>
+        public void ApplyWorldSpawnPosition(WorldSpawnPosition wsp,uint newInstanceId = 0)
+        {
+            DetachAll();
+            WorldId = wsp.WorldId;
+            ZoneId = wsp.ZoneId;
+            if (newInstanceId != 0)
+                InstanceId = newInstanceId;
+            Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
+            Local.Rotation = Quaternion.CreateFromYawPitchRoll(wsp.Yaw, wsp.Pitch, wsp.Roll);
+        }
     }
 }

@@ -31,13 +31,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             var doodadSpawner = new DoodadSpawner();
             doodadSpawner.Id = 0;
             doodadSpawner.UnitId = id;
-            doodadSpawner.Position = Connection.ActiveChar.Position.Clone();
-            doodadSpawner.Position.X = x;
-            doodadSpawner.Position.Y = y;
-            doodadSpawner.Position.Z = z;
-            doodadSpawner.Position.RotationX = 0;
-            doodadSpawner.Position.RotationY = 0;
-            doodadSpawner.Position.RotationZ = 0;
+            doodadSpawner.Transform = Connection.ActiveChar.Transform.CloneDetached();
+            doodadSpawner.Transform.Local.SetPosition(x, y, z);
+            doodadSpawner.Transform.Local.SetZRotation(zRot);
             doodadSpawner.Scale = scale;
             var doodad = doodadSpawner.Spawn(0, (ulong)itemId, Connection.ActiveChar.ObjId);
 

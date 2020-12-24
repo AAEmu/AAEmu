@@ -53,8 +53,8 @@ namespace AAEmu.Game.Models.Game.Transfers
             }
 
             transfer.Spawner = this;
-            transfer.Position = Position.Clone();
-            if (transfer.Position == null)
+            transfer.Transform = Transform.Clone(transfer);
+            if (transfer.Transform == null)
             {
                 _log.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
                 return null;

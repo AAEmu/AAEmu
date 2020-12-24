@@ -189,7 +189,7 @@ namespace AAEmu.Game.Core.Managers
                                     while (reader2.Read())
                                     {
                                         var bindingDoodad = new HousingBindingDoodad();
-                                        bindingDoodad.AttachPointId = reader2.GetUInt32("attach_point_id");
+                                        bindingDoodad.AttachPointId = (sbyte)reader2.GetInt16("attach_point_id");
                                         bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
 
                                         if (templateBindings != null &&
@@ -198,7 +198,7 @@ namespace AAEmu.Game.Core.Managers
                                                 .AttachPointId[bindingDoodad.AttachPointId].Clone();
 
                                         if (bindingDoodad.Position == null)
-                                            bindingDoodad.Position = new Point(0, 0, 0);
+                                            bindingDoodad.Position = new WorldSpawnPosition();
                                         bindingDoodad.Position.WorldId = 1;
 
                                         doodads.Add(bindingDoodad);
@@ -260,7 +260,7 @@ namespace AAEmu.Game.Core.Managers
                             house.Name = reader.GetString("name");
                             house.Transform = new Transform(house, null,
                                 new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
-                                Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)MathUtil.ConvertDirectionToRadian(reader.GetSByte("rotation_z")))
+                                Quaternion.CreateFromYawPitchRoll(reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll"))
                                 );
                             house.Transform.WorldId = 1;
                             house.Transform.ZoneId = WorldManager.Instance.GetZoneId(house.Transform.WorldId, house.Transform.WorldPosition.X, house.Transform.WorldPosition.Y);

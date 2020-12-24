@@ -145,7 +145,7 @@ namespace AAEmu.Game.Core.Managers.World
             if (backpack == null) 
                 return 0;
 
-            var zoneId = player.Position.ZoneId;
+            var zoneId = player.Transform.ZoneId;
 
             InitRatioInZoneForPack(backpack.TemplateId, zoneId);
            
@@ -169,7 +169,7 @@ namespace AAEmu.Game.Core.Managers.World
                 return 0;
             }
 
-            if (MathUtil.CalculateDistance(player.Position, npc.Position) > 2.5)
+            if (MathUtil.CalculateDistance(player.Transform.World.Position, npc.Transform.World.Position) > 2.5)
             {
                 player.SendErrorMessage(ErrorMessageType.TooFarAway);
                 return 0;   
@@ -300,10 +300,10 @@ namespace AAEmu.Game.Core.Managers.World
             if (!_soldPackAmountInTick.ContainsKey(backpack.TemplateId))
                 _soldPackAmountInTick.Add(backpack.TemplateId, new Dictionary<uint, int>());
             
-            if (!_soldPackAmountInTick[backpack.TemplateId].ContainsKey(player.Position.ZoneId))
-                _soldPackAmountInTick[backpack.TemplateId].Add(player.Position.ZoneId, 0);
+            if (!_soldPackAmountInTick[backpack.TemplateId].ContainsKey(player.Transform.ZoneId))
+                _soldPackAmountInTick[backpack.TemplateId].Add(player.Transform.ZoneId, 0);
 
-            _soldPackAmountInTick[backpack.TemplateId][player.Position.ZoneId] += 1;
+            _soldPackAmountInTick[backpack.TemplateId][player.Transform.ZoneId] += 1;
         }
 
         public void ConsumeRatio()

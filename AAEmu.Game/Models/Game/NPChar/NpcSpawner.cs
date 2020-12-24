@@ -48,8 +48,8 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
             
             npc.Spawner = this;
-            npc.Position = Position.Clone();
-            if (npc.Position == null)
+            npc.Transform = Transform.Clone();
+            if (npc.Transform == null)
             {
                 _log.Error("Can't spawn npc {1} from spawn {0}", Id, UnitId);
                 return null;
