@@ -17,6 +17,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         
         public void MoveInRange(BaseUnit target, float range, float speed)
         {
+            if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep))
+                return;
+            
             var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
             // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
             if (distanceToTarget > range)
@@ -46,6 +49,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             get
             {
                 if (Ai.Owner.SkillTask != null || Ai.Owner.ActivePlotState != null)
+                    return false;
+                if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep || e.Template.Silence))
                     return false;
                 return DateTime.UtcNow >= _delayEnd && !Ai.Owner.IsGlobalCooldowned;
             }

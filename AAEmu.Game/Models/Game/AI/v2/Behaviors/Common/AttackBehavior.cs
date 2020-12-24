@@ -22,6 +22,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 return;
 
             MoveInRange(Ai.Owner.CurrentTarget, Ai.Owner.Template.AttackStartRangeScale, 5.4f * (delta.Milliseconds / 1000.0f));
+            
+            if (!CanUseSkill)
+                return;
             PickSkillAndUseIt();
         }
 

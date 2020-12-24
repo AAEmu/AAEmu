@@ -606,5 +606,10 @@ namespace AAEmu.Game.Models.Game.Units
         {
             return _effects.Where(e => e.Template.DamageAbsorptionTypeId > 0);
         }
+        
+        public bool HasEffectsMatchingCondition(Func<Buff, bool> predicate)
+        {
+            return _effects.Any(predicate);
+        }
     }
 }
