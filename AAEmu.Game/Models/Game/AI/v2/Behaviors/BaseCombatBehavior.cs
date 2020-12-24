@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             foreach(var abuser in abusers)
             {
-                if(Ai.Owner.UnitIsVisible(abuser))
+                if(Ai.Owner.UnitIsVisible(abuser) && !abuser.IsDead)
                 {
                     Ai.Owner.CurrentAggroTarget = abuser.ObjId;
                     Ai.Owner.SetTarget(abuser);
