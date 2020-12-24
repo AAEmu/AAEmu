@@ -82,7 +82,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                     Ai.Owner.ClearAggroOfUnit(abuser);
                 }
             }
-
+            Ai.Owner.SetTarget(null);
             return false;
         }
         

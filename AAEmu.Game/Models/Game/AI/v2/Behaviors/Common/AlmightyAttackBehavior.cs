@@ -24,16 +24,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (_aiParams == null)
                 return;
 
-            UpdateTarget();
-            var target = Ai.Owner.CurrentTarget;
-            if (target == null || ShouldReturn)
+            if (!UpdateTarget() || ShouldReturn)
             {
                 Ai.GoToReturn();
                 return;
             }
 
             if (CanStrafe && !IsUsingSkill)
-                MoveInRange(target, delta);
+                MoveInRange(Ai.Owner.CurrentTarget, delta);
 
             if (!CanUseSkill)
                 return;
@@ -57,7 +55,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange)
                 {
                     Ai.Owner.StopMovement();
-                    UseSkill(new Skill(skillTemplate), target, selectedSkill.Delay);
+                    UseSkill(new Skill(skillTemplate), Ai.Owner.CurrentTarget, selectedSkill.Delay);
                     _strafeDuringDelay = selectedSkill.Strafe;
                 }
             }
