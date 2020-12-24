@@ -45,7 +45,9 @@ namespace AAEmu.Commons.Cryptography
             {
                 ConnectionKeys.Remove(accountId);
             }
-            var rsaKeyPair = new RSACryptoServiceProvider(DwKeySize);
+            var rsaKeyPair = new RSACryptoServiceProvider(); // по умолчанию DwKeySize равен 1024
+            //var pub_key = rsaKeyPair.ExportParameters(false); // export public key
+            //var priv_key = rsaKeyPair.ExportParameters(true); // export private key
             var keys = new ConnectionKeychain(connectionId, rsaKeyPair);
             ConnectionKeys.Add(accountId, keys);
             return keys;

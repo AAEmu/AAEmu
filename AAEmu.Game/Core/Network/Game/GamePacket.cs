@@ -41,6 +41,7 @@ namespace AAEmu.Game.Core.Network.Game
                         .Write((byte)0) // hash
                         .Write((byte)0); // count
                 }
+
                 if (Level == 5)
                 {
                     //пакет от сервера DD05 шифруем с помощью XOR
@@ -75,14 +76,12 @@ namespace AAEmu.Game.Core.Network.Game
             // SC here you can set the filter to hide packets
             if (!(TypeId == 0x013 && Level == 2) && // Pong
                 !(TypeId == 0x016 && Level == 2) && // FastPong
-                !(TypeId == 0x06B && Level == 1) && // SCUnitMovements
-                !(TypeId == 0x06C && Level == 1)) // SCOneUnitMovement
-            {
+                !(TypeId == 0x1a0 && Level == 5) && // SCUnitMovements
+                !(TypeId == 0x1c4 && Level == 5))   // SCOneUnitMovement
                 //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                 //_log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
                 _log.Warn("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
 
-            }
             return ps;
         }
 
@@ -91,7 +90,7 @@ namespace AAEmu.Game.Core.Network.Game
             // CS here you can set the filter to hide packets
             if (!(TypeId == 0x012 && Level == 2) && // Ping
                 !(TypeId == 0x015 && Level == 2) && // FastPing
-                !(TypeId == 0x089 && Level == 1)) // CSMoveUnit
+                !(TypeId == 0x03c && Level == 1)) // CSMoveUnit
             {
                 //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                 //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));

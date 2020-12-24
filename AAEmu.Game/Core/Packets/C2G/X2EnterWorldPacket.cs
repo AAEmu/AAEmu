@@ -21,6 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var zoneId = stream.ReadInt32();
             var tb = stream.ReadByte();
             var revision = stream.ReadUInt64();
+            var index = stream.ReadByte();
 
             EnterWorldManager.Instance.Login(Connection, accountId, cookie);
         }
