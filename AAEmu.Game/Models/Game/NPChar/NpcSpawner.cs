@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
             
             npc.Spawner = this;
-            npc.Transform = Transform.Clone();
+            npc.Transform.ApplyWorldSpawnPosition(Position);
             if (npc.Transform == null)
             {
                 _log.Error("Can't spawn npc {1} from spawn {0}", Id, UnitId);

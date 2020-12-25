@@ -320,6 +320,22 @@ namespace AAEmu.Game.Models.Game.World
             return new Transform(childObject, this, WorldId, ZoneId, InstanceId, new PosistionAndRotation());
         }
 
+        public WorldSpawnPosition CloneAsSpawnPosition()
+        {
+            var ypr = this.World.ToYawPitchRoll();
+            return new WorldSpawnPosition()
+            {
+                WorldId = this.WorldId,
+                ZoneId = this.ZoneId,
+                X = this.World.Position.X,
+                Y = this.World.Position.Y,
+                Z = this.World.Position.Z,
+                Yaw = ypr.X,
+                Pitch = ypr.Y,
+                Roll = ypr.Z
+            };
+        }
+
         ~Transform()
         {
             DetachAll();
@@ -339,7 +355,7 @@ namespace AAEmu.Game.Models.Game.World
 
         protected void SetParent(Transform parent)
         {
-            if (!parent.Equals(_parentTransform))
+            if ((parent == null) || (!parent.Equals(_parentTransform)))
             {
                 if (_parentTransform != null)
                     _parentTransform.InternalDetachChild(this);

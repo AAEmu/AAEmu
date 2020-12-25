@@ -20,19 +20,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 return;
             }
+            var spawnPos = character.Transform.Clone();
+            spawnPos.Local.AddDistanceToFront(1f);
+            spawnPos.Local.Position.Z = WorldManager.Instance.GetHeight(spawnPos);
             var doodad = new DoodadSpawner
             {
                 Id = 0,
                 UnitId = owner.TemplateId,
-                Transform = character.Transform.Clone()
+                Position = spawnPos.CloneAsSpawnPosition()
             };
-            doodad.Transform.Local.AddDistanceToFront(1f);
-            
-            // TODO: Transform.Local is wrong for setting Z height
-            doodad.Transform.Local.Position.Z = AppConfiguration.Instance.HeightMapsEnable
-                ? WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y)
-                : doodad.Transform.Local.Position.Z;
-
             doodad.Spawn(0);
         }
     }

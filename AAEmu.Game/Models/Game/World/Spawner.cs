@@ -4,7 +4,7 @@
     {
         public uint Id { get; set; }
         public uint UnitId { get; set; }
-        public Transform Transform { get; set; }
+        public WorldSpawnPosition Position { get; set; }
         public int RespawnTime { get; set; } = 15;
         public int DespawnTime { get; set; } = 20;
 

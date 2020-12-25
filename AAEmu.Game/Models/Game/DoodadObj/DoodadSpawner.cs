@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             doodad.Spawner = this;
-            doodad.Transform = this.Transform.Clone();
+            doodad.Transform.ApplyWorldSpawnPosition(Position);
             doodad.QuestGlow = 0u; // TODO: make this OOP
             doodad.ItemId = itemId;
 
@@ -57,7 +57,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             
             doodad.Spawner = this;
-            doodad.Transform = Transform.Clone();
+            doodad.Transform.ApplyWorldSpawnPosition(Position);
             if (Scale > 0)
                 doodad.SetScale(Scale);
             if (doodad.Transform == null)
