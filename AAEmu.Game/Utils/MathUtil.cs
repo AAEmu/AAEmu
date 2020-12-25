@@ -27,6 +27,11 @@ namespace AAEmu.Game.Utils
             return angle * (180.0 / Math.PI);
         }
 
+        public static double DegreeToRadian(double angle)
+        {
+            return angle / (180.0 * Math.PI);
+        }
+
         public static double ConvertSbyteDirectionToDegree(sbyte direction)
         {
             var angle = direction * (360f / 128) + 90;

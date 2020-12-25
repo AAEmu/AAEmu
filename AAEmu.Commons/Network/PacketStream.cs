@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using AAEmu.Commons.Conversion;
 using AAEmu.Commons.Utils;
+using System.Numerics;
 
 namespace AAEmu.Commons.Network
 {
@@ -723,7 +724,14 @@ namespace AAEmu.Commons.Network
             Write(res);
             return this;
         }
-        
+
+        public PacketStream WritePosition(Vector3 pos)
+        {
+            var res = Helpers.ConvertPosition(pos.X, pos.Y, pos.Z);
+            Write(res);
+            return this;
+        }
+
         #endregion // Write Complex Types
 
         #region Write Strings

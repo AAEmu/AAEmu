@@ -30,8 +30,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             if (caster is Character character)
             {
-                var (endX, endY) = MathUtil.AddDistanceToFront(value1, character.Position.X, character.Position.Y, (sbyte)value2);
-                var endZ = character.Position.Z;
+                var (endX, endY) = MathUtil.AddDistanceToFront(value1, character.Transform.World.Position.X, character.Transform.World.Position.Y, (sbyte)value2);
+                var endZ = character.Transform.World.Position.Z;
                 character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, endX, endY, endZ));
             }
         }

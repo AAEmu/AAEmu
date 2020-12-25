@@ -34,14 +34,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             }
             if (caster is Character character)
             {
-                var pos = target.Position;
-
+                var pos = target.Transform.CloneDetached();
                 var distance = (float)value1 / 1000f;
-                var rot = MathUtil.ConvertDegreeToDirection(MathUtil.ConvertDirectionToDegree(pos.RotationZ) + (float)value3);
-                var (endX, endY) = MathUtil.AddDistanceToFront(distance, target.Position.X, target.Position.Y, rot);
-
-                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, pos.Z));
-                
+                pos.Local.AddDistanceToFront(distance);
+                // TODO: does the 0f here need to be distance ?
+                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, (float)MathUtil.RadianToDegree(pos.Local.ToYawPitchRoll().Z), pos.Local.Position.X, pos.Local.Position.Y, pos.Local.Position.Z));
             }
         }
     }

@@ -131,7 +131,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write("");
             }
 
-            stream.WritePosition(_unit.Position.X, _unit.Position.Y, _unit.Position.Z);
+            stream.WritePosition(_unit.Transform.Local.Position);
             stream.Write(_unit.Scale);
             stream.Write(_unit.Level);
             stream.Write(_unit.ModelId); // modelRef
@@ -221,12 +221,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 stream.Write((sbyte)-1);   // point
             }
-
-            //if (_attachPoint != 255)      // -1
-            //{
-            //    var transfer = (Transfer)_unit;
-            //    stream.WriteBc(transfer.OwnerId); // point to the owner where to attach
-            //}
 
             if (_unit is Character character2)
             {
@@ -346,9 +340,10 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0);       // learnedBuffCount
             }
 
-            stream.Write(_unit.Position.RotationX);
-            stream.Write(_unit.Position.RotationY);
-            stream.Write(_unit.Position.RotationZ);
+            var (yaw, pitch, roll) = _unit.Transform.Local.ToYawPitchRollSBytes();
+            stream.Write(yaw);
+            stream.Write(pitch);
+            stream.Write(roll);
 
             switch (_unit)
             {

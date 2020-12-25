@@ -92,7 +92,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 case ChatType.GroupFind: //lfg
                 case ChatType.Shout: //shout
                     // We use SendPacket here so we can fake our way through the different channel types
-                    ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Position.ZoneId).SendPacket(
+                    ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId).SendPacket(
                         new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
                         );
                     break;

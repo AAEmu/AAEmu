@@ -51,7 +51,7 @@ namespace AAEmu.Game.Scripts.Commands
                     var worlds = WorldManager.Instance.GetWorlds();
                     foreach (var world in worlds)
                     {
-                        if (npc.Spawner.Position.WorldId == world.Id)
+                        if (npc.Spawner.Transform.WorldId == world.Id)
                         {
                             string path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
 

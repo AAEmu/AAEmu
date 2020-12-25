@@ -72,7 +72,7 @@ namespace AAEmu.Game.Scripts.Commands
                         doodadSpawner.Position = character.Position.Clone();
                         doodadSpawner.Position.X = x;
                         doodadSpawner.Position.Y = y;
-                        doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Position.ZoneId).GetHeight(x, y);
+                        doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(x, y);
                         doodadSpawner.Position.RotationX = 0;
                         doodadSpawner.Position.RotationY = 0;
                         doodadSpawner.Position.RotationZ = 0;
@@ -104,7 +104,7 @@ namespace AAEmu.Game.Scripts.Commands
                     doodadSpawner.Position = character.Position.Clone();
                     doodadSpawner.Position.X = x;
                     doodadSpawner.Position.Y = rY;
-                    doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Position.ZoneId).GetHeight(x, rY);
+                    doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(x, rY);
                     doodadSpawner.Position.RotationX = 0;
                     doodadSpawner.Position.RotationY = 0;
                     doodadSpawner.Position.RotationZ = 0;
@@ -122,7 +122,7 @@ namespace AAEmu.Game.Scripts.Commands
                     doodadSpawner.Position = character.Position.Clone();
                     doodadSpawner.Position.X = rX;
                     doodadSpawner.Position.Y = y;
-                    doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Position.ZoneId).GetHeight(rX, y);
+                    doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(rX, y);
                     doodadSpawner.Position.RotationX = 0;
                     doodadSpawner.Position.RotationY = 0;
                     doodadSpawner.Position.RotationZ = 0;
@@ -133,7 +133,7 @@ namespace AAEmu.Game.Scripts.Commands
             else
             {
                 // Show info
-                var world = WorldManager.Instance.GetWorldByZone(targetPlayer.Position.ZoneId);
+                var world = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId);
 
                 var height = world.GetHeight(targetPlayer.Position.X, targetPlayer.Position.Y);
                 var hDelta = character.Position.Z - height;

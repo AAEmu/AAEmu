@@ -257,6 +257,27 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
+        /// <summary>
+        /// Returns target height of World position of transform according to loaded heightmaps
+        /// </summary>
+        /// <param name="transform"></param>
+        /// <returns>Height at target world transform, or transform.World.Position.Z if no heightmap could be found</returns>
+        public float GetHeight(Transform transform)
+        {
+            if (AppConfiguration.Instance.HeightMapsEnable)
+                try
+                {
+                    var world = GetWorldByZone(transform.ZoneId);
+                    return world?.GetHeight(transform.World.Position.X, transform.World.Position.Y) ?? transform.World.Position.Z;
+                }
+                catch
+                {
+                    return 0f;
+                }
+            else
+                return transform.World.Position.Z;
+        }
+
         private GameObject GetRootObj(GameObject obj)
         {
             if (obj.ParentObj == null)

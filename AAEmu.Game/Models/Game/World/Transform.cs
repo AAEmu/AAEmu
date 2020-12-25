@@ -147,6 +147,11 @@ namespace AAEmu.Game.Models.Game.World
             var off = new Vector3((distance * (float)Math.Cos(ypr.Z)), (distance * (float)Math.Sin(ypr.Z)), 0);
             Translate(off);
         }
+
+        public Vector3 ClonePosition()
+        {
+            return new Vector3(Position.X,Position.Y,Position.Z);
+        }
     }
 
     /// <summary>

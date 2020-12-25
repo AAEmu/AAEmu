@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public Npc npc;
 
         public bool AbandonTo { get; set; } = false; // для прерывания repeat()
-        public Point Position { get; set; } // Target position
+        public Transform TargetPosition { get; set; } // Target position
 
         //// movement data
         public List<string> MovePath;     //  the data we're going to be moving on at the moment
@@ -108,7 +108,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         //***************************************************************
         public bool PosInRange(Npc npc, float targetX, float targetY, int distance)
         {
-            return Delta(targetX, targetY, npc.Position.X, npc.Position.Y) <= distance;
+            return Delta(targetX, targetY, npc.Transform.World.Position.X, npc.Transform.World.Position.Y) <= distance;
         }
         //***************************************************************
         public string GetValue(string valName)
@@ -167,12 +167,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
             for (var i = 0; i < pointsList.Count - 1; i++)
             {
                 s = pointsList[i];
-                Position.Y = ExtractValue(s, 2);
-                Position.X = ExtractValue(s, 1);
+                TargetPosition.Local.Position.Y = ExtractValue(s, 2);
+                TargetPosition.Local.Position.X = ExtractValue(s, 1);
 
                 //_log.Warn(s + " x:=" + Position.X + " y:=" + Position.Y);
 
-                m = Delta(Position.X, Position.Y, npc.Position.X, npc.Position.Y);
+                m = Delta(TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, npc.Transform.Local.Position.X, npc.Transform.Local.Position.Y);
 
                 if (m <= 0) { continue; }
 
@@ -209,7 +209,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public void Record(Simulation sim, Character ch)
         {
             //if (!SavePathEnabled) { return; }
-            var s = "|" + ch.Position.X + "|" + ch.Position.Y + "|" + ch.Position.Z + "|";
+            var s = "|" + ch.Transform.World.Position.X + "|" + ch.Transform.World.Position.Y + "|" + ch.Transform.World.Position.Z + "|";
             RecordPath.Add(s);
             PointsCount++;
             _log.Warn("added checkpoint # {0}", PointsCount);
@@ -247,10 +247,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public void ParseMoveClient(Npc npc)
         {
             if (!SavePathEnabled) { return; }
-            Position.X = npc.Position.X;
-            Position.Y = npc.Position.Y;
-            Position.Z = npc.Position.Z;
-            var s = "|" + Position.X + "|" + Position.Y + "|" + Position.Z + "|";
+            TargetPosition.Local.SetPosition(npc.Transform.Local.Position.X,npc.Transform.Local.Position.Y,npc.Transform.Local.Position.Z);
+            var s = "|" + TargetPosition.World.Position.X + "|" + TargetPosition.World.Position.Y + "|" + TargetPosition.World.Position.Z + "|";
             RecordPath.Add(s);
             PointsCount++;
             //_log.Warn("добавлен чекпоинт # {0}", PointsCount);
@@ -287,31 +285,29 @@ namespace AAEmu.Game.Models.Game.Units.Route
             //_log.Warn("checkpoint #" + i);
             //character.SendMessage("[MoveTo] checkpoint #" + i);
             var s = MovePath[MoveStepIndex];
-            Position.X = ExtractValue(s, 1);
-            Position.Y = ExtractValue(s, 2);
-            Position.Z = ExtractValue(s, 3);
-            if (Math.Abs(oldX - Position.X) > tolerance && Math.Abs(oldY - Position.Y) > tolerance && Math.Abs(oldZ - Position.Z) > tolerance)
+            TargetPosition.Local.SetPosition(ExtractValue(s, 1), ExtractValue(s, 2), ExtractValue(s, 3));
+            if (Math.Abs(oldX - TargetPosition.Local.Position.X) > tolerance && Math.Abs(oldY - TargetPosition.Local.Position.Y) > tolerance && Math.Abs(oldZ - TargetPosition.Local.Position.Z) > tolerance)
             {
-                oldX = Position.X;
-                oldY = Position.Y;
-                oldZ = Position.Z;
+                oldX = TargetPosition.Local.Position.X;
+                oldY = TargetPosition.Local.Position.Y;
+                oldZ = TargetPosition.Local.Position.Z;
                 oldTime = 0;
             }
-            RepeatMove(this, npc, Position.X, Position.Y, Position.Z);
+            RepeatMove(this, npc, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, TargetPosition.Local.Position.Z);
             chkTime = 0;
         }
 
         public void MoveTo(Simulation sim, Npc npc, float TargetX, float TargetY, float TargetZ)
         {
-            if (Position == null)
+            if (TargetPosition == null)
             {
                 StopMove(npc);
                 return;
             }
             var move = false;
-            var x = npc.Position.X - TargetX;
-            var y = npc.Position.Y - TargetY;
-            var z = npc.Position.Z - TargetZ;
+            var x = npc.Transform.Local.Position.X - TargetX;
+            var y = npc.Transform.Local.Position.Y - TargetY;
+            var z = npc.Transform.Local.Position.Z - TargetZ;
             var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
             float tempMovingDistance;
 
@@ -339,15 +335,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 if (x < 0)
                 {
-                    npc.Position.X += tempMovingDistance;
+                    npc.Transform.Local.Position.X += tempMovingDistance;
                 }
                 else
                 {
-                    npc.Position.X -= tempMovingDistance;
+                    npc.Transform.Local.Position.X -= tempMovingDistance;
                 }
                 if (Math.Abs(x) < tempMovingDistance)
                 {
-                    npc.Position.X = Position.X;
+                    npc.Transform.Local.Position.X = TargetPosition.Local.Position.X;
                 }
                 move = true;
             }
@@ -364,15 +360,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (y < 0)
                 {
-                    npc.Position.Y += tempMovingDistance;
+                    npc.Transform.Local.Position.Y += tempMovingDistance;
                 }
                 else
                 {
-                    npc.Position.Y -= tempMovingDistance;
+                    npc.Transform.Local.Position.Y -= tempMovingDistance;
                 }
                 if (Math.Abs(y) < tempMovingDistance)
                 {
-                    npc.Position.Y = Position.Y;
+                    npc.Transform.Local.Position.Y = TargetPosition.Local.Position.Y;
                 }
                 move = true;
             }
@@ -389,27 +385,27 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (z < 0)
                 {
-                    npc.Position.Z += tempMovingDistance;
+                    npc.Transform.Local.Position.Z += tempMovingDistance;
                 }
                 else
                 {
-                    npc.Position.Z -= tempMovingDistance;
+                    npc.Transform.Local.Position.Z -= tempMovingDistance;
                 }
                 if (Math.Abs(z) < tempMovingDistance)
                 {
-                    npc.Position.Z = Position.Z;
+                    npc.Transform.Local.Position.Z = TargetPosition.Local.Position.Z;
                 }
                 move = true;
             }
             // simulation unit. return the moveType object
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
             // Change the NPC coordinates
-            moveType.X = npc.Position.X;
-            moveType.Y = npc.Position.Y;
-            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+            moveType.X = npc.Transform.Local.Position.X;
+            moveType.Y = npc.Transform.Local.Position.Y;
+            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Y) : npc.Transform.World.Position.Z;
             // looks in the direction of movement
             ////------------------взгляд_персонажа_будет(движение_куда<-движение_откуда)
-            var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, TargetX, TargetY);
+            var angle = MathUtil.CalculateAngleFrom(npc.Transform.Local.Position.X, npc.Transform.Local.Position.Y, TargetX, TargetY);
             var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
@@ -462,10 +458,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             //_log.Warn("останавливаемся...");
             //character.SendMessage("[MoveTo] останавливаемся...");
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-            moveType.X = npc.Position.X;
-            moveType.Y = npc.Position.Y;
-            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-            var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
+            moveType.X = npc.Transform.Local.Position.X;
+            moveType.Y = npc.Transform.Local.Position.Y;
+            moveType.Z = WorldManager.Instance.GetHeight(npc.Transform);
+            var angle = MathUtil.CalculateAngleFrom(npc.Transform.Local.Position.X, npc.Transform.Local.Position.Y, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y);
             var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
@@ -486,10 +482,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
             //_log.Warn("постоим немного...");
             //character.SendMessage("[MoveTo] постоим немного...");
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-            moveType.X = npc.Position.X;
-            moveType.Y = npc.Position.Y;
-            moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
-            var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
+            moveType.X = npc.Transform.Local.Position.X;
+            moveType.Y = npc.Transform.Local.Position.Y;
+            moveType.Z = WorldManager.Instance.GetHeight(npc.Transform);
+            var angle = MathUtil.CalculateAngleFrom(npc.Transform.Local.Position.X, npc.Transform.Local.Position.Y, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y);
             var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
@@ -525,12 +521,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 return;
             }
             var s = MovePath[MoveStepIndex];
-            Position.X = ExtractValue(s, 1);
-            Position.Y = ExtractValue(s, 2);
-            Position.Z = ExtractValue(s, 3);
-            if (!PosInRange(npc, Position.X, Position.Y, 3))
+            TargetPosition.Local.SetPosition(ExtractValue(s, 1),ExtractValue(s, 2),ExtractValue(s, 3));
+            if (!PosInRange(npc, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, 3))
             {
-                RepeatMove(this, npc, Position.X, Position.Y, Position.Z);
+                RepeatMove(this, npc, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, TargetPosition.Local.Position.Z);
                 return;
             }
             if (MoveToForward)
@@ -547,10 +541,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     //_log.Warn("walk to #" + MoveStepIndex);
                     //character.SendMessage("[MoveTo] бежим к #" + MoveStepIndex);
                     s = MovePath[MoveStepIndex];
-                    Position.X = ExtractValue(s, 1);
-                    Position.Y = ExtractValue(s, 2);
-                    Position.Z = ExtractValue(s, 3);
-                    RepeatMove(this, npc, Position.X, Position.Y, Position.Z, 20000);
+                    TargetPosition.Local.SetPosition(ExtractValue(s, 1),ExtractValue(s, 2),ExtractValue(s, 3));
+                    RepeatMove(this, npc, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, TargetPosition.Local.Position.Z, 20000);
                     return;
                 }
                 MoveStepIndex++;
@@ -577,20 +569,16 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     //_log.Warn("walk to #" + MoveStepIndex);
                     //character.SendMessage("[MoveTo] бежим к #" + MoveStepIndex);
                     s = MovePath[MoveStepIndex];
-                    Position.X = ExtractValue(s, 1);
-                    Position.Y = ExtractValue(s, 2);
-                    Position.Z = ExtractValue(s, 3);
-                    RepeatMove(this, npc, Position.X, Position.Y, Position.Z, 20000);
+                    TargetPosition.Local.SetPosition(ExtractValue(s, 1),ExtractValue(s, 2),ExtractValue(s, 3));
+                    RepeatMove(this, npc, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, TargetPosition.Local.Position.Z, 20000);
                     return;
                 }
             }
             _log.Warn("walk to #" + MoveStepIndex);
             //character.SendMessage("[MoveTo] бежим к #" + MoveStepIndex);
             s = MovePath[MoveStepIndex];
-            Position.X = ExtractValue(s, 1);
-            Position.Y = ExtractValue(s, 2);
-            Position.Z = ExtractValue(s, 3);
-            RepeatMove(this, npc, Position.X, Position.Y, Position.Z);
+            TargetPosition.Local.SetPosition(ExtractValue(s, 1),ExtractValue(s, 2),ExtractValue(s, 3));
+            RepeatMove(this, npc, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, TargetPosition.Local.Position.Z);
         }
 
         public void Init(Unit unit) //Вызывается при включении скрипта
@@ -605,7 +593,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     break;
             }
 
-            Position = new Point();
+            TargetPosition = new Transform(unit,unit.ParentObj?.Transform);
             RecordPath = new List<string>();
             //RecordPath = File.ReadLines(GetMoveFileName()).ToList();
         }

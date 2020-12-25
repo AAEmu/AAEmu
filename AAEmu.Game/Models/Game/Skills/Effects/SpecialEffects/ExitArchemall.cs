@@ -31,21 +31,22 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 character.DisabledSetPosition = true;
 
+                var ypr = character.MainWorldPosition.World.ToYawPitchRoll();
                 character.SendPacket(
                     new SCLoadInstancePacket(
                         1,
                         character.MainWorldPosition.ZoneId,
-                        character.MainWorldPosition.X,
-                        character.MainWorldPosition.Y,
-                        character.MainWorldPosition.Z,
-                        0,
-                        0,
-                        0
+                        character.MainWorldPosition.World.Position.X,
+                        character.MainWorldPosition.World.Position.Y,
+                        character.MainWorldPosition.World.Position.Z,
+                        ypr.X,
+                        ypr.Y,
+                        ypr.Z
                     )
                 );
 
                 character.InstanceId = 1; // TODO ....
-                character.Position = character.MainWorldPosition.Clone();
+                character.Transform = character.MainWorldPosition.Clone();
                 character.MainWorldPosition = null;
             }
         }

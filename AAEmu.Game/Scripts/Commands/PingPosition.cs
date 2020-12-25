@@ -33,7 +33,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
             else
             {
-                var height = WorldManager.Instance.GetHeight(character.Position.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
+                var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
                 if (height == 0f)
                 {
                     character.SendMessage("|cFFFF0000[PingPos] |cFFFFFFFFX:" + character.LocalPingPosition.X.ToString("0.0") + " Y:" + character.LocalPingPosition.Y.ToString("0.0") + " Z: ???|r");

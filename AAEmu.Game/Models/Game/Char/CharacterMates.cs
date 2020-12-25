@@ -92,9 +92,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Level = (byte)mateDbInfo.Level,
                 Hp = mateDbInfo.Hp,
                 Mp = mateDbInfo.Mp,
-                Position = Owner.Position.Clone(),
                 OwnerObjId = Owner.ObjId,
-
                 Id = mateDbInfo.Id,
                 ItemId = mateDbInfo.ItemId,
                 UserState = 1, // TODO
@@ -102,14 +100,14 @@ namespace AAEmu.Game.Models.Game.Char
                 Mileage = mateDbInfo.Mileage,
                 SpawnDelayTime = 0, // TODO
             };
+            mount.Transform = Owner.Transform.CloneDetached(mount);
+
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
             {
                 mount.Skills.Add(skill);
             }
 
-            var (newX, newY) = MathUtil.AddDistanceToFront(3, mount.Position.X, mount.Position.Y, mount.Position.RotationZ);
-            mount.Position.X = newX;
-            mount.Position.Y = newY;
+            mount.Transform.Local.AddDistanceToFront(3f);
 
             MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
         }

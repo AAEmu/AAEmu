@@ -286,9 +286,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 var positionTarget = (SkillCastPositionTarget)targetCaster;
                 var positionUnit = new BaseUnit();
                 positionUnit.ObjId = uint.MaxValue;
-                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                positionUnit.Position.ZoneId = caster.Position.ZoneId;
-                positionUnit.Position.WorldId = caster.Position.WorldId;
+                positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                 positionUnit.Region = caster.Region;
                 target = positionUnit;
             } else if (Template.TargetType == SkillTargetType.BallisticPos)
@@ -296,9 +295,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 var positionTarget = (SkillCastPositionTarget)targetCaster;
                 var positionUnit = new BaseUnit();
                 positionUnit.ObjId = uint.MaxValue;
-                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                positionUnit.Position.ZoneId = caster.Position.ZoneId;
-                positionUnit.Position.WorldId = caster.Position.WorldId;
+                positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                 positionUnit.Region = caster.Region;
                 target = positionUnit;
             }
@@ -336,7 +334,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
             
                 var trg = (Unit)target;
-                var dist = MathUtil.CalculateDistance(caster.Position, trg.Position, true);
+                var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, trg.Transform.World.Position, true);
                 if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
                 {
                     caster.BroadcastPacket(caster is Character
@@ -397,7 +395,7 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.ChannelingDoodadId > 0)
             {
                 doodad = DoodadManager.Instance.Create(0, Template.ChannelingDoodadId, caster);
-                doodad.Position = caster.Position.Clone();
+                doodad.Transform = caster.Transform.CloneDetached(doodad);
                 doodad.Spawn();
             }
             
