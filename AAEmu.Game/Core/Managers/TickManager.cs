@@ -84,7 +84,7 @@ namespace AAEmu.Game.Core.Managers
                 while (_eventsToRemove.Count > 0)
                 {
                     var ev = _eventsToRemove.Dequeue();
-                    var evToRemove = _eventList.FirstOrDefault(o => o.Event.GetHashCode() == ev.GetHashCode());
+                    var evToRemove = _eventList.FirstOrDefault(o => o.Event == ev);
                     if (evToRemove?.Event != null)
                         _eventList.Remove(evToRemove);
                 }

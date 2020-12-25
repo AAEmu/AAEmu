@@ -143,7 +143,14 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Trace("Get Effect Template: type = {0}, id = {1}", type, id);
             
-            return _effects[type][id];
+            if (_effects.TryGetValue(type, out var value))
+            {
+                if(value.TryGetValue(id, out var res))
+                {
+                    return res;
+                }
+            }
+            return null;
         }
 
         public List<uint> GetBuffTags(uint buffId)
