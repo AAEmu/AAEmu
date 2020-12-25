@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
+using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 {
@@ -19,6 +20,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         public void MoveInRange(BaseUnit target, TimeSpan delta)
         {
             if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep))
+                return;
+            if ((Ai.Owner?.ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
                 return;
 
             //Ai.Owner.Template.AttackStartRangeScale * 4, 
@@ -52,7 +55,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             get
             {
-                if (Ai.Owner.SkillTask != null || Ai.Owner.ActivePlotState != null)
+                if (IsUsingSkill)
+                    return false;
+                if ((Ai.Owner?.ActiveSkillController?.State ?? SCState.Ended) == SCState.Running)
                     return false;
                 if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep || e.Template.Silence))
                     return false;

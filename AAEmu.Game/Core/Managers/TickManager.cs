@@ -85,14 +85,14 @@ namespace AAEmu.Game.Core.Managers
                 {
                     var ev = _eventsToRemove.Dequeue();
                     var evToRemove = _eventList.FirstOrDefault(o => o.Event.GetHashCode() == ev.GetHashCode());
-                    if (evToRemove.Event != null)
+                    if (evToRemove?.Event != null)
                         _eventList.Remove(evToRemove);
                 }
             }
 
             foreach (var ev in _eventList)
             {
-                var delta = _sw.Elapsed - ev.LastExecution;
+                var delta = ev.LastExecution != default ? _sw.Elapsed - ev.LastExecution : ev.TickRate.Add(TimeSpan.FromMilliseconds(1));
                 if (delta > ev.TickRate)
                 {
                     if(ev.UseAsync)

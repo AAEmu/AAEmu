@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Tasks;
@@ -29,6 +30,7 @@ namespace AAEmu.Game.Models.Game.Units
         public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
+        public SkillController ActiveSkillController { get; set; }
 
         public override float ModelSize
         {

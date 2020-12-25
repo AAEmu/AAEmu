@@ -16,9 +16,11 @@ using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
@@ -294,7 +296,23 @@ namespace AAEmu.Game.Models.Game.Skills
                 
                 caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (caster.GlobalCooldownMul / 100));
             }
+            if(caster is Npc && Template.SkillControllerId != 0)
+            {
+                var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
 
+                if (scTemplate != null && target is Unit trgUnit)
+                {
+                    
+                    var sc = SkillController.CreateSkillController(scTemplate, caster, trgUnit);
+                    if (sc != null)
+                    {
+                        if(caster.ActiveSkillController != null)
+                            caster.ActiveSkillController.End();
+                        caster.ActiveSkillController = sc;
+                        sc.Execute();
+                    }
+                }
+            }
             caster.SkillTask = null;
             
             ConsumeMana(caster);
