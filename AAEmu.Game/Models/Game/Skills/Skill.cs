@@ -699,8 +699,9 @@ namespace AAEmu.Game.Models.Game.Skills
             var damageType = (DamageType)Template.DamageTypeId;
             var bullsEyeMod = (((attacker.BullsEye / 1000f) * 3f) / 100f);
 
-            if (target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
-                return SkillHitType.Immune;
+            //TODO Check immmunity a better way!!!
+            //if (target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
+                //return SkillHitType.Immune;
 
             //Idk if this is right. Double check it
             if (!MathUtil.IsFront(attacker, target))

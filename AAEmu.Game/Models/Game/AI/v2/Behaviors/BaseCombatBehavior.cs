@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 return;
 
             //Ai.Owner.Template.AttackStartRangeScale * 4, 
-            var range = Ai.Owner.Template.AttackStartRangeScale * 6;
+            var range = 2f;// Ai.Owner.Template.AttackStartRangeScale * 6;
             var speed = 5.4f * (delta.Milliseconds / 1000.0f);
             var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
             // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
