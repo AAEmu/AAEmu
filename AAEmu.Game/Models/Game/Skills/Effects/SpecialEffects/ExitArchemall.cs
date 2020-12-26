@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
                 character.SendPacket(
                     new SCLoadInstancePacket(
-                        1,
+                        0,
                         character.WorldPosition.ZoneId,
                         character.WorldPosition.X,
                         character.WorldPosition.Y,
