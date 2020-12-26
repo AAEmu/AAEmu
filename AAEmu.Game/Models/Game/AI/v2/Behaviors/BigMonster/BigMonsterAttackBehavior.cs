@@ -39,7 +39,8 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             _strafeDuringDelay = false;
             #region Pick a skill
             // TODO: Get skill list
-            var selectedSkill = PickSkill(RequestAvailableSkills(aiParams));
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            var selectedSkill = PickSkill(RequestAvailableSkills(aiParams, targetDist));
             if (selectedSkill == null)
                 return;
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillType);
@@ -47,7 +48,6 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             if (skillTemplate == null)
                 return;
 
-            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
             if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange || skillTemplate.TargetType == SkillTargetType.Self)
             {
                 Ai.Owner.StopMovement();
@@ -58,7 +58,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             #endregion
         }
 
-        private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams)
+        private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams, float trgDist)
         {
             int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
             
@@ -66,6 +66,11 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 
             baseList = baseList.Where(s => s.HealthRangeMin <= healthRatio && healthRatio <= s.HealthRangeMax);
             baseList = baseList.Where(s => !Ai.Owner.Cooldowns.CheckCooldown(s.SkillType));
+            baseList = baseList.Where(s =>
+            {
+                var template = SkillManager.Instance.GetSkillTemplate(s.SkillType);
+                return (template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self));
+            });
 
             return baseList.ToList();
         }

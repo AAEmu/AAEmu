@@ -38,10 +38,12 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             _strafeDuringDelay = false;
             #region Pick a skill
-            
-            if(_skillQueue.Count == 0)
+
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+
+            if (_skillQueue.Count == 0)
             {
-                if (!RefreshSkillQueue())
+                if (!RefreshSkillQueue(targetDist))
                     return;
             }
 
@@ -51,7 +53,6 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(selectedSkill.SkillId);
             if (skillTemplate != null)
             {
-                var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
                 if (targetDist >= skillTemplate.MinRange && targetDist <= skillTemplate.MaxRange)
                 {
                     Ai.Owner.StopMovement();
@@ -67,9 +68,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
         }
 
-        private bool RefreshSkillQueue()
+        private bool RefreshSkillQueue(float trgDist)
         {
-            var availableSkills = RequestAvailableSkillList();
+            var availableSkills = RequestAvailableSkillList(trgDist);
 
             if(availableSkills.Count > 0)
             {
@@ -101,7 +102,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
         }
 
-        private List<AiSkillList> RequestAvailableSkillList()
+        private List<AiSkillList> RequestAvailableSkillList(float trgDist)
         {
             int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
 
@@ -109,6 +110,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
             baseList = baseList.Where(s => s.HealthRangeMin <= healthRatio && healthRatio <= s.HealthRangeMax);
             baseList = baseList.Where(s => s.Skills.All(skill => !Ai.Owner.Cooldowns.CheckCooldown(skill.SkillId)));
+            baseList = baseList.Where(s =>
+            {
+                return s.Skills.All(skill =>
+                {
+                    var template = SkillManager.Instance.GetSkillTemplate(skill.SkillId);
+                    return (template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self));
+                });
+            });
 
             return baseList.ToList();
         }

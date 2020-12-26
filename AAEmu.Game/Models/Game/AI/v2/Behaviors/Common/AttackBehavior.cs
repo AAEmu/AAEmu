@@ -25,19 +25,25 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             }
 
             MoveInRange(Ai.Owner.CurrentTarget, delta);
-            
             if (!CanUseSkill)
                 return;
-            PickSkillAndUseIt();
+            var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
+            PickSkillAndUseIt(targetDist);
         }
 
-        private void PickSkillAndUseIt()
+        private void PickSkillAndUseIt(float trgDist)
         {
             // Attack behavior probably only uses base skill ?
             var skills = new List<NpcSkill>();
             if (Ai.Owner.Template.Skills.ContainsKey(SkillUseConditionKind.InCombat))
                 skills = Ai.Owner.Template.Skills[SkillUseConditionKind.InCombat];
-            skills = skills.Where(s => !Ai.Owner.Cooldowns.CheckCooldown(s.SkillId)).ToList();
+            skills = skills
+                .Where(s => !Ai.Owner.Cooldowns.CheckCooldown(s.SkillId))
+                .Where(s =>
+                {
+                    var template = SkillManager.Instance.GetSkillTemplate(s.SkillId);
+                    return (template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self));
+                }).ToList();
 
             var pickedSkillId = (uint)Ai.Owner.Template.BaseSkillId;
             if (skills.Count > 0)
