@@ -831,6 +831,9 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public void MoveTowards(Point other, float distance, byte flags = 4)
         {
+            if (ActiveSkillController == null)
+                return;
+            
             var targetDist = MathUtil.CalculateDistance(Position, other);
             if (targetDist <= 0.01f)
                 return;

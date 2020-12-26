@@ -553,7 +553,7 @@ namespace AAEmu.Game.Core.Managers.World
             return true;
         }
 
-        public List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : class
+        public List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : GameObject
         {
             if (shape.Value1 == 0 && shape.Value2 == 0 && shape.Value3 == 0)
                 _log.Warn("AreaShape with no size values was used");
@@ -563,17 +563,17 @@ namespace AAEmu.Game.Core.Managers.World
                 var height = shape.Value2;
                 return GetAround<T>(obj, radius, true);
             }
-            else if(shape.Type == AreaShapeType.Cuboid)
+            
+            if(shape.Type == AreaShapeType.Cuboid)
             {
                 var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
-                _log.Warn("AreaShape[Cuboid] Not Implemented.");
-                return GetAround<T>(obj, (float) diagonal, true);
+                var res = GetAround<T>(obj, (float) diagonal, true);
+                res = shape.ComputeCuboid(obj, res);
+                return res;
             }
-            else
-            {
-                _log.Error("AreaShape had impossible type");
-                throw new ArgumentNullException("AreaShape type does not exist!");
-            }
+            
+            _log.Error("AreaShape had impossible type");
+            throw new ArgumentNullException("AreaShape type does not exist!");
         }
 
         public List<T> GetInCell<T>(uint worldId, int x, int y) where T : class

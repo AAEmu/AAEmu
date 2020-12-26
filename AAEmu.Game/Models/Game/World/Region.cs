@@ -131,7 +131,8 @@ namespace AAEmu.Game.Models.Game.World
                     // turn on the motion of the visible NPC
                     if (t is Npc npc)
                     {
-                        npc.Ai.ShouldTick = true;
+                        if (npc.Ai != null)
+                            npc.Ai.ShouldTick = true;
                         character1.SendPacket(new SCUnitStatePacket(npc));
                     }
                     else

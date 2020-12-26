@@ -58,6 +58,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             if (npc.Ai != null)
             {
                 npc.Ai.IdlePosition = npc.Position;
+                npc.Ai.GoToSpawn();
             }
 
             npc.Spawn();

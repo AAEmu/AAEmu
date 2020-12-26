@@ -61,7 +61,9 @@ namespace AAEmu.Game.Core.Managers.World
 
                 foreach (var trigger in _areaTriggers)
                 {
-                    trigger?.Tick(delta);
+                    // if (trigger.Owner.Position)
+                    if(trigger?.Owner?.Region?.HasPlayerActivity() ?? false)
+                        trigger?.Tick(delta);
                 }
 
                 lock (_remLock)

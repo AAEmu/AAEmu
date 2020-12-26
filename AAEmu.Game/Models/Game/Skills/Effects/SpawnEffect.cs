@@ -41,6 +41,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 if (npc.Ai != null)
                 {
                     npc.Ai.IdlePosition = npc.Position;
+                    npc.Ai.GoToSpawn();
                 }
                 
                 npc.Faction = caster.Faction;

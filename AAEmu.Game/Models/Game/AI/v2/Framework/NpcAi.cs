@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
         {
             Build();
             CheckValid();
-            GoToSpawn();
+            // GoToSpawn();
         }
         
         protected abstract void Build();
