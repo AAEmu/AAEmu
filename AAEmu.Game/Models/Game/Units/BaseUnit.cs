@@ -121,7 +121,9 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (unit == null)
                 return false;
-            return Region?.GetNeighbors()?.Any(o => o.Id == unit.Region.Id) ?? false;
+
+            //Some weird stuff happens here when in an invalid region..
+            return Region?.GetNeighbors()?.Any(o => (o?.Id ?? 0) == (unit.Region?.Id ?? 0)) ?? false;
         }
     }
 }

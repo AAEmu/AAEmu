@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Json;
 using AAEmu.Game.Models.Tasks.UnitMove;
 using AAEmu.Game.Utils;
 using NLog;
+using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
 
 namespace AAEmu.Game.Models.Game.NPChar
 {
@@ -831,7 +832,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
         public void MoveTowards(Point other, float distance, byte flags = 4)
         {
-            if (ActiveSkillController == null)
+            if (ActiveSkillController != null && ActiveSkillController.State != SCState.Ended)
                 return;
             
             var targetDist = MathUtil.CalculateDistance(Position, other);
