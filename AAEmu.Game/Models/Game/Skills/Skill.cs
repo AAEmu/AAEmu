@@ -113,6 +113,22 @@ namespace AAEmu.Game.Models.Game.Skills
                     return SkillResult.TooFarRange;
             }
 
+            if (Template.WeaponSlotForRangeId > 0)
+            {
+                var minWeaponRange = 0.0f; // Fist default
+                var maxWeaponRange = 3.0f; // Fist default
+                if (caster.Equipment.GetItemBySlot(Template.WeaponSlotForRangeId)?.Template is WeaponTemplate weaponTemplate)
+                {
+                    minWeaponRange = weaponTemplate.HoldableTemplate.MinRange;
+                    maxWeaponRange = weaponTemplate.HoldableTemplate.MaxRange;
+                }
+                
+                if (targetDist < minWeaponRange)
+                    return SkillResult.TooCloseRange;
+                if (targetDist > maxWeaponRange)
+                    return SkillResult.TooFarRange;
+            }
+
             if (Template.CastingTime > 0)
             {
                 // var origTime = Template.CastingTime * caster.Cas

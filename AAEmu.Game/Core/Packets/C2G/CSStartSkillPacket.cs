@@ -16,8 +16,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var skillId = stream.ReadUInt32();
-            if (skillId == 2 || skillId == 3 || skillId == 4)
-                return;
+            // if (skillId == 2 || skillId == 3 || skillId == 4)
+            //     return;
 
             var skillCasterType = stream.ReadByte(); // кто применяет
             var skillCaster = SkillCaster.GetByType((SkillCasterType)skillCasterType);
