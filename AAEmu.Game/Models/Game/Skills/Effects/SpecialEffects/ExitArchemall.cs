@@ -44,7 +44,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                     )
                 );
 
-                character.InstanceId = 1; // TODO ....
+                character.InstanceId = 0; // TODO ....
                 character.Position = character.WorldPosition.Clone();
                 character.WorldPosition = null;
             }

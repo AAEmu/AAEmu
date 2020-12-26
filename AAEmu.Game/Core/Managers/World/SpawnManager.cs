@@ -160,7 +160,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 GrowthTime = growthTime,
                                 Position = new Point(x, y, z)
                                 {
-                                    RotationZ = reader.GetSByte("rotation_z"), WorldId = 1
+                                    RotationZ = reader.GetSByte("rotation_z"), WorldId = 0
                                 }
                             };
                             
