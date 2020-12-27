@@ -47,8 +47,6 @@ namespace AAEmu.Game.Core.Managers.World
         */
         public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
 
-        public Task HeightmapLoadingTask;
-
         public WorldManager()
         {
             _objects = new ConcurrentDictionary<uint, GameObject>();
@@ -157,68 +155,6 @@ namespace AAEmu.Game.Core.Managers.World
                 else
                     throw new Exception($"WorldManager: Parse {pathFile} file");
             }
-
-            if (AppConfiguration.Instance.HeightMapsEnable) // TODO fastboot if HeightMapsEnable = false!
-            {
-                _log.Info("Loading heightmaps...");
-
-                HeightmapLoadingTask = Task.Run(() =>
-                {
-                    foreach (var world in _worlds.Values)
-                    {
-                        var heightMap = $"{FileManager.AppPath}Data/Worlds/{world.Name}/hmap.dat";
-                        if (!File.Exists(heightMap))
-                        {
-                            _log.Warn($"HeightMap at `{world.Name}` doesn't exists");
-                            continue;
-                        }
-
-                        using (var stream = new FileStream(heightMap, FileMode.Open, FileAccess.Read, FileShare.None, 2 << 20))
-                        using (var br = new BinaryReader(stream))
-                        {
-                            var version = br.ReadInt32();
-                            if (version == 1)
-                            {
-                                var hMapCellX = br.ReadInt32();
-                                var hMapCellY = br.ReadInt32();
-                                br.ReadDouble(); // heightMaxCoeff
-                                br.ReadInt32(); // count
-
-                                if (hMapCellX == world.CellX && hMapCellY == world.CellY)
-                                {
-                                    for (var cellX = 0; cellX < world.CellX; cellX++)
-                                    {
-                                        for (var cellY = 0; cellY < world.CellY; cellY++)
-                                        {
-                                            if (br.ReadBoolean())
-                                                continue;
-                                            for (var i = 0; i < 16; i++)
-                                            for (var j = 0; j < 16; j++)
-                                            for (var x = 0; x < 32; x++)
-                                            for (var y = 0; y < 32; y++)
-                                            {
-                                                var sx = cellX * 512 + i * 32 + x;
-                                                var sy = cellY * 512 + j * 32 + y;
-
-                                                world.HeightMaps[sx, sy] = br.ReadUInt16();
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                    _log.Warn("{0}: Invalid heightmap cells...", world.Name);
-                            }
-                            else
-                                _log.Warn("{0}: Heightmap not correct version", world.Name);
-                        }
-
-                        _log.Info("Heightmap {0} loaded", world.Name);
-                    }
-                    _log.Info("Heightmaps loaded");
-                });
-
-            }
-
             #endregion
 
             using (var connection = SQLite.CreateConnection())
@@ -259,6 +195,66 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             //TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
+        }
+
+        public void LoadHeightmaps()
+        {
+            if (AppConfiguration.Instance.HeightMapsEnable) // TODO fastboot if HeightMapsEnable = false!
+            {
+                _log.Info("Loading heightmaps...");
+                foreach (var world in _worlds.Values)
+                {
+                    var heightMap = $"{FileManager.AppPath}Data/Worlds/{world.Name}/hmap.dat";
+                    if (!File.Exists(heightMap))
+                    {
+                        _log.Warn($"HeightMap at `{world.Name}` doesn't exists");
+                        continue;
+                    }
+
+                    using (var stream = new FileStream(heightMap, FileMode.Open, FileAccess.Read, FileShare.None, 2 << 20))
+                    using (var br = new BinaryReader(stream))
+                    {
+                        var version = br.ReadInt32();
+                        if (version == 1)
+                        {
+                            var hMapCellX = br.ReadInt32();
+                            var hMapCellY = br.ReadInt32();
+                            br.ReadDouble(); // heightMaxCoeff
+                            br.ReadInt32(); // count
+
+                            if (hMapCellX == world.CellX && hMapCellY == world.CellY)
+                            {
+                                for (var cellX = 0; cellX < world.CellX; cellX++)
+                                {
+                                    for (var cellY = 0; cellY < world.CellY; cellY++)
+                                    {
+                                        if (br.ReadBoolean())
+                                            continue;
+                                        for (var i = 0; i < 16; i++)
+                                        for (var j = 0; j < 16; j++)
+                                        for (var x = 0; x < 32; x++)
+                                        for (var y = 0; y < 32; y++)
+                                        {
+                                            var sx = cellX * 512 + i * 32 + x;
+                                            var sy = cellY * 512 + j * 32 + y;
+
+                                            world.HeightMaps[sx, sy] = br.ReadUInt16();
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                                _log.Warn("{0}: Invalid heightmap cells...", world.Name);
+                        }
+                        else
+                            _log.Warn("{0}: Heightmap not correct version", world.Name);
+                    }
+
+                    _log.Info("Heightmap {0} loaded", world.Name);
+                }
+                _log.Info("Heightmaps loaded");
+
+            }
         }
 
         public InstanceWorld GetWorld(uint worldId)

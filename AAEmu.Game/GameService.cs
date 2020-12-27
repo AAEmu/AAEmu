@@ -58,6 +58,10 @@ namespace AAEmu.Game
             GameDataManager.Instance.LoadGameData();
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
+            var heightmapTask = Task.Run(() =>
+            {
+                WorldManager.Instance.LoadHeightmaps();
+            });
             QuestManager.Instance.Load();
 
             ShipyardManager.Instance.Load();
@@ -112,8 +116,7 @@ namespace AAEmu.Game
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
 
-            if (!WorldManager.Instance.HeightmapLoadingTask?.IsCompleted ?? false)
-                await WorldManager.Instance.HeightmapLoadingTask;
+            await heightmapTask;
             
             var spawnSw = new Stopwatch();
             _log.Info("Spawning units...");
