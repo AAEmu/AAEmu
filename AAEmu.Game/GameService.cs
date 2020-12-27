@@ -21,7 +21,7 @@ namespace AAEmu.Game
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             _log.Info("Starting daemon: AAEmu.Game");
 
@@ -112,6 +112,9 @@ namespace AAEmu.Game
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
 
+            if (!WorldManager.Instance.HeightmapLoadingTask?.IsCompleted ?? false)
+                await WorldManager.Instance.HeightmapLoadingTask;
+            
             var spawnSw = new Stopwatch();
             _log.Info("Spawning units...");
             spawnSw.Start();
@@ -127,8 +130,6 @@ namespace AAEmu.Game
             
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
-
-            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
