@@ -72,7 +72,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             //We might want to optimize this somehow..
             var aggroList = Ai.Owner.AggroTable.Values;
-            var abusers = aggroList.OrderBy(o => o.TotalAggro).Select(o => o.Owner).ToList();
+            var abusers = aggroList.OrderByDescending(o => o.TotalAggro).Select(o => o.Owner).ToList();
 
             foreach(var abuser in abusers)
             {
