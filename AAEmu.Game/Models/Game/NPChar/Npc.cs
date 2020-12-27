@@ -818,7 +818,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             //     // TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
             // }
             AddUnitAggro(AggroKind.Damage, attacker, amount);
-            Ai.GoToCombat();
+            Ai.OnAggroTargetChanged();
 
             /*var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
             if ((CurrentTarget?.ObjId ?? 0) != topAbuser)
