@@ -7,9 +7,9 @@
       "X": 1165.56,
       "Y": 505.353,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -21,9 +21,9 @@
       "X": 1160.34,
       "Y": 422.743,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -35,9 +35,9 @@
       "X": 1121.66,
       "Y": 456.312,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -49,9 +49,9 @@
       "X": 1201.5,
       "Y": 473.287,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -63,9 +63,9 @@
       "X": 1133.0,
       "Y": 476.0,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -77,9 +77,9 @@
       "X": 1191.0,
       "Y": 452.0,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -91,9 +91,9 @@
       "X": 1122.03,
       "Y": 416.165,
       "Z": 198.862411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -105,9 +105,9 @@
       "X": 1115.74,
       "Y": 422.445,
       "Z": 198.737411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -119,9 +119,9 @@
       "X": 1206.26,
       "Y": 516.044,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -133,9 +133,9 @@
       "X": 1211.74,
       "Y": 510.609,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -147,9 +147,9 @@
       "X": 1116.17,
       "Y": 416.812,
       "Z": 198.737411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -161,9 +161,9 @@
       "X": 1211.26,
       "Y": 515.348,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -175,9 +175,9 @@
       "X": 1240.21,
       "Y": 539.041,
       "Z": 198.612411,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -189,9 +189,9 @@
       "X": 1091.61,
       "Y": 390.974,
       "Z": 198.549911,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   }

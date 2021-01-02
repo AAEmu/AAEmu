@@ -40,14 +40,13 @@ namespace AAEmu.Game.Scripts.Commands
             var doodadSpawner = new DoodadSpawner();
             doodadSpawner.Id = 0;
             doodadSpawner.UnitId = unitId;
-            doodadSpawner.Position = character.Position.Clone();
+            doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
             doodadSpawner.Position.Y = newY;
             doodadSpawner.Position.X = newX;
-            double angle = MathUtil.CalculateAngleFrom(doodadSpawner.Position.Y, doodadSpawner.Position.X, character.Position.Y, character.Position.X);
-            sbyte newRotZ = MathUtil.ConvertDegreeToDoodadDirection(angle);
-            doodadSpawner.Position.RotationX = 0;
-            doodadSpawner.Position.RotationY = 0;
-            doodadSpawner.Position.RotationZ = newRotZ;
+            var angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.Y, doodadSpawner.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.X);
+            doodadSpawner.Position.Yaw = 0;
+            doodadSpawner.Position.Pitch = 0;
+            doodadSpawner.Position.Roll = angle;
             doodadSpawner.Spawn(0);
         }
 
@@ -56,14 +55,13 @@ namespace AAEmu.Game.Scripts.Commands
             var npcSpawner = new NpcSpawner();
             npcSpawner.Id = 0;
             npcSpawner.UnitId = unitId;
-            npcSpawner.Position = character.Position.Clone();
+            npcSpawner.Position = character.Transform.CloneAsSpawnPosition();
             npcSpawner.Position.Y = newY;
             npcSpawner.Position.X = newX;
-            var angle = MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Position.X, character.Position.Y);
-            sbyte newRotZ = MathUtil.ConvertDegreeToDirection(angle);
-            npcSpawner.Position.RotationX = 0;
-            npcSpawner.Position.RotationY = 0;
-            npcSpawner.Position.RotationZ = newRotZ;
+            var angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
+            npcSpawner.Position.Yaw = 0;
+            npcSpawner.Position.Pitch = 0;
+            npcSpawner.Position.Roll = angle;
             npcSpawner.SpawnAll();
         }
 
@@ -119,7 +117,7 @@ namespace AAEmu.Game.Scripts.Commands
             float startY;
 
             // Origin point for spawns
-            (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Position.X, character.Position.Y, character.Position.RotationZ);
+            (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.ToYawPitchRoll().Z);
             for (var y = 0; y < rows; y++)
             {
                 float sizeY = rows * spacing;
@@ -128,8 +126,9 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     float sizeX = columns * spacing;
                     float posX = (x * spacing) - (sizeX / 2);
-                    (newX, newY) = MathUtil.AddDistanceToFront(posY, startX, startY, character.Position.RotationZ);
-                    (newX, newY) = MathUtil.AddDistanceToRight(posX, newX, newY, character.Position.RotationZ);
+                    var characterRot = character.Transform.World.ToYawPitchRoll();
+                    (newX, newY) = MathUtil.AddDistanceToFront(posY, startX, startY, characterRot.Z);
+                    (newX, newY) = MathUtil.AddDistanceToRight(posX, newX, newY, characterRot.Z);
                     switch(action)
                     {
                         case "npc":

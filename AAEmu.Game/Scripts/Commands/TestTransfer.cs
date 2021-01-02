@@ -27,6 +27,7 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
+            character.SendMessage("[testtransfer] function disabled");
             //if (args.Length < 1)
             //{
             //    character.SendMessage("[test_transfer] /test_transfer unitId (1..6{124})");

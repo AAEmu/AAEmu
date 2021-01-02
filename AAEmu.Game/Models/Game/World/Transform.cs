@@ -6,7 +6,7 @@ using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World
 {
-    public class PosistionAndRotation
+    public class PositionAndRotation
     {
         public Vector3 Position;
         public Quaternion Rotation;
@@ -14,27 +14,27 @@ namespace AAEmu.Game.Models.Game.World
         private const float ToShortDivider = (1f / 32768f); // 0.000030518509f ;
         private const float ToSByteDivider = (1f / 127f); // 0.000030518509f ;
 
-        public PosistionAndRotation()
+        public PositionAndRotation()
         {
             Position = new Vector3();
             Rotation = new Quaternion();
         }
 
-        public PosistionAndRotation(float posX, float posY, float posZ, float rotX, float rotY, float rotZ, float rotW)
+        public PositionAndRotation(float posX, float posY, float posZ, float rotX, float rotY, float rotZ, float rotW)
         {
             Position = new Vector3(posX, posY, posZ);
             Rotation = new Quaternion(rotX, rotY, rotZ, rotW);
         }
 
-        public PosistionAndRotation(Vector3 position, Quaternion rotation)
+        public PositionAndRotation(Vector3 position, Quaternion rotation)
         {
             Position = position;
             Rotation = rotation;
         }
 
-        public PosistionAndRotation Clone()
+        public PositionAndRotation Clone()
         {
-            return new PosistionAndRotation(Position.X, Position.Y, Position.Z, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W);
+            return new PositionAndRotation(Position.X, Position.Y, Position.Z, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W);
         }
 
         public Vector3 ToYawPitchRoll()
@@ -148,6 +148,14 @@ namespace AAEmu.Game.Models.Game.World
             Translate(off);
         }
 
+        public void AddDistanceToRight(float distance)
+        {
+            var ypr = ToYawPitchRoll();
+            var z = ypr.Z - (MathF.PI / 2);
+            var off = new Vector3((distance * (float)Math.Cos(z)), (distance * (float)Math.Sin(z)), 0);
+            Translate(off);
+        }
+
         public Vector3 ClonePosition()
         {
             return new Vector3(Position.X,Position.Y,Position.Z);
@@ -163,7 +171,7 @@ namespace AAEmu.Game.Models.Game.World
         private uint _worldId ;
         private uint _instanceId ;
         private uint _zoneId;
-        private PosistionAndRotation _localPosRot;
+        private PositionAndRotation _localPosRot;
         private Transform _parentTransform;
         private List<Transform> _children;
 
@@ -196,13 +204,13 @@ namespace AAEmu.Game.Models.Game.World
         /// <summary>
         /// The Local Transform information (relative to Parent)
         /// </summary>
-        public PosistionAndRotation Local { get => _localPosRot; }
+        public PositionAndRotation Local { get => _localPosRot; }
         public Vector3 WorldPosition { get => GetWorldPosition().Position; }
         public Quaternion WorldRotation { get => GetWorldPosition().Rotation; }
         /// <summary>
         /// The Global Transform information (relative to game world)
         /// </summary>
-        public PosistionAndRotation World { get => GetWorldPosition(); }
+        public PositionAndRotation World { get => GetWorldPosition(); }
 
         protected void InternalInitializeTransform(GameObject owningObject, Transform parentTransform = null)
         {
@@ -211,7 +219,7 @@ namespace AAEmu.Game.Models.Game.World
             _owningObject = owningObject;
             _parentTransform = parentTransform;
             _children = new List<Transform>();
-            _localPosRot = new PosistionAndRotation();
+            _localPosRot = new PositionAndRotation();
         }
 
         public Transform(GameObject owningObject, Transform parentTransform)
@@ -275,13 +283,13 @@ namespace AAEmu.Game.Models.Game.World
             LocalRotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, PosistionAndRotation posRot)
+        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, PositionAndRotation posRot)
         {
             InternalInitializeTransform(owningObject, parentTransform);
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
-            _localPosRot = new PosistionAndRotation(posRot.Position, posRot.Rotation);
+            _localPosRot = new PositionAndRotation(posRot.Position, posRot.Rotation);
         }
 
         /// <summary>
@@ -317,7 +325,7 @@ namespace AAEmu.Game.Models.Game.World
         /// <returns></returns>
         public Transform CloneAttached(GameObject childObject)
         {
-            return new Transform(childObject, this, WorldId, ZoneId, InstanceId, new PosistionAndRotation());
+            return new Transform(childObject, this, WorldId, ZoneId, InstanceId, new PositionAndRotation());
         }
 
         public WorldSpawnPosition CloneAsSpawnPosition()
@@ -383,7 +391,7 @@ namespace AAEmu.Game.Models.Game.World
             }
         }
 
-        protected PosistionAndRotation GetWorldPosition()
+        protected PositionAndRotation GetWorldPosition()
         {
             if (_parentTransform == null)
                 return _localPosRot;

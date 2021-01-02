@@ -26,12 +26,12 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<npc||doodad> <objId>";
+            return "[angle]";
         }
 
         public string GetCommandHelpText()
         {
-            return "Rotate target unit towards you";
+            return "Rotate target unit towards you, or set it's local rotation to a given angle";
         }
 
         public void Execute(Character character, string[] args)
@@ -49,12 +49,12 @@ namespace AAEmu.Game.Scripts.Commands
                 var Seq = (uint)Rand.Next(0, 10000);
                 var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
                 
-                moveType.X = character.CurrentTarget.Position.X;
-                moveType.Y = character.CurrentTarget.Position.Y;
-                moveType.Z = character.CurrentTarget.Position.Z;
+                moveType.X = character.CurrentTarget.Transform.World.Position.X;
+                moveType.Y = character.CurrentTarget.Transform.World.Position.Y;
+                moveType.Z = character.CurrentTarget.Transform.World.Position.Z;
 
-                var angle = MathUtil.CalculateAngleFrom(character.CurrentTarget, character);
-                var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+                var angle = (float)MathUtil.CalculateAngleFrom(character.CurrentTarget, character);
+                var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
                 if (args.Length > 0) 
                 {
                     sbyte.TryParse(args[0], out rotZ);
@@ -64,7 +64,7 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.RotationY = 0;
                 moveType.RotationZ = rotZ;
 
-                character.CurrentTarget.Position.RotationZ = rotZ;
+                character.CurrentTarget.Transform.Local.SetZRotation(rotZ);
 
                 moveType.Flags = 5;
                 moveType.DeltaMovement = new sbyte[3];

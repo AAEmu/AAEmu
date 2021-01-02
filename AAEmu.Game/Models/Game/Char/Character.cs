@@ -2048,9 +2048,9 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write((byte)Ability2);
             stream.Write((byte)Ability3);
 
-            stream.Write(Helpers.ConvertLongX(Transform.LocalPosition.X));
-            stream.Write(Helpers.ConvertLongY(Transform.LocalPosition.Y));
-            stream.Write(Transform.Local.ToYawPitchRollSBytes().Item3);
+            stream.Write(Helpers.ConvertLongX(Transform.Local.Position.X));
+            stream.Write(Helpers.ConvertLongY(Transform.Local.Position.Y));
+            stream.Write(Transform.Local.Position.Z);
 
             stream.Write(ModelParams);
             stream.Write(LaborPower);

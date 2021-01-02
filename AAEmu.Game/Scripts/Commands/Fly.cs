@@ -36,7 +36,7 @@ namespace AAEmu.Game.Scripts.Commands
             if (bool.TryParse(args[firstarg + 0], out var isFlying))
                 targetPlayer.SendPacket(new SCUnitFlyingStateChangedPacket(targetPlayer.ObjId, isFlying));
             else
-                character.SendMessage("|cFFFF0000[Fly] Throw parse bool!|r");
+                character.SendMessage("|cFFFF0000[Fly] bool parse error!|r");
         }
     }
 }

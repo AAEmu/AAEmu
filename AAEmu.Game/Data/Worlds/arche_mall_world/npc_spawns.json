@@ -7,9 +7,9 @@
       "X": 3710.438,
       "Y": 4522.67,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -21,9 +21,9 @@
       "X": 3663.85986,
       "Y": 4465.78027,
       "Z": 142.424042,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -35,9 +35,9 @@
       "X": 3702.234,
       "Y": 4518.27,
       "Z": 143.8772,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -49,9 +49,9 @@
       "X": 3690.122,
       "Y": 4569.78027,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -63,9 +63,9 @@
       "X": 3706.678,
       "Y": 4514.25,
       "Z": 143.736572,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -77,9 +77,9 @@
       "X": 3713.988,
       "Y": 4537.21973,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -91,9 +91,9 @@
       "X": 3710.013,
       "Y": 4545.76,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -105,9 +105,9 @@
       "X": 3681.768,
       "Y": 4561.09,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -119,9 +119,9 @@
       "X": 3689.399,
       "Y": 4547.64,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -133,9 +133,9 @@
       "X": 3697.528,
       "Y": 4534.21973,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -147,9 +147,9 @@
       "X": 3689.072,
       "Y": 4566.34,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -161,9 +161,9 @@
       "X": 3703.89014,
       "Y": 4558.96973,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -175,9 +175,9 @@
       "X": 3704.353,
       "Y": 4561.45,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -189,9 +189,9 @@
       "X": 3690.91,
       "Y": 4536.19,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -203,9 +203,9 @@
       "X": 3687.448,
       "Y": 4547.99,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -217,9 +217,9 @@
       "X": 3694.896,
       "Y": 4530.86,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -231,9 +231,9 @@
       "X": 3712.31,
       "Y": 4546.04,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -245,9 +245,9 @@
       "X": 3710.461,
       "Y": 4550.02,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -259,9 +259,9 @@
       "X": 3714.356,
       "Y": 4547.79,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -273,9 +273,9 @@
       "X": 3711.997,
       "Y": 4543.57,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -287,9 +287,9 @@
       "X": 3692.421,
       "Y": 4531.37,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -301,9 +301,9 @@
       "X": 3698.552,
       "Y": 4529.79,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -315,9 +315,9 @@
       "X": 3552.477,
       "Y": 4405.68,
       "Z": 104.189087,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -329,9 +329,9 @@
       "X": 3864.833,
       "Y": 4637.42,
       "Z": 107.814148,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -343,9 +343,9 @@
       "X": 3951.643,
       "Y": 4592.44,
       "Z": 99.31402,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -357,9 +357,9 @@
       "X": 3618.253,
       "Y": 4305.17,
       "Z": 95.56396,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -371,9 +371,9 @@
       "X": 3502.82,
       "Y": 4378.59,
       "Z": 105.923492,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -385,9 +385,9 @@
       "X": 3855.029,
       "Y": 4704.43,
       "Z": 109.423546,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -399,9 +399,9 @@
       "X": 3947.875,
       "Y": 4698.65,
       "Z": 108.501656,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -413,9 +413,9 @@
       "X": 3494.96387,
       "Y": 4240.62,
       "Z": 104.61097,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -427,9 +427,9 @@
       "X": 3820.05713,
       "Y": 4869.56,
       "Z": 109.111038,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -441,9 +441,9 @@
       "X": 4920.42,
       "Y": 4486.98,
       "Z": 147.627258,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -455,9 +455,9 @@
       "X": 3469.215,
       "Y": 4238.56,
       "Z": 105.923492,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -469,9 +469,9 @@
       "X": 3926.526,
       "Y": 4650.82,
       "Z": 108.173523,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -483,9 +483,9 @@
       "X": 3595.23,
       "Y": 4435.61,
       "Z": 105.62661,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -497,9 +497,9 @@
       "X": 3930.06,
       "Y": 4713.3,
       "Z": 109.564171,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -511,9 +511,9 @@
       "X": 3565.80713,
       "Y": 4331.11,
       "Z": 104.923477,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -525,9 +525,9 @@
       "X": 3861.428,
       "Y": 4653.86,
       "Z": 109.236038,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -539,9 +539,9 @@
       "X": 3545.012,
       "Y": 4441.52,
       "Z": 105.173477,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -553,9 +553,9 @@
       "X": 3573.41,
       "Y": 4398.45,
       "Z": 105.923492,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -567,9 +567,9 @@
       "X": 3585.958,
       "Y": 4412.74,
       "Z": 105.939117,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -581,9 +581,9 @@
       "X": 3613.583,
       "Y": 4424.88,
       "Z": 103.751587,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -595,9 +595,9 @@
       "X": 3532.554,
       "Y": 4422.38,
       "Z": 104.29847,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -609,9 +609,9 @@
       "X": 3842.96387,
       "Y": 4670.18,
       "Z": 109.439171,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -623,9 +623,9 @@
       "X": 3612.483,
       "Y": 4682.66,
       "Z": 142.799057,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -637,9 +637,9 @@
       "X": 3749.945,
       "Y": 4498.64,
       "Z": 142.720932,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -651,9 +651,9 @@
       "X": 3755.707,
       "Y": 4497.24,
       "Z": 142.283417,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -665,9 +665,9 @@
       "X": 3751.245,
       "Y": 4494.73,
       "Z": 142.424042,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -679,9 +679,9 @@
       "X": 3747.19,
       "Y": 4496.99,
       "Z": 142.689682,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -693,9 +693,9 @@
       "X": 3616.84,
       "Y": 4690.51,
       "Z": 143.6897,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -707,9 +707,9 @@
       "X": 3608.065,
       "Y": 4681.98,
       "Z": 142.111542,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -721,9 +721,9 @@
       "X": 3621.509,
       "Y": 4684.66,
       "Z": 143.799072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -735,9 +735,9 @@
       "X": 3590.978,
       "Y": 4689.23,
       "Z": 140.377136,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -749,9 +749,9 @@
       "X": 3613.77,
       "Y": 4661.18,
       "Z": 141.877167,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -763,9 +763,9 @@
       "X": 3617.634,
       "Y": 4697.8,
       "Z": 143.7522,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -777,9 +777,9 @@
       "X": 3553.653,
       "Y": 4427.99,
       "Z": 104.985977,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -791,9 +791,9 @@
       "X": 3739.209,
       "Y": 4674.02,
       "Z": 143.736572,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -805,9 +805,9 @@
       "X": 3559.944,
       "Y": 4545.34,
       "Z": 142.549057,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -819,9 +819,9 @@
       "X": 3567.357,
       "Y": 4533.63,
       "Z": 142.611557,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -833,9 +833,9 @@
       "X": 3936.663,
       "Y": 4554.98,
       "Z": 95.98584,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -847,9 +847,9 @@
       "X": 3642.478,
       "Y": 4306.24,
       "Z": 94.67332,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -861,9 +861,9 @@
       "X": 3932.259,
       "Y": 4558.33,
       "Z": 95.92334,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -875,9 +875,9 @@
       "X": 3636.87,
       "Y": 4310.02,
       "Z": 94.67332,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -889,9 +889,9 @@
       "X": 3926.61914,
       "Y": 4555.19,
       "Z": 95.98584,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -903,9 +903,9 @@
       "X": 3641.832,
       "Y": 4314.71,
       "Z": 94.67332,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -917,9 +917,9 @@
       "X": 3646.562,
       "Y": 4312.14,
       "Z": 94.67332,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -931,9 +931,9 @@
       "X": 3930.637,
       "Y": 4550.82,
       "Z": 95.98584,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -945,9 +945,9 @@
       "X": 3757.97,
       "Y": 4499.78027,
       "Z": 142.283417,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -959,9 +959,9 @@
       "X": 3762.092,
       "Y": 4512.3,
       "Z": 142.986557,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -973,9 +973,9 @@
       "X": 3759.391,
       "Y": 4510.28027,
       "Z": 142.861557,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -987,9 +987,9 @@
       "X": 3750.479,
       "Y": 4505.03027,
       "Z": 142.986557,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1001,9 +1001,9 @@
       "X": 3640.16,
       "Y": 4304.01,
       "Z": 94.54832,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1015,9 +1015,9 @@
       "X": 3938.382,
       "Y": 4557.45,
       "Z": 95.98584,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1029,9 +1029,9 @@
       "X": 3533.005,
       "Y": 4456.32,
       "Z": 105.798492,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1043,9 +1043,9 @@
       "X": 3840.773,
       "Y": 4632.1,
       "Z": 108.361031,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1057,9 +1057,9 @@
       "X": 3380.16113,
       "Y": 4356.02,
       "Z": 104.048462,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1071,9 +1071,9 @@
       "X": 3522.712,
       "Y": 4427.0,
       "Z": 104.798477,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1085,9 +1085,9 @@
       "X": 3857.466,
       "Y": 4651.31,
       "Z": 109.236038,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1099,9 +1099,9 @@
       "X": 3518.243,
       "Y": 4431.76,
       "Z": 104.42347,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1113,9 +1113,9 @@
       "X": 3851.755,
       "Y": 4653.53027,
       "Z": 109.439171,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1127,9 +1127,9 @@
       "X": 3514.952,
       "Y": 4436.21973,
       "Z": 104.73597,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1141,9 +1141,9 @@
       "X": 3847.726,
       "Y": 4658.27,
       "Z": 109.423546,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1155,9 +1155,9 @@
       "X": 3730.0,
       "Y": 4499.0,
       "Z": 142.799057,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1169,9 +1169,9 @@
       "X": 3432.433,
       "Y": 4393.11,
       "Z": 105.985992,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1183,9 +1183,9 @@
       "X": 3715.094,
       "Y": 4540.33,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1197,9 +1197,9 @@
       "X": 3736.0,
       "Y": 4497.0,
       "Z": 142.720932,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1211,9 +1211,9 @@
       "X": 3738.0,
       "Y": 4503.0,
       "Z": 143.049057,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1225,9 +1225,9 @@
       "X": 3740.0,
       "Y": 4499.0,
       "Z": 142.799057,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1239,9 +1239,9 @@
       "X": 3725.0,
       "Y": 4490.0,
       "Z": 142.486542,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1253,9 +1253,9 @@
       "X": 3727.0,
       "Y": 4493.0,
       "Z": 142.486542,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1267,9 +1267,9 @@
       "X": 3723.0,
       "Y": 4493.0,
       "Z": 142.689682,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1281,9 +1281,9 @@
       "X": 3642.48,
       "Y": 4578.76,
       "Z": 144.236572,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1295,9 +1295,9 @@
       "X": 3684.743,
       "Y": 4609.49,
       "Z": 144.361572,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1309,9 +1309,9 @@
       "X": 3681.591,
       "Y": 4588.21,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1323,9 +1323,9 @@
       "X": 3663.873,
       "Y": 4575.35,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1337,9 +1337,9 @@
       "X": 3651.554,
       "Y": 4593.67,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1351,9 +1351,9 @@
       "X": 3667.301,
       "Y": 4605.39,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1365,9 +1365,9 @@
       "X": 3675.487,
       "Y": 4609.38,
       "Z": 144.361572,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1379,9 +1379,9 @@
       "X": 3660.37,
       "Y": 4622.4,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1393,9 +1393,9 @@
       "X": 3636.195,
       "Y": 4598.02,
       "Z": 144.049072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1407,9 +1407,9 @@
       "X": 3728.654,
       "Y": 4177.37,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1421,9 +1421,9 @@
       "X": 3732.667,
       "Y": 4330.05,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1435,9 +1435,9 @@
       "X": 4193.83,
       "Y": 4537.07,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1449,9 +1449,9 @@
       "X": 3874.637,
       "Y": 4454.36,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1463,9 +1463,9 @@
       "X": 3818.427,
       "Y": 4390.73,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1477,9 +1477,9 @@
       "X": 3987.804,
       "Y": 4406.73,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1491,9 +1491,9 @@
       "X": 3946.467,
       "Y": 4444.25,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1505,9 +1505,9 @@
       "X": 4149.15,
       "Y": 4595.04,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1519,9 +1519,9 @@
       "X": 4179.54,
       "Y": 4530.88,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1533,9 +1533,9 @@
       "X": 4166.02,
       "Y": 4540.92,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1547,9 +1547,9 @@
       "X": 4143.35,
       "Y": 4573.9,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1561,9 +1561,9 @@
       "X": 3808.38086,
       "Y": 4405.79,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1575,9 +1575,9 @@
       "X": 3809.061,
       "Y": 4328.7,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1589,9 +1589,9 @@
       "X": 3680.185,
       "Y": 4125.29,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1603,9 +1603,9 @@
       "X": 4141.52,
       "Y": 4597.55,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1617,9 +1617,9 @@
       "X": 4004.72314,
       "Y": 4404.6,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1631,9 +1631,9 @@
       "X": 4121.9,
       "Y": 4449.85,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1645,9 +1645,9 @@
       "X": 3754.965,
       "Y": 4276.28027,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1659,9 +1659,9 @@
       "X": 4135.15,
       "Y": 4585.48,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1673,9 +1673,9 @@
       "X": 3987.977,
       "Y": 4503.46,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1687,9 +1687,9 @@
       "X": 3786.643,
       "Y": 4339.11,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1701,9 +1701,9 @@
       "X": 3660.094,
       "Y": 4133.09,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1715,9 +1715,9 @@
       "X": 3811.189,
       "Y": 4414.21973,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1729,9 +1729,9 @@
       "X": 3743.686,
       "Y": 4264.49,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1743,9 +1743,9 @@
       "X": 3677.617,
       "Y": 4147.56,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1757,9 +1757,9 @@
       "X": 4127.76,
       "Y": 4471.68,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1771,9 +1771,9 @@
       "X": 4045.034,
       "Y": 4478.99,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1785,9 +1785,9 @@
       "X": 3888.266,
       "Y": 4440.35,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1799,9 +1799,9 @@
       "X": 4173.19,
       "Y": 4551.86,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1813,9 +1813,9 @@
       "X": 3673.81787,
       "Y": 4142.84,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1827,9 +1827,9 @@
       "X": 3707.075,
       "Y": 4201.95,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1841,9 +1841,9 @@
       "X": 4111.21,
       "Y": 4551.94,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1855,9 +1855,9 @@
       "X": 3856.742,
       "Y": 4438.76,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1869,9 +1869,9 @@
       "X": 4001.41,
       "Y": 4401.25,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1883,9 +1883,9 @@
       "X": 3829.904,
       "Y": 4406.87,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1897,9 +1897,9 @@
       "X": 3798.593,
       "Y": 4339.04,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1911,9 +1911,9 @@
       "X": 3741.32715,
       "Y": 4273.3,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1925,9 +1925,9 @@
       "X": 3691.462,
       "Y": 4270.16,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1939,9 +1939,9 @@
       "X": 4004.686,
       "Y": 4409.37,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1953,9 +1953,9 @@
       "X": 4117.73,
       "Y": 4465.17,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1967,9 +1967,9 @@
       "X": 3756.876,
       "Y": 4269.3,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1981,9 +1981,9 @@
       "X": 3856.632,
       "Y": 4359.66,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -1995,9 +1995,9 @@
       "X": 3978.936,
       "Y": 4479.71,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2009,9 +2009,9 @@
       "X": 3735.977,
       "Y": 4185.1,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2023,9 +2023,9 @@
       "X": 3753.651,
       "Y": 4264.25,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2037,9 +2037,9 @@
       "X": 3710.638,
       "Y": 4258.62,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2051,9 +2051,9 @@
       "X": 3716.44385,
       "Y": 4193.73,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2065,9 +2065,9 @@
       "X": 4136.1,
       "Y": 4463.14,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2079,9 +2079,9 @@
       "X": 4111.23,
       "Y": 4541.82,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2093,9 +2093,9 @@
       "X": 3732.03,
       "Y": 4343.89,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2107,9 +2107,9 @@
       "X": 3928.475,
       "Y": 4445.38,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2121,9 +2121,9 @@
       "X": 3670.833,
       "Y": 4255.39,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2135,9 +2135,9 @@
       "X": 4051.886,
       "Y": 4475.68,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2149,9 +2149,9 @@
       "X": 3970.377,
       "Y": 4495.78027,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2163,9 +2163,9 @@
       "X": 3952.441,
       "Y": 4447.06,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2177,9 +2177,9 @@
       "X": 3711.636,
       "Y": 4174.94,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2191,9 +2191,9 @@
       "X": 3952.518,
       "Y": 4439.99,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2205,9 +2205,9 @@
       "X": 3653.363,
       "Y": 4148.01,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2219,9 +2219,9 @@
       "X": 3675.046,
       "Y": 4131.53027,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2233,9 +2233,9 @@
       "X": 3807.955,
       "Y": 4392.94,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2247,9 +2247,9 @@
       "X": 4102.17,
       "Y": 4533.69,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2261,9 +2261,9 @@
       "X": 3739.976,
       "Y": 4324.92,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2275,9 +2275,9 @@
       "X": 3798.305,
       "Y": 4329.17,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2289,9 +2289,9 @@
       "X": 3872.67188,
       "Y": 4439.18,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2303,9 +2303,9 @@
       "X": 3944.32,
       "Y": 4433.96973,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2317,9 +2317,9 @@
       "X": 3850.917,
       "Y": 4358.39,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2331,9 +2331,9 @@
       "X": 3992.248,
       "Y": 4410.16,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2345,9 +2345,9 @@
       "X": 3653.15,
       "Y": 4127.24,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2359,9 +2359,9 @@
       "X": 3719.63086,
       "Y": 4338.41,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2373,9 +2373,9 @@
       "X": 3989.209,
       "Y": 4485.96,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2387,9 +2387,9 @@
       "X": 4050.684,
       "Y": 4469.01,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2401,9 +2401,9 @@
       "X": 4116.12,
       "Y": 4532.29,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2415,9 +2415,9 @@
       "X": 3667.55615,
       "Y": 4138.45,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2429,9 +2429,9 @@
       "X": 3859.384,
       "Y": 4346.39,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2443,9 +2443,9 @@
       "X": 3845.634,
       "Y": 4361.32,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2457,9 +2457,9 @@
       "X": 3995.196,
       "Y": 4401.48,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2471,9 +2471,9 @@
       "X": 3685.983,
       "Y": 4232.29,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2485,9 +2485,9 @@
       "X": 3944.142,
       "Y": 4452.25,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2499,9 +2499,9 @@
       "X": 4103.98,
       "Y": 4523.05,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2513,9 +2513,9 @@
       "X": 3852.212,
       "Y": 4365.96973,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2527,9 +2527,9 @@
       "X": 3867.129,
       "Y": 4364.21,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2541,9 +2541,9 @@
       "X": 4044.488,
       "Y": 4472.15,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2555,9 +2555,9 @@
       "X": 3999.901,
       "Y": 4493.26,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2569,9 +2569,9 @@
       "X": 3796.847,
       "Y": 4315.93,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2583,9 +2583,9 @@
       "X": 4048.11914,
       "Y": 4473.63,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2597,9 +2597,9 @@
       "X": 3721.538,
       "Y": 4182.9,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2611,9 +2611,9 @@
       "X": 3693.529,
       "Y": 4259.29,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2625,9 +2625,9 @@
       "X": 3868.041,
       "Y": 4356.29,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2639,9 +2639,9 @@
       "X": 3741.468,
       "Y": 4278.96973,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2653,9 +2653,9 @@
       "X": 3703.436,
       "Y": 4249.05,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2667,9 +2667,9 @@
       "X": 4045.134,
       "Y": 4466.87,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2681,9 +2681,9 @@
       "X": 4180.43,
       "Y": 4549.1,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2695,9 +2695,9 @@
       "X": 4095.6,
       "Y": 4542.14,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2709,9 +2709,9 @@
       "X": 3728.636,
       "Y": 4191.85,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2723,9 +2723,9 @@
       "X": 3822.215,
       "Y": 4416.33,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2737,9 +2737,9 @@
       "X": 3822.261,
       "Y": 4405.54,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2751,9 +2751,9 @@
       "X": 4158.58,
       "Y": 4593.96,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2765,9 +2765,9 @@
       "X": 3852.29785,
       "Y": 4373.33,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2779,9 +2779,9 @@
       "X": 4157.42,
       "Y": 4577.27,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2793,9 +2793,9 @@
       "X": 3738.2,
       "Y": 4288.46,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2808,9 +2808,9 @@
       "Y": 4552.21,
       "Z": 98.6,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2822,9 +2822,9 @@
       "X": 3726.768,
       "Y": 4338.07,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2836,9 +2836,9 @@
       "X": 3721.296,
       "Y": 4202.02,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2850,9 +2850,9 @@
       "X": 4048.791,
       "Y": 4462.55,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2864,9 +2864,9 @@
       "X": 3691.457,
       "Y": 4250.16,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2878,9 +2878,9 @@
       "X": 3707.94,
       "Y": 4184.05,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2892,9 +2892,9 @@
       "X": 3992.747,
       "Y": 4496.23,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2906,9 +2906,9 @@
       "X": 3750.376,
       "Y": 4281.8,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2920,9 +2920,9 @@
       "X": 4187.24,
       "Y": 4541.56,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2934,9 +2934,9 @@
       "X": 3880.05,
       "Y": 4432.31,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2948,9 +2948,9 @@
       "X": 4149.52,
       "Y": 4587.2,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2962,9 +2962,9 @@
       "X": 3990.21,
       "Y": 4402.32,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2976,9 +2976,9 @@
       "X": 4139.06,
       "Y": 4580.42,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -2990,9 +2990,9 @@
       "X": 3882.29688,
       "Y": 4462.91,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3004,9 +3004,9 @@
       "X": 3807.493,
       "Y": 4337.78027,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3018,9 +3018,9 @@
       "X": 4049.841,
       "Y": 4479.66,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3032,9 +3032,9 @@
       "X": 3741.09814,
       "Y": 4345.62,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3046,9 +3046,9 @@
       "X": 3868.498,
       "Y": 4460.37,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3060,9 +3060,9 @@
       "X": 3995.937,
       "Y": 4397.55,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3074,9 +3074,9 @@
       "X": 3786.373,
       "Y": 4325.01,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3088,9 +3088,9 @@
       "X": 3739.157,
       "Y": 4335.28027,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3102,9 +3102,9 @@
       "X": 3816.008,
       "Y": 4409.55,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3116,9 +3116,9 @@
       "X": 4104.54,
       "Y": 4546.25,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3130,9 +3130,9 @@
       "X": 4041.123,
       "Y": 4469.74,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3144,9 +3144,9 @@
       "X": 4097.76,
       "Y": 4530.01,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3158,9 +3158,9 @@
       "X": 3683.088,
       "Y": 4260.34,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3172,9 +3172,9 @@
       "X": 4198.91,
       "Y": 4549.29,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3186,9 +3186,9 @@
       "X": 3839.996,
       "Y": 4370.13,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3200,9 +3200,9 @@
       "X": 3895.815,
       "Y": 4446.61,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3214,9 +3214,9 @@
       "X": 3803.392,
       "Y": 4399.52,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3228,9 +3228,9 @@
       "X": 3860.142,
       "Y": 4367.26,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3242,9 +3242,9 @@
       "X": 3701.695,
       "Y": 4264.06,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3256,9 +3256,9 @@
       "X": 3734.45,
       "Y": 4319.09,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3270,9 +3270,9 @@
       "X": 3863.359,
       "Y": 4447.73,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3284,9 +3284,9 @@
       "X": 3698.752,
       "Y": 4237.66,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3298,9 +3298,9 @@
       "X": 4138.33,
       "Y": 4472.71,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3312,9 +3312,9 @@
       "X": 4120.45,
       "Y": 4535.89,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3326,9 +3326,9 @@
       "X": 3999.586,
       "Y": 4413.66,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3340,9 +3340,9 @@
       "X": 4107.6,
       "Y": 4536.66,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3354,9 +3354,9 @@
       "X": 3717.948,
       "Y": 4165.08,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3368,9 +3368,9 @@
       "X": 3997.796,
       "Y": 4405.69,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3382,9 +3382,9 @@
       "X": 3692.792,
       "Y": 4242.52,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3396,9 +3396,9 @@
       "X": 4141.92,
       "Y": 4589.35,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3410,9 +3410,9 @@
       "X": 3723.837,
       "Y": 4324.3,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3424,9 +3424,9 @@
       "X": 3665.412,
       "Y": 4125.85,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3438,9 +3438,9 @@
       "X": 3679.24414,
       "Y": 4244.18,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3452,9 +3452,9 @@
       "X": 3804.281,
       "Y": 4323.58,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3466,9 +3466,9 @@
       "X": 3997.101,
       "Y": 4484.93,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3480,9 +3480,9 @@
       "X": 4005.39014,
       "Y": 4485.35,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3494,9 +3494,9 @@
       "X": 3723.713,
       "Y": 4330.31,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3508,9 +3508,9 @@
       "X": 3681.355,
       "Y": 4138.67,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3522,9 +3522,9 @@
       "X": 4038.41,
       "Y": 4474.21973,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3536,9 +3536,9 @@
       "X": 4040.745,
       "Y": 4464.19,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3550,9 +3550,9 @@
       "X": 3843.535,
       "Y": 4376.06,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3564,9 +3564,9 @@
       "X": 4133.25,
       "Y": 4452.92,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3578,9 +3578,9 @@
       "X": 4177.55,
       "Y": 4537.96973,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3592,9 +3592,9 @@
       "X": 4116.6,
       "Y": 4544.46973,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3606,9 +3606,9 @@
       "X": 3981.231,
       "Y": 4490.71973,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3620,9 +3620,9 @@
       "X": 3951.775,
       "Y": 4454.37,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3634,9 +3634,9 @@
       "X": 3748.17285,
       "Y": 4256.53027,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3648,9 +3648,9 @@
       "X": 3849.752,
       "Y": 4349.81,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3662,9 +3662,9 @@
       "X": 4109.28027,
       "Y": 4527.11,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3676,9 +3676,9 @@
       "X": 3987.83887,
       "Y": 4476.04,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3690,9 +3690,9 @@
       "X": 4149.13,
       "Y": 4579.1,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3704,9 +3704,9 @@
       "X": 3810.538,
       "Y": 4385.7,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3718,9 +3718,9 @@
       "X": 3936.84814,
       "Y": 4438.35,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3732,9 +3732,9 @@
       "X": 4126.75,
       "Y": 4461.54,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3746,9 +3746,9 @@
       "X": 3827.07,
       "Y": 4398.19,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3760,9 +3760,9 @@
       "X": 3667.791,
       "Y": 4149.39,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3774,9 +3774,9 @@
       "X": 3791.481,
       "Y": 4332.14,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3788,9 +3788,9 @@
       "X": 4157.85,
       "Y": 4585.91,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3802,9 +3802,9 @@
       "X": 3881.832,
       "Y": 4448.81,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3816,9 +3816,9 @@
       "X": 4044.236,
       "Y": 4458.38,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3830,9 +3830,9 @@
       "X": 3734.653,
       "Y": 4198.45,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3844,9 +3844,9 @@
       "X": 3747.252,
       "Y": 4270.21,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3858,9 +3858,9 @@
       "X": 3789.05,
       "Y": 4318.41,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3872,9 +3872,9 @@
       "X": 3971.301,
       "Y": 4485.4,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3886,9 +3886,9 @@
       "X": 3814.10986,
       "Y": 4397.55,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3900,9 +3900,9 @@
       "X": 3652.924,
       "Y": 4137.92,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3914,9 +3914,9 @@
       "X": 3979.062,
       "Y": 4502.55,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3928,9 +3928,9 @@
       "X": 4268.17,
       "Y": 4553.59,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3942,9 +3942,9 @@
       "X": 4011.741,
       "Y": 3980.647,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3956,9 +3956,9 @@
       "X": 4098.06,
       "Y": 4297.51,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3970,9 +3970,9 @@
       "X": 4161.92,
       "Y": 4411.32,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3984,9 +3984,9 @@
       "X": 3804.667,
       "Y": 4165.77,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -3998,9 +3998,9 @@
       "X": 4330.04,
       "Y": 4542.6,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4012,9 +4012,9 @@
       "X": 4171.27,
       "Y": 4324.51,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4026,9 +4026,9 @@
       "X": 4312.58,
       "Y": 4434.6,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4040,9 +4040,9 @@
       "X": 4230.19,
       "Y": 4478.43,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4054,9 +4054,9 @@
       "X": 4365.68,
       "Y": 4143.66,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4068,9 +4068,9 @@
       "X": 4263.69,
       "Y": 4279.78027,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4082,9 +4082,9 @@
       "X": 3998.7,
       "Y": 4165.02,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4096,9 +4096,9 @@
       "X": 4367.53027,
       "Y": 4227.49,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4110,9 +4110,9 @@
       "X": 3970.663,
       "Y": 4254.84,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4124,9 +4124,9 @@
       "X": 4307.5,
       "Y": 4316.37,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4138,9 +4138,9 @@
       "X": 3763.23,
       "Y": 4044.081,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4152,9 +4152,9 @@
       "X": 4084.8,
       "Y": 4374.79,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4166,9 +4166,9 @@
       "X": 4015.554,
       "Y": 4348.93,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4180,9 +4180,9 @@
       "X": 3901.872,
       "Y": 4139.43,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4194,9 +4194,9 @@
       "X": 3899.47314,
       "Y": 3983.055,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4208,9 +4208,9 @@
       "X": 3930.11914,
       "Y": 4057.215,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4222,9 +4222,9 @@
       "X": 3934.573,
       "Y": 4332.63,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4236,9 +4236,9 @@
       "X": 3872.224,
       "Y": 4292.9,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4250,9 +4250,9 @@
       "X": 4379.79,
       "Y": 4466.44,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4264,9 +4264,9 @@
       "X": 3812.805,
       "Y": 4239.08,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4278,9 +4278,9 @@
       "X": 4354.44,
       "Y": 4453.8,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4292,9 +4292,9 @@
       "X": 3897.01,
       "Y": 4219.59,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4306,9 +4306,9 @@
       "X": 4310.16,
       "Y": 4403.2,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4320,9 +4320,9 @@
       "X": 4262.15,
       "Y": 4196.13,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4334,9 +4334,9 @@
       "X": 4168.74,
       "Y": 4162.9,
       "Z": 98.6,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4348,9 +4348,9 @@
       "X": 3639.388,
       "Y": 4580.44,
       "Z": 144.174072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4362,9 +4362,9 @@
       "X": 3638.314,
       "Y": 4581.83,
       "Z": 144.174072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4376,9 +4376,9 @@
       "X": 3637.136,
       "Y": 4583.32,
       "Z": 144.174072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4390,9 +4390,9 @@
       "X": 3636.113,
       "Y": 4584.93,
       "Z": 144.174072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4404,9 +4404,9 @@
       "X": 3633.721,
       "Y": 4588.16,
       "Z": 144.111572,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4418,9 +4418,9 @@
       "X": 3632.883,
       "Y": 4589.42,
       "Z": 144.111572,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4432,9 +4432,9 @@
       "X": 3631.719,
       "Y": 4590.92,
       "Z": 144.049072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4446,9 +4446,9 @@
       "X": 3630.563,
       "Y": 4592.54,
       "Z": 144.049072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4460,9 +4460,9 @@
       "X": 3675.132,
       "Y": 4625.21973,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4474,9 +4474,9 @@
       "X": 3676.174,
       "Y": 4623.71,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4488,9 +4488,9 @@
       "X": 3677.201,
       "Y": 4622.28027,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4502,9 +4502,9 @@
       "X": 3678.294,
       "Y": 4620.8,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4516,9 +4516,9 @@
       "X": 3680.611,
       "Y": 4617.55,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4530,9 +4530,9 @@
       "X": 3681.491,
       "Y": 4616.21973,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4544,9 +4544,9 @@
       "X": 3682.579,
       "Y": 4614.7,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4558,9 +4558,9 @@
       "X": 3683.602,
       "Y": 4613.21973,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4572,9 +4572,9 @@
       "X": 3760.243,
       "Y": 4506.42,
       "Z": 142.799057,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4586,9 +4586,9 @@
       "X": 3742.678,
       "Y": 4494.66,
       "Z": 142.549057,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4600,9 +4600,9 @@
       "X": 3759.07812,
       "Y": 4514.19,
       "Z": 142.986557,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4614,9 +4614,9 @@
       "X": 3757.17188,
       "Y": 4516.5,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4628,9 +4628,9 @@
       "X": 3729.28,
       "Y": 4674.89,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4642,9 +4642,9 @@
       "X": 3733.784,
       "Y": 4663.75,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4656,9 +4656,9 @@
       "X": 3733.784,
       "Y": 4663.75,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4670,9 +4670,9 @@
       "X": 3733.784,
       "Y": 4663.75,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4684,9 +4684,9 @@
       "X": 3733.784,
       "Y": 4663.75,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4698,9 +4698,9 @@
       "X": 3733.784,
       "Y": 4663.75,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4712,9 +4712,9 @@
       "X": 3776.344,
       "Y": 4538.32,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4726,9 +4726,9 @@
       "X": 3760.425,
       "Y": 4604.63,
       "Z": 142.486542,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4740,9 +4740,9 @@
       "X": 3703.624,
       "Y": 4530.79,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4754,9 +4754,9 @@
       "X": 3742.022,
       "Y": 4512.85,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4768,9 +4768,9 @@
       "X": 3752.109,
       "Y": 4675.02,
       "Z": 141.752167,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4782,9 +4782,9 @@
       "X": 3762.239,
       "Y": 4528.1,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4796,9 +4796,9 @@
       "X": 3756.50586,
       "Y": 4642.71973,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4810,9 +4810,9 @@
       "X": 3748.606,
       "Y": 4517.8,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4824,9 +4824,9 @@
       "X": 3736.188,
       "Y": 4508.66,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4838,9 +4838,9 @@
       "X": 3761.285,
       "Y": 4594.73,
       "Z": 142.299042,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4852,9 +4852,9 @@
       "X": 3758.823,
       "Y": 4633.82,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4866,9 +4866,9 @@
       "X": 3755.542,
       "Y": 4673.44,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4880,9 +4880,9 @@
       "X": 3706.99414,
       "Y": 4526.66,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4894,9 +4894,9 @@
       "X": 3642.1,
       "Y": 4614.09,
       "Z": 144.111572,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4908,9 +4908,9 @@
       "X": 3650.009,
       "Y": 4621.84,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4922,9 +4922,9 @@
       "X": 3659.083,
       "Y": 4582.43,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4936,9 +4936,9 @@
       "X": 3676.02686,
       "Y": 4594.8,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4950,9 +4950,9 @@
       "X": 3723.094,
       "Y": 4547.52,
       "Z": 144.049072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4964,9 +4964,9 @@
       "X": 3686.16113,
       "Y": 4575.36,
       "Z": 156.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4978,9 +4978,9 @@
       "X": 3711.937,
       "Y": 4512.14,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -4992,9 +4992,9 @@
       "X": 3463.57812,
       "Y": 3783.892,
       "Z": 101.423424,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5006,9 +5006,9 @@
       "X": 3689.278,
       "Y": 4468.8,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5020,9 +5020,9 @@
       "X": 3645.51,
       "Y": 4576.8,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5034,9 +5034,9 @@
       "X": 3647.397,
       "Y": 4576.49,
       "Z": 144.299072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5048,9 +5048,9 @@
       "X": 3649.317,
       "Y": 4576.19,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5062,9 +5062,9 @@
       "X": 3651.242,
       "Y": 4575.89,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5076,9 +5076,9 @@
       "X": 3654.784,
       "Y": 4575.36,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5090,9 +5090,9 @@
       "X": 3656.649,
       "Y": 4575.06,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5104,9 +5104,9 @@
       "X": 3658.584,
       "Y": 4574.74,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5118,9 +5118,9 @@
       "X": 3660.38086,
       "Y": 4574.42,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5132,9 +5132,9 @@
       "X": 3667.401,
       "Y": 4576.09,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5146,9 +5146,9 @@
       "X": 3668.882,
       "Y": 4577.3,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5160,9 +5160,9 @@
       "X": 3685.685,
       "Y": 4606.02,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5174,9 +5174,9 @@
       "X": 3685.463,
       "Y": 4604.28027,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5188,9 +5188,9 @@
       "X": 3685.122,
       "Y": 4602.28027,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5202,9 +5202,9 @@
       "X": 3684.893,
       "Y": 4600.39,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5216,9 +5216,9 @@
       "X": 3684.249,
       "Y": 4596.88,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5230,9 +5230,9 @@
       "X": 3683.956,
       "Y": 4595.03027,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5244,9 +5244,9 @@
       "X": 3683.688,
       "Y": 4593.03027,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5258,9 +5258,9 @@
       "X": 3683.356,
       "Y": 4591.17,
       "Z": 141.002151,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5272,9 +5272,9 @@
       "X": 3679.58,
       "Y": 4584.9,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5286,9 +5286,9 @@
       "X": 3678.083,
       "Y": 4583.84,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5300,9 +5300,9 @@
       "X": 3676.491,
       "Y": 4582.76,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5314,9 +5314,9 @@
       "X": 3675.076,
       "Y": 4581.78027,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5328,9 +5328,9 @@
       "X": 3670.5,
       "Y": 4578.48,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5342,9 +5342,9 @@
       "X": 3671.898,
       "Y": 4579.53027,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5356,9 +5356,9 @@
       "X": 3380.147,
       "Y": 4361.33,
       "Z": 104.048462,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5370,9 +5370,9 @@
       "X": 3432.619,
       "Y": 4387.67,
       "Z": 105.985992,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5384,9 +5384,9 @@
       "X": 3651.511,
       "Y": 4610.74,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5398,9 +5398,9 @@
       "X": 4174.01,
       "Y": 3778.01,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5412,9 +5412,9 @@
       "X": 3928.971,
       "Y": 4264.2,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5426,9 +5426,9 @@
       "X": 4284.73,
       "Y": 4276.24,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5440,9 +5440,9 @@
       "X": 4322.65,
       "Y": 3853.30713,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5454,9 +5454,9 @@
       "X": 4000.011,
       "Y": 3799.175,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5468,9 +5468,9 @@
       "X": 4383.84,
       "Y": 4143.23,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5482,9 +5482,9 @@
       "X": 4387.7,
       "Y": 3986.67188,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5496,9 +5496,9 @@
       "X": 3873.867,
       "Y": 3921.347,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5510,9 +5510,9 @@
       "X": 3854.55,
       "Y": 4101.48,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5524,9 +5524,9 @@
       "X": 4109.74,
       "Y": 4323.27,
       "Z": 100.8392,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5538,9 +5538,9 @@
       "X": 3645.901,
       "Y": 4584.46973,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5552,9 +5552,9 @@
       "X": 3727.49414,
       "Y": 4530.21,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5566,9 +5566,9 @@
       "X": 3729.826,
       "Y": 4527.43,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5580,9 +5580,9 @@
       "X": 3687.574,
       "Y": 4571.92,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5594,9 +5594,9 @@
       "X": 3699.603,
       "Y": 4517.74,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5608,9 +5608,9 @@
       "X": 3699.606,
       "Y": 4517.73,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5622,9 +5622,9 @@
       "X": 3699.632,
       "Y": 4517.75,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5636,9 +5636,9 @@
       "X": 3699.638,
       "Y": 4517.69,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5650,9 +5650,9 @@
       "X": 3699.66,
       "Y": 4517.69,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5664,9 +5664,9 @@
       "X": 3699.699,
       "Y": 4517.67,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5678,9 +5678,9 @@
       "X": 3699.655,
       "Y": 4517.71,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5692,9 +5692,9 @@
       "X": 3725.17,
       "Y": 4521.64,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5706,9 +5706,9 @@
       "X": 3705.224,
       "Y": 4516.42,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5720,9 +5720,9 @@
       "X": 3729.103,
       "Y": 4524.94,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5734,9 +5734,9 @@
       "X": 3699.736,
       "Y": 4517.73,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5748,9 +5748,9 @@
       "X": 3712.641,
       "Y": 4485.21973,
       "Z": 142.486542,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5762,9 +5762,9 @@
       "X": 3705.437,
       "Y": 4509.95,
       "Z": 143.674072,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5776,9 +5776,9 @@
       "X": 3699.502,
       "Y": 4517.66,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5790,9 +5790,9 @@
       "X": 3693.904,
       "Y": 4525.1,
       "Z": 143.8772,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5804,9 +5804,9 @@
       "X": 3699.63,
       "Y": 4517.74,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5818,9 +5818,9 @@
       "X": 3699.503,
       "Y": 4517.82,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5832,9 +5832,9 @@
       "X": 3698.183,
       "Y": 4518.66,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   },
@@ -5846,9 +5846,9 @@
       "X": 3699.78,
       "Y": 4516.55,
       "Z": 144.988,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     },
     "Scale": 0.0
   }

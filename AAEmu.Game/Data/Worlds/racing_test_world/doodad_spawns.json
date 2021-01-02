@@ -6,9 +6,9 @@
       "X": 3531.134,
       "Y": 4458.337,
       "Z": 105.96,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     }
   },
   {
@@ -18,9 +18,9 @@
       "X": 3841.816,
       "Y": 4635.71,
       "Z": 108.497,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     }
   },
   {
@@ -30,9 +30,9 @@
       "X": 3466.166,
       "Y": 4233.639,
       "Z": 106.039,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     }
   },
   {
@@ -42,9 +42,9 @@
       "X": 3657.866,
       "Y": 4554.168,
       "Z": 155.882,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     }
   },
   {
@@ -54,9 +54,9 @@
       "X": 3924.68115,
       "Y": 4714.508,
       "Z": 109.681,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
+      "Yaw": 0,
+      "Pitch": 0,
+      "Roll": 0
     }
   }
 ]

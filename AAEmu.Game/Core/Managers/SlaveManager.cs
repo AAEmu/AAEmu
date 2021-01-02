@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, SlaveTemplate> _slaveTemplates;
         private Dictionary<uint, Slave> _activeSlaves;
         private Dictionary<uint, Slave> _tlSlaves;
-        public Dictionary<uint, Dictionary<int, PosistionAndRotation>> _attachPoints;
+        public Dictionary<uint, Dictionary<int, PositionAndRotation>> _attachPoints;
 
         private SlaveTemplate GetSlaveTemplate(uint id)
         {
@@ -448,7 +448,7 @@ namespace AAEmu.Game.Core.Managers
             else
                 _log.Warn("Slave model attach points not loaded...");
             
-            _attachPoints = new Dictionary<uint, Dictionary<int, PosistionAndRotation>>();
+            _attachPoints = new Dictionary<uint, Dictionary<int, PositionAndRotation>>();
             foreach (var set in attachPoints)
             {
                 _attachPoints[set.ModelId] = set.AttachPoints;
@@ -474,6 +474,6 @@ namespace AAEmu.Game.Core.Managers
     public class SlaveModelAttachPoint
     {
         public uint ModelId;
-        public Dictionary<int, PosistionAndRotation> AttachPoints;
+        public Dictionary<int, PositionAndRotation> AttachPoints;
     }
 }

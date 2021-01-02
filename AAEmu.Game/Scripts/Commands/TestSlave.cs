@@ -34,9 +34,8 @@ namespace AAEmu.Game.Scripts.Commands
             slave.TlId = (ushort)TlIdManager.Instance.GetNextId();
             slave.Faction = FactionManager.Instance.GetFaction(143);
             slave.Level = 50;
-            slave.Position = character.Position.Clone();
-            slave.Position.X += 5f; // spawn_x_offset
-            slave.Position.Y += 5f; // spawn_Y_offset
+            slave.Transform = character.Transform.CloneDetached(slave);
+            slave.Transform.Local.AddDistanceToFront(5f);
             slave.MaxHp = slave.Hp = 5000;
             slave.ModelParams = new UnitCustomModelParams();
             

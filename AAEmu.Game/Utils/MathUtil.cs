@@ -7,13 +7,25 @@ namespace AAEmu.Game.Utils
 {
     public class MathUtil
     {
-        // Return degree value of object 2 to the horizontal line with object 1 being the origin
+        /// <summary>
+        /// Return degree value of object 2 to the horizontal line with object 1 being the origin 
+        /// </summary>
+        /// <param name="obj1"></param>
+        /// <param name="obj2"></param>
+        /// <returns>Angle in degree</returns>
         public static double CalculateAngleFrom(GameObject obj1, GameObject obj2)
         {
             return CalculateAngleFrom(obj1.Transform.World.Position.X, obj1.Transform.World.Position.Y, obj2.Transform.World.Position.X, obj2.Transform.World.Position.Y);
         }
 
-        // Return degree value of object 2 to the horizontal line with object 1 being the origin
+        /// <summary>
+        /// Return degree value of object 2 to the horizontal line with object 1 being the origin 
+        /// </summary>
+        /// <param name="obj1X"></param>
+        /// <param name="obj1Y"></param>
+        /// <param name="obj2X"></param>
+        /// <param name="obj2Y"></param>
+        /// <returns>Angle in degrees</returns>
         public static double CalculateAngleFrom(float obj1X, float obj1Y, float obj2X, float obj2Y)
         {
             var angleTarget = RadianToDegree(Math.Atan2(obj2Y - obj1Y, obj2X - obj1X));
@@ -158,9 +170,24 @@ namespace AAEmu.Game.Utils
             return (newX, newY);
         }
 
+        public static (float, float) AddDistanceToFront(float distance, float x, float y, float rotZRad)
+        {
+            var newX = (distance * (float)Math.Cos(rotZRad)) + x;
+            var newY = (distance * (float)Math.Sin(rotZRad)) + y;
+            return (newX, newY);
+        }
+
         public static (float, float) AddDistanceToRight(float distance, float x, float y, sbyte rotZ)
         {
             var rad = ConvertDirectionToRadian(rotZ) - (Math.PI / 2);
+            var newX = (distance * (float)Math.Cos(rad)) + x;
+            var newY = (distance * (float)Math.Sin(rad)) + y;
+            return (newX, newY);
+        }
+
+        public static (float, float) AddDistanceToRight(float distance, float x, float y, float rotZRad)
+        {
+            var rad = rotZRad - (Math.PI / 2);
             var newX = (distance * (float)Math.Cos(rad)) + x;
             var newY = (distance * (float)Math.Sin(rad)) + y;
             return (newX, newY);

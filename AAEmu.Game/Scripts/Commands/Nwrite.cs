@@ -51,7 +51,7 @@ namespace AAEmu.Game.Scripts.Commands
                     var worlds = WorldManager.Instance.GetWorlds();
                     foreach (var world in worlds)
                     {
-                        if (npc.Spawner.Transform.WorldId == world.Id)
+                        if (npc.Spawner.Position.WorldId == world.Id)
                         {
                             string path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
 
@@ -65,14 +65,14 @@ namespace AAEmu.Game.Scripts.Commands
                                 {
                                     foreach (var spawner in spawners)
                                     {
-                                        var pos = npc.Position;
+                                        var pos = npc.Transform.CloneAsSpawnPosition();
 
                                         if (spawner.Id == npc.Spawner.Id)
                                         {
                                             spawner.Position.X = pos.X;
                                             spawner.Position.Y = pos.Y;
                                             spawner.Position.Z = pos.Z;
-                                            spawner.Position.RotationZ = pos.RotationZ;
+                                            spawner.Position.RotationZ = MathUtil.ConvertRadianToDirection(pos.Roll);
                                             break;
                                         }
                                     }

@@ -28,7 +28,7 @@ namespace AAEmu.Game.Scripts.Commands
         {
             if (character.CurrentTarget != null && character.CurrentTarget != character)
             {
-                var pos = character.CurrentTarget.Position;
+                var pos = character.CurrentTarget.Transform.CloneAsSpawnPosition();
 
                 if (character.CurrentTarget is Npc npc)
                     character.SendMessage("[Position] Id: {0}, ObjId: {1}, TemplateId: {2} X: |cFFFFFFFF{3}|r  Y: |cFFFFFFFF{4}|r  Z: |cFFFFFFFF{5}|r", npc.Spawner.Id, character.CurrentTarget.ObjId, npc.TemplateId, pos.X, pos.Y, pos.Z);
@@ -40,7 +40,7 @@ namespace AAEmu.Game.Scripts.Commands
                     targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
 
-                var pos = targetPlayer.Position;
+                var pos = targetPlayer.Transform.CloneAsSpawnPosition();
 
                 var zonename = "???";
                 var zone = ZoneManager.Instance.GetZoneByKey(pos.ZoneId);
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Scripts.Commands
                     zonename = "@ZONE_NAME(" + zone.Id.ToString() + ")";
 
                 character.SendMessage("[Position] |cFFFFFFFF{0}|r X: |cFFFFFFFF{1:F1}|r  Y: |cFFFFFFFF{2:F1}|r  Z: |cFFFFFFFF{3:F1}|r  RotZ: |cFFFFFFFF{4:F0}|r  ZoneId: |cFFFFFFFF{5}|r {6}",
-                    targetPlayer.Name, pos.X, pos.Y, pos.Z, pos.RotationZ, pos.ZoneId, zonename);
+                    targetPlayer.Name, pos.X, pos.Y, pos.Z, pos.Roll, pos.ZoneId, zonename);
             }
         }
     }

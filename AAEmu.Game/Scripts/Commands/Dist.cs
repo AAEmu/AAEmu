@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
@@ -30,8 +30,8 @@ namespace AAEmu.Game.Scripts.Commands
         {
             var target = character.CurrentTarget;
 
-            var rawDistance = MathUtil.CalculateDistance(character.Position, target.Position);
-            var rawDistanceZ = MathUtil.CalculateDistance(character.Position, target.Position, true);
+            var rawDistance = MathUtil.CalculateDistance(character.Transform.World.Position, target.Transform.World.Position);
+            var rawDistanceZ = MathUtil.CalculateDistance(character.Transform.World.Position, target.Transform.World.Position, true);
             var modelDistance = character.GetDistanceTo(target);
             var modelDistanceZ = character.GetDistanceTo(target, true);
 

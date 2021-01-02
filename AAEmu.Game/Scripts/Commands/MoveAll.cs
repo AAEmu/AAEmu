@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
@@ -15,7 +15,7 @@ namespace AAEmu.Game.Scripts.Commands
                 if (otherChar != character)
                 {
                     otherChar.DisabledSetPosition = true;
-                    otherChar.SendPacket(new SCTeleportUnitPacket(0, 0, character.Position.X, character.Position.Y, character.Position.Z + 1.0f, 0f));
+                    otherChar.SendPacket(new SCTeleportUnitPacket(0, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z + 1.0f, 0f));
                 }
             }
         }
