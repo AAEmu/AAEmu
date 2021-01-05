@@ -70,7 +70,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             //stream.Write((uint)0x0100007F); //NAT address
             //stream.Write((ushort)25375); //NAT port
 
-            _log.Warn("GamePacket: S->C X2EnterWorldResponsePacket");
+            //_log.Warn("GamePacket: S->C X2EnterWorldResponsePacket");
 
             return stream;
         }

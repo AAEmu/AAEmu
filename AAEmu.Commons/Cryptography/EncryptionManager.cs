@@ -74,7 +74,8 @@ namespace AAEmu.Commons.Cryptography
             var xorConstRaw = keys.RsaKeyPair.Decrypt(xorKeyEncrypted, false);
             var head = BitConverter.ToUInt32(xorConstRaw, 0);
             _log.Warn("XOR: {0}", head);
-            head = (head ^ 0x15A0244B) * head ^ 0x70F1F23 & 0xffffffff; // 1.2.0.0 AA 18 march 2015
+            //head = (head ^ 0x15A0246F) * head ^ 0x70F1F23 & 0xffffffff; // 1.8.6.2 AA mailru 06 august 2015
+            head = (head ^ 0x15A02491) * head ^ 0x70F1F23 & 0xffffffff; // 1.7.0.0 AA 23 june 2015
             keys.XorKey = head * head & 0xffffffff;
             keys.AesKey = keys.RsaKeyPair.Decrypt(aesKeyEncrypted, false);
             keys.RecievedKeys = true;
@@ -222,7 +223,8 @@ namespace AAEmu.Commons.Cryptography
             var msgKey = ((uint)(bodyPacket.Length / 16 - 1) << 4) + (uint)(bodyPacket[2] - 47); // это реальная длина данных в пакете
             var array = new byte[mBodyPacket.Length];
             var mul = msgKey * xorKey;
-            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75a024a4) ^ 0xc3903b6a; // 3.0.3.0 archerage.to
+            //var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A02485) ^ 0xc3903b6a; // 1.8.6.2 AA mailru 06 august 2015
+            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A024A7) ^ 0xc3903b6a; // 1.7.0.0 AA 23 june 2015
             var offset = 4;
             if (seq != 0)
             {
