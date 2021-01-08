@@ -308,7 +308,8 @@ namespace AAEmu.Game.Models.Game.Units
                         owner.InterruptSkills();
                 }
                 
-                if (buff.Duration > 0)
+                //if (buff.Duration > 0)
+                if (buff.Duration > 0 || buff.Template.TickEffects.Count > 0)
                     buff.SetInUse(true, false);
                 else
                 {

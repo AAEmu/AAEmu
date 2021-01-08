@@ -178,8 +178,8 @@ namespace AAEmu.Game.Models.Game.Skills
         private BaseUnit GetInitialTarget(Unit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
         {
             var target = (BaseUnit)caster;
-            // HACKFIX : Mounts
-            if (skillCaster.Type == SkillCasterType.Unk3)
+            // HACKFIX : Mounts and Turbulence
+            if (skillCaster.Type == SkillCasterType.Unk3 || ((caster == null) && (skillCaster.Type == SkillCasterType.Unit)))
                 target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
 
             if (Template.TargetType == SkillTargetType.Self)

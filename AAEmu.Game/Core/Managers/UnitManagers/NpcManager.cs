@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Merchant;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -114,11 +115,39 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             _templates = new Dictionary<uint, NpcTemplate>();
             _goods = new Dictionary<uint, MerchantGoods>();
 
+            _log.Info("Loading npc templates...");
             using (var connection = SQLite.CreateConnection())
             {
-                _log.Info("Loading npc templates...");
+                var lid = new Dictionary<uint, List<uint>>();
                 using (var command = connection.CreateCommand())
                 {
+                    // выбыраем случайно из списка totalCustomId
+                    using (var command2 = connection.CreateCommand())
+                    {
+                        command2.CommandText = "SELECT id, model_id FROM total_character_customs";
+                        command2.Prepare();
+                        using (var sqliteDataReader2 = command2.ExecuteReader())
+                        using (var reader2 = new SQLiteWrapperReader(sqliteDataReader2))
+                        {
+                            var modelParams = new UnitCustomModelParams(UnitCustomModelType.Face);
+                            while (reader2.Read())
+                            {
+                                modelParams.SetId(reader2.GetUInt32("id")).SetModelId(reader2.GetUInt32("model_id"));
+                                if (!lid.ContainsKey(modelParams.ModelId))
+                                {
+                                    var lin = new List<uint>
+                                    {
+                                        modelParams.Id
+                                    };
+                                    lid.Add(modelParams.ModelId, lin);
+                                }
+                                else
+                                {
+                                    lid[modelParams.ModelId].Add(modelParams.Id);
+                                }
+                            }
+                        }
+                    }
                     command.CommandText = "SELECT * from npcs";
                     command.Prepare();
                     using (var sqliteDataReader = command.ExecuteReader())
@@ -202,6 +231,61 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             var clothPack = reader.GetInt32("equip_cloths_id", 0);
                             var weaponPack = reader.GetInt32("equip_weapons_id", 0);
                             var totalCustomId = reader.GetInt32("total_custom_id", 0);
+                            using (var command2 = connection.CreateCommand())
+                            {
+                                command2.CommandText = "SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
+                                command2.Prepare();
+                                command2.Parameters.AddWithValue("model_id", template.ModelId);
+                                using (var sqliteReader2 = command2.ExecuteReader())
+                                using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
+                                {
+                                    if (reader2.Read())
+                                    {
+                                        template.Race = reader2.GetByte("char_race_id");
+                                        template.Gender = reader2.GetByte("char_gender_id");
+                                    }
+                                }
+                            }
+
+                            _templates.Add(template.Id, template);
+
+                            if (totalCustomId == 0)
+                            {
+                                var modelParamsId = 0u;
+                                switch ((Race)template.CharRaceId)
+                                {
+                                    case Race.None:
+                                    case Race.Nuian: // Nuian male
+                                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
+                                        break;
+                                    case Race.Dwarf: // Dwarf male
+                                    //    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
+                                        break;
+                                    case Race.Elf: // Elf male
+                                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
+                                        break;
+                                    case Race.Hariharan: // Hariharan male
+                                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)18 : (byte)19;
+                                        break;
+                                    case Race.Ferre: // Ferre male
+                                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
+                                        break;
+                                    case Race.Warborn: // Warborn male
+                                    //    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
+                                        break;
+                                    case Race.Fairy:
+                                    case Race.Returned:
+                                        break;
+                                }
+
+                                if (modelParamsId != 0)
+                                {
+                                    var random = new Random();
+                                    var index = random.Next(lid[modelParamsId].Count);
+                                    var li = lid[modelParamsId];
+                                    totalCustomId = (int)li[index];
+                                }
+                            }
                             if (clothPack > 0)
                             {
                                 using (var command2 = connection.CreateCommand())
@@ -390,25 +474,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                     }
                                 }
                             }
-
-                            using (var command2 = connection.CreateCommand())
-                            {
-                                command2.CommandText =
-                                    "SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
-                                command2.Prepare();
-                                command2.Parameters.AddWithValue("model_id", template.ModelId);
-                                using (var sqliteReader2 = command2.ExecuteReader())
-                                using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
-                                {
-                                    if (reader2.Read())
-                                    {
-                                        template.Race = reader2.GetByte("char_race_id");
-                                        template.Gender = reader2.GetByte("char_gender_id");
-                                    }
-                                }
-                            }
-
-                            _templates.Add(template.Id, template);
                         }
                     }
                 }

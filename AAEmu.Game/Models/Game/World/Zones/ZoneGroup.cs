@@ -13,7 +13,8 @@
         public bool PirateDesperado { get; set; }
         public uint FishingSeaLootPackId { get; set; }
         public uint FishingLandLootPackId { get; set; }
-        // TODO 1.2 // public uint BuffId { get; set; }
+        
+        public uint BuffId { get; set; } // TODO: 1.2 BuffId
         
         public ZoneConflict Conflict { get; set; }
     }
