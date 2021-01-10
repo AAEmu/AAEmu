@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReplyImprisonOrTrialPacket : GamePacket
     {
-        public CSReplyImprisonOrTrialPacket() : base(CSOffsets.CSReplyImprisonOrTrialPacket, 1)
+        public CSReplyImprisonOrTrialPacket() : base(CSOffsets.CSReplyImprisonOrTrialPacket, 5)
         {
         }
 

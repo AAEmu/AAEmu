@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _court;
         private readonly int _juryNumber;
         
-        public SCSummonJuryPacket(uint trial, int court, int juryNumber) : base(SCOffsets.SCSummonJuryPacket,1)
+        public SCSummonJuryPacket(uint trial, int court, int juryNumber) : base(SCOffsets.SCSummonJuryPacket, 5)
         {
             _trial = trial;
             _court = court;

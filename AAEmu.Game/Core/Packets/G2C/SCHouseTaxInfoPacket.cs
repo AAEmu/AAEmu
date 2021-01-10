@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isHeavyTaxHouse;
 
         public SCHouseTaxInfoPacket(ushort tl, int dominionTaxRate, int moneyAmount, int moneyAmount2, DateTime due, bool isAlreadyPaid,
-            int weeksWithoutPay, bool isHeavyTaxHouse) : base(SCOffsets.SCHouseTaxInfoPacket, 1)
+            int weeksWithoutPay, bool isHeavyTaxHouse) : base(SCOffsets.SCHouseTaxInfoPacket, 5)
         {
             _tl = tl;
             _dominionTaxRate = dominionTaxRate;

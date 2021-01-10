@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSNaviTeleportPacket : GamePacket
     {
-        public CSNaviTeleportPacket() : base(CSOffsets.CSNaviTeleportPacket, 1)
+        public CSNaviTeleportPacket() : base(CSOffsets.CSNaviTeleportPacket, 5)
         {
         }
 

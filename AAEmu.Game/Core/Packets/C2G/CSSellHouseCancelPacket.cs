@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellHouseCancelPacket : GamePacket
     {
-        public CSSellHouseCancelPacket() : base(CSOffsets.CSSellHouseCancelPacket, 1)
+        public CSSellHouseCancelPacket() : base(CSOffsets.CSSellHouseCancelPacket, 5)
         {
         }
 

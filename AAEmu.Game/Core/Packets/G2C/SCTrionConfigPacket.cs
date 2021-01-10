@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _platformUrl;
         private readonly string _commerceUrl;
         
-        public SCTrionConfigPacket(bool activate, string authUrl, string platformUrl, string commerceUrl) : base(SCOffsets.SCTrionConfigPacket, 1)
+        public SCTrionConfigPacket(bool activate, string authUrl, string platformUrl, string commerceUrl) : base(SCOffsets.SCTrionConfigPacket, 5)
         {
             _activate = activate;
             _authUrl = authUrl;

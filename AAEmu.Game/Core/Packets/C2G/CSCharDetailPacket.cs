@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCharDetailPacket : GamePacket
     {
-        public CSCharDetailPacket() : base(CSOffsets.CSCharDetailPacket, 1)
+        public CSCharDetailPacket() : base(CSOffsets.CSCharDetailPacket, 5)
         {
         }
 

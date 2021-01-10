@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSpawnSlavePacket : GamePacket
     {
-        public CSSpawnSlavePacket() : base(CSOffsets.CSSpawnSlavePacket, 1)
+        public CSSpawnSlavePacket() : base(CSOffsets.CSSpawnSlavePacket, 5)
         {
         }
 

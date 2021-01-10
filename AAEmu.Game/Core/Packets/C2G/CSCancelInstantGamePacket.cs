@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCancelInstantGamePacket : GamePacket
     {
-        public CSCancelInstantGamePacket() : base(CSOffsets.CSCancelInstantGamePacket, 1)
+        public CSCancelInstantGamePacket() : base(CSOffsets.CSCancelInstantGamePacket, 5)
         {
         }
 

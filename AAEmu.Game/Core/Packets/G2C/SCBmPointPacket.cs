@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly long _bmPoint;
 
-        public SCBmPointPacket(long bmPoint) : base(SCOffsets.SCBmPointPacket, 1)
+        public SCBmPointPacket(long bmPoint) : base(SCOffsets.SCBmPointPacket, 5)
         {
             _bmPoint = bmPoint;
         }

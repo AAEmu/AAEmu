@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _iId;
         private readonly bool _isLootable;
         
-        public SCLootableStatePacket(uint unitId, bool isLootable) : base(SCOffsets.SCLootableStatePacket, 1)
+        public SCLootableStatePacket(uint unitId, bool isLootable) : base(SCOffsets.SCLootableStatePacket, 5)
         {
             _iId = unitId;
             _isLootable = isLootable;

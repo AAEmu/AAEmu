@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Linq;
+
 using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 
@@ -12,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAesXorKey_05_Packet : GamePacket
     {
-        public CSAesXorKey_05_Packet() : base(CSOffsets.CSAesXorKeyPacket, 1)
+        public CSAesXorKey_05_Packet() : base(CSOffsets.CSAesXorKey_05_Packet, 5)
         {
         }
 
@@ -37,8 +36,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             var characters = Connection.Characters.Values.ToArray();
 
             if (characters.Length == 0)
+            {
                 Connection.SendPacket(new SCCharacterListPacket(true, characters));
+            }
             else
+            {
                 for (var i = 0; i < characters.Length; i += 2)
                 {
                     var last = characters.Length - i <= 2;
@@ -46,6 +48,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     Array.Copy(characters, i, temp, 0, temp.Length);
                     Connection.SendPacket(new SCCharacterListPacket(last, temp));
                 }
+            }
 
             //Connection.SendPacket(new SCUnknownPacket_0x14F());
         }

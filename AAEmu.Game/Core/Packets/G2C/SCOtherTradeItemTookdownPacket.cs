@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Item _item;
 
-        public SCOtherTradeItemTookdownPacket(Item item) : base(SCOffsets.SCOtherTradeItemTookdownPacket, 1)
+        public SCOtherTradeItemTookdownPacket(Item item) : base(SCOffsets.SCOtherTradeItemTookdownPacket, 5)
         {
             _item = item;
         }

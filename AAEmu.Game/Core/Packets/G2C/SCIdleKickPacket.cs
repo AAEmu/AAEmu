@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCIdleKickPacket : GamePacket
     {
-        public SCIdleKickPacket() : base(SCOffsets.SCIdleKickPacket, 1)
+        public SCIdleKickPacket() : base(SCOffsets.SCIdleKickPacket, 5)
         {
 
         }

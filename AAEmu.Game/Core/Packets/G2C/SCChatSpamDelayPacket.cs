@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCChatSpamDelayPacket : GamePacket
     {
-        public SCChatSpamDelayPacket() : base(SCOffsets.SCChatSpamDelayPacket, 1)
+        public SCChatSpamDelayPacket() : base(SCOffsets.SCChatSpamDelayPacket, 5)
         {
         }
 

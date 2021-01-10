@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeleteCharacterPacket : GamePacket
     {
-        public CSDeleteCharacterPacket() : base(CSOffsets.CSDeleteCharacterPacket, 1)
+        public CSDeleteCharacterPacket() : base(CSOffsets.CSDeleteCharacterPacket, 5)
         {
         }
 

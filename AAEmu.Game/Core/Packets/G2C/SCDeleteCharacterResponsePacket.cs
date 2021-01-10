@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly DateTime _deleteDelay;
 
         public SCDeleteCharacterResponsePacket(uint characterId, byte status, DateTime? deleteRequestedTime = null, DateTime? deleteDelay = null) 
-            : base(SCOffsets.SCDeleteCharacterResponsePacket, 1)
+            : base(SCOffsets.SCDeleteCharacterResponsePacket, 5)
         {
             _characterId = characterId;
             _status = status;

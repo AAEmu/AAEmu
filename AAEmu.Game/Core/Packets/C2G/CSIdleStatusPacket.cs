@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSIdleStatusPacket : GamePacket
     {
-        public CSIdleStatusPacket() : base(CSOffsets.CSIdleStatusPacket, 1)
+        public CSIdleStatusPacket() : base(CSOffsets.CSIdleStatusPacket, 5)
         {
         }
 

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Buff _buff;
 
-        public SCBuffCreatedPacket(Buff buff) : base(SCOffsets.SCBuffCreatedPacket, 1)
+        public SCBuffCreatedPacket(Buff buff) : base(SCOffsets.SCBuffCreatedPacket, 5)
         {
             _buff = buff;
         }

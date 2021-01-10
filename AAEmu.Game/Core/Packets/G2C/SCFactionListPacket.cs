@@ -13,12 +13,12 @@ namespace AAEmu.Game.Core.Packets.G2C
             _factions = new SystemFaction[] { };
         }
 
-        public SCFactionListPacket(SystemFaction[] factions) : base(SCOffsets.SCFactionListPacket, 1)
+        public SCFactionListPacket(SystemFaction[] factions) : base(SCOffsets.SCFactionListPacket, 5)
         {
             _factions = factions;
         }
 
-        public SCFactionListPacket(SystemFaction faction) : base(SCOffsets.SCFactionListPacket, 1)
+        public SCFactionListPacket(SystemFaction faction) : base(SCOffsets.SCFactionListPacket, 5)
         {
             _factions = new[] {faction};
         }

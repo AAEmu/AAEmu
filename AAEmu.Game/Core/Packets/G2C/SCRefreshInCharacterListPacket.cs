@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCRefreshInCharacterListPacket : GamePacket
     {
-        public SCRefreshInCharacterListPacket() : base(SCOffsets.SCRefreshInCharacterListPacket, 1) // TODO ... SCRaceCongestionPacket?!?!?!
+        public SCRefreshInCharacterListPacket() : base(SCOffsets.SCRefreshInCharacterListPacket, 5) // TODO ... SCRaceCongestionPacket?!?!?!
         {
         }
 

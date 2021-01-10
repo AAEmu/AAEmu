@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeHouseNamePacket : GamePacket
     {
-        public CSChangeHouseNamePacket() : base(CSOffsets.CSChangeHouseNamePacket, 1)
+        public CSChangeHouseNamePacket() : base(CSOffsets.CSChangeHouseNamePacket, 5)
         {
         }
 

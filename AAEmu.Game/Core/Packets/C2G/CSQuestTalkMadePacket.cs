@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSQuestTalkMadePacket : GamePacket
     {
-        public CSQuestTalkMadePacket() : base(CSOffsets.CSQuestTalkMadePacket, 1)
+        public CSQuestTalkMadePacket() : base(CSOffsets.CSQuestTalkMadePacket, 5)
         {
         }
 

@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private uint _amount;
         private uint _gimmickId;
         
-        public SCEnvDamagePacket(EnvSource source, uint target, uint amount, uint gimmickId = 0) : base(SCOffsets.SCEnvDamagePacket, 1)
+        public SCEnvDamagePacket(EnvSource source, uint target, uint amount, uint gimmickId = 0) : base(SCOffsets.SCEnvDamagePacket, 5)
         {
             _source = source;
             _target = target;

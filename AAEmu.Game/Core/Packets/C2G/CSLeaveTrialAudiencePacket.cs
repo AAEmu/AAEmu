@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLeaveTrialAudiencePacket : GamePacket
     {
-        public CSLeaveTrialAudiencePacket() : base(CSOffsets.CSLeaveTrialAudiencePacket, 1)
+        public CSLeaveTrialAudiencePacket() : base(CSOffsets.CSLeaveTrialAudiencePacket, 5)
         {
         }
 

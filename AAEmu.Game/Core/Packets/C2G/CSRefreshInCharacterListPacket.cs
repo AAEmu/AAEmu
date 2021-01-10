@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRefreshInCharacterListPacket : GamePacket
     {
-        public CSRefreshInCharacterListPacket() : base(CSOffsets.CSRefreshInCharacterListPacket, 1)
+        public CSRefreshInCharacterListPacket() : base(CSOffsets.CSRefreshInCharacterListPacket, 5)
         {
         }
 

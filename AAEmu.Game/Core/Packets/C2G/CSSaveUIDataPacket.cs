@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSaveUIDataPacket : GamePacket
     {
-        public CSSaveUIDataPacket() : base(CSOffsets.CSSaveUIDataPacket, 1)
+        public CSSaveUIDataPacket() : base(CSOffsets.CSSaveUIDataPacket, 5)
         {
         }
 

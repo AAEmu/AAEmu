@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSExpandExpertPacket : GamePacket
     {
-        public CSExpandExpertPacket() : base(CSOffsets.CSExpandExpertPacket, 1)
+        public CSExpandExpertPacket() : base(CSOffsets.CSExpandExpertPacket, 5)
         {
         }
 

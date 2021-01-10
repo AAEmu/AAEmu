@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _tl;
         private readonly bool _allowRecover;
         
-        public SCHousingRecoverTogglePacket(ushort tl, bool allowRecover) : base(SCOffsets.SCHousingRecoverTogglePacket, 1)
+        public SCHousingRecoverTogglePacket(ushort tl, bool allowRecover) : base(SCOffsets.SCHousingRecoverTogglePacket, 5)
         {
             _tl = tl;
             _allowRecover = allowRecover;

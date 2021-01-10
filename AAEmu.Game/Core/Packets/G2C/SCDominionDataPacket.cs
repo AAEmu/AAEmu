@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _newlyDeclared;
         private readonly bool _finalDataByRequest;
 
-        public SCDominionDataPacket(DominionData dominionData, bool newlyDeclared, bool finalDataByRequest) : base(SCOffsets.SCDominionDataPacket, 1)
+        public SCDominionDataPacket(DominionData dominionData, bool newlyDeclared, bool finalDataByRequest) : base(SCOffsets.SCDominionDataPacket, 5)
         {
             _dominionData = dominionData;
             _newlyDeclared = newlyDeclared;

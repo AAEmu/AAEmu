@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEquipmentsUnsecurePacket : GamePacket
     {
-        public CSEquipmentsUnsecurePacket() : base(CSOffsets.CSEquipmentsUnsecurePacket, 1)
+        public CSEquipmentsUnsecurePacket() : base(CSOffsets.CSEquipmentsUnsecurePacket, 5)
         {
         }
 

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSResetQuestContextPacket : GamePacket
     {
-        public CSResetQuestContextPacket() : base(CSOffsets.CSResetQuestContextPacket, 1)
+        public CSResetQuestContextPacket() : base(CSOffsets.CSResetQuestContextPacket, 5)
         {
         }
 

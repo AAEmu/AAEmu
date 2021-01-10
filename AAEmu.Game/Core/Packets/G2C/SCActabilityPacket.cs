@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _last;
         private readonly Actability[] _actabilities;
 
-        public SCActabilityPacket(bool last, Actability[] actabilities) : base(SCOffsets.SCActabilityPacket, 1)
+        public SCActabilityPacket(bool last, Actability[] actabilities) : base(SCOffsets.SCActabilityPacket, 5)
         {
             _last = last;
             _actabilities = actabilities;

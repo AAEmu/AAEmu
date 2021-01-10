@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly long _mainId;
         private readonly DateTime _openDate;
         
-        public SCMailReceiverOpenedPacket(long mainId, DateTime openDate) : base(SCOffsets.SCMailReceiverOpenedPacket, 1)
+        public SCMailReceiverOpenedPacket(long mainId, DateTime openDate) : base(SCOffsets.SCMailReceiverOpenedPacket, 5)
         {
             _mainId = mainId;
             _openDate = openDate;

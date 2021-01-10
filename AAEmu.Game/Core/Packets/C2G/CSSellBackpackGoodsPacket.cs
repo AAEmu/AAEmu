@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellBackpackGoodsPacket : GamePacket
     {
-        public CSSellBackpackGoodsPacket() : base(CSOffsets.CSSellBackpackGoodsPacket, 1)
+        public CSSellBackpackGoodsPacket() : base(CSOffsets.CSSellBackpackGoodsPacket, 5)
         {
         }
 

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _type2;
         private readonly bool _kicked;
 
-        public SCSuspectGoingBotTrialPacket(uint type, uint type2, bool kicked) : base(SCOffsets.SCSuspectGoingBotTrialPacket, 1)
+        public SCSuspectGoingBotTrialPacket(uint type, uint type2, bool kicked) : base(SCOffsets.SCSuspectGoingBotTrialPacket, 5)
         {
             _type = type;
             _type2 = type2;

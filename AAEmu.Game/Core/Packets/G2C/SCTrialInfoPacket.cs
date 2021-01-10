@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _crimeRecord;
         private readonly int _botReport;
         public SCTrialInfoPacket(uint type, int crimePoint, int arrest, int acceptGuilty, int acceptTrial, int notGuilty, int guilty, int total, int cur, int crimeRecord, int botReport) 
-            : base(SCOffsets.SCTrialInfoPacket,1)
+            : base(SCOffsets.SCTrialInfoPacket, 5)
         {
             _type = type;
             _crimePoint = crimePoint;

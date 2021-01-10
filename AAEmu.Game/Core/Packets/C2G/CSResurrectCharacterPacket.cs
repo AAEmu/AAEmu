@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSResurrectCharacterPacket : GamePacket
     {
-        public CSResurrectCharacterPacket() : base(CSOffsets.CSResurrectCharacterPacket, 1)
+        public CSResurrectCharacterPacket() : base(CSOffsets.CSResurrectCharacterPacket, 5)
         {
         }
 

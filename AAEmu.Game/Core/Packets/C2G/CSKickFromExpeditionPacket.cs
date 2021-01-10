@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSKickFromExpeditionPacket : GamePacket
     {
-        public CSKickFromExpeditionPacket() : base(CSOffsets.CSKickFromExpeditionPacket, 1)
+        public CSKickFromExpeditionPacket() : base(CSOffsets.CSKickFromExpeditionPacket, 5)
         {
         }
 

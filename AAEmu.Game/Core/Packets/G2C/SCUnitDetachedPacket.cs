@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _childUnitId;
         private readonly byte _reason;
 
-        public SCUnitDetachedPacket(uint objId, byte reason) : base(SCOffsets.SCUnitDetachedPacket, 1)
+        public SCUnitDetachedPacket(uint objId, byte reason) : base(SCOffsets.SCUnitDetachedPacket, 5)
         {
             _childUnitId = objId;
             _reason = reason;

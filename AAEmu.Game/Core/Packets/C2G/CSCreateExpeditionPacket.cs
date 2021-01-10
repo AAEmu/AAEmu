@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCreateExpeditionPacket : GamePacket
     {
-        public CSCreateExpeditionPacket() : base(CSOffsets.CSCreateExpeditionPacket, 1)
+        public CSCreateExpeditionPacket() : base(CSOffsets.CSCreateExpeditionPacket, 5)
         {
         }
 

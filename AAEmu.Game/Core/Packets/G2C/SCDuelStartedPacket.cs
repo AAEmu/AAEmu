@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _challengerObjId;
         private readonly uint _challengedObjId;
 
-        public SCDuelStartedPacket(uint challengerObjId, uint challengedObjId) : base(SCOffsets.SCDuelStartedPacket, 1)
+        public SCDuelStartedPacket(uint challengerObjId, uint challengedObjId) : base(SCOffsets.SCDuelStartedPacket, 5)
         {
             _challengerObjId = challengerObjId;
             _challengedObjId = challengedObjId;

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Doodad _doodad;
         private readonly uint _soundId;
 
-        public SCDoodadSoundPacket(Doodad doodad, uint soundId) : base(SCOffsets.SCDoodadSoundPacket, 1)
+        public SCDoodadSoundPacket(Doodad doodad, uint soundId) : base(SCOffsets.SCDoodadSoundPacket, 5)
         {
             _doodad = doodad;
             _soundId = soundId;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers
     {
         private long _mailid;
 
-        public SCChargeMoneyPaid(long id) : base(SCOffsets.SCChargeMoneyPaidPacket, 1)
+        public SCChargeMoneyPaid(long id) : base(SCOffsets.SCChargeMoneyPaidPacket, 5)
         {
             _mailid = id;
         }

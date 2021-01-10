@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isSent;
         private readonly long _mailId;
         
-        public SCMailRemovedPacket(bool isSent, long mailId) : base(SCOffsets.SCMailRemovedPacket, 1)
+        public SCMailRemovedPacket(bool isSent, long mailId) : base(SCOffsets.SCMailRemovedPacket, 5)
         {
             _isSent = isSent;
             _mailId = mailId;

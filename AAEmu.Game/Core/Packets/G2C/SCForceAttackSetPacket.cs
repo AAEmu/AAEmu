@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly bool _on;
 
-        public SCForceAttackSetPacket(uint objId, bool on) : base(SCOffsets.SCForceAttackSetPacket, 1)
+        public SCForceAttackSetPacket(uint objId, bool on) : base(SCOffsets.SCForceAttackSetPacket, 5)
         {
             _objId = objId;
             _on = on;

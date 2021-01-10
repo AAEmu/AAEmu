@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBroadcastVisualOptionPacket : GamePacket
     {
-        public CSBroadcastVisualOptionPacket() : base(CSOffsets.CSBroadcastVisualOptionPacket, 1)
+        public CSBroadcastVisualOptionPacket() : base(CSOffsets.CSBroadcastVisualOptionPacket, 5)
         {
         }
 

@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public SCPlotEventPacket(ushort tl, uint eventId, uint skillId, PlotObject caster, PlotObject target,
             uint objId, ushort castingTime, byte flag, ulong itemId = 0L, byte targetUnitCount = 1)
-            : base(SCOffsets.SCPlotEventPacket, 1)
+            : base(SCOffsets.SCPlotEventPacket, 5)
         {
             _tl = tl;
             _eventId = eventId;

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReportCrimePacket : GamePacket
     {
-        public CSReportCrimePacket() : base(CSOffsets.CSReportCrimePacket, 1)
+        public CSReportCrimePacket() : base(CSOffsets.CSReportCrimePacket, 5)
         {
         }
 

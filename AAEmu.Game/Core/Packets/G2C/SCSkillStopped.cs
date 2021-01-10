@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _unitObjId;
         private readonly uint _skillId;
 
-        public SCSkillStoppedPacket(uint unitObjId, uint skillId) : base(SCOffsets.SCSkillStoppedPacket, 1)
+        public SCSkillStoppedPacket(uint unitObjId, uint skillId) : base(SCOffsets.SCSkillStoppedPacket, 5)
         {
             _unitObjId = unitObjId;
             _skillId = skillId;

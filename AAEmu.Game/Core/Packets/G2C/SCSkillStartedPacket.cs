@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public int CastTime { get; set; }
 
         public SCSkillStartedPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) 
-            : base(SCOffsets.SCSkillStartedPacket, 1)
+            : base(SCOffsets.SCSkillStartedPacket, 5)
         {
             _id = id;
             _tl = tl;

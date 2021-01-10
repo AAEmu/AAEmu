@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             _relations = new FactionRelation[] { };
         }
 
-        public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 1)
+        public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 5)
         {
             _relations = relations;
         }

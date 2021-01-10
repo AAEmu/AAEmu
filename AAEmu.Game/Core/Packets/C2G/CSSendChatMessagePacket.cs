@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendChatMessagePacket : GamePacket
     {
-        public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 1)
+        public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 5)
         {
         }
 

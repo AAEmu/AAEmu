@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _result;
         private readonly (byte mainTab, List<byte> subTabs)[] _tabs;
 
-        public SCICSMenuListPacket(byte result) : base(SCOffsets.SCICSMenuListPacket, 1)
+        public SCICSMenuListPacket(byte result) : base(SCOffsets.SCICSMenuListPacket, 5)
         {
             _result = result;
             _tabs = new (byte mainTab, List<byte> subTabs)[]

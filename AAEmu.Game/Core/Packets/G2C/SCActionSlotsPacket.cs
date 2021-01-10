@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ActionSlot[] _slots;
 
-        public SCActionSlotsPacket(ActionSlot[] slots) : base(SCOffsets.SCActionSlotsPacket, 1)
+        public SCActionSlotsPacket(ActionSlot[] slots) : base(SCOffsets.SCActionSlotsPacket, 5)
         {
             _slots = slots;
         }

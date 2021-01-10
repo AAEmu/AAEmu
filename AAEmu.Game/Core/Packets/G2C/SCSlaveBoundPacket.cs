@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _masterId;
         private readonly uint _slaveId;
 
-        public SCSlaveBoundPacket(uint masterId, uint slaveId) : base(SCOffsets.SCSlaveBoundPacket, 1)
+        public SCSlaveBoundPacket(uint masterId, uint slaveId) : base(SCOffsets.SCSlaveBoundPacket, 5)
         {
             _masterId = masterId;
             _slaveId = slaveId;

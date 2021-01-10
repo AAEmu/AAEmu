@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetCraftingPayPacket : GamePacket
     {
-        public CSSetCraftingPayPacket() : base(CSOffsets.CSSetCraftingPayPacket, 1)
+        public CSSetCraftingPayPacket() : base(CSOffsets.CSSetCraftingPayPacket, 5)
         {
         }
 

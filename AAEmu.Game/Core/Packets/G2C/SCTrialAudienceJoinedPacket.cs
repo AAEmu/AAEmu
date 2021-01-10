@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _audienceName;
 
         public SCTrialAudienceJoinedPacket(uint trialId, byte bc, string audienceName) :
-            base(SCOffsets.SCTrialAudienceJoinedPacket, 1)
+            base(SCOffsets.SCTrialAudienceJoinedPacket, 5)
         {
             _trialId = trialId;
             _bc = bc;

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly bool[] _used;
 
-        public SCAccountAttributeConfigPacket(bool[] used) : base(SCOffsets.SCAccountAttributeConfigPacket, 1)
+        public SCAccountAttributeConfigPacket(bool[] used) : base(SCOffsets.SCAccountAttributeConfigPacket, 5)
         {
             _used = used;
         }

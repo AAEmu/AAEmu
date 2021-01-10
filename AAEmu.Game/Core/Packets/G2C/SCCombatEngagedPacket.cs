@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _objId;
 
-        public SCCombatEngagedPacket(uint objId) : base(SCOffsets.SCCombatEngagedPacket, 1)
+        public SCCombatEngagedPacket(uint objId) : base(SCOffsets.SCCombatEngagedPacket, 5)
         {
             _objId = objId;
         }

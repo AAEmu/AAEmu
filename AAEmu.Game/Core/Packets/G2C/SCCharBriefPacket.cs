@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _name;
         private readonly Race _race;
 
-        public SCCharBriefPacket(uint charId, string name, Race race) : base(SCOffsets.SCCharBriefPacket, 1)
+        public SCCharBriefPacket(uint charId, string name, Race race) : base(SCOffsets.SCCharBriefPacket, 5)
         {
             _charId = charId;
             _name = name;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly (long x, byte unitRelationshipCode, byte unitRelationshipReason)[] _relationships;
 
         public SCFvFCombatRelationshipPacket((long x, byte unitRelationshipCode, byte unitRelationshipReason)[] relationships)
-            : base(SCOffsets.SCFvFCombatRelationshipPacket, 1)
+            : base(SCOffsets.SCFvFCombatRelationshipPacket, 5)
         {
             _relationships = relationships;
         }

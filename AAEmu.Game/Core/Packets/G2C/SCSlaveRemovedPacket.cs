@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly ushort _tl;
 
-        public SCSlaveRemovedPacket(uint id, ushort tl) : base(SCOffsets.SCSlaveRemovedPacket, 1)
+        public SCSlaveRemovedPacket(uint id, ushort tl) : base(SCOffsets.SCSlaveRemovedPacket, 5)
         {
             _id = id;
             _tl = tl;

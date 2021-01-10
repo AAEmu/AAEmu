@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _z;
 
         public SCMySlavePacket(uint unitId, ushort tl, string slaveName, uint templateId, int hp, int maxHp, float x, float y, float z)
-            : base(SCOffsets.SCMySlavePacket, 1)
+            : base(SCOffsets.SCMySlavePacket, 5)
         {
             _unitId = unitId;
             _tl = tl;

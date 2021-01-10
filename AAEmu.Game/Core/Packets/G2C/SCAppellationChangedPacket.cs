@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly uint _appellationId;
 
-        public SCAppellationChangedPacket(uint objId, uint appellationId) : base(SCOffsets.SCAppellationChangedPacket, 1)
+        public SCAppellationChangedPacket(uint objId, uint appellationId) : base(SCOffsets.SCAppellationChangedPacket, 5)
         {
             _objId = objId;
             _appellationId = appellationId;

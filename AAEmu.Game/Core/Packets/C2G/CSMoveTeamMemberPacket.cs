@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSMoveTeamMemberPacket : GamePacket
     {
-        public CSMoveTeamMemberPacket() : base(CSOffsets.CSMoveTeamMemberPacket, 1)
+        public CSMoveTeamMemberPacket() : base(CSOffsets.CSMoveTeamMemberPacket, 5)
         {
         }
 

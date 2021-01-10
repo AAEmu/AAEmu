@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint[] _ids;
 
-        public SCUnitsRemovedPacket(uint[] ids) : base(SCOffsets.SCUnitsRemovedPacket, 1)
+        public SCUnitsRemovedPacket(uint[] ids) : base(SCOffsets.SCUnitsRemovedPacket, 5)
         {
             _ids = ids;
         }

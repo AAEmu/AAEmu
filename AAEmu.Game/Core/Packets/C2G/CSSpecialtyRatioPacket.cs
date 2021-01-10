@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSpecialtyRatioPacket : GamePacket
     {
-        public CSSpecialtyRatioPacket() : base(CSOffsets.CSSpecialtyRatioPacket, 1)
+        public CSSpecialtyRatioPacket() : base(CSOffsets.CSSpecialtyRatioPacket, 5)
         {
         }
 

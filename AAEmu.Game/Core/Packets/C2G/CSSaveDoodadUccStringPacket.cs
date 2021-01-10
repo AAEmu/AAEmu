@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSaveDoodadUccStringPacket : GamePacket
     {
-        public CSSaveDoodadUccStringPacket() : base(CSOffsets.CSSaveDoodadUccStringPacket, 1)
+        public CSSaveDoodadUccStringPacket() : base(CSOffsets.CSSaveDoodadUccStringPacket, 5)
         {
         }
 

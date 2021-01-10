@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public SkillHitType HitType { get; set; }
 
         public SCUnitDamagedPacket(CastAction castAction, SkillCaster skillCaster, uint casterId, uint targetId, int damage, int absorbed)
-            : base(SCOffsets.SCUnitDamagedPacket, 1)
+            : base(SCOffsets.SCUnitDamagedPacket, 5)
         {
             _castAction = castAction;
             _skillCaster = skillCaster;

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly byte _next;
 
-        public SCExpertExpandedPacket(byte next) : base(SCOffsets.SCExpertExpandedPacket, 1)
+        public SCExpertExpandedPacket(byte next) : base(SCOffsets.SCExpertExpandedPacket, 5)
         {
             _next = next;
         }

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFamilyInviteMemberPacket : GamePacket
     {
-        public CSFamilyInviteMemberPacket() : base(CSOffsets.CSFamilyInviteMemberPacket, 1)
+        public CSFamilyInviteMemberPacket() : base(CSOffsets.CSFamilyInviteMemberPacket, 5)
         {
         }
 

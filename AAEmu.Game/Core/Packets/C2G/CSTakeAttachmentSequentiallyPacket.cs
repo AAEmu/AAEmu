@@ -4,9 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSTakeAttachmentSequentially : GamePacket
+    public class CSTakeAttachmentSequentiallyPacket : GamePacket
     {
-        public CSTakeAttachmentSequentially() : base(CSOffsets.CSTakeAttachmentSequentially, 1)
+        public CSTakeAttachmentSequentiallyPacket() : base(CSOffsets.CSTakeAttachmentSequentiallyPacket, 1)
         {
         }
 

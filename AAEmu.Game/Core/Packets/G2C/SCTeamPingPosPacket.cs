@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Point _position;
         private readonly uint _insId;
 
-        public SCTeamPingPosPacket(bool hasPing, Point position, uint insId) : base(SCOffsets.SCTeamPingPosPacket, 1)
+        public SCTeamPingPosPacket(bool hasPing, Point position, uint insId) : base(SCOffsets.SCTeamPingPosPacket, 5)
         {
             _hasPing = hasPing;
             _position = position;

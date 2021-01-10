@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isSent;
         private readonly MailHeader[] _mails;
 
-        public SCMailListPacket(bool isSent, MailHeader[] mails) : base(SCOffsets.SCMailListPacket, 1)
+        public SCMailListPacket(bool isSent, MailHeader[] mails) : base(SCOffsets.SCMailListPacket, 5)
         {
             _isSent = isSent;
             _mails = mails;

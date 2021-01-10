@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSHangPacket : GamePacket
     {
-        public CSHangPacket() : base(CSOffsets.CSHangPacket, 1)
+        public CSHangPacket() : base(CSOffsets.CSHangPacket, 5)
         {
         }
 

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _point;
         
-        public SCICSCashPointPacket(int point) : base(SCOffsets.SCICSCashPointPacket, 1)
+        public SCICSCashPointPacket(int point) : base(SCOffsets.SCICSCashPointPacket, 5)
         {
             _point = point;
         }

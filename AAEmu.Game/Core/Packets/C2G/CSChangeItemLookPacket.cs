@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeItemLookPacket : GamePacket
     {
-        public CSChangeItemLookPacket() : base(CSOffsets.CSChangeItemLookPacket, 1)
+        public CSChangeItemLookPacket() : base(CSOffsets.CSChangeItemLookPacket, 5)
         {
         }
 

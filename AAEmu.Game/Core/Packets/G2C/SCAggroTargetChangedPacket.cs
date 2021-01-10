@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _npcId;
         private readonly uint _targetId;
 
-        public SCAggroTargetChangedPacket(uint npcId, uint targetId) : base(SCOffsets.SCAggroTargetChangedPacket, 1)
+        public SCAggroTargetChangedPacket(uint npcId, uint targetId) : base(SCOffsets.SCAggroTargetChangedPacket, 5)
         {
             _npcId = npcId;
             _targetId = targetId;

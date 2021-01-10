@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly float _time;
 
-        public SCTimeOfDayPacket(float time) : base(SCOffsets.SCTimeOfDayPacket, 1)
+        public SCTimeOfDayPacket(float time) : base(SCOffsets.SCTimeOfDayPacket, 5)
         {
             _time = time;
         }

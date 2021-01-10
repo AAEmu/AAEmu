@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSConvertToRaidTeamPacket : GamePacket
     {
-        public CSConvertToRaidTeamPacket() : base(CSOffsets.CSConvertToRaidTeamPacket, 1)
+        public CSConvertToRaidTeamPacket() : base(CSOffsets.CSConvertToRaidTeamPacket, 5)
         {
         }
 

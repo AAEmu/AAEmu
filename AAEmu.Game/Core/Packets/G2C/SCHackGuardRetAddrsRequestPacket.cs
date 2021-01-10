@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _sendAddrs;
         private readonly bool _spMd5;
 
-        public SCHackGuardRetAddrsRequestPacket(bool sendAddrs, bool spMd5) : base(SCOffsets.SCHackGuardRetAddrsRequestPacket, 1)
+        public SCHackGuardRetAddrsRequestPacket(bool sendAddrs, bool spMd5) : base(SCOffsets.SCHackGuardRetAddrsRequestPacket, 5)
         {
             _sendAddrs = sendAddrs;
             _spMd5 = spMd5;

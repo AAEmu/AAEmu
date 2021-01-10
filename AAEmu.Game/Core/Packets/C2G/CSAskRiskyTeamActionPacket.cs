@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAskRiskyTeamActionPacket : GamePacket
     {
-        public CSAskRiskyTeamActionPacket() : base(CSOffsets.CSAskRiskyTeamActionPacket, 1)
+        public CSAskRiskyTeamActionPacket() : base(CSOffsets.CSAskRiskyTeamActionPacket, 5)
         {
         }
 

@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCancelTradePacket : GamePacket
     {
-        public CSCancelTradePacket() : base(CSOffsets.CSCancelTradePacket, 1)
+        public CSCancelTradePacket() : base(CSOffsets.CSCancelTradePacket, 5)
         {
         }
 

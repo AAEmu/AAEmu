@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSJoinUserChatChannelPacket : GamePacket
     {
-        public CSJoinUserChatChannelPacket() : base(CSOffsets.CSJoinUserChatChannelPacket, 1)
+        public CSJoinUserChatChannelPacket() : base(CSOffsets.CSJoinUserChatChannelPacket, 5)
         {
         }
 
