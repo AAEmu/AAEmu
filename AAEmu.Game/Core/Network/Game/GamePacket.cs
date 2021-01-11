@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Threading;
+
 using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Core.Network.Game
@@ -15,12 +14,12 @@ namespace AAEmu.Game.Core.Network.Game
         {
             Level = level;
         }
-        
+
         /// <summary>
         /// This is called in Encode after Read() in the case of GamePackets
         /// The purpose is to separate packet data from packet behavior
         /// </summary>
-        public virtual void Execute(){}
+        public virtual void Execute() { }
 
         public override PacketStream Encode()
         {
@@ -78,9 +77,11 @@ namespace AAEmu.Game.Core.Network.Game
                 !(TypeId == 0x016 && Level == 2) && // FastPong
                 !(TypeId == 0x1a0 && Level == 5) && // SCUnitMovements
                 !(TypeId == 0x1c4 && Level == 5))   // SCOneUnitMovement
-                //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
+            {
+                _log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, ToString().Substring(23));
                 //_log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                _log.Warn("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
+                //_log.Warn("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
+            }
 
             return ps;
         }
@@ -92,9 +93,9 @@ namespace AAEmu.Game.Core.Network.Game
                 !(TypeId == 0x015 && Level == 2) && // FastPing
                 !(TypeId == 0x03c && Level == 1)) // CSMoveUnit
             {
-                //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
+                _log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, ToString().Substring(23));
                 //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                _log.Warn("GamePacket: C->S type {0:X3} {1}", TypeId, ToString().Substring(23));
+                //_log.Warn("GamePacket: C->S type {0:X3} {1}", TypeId, ToString().Substring(23));
             }
             try
             {
