@@ -487,7 +487,7 @@ namespace AAEmu.Game.Core.Managers
             unit.SendPacket(new SCJoinedTeamPacket(activeTeam));
             unit.InParty = true;
             activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newInfo, activeTeam.GetParty(activeTeam.GetIndex(unit.Id))));
-            //activeTeam.BroadcastPacket(new SCRefreshTeamMemberPacket(activeTeam.Id, unit.Id, unit.ObjId));
+            activeTeam.BroadcastPacket(new SCRefreshTeamMemberPacket(activeTeam.Id, unit.Id, unit.ObjId));
             if (!activeTeam.IsParty)
                 ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(unit);
             ChatManager.Instance.GetPartyChat(activeTeam, unit).JoinChannel(unit);

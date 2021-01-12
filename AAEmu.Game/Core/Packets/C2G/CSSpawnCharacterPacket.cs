@@ -23,9 +23,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Connection.SendPacket(new SCUnitStatePacket(Connection.ActiveChar));
 
-            Connection.ActiveChar.PushSubscriber(
-                TimeManager.Instance.Subscribe(Connection, new TimeOfDayObserver(Connection.ActiveChar))
-            );
+            Connection.ActiveChar.PushSubscriber(TimeManager.Instance.Subscribe(Connection, new TimeOfDayObserver(Connection.ActiveChar)));
 
             _log.Info("CSSpawnCharacterPacket");
         }

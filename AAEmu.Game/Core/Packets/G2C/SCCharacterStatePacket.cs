@@ -17,11 +17,11 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_character.InstanceId); // instanceId
-            stream.Write(_character.Guid); // guid
-            stream.Write(0); // rwd
+            stream.Write(_character.InstanceId); // iid
+            stream.Write(_character.Guid);       // guid
+            stream.Write(0);                     // rwd
 
-            _character.Write(stream);
+            _character.Write(stream); // CharacterReader
 
             stream.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDB, 0xFB, 0x17, 0xC0 }); //angles
             stream.Write(_character.Expirience);     // exp
@@ -36,33 +36,32 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((uint)0); // abilityExp
             }
 
-            stream.Write(0);                                                   // totalSentMail add in 1200 march
-            stream.Write(0);                                                   // totalMail add in 1200 march
-            stream.Write(0);                                                   // totalMiaMail add in 1200 march
-            stream.Write(0);                                                   // totalCommercialMail add in 1200 march
-            stream.Write(_character.Mails.unreadMailCount.Received);           // unreadMail
-            stream.Write(_character.Mails.unreadMailCount.MiaReceived);        // unreadMiaMail
-            stream.Write(_character.Mails.unreadMailCount.CommercialReceived); // unreadCommercialMail
-            stream.Write(_character.NumInventorySlots);                        // numInvenSlots
-            stream.Write(_character.NumBankSlots);                             // numBankSlots
-            stream.Write(_character.Money);                                    // moneyAmount - Inventory
-            stream.Write(_character.Money2);                                   // moneyAmount - Bank
-            stream.Write(0L);                                                  // moneyAmount
-            stream.Write(0L);                                                  // moneyAmount
+            stream.Write(_character.Mails.unreadMailCount.TotalSent);                // totalSentMail add in 1200 march
+            stream.Write(_character.Mails.unreadMailCount.TotalReceived);            // totalMail add in 1200 march
+            stream.Write(_character.Mails.unreadMailCount.TotalMiaReceived);         // totalMiaMail add in 1200 march
+            stream.Write(_character.Mails.unreadMailCount.TotalCommercialReceived);  // totalCommercialMail add in 1200 march
+            stream.Write(_character.Mails.unreadMailCount.UnreadReceived);           // unreadMail
+            stream.Write(_character.Mails.unreadMailCount.UnreadMiaReceived);        // unreadMiaMail
+            stream.Write(_character.Mails.unreadMailCount.UnreadCommercialReceived); // unreadCommercialMail
+            stream.Write(_character.NumInventorySlots);                              // numInvenSlots
+            stream.Write(_character.NumBankSlots);                                   // numBankSlots
+            stream.Write(_character.Money);                                          // moneyAmount - Inventory
+            stream.Write(_character.Money2);                                         // moneyAmount - Bank
+            stream.Write(0L);                                                        // moneyAmount
+            stream.Write(0L);                                                        // moneyAmount
 
             stream.Write(_character.AutoUseAAPoint);
 
             stream.Write(0);               // juryPoint
             stream.Write(0);               // jailSeconds
-
             stream.Write(0L);              // bountyMoney
             stream.Write(0L);              // bountyTime
-
             stream.Write(0);               // reportedNo
             stream.Write(0);               // suspectedNo
-            stream.Write(0);               // totalPlayTime
 
-            stream.Write(DateTime.UtcNow); // createdTime
+            _character.TotalPlayTime = _character.CreatedTime.Hour + DateTime.UtcNow.Hour;
+            stream.Write(_character.TotalPlayTime); // totalPlayTime
+            stream.Write(_character.CreatedTime); // createdTime
 
             stream.Write(_character.ExpandedExpert);
 

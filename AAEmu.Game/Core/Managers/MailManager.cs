@@ -288,13 +288,13 @@ namespace AAEmu.Game.Core.Managers
         public Dictionary<long, BaseMail> GetCurrentMailList(Character character)
         {
             var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
-            character.Mails.unreadMailCount.Received = 0;
+            character.Mails.unreadMailCount.UnreadReceived = 0;
             foreach (var mail in tempMails)
             {
                 //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
                 if (mail.Value.Header.Status != MailStatus.Read)
                 {
-                    character.Mails.unreadMailCount.Received += 1;
+                    character.Mails.unreadMailCount.UnreadReceived += 1;
                     character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, null));
                     mail.Value.IsDelivered = true;
                 }
@@ -311,7 +311,7 @@ namespace AAEmu.Game.Core.Managers
                 var player = WorldManager.Instance.GetCharacter(receiverName);
                 if (player != null)
                 {
-                    player.Mails.unreadMailCount.Received++;
+                    player.Mails.unreadMailCount.UnreadReceived++;
                     player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.unreadMailCount, false, null));
                     m.IsDelivered = true;
                     return true;
@@ -327,7 +327,7 @@ namespace AAEmu.Game.Core.Managers
             if (player != null)
             {
                 if (m.Header.Status != MailStatus.Read)
-                    player.Mails.unreadMailCount.Received--;
+                    player.Mails.unreadMailCount.UnreadReceived--;
                 player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.unreadMailCount));
                 return true;
             }
@@ -440,7 +440,7 @@ namespace AAEmu.Game.Core.Managers
                 if (mail.Header.Status != MailStatus.Read)
                 {
                     mail.Header.Status = MailStatus.Read;
-                    character.Mails.unreadMailCount.Received--;
+                    character.Mails.unreadMailCount.UnreadReceived--;
                 }
 
                 character.SendPacket(new SCChargeMoneyPaid(mail.Id));

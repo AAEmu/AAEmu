@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Skills
+﻿namespace AAEmu.Game.Models.Game.Skills
 {
     public enum AbilityType : byte
     {

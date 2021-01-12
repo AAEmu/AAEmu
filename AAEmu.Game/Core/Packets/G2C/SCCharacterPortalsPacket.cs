@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCCharacterPortalsPacket : GamePacket
     {
         private readonly Portal[] _portals;
-        
+
         public SCCharacterPortalsPacket(Portal[] portals) : base(SCOffsets.SCCharacterPortalsPacket, 5)
         {
             _portals = portals;
@@ -15,9 +15,12 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_portals.Length);
+            stream.Write(_portals.Length); // count Int32
             foreach (var portal in _portals)
+            {
                 stream.Write(portal);
+            }
+
             return stream;
         }
     }

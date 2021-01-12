@@ -7,7 +7,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units.Route;
-using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -31,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var houses = Connection.Houses.Values.Where(x => x.OwnerId == character.Id);
 
                 Connection.ActiveChar = character;
-                if (Models.Game.Char.Character._usedCharacterObjIds.TryGetValue(character.Id, out uint oldObjId))
+                if (Models.Game.Char.Character._usedCharacterObjIds.TryGetValue(character.Id, out var oldObjId))
                 {
                     Connection.ActiveChar.ObjId = oldObjId;
                 }
@@ -43,43 +42,41 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Connection.ActiveChar.Simulation = new Simulation(character);
 
-                Connection.ActiveChar.Simulation = new Simulation(character);
+                Connection.SendPacket(new SCCharacterStatePacket(character)); // ++
+                Connection.SendPacket(new SCCharacterGamePointsPacket(character)); // ++
+                Connection.ActiveChar.Inventory.Send(); // ++
+                Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots)); // ++
 
-                Connection.SendPacket(new SCCharacterStatePacket(character));
-                Connection.SendPacket(new SCCharacterGamePointsPacket(character));
-                Connection.ActiveChar.Inventory.Send();
-                Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
+                Connection.ActiveChar.Quests.Send();          // ++
+                Connection.ActiveChar.Quests.SendCompleted(); // ++
 
-                Connection.ActiveChar.Quests.Send();
-                Connection.ActiveChar.Quests.SendCompleted();
-
-                Connection.ActiveChar.Actability.Send();
-                Connection.ActiveChar.Mails.SendUnreadMailCount();
-                Connection.ActiveChar.Appellations.Send();
-                Connection.ActiveChar.Portals.Send();
-                Connection.ActiveChar.Friends.Send();
-                Connection.ActiveChar.Blocked.Send();
+                Connection.ActiveChar.Actability.Send();      // ++
+                Connection.ActiveChar.Mails.SendUnreadMailCount(); //++
+                Connection.ActiveChar.Appellations.Send(); // ++
+                Connection.ActiveChar.Portals.Send();      // ++
+                Connection.ActiveChar.Friends.Send();      // ++
+                Connection.ActiveChar.Blocked.Send();      // ++
 
                 foreach (var house in houses)
                 {
-                    Connection.SendPacket(new SCMyHousePacket(house));
+                    Connection.SendPacket(new SCMyHouseStatePacket(house)); // ++
                 }
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {
-                    Connection.SendPacket(new SCConflictZoneStatePacket(conflict.ZoneGroupId, conflict.CurrentZoneState, conflict.NextStateTime));
+                    Connection.SendPacket(new SCConflictZoneStatePacket(conflict.ZoneGroupId, conflict.CurrentZoneState, conflict.NextStateTime)); // ++
                 }
 
-                FactionManager.Instance.SendFactions(Connection.ActiveChar);
-                FactionManager.Instance.SendRelations(Connection.ActiveChar);
-                ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
+                FactionManager.Instance.SendFactions(Connection.ActiveChar);       // ++
+                FactionManager.Instance.SendRelations(Connection.ActiveChar);      // ++
+                ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar); // ++
 
                 if (Connection.ActiveChar.Expedition != null)
                 {
-                    ExpeditionManager.Instance.SendExpeditionInfo(Connection.ActiveChar);
+                    ExpeditionManager.Instance.SendExpeditionInfo(Connection.ActiveChar); // ++
                 }
 
-                Connection.ActiveChar.SendOption(1);
+                Connection.ActiveChar.SendOption(1); // ++
                 Connection.ActiveChar.SendOption(2);
                 Connection.ActiveChar.SendOption(5);
             }

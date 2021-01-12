@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+
 using AAEmu.Commons.Network;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using Quartz.Impl.AdoJobStore;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
     public class MailBody : PacketMarshaler
     {
         public const byte MaxMailAttachments = 10;
-        private BaseMail _baseMail;
+        private readonly BaseMail _baseMail;
         private string _text;
         private int _copperCoins;
         private int _billingAmount;
@@ -51,12 +49,16 @@ namespace AAEmu.Game.Models.Game.Mails
             stream.Write(SendDate);
             stream.Write(RecvDate);
             stream.Write(OpenDate);
-            for (var i = 0; i < MaxMailAttachments; i++)
+            for (var i = 0; i < MaxMailAttachments; i++) // in 1.2 = 10
             {
                 if ((i >= Attachments.Count) || (Attachments[i] == null))
+                {
                     stream.Write(0);
+                }
                 else
+                {
                     stream.Write(Attachments[i]);
+                }
             }
 
             return stream;

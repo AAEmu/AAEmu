@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -18,8 +18,11 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_team);
             foreach (var member in _team.Members)
             {
-                if (member?.Character == null) 
+                if (member?.Character == null)
+                {
                     continue;
+                }
+
                 stream.Write(member);
             }
 

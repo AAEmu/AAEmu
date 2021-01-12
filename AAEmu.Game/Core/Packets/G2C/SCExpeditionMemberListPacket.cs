@@ -1,7 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Expeditions;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -23,16 +23,19 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             _total = (uint)expedition.Members.Count;
             _id = expedition.Id;
-            _members = expedition.Members; // TODO max 20
+            _members = expedition.Members; // TODO in 1.2 max 20
         }
 
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_total);
-            stream.Write((byte)_members.Count); // TODO max length 20
+            stream.Write((byte)_members.Count); // TODO in 1.2 max length 20
             stream.Write(_id); // expedition id
             foreach (var member in _members)
+            {
                 stream.Write(member);
+            }
+
             return stream;
         }
     }

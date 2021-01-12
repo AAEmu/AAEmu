@@ -78,7 +78,7 @@ namespace AAEmu.Game.Scripts.Commands
                         return;
                     case "check":
                         character.Mails.SendUnreadMailCount();
-                        character.SendMessage("[TestMail] {0} unread mails", character.Mails.unreadMailCount.Received);
+                        character.SendMessage("[TestMail] {0} unread mails", character.Mails.unreadMailCount.UnreadReceived);
                         return;
                     default:
                         if (MailType.TryParse(args[0], out MailType mTypeByName))

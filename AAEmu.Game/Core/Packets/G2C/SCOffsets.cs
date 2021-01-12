@@ -18,7 +18,7 @@
         public const ushort SCExpeditionRoleChangedPacket = 0x12a;
         public const ushort SCExpeditionOwnerChangedPacket = 0x183;
         public const ushort SCExpeditionShowRenameUIPacket = 0x13c;
-        public const ushort SCUnkPacket_0x165 = 0x165;
+        public const ushort SCUnknownPacket_0x165 = 0x165;
         public const ushort SCFactionRenamedPacket = 0x067;
         public const ushort SCFactionRetryRenamePacket = 0x071;
         public const ushort SCFactionCreatedPacket = 0x1fd;
@@ -97,7 +97,7 @@
         public const ushort SCCastingDelayedPacket = 0x08c;
         public const ushort SCUnitDamagedPacket = 0x200;
         public const ushort SCUnitHealedPacket = 0x199;
-        public const ushort SCUnkPacket_0x198Packet = 0x198;
+        public const ushort SCUnknownPacket_0x198 = 0x198;
         public const ushort SCBuffCreatedPacket = 0x06d;
         public const ushort SCBuffRemovedPacket = 0x1e0;
         public const ushort SCBuffUpdatedPacket = 0x178;
@@ -125,7 +125,7 @@
         public const ushort SCChatMessagePacket = 0x0A2;
         public const ushort SCChatLocalizedMessagePacket = 0x0ab;
         public const ushort SCNpcChatMessagePacket = 0x05e;
-        public const ushort SCUnkPacket_0x1cePacket = 0x1ce;
+        public const ushort SCUnknownPacket_0x1ce = 0x1ce;
         public const ushort SCNoticeMessagePacket = 0x047;
         public const ushort SCChatFailedPacket = 0x170;
         public const ushort SCAskToJoinTeamPacket = 0x14a;
@@ -226,7 +226,7 @@
         public const ushort SCGimmickResetJointsPacket = 0x1cf;
         public const ushort SCGimmickGraspedPacket = 0x0d6;
         public const ushort SCWorldRayCastingResultPacket = 0x0b6;
-        public const ushort SCUnkPacket_0x079Packet = 0x079;
+        public const ushort SCUnknownPacket_0x079 = 0x079;
         public const ushort SCWorldAimPointPacket = 0x0db;
         public const ushort SCQuestContextFailedPacket = 0x058;
         public const ushort SCQuestUnitReqFailedPacket = 0x1b6;
@@ -408,11 +408,11 @@
         public const ushort SCRankRewardMailPacket = 0x00b;
         public const ushort SCRankCharacterPacket = 0x02f;
         public const ushort SCRankSnapshotPacket = 0x1a5;
-        public const ushort SCUnkPacket_0x0d4Packet = 0x0d4;
-        public const ushort SCUnkPacket_0x084Packet = 0x084;
-        public const ushort SCUnkPacket_0x021Packet = 0x021;
-        public const ushort SCUnkPacket_0x1c2Packet = 0x1c2;
-        public const ushort SCUnkPacket_0x051Packet = 0x051;
+        public const ushort SCUnknownPacket_0x0d4 = 0x0d4;
+        public const ushort SCUnknownPacket_0x084 = 0x084;
+        public const ushort SCUnknownPacket_0x021 = 0x021;
+        public const ushort SCUnknownPacket_0x1c2 = 0x1c2;
+        public const ushort SCUnknownPacket_0x051 = 0x051;
         public const ushort SCUpdatePremiumPointPacket = 0x19a;
         public const ushort SCPremiumPointChangedPacket = 0x14d;
         public const ushort SCUnitGmModeChangedPacket = 0x160;
@@ -420,21 +420,21 @@
         public const ushort SCRankAlarmPacket = 0x055;
         public const ushort SCICSExchangeRatioPacket = 0x12e;
         public const ushort SCPremiumServiceListPacket = 0x1e2;
-        public const ushort SCUnkPacket_0x0daPacket = 0x0da;
-        public const ushort SCUnkPacket_0x08fPacket = 0x08f;
-        public const ushort SCUnkPacket_0x0d5Packet = 0x0d5;
-        public const ushort SCUnkPacket_0x0ccPacket = 0x0cc;
-        public const ushort SCUnkPacket_0x0a6Packet = 0x0a6;
-        public const ushort SCUnkCharacterAddStatPacket = 0x1e8;
+        public const ushort SCUnknownPacket_0x0da = 0x0da;
+        public const ushort SCUnknownPacket_0x08f = 0x08f;
+        public const ushort SCUnknownPacket_0x0d5 = 0x0d5;
+        public const ushort SCUnknownPacket_0x0cc = 0x0cc;
+        public const ushort SCUnknownPacket_0x0a6 = 0x0a6;
+        public const ushort SCUnkCharacterAddStat = 0x1e8;
         public const ushort SCUnlockCurrencySlotPacket = 0x118;
-        public const ushort SCUnkPacke_0x048Packet = 0x048;
-        public const ushort SCUnkPacket_0x1bfPacket = 0x1bf;
-        public const ushort SCUnkPacket_0x206Packet = 0x206;
-        public const ushort SCUnkPacket_0x0bfPacket = 0x0bf;
-        public const ushort SCUnkPacket_0x1caPacket = 0x1ca;
+        public const ushort SCUnknownPacke_0x048 = 0x048;
+        public const ushort SCUnknownPacket_0x1bf = 0x1bf;
+        public const ushort SCUnknownPacket_0x206 = 0x206;
+        public const ushort SCUnknownPacket_0x0bf = 0x0bf;
+        public const ushort SCUnknownPacket_0x1ca = 0x1ca;
         public const ushort SCAccountAttributeConfigPacket = 0x06e;
         public const ushort SCIdleKickPacket = 0x1a7;
-        public const ushort SCUnknownPacket_0x15f = 0x15f;
+        public const ushort SCLevelRestrictionConfigPacket = 0x15f;
         public const ushort SCCharacterReturnDistrictsPacket = 0x080;
         public const ushort SCCharacterBoundPacket = 0x053;
         public const ushort SCKnockBackUnitPacket = 0x024;
@@ -472,8 +472,8 @@
         public const ushort SCAiDebugPacket = 0x05a;
         public const ushort SCAiAggroPacket = 0x01a;
         public const ushort SCCharacterGenderAndModelModifiedPacket = 0x148;
-        public const ushort SCUnkPacket_0x013Packet = 0x013;
-        public const ushort SCUnkPacket_0x001Packet = 0x001;
+        public const ushort SCUnknownPacket_0x013 = 0x013;
+        public const ushort SCUnknownPacket_0x001 = 0x001;
         public const ushort SCCreateCharacterResponsePacket = 0x0c1;
         public const ushort SCEditCharacterResponsePacket = 0x111;
         public const ushort SCCharacterListPacket = 0x025;
@@ -483,7 +483,7 @@
         public const ushort SCUnitImpulsePacket = 0x01c;
         public const ushort SCItemTaskNotifyPacket = 0x189;
         public const ushort SCHouseBuildPayChangedPacket = 0x00e;
-        public const ushort SCMyHousePacket = 0x03d;
+        public const ushort SCMyHouseStatePacket = 0x03d;
         public const ushort SCHouseTaxInfoPacket = 0x0fc;
         public const ushort SCConstructHouseTaxPacket = 0x0aa;
         public const ushort SCHouseSetForSalePacket = 0x17e;
@@ -522,7 +522,6 @@
         public const ushort SCCharacterStatePacket = 0x02a;
 
         // no such packets
-        public const ushort SCLevelRestrictionConfigPacket = 0xfff;
         public const ushort SCAccountAttendancePacket = 0xfff;
     }
 }

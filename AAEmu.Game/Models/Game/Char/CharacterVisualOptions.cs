@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public override void Read(PacketStream stream)
         {
-            _flag = stream.ReadByte();
+            _flag = stream.ReadByte(); // voptflag
             if ((_flag & 1) == 1)
                 Stp = stream.ReadBytes(6);
             if ((_flag & 2) == 2)
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_flag);
+            stream.Write(_flag); // voptflag
             return Write(stream, _flag);
         }
 

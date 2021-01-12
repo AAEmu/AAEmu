@@ -1,14 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Text;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
@@ -61,11 +54,20 @@ namespace AAEmu.Game.Models.Game.Mails
         {
             var res = (byte)Body.Attachments.Count;
             if (Body.CopperCoins != 0)
+            {
                 res++;
+            }
+
             if (Body.BillingAmount != 0)
+            {
                 res++;
+            }
+
             if (Body.MoneyAmount2 != 0)
+            {
                 res++;
+            }
+
             return res;
         }
 
@@ -85,7 +87,7 @@ namespace AAEmu.Game.Models.Game.Mails
 
         protected void RenumberSlots()
         {
-            for(var i = 0;i < Body.Attachments.Count;i++)
+            for (var i = 0; i < Body.Attachments.Count; i++)
             {
                 Body.Attachments[i].SlotType = SlotType.Mail;
                 Body.Attachments[i].Slot = i;

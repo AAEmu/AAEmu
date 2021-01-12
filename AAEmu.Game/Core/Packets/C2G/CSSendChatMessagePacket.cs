@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Collections.Generic;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -9,6 +10,19 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendChatMessagePacket : GamePacket
     {
+        private ChatType type;
+        private short subType;
+        private uint factionId;
+
+        private string targetName;
+        private string message;
+        private int ability;
+        private byte languageType;
+        private byte[] linkType = new byte[4];
+        private short[] start = new short[4];
+        private short[] lenght = new short[4];
+        private readonly Dictionary<int, byte[]> data = new Dictionary<int, byte[]>();
+        
         public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 5)
         {
         }
@@ -23,6 +37,25 @@ namespace AAEmu.Game.Core.Packets.C2G
             var message = stream.ReadString();
             var languageType = stream.ReadByte();
             var ability = stream.ReadInt32();
+            for (var i = 0; i < 4; i++)
+            {
+                linkType[i] = stream.ReadByte(); // linkType
+
+                if (linkType[i] > 0)
+                {
+                    start[i] = stream.ReadInt16();
+                    lenght[i] = stream.ReadInt16();
+                    switch (linkType[i])
+                    {
+                        case 1:
+                        case 3:
+                            data.TryAdd(i, stream.ReadBytes(208)); // data length = 208
+                            break;
+                        case 4:
+                            break;
+                    }
+                }
+            }
 
             if (message.StartsWith(CommandManager.CommandPrefix))
             {
@@ -89,6 +122,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                     }
                     break;
                 case ChatType.Trade: //trade
+                    // TODO ...
+                    Connection.ActiveChar.BroadcastPacket(
+                        new SCChatMessagePacket(
+                            type, Connection.ActiveChar, message, ability, languageType, linkType, start, lenght, data),
+                        true);
+                    break;
                 case ChatType.GroupFind: //lfg
                 case ChatType.Shout: //shout
                     // We use SendPacket here so we can fake our way through the different channel types

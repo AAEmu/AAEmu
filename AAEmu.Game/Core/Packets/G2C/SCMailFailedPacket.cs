@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -19,14 +19,14 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_err);
-            foreach (var (slotType, slot) in _items) // TODO 10 items
+            stream.Write(_err); // ErrorMessageType
+            foreach (var (slotType, slot) in _items) // TODO should be 10 items
             {
-                stream.Write((byte)slotType);
-                stream.Write(slot);
+                stream.Write((byte)slotType); // type
+                stream.Write(slot);           // index
             }
+            stream.Write(_money);             // money
 
-            stream.Write(_money);
             return stream;
         }
     }

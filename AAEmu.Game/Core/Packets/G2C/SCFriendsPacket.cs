@@ -18,9 +18,13 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_total);
-            stream.Write(_friends.Length); // TODO max length 200
+            stream.Write(_friends.Length); // count Int32
+            // TODO in 1.2 max length 200
             foreach (var friend in _friends)
+            {
                 stream.Write(friend);
+            }
+
             return stream;
         }
     }

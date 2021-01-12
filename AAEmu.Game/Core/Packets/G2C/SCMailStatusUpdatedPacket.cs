@@ -19,9 +19,10 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_isSent);
-            stream.Write(_mailId);
-            stream.Write((byte)_status);
+            stream.Write(_isSent); // isSent
+            stream.Write(_mailId); // type
+            stream.Write((byte)_status); // status
+
             return stream;
         }
     }

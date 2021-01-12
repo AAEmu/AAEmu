@@ -683,7 +683,7 @@ namespace AAEmu.Game.Models.Game.Quests
             stream.Write(Id);
             stream.Write(TemplateId);
             stream.Write((byte)Status);
-            foreach (var objective in Objectives) // TODO do-while, count 5
+            foreach (var objective in Objectives) // TODO in 1.2 do-while, count 5
             {
                 stream.Write(objective);
             }

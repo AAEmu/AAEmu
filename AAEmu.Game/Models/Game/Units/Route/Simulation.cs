@@ -48,11 +48,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
         int oldTime, chkTime;
         float oldX, oldY, oldZ;
         //*******************************************************
-        public string RecordFilesPath = @"./bin/debug/netcoreapp2.2/Data/Path/";       // путь где хранятся наши файлы
-        public string RecordFileExt = @".path";       // расширение по умолчанию
-        public string MoveFilesPath = @"./bin/debug/netcoreapp2.2/Data/Path/";         // путь где хранятся наши файлы
-        public string MoveFileExt = @".path";         // расширение по умолчанию
-        public string MoveFileName = "";         // расширение по умолчанию
+        public string RecordFilesPath = @"./Data/Path/"; // путь где хранятся наши файлы
+        public string RecordFileExt = @".path";          // расширение по умолчанию
+        public string MoveFilesPath = @"./Data/Path/";   // путь где хранятся наши файлы
+        public string MoveFileExt = @".path";            // расширение по умолчанию
+        public string MoveFileName = "";                 // расширение по умолчанию
         private float MovingDistance = 0.25f; //0.3f;
         float RangeToCheckPoint = 0.5f; // дистанция до чекпоинта при которой считается , что мы достигли оного
         int MoveTrigerDelay = 1000;     // срабатывание таймера на движение  0,8 сек

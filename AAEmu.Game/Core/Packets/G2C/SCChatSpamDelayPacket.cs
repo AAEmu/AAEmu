@@ -15,20 +15,21 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            //stream.Write((byte)0); // version
-            stream.Write((byte)2);                      // version
+            stream.Write((byte)0);                      // version = 0 or 2 ? 
             stream.Write((short)1);                     // reportDelay
 
-            for (var i = 0; i < 15; i++)
+            for (var i = 0; i < 15; i++)               // in 1.2 = 15, in 3.5 = 17
+            {
                 stream.Write((byte)0); // chatTypeGroup
-            
-            for (var i = 0; i < 15; i++)
+            }
+
+            for (var i = 0; i < 15; i++)               // in 1.2 = 15, in 3.5 = 17
+            {
                 stream.Write(0f); // chatGroupDelay
-            
-            //stream.Write(""); // applyConfig
-            //stream.Write(""); // detectConfig
-            stream.Write(_applyConfig, true);  // applyConfig
-            stream.Write(_detectConfig, true); // detectConfig
+            }
+
+            stream.Write(_applyConfig, true);  // applyConfig, len = 1
+            stream.Write(_detectConfig, true); // detectConfig, len = 19
             return stream;
         }
     }

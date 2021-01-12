@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Game.Core.Packets.G2C;
 using MySql.Data.MySqlClient;
 using NLog;

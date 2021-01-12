@@ -1,14 +1,16 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game
 {
     public class Family : PacketMarshaler
     {
-        private List<uint> _removedMembers;
+        private readonly List<uint> _removedMembers;
 
         public uint Id { get; set; }
         public List<FamilyMember> Members { get; set; }
@@ -20,17 +22,22 @@ namespace AAEmu.Game.Models.Game
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(Id);
-            stream.Write(Members.Count); // TODO max length 8
+            stream.Write(Id); // family UInt32
+            stream.Write(Members.Count); // TODO in 1.2 max length 8
             foreach (var member in Members)
+            {
                 stream.Write(member);
+            }
+
             return stream;
         }
 
         public void AddMember(FamilyMember member)
         {
             if (Members == null)
+            {
                 Members = new List<FamilyMember>();
+            }
 
             Members.Add(member);
         }
@@ -50,8 +57,12 @@ namespace AAEmu.Game.Models.Game
         public FamilyMember GetMember(Character character)
         {
             foreach (var member in Members)
+            {
                 if (member.Id == character.Id)
+                {
                     return member;
+                }
+            }
 
             return null;
         }
@@ -59,8 +70,12 @@ namespace AAEmu.Game.Models.Game
         public void SendPacket(GamePacket packet, uint exclude = 0)
         {
             foreach (var member in Members)
+            {
                 if (member.Id != exclude)
+                {
                     member.Character?.SendPacket(packet);
+                }
+            }
         }
 
         public void Load(MySqlConnection connection)
@@ -74,11 +89,13 @@ namespace AAEmu.Game.Models.Game
                 {
                     while (reader.Read())
                     {
-                        var member = new FamilyMember();
-                        member.Id = reader.GetUInt32("character_id");
-                        member.Name = reader.GetString("name");
-                        member.Role = reader.GetByte("role");
-                        member.Title = reader.GetString("title");
+                        var member = new FamilyMember
+                        {
+                            Id = reader.GetUInt32("character_id"),
+                            Name = reader.GetString("name"),
+                            Role = reader.GetByte("role"),
+                            Title = reader.GetString("title")
+                        };
                         AddMember(member);
                     }
                 }
@@ -141,7 +158,7 @@ namespace AAEmu.Game.Models.Game
     public class FamilyMember : PacketMarshaler
     {
         public Character Character { get; set; }
-        
+
         public uint Id { get; set; }
         public string Name { get; set; }
         public byte Role { get; set; }
@@ -150,8 +167,8 @@ namespace AAEmu.Game.Models.Game
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(Id);
-            stream.Write(Name);
+            stream.Write(Id);   // member
+            stream.Write(Name); // memberName
             stream.Write(Role);
             stream.Write(Online);
             stream.Write(Title);

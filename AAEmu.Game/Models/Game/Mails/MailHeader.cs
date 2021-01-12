@@ -1,5 +1,6 @@
 ﻿using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Models.Game.Mails
 {
@@ -31,8 +32,15 @@ namespace AAEmu.Game.Models.Game.Mails
             stream.Write((byte)Status);
             stream.Write(Title);
             stream.Write(SenderName);
+            //var sender = WorldManager.Instance.GetCharacterById(SenderId);
+            //stream.Write(sender?.Name ?? "Deleted User");
+            
             stream.Write(Attachments);
+
             stream.Write(ReceiverName);
+            //var receiver = WorldManager.Instance.GetCharacterById(ReceiverId);
+            //stream.Write(receiver?.Name ?? "Deleted User");
+
             stream.Write(OpenDate);
             stream.Write(Returned);
             stream.Write(Extra);
