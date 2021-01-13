@@ -416,11 +416,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.RotationZ = rotZ;
             if (runningMode)
             {
-                moveType.Flags = 4;      // 5-walk, 4-run, 3-stand still
+                moveType.ActorFlags = 4;      // 5-walk, 4-run, 3-stand still
             }
             else
             {
-                moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
+                moveType.ActorFlags = 5;      // 5-walk, 4-run, 3-stand still
             }
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
@@ -428,7 +428,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint)Rand.Next(0, 10000);     // has to change all the time for normal motion.
+            moveType.Time += 50;     // has to change all the time for normal motion.
             if (move)
             {
                 // moving to the point #
@@ -470,14 +470,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
-            moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
+            moveType.ActorFlags = 5;      // 5-walk, 4-run, 3-stand still
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint)Rand.Next(0, 10000); // has to change all the time for normal motion.
+            moveType.Time += 50; // has to change all the time for normal motion.
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
             MoveToPathEnabled = false;
         }
@@ -494,14 +494,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
-            moveType.Flags = 5;      // 5-walk, 4-run, 3-stand still
+            moveType.ActorFlags = 5;      // 5-walk, 4-run, 3-stand still
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 0;
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint)Rand.Next(0, 10000); // has to change all the time for normal motion.
+            moveType.Time += 50; // has to change all the time for normal motion.
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
         }
 

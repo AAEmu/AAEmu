@@ -59,10 +59,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             npc.Level = template.Level;
             npc.Patrol = null;
 
-            // load random hairstyles
-            var templ = LoadCustom(template);
-            template.HairId = templ.HairId;
-            template.ModelParams = templ.ModelParams;
+            if (template.TotalCustomId == 0)
+            {
+                // load random hairstyles
+                var templ = LoadCustom(template);
+                template.HairId = templ.HairId;
+                template.ModelParams = templ.ModelParams;
+                template.BodyItems = templ.BodyItems;
+            }
 
             SetEquipItemTemplate(npc, template.Items.Headgear, EquipmentItemSlot.Head);
             SetEquipItemTemplate(npc, template.Items.Necklace, EquipmentItemSlot.Neck);
@@ -121,7 +125,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var _template = new NpcTemplate();
             var totalCustomId = template.TotalCustomId;
 
-            if (totalCustomId != 0)
+            if (totalCustomId != 0 || template.FactionId == 115 || template.FactionId == 116) // 115 - Monstrosity, 116 - Animal
             {
                 return template;
             }
@@ -167,49 +171,53 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     var li = _tcCustom[modelParamsId];
                     totalCustomId = (int)li[index];
                 }
+                else
+                {
+                    return template;
+                }
 
                 if (totalCustomId > 0)
                 {
-                    using (var command2 = connection.CreateCommand())
+                    using (var command = connection.CreateCommand())
                     {
-                        command2.CommandText = "SELECT * FROM total_character_customs WHERE id=@id";
-                        command2.Prepare();
-                        command2.Parameters.AddWithValue("id", totalCustomId);
-                        using (var sqliteReader2 = command2.ExecuteReader())
-                        using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
+                        command.CommandText = "SELECT * FROM total_character_customs WHERE id=@id";
+                        command.Prepare();
+                        command.Parameters.AddWithValue("id", totalCustomId);
+                        using (var sqliteReader = command.ExecuteReader())
+                        using (var reader = new SQLiteWrapperReader(sqliteReader))
                         {
-                            while (reader2.Read())
+                            while (reader.Read())
                             {
-                                _template.HairId = reader2.GetUInt32("hair_id");
+                                _template.HairId = reader.GetUInt32("hair_id");
 
                                 _template.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Face);
                                 _template.ModelParams
-                                    .SetModelId(reader2.GetUInt32("model_id"))
-                                    .SetHairColorId(reader2.GetUInt32("hair_color_id"))
-                                    .SetSkinColorId(reader2.GetUInt32("skin_color_id"));
+                                    .SetModelId(reader.GetUInt32("model_id"))
+                                    .SetHairColorId(reader.GetUInt32("hair_color_id"))
+                                    .SetSkinColorId(reader.GetUInt32("skin_color_id"));
 
-                                _template.ModelParams.Face.MovableDecalAssetId = reader2.GetUInt32("face_movable_decal_asset_id");
-                                _template.ModelParams.Face.MovableDecalScale = reader2.GetFloat("face_movable_decal_scale");
-                                _template.ModelParams.Face.MovableDecalRotate = reader2.GetFloat("face_movable_decal_rotate");
-                                _template.ModelParams.Face.MovableDecalMoveX = reader2.GetInt16("face_movable_decal_move_x");
-                                _template.ModelParams.Face.MovableDecalMoveY = reader2.GetInt16("face_movable_decal_move_y");
+                                _template.ModelParams.Face.MovableDecalAssetId = reader.GetUInt32("face_movable_decal_asset_id");
+                                _template.ModelParams.Face.MovableDecalScale = reader.GetFloat("face_movable_decal_scale");
+                                _template.ModelParams.Face.MovableDecalRotate = reader.GetFloat("face_movable_decal_rotate");
+                                _template.ModelParams.Face.MovableDecalMoveX = reader.GetInt16("face_movable_decal_move_x");
+                                _template.ModelParams.Face.MovableDecalMoveY = reader.GetInt16("face_movable_decal_move_y");
 
-                                _template.ModelParams.Face.SetFixedDecalAsset(0, reader2.GetUInt32("face_fixed_decal_asset_0_id"), reader2.GetFloat("face_fixed_decal_asset_0_weight"));
-                                _template.ModelParams.Face.SetFixedDecalAsset(1, reader2.GetUInt32("face_fixed_decal_asset_1_id"), reader2.GetFloat("face_fixed_decal_asset_1_weight"));
-                                _template.ModelParams.Face.SetFixedDecalAsset(2, reader2.GetUInt32("face_fixed_decal_asset_2_id"), reader2.GetFloat("face_fixed_decal_asset_2_weight"));
-                                _template.ModelParams.Face.SetFixedDecalAsset(3, reader2.GetUInt32("face_fixed_decal_asset_3_id"), reader2.GetFloat("face_fixed_decal_asset_3_weight"));
+                                _template.ModelParams.Face.SetFixedDecalAsset(0, reader.GetUInt32("face_fixed_decal_asset_0_id"), reader.GetFloat("face_fixed_decal_asset_0_weight"));
+                                _template.ModelParams.Face.SetFixedDecalAsset(1, reader.GetUInt32("face_fixed_decal_asset_1_id"), reader.GetFloat("face_fixed_decal_asset_1_weight"));
+                                _template.ModelParams.Face.SetFixedDecalAsset(2, reader.GetUInt32("face_fixed_decal_asset_2_id"), reader.GetFloat("face_fixed_decal_asset_2_weight"));
+                                _template.ModelParams.Face.SetFixedDecalAsset(3, reader.GetUInt32("face_fixed_decal_asset_3_id"), reader.GetFloat("face_fixed_decal_asset_3_weight"));
 
-                                _template.ModelParams.Face.DiffuseMapId = reader2.GetUInt32("face_diffuse_map_id");
-                                _template.ModelParams.Face.NormalMapId = reader2.GetUInt32("face_normal_map_id");
-                                _template.ModelParams.Face.EyelashMapId = reader2.GetUInt32("face_eyelash_map_id");
-                                _template.ModelParams.Face.LipColor = reader2.GetUInt32("lip_color");
-                                _template.ModelParams.Face.LeftPupilColor = reader2.GetUInt32("left_pupil_color");
-                                _template.ModelParams.Face.RightPupilColor = reader2.GetUInt32("right_pupil_color");
-                                _template.ModelParams.Face.EyebrowColor = reader2.GetUInt32("eyebrow_color");
-                                _template.ModelParams.Face.MovableDecalWeight = reader2.GetFloat("face_movable_decal_weight");
-                                _template.ModelParams.Face.NormalMapWeight = reader2.GetFloat("face_normal_map_weight");
-                                _template.ModelParams.Face.DecoColor = reader2.GetUInt32("deco_color");
-                                reader2.GetBytes("modifier", 0, _template.ModelParams.Face.Modifier, 0, 128);
+                                _template.ModelParams.Face.DiffuseMapId = reader.GetUInt32("face_diffuse_map_id");
+                                _template.ModelParams.Face.NormalMapId = reader.GetUInt32("face_normal_map_id");
+                                _template.ModelParams.Face.EyelashMapId = reader.GetUInt32("face_eyelash_map_id");
+                                _template.ModelParams.Face.LipColor = reader.GetUInt32("lip_color");
+                                _template.ModelParams.Face.LeftPupilColor = reader.GetUInt32("left_pupil_color");
+                                _template.ModelParams.Face.RightPupilColor = reader.GetUInt32("right_pupil_color");
+                                _template.ModelParams.Face.EyebrowColor = reader.GetUInt32("eyebrow_color");
+                                _template.ModelParams.Face.MovableDecalWeight = reader.GetFloat("face_movable_decal_weight");
+                                _template.ModelParams.Face.NormalMapWeight = reader.GetFloat("face_normal_map_weight");
+                                _template.ModelParams.Face.DecoColor = reader.GetUInt32("deco_color");
+                                reader.GetBytes("modifier", 0, _template.ModelParams.Face.Modifier, 0, 128);
                             }
                         }
                     }
@@ -218,6 +226,48 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     _template.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Skin);
                 }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_body_parts WHERE model_id = @model_id";
+                    command.Prepare();
+                    command.Parameters.AddWithValue("model_id", template.ModelId);
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var itemId = reader.GetUInt32("item_id", 0);
+                            var npcOnly = reader.GetBoolean("npc_only", true);
+                            var slot = reader.GetInt32("slot_type_id") - 23;
+
+                            if (slot == 1)
+                            {
+                                if (itemId == _template.HairId)
+                                {
+                                    _template.BodyItems[slot] = (itemId, npcOnly);
+                                }
+                                else
+                                {
+                                    if (_template.HairId != 0)
+                                    {
+                                        _template.BodyItems[slot] = (_template.HairId, npcOnly);
+                                    }
+                                }
+
+                                if (_template.HairId == 0)
+                                {
+                                    _template.BodyItems[slot] = (itemId, npcOnly);
+                                }
+                            }
+                            else
+                            {
+                                _template.BodyItems[slot] = (itemId, npcOnly);
+                            }
+                        }
+                    }
+                }
+
                 _log.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
             }
 
@@ -236,32 +286,30 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 using (var command = connection.CreateCommand())
                 {
                     // fill the dictionary 
-                    using (var command2 = connection.CreateCommand())
+                    command.CommandText = "SELECT id, model_id FROM total_character_customs";
+                    command.Prepare();
+                    using (var sqliteDataReader2 = command.ExecuteReader())
+                    using (var reader2 = new SQLiteWrapperReader(sqliteDataReader2))
                     {
-                        command2.CommandText = "SELECT id, model_id FROM total_character_customs";
-                        command2.Prepare();
-                        using (var sqliteDataReader2 = command2.ExecuteReader())
-                        using (var reader2 = new SQLiteWrapperReader(sqliteDataReader2))
+                        var modelParams = new UnitCustomModelParams(UnitCustomModelType.Face);
+                        while (reader2.Read())
                         {
-                            var modelParams = new UnitCustomModelParams(UnitCustomModelType.Face);
-                            while (reader2.Read())
+                            modelParams.SetId(reader2.GetUInt32("id")).SetModelId(reader2.GetUInt32("model_id"));
+                            if (!_tcCustom.ContainsKey(modelParams.ModelId))
                             {
-                                modelParams.SetId(reader2.GetUInt32("id")).SetModelId(reader2.GetUInt32("model_id"));
-                                if (!_tcCustom.ContainsKey(modelParams.ModelId))
-                                {
-                                    var lin = new List<uint>
+                                var lin = new List<uint>
                                     {
                                         modelParams.Id
                                     };
-                                    _tcCustom.Add(modelParams.ModelId, lin);
-                                }
-                                else
-                                {
-                                    _tcCustom[modelParams.ModelId].Add(modelParams.Id);
-                                }
+                                _tcCustom.Add(modelParams.ModelId, lin);
+                            }
+                            else
+                            {
+                                _tcCustom[modelParams.ModelId].Add(modelParams.Id);
                             }
                         }
                     }
+
                     command.CommandText = "SELECT * from npcs";
                     command.Prepare();
                     using (var sqliteDataReader = command.ExecuteReader())
@@ -344,7 +392,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             var bodyPack = reader.GetInt32("equip_bodies_id", 0);
                             var clothPack = reader.GetInt32("equip_cloths_id", 0);
                             var weaponPack = reader.GetInt32("equip_weapons_id", 0);
-                            var totalCustomId = reader.GetInt32("total_custom_id", 0);
+                            template.TotalCustomId = reader.GetInt32("total_custom_id", 0);
                             using (var command2 = connection.CreateCommand())
                             {
                                 command2.CommandText = "SELECT char_race_id, char_gender_id FROM characters WHERE model_id = @model_id";
@@ -363,43 +411,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                             _templates.Add(template.Id, template);
 
-                            //if (totalCustomId == 0)
-                            //{
-                            //    var modelParamsId = 0u;
-                            //    switch ((Race)template.CharRaceId)
-                            //    {
-                            //        case Race.None:
-                            //        case Race.Nuian: // Nuian male
-                            //            modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
-                            //            break;
-                            //        case Race.Dwarf: // Dwarf male
-                            //        //    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
-                            //            break;
-                            //        case Race.Elf: // Elf male
-                            //            modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
-                            //            break;
-                            //        case Race.Hariharan: // Hariharan male
-                            //            modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)18 : (byte)19;
-                            //            break;
-                            //        case Race.Ferre: // Ferre male
-                            //            modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
-                            //            break;
-                            //        case Race.Warborn: // Warborn male
-                            //        //    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
-                            //            break;
-                            //        case Race.Fairy:
-                            //        case Race.Returned:
-                            //            break;
-                            //    }
-
-                            //    if (modelParamsId != 0)
-                            //    {
-                            //        var random = new Random();
-                            //        var index = random.Next(lid[modelParamsId].Count);
-                            //        var li = lid[modelParamsId];
-                            //        totalCustomId = (int)li[index];
-                            //    }
-                            //}
                             if (clothPack > 0)
                             {
                                 using (var command2 = connection.CreateCommand())
@@ -466,13 +477,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                 }
                             }
 
-                            if (totalCustomId > 0)
+                            if (template.TotalCustomId > 0)
                             {
                                 using (var command2 = connection.CreateCommand())
                                 {
                                     command2.CommandText = "SELECT * FROM total_character_customs WHERE id=@id";
                                     command2.Prepare();
-                                    command2.Parameters.AddWithValue("id", totalCustomId);
+                                    command2.Parameters.AddWithValue("id", template.TotalCustomId);
                                     using (var sqliteReader2 = command2.ExecuteReader())
                                     using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
                                     {
@@ -566,9 +577,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                         var itemId = reader2.GetUInt32("item_id", 0);
                                         var npcOnly = reader2.GetBoolean("npc_only", true);
                                         var slot = reader2.GetInt32("slot_type_id") - 23;
-                                        
+
                                         // TODO: slot == 0, как выбрать нужный FaceId?
-                                        
+
                                         if (slot == 1)
                                         {
                                             if (itemId == template.HairId)
