@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         private Dictionary<uint, NpcTemplate> _templates;
         private Dictionary<uint, MerchantGoods> _goods;
+        private Dictionary<uint, List<uint>> _tcCustom;
 
         public bool Exist(uint templateId)
         {
@@ -57,6 +58,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             npc.Faction = FactionManager.Instance.GetFaction(template.FactionId);
             npc.Level = template.Level;
             npc.Patrol = null;
+
+            // load random hairstyles
+            var templ = LoadCustom(template);
+            template.HairId = templ.HairId;
+            template.ModelParams = templ.ModelParams;
 
             SetEquipItemTemplate(npc, template.Items.Headgear, EquipmentItemSlot.Head);
             SetEquipItemTemplate(npc, template.Items.Necklace, EquipmentItemSlot.Neck);
@@ -110,18 +116,126 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             return npc;
         }
 
+        private NpcTemplate LoadCustom(NpcTemplate template)
+        {
+            var _template = new NpcTemplate();
+            var totalCustomId = template.TotalCustomId;
+
+            if (totalCustomId != 0)
+            {
+                return template;
+            }
+
+            using (var connection = SQLite.CreateConnection())
+            {
+                //_log.Info("Loading random npc {0} custom templates...", template.ModelId);
+                var modelParamsId = 0u;
+                switch ((Race)template.CharRaceId)
+                {
+                    case Race.None:
+                    case Race.Nuian: // Nuian male
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
+                        break;
+                    case Race.Dwarf: // Dwarf male
+                        //modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
+                        break;
+                    case Race.Elf: // Elf male
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
+                        break;
+                    case Race.Hariharan: // Hariharan male
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)18 : (byte)19;
+                        break;
+                    case Race.Ferre: // Ferre male
+                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
+                        break;
+                    case Race.Warborn: // Warborn male
+                        //modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
+                        break;
+                    case Race.Fairy:
+                        break;
+                    case Race.Returned:
+                        break;
+                    default:
+                        break;
+                }
+
+                // choose randomly from the list totalCustomId
+                if (modelParamsId != 0)
+                {
+                    var random = new Random();
+                    var index = random.Next(_tcCustom[modelParamsId].Count);
+                    var li = _tcCustom[modelParamsId];
+                    totalCustomId = (int)li[index];
+                }
+
+                if (totalCustomId > 0)
+                {
+                    using (var command2 = connection.CreateCommand())
+                    {
+                        command2.CommandText = "SELECT * FROM total_character_customs WHERE id=@id";
+                        command2.Prepare();
+                        command2.Parameters.AddWithValue("id", totalCustomId);
+                        using (var sqliteReader2 = command2.ExecuteReader())
+                        using (var reader2 = new SQLiteWrapperReader(sqliteReader2))
+                        {
+                            while (reader2.Read())
+                            {
+                                _template.HairId = reader2.GetUInt32("hair_id");
+
+                                _template.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Face);
+                                _template.ModelParams
+                                    .SetModelId(reader2.GetUInt32("model_id"))
+                                    .SetHairColorId(reader2.GetUInt32("hair_color_id"))
+                                    .SetSkinColorId(reader2.GetUInt32("skin_color_id"));
+
+                                _template.ModelParams.Face.MovableDecalAssetId = reader2.GetUInt32("face_movable_decal_asset_id");
+                                _template.ModelParams.Face.MovableDecalScale = reader2.GetFloat("face_movable_decal_scale");
+                                _template.ModelParams.Face.MovableDecalRotate = reader2.GetFloat("face_movable_decal_rotate");
+                                _template.ModelParams.Face.MovableDecalMoveX = reader2.GetInt16("face_movable_decal_move_x");
+                                _template.ModelParams.Face.MovableDecalMoveY = reader2.GetInt16("face_movable_decal_move_y");
+
+                                _template.ModelParams.Face.SetFixedDecalAsset(0, reader2.GetUInt32("face_fixed_decal_asset_0_id"), reader2.GetFloat("face_fixed_decal_asset_0_weight"));
+                                _template.ModelParams.Face.SetFixedDecalAsset(1, reader2.GetUInt32("face_fixed_decal_asset_1_id"), reader2.GetFloat("face_fixed_decal_asset_1_weight"));
+                                _template.ModelParams.Face.SetFixedDecalAsset(2, reader2.GetUInt32("face_fixed_decal_asset_2_id"), reader2.GetFloat("face_fixed_decal_asset_2_weight"));
+                                _template.ModelParams.Face.SetFixedDecalAsset(3, reader2.GetUInt32("face_fixed_decal_asset_3_id"), reader2.GetFloat("face_fixed_decal_asset_3_weight"));
+
+                                _template.ModelParams.Face.DiffuseMapId = reader2.GetUInt32("face_diffuse_map_id");
+                                _template.ModelParams.Face.NormalMapId = reader2.GetUInt32("face_normal_map_id");
+                                _template.ModelParams.Face.EyelashMapId = reader2.GetUInt32("face_eyelash_map_id");
+                                _template.ModelParams.Face.LipColor = reader2.GetUInt32("lip_color");
+                                _template.ModelParams.Face.LeftPupilColor = reader2.GetUInt32("left_pupil_color");
+                                _template.ModelParams.Face.RightPupilColor = reader2.GetUInt32("right_pupil_color");
+                                _template.ModelParams.Face.EyebrowColor = reader2.GetUInt32("eyebrow_color");
+                                _template.ModelParams.Face.MovableDecalWeight = reader2.GetFloat("face_movable_decal_weight");
+                                _template.ModelParams.Face.NormalMapWeight = reader2.GetFloat("face_normal_map_weight");
+                                _template.ModelParams.Face.DecoColor = reader2.GetUInt32("deco_color");
+                                reader2.GetBytes("modifier", 0, _template.ModelParams.Face.Modifier, 0, 128);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    _template.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Skin);
+                }
+                _log.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
+            }
+
+            return _template;
+        }
+
         public void Load()
         {
             _templates = new Dictionary<uint, NpcTemplate>();
             _goods = new Dictionary<uint, MerchantGoods>();
+            _tcCustom = new Dictionary<uint, List<uint>>();
 
             _log.Info("Loading npc templates...");
             using (var connection = SQLite.CreateConnection())
             {
-                var lid = new Dictionary<uint, List<uint>>();
                 using (var command = connection.CreateCommand())
                 {
-                    // выбыраем случайно из списка totalCustomId
+                    // fill the dictionary 
                     using (var command2 = connection.CreateCommand())
                     {
                         command2.CommandText = "SELECT id, model_id FROM total_character_customs";
@@ -133,17 +247,17 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             while (reader2.Read())
                             {
                                 modelParams.SetId(reader2.GetUInt32("id")).SetModelId(reader2.GetUInt32("model_id"));
-                                if (!lid.ContainsKey(modelParams.ModelId))
+                                if (!_tcCustom.ContainsKey(modelParams.ModelId))
                                 {
                                     var lin = new List<uint>
                                     {
                                         modelParams.Id
                                     };
-                                    lid.Add(modelParams.ModelId, lin);
+                                    _tcCustom.Add(modelParams.ModelId, lin);
                                 }
                                 else
                                 {
-                                    lid[modelParams.ModelId].Add(modelParams.Id);
+                                    _tcCustom[modelParams.ModelId].Add(modelParams.Id);
                                 }
                             }
                         }
@@ -249,43 +363,43 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                             _templates.Add(template.Id, template);
 
-                            if (totalCustomId == 0)
-                            {
-                                var modelParamsId = 0u;
-                                switch ((Race)template.CharRaceId)
-                                {
-                                    case Race.None:
-                                    case Race.Nuian: // Nuian male
-                                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
-                                        break;
-                                    case Race.Dwarf: // Dwarf male
-                                    //    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
-                                        break;
-                                    case Race.Elf: // Elf male
-                                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
-                                        break;
-                                    case Race.Hariharan: // Hariharan male
-                                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)18 : (byte)19;
-                                        break;
-                                    case Race.Ferre: // Ferre male
-                                        modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
-                                        break;
-                                    case Race.Warborn: // Warborn male
-                                    //    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
-                                        break;
-                                    case Race.Fairy:
-                                    case Race.Returned:
-                                        break;
-                                }
+                            //if (totalCustomId == 0)
+                            //{
+                            //    var modelParamsId = 0u;
+                            //    switch ((Race)template.CharRaceId)
+                            //    {
+                            //        case Race.None:
+                            //        case Race.Nuian: // Nuian male
+                            //            modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
+                            //            break;
+                            //        case Race.Dwarf: // Dwarf male
+                            //        //    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
+                            //            break;
+                            //        case Race.Elf: // Elf male
+                            //            modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
+                            //            break;
+                            //        case Race.Hariharan: // Hariharan male
+                            //            modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)18 : (byte)19;
+                            //            break;
+                            //        case Race.Ferre: // Ferre male
+                            //            modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
+                            //            break;
+                            //        case Race.Warborn: // Warborn male
+                            //        //    modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
+                            //            break;
+                            //        case Race.Fairy:
+                            //        case Race.Returned:
+                            //            break;
+                            //    }
 
-                                if (modelParamsId != 0)
-                                {
-                                    var random = new Random();
-                                    var index = random.Next(lid[modelParamsId].Count);
-                                    var li = lid[modelParamsId];
-                                    totalCustomId = (int)li[index];
-                                }
-                            }
+                            //    if (modelParamsId != 0)
+                            //    {
+                            //        var random = new Random();
+                            //        var index = random.Next(lid[modelParamsId].Count);
+                            //        var li = lid[modelParamsId];
+                            //        totalCustomId = (int)li[index];
+                            //    }
+                            //}
                             if (clothPack > 0)
                             {
                                 using (var command2 = connection.CreateCommand())
