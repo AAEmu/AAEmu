@@ -260,7 +260,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
-                _log.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
+                //_log.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
             }
 
             return _template;
