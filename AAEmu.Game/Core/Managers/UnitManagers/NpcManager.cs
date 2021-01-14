@@ -62,10 +62,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             npc.Level = template.Level;
             npc.Patrol = null;
 
-            // load random hairstyles
-            var templ = LoadCustom(template);
-            template.HairId = templ.HairId;
-            template.ModelParams = templ.ModelParams;
+            if (template.TotalCustomId == 0)
+            {
+                // load random hairstyles
+                var templ = LoadCustom(template);
+                template.HairId = templ.HairId;
+                template.ModelParams = templ.ModelParams;
+                template.BodyItems = templ.BodyItems;
+            }
 
             SetEquipItemTemplate(npc, template.Items.Headgear, EquipmentItemSlot.Head);
             SetEquipItemTemplate(npc, template.Items.Necklace, EquipmentItemSlot.Neck);
@@ -124,7 +128,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var _template = new NpcTemplate();
             var totalCustomId = (uint)template.TotalCustomId;
 
-            if (totalCustomId != 0)
+            if (totalCustomId != 0 || template.FactionId == 115 || template.FactionId == 116) // 115 - Monstrosity, 116 - Animal
             {
                 return template;
             }
@@ -169,6 +173,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     var index = _loadCustomRandom.Next(_tccLookup[modelParamsId].Count);
                     totalCustomId = li[index];
                 }
+                else
+                {
+                    return template;
+                }
 
                 if (totalCustomId > 0)
                 {
@@ -210,7 +218,49 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     _template.ModelParams = new UnitCustomModelParams(UnitCustomModelType.Skin);
                 }
-                // _log.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM item_body_parts WHERE model_id = @model_id";
+                    command.Prepare();
+                    command.Parameters.AddWithValue("model_id", template.ModelId);
+                    using (var sqliteReader = command.ExecuteReader())
+                    using (var reader = new SQLiteWrapperReader(sqliteReader))
+                    {
+                        while (reader.Read())
+                        {
+                            var itemId = reader.GetUInt32("item_id", 0);
+                            var npcOnly = reader.GetBoolean("npc_only", true);
+                            var slot = reader.GetInt32("slot_type_id") - 23;
+
+                            if (slot == 1)
+                            {
+                                if (itemId == _template.HairId)
+                                {
+                                    _template.BodyItems[slot] = (itemId, npcOnly);
+                                }
+                                else
+                                {
+                                    if (_template.HairId != 0)
+                                    {
+                                        _template.BodyItems[slot] = (_template.HairId, npcOnly);
+                                    }
+                                }
+
+                                if (_template.HairId == 0)
+                                {
+                                    _template.BodyItems[slot] = (itemId, npcOnly);
+                                }
+                            }
+                            else
+                            {
+                                _template.BodyItems[slot] = (itemId, npcOnly);
+                            }
+                        }
+                    }
+                }
+
+                _log.Info("Loaded npc {0} random hair {1} and hairColor {2}", template.ModelId, _template.HairId, _template.ModelParams.HairColorId);
             }
 
             return _template;
@@ -520,9 +570,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                         var itemId = reader2.GetUInt32("item_id", 0);
                                         var npcOnly = reader2.GetBoolean("npc_only", true);
                                         var slot = reader2.GetInt32("slot_type_id") - 23;
-                                        
+
                                         // TODO: slot == 0, как выбрать нужный FaceId?
-                                        
+
                                         if (slot == 1)
                                         {
                                             if (itemId == template.HairId)
