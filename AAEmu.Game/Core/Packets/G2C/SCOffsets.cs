@@ -487,7 +487,7 @@
         public const ushort SCHouseTaxInfoPacket = 0x0fc;
         public const ushort SCConstructHouseTaxPacket = 0x0aa;
         public const ushort SCHouseSetForSalePacket = 0x17e;
-        public const ushort SCJoinedTeamPacket = 0x011;
+        public const ushort SCJoinedTeamPacket = 0x17c;
         public const ushort SCTeamLootingRuleChangedPacket = 0x1a8;
         public const ushort SCSiegeStatePacket = 0x0dd;
         public const ushort SCQuestsPacket = 0x027;

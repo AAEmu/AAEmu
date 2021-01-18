@@ -29,14 +29,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var type = (ChatType) stream.ReadInt16();
-            var unk1 = stream.ReadInt16();
-            var unk2 = stream.ReadInt32();
+            var type = (ChatType) stream.ReadInt16(); // ChatChannelNo
+            var unk1 = stream.ReadInt16();       //chat, subType
+            var unk2 = stream.ReadInt32();        //chat, factionId
 
-            var targetName = stream.ReadString();
-            var message = stream.ReadString();
-            var languageType = stream.ReadByte();
-            var ability = stream.ReadInt32();
+            var targetName = stream.ReadString(); // target
+            var message = stream.ReadString();    // msg
+            var languageType = stream.ReadByte();  // LanguageType
+            var ability = stream.ReadInt32();       // ability
             for (var i = 0; i < 4; i++)
             {
                 linkType[i] = stream.ReadByte(); // linkType

@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var targetId = stream.ReadBc();
+            var targetId = stream.ReadBc(); // target
             Connection
                     .ActiveChar
                     .CurrentTarget = targetId > 0 ? WorldManager.Instance.GetUnit(targetId) : null;
@@ -43,6 +44,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             else if (Connection.ActiveChar.CurrentTarget is Character character)
             {
                 Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}", targetId, character.Id);
+            }
+            else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)
+            {
+                Connection.ActiveChar.SendMessage("ObjId: {0}, TransferId: {1}", targetId, transfer.Id);
             }
         }
     }

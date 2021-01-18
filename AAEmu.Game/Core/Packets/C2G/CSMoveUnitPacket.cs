@@ -50,8 +50,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     }
                     case VehicleMoveType vmt:
                     {
-                        var (rotDegX, rotDegY, rotDegZ) =
-                            MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
+                        var (rotDegX, rotDegY, rotDegZ) = MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
                         var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rotDegX, rotDegY, rotDegZ);
 
                         var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);

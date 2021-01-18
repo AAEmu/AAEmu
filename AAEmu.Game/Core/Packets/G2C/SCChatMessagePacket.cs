@@ -66,24 +66,53 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_character != null ? _character.Name : "");
             stream.Write(_message);
 
-            for (var i = 0; i < 4; i++) // in 1.2 & 3.5 = 4
+            for (var i = 0; i < 4; i++) // in 1.2 & 3.5 = 4  link_Type
             {
-                var start = _start?[i] ?? 0;
-                stream.Write(start);
+                var start = _start?[i] ?? (short)0;
+                stream.Write(start); // start
 
-                var lenght = _lenght?[i] ?? 0;
-                stream.Write(lenght);
+                var lenght = _lenght?[i] ?? (short)0;
+                stream.Write(lenght); // length
 
-                var linkedType = _linkType?[i] ?? 0;
+                var linkedType = _linkType?[i] ?? (byte)0;
                 stream.Write(linkedType); // linkType
 
                 if (linkedType > 0)
                 {
+                    //var result = 1;
+                    //var v2 = 0;
+                    //var v4 = 0;
+                    //var v5 = 0;
+                    //var v6 = 0;
+
+                    //if (result == 1)
+                    //{
+                    //    v4 = (v2 + 8);
+                    //    v5 = 0;
+                    //}
+                    //else
+                    //{
+                    //    if (result != 3)
+                    //    {
+                    //        //return result;
+                    //    }
+                    //    v4 = (v2 + 8);
+                    //    v5 = 0;
+                    //}
+                    //if (v5 == 0)
+                    //{
+                    //    //result = (v6->Bytes2)("data", v4);
+                    //}
+                    //else
+                    //{
+                    //    //result = (v6->Bytes)("data", v4);
+                    //}
+
                     switch (linkedType)
                     {
                         case 1:
                         case 3:
-                            stream.Write(_data[i]);   // data length = 208
+                            stream.Write(_data[i]); // data length = 208
                             break;
                         case 4:
                             break;
@@ -91,8 +120,8 @@ namespace AAEmu.Game.Core.Packets.G2C
                 }
             }
 
-            stream.Write(_ability);
-            stream.Write((byte)0); //option
+            stream.Write(_ability); // ability Int32
+            stream.Write(0);        // option Int32
             return stream;
         }
     }
