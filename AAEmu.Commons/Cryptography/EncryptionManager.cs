@@ -222,7 +222,7 @@ namespace AAEmu.Commons.Cryptography
             var msgKey = ((uint)(bodyPacket.Length / 16 - 1) << 4) + (uint)(bodyPacket[2] - 47); // это реальная длина данных в пакете
             var array = new byte[mBodyPacket.Length];
             var mul = msgKey * xorKey; // <-- ставим бряк здесь и смотрим xorKey, packetBody, aesKey, IV для моего OpcodeFinder`a
-            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A02439) ^ 0x66B8E84F; // 1.2.0.0 AA 18 march 2015
+            var cry = mul ^ ((uint)MakeSeq(keys) + 0x75A02461) ^ 0x31B8E8BA; // 1.2.0.0 AA 18 march 2015
             var offset = 4;
             if (seq != 0)
             {

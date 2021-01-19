@@ -84,7 +84,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 1;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time += 50;    // has to change all the time for normal motion.
+            moveType.Time = Seq;    // has to change all the time for normal motion.
 
             // Broadcasting Mobile State
             npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);

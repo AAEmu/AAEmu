@@ -252,7 +252,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSTakedownTradeItemPacket, 5, typeof(CSTakedownTradeItemPacket));
             RegisterPacket(CSOffsets.CSTradeLockPacket, 5, typeof(CSTradeLockPacket));
             RegisterPacket(CSOffsets.CSTradeOkPacket, 5, typeof(CSTradeOkPacket));
-            //RegisterPacket(CSOffsets.CSSaveTutorialPacket, 5, typeof(CSSaveTutorialPacket));
+            RegisterPacket(CSOffsets.CSSaveTutorialPacket, 5, typeof(CSSaveTutorialPacket));
             RegisterPacket(CSOffsets.CSSetLogicDoodadPacket, 5, typeof(CSSetLogicDoodadPacket));
             RegisterPacket(CSOffsets.CSCleanupLogicLinkPacket, 5, typeof(CSCleanupLogicLinkPacket));
             RegisterPacket(CSOffsets.CSExecuteCraftPacket, 5, typeof(CSExecuteCraftPacket));

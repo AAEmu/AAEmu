@@ -57,13 +57,13 @@ namespace AAEmu.Game.Models.Game.Units
         /// 每次执行必须递增序号，否则重复序号的动作不被执行
         /// Each execution must increment the serial number, otherwise the action of repeating the serial number will not be executed.
         /// </summary>
-        public uint Seq { get; set; } = 0;
+        public uint Seq { get; set; }
 
         /// <summary>
         /// 当前执行次数
         /// Current execution times
         /// </summary>
-        protected uint Count { get; set; } = 0;
+        protected uint Count { get; set; }
 
         /// <summary>
         /// 暂停巡航点
@@ -102,8 +102,7 @@ namespace AAEmu.Game.Models.Game.Units
                     LastPatrol = npc.Patrol;
                 }
                 ++Count;
-                //++Seq;
-                Seq = (uint)Rand.Next(0, 10000);
+                Seq += 50;
                 Running = true;
                 npc.Patrol = this;
                 Execute(npc);

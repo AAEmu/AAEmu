@@ -86,7 +86,7 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.DeltaMovement[2] = 0;
                 moveType.Stance = 1; //combat=0, idle=1
                 moveType.Alertness = 0; //idle=0, combat=2
-                moveType.Time += 50;    // has to change all the time for normal motion.
+                moveType.Time = Seq;    // has to change all the time for normal motion.
 
                 character.SendMessage("[nloc] New position {0} {1} {2}", character.CurrentTarget.Position.X, character.CurrentTarget.Position.Y, character.CurrentTarget.Position.Z);
                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
