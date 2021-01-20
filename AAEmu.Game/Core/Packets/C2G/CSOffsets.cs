@@ -181,7 +181,7 @@
         public const ushort CSJoinTrialAudiencePacket = 0x031;
         public const ushort CSLeaveTrialAudiencePacket = 0x062;
         public const ushort CSUnMountMatePacket = 0x136;
-        public const ushort CSUnbondDoodad = 0x0b4;
+        public const ushort CSUnbondDoodadPacket = 0x0b4;
         public const ushort CSInstanceLoadedPacket = 0x027;
         public const ushort CSApplyToInstantGamePacket = 0x071;
         public const ushort CSCancelInstantGamePacket = 0x09c;
@@ -240,7 +240,7 @@
         public const ushort CSReportSpamPacket = 0x0b6;
         public const ushort CSTakeAllAttachmentItemPacket = 0x093;
         public const ushort CSTakeAttachmentItemPacket = 0x109;
-        public const ushort CSUnkPacket_0x005 = 0x005;
+        public const ushort CSActiveWeaponChangedPacket = 0x005;
         public const ushort CSRepairSlaveItemsPacket = 0x127;
         public const ushort CSRepairPetItemsPacket = 0x089;
         public const ushort CSAllowHousingRecoverPacket = 0x0a9;
@@ -306,9 +306,7 @@
         public const ushort CSSetTeamOfficerPacket = 0xfff;
         public const ushort CSTakeAttachmentSequentiallyPacket = 0xfff;
         public const ushort CSSpecialtyRecordLoadPacket = 0xfff;
-        public const ushort CSUnbondDoodadPacket = 0xfff;
         public const ushort CSAcceptCheatQuestContextPacket = 0xfff;
-        public const ushort CSActiveWeaponChangedPacket = 0xfff;
         public const ushort CSBidAuctionPacket = 0xfff;
         public const ushort CSBuyItemsPacket = 0xfff;
         public const ushort CSBuySpecialtyItemPacket = 0xfff;
