@@ -19,7 +19,7 @@ namespace AAEmu.Game.Genesis
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             var token = AppConfiguration.Instance.DiscordToken;
-            if (String.IsNullOrEmpty(token))
+            if (string.IsNullOrEmpty(token))
                 return;
             
             _client = new DiscordSocketClient();
