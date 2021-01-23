@@ -14,22 +14,30 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public delegate void OnTickEvent(TimeSpan delta);
         public TickEventHandler OnTick = new TickEventHandler();
+        private bool DoTickLoop = true;
+        private Thread TickThread;
 
         private void TickLoop()
         {
             var sw = new Stopwatch();
             sw.Start();
-            while(true)
+            while(DoTickLoop)
             {
                 OnTick.Invoke();
                 Thread.Sleep(20);
             }
+            sw.Stop();
         }
 
         public void Initialize()
         {
-            var TickThread = new Thread(TickLoop);
+            TickThread = new Thread(TickLoop);
             TickThread.Start();
+        }
+
+        public void Stop()
+        {
+            DoTickLoop = false;
         }
     }
 
