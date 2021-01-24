@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +19,7 @@ namespace AAEmu.Game.Genesis
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             var token = AppConfiguration.Instance.DiscordToken;
-            if (String.IsNullOrEmpty(token))
+            if (string.IsNullOrEmpty(token))
                 return;
             
             _client = new DiscordSocketClient();
@@ -35,6 +35,8 @@ namespace AAEmu.Game.Genesis
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
+            if (_client == null)
+                return;
             await _client.StopAsync();
         }
         

@@ -120,14 +120,14 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 moveType.RotationY = 0;
                 moveType.RotationZ = rotZ;
 
-                moveType.Flags = 4;     // 5-walk, 4-run, 3-stand still
+                moveType.ActorFlags = 4;     // 5-walk, 4-run, 3-stand still
                 moveType.DeltaMovement = new sbyte[3];
                 moveType.DeltaMovement[0] = 0;
                 moveType.DeltaMovement[1] = 127;
                 moveType.DeltaMovement[2] = 0;
                 moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
                 moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-                moveType.Time = Seq;    // has to change all the time for normal motion.
+                moveType.Time += 50; // has to change all the time for normal motion.
 
                 if (move)
                 {

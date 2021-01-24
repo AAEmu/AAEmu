@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
@@ -28,6 +28,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Jitter.World _physWorld;
         private Buoyancy _buoyancy;
         private uint _tickCount = 0;
+        private bool ThreadRunning = true;
 
         public void Initialize()
         {
@@ -43,7 +44,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void PhysicsThread()
         {
-            while (Thread.CurrentThread.IsAlive)
+            while (ThreadRunning && Thread.CurrentThread.IsAlive)
             {
                 Thread.Sleep(1000 / 60);
                 _physWorld.Step(1 / 60.0f, false);
@@ -141,7 +142,12 @@ namespace AAEmu.Game.Core.Managers.World
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
             // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
         }
-        
+
+        internal void Stop()
+        {
+            ThreadRunning = false;
+        }
+
         public void ComputeThrottle(Slave slave)
         {
             int throttleAccel = 6;
