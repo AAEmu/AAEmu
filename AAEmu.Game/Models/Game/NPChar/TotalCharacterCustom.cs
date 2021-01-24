@@ -1,9 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Skills.Templates;
-using AAEmu.Game.Models.Game.Units;
-
-namespace AAEmu.Game.Models.Game.NPChar
+﻿namespace AAEmu.Game.Models.Game.NPChar
 {
     public class TotalCharacterCustom
     {
