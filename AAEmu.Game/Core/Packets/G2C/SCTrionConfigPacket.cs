@@ -11,7 +11,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _commerceUrl;
         private readonly string _csUrl;
 
-        public SCTrionConfigPacket(bool activate, string platformUrl, string commerceUrl, string wikiUrl, string csUrl) : base(SCOffsets.SCTrionConfigPacket, 5)
+        public SCTrionConfigPacket(bool activate, string platformUrl, string commerceUrl, string wikiUrl, string csUrl)
+            : base(SCOffsets.SCTrionConfigPacket, 5)
         {
             _activate = activate;
             _wikiUrl = wikiUrl;
