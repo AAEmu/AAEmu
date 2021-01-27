@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _name;
         private readonly bool _party;
         
-        public SCRejectedTeamPacket(string name, bool party) : base(SCOffsets.SCRejectedTeamPacket, 1)
+        public SCRejectedTeamPacket(string name, bool party) : base(SCOffsets.SCRejectedTeamPacket, 5)
         {
             _name = name;
             _party = party;

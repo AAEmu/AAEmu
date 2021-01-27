@@ -544,7 +544,7 @@ namespace AAEmu.Game.Core.Managers
             house.ProtectionEndDate = DateTime.UtcNow.AddDays(7);
             _houses.Add(house.Id, house);
             _housesTl.Add(house.TlId, house);
-            connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
+            connection.ActiveChar.SendPacket(new SCMyHouseStatePacket(house));
             house.Spawn();
             UpdateTaxInfo(house);
         }

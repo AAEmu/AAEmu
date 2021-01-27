@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId2;
         private readonly uint _type;
 
-        public SCEmotionExpressedPacket(uint objId, uint objId2, uint type) : base(SCOffsets.SCEmotionExpressedPacket, 1)
+        public SCEmotionExpressedPacket(uint objId, uint objId2, uint type) : base(SCOffsets.SCEmotionExpressedPacket, 5)
         {
             _objId = objId;
             _objId2 = objId2;

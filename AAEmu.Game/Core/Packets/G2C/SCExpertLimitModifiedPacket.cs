@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly byte _step;
 
-        public SCExpertLimitModifiedPacket(bool isUpgrade, uint id, byte step) : base(SCOffsets.SCExpertLimitModifiedPacket, 1)
+        public SCExpertLimitModifiedPacket(bool isUpgrade, uint id, byte step) : base(SCOffsets.SCExpertLimitModifiedPacket, 5)
         {
             _isUpgrade = isUpgrade;
             _id = id;

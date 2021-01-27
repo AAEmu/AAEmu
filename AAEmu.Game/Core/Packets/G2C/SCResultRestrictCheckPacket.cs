@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _code;
         private readonly byte _result;
         
-        public SCResultRestrictCheckPacket(uint characterId, byte code, byte result) : base(SCOffsets.SCResultRestrictCheckPacket, 1)
+        public SCResultRestrictCheckPacket(uint characterId, byte code, byte result) : base(SCOffsets.SCResultRestrictCheckPacket, 5)
         {
             _characterId = characterId;
             _code = code;

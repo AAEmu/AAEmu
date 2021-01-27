@@ -1,5 +1,4 @@
-using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -8,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public sbyte[] DeltaMovement { get; set; }
         public sbyte Stance { get; set; }
         public sbyte Alertness { get; set; }
+        public byte ColliOpt { get; set; } // add in 1200 march 2015
         public byte GcFlags { get; set; }
         public ushort GcPartId { get; set; }
         public float X2 { get; set; }
@@ -37,21 +37,22 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             DeltaMovement[2] = stream.ReadSByte();
             Stance = stream.ReadSByte();
             Alertness = stream.ReadSByte();
+            ColliOpt = stream.ReadByte();    // add in 1200 march 2015
             ActorFlags = stream.ReadByte();
-            if((ActorFlags & 0x80) == 0x80)
+            if ((ActorFlags & 0x80) == 0x80)
                 FallVel = stream.ReadUInt16(); // actor.fallVel
-            if((ActorFlags & 0x20) == 0x20)
+            if ((ActorFlags & 0x20) == 0x20)
             {
-                GcFlags = stream.ReadByte(); // actor.gcFlags
-                GcPartId = stream.ReadUInt16(); // actor.gcPartId
+                GcFlags = stream.ReadByte();          // actor.gcFlags
+                GcPartId = stream.ReadUInt16();       // actor.gcPartId
                 (X2, Y2, Z2) = stream.ReadPosition(); // ix, iy, iz
                 RotationX2 = stream.ReadSByte();
-                RotationY2 = stream.ReadSByte(); 
+                RotationY2 = stream.ReadSByte();
                 RotationZ2 = stream.ReadSByte();
             }
-            if((ActorFlags & 0x60) != 0)
+            if ((ActorFlags & 0x60) != 0)
                 GcId = stream.ReadUInt32(); // actor.gcId
-            if((ActorFlags & 0x40) == 0x40)
+            if ((ActorFlags & 0x40) == 0x40)
                 ClimbData = stream.ReadUInt32(); // actor.climbData
         }
 
@@ -71,10 +72,11 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             stream.Write(DeltaMovement[2]);
             stream.Write(Stance);
             stream.Write(Alertness);
+            stream.Write(ColliOpt);    // add in 1200 march 2015
             stream.Write(ActorFlags);
-            if((ActorFlags & 0x80) == 0x80)
+            if ((ActorFlags & 0x80) == 0x80)
                 stream.Write(FallVel);
-            if((ActorFlags & 0x20) == 0x20)
+            if ((ActorFlags & 0x20) == 0x20)
             {
                 stream.Write(GcFlags);
                 stream.Write(GcPartId);
@@ -83,10 +85,11 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                 stream.Write(RotationY2);
                 stream.Write(RotationZ2);
             }
-            if((ActorFlags & 0x60) != 0)
+            if ((ActorFlags & 0x60) != 0)
                 stream.Write(GcId);
-            if((ActorFlags & 0x40) == 0x40)
+            if ((ActorFlags & 0x40) == 0x40)
                 stream.Write(ClimbData);
+
             return stream;
         }
     }

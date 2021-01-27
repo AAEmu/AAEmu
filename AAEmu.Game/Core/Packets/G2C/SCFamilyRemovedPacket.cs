@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _familyId;
         
-        public SCFamilyRemovedPacket(uint familyId) : base(SCOffsets.SCFamilyRemovedPacket, 1)
+        public SCFamilyRemovedPacket(uint familyId) : base(SCOffsets.SCFamilyRemovedPacket, 5)
         {
             _familyId = familyId;
         }

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSkillControllerStatePacket : GamePacket
     {
-        public CSSkillControllerStatePacket() : base(CSOffsets.CSSkillControllerStatePacket, 1)
+        public CSSkillControllerStatePacket() : base(CSOffsets.CSSkillControllerStatePacket, 5)
         {
         }
 

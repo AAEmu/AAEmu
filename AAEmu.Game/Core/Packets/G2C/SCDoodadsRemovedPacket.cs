@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _last;
         private readonly uint[] _ids;
 
-        public SCDoodadsRemovedPacket(bool last, uint[] ids) : base(SCOffsets.SCDoodadsRemovedPacket, 1)
+        public SCDoodadsRemovedPacket(bool last, uint[] ids) : base(SCOffsets.SCDoodadsRemovedPacket, 5)
         {
             _last = last;
             _ids = ids;

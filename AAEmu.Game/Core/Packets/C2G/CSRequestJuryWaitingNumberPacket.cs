@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRequestJuryWaitingNumberPacket : GamePacket
     {
-        public CSRequestJuryWaitingNumberPacket() : base(CSOffsets.CSRequestJuryWaitingNumberPacket, 1)
+        public CSRequestJuryWaitingNumberPacket() : base(CSOffsets.CSRequestJuryWaitingNumberPacket, 5)
         {
         }
 

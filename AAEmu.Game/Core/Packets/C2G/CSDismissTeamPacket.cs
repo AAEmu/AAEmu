@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDismissTeamPacket : GamePacket
     {
-        public CSDismissTeamPacket() : base(CSOffsets.CSDismissTeamPacket, 1)
+        public CSDismissTeamPacket() : base(CSOffsets.CSDismissTeamPacket, 5)
         {
         }
 

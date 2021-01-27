@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _id;
 
-        public SCSlaveDespawnPacket(uint id) : base(SCOffsets.SCSlaveDespawnPacket, 1)
+        public SCSlaveDespawnPacket(uint id) : base(SCOffsets.SCSlaveDespawnPacket, 5)
         {
             _id = id;
         }

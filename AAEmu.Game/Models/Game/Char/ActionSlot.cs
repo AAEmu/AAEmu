@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Char
+﻿namespace AAEmu.Game.Models.Game.Char
 {
     public enum ActionSlotType : byte
     {
@@ -14,5 +14,6 @@ namespace AAEmu.Game.Models.Game.Char
     {
         public ActionSlotType Type { get; set; }
         public uint ActionId { get; set; }
+        public ulong ItemId { get; set; }
     }
 }

@@ -62,8 +62,8 @@ namespace AAEmu.Game.Models.Game.Faction
             stream.Write(OwnerName);
             stream.Write(UnitOwnerType);
             stream.Write(PoliticalSystem);
-            stream.Write(Created);
-            stream.Write(DiplomacyTarget);
+            stream.Write(Created);         // createdTime
+            stream.Write(DiplomacyTarget); // dTarget
             stream.Write(AllowChangeName);
             return stream;
         }

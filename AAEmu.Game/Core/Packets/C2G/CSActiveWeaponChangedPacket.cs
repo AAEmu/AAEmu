@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSActiveWeaponChangedPacket : GamePacket
     {
-        public CSActiveWeaponChangedPacket() : base(CSOffsets.CSActiveWeaponChangedPacket, 1)
+        public CSActiveWeaponChangedPacket() : base(CSOffsets.CSActiveWeaponChangedPacket, 5)
         {
         }
 

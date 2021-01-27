@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAllowHousingRecoverPacket : GamePacket
     {
-        public CSAllowHousingRecoverPacket() : base(CSOffsets.CSAllowHousingRecoverPacket, 1)
+        public CSAllowHousingRecoverPacket() : base(CSOffsets.CSAllowHousingRecoverPacket, 5)
         {
         }
 

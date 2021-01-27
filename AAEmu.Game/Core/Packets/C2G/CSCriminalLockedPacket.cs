@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCriminalLockedPacket : GamePacket
     {
-        public CSCriminalLockedPacket() : base(CSOffsets.CSCriminalLockedPacket, 1)
+        public CSCriminalLockedPacket() : base(CSOffsets.CSCriminalLockedPacket, 5)
         {
         }
 

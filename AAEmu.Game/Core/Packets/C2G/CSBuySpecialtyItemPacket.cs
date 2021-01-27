@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBuySpecialtyItemPacket : GamePacket
     {
-        public CSBuySpecialtyItemPacket() : base(CSOffsets.CSBuySpecialtyItemPacket, 1)
+        public CSBuySpecialtyItemPacket() : base(CSOffsets.CSBuySpecialtyItemPacket, 5)
         {
         }
 

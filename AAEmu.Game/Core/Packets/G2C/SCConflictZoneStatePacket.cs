@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -11,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ZoneConflictType _hpws;
         private readonly DateTime _endTime;
 
-        public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(SCOffsets.SCConflictZoneStatePacket, 1)
+        public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(SCOffsets.SCConflictZoneStatePacket, 5)
         {
             _zoneId = zoneId;
             _hpws = hpws;
@@ -21,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_zoneId);
-            stream.Write((byte) _hpws);
+            stream.Write((byte)_hpws);
             stream.Write(_endTime);
             return stream;
         }

@@ -21,6 +21,16 @@ namespace AAEmu.Game.Core.Network.Game
 
             // World
             RegisterPacket(CSOffsets.X2EnterWorldPacket, 1, typeof(X2EnterWorldPacket)); // level = 1
+            // double _01_&_05_
+            // пакет для дешифрации
+            RegisterPacket(CSOffsets.CSAesXorKeyPacket, 1, typeof(CSAesXorKeyPacket));         // level = 1
+            RegisterPacket(CSOffsets.CSAesXorKey_05_Packet, 5, typeof(CSAesXorKey_05_Packet)); // level = 5
+            //
+            RegisterPacket(CSOffsets.CSResturnAddrsPacket, 1, typeof(CSResturnAddrsPacket)); // level = 1
+            RegisterPacket(CSOffsets.CSResturnAddrs_05_Packet, 5, typeof(CSResturnAddrs_05_Packet)); // level = 5
+            RegisterPacket(CSOffsets.CSHgResponsePacket, 1, typeof(CSHgResponsePacket)); // level = 1
+            RegisterPacket(CSOffsets.CSHgResponse_05_Packet, 5, typeof(CSHgResponse_05_Packet)); // level = 5
+
             RegisterPacket(CSOffsets.CSLeaveWorldPacket, 5, typeof(CSLeaveWorldPacket));
             RegisterPacket(CSOffsets.CSCancelLeaveWorldPacket, 5, typeof(CSCancelLeaveWorldPacket));
             RegisterPacket(CSOffsets.CSCreateExpeditionPacket, 5, typeof(CSCreateExpeditionPacket));
@@ -166,7 +176,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSTakeAttachmentItemPacket, 5, typeof(CSTakeAttachmentItemPacket));
             RegisterPacket(CSOffsets.CSTakeAttachmentMoneyPacket, 5, typeof(CSTakeAttachmentMoneyPacket));
             // 0x9f unk packet
-            RegisterPacket(CSOffsets.CSTakeAttachmentSequentially, 5, typeof(CSTakeAttachmentSequentially));
+            RegisterPacket(CSOffsets.CSTakeAttachmentSequentiallyPacket, 5, typeof(CSTakeAttachmentSequentiallyPacket));
             RegisterPacket(CSOffsets.CSPayChargeMoneyPacket, 5, typeof(CSPayChargeMoneyPacket));
             RegisterPacket(CSOffsets.CSDeleteMailPacket, 5, typeof(CSDeleteMailPacket));
             RegisterPacket(CSOffsets.CSReportSpamPacket, 5, typeof(CSReportSpamPacket));
@@ -188,10 +198,6 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSBuyPriestBuffPacket, 5, typeof(CSBuyPriestBuffPacket));
             RegisterPacket(CSOffsets.CSUseTeleportPacket, 5, typeof(CSUseTeleportPacket));
             RegisterPacket(CSOffsets.CSTeleportEndedPacket, 5, typeof(CSTeleportEndedPacket));
-
-            RegisterPacket(CSOffsets.CSAesXorKeyPacket, 5, typeof(CSAesXorKeyPacket)); // level = 1
-            RegisterPacket(CSOffsets.CSAesXorKey_05_Packet, 5, typeof(CSAesXorKeyPacket)); // level = 5
-
             RegisterPacket(CSOffsets.CSRepairPetItemsPacket, 5, typeof(CSRepairPetItemsPacket));
             RegisterPacket(CSOffsets.CSUpdateActionSlotPacket, 5, typeof(CSUpdateActionSlotPacket));
             RegisterPacket(CSOffsets.CSAuctionPostPacket, 5, typeof(CSAuctionPostPacket));
@@ -249,7 +255,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSSaveTutorialPacket, 5, typeof(CSSaveTutorialPacket));
             RegisterPacket(CSOffsets.CSSetLogicDoodadPacket, 5, typeof(CSSetLogicDoodadPacket));
             RegisterPacket(CSOffsets.CSCleanupLogicLinkPacket, 5, typeof(CSCleanupLogicLinkPacket));
-            RegisterPacket(CSOffsets.CSExecuteCraft, 5, typeof(CSExecuteCraft));
+            RegisterPacket(CSOffsets.CSExecuteCraftPacket, 5, typeof(CSExecuteCraftPacket));
             RegisterPacket(CSOffsets.CSChangeAppellationPacket, 5, typeof(CSChangeAppellationPacket));
             RegisterPacket(CSOffsets.CSCreateShipyardPacket, 5, typeof(CSCreateShipyardPacket));
             RegisterPacket(CSOffsets.CSRestartMainQuestPacket, 5, typeof(CSRestartMainQuestPacket));
@@ -264,9 +270,6 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSAddBlockedUserPacket, 5, typeof(CSAddBlockedUserPacket));
             RegisterPacket(CSOffsets.CSDeleteBlockedUserPacket, 5, typeof(CSDeleteBlockedUserPacket));
             RegisterPacket(CSOffsets.CSNotifySubZonePacket, 5, typeof(CSNotifySubZonePacket));
-            
-            RegisterPacket(CSOffsets.CSResturnAddrsPacket, 1, typeof(CSResturnAddrsPacket)); // level = 1
-            
             RegisterPacket(CSOffsets.CSRequestUIDataPacket, 5, typeof(CSRequestUIDataPacket));
             RegisterPacket(CSOffsets.CSSaveUIDataPacket, 5, typeof(CSSaveUIDataPacket));
             RegisterPacket(CSOffsets.CSBroadcastVisualOptionPacket, 5, typeof(CSBroadcastVisualOptionPacket));
@@ -294,7 +297,7 @@ namespace AAEmu.Game.Core.Network.Game
             // 0x13d unk packet
             // 0x13e unk packet
             // 0x13f unk packet
-            RegisterPacket(CSOffsets.CSSetupSecondPassword, 5, typeof(CSSetupSecondPassword));
+            RegisterPacket(CSOffsets.CSSetupSecondPasswordPacket, 5, typeof(CSSetupSecondPasswordPacket));
             // 0x141 unk packet
             // 0x142 unk packet
 

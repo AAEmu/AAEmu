@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly AuctionItem _auctionItem;
 
-        public SCAuctionLowestPricePacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionLowestPricePacket, 1)
+        public SCAuctionLowestPricePacket(AuctionItem auctionItem) : base(SCOffsets.SCAuctionLowestPricePacket, 5)
         {
             _auctionItem = auctionItem;
         }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _court;
         private readonly int _juryNumber;
 
-        public SCJuryBeSeatedPacket(bool isWest, uint trial, int court, int juryNumber) : base(SCOffsets.SCJuryBeSeatedPacket,1)
+        public SCJuryBeSeatedPacket(bool isWest, uint trial, int court, int juryNumber) : base(SCOffsets.SCJuryBeSeatedPacket, 5)
         {
             _isWest = isWest;
             _trial = trial;

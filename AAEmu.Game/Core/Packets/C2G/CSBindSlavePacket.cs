@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBindSlavePacket : GamePacket
     {
-        public CSBindSlavePacket() : base(CSOffsets.CSBindSlavePacket, 1)
+        public CSBindSlavePacket() : base(CSOffsets.CSBindSlavePacket, 5)
         {
         }
 

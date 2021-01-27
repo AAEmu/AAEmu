@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _z2;
         
         public SCTeleportUnitPacket(byte reason, short errorMessage, float x, float y, float z, float z2) 
-            : base(SCOffsets.SCTeleportUnitPacket, 1)
+            : base(SCOffsets.SCTeleportUnitPacket, 5)
         {
             _reason = reason;
             _errorMessage = errorMessage;

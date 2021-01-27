@@ -3,7 +3,6 @@ using System.Linq;
 
 using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -27,7 +26,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Connection.SendPacket(new SCGetSlotCountPacket(0));
             Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
-            Connection.SendPacket(new SCAccountAttendancePacket(31));
+            //Connection.SendPacket(new SCAccountAttendancePacket(31));
 
             Connection.SendPacket(new SCRaceCongestionPacket());
             Connection.LoadAccount();
@@ -47,8 +46,6 @@ namespace AAEmu.Game.Core.Packets.C2G
                     Connection.SendPacket(new SCCharacterListPacket(last, temp));
                 }
             }
-
-            //Connection.SendPacket(new SCUnknownPacket_0x14F());
         }
     }
 }

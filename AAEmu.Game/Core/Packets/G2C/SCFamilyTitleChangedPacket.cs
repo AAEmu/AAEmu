@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _memberId;
         private readonly string _title;
         
-        public SCFamilyTitleChangedPacket(uint familyId, uint memberId, string title) : base(SCOffsets.SCFamilyTitleChangedPacket, 1)
+        public SCFamilyTitleChangedPacket(uint familyId, uint memberId, string title) : base(SCOffsets.SCFamilyTitleChangedPacket, 5)
         {
             _familyId = familyId;
             _memberId = memberId;

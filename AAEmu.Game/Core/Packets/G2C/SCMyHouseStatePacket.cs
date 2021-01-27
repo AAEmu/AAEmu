@@ -1,14 +1,14 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
-    public class SCMyHousePacket : GamePacket
+    public class SCMyHouseStatePacket : GamePacket
     {
         private readonly House _house;
 
-        public SCMyHousePacket(House house) : base(SCOffsets.SCMyHousePacket, 1)
+        public SCMyHouseStatePacket(House house) : base(SCOffsets.SCMyHouseStatePacket, 5)
         {
             _house = house;
         }

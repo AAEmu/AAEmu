@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly TeamMember _member;
 
-        public SCTeamMemberDisconnectedPacket(uint teamId, uint id, TeamMember member) : base(SCOffsets.SCTeamMemberDisconnectedPacket, 1)
+        public SCTeamMemberDisconnectedPacket(uint teamId, uint id, TeamMember member) : base(SCOffsets.SCTeamMemberDisconnectedPacket, 5)
         {
             _teamId = teamId;
             _id = id;

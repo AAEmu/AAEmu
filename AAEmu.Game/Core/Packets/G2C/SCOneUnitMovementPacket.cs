@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units.Movements;
 
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly MoveType _type;
 
-        public SCOneUnitMovementPacket(uint id, MoveType type) : base(SCOffsets.SCOneUnitMovementPacket, 1)
+        public SCOneUnitMovementPacket(uint id, MoveType type) : base(SCOffsets.SCOneUnitMovementPacket, 5)
         {
             _id = id;
             _type = type;
@@ -17,9 +17,9 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.WriteBc(_id);
-            stream.Write((byte) _type.Type);
-            stream.Write(_type);
+            stream.WriteBc(_id);             // unitId
+            stream.Write((byte) _type.Type); // moveType
+            stream.Write(_type);             // MoveTypeEnum.ActorData
             return stream;
         }
     }

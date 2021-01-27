@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isUnreadMailCountModified;
         private readonly CountUnreadMail _count;
         
-        public SCSpamReportedPacket(long mailId, bool isUnreadMailCountModified, CountUnreadMail count) : base(SCOffsets.SCSpamReportedPacket, 1)
+        public SCSpamReportedPacket(long mailId, bool isUnreadMailCountModified, CountUnreadMail count) : base(SCOffsets.SCSpamReportedPacket, 5)
         {
             _mailId = mailId;
             _isUnreadMailCountModified = isUnreadMailCountModified;

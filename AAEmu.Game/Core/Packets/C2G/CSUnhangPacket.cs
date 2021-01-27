@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUnhangPacket : GamePacket
     {
-        public CSUnhangPacket() : base(CSOffsets.CSUnhangPacket, 1)
+        public CSUnhangPacket() : base(CSOffsets.CSUnhangPacket, 5)
         {
         }
 

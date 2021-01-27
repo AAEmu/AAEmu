@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListCharacterPacket : GamePacket
     {
-        public CSListCharacterPacket() : base(CSOffsets.CSListCharacterPacket, 1)
+        public CSListCharacterPacket() : base(CSOffsets.CSListCharacterPacket, 5)
         {
         }
 

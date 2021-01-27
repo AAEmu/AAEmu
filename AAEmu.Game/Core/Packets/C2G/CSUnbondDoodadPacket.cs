@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUnbondDoodadPacket : GamePacket
     {
-        public CSUnbondDoodadPacket() : base(CSOffsets.CSUnbondDoodadPacket, 1)
+        public CSUnbondDoodadPacket() : base(CSOffsets.CSUnbondDoodadPacket, 5)
         {
         }
 

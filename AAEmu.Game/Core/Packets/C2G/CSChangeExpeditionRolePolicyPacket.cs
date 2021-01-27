@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeExpeditionRolePolicyPacket : GamePacket
     {
-        public CSChangeExpeditionRolePolicyPacket() : base(CSOffsets.CSChangeExpeditionRolePolicyPacket, 1)
+        public CSChangeExpeditionRolePolicyPacket() : base(CSOffsets.CSChangeExpeditionRolePolicyPacket, 5)
         {
         }
 

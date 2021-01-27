@@ -271,14 +271,14 @@ namespace AAEmu.Game.Models.Game.Housing
             var ownerName = NameManager.Instance.GetCharacterName(OwnerId);
             var sellToPlayerName = NameManager.Instance.GetCharacterName(SellToPlayerId);
 
-            stream.Write(TlId);
-            stream.Write(Id); // dbId
+            stream.Write(TlId); // tl
+            stream.Write(Id);   // dbId
             stream.WriteBc(ObjId);
             stream.Write(TemplateId);
-            stream.WritePisc(ModelId, 0);
-            //stream.Write(ModelId); // ht
-            stream.Write(CoOwnerId); // type(id)
-            stream.Write(OwnerId); // type(id)
+            stream.WritePisc(ModelId, 0); // ?
+            //stream.Write(ModelId);      // ht
+            stream.Write(CoOwnerId);      // type(id)
+            stream.Write(OwnerId);        // type(id)
             stream.Write(ownerName ?? "");
             stream.Write(AccountId);
             stream.Write((byte)Permission);
@@ -290,7 +290,7 @@ namespace AAEmu.Game.Models.Game.Housing
             }
             else
             {
-                stream.Write(AllAction); // allstep
+                stream.Write(AllAction);     // allstep
                 stream.Write(CurrentAction); // curstep
             }
             

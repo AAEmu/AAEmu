@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _targetUnitId;
         private readonly byte _textType;
         
-        public SCCombatTextPacket(uint sourceUnitId, uint targetUnitId, byte textType) : base(SCOffsets.SCCombatTextPacket, 1)
+        public SCCombatTextPacket(uint sourceUnitId, uint targetUnitId, byte textType) : base(SCOffsets.SCCombatTextPacket, 5)
         {
             _sourceUnitId = sourceUnitId;
             _targetUnitId = targetUnitId;

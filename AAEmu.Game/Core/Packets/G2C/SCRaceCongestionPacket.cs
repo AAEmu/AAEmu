@@ -1,17 +1,17 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCRaceCongestionPacket : GamePacket
     {
-        public SCRaceCongestionPacket() : base(SCOffsets.SCRaceCongestionPacket, 1)
+        public SCRaceCongestionPacket() : base(SCOffsets.SCRaceCongestionPacket, 5)
         {
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            for (var i = 0; i < 9; i++)
+            for (var i = 0; i < 9; i++) // in 1.2 = 9, in 4.0 = 9
                 stream.Write((byte) 0);
             /*RACE_CONGESTION = {
                 LOW = 0,

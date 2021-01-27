@@ -197,14 +197,14 @@ namespace AAEmu.Game.Core.Managers
         public void KickMember(Character kicker, uint kickedId) 
         {
             if (kicker.Family == 0) return;
-            Family family = _families[kicker.Family];
+            var family = _families[kicker.Family];
 
-            FamilyMember kickerMember = family.GetMember(kicker);
+            var kickerMember = family.GetMember(kicker);
             if (kickerMember.Role != 1) return; // Only the steward can kick
 
             // Load kicked character
-            Character kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
-            bool isOnline = false;
+            var kickedCharacter = WorldManager.Instance.GetCharacterById(kickedId);
+            var isOnline = false;
             if (kickedCharacter != null) 
             {
                 isOnline = true;

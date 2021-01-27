@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _totalPage;
         private readonly CashShopItem _item;
         
-        public SCICSGoodListPacket(bool pageEnd, ushort totalPage, CashShopItem item) : base(SCOffsets.SCICSGoodListPacket, 1)
+        public SCICSGoodListPacket(bool pageEnd, ushort totalPage, CashShopItem item) : base(SCOffsets.SCICSGoodListPacket, 5)
         {
             _pageEnd = pageEnd;
             _totalPage = totalPage;

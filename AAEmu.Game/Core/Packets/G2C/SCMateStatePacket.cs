@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _objId;
 
-        public SCMateStatePacket(uint objId) : base(SCOffsets.SCMateStatePacket, 1)
+        public SCMateStatePacket(uint objId) : base(SCOffsets.SCMateStatePacket, 5)
         {
             _objId = objId;
         }

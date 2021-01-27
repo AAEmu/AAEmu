@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _zRot;
         
         public SCCharacterResurrectedPacket(uint unitId, float x, float y, float z, float zRot) 
-            : base(SCOffsets.SCCharacterResurrectedPacket, 1)
+            : base(SCOffsets.SCCharacterResurrectedPacket, 5)
         {
             _unitId = unitId;
             _x = x;

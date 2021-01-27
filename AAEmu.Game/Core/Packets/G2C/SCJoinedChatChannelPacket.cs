@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly short _subType;
         private readonly uint _factionId;
 
-        public SCJoinedChatChannelPacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCJoinedChatChannelPacket, 1)
+        public SCJoinedChatChannelPacket(ChatType type, short subType, uint factionId) : base(SCOffsets.SCJoinedChatChannelPacket, 5)
         {
             _type = type;
             _subType = subType;
@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((short) _type);
+            stream.Write((short) _type);  //chat Int64
             stream.Write(_subType);
             stream.Write(_factionId);
             // -------------

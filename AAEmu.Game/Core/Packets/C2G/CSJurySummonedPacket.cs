@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSJurySummonedPacket : GamePacket
     {
-        public CSJurySummonedPacket() : base(CSOffsets.CSJurySummonedPacket, 1)
+        public CSJurySummonedPacket() : base(CSOffsets.CSJurySummonedPacket, 5)
         {
         }
 

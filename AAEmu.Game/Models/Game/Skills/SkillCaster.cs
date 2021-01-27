@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Skills

@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRequestUIDataPacket : GamePacket
     {
-        public CSRequestUIDataPacket() : base(CSOffsets.CSRequestUIDataPacket, 1)
+        public CSRequestUIDataPacket() : base(CSOffsets.CSRequestUIDataPacket, 5)
         {
         }
 

@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private ModelPostureType _modelPostureType;
         //private byte _attachPoint;
 
-        public SCUnitStatePacket(Unit unit) : base(SCOffsets.SCUnitStatePacket, 1)
+        public SCUnitStatePacket(Unit unit) : base(SCOffsets.SCUnitStatePacket, 5)
         {
             _unit = unit;
             switch (_unit)
@@ -418,10 +418,10 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(ability.Order);
                 }
 
-                stream.Write((byte)activeAbilities.Count);
+                stream.Write((byte)activeAbilities.Count); // nActive
                 foreach (var ability in activeAbilities)
                 {
-                    stream.Write((byte)ability);
+                    stream.Write((byte)ability); // active
                 }
 
                 stream.WriteBc(0);

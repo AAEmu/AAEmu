@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly List<ItemTask> _tasks;
         private readonly List<ulong> _forceRemove;
 
-        public SCTradeMadePacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove) : base(SCOffsets.SCTradeMadePacket, 1)
+        public SCTradeMadePacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove) : base(SCOffsets.SCTradeMadePacket, 5)
         {
             _action = action;
             _tasks = tasks;

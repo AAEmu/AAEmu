@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game
         {
             stream.Write(CharacterId);
             stream.Write(Name);
-            stream.Write((byte)Race);
+            stream.Write((byte)Race); // CharRace
             stream.Write(Level);
             stream.Write(Health);
             stream.Write((byte)Ability1);

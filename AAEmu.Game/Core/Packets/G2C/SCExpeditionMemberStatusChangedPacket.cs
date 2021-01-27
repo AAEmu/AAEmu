@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ExpeditionMember _expeditionMember;
         private readonly byte _flag;
 
-        public SCExpeditionMemberStatusChangedPacket(ExpeditionMember expeditionMember, byte flag) : base(SCOffsets.SCExpeditionMemberStatusChangedPacket, 1)
+        public SCExpeditionMemberStatusChangedPacket(ExpeditionMember expeditionMember, byte flag) : base(SCOffsets.SCExpeditionMemberStatusChangedPacket, 5)
         {
             _expeditionMember = expeditionMember;
             _flag = flag;

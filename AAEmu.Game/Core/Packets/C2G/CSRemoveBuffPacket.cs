@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRemoveBuffPacket : GamePacket
     {
-        public CSRemoveBuffPacket() : base(CSOffsets.CSRemoveBuffPacket, 1)
+        public CSRemoveBuffPacket() : base(CSOffsets.CSRemoveBuffPacket, 5)
         {
         }
 

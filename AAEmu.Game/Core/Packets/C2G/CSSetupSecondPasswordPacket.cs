@@ -3,9 +3,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSSetupSecondPassword : GamePacket
+    public class CSSetupSecondPasswordPacket : GamePacket
     {
-        public CSSetupSecondPassword() : base(CSOffsets.CSSetupSecondPassword, 1)
+        public CSSetupSecondPasswordPacket() : base(CSOffsets.CSSetupSecondPasswordPacket, 5)
         {
         }
 

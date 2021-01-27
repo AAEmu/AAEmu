@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game
 {
@@ -21,7 +20,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Id);
             stream.Write(Name); // TODO max length 128
             stream.Write(ZoneId);
-            stream.Write(X);
+            stream.Write(X); // pos
             stream.Write(Y);
             stream.Write(Z);
             stream.Write(ZRot);

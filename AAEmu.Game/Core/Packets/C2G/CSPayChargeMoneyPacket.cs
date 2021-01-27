@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSPayChargeMoneyPacket : GamePacket
     {
-        public CSPayChargeMoneyPacket() : base(CSOffsets.CSPayChargeMoneyPacket, 1)
+        public CSPayChargeMoneyPacket() : base(CSOffsets.CSPayChargeMoneyPacket, 5)
         {
         }
 

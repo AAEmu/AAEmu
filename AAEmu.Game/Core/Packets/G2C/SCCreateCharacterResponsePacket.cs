@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Character _character;
 
-        public SCCreateCharacterResponsePacket(Character character) : base(SCOffsets.SCCreateCharacterResponsePacket, 1)
+        public SCCreateCharacterResponsePacket(Character character) : base(SCOffsets.SCCreateCharacterResponsePacket, 5)
         {
             _character = character;
         }

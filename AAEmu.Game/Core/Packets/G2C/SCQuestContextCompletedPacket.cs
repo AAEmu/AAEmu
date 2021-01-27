@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte[] _body;
         private readonly uint _componentId;
 
-        public SCQuestContextCompletedPacket(uint questId, byte[] body, uint componentId) : base(SCOffsets.SCQuestContextCompletedPacket, 1)
+        public SCQuestContextCompletedPacket(uint questId, byte[] body, uint componentId) : base(SCOffsets.SCQuestContextCompletedPacket, 5)
         {
             _questId = questId;
             _body = body;

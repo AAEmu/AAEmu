@@ -77,7 +77,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
 
-            moveType.Flags = 5;     // 5-walk, 4-run, 3-stand still
+            moveType.ActorFlags = 5;     // 5-walk, 4-run, 3-stand still
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 127; // 88.. 118

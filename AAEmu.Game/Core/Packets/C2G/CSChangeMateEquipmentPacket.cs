@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
     public class CSChangeMateEquipmentPacket : GamePacket
     {
         // TODO fix struct
-        public CSChangeMateEquipmentPacket() : base(CSOffsets.CSChangeMateEquipmentPacket, 1)
+        public CSChangeMateEquipmentPacket() : base(CSOffsets.CSChangeMateEquipmentPacket, 5)
         {
         }
 

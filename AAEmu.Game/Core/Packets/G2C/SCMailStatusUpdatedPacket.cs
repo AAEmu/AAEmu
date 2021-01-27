@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly long _mailId;
         private readonly MailStatus _status;
 
-        public SCMailStatusUpdatedPacket(bool isSent, long mailId, MailStatus status) : base(SCOffsets.SCMailStatusUpdatedPacket, 1)
+        public SCMailStatusUpdatedPacket(bool isSent, long mailId, MailStatus status) : base(SCOffsets.SCMailStatusUpdatedPacket, 5)
         {
             _isSent = isSent;
             _mailId = mailId;
@@ -19,9 +19,10 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_isSent);
-            stream.Write(_mailId);
-            stream.Write((byte)_status);
+            stream.Write(_isSent); // isSent
+            stream.Write(_mailId); // type
+            stream.Write((byte)_status); // status
+
             return stream;
         }
     }

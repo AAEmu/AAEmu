@@ -9,13 +9,13 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _characterId;
         private readonly (byte slot, Item item)[] _items;
 
-        public SCUnitEquipmentsChangedPacket(uint objectId, (byte slot, Item item)[] items) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
+        public SCUnitEquipmentsChangedPacket(uint objectId, (byte slot, Item item)[] items) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 5)
         {
             _characterId = objectId;
             _items = items;
         }
 
-        public SCUnitEquipmentsChangedPacket(uint objectId, byte slot, Item item) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 1)
+        public SCUnitEquipmentsChangedPacket(uint objectId, byte slot, Item item) : base(SCOffsets.SCUnitEquipmentsChangedPacket, 5)
         {
             _characterId = objectId;
             _items = new[] { (slot, item) };

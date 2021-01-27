@@ -3,7 +3,15 @@
     public static class CSOffsets
     {
         // All opcodes here are updated for version client_12_r223748
-        public const ushort X2EnterWorldPacket = 0x000;
+        public const ushort X2EnterWorldPacket = 0x00;
+        // double _01_&_05_
+        public const ushort CSResturnAddrsPacket = 0x056;     // level = 1
+        public const ushort CSResturnAddrs_05_Packet = 0x056; // level = 5
+        public const ushort CSHgResponsePacket = 0x043;       // level = 1
+        public const ushort CSHgResponse_05_Packet = 0x043;   // level = 5
+        public const ushort CSAesXorKeyPacket = 0x03e;        // level = 1
+        public const ushort CSAesXorKey_05_Packet = 0x03e;    // level = 5
+
         public const ushort CSUnkPacket_0x133 = 0x133;
         public const ushort CSUnkPacket_0x141 = 0x141;
         public const ushort CSMoveUnitPacket = 0x03c;
@@ -13,7 +21,6 @@
         public const ushort CSRequestCommonFarmList = 0x0fc;
         public const ushort CSChallengeDuelPacket = 0x0c1;
         public const ushort CSStartDuelPacket = 0x088;
-        public const ushort CSResturnAddrsPacket = 0x056;
         public const ushort CSConvertItemLookPacket = 0x0cd;
         public const ushort CSUnkPacket_0x066 = 0x066;
         public const ushort CSSetPingPosPacket = 0x047;
@@ -59,7 +66,7 @@
         public const ushort CSWorldRayCastingPacket = 0x020;
         public const ushort CSListCharacterPacket = 0x0f7;
         public const ushort CSRefreshInCharacterListPacket = 0x019;
-        public const ushort SCDeleteCharacterPacket = 0x0ad;
+        public const ushort CSDeleteCharacterPacket = 0x0ad;
         public const ushort CSCancelCharacterDeletePacket = 0x0e3;
         public const ushort CSSelectCharacterPacket = 0x142;
         public const ushort CSNotifyInGamePacket = 0x02c;
@@ -72,7 +79,6 @@
         public const ushort CSChangeAppellationPacket = 0x08a;
         public const ushort CSStartedCinemaPacket = 0x07b;
         public const ushort CSHSResponsePacket = 0x0f2;
-        public const ushort CSHgResponsePacket = 0x043;
         public const ushort CSBroadcastVisualOptionPacket = 0x034;
         public const ushort CSRestrictCheckPacket = 0x06a;
         public const ushort CSICSMenuListPacket = 0x08c;
@@ -91,8 +97,6 @@
         public const ushort CSCreateCharacterPacket = 0x072;
         public const ushort CSEditCharacterPacket = 0x028;
         public const ushort CSTeleportEndedPacket = 0x080;
-        public const ushort CSAesXorKeyPacket = 0x03e;
-        public const ushort CSAesXorKey_05_Packet = 0x03e;
         public const ushort CSNotifySubZonePacket = 0x0ee;
         public const ushort CSSaveTutorialPacket = 0x029;
         public const ushort CSRequestUIDataPacket = 0x046;
@@ -177,7 +181,7 @@
         public const ushort CSJoinTrialAudiencePacket = 0x031;
         public const ushort CSLeaveTrialAudiencePacket = 0x062;
         public const ushort CSUnMountMatePacket = 0x136;
-        public const ushort CSUnbondDoodad = 0x0b4;
+        public const ushort CSUnbondDoodadPacket = 0x0b4;
         public const ushort CSInstanceLoadedPacket = 0x027;
         public const ushort CSApplyToInstantGamePacket = 0x071;
         public const ushort CSCancelInstantGamePacket = 0x09c;
@@ -236,7 +240,7 @@
         public const ushort CSReportSpamPacket = 0x0b6;
         public const ushort CSTakeAllAttachmentItemPacket = 0x093;
         public const ushort CSTakeAttachmentItemPacket = 0x109;
-        public const ushort CSUnkPacket_0x005 = 0x005;
+        public const ushort CSActiveWeaponChangedPacket = 0x005;
         public const ushort CSRepairSlaveItemsPacket = 0x127;
         public const ushort CSRepairPetItemsPacket = 0x089;
         public const ushort CSAllowHousingRecoverPacket = 0x0a9;
@@ -250,7 +254,7 @@
         public const ushort CSCancelAuctionPacket = 0x102;
         public const ushort CSAuctionBidPacket = 0x049;
         public const ushort CSExecuteCraftPacket = 0x131;
-        public const ushort CSSetLpManageCharacter = 0x137;
+        public const ushort CSSetLpManageCharacterPacket = 0x137;
         public const ushort CSChangeItemLookPacket = 0x048;
         public const ushort CSDestroyItemPacket = 0x0a7;
         public const ushort CSSplitBagItemPacket = 0x052;
@@ -299,22 +303,17 @@
         public const ushort CSSaveDoodadUccStringPacket = 0xfff;
         public const ushort CSSearchListPacket = 0xfff;
         public const ushort CSSetLogicDoodadPacket = 0xfff;
-        public const ushort CSSetLpManageCharacterPacket = 0xfff;
         public const ushort CSSetTeamOfficerPacket = 0xfff;
-        public const ushort CSSetupSecondPassword = 0xfff;
+        public const ushort CSTakeAttachmentSequentiallyPacket = 0xfff;
         public const ushort CSSpecialtyRecordLoadPacket = 0xfff;
-        public const ushort CSTakeAttachmentSequentially = 0xfff;
-        public const ushort CSUnbondDoodadPacket = 0xfff;
         public const ushort CSAcceptCheatQuestContextPacket = 0xfff;
-        public const ushort CSActiveWeaponChangedPacket = 0xfff;
         public const ushort CSBidAuctionPacket = 0xfff;
         public const ushort CSBuyItemsPacket = 0xfff;
         public const ushort CSBuySpecialtyItemPacket = 0xfff;
         public const ushort CSChangeExpeditionSponsorPacket = 0xfff;
         public const ushort CSChangeSlaveTargetPacket = 0xfff;
         public const ushort CSCharDetailPacket = 0xfff;
-        public const ushort CSDeleteCharacterPacket = 0xfff;
-        public const ushort CSExecuteCraft = 0xfff;
+        public const ushort CSSetupSecondPasswordPacket = 0xfff;
     }
 }
 

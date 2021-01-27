@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _memberId;
         private readonly uint _objId;
 
-        public SCRefreshTeamMemberPacket(uint teamId, uint memberId, uint objId) : base(SCOffsets.SCRefreshTeamMemberPacket, 1)
+        public SCRefreshTeamMemberPacket(uint teamId, uint memberId, uint objId) : base(SCOffsets.SCRefreshTeamMemberPacket, 5)
         {
             _teamId = teamId;
             _memberId = memberId;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellHousePacket : GamePacket
     {
-        public CSSellHousePacket() : base(CSOffsets.CSSellHousePacket, 1)
+        public CSSellHousePacket() : base(CSOffsets.CSSellHousePacket, 5)
         {
         }
 

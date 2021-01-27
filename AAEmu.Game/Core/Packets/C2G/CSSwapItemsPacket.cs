@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSwapItemsPacket : GamePacket
     {
-        public CSSwapItemsPacket() : base(CSOffsets.CSSwapItemsPacket, 1)
+        public CSSwapItemsPacket() : base(CSOffsets.CSSwapItemsPacket, 5)
         {
         }
 

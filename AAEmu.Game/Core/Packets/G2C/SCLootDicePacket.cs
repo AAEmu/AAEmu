@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Item _item;
         
-        public SCLootDicePacket(Item item) : base (SCOffsets.SCLootDicePacket,1)
+        public SCLootDicePacket(Item item) : base (SCOffsets.SCLootDicePacket, 5)
         {
             _item = item;
         }

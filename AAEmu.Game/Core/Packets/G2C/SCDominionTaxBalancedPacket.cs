@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _peaceTaxMoney;
         private readonly int _peaceTaxAaPoint;
 
-        public SCDominionTaxBalancedPacket(ushort id, int peaceTaxMoney, int peaceTaxAaPoint) : base(SCOffsets.SCDominionTaxBalancedPacket, 1)
+        public SCDominionTaxBalancedPacket(ushort id, int peaceTaxMoney, int peaceTaxAaPoint) : base(SCOffsets.SCDominionTaxBalancedPacket, 5)
         {
             _id = id;
             _peaceTaxMoney = peaceTaxMoney;

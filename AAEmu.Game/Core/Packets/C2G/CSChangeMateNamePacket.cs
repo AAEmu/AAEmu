@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeMateNamePacket : GamePacket
     {
-        public CSChangeMateNamePacket() : base(CSOffsets.CSChangeMateNamePacket, 1)
+        public CSChangeMateNamePacket() : base(CSOffsets.CSChangeMateNamePacket, 5)
         {
         }
 

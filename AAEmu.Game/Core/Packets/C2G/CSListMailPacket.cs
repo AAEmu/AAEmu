@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListMailPacket : GamePacket
     {
-        public CSListMailPacket() : base(CSOffsets.CSListMailPacket, 1)
+        public CSListMailPacket() : base(CSOffsets.CSListMailPacket, 5)
         {
         }
 

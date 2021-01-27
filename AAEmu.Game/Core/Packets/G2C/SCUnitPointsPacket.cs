@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _preciseHealth;
         private readonly int _preciseMana;
 
-        public SCUnitPointsPacket(uint id, int health, int mana) : base(SCOffsets.SCUnitPointsPacket, 1)
+        public SCUnitPointsPacket(uint id, int health, int mana) : base(SCOffsets.SCUnitPointsPacket, 5)
         {
             _id = id;
             _preciseHealth = health * 100;

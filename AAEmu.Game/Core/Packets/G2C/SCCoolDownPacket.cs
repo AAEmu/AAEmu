@@ -11,12 +11,12 @@ namespace AAEmu.Game.Core.Packets.G2C
         private int _skillCount;
         private int _tagCount;
 
-        public SCCooldownsPacket() : base(SCOffsets.SCCooldownsPacket, 1)
+        public SCCooldownsPacket() : base(SCOffsets.SCCooldownsPacket, 5)
         {
             _skillCount = 0;
             _tagCount = 0;
         }
-        public SCCooldownsPacket(Character chr) : base(SCOffsets.SCCooldownsPacket, 1)
+        public SCCooldownsPacket(Character chr) : base(SCOffsets.SCCooldownsPacket, 5)
         {
             _chr = chr;
             _skillCount = 0;

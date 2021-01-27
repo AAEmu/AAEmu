@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReplyExpeditionInvitationPacket : GamePacket
     {
-        public CSReplyExpeditionInvitationPacket() : base(CSOffsets.CSReplyExpeditionInvitationPacket, 1)
+        public CSReplyExpeditionInvitationPacket() : base(CSOffsets.CSReplyExpeditionInvitationPacket, 5)
         {
         }
 

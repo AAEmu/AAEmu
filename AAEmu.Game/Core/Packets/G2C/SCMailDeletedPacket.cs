@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Mails;
 
@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly CountUnreadMail _count;
         
         public SCMailDeletedPacket(bool isSent, long mailId, bool isUnreadMailCountModified, CountUnreadMail count)
-            : base(SCOffsets.SCMailDeletedPacket, 1)
+            : base(SCOffsets.SCMailDeletedPacket, 5)
         {
             _isSent = isSent;
             _mailId = mailId;

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _ratio;
 
-        public SCSpecialtyRatioPacket(int ratio) : base(SCOffsets.SCSpecialtyRatioPacket, 1)
+        public SCSpecialtyRatioPacket(int ratio) : base(SCOffsets.SCSpecialtyRatioPacket, 5)
         {
             _ratio = ratio;
         }

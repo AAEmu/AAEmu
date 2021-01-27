@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _hostileUnitId;
         private readonly int _value;
 
-        public SCAiAggroPacket(uint npcId, int count, uint hostileUnitId=0, int summarizeDamage=0) : base(SCOffsets.SCAiAggroPacket, 1)
+        public SCAiAggroPacket(uint npcId, int count, uint hostileUnitId=0, int summarizeDamage=0) : base(SCOffsets.SCAiAggroPacket, 5)
         {
             _npcId = npcId;
             _count = count;

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Expeditions

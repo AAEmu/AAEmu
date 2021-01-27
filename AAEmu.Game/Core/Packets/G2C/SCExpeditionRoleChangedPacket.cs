@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _role;
         private readonly string _charName;
 
-        public SCExpeditionRoleChangedPacket(uint id, byte role, string charName) : base(SCOffsets.SCExpeditionRoleChangedPacket, 1)
+        public SCExpeditionRoleChangedPacket(uint id, byte role, string charName) : base(SCOffsets.SCExpeditionRoleChangedPacket, 5)
         {
             _id = id;
             _role = role;

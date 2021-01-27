@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _slot2;
         private readonly short _errorMessage;
 
-        public SCUnknownPacket(SlotType slotType, byte slot, SlotType slotType2, byte slot2, short errorMessage) : base(SCOffsets.SCUnknownPacket, 1)
+        public SCUnknownPacket(SlotType slotType, byte slot, SlotType slotType2, byte slot2, short errorMessage) : base(SCOffsets.SCUnknownPacket, 5)
         {
             _slotType = slotType;
             _slot = slot;

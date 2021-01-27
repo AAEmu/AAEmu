@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartInteractionPacket : GamePacket
     {
-        public CSStartInteractionPacket() : base(CSOffsets.CSStartInteractionPacket, 1)
+        public CSStartInteractionPacket() : base(CSOffsets.CSStartInteractionPacket, 5)
         {
         }
 

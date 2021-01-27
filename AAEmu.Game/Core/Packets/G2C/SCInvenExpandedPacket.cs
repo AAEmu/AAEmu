@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _slotType;
         private readonly byte _numSlots;
 
-        public SCInvenExpandedPacket(SlotType slotType, byte numSlots) : base(SCOffsets.SCInvenExpandedPacket, 1)
+        public SCInvenExpandedPacket(SlotType slotType, byte numSlots) : base(SCOffsets.SCInvenExpandedPacket, 5)
         {
             _slotType = (byte)slotType;
             _numSlots = numSlots;

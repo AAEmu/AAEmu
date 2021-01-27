@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _w;
         private readonly short _errorMessage;
 
-        public SCTeamAckRiskyActionPacket(uint teamId, uint id, RiskyAction ra, int w, short errorMessage) : base(SCOffsets.SCTeamAckRiskyActionPacket, 1)
+        public SCTeamAckRiskyActionPacket(uint teamId, uint id, RiskyAction ra, int w, short errorMessage) : base(SCOffsets.SCTeamAckRiskyActionPacket, 5)
         {
             _teamId = teamId;
             _id = id;

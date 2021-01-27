@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Mails;
 
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly CountUnreadMail _count;
 
-        public SCCountUnreadMailPacket(CountUnreadMail count) : base(SCOffsets.SCCountUnreadMailPacket, 1)
+        public SCCountUnreadMailPacket(CountUnreadMail count) : base(SCOffsets.SCCountUnreadMailPacket, 5)
         {
             _count = count;
         }

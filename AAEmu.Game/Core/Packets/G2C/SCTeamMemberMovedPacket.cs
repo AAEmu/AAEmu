@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _from;
         private readonly byte _to;
 
-        public SCTeamMemberMovedPacket(uint teamId, uint idFrom, uint idTo, byte from, byte to) : base(SCOffsets.SCTeamMemberMovedPacket, 1)
+        public SCTeamMemberMovedPacket(uint teamId, uint idFrom, uint idTo, byte from, byte to) : base(SCOffsets.SCTeamMemberMovedPacket, 5)
         {
             _teamId = teamId;
             _idFrom = idFrom;

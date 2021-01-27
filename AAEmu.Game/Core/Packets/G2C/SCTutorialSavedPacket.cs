@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly byte[] _body;
 
-        public SCTutorialSavedPacket(uint id, byte[] body) : base(SCOffsets.SCTutorialSavedPacket, 1)
+        public SCTutorialSavedPacket(uint id, byte[] body) : base(SCOffsets.SCTutorialSavedPacket, 5)
         {
             _id = id;
             _body = body;

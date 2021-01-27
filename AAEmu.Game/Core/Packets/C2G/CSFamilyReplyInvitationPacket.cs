@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFamilyReplyInvitationPacket : GamePacket
     {
-        public CSFamilyReplyInvitationPacket() : base(CSOffsets.CSFamilyReplyInvitationPacket, 1)
+        public CSFamilyReplyInvitationPacket() : base(CSOffsets.CSFamilyReplyInvitationPacket, 5)
         {
         }
 

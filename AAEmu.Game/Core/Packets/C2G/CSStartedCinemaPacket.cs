@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartedCinemaPacket : GamePacket
     {
-        public CSStartedCinemaPacket() : base(CSOffsets.CSStartedCinemaPacket, 1)
+        public CSStartedCinemaPacket() : base(CSOffsets.CSStartedCinemaPacket, 5)
         {
         }
 

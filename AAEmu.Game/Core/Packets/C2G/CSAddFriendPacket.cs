@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAddFriendPacket : GamePacket
     {
-        public CSAddFriendPacket() : base(CSOffsets.CSAddFriendPacket, 1)
+        public CSAddFriendPacket() : base(CSOffsets.CSAddFriendPacket, 5)
         {
         }
 

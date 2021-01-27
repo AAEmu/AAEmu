@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _type1;
         private readonly byte _type2;
 
-        public SCGradeEnchantResultPacket(byte result, Item item, byte type1, byte type2) : base(SCOffsets.SCGradeEnchantResultPacket, 1)
+        public SCGradeEnchantResultPacket(byte result, Item item, byte type1, byte type2) : base(SCOffsets.SCGradeEnchantResultPacket, 5)
         {
             _result = result;
             _item = item;

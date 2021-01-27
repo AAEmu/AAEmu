@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Threading;
+
 using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
@@ -17,12 +16,12 @@ namespace AAEmu.Game.Core.Network.Game
         {
             Level = level;
         }
-        
+
         /// <summary>
         /// This is called in Encode after Read() in the case of GamePackets
         /// The purpose is to separate packet data from packet behavior
         /// </summary>
-        public virtual void Execute(){}
+        public virtual void Execute() { }
 
         public override PacketStream Encode()
         {
@@ -76,13 +75,16 @@ namespace AAEmu.Game.Core.Network.Game
             }
 
             // SC here you can set the filter to hide packets
-            if (!(TypeId == 0x013 && Level == 2) && // Pong
-                !(TypeId == 0x016 && Level == 2) && // FastPong
-                !(TypeId == SCOffsets.SCUnitMovementsPacket && Level == 5) && // SCUnitMovements
-                !(TypeId == SCOffsets.SCOneUnitMovementPacket && Level == 5))   // SCOneUnitMovement
-                //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
+            if (!(TypeId == 0x013 && Level == 2)    // Pong
+                && !(TypeId == 0x016 && Level == 2) // FastPong
+                && !(TypeId == SCOffsets.SCUnitMovementsPacket && Level == 5)  // SCUnitMovements
+                //&& !(TypeId == SCOffsets.SCOneUnitMovementPacket && Level == 5)   // SCOneUnitMovement
+                )
+            {
+                //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, ToString().Substring(23));
                 //_log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
                 _log.Warn("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
+            }
 
             return ps;
         }
@@ -91,12 +93,13 @@ namespace AAEmu.Game.Core.Network.Game
         {
             // CS here you can set the filter to hide packets
             if (!(TypeId == 0x012 && Level == 2) && // Ping
-                !(TypeId == 0x015 && Level == 2) && // FastPing
-                !(TypeId == CSOffsets.CSMoveUnitPacket && Level == 1)) // CSMoveUnit
+                !(TypeId == 0x015 && Level == 2) //&& // FastPing
+                //!(TypeId == CSOffsets.CSMoveUnitPacket && Level == 5)  // CSMoveUnit
+                )
             {
-                //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
+                _log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, ToString().Substring(23));
                 //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                _log.Warn("GamePacket: C->S type {0:X3} {1}", TypeId, ToString().Substring(23));
+                //_log.Warn("GamePacket: C->S type {0:X3} {1}", TypeId, ToString().Substring(23));
             }
             try
             {

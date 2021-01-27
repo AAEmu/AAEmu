@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private List<Item> _items;
 
-        public SCSoldItemListPacket(List<Item> items) : base(SCOffsets.SCSoldItemListPacket, 1)
+        public SCSoldItemListPacket(List<Item> items) : base(SCOffsets.SCSoldItemListPacket, 5)
         {
             _items = new List<Item>();
             /*

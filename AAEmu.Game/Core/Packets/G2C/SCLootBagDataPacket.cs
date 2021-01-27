@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly List<Item> _items;
         private readonly bool _lootAll;
 
-        public SCLootBagDataPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket,1)
+        public SCLootBagDataPacket(List<Item> items, bool lootAll) : base(SCOffsets.SCLootBagDataPacket, 5)
         {
             _items = items;
             _lootAll = lootAll;

@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDiscardSlavePacket : GamePacket
     {
-        public CSDiscardSlavePacket() : base(CSOffsets.CSDiscardSlavePacket, 1)
+        public CSDiscardSlavePacket() : base(CSOffsets.CSDiscardSlavePacket, 5)
         {
         }
 

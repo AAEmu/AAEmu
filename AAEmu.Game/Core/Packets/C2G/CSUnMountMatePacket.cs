@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUnMountMatePacket : GamePacket
     {
-        public CSUnMountMatePacket() : base(CSOffsets.CSUnMountMatePacket, 1)
+        public CSUnMountMatePacket() : base(CSOffsets.CSUnMountMatePacket, 5)
         {
         }
 

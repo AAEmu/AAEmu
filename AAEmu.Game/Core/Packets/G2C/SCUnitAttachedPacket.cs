@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly byte _reason;
 
-        public SCUnitAttachedPacket(uint childUnitObjId, byte point, byte reason, uint id) : base(SCOffsets.SCUnitAttachedPacket, 1)
+        public SCUnitAttachedPacket(uint childUnitObjId, byte point, byte reason, uint id) : base(SCOffsets.SCUnitAttachedPacket, 5)
         {
             _childUnitObjId = childUnitObjId;
             _point = point;

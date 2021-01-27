@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _unitObjId;
         private readonly uint _doodadObjId;
 
-        public SCVegetationCutdowningPacket(uint unitObjId, uint doodadObjId) : base(SCOffsets.SCVegetationCutdowningPacket, 1)
+        public SCVegetationCutdowningPacket(uint unitObjId, uint doodadObjId) : base(SCOffsets.SCVegetationCutdowningPacket, 5)
         {
             _unitObjId = unitObjId;
             _doodadObjId = doodadObjId;

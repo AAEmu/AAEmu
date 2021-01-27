@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly byte _target;
 
-        public SCLeaveWorldGrantedPacket(byte target) : base(SCOffsets.SCLeaveWorldGrantedPacket, 1)
+        public SCLeaveWorldGrantedPacket(byte target) : base(SCOffsets.SCLeaveWorldGrantedPacket, 5)
         {
             _target = target;
         }

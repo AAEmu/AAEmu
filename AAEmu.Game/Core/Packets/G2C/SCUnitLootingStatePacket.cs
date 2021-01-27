@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _bc;
         private readonly byte _looting;
 
-        public SCUnitLootingStatePacket(byte bc, byte looting) : base(SCOffsets.SCUnitLootingStatePacket,1)
+        public SCUnitLootingStatePacket(byte bc, byte looting) : base(SCOffsets.SCUnitLootingStatePacket, 5)
         {
             _bc = bc;
             _looting = looting;

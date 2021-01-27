@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEditorGameModePacket : GamePacket
     {
-        public CSEditorGameModePacket() : base(CSOffsets.CSEditorGameModePacket, 1)
+        public CSEditorGameModePacket() : base(CSOffsets.CSEditorGameModePacket, 5)
         {
         }
 

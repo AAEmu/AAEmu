@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ulong _iId;
         private readonly uint _id;
 
-        public SCLootItemFailedPacket(ErrorMessageType errorMessage, ulong iId, uint id) : base(SCOffsets.SCLootItemFailedPacket,1)
+        public SCLootItemFailedPacket(ErrorMessageType errorMessage, ulong iId, uint id) : base(SCOffsets.SCLootItemFailedPacket, 5)
         {
             _errorMessage = (int)errorMessage;
             _iId = iId;

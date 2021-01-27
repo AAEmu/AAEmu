@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _oldName;
         private readonly string _newName;
         
-        public SCCharacterRenamedPacket(uint characterId, string oldName, string newName) : base(SCOffsets.SCCharacterRenamedPacket, 1)
+        public SCCharacterRenamedPacket(uint characterId, string oldName, string newName) : base(SCOffsets.SCCharacterRenamedPacket, 5)
         {
             _characterId = characterId;
             _oldName = oldName;

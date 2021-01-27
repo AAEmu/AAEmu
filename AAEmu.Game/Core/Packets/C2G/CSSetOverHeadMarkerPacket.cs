@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetOverHeadMarkerPacket : GamePacket
     {
-        public CSSetOverHeadMarkerPacket() : base(CSOffsets.CSSetOverHeadMarkerPacket, 1)
+        public CSSetOverHeadMarkerPacket() : base(CSOffsets.CSSetOverHeadMarkerPacket, 5)
         {
         }
 

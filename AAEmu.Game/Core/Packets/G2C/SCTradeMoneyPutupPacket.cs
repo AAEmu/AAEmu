@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _moneyAmount;
 
-        public SCTradeMoneyPutupPacket(int moneyAmount) : base(SCOffsets.SCTradeMoneyPutupPacket, 1)
+        public SCTradeMoneyPutupPacket(int moneyAmount) : base(SCOffsets.SCTradeMoneyPutupPacket, 5)
         {
             _moneyAmount = moneyAmount;
         }

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Family _family;
         
-        public SCFamilyDescPacket(Family family) : base(SCOffsets.SCFamilyDescPacket, 1)
+        public SCFamilyDescPacket(Family family) : base(SCOffsets.SCFamilyDescPacket, 5)
         {
             _family = family;
         }

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeHousePayPacket : GamePacket
     {
-        public CSChangeHousePayPacket() : base(CSOffsets.CSChangeHousePayPacket, 1)
+        public CSChangeHousePayPacket() : base(CSOffsets.CSChangeHousePayPacket, 5)
         {
         }
 

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSICSGoodsListPacket : GamePacket
     {
-        public CSICSGoodsListPacket() : base(CSOffsets.CSICSGoodsListPacket, 1)
+        public CSICSGoodsListPacket() : base(CSOffsets.CSICSGoodsListPacket, 5)
         {
         }
 

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _total;
         private readonly Blocked[] _blocked;
 
-        public SCBlockedUsersPacket(int total, Blocked[] blocked) : base(SCOffsets.SCBlockedUsersPacket, 1)
+        public SCBlockedUsersPacket(int total, Blocked[] blocked) : base(SCOffsets.SCBlockedUsersPacket, 5)
         {
             _total = total;
             _blocked = blocked;
@@ -18,9 +18,13 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_total);
-            stream.Write(_blocked.Length); // TODO max length 500
+            stream.Write(_blocked.Length); // count
+            // TODO in 1.2 max length 500
             foreach (var blocked in _blocked)
+            {
                 stream.Write(blocked);
+            }
+
             return stream;
         }
     }
