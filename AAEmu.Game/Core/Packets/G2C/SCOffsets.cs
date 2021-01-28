@@ -515,10 +515,10 @@
         public const ushort SCCreateCharacterResponsePacket = 0x10d;
         public const ushort SCEditCharacterResponsePacket_0x02d = 0x02d;
         public const ushort SCCharacterListPacket = 0x218;
-        public const ushort SCSlaveEquipmentChangePacket = 0x192;
+        public const ushort SCSlaveEquipmentChangedPacket = 0x192;
         public const ushort SCOneUnitMovementPacket = 0x098;
-        public const ushort SCUnitImpulsPacket = 0x0d7;
-        public const ushort SCItemTaskNotifPacket = 0x1ae;
+        public const ushort SCUnitImpulsePacket = 0x0d7;
+        public const ushort SCItemTaskNotifyPacket = 0x1ae;
         public const ushort SCMyHouseStatePacket = 0x061;
         public const ushort SCHouseTaxInfoPacket = 0x0dd;
         public const ushort SCConstructHouseTaxPacket = 0x0da;
@@ -564,7 +564,6 @@
         public const ushort SCAccountAttendancePacket = 0xfff;
         public const ushort SCSkillUpgradedPacket = 0xfff;
         public const ushort SCSlaveCreatedPacket = 0xfff;
-        public const ushort SCSlaveEquipmentChangedPacket = 0xfff;
         public const ushort SCTeamPingPosPacket = 0xfff;
         public const ushort SCUnknownPacket = 0xfff;
         public const ushort SCCharacterPortalsPacket = 0xfff;
