@@ -1,8 +1,6 @@
-﻿using System.Collections;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Features;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -39,8 +37,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             // auctionPostBuff -> (uint)fset[8] & 0x80000 == 0x80000
             // houseTaxPrepay -> (uint)fset[8] & 0x100000 == 0x100000
 
-            // 0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a
-            // stream.Write(new byte[] {0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a}, true); // fset
             FeaturesManager.Fsets.Write(stream);
 
             /*
@@ -69,12 +65,31 @@ namespace AAEmu.Game.Core.Packets.G2C
                   [ranking] => true
                 }
              */
-            
+
             // TODO 0x3E, 0x32, 0x0F, 0x0F, 0x79, 0x00, 0x33
             // TODO 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03, 0xDE, 0xAE, 0x86, 0x3C, 0x0E, 0x02, 0xE6, 0x6F, 0xC7, 0xBB, 0x9B, 0x5D, 0x01, 0x00, 0x01
 
             stream.Write(0); // count
-
+            /*
+              (a2->Read->Int32)("count", this, 0);
+               v3 = v2;
+               if ( *v2 >= 100 )
+               v3 = "d";
+               result = *v3;
+               v5 = 0;
+               *v2 = result;
+               if ( result > 0 )
+               {
+               v6 = (v2 + 1);
+               do
+               {
+               result = (a2->Read->UInt32)("code", v6, 0);
+               ++v5;
+               v6 += 4;
+               }
+               while ( v5 < *v2 );
+               }
+             */
             stream.Write(50); // initLp
             stream.Write(false); // canPlaceHouse
             stream.Write(false); // canPayTax
@@ -84,6 +99,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(true); // canUseBank
             stream.Write(true); // canUseCopper
 
+            stream.Write((byte)0); // ingameShopVersion
             stream.Write((byte)2); // secondPriceType
             /*
              * 0 - kr aapoint
@@ -92,7 +108,7 @@ namespace AAEmu.Game.Core.Packets.G2C
              */
             stream.Write((byte)0); // secondPasswordMaxFailCount
 
-            stream.Write((ushort)0); // idleKickTime
+            stream.Write(0u); // idleKickTime Uint32 in 1.7, Uint16 in 1.2 march
 
             return stream;
         }

@@ -55,8 +55,10 @@ namespace AAEmu.Game.Models.Game.Items
         private DateTime _createTime;
         private DateTime _unsecureTime;
         private DateTime _unpackTime;
+        private DateTime _chargeUseSkillTime;
         private uint _imageItemTemplateId;
         private bool _isDirty;
+        private byte _flags;
 
         public bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public byte WorldId { get => _worldId; set { _worldId = value; _isDirty = true; } }
@@ -76,7 +78,9 @@ namespace AAEmu.Game.Models.Game.Items
         public DateTime UnpackTime { get => _unpackTime; set { _unpackTime = value; _isDirty = true; } }
         public uint ImageItemTemplateId { get => _imageItemTemplateId; set { _imageItemTemplateId = value; _isDirty = true; } }
 
-        public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
+        public virtual ItemDetailType DetailType { get; set; } // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
+        public DateTime ChargeUseSkillTime { get => _chargeUseSkillTime; set { _chargeUseSkillTime = value; _isDirty = true; } }
+        public byte Flags { get => _flags; set { _flags = value; _isDirty = true; } }
 
         // Helper
         public ItemContainer _holdingContainer { get; set; }
@@ -142,6 +146,25 @@ namespace AAEmu.Game.Models.Game.Items
 
         public override void Read(PacketStream stream)
         {
+            TemplateId = stream.ReadUInt32();
+            if (TemplateId != 0)
+            {
+                Id = stream.ReadUInt64();
+                Grade = stream.ReadByte();
+                Flags = stream.ReadByte();
+                Count = stream.ReadInt32();
+
+                DetailType = (ItemDetailType) stream.ReadByte();
+                ReadDetails(stream);
+
+                CreateTime = stream.ReadDateTime();
+                LifespanMins = stream.ReadInt32();
+                MadeUnitId = stream.ReadUInt32();
+                WorldId = stream.ReadByte();
+                UnsecureTime = stream.ReadDateTime();
+                UnpackTime = stream.ReadDateTime();
+                ChargeUseSkillTime = stream.ReadDateTime();
+            }
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -162,6 +185,7 @@ namespace AAEmu.Game.Models.Game.Items
             stream.Write(WorldId);
             stream.Write(UnsecureTime);
             stream.Write(UnpackTime);
+            stream.Write(ChargeUseSkillTime);
             return stream;
         }
 

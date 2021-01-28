@@ -39,8 +39,8 @@ namespace AAEmu.Game.Core.Managers
             foreach (var fObj in Enum.GetValues(typeof(Feature)))
             {
                 var f = (Feature)fObj;
-                if (FeaturesManager.Fsets.Check(f))
-                    featsOn += f.ToString() + "  ";
+                if (Fsets.Check(f))
+                    featsOn += f + "  ";
             }
             _log.Info("Enabled Features: {0}",featsOn);
         }

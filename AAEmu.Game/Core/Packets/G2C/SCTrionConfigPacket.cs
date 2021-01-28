@@ -24,9 +24,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_activate);
-            stream.Write(_wikiUrl);
             stream.Write(_platformUrl);
             stream.Write(_commerceUrl);
+            stream.Write(_wikiUrl);
             stream.Write(_csUrl);
             return stream;
         }
