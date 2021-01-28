@@ -1027,17 +1027,17 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new QuestActObjZoneKill();
                             template.Id = reader.GetUInt32("id");
-                            template.CountPlayerKill = reader.GetInt32("count_pk");
-                            template.CountNpc = reader.GetInt32("count_npc");
+                            template.CountPlayerKill = reader.GetInt32("count_pk", 0);
+                            template.CountNpc = reader.GetInt32("count_npc", 0);
                             template.ZoneId = reader.GetUInt32("zone_id", 0);
                             template.TeamShare = reader.GetBoolean("team_share", true);
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                            template.LvlMin = reader.GetInt32("lv_min");
-                            template.LvlMax = reader.GetInt32("lv_max");
+                            template.LvlMin = reader.GetInt32("lv_min", 0);
+                            template.LvlMax = reader.GetInt32("lv_max", 0);
                             template.IsParty = reader.GetBoolean("is_party", true);
-                            template.LvlMinNpc = reader.GetInt32("lv_min_npc");
-                            template.LvlMaxNpc = reader.GetInt32("lv_max_npc");
+                            template.LvlMinNpc = reader.GetInt32("lv_min_npc", 0);
+                            template.LvlMaxNpc = reader.GetInt32("lv_max_npc", 0);
                             template.PcFactionId = reader.GetUInt32("pc_faction_id", 0);
                             template.PcFactionExclusive = reader.GetBoolean("pc_faction_exclusive", true);
                             template.NpcFactionId = reader.GetUInt32("npc_faction_id", 0);

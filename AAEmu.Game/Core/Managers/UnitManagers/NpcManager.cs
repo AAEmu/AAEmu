@@ -360,7 +360,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.VisibleToCreatorOnly = reader.GetBoolean("visible_to_creator_only", true);
                             template.NoExp = reader.GetBoolean("no_exp", true);
                             template.PetItemId = reader.GetInt32("pet_item_id", 0);
-                            template.BaseSkillId = reader.GetInt32("base_skill_id");
+                            template.BaseSkillId = reader.GetInt32("base_skill_id", 0);
                             template.TrackFriendship = reader.GetBoolean("track_friendship", true);
                             template.Priest = reader.GetBoolean("priest", true);
                             template.NpcTedencyId = reader.GetInt32("npc_tendency_id", 0);

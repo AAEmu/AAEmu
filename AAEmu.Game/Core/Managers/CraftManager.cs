@@ -30,18 +30,18 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new Craft();
                             template.Id = reader.GetUInt32("id");
-                            template.CastDelay = reader.GetInt32("cast_delay");
+                            template.CastDelay = reader.GetInt32("cast_delay", 0);
                             template.ToolId = reader.GetUInt32("tool_id", 0);
                             template.SkillId = reader.GetUInt32("skill_id", 0);
-                            template.WiId = reader.GetUInt32("wi_id");
+                            template.WiId = reader.GetUInt32("wi_id", 0);
                             template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.ReqDoodadId = reader.GetUInt32("req_doodad_id", 0);
                             template.NeedBind = reader.GetBoolean("need_bind");
                             template.AcId = reader.GetUInt32("ac_id", 0);
-                            template.ActabilityLimit = reader.GetInt32("actability_limit");
+                            template.ActabilityLimit = reader.GetInt32("actability_limit", 0);
                             template.ShowUpperCraft = reader.GetBoolean("show_upper_crafts");
-                            template.RecommendLevel = reader.GetInt32("recommend_level");
-                            template.VisibleOrder = reader.GetInt32("visible_order");
+                            template.RecommendLevel = reader.GetInt32("recommend_level", 0);
+                            template.VisibleOrder = reader.GetInt32("visible_order", 0);
                             _crafts.Add(template.Id, template);
                         }
                     }

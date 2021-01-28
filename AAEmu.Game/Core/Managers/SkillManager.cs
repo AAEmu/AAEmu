@@ -1264,15 +1264,17 @@ namespace AAEmu.Game.Core.Managers
                             template.OwnerTypeId = reader.GetUInt32("owner_type_id");
                             template.SubType = reader.GetUInt32("sub_type");
                             template.PosDirId = reader.GetUInt32("pos_dir_id");
-                            template.PosAngle = reader.GetFloat("pos_angle");
-                            template.PosDistance = reader.GetFloat("pos_distance");
+                            template.PosAngleMin = reader.GetFloat("pos_angle_min");
+                            template.PosAngleMax = reader.GetFloat("pos_angle_max");
+                            template.PosDistanceMin = reader.GetFloat("pos_distance_min");
+                            template.PosDistanceMax = reader.GetFloat("pos_distance_max");
                             template.OriDirId = reader.GetUInt32("ori_dir_id");
                             template.OriAngle = reader.GetFloat("ori_angle");
                             template.UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true);
                             template.LifeTime = reader.GetFloat("life_time");
                             template.DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true);
                             template.UseSummoneerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true);
-                            // TODO 1.2 // template.MateStateId = reader.GetUInt32("mate_state_id", 0);
+                            template.MateStateId = reader.GetUInt32("mate_state_id", 0);
                             _effects["SpawnEffect"].Add(template.Id, template);
                         }
                     }

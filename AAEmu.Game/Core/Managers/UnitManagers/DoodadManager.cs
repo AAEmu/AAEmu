@@ -2050,9 +2050,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             var func = new DoodadFuncStampMaker();
                             func.Id = reader.GetUInt32("id");
                             func.ConsumeMoney = reader.GetInt32("consume_money");
-                            func.ItemId = reader.GetUInt32("item_id");
-                            func.ConsumeItemId = reader.GetUInt32("consume_item_id");
-                            func.ConsumeCount = reader.GetInt32("consume_count");
+                            func.ItemId = reader.GetUInt32("item_id", 0);
+                            func.ConsumeItemId = reader.GetUInt32("consume_item_id", 0);
+                            func.ConsumeCount = reader.GetInt32("consume_count", 0);
                             _funcTemplates["DoodadFuncStampMaker"].Add(func.Id, func);
                         }
                     }

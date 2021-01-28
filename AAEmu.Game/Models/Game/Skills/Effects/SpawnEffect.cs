@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -10,8 +10,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public uint OwnerTypeId { get; set; }
         public uint SubType { get; set; }
         public uint PosDirId { get; set; }
-        public float PosAngle { get; set; }
-        public float PosDistance { get; set; }
+        public float PosAngleMin { get; set; }
+        public float PosAngleMax { get; set; }
+        public float PosDistanceMin { get; set; }
+        public float PosDistanceMax { get; set; }
         public uint OriDirId { get; set; }
         public float OriAngle { get; set; }
         public bool UseSummonerFaction { get; set; }
@@ -19,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public bool DespawnOnCreatorDeath { get; set; }
 
         public bool UseSummoneerAggroTarget { get; set; }
-        // TODO 1.2 // public uint MateStateId { get; set; }
+        public uint MateStateId { get; set; }
 
         public override bool OnActionTime => false;
 
