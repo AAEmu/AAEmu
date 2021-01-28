@@ -512,8 +512,8 @@
         public const ushort SCAccountAttributeKind = 0x03c;
         public const ushort SCUnknownPacket_0x152 = 0x152;
         public const ushort SCUnknownPacket_0x07a = 0x07a;
-        public const ushort SCCreateCharacterResponsPacket = 0x10d;
-        public const ushort SCEditCharacterResponsPacket = 0x02d;
+        public const ushort SCCreateCharacterResponsePacket = 0x10d;
+        public const ushort SCEditCharacterResponsePacket_0x02d = 0x02d;
         public const ushort SCCharacterListPacket = 0x218;
         public const ushort SCSlaveEquipmentChangePacket = 0x192;
         public const ushort SCOneUnitMovementPacket = 0x098;
@@ -568,7 +568,6 @@
         public const ushort SCTeamPingPosPacket = 0xfff;
         public const ushort SCUnknownPacket = 0xfff;
         public const ushort SCCharacterPortalsPacket = 0xfff;
-        public const ushort SCCreateCharacterResponsePacket = 0xfff;
         public const ushort SCDominionDeletedPacket = 0xfff;
         public const ushort SCHouseBuildPayChangedPacket = 0xfff;
     }
