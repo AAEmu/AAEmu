@@ -815,7 +815,7 @@ namespace AAEmu.Game.Core.Managers
                             var template = new WeaponTemplate
                             {
                                 Id = reader.GetUInt32("item_id"),
-                                BaseEnchantable = reader.GetBoolean("base_enchantable"),
+                                BaseEnchantable = reader.GetBoolean("base_enchantable", true),
                                 HoldableTemplate = _holdables[holdableId],
                                 ModSetId = reader.GetUInt32("mod_set_id", 0),
                                 Repairable = reader.GetBoolean("repairable", true),
@@ -960,10 +960,10 @@ namespace AAEmu.Game.Core.Managers
                                 AssetId = reader.GetUInt32("asset_id"),
                                 BackpackType = (BackpackType)reader.GetUInt32("backpack_type_id"),
                                 DeclareSiegeZoneGroupId = reader.GetUInt32("declare_siege_zone_group_id"),
-                                Heavy = reader.GetBoolean("heavy"),
+                                Heavy = reader.GetBoolean("heavy", true),
                                 Asset2Id = reader.GetUInt32("asset2_id"),
-                                NormalSpeciality = reader.GetBoolean("normal_specialty"),
-                                UseAsStat = reader.GetBoolean("use_as_stat"),
+                                NormalSpeciality = reader.GetBoolean("normal_specialty", true),
+                                UseAsStat = reader.GetBoolean("use_as_stat", true),
                                 SkinKindId = reader.GetUInt32("skin_kind_id")
                             };
                             _templates.Add(template.Id, template);
@@ -1124,7 +1124,7 @@ namespace AAEmu.Game.Core.Managers
                             template.MaxAmount = reader.GetInt32("max_amount");
                             template.LootPackId = reader.GetUInt32("loot_pack_id");
                             template.GradeId = reader.GetByte("grade_id");
-                            template.AlwaysDrop = reader.GetBoolean("always_drop");
+                            template.AlwaysDrop = reader.GetBoolean("always_drop", true);
                             List<LootPacks> lootPacks;
                             if (_lootPacks.ContainsKey(template.LootPackId))
                                 lootPacks = _lootPacks[template.LootPackId];
@@ -1208,7 +1208,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Id = reader.GetUInt32("id");
                             template.NpcId = reader.GetUInt32("npc_id");
                             template.LootPackId = reader.GetUInt32("loot_pack_id");
-                            template.DefaultPack = reader.GetBoolean("default_pack");
+                            template.DefaultPack = reader.GetBoolean("default_pack", true);
                             List<LootPackDroppingNpc> lootPackDroppingNpc;
                             if (_lootPackDroppingNpc.ContainsKey(template.NpcId))
                                 lootPackDroppingNpc = _lootPackDroppingNpc[template.NpcId];

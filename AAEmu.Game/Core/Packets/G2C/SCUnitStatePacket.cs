@@ -389,7 +389,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     flags.Set(13);
                 }
 
-                stream.WritePisc(0, 0); // очки чести полученные в PvP, кол-во убийств в PvP
+                stream.WritePisc(character.PvPHonor, character.PvPKills); // очки чести полученные в PvP, кол-во убийств в PvP
                 stream.Write(flags.ToByteArray()); // flags(ushort)
                 /*
                  * 0x01 - 8bit - режим боя

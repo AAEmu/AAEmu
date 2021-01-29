@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -36,6 +37,15 @@ namespace AAEmu.Game.Models.Game.Team
                 if (obj == id)
                     return true;
             return false;
+        }
+
+        public List<TeamMember> MembersOnline()
+        {
+            var list = new List<TeamMember>();
+            foreach (var member in Members)
+                if ((member?.Character != null) && (member.Character.IsOnline))
+                    list.Add(member);
+            return list;
         }
 
         public int MembersCount()

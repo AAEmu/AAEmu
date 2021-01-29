@@ -12,6 +12,6 @@
         public int Rate {get; set;}
         public bool ShowLowerCrafts {get; set;}
         public bool UseGrade {get; set;}
-        public uint ItemGradeId {get; set;}
+        public int ItemGradeId {get; set;}
     }
 }

@@ -79,33 +79,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 RemoveEffects(mateInfo, _moveType);
                 mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                foreach (var passenger in mateInfo.getPassengers())
+                    RemoveEffects(passenger, _moveType);
 
-                var movements = new List<(uint, MoveType)> {(_objId, _moveType)};
-
-                // Att1 & Att2 should be handled by mate.SetPosition, no need for them to be here
-                if (mateInfo.Att1 > 0)
-                {
-                    var owner = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att1);
-                    if (owner != null)
-                    {
-                        RemoveEffects(owner, _moveType);
-                        owner.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
-                        movements.Add((owner.ObjId, _moveType));
-                    }
-                }
-
-                if (mateInfo.Att2 > 0)
-                {
-                    var passenger = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att2);
-                    if (passenger != null)
-                    {
-                        RemoveEffects(passenger, _moveType);
-                        passenger.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
-                        movements.Add((passenger.ObjId, _moveType));
-                    }
-                }
-                
-                mateInfo.BroadcastPacket(new SCUnitMovementsPacket(movements.ToArray()), false);
+                // TODO: mount fall dmg
             }
             else
             {

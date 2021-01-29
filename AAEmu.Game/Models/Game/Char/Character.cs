@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
@@ -101,6 +102,8 @@ namespace AAEmu.Game.Models.Game.Char
         public int Expirience { get; set; }
         public int RecoverableExp { get; set; }
         public DateTime Updated { get; set; }
+        public int PvPHonor { get; set; }
+        public int PvPKills { get; set; }
 
         public uint ReturnDictrictId { get; set; }
         public uint ResurrectionDictrictId { get; set; }
@@ -1218,6 +1221,30 @@ namespace AAEmu.Game.Models.Game.Char
                 _hostilePlayers.TryAdd(attacker.ObjId, DateTime.Now);
         }
 
+        public override void DoDie(Unit killer)
+        {
+            base.DoDie(killer);
+            _hostilePlayers.Clear(); // Is this correct?
+        }
+
+        public List<uint> getHostilePlayers()
+        {
+            return new List<uint>(_hostilePlayers.Keys);
+        }
+
+        public List<Character> getActivelyHostilePlayers()
+        {
+            var players = new List<Character>();
+            foreach (var objId in _hostilePlayers.Keys)
+            {
+                var character = WorldManager.Instance.GetCharacterByObjId(objId);
+                if (character != null && IsActivelyHostile(character))
+                    players.Add(character);
+            }
+
+            return players;
+        }
+
         public bool IsActivelyHostile(Character target)
         {
             if(_hostilePlayers.TryGetValue(target.ObjId, out var value))
@@ -1226,6 +1253,21 @@ namespace AAEmu.Game.Models.Game.Char
                 return value.AddSeconds(30) > DateTime.Now;
             }
             return false;
+        }
+
+        public void AddHonorFromKill(int honor, bool isKill = false)
+        {
+            HonorPoint += honor;
+            PvPHonor += honor;
+
+            SendPacket(new SCGamePointChangedPacket(0, honor));
+            BroadcastPacket(new SCUnitPvPPointsChangedPacket(ObjId, 0, PvPHonor), true);
+
+            if (isKill)
+            {
+                PvPKills++;
+                BroadcastPacket(new SCUnitPvPPointsChangedPacket(ObjId, 1, PvPKills), true);
+            }
         }
 
         public void AddExp(int exp, bool shouldAddAbilityExp)
@@ -1651,6 +1693,8 @@ namespace AAEmu.Game.Models.Game.Char
                         character.NumBankSlots = reader.GetInt16("num_bank_slot");
                         character.ExpandedExpert = reader.GetByte("expanded_expert");
                         character.Updated = reader.GetDateTime("updated_at");
+                        character.PvPHonor = reader.GetInt32("pvp_honor");
+                        character.PvPKills = reader.GetInt32("pvp_kills");
 
                         character.Inventory = new Inventory(character);
 
@@ -1756,6 +1800,8 @@ namespace AAEmu.Game.Models.Game.Char
                         character.NumBankSlots = reader.GetInt16("num_bank_slot");
                         character.ExpandedExpert = reader.GetByte("expanded_expert");
                         character.Updated = reader.GetDateTime("updated_at");
+                        character.PvPHonor = reader.GetInt32("pvp_honor");
+                        character.PvPKills = reader.GetInt32("pvp_kills");
 
                         character.Inventory = new Inventory(character);
 
@@ -1895,8 +1941,8 @@ namespace AAEmu.Game.Models.Game.Char
                     // ----
                     command.CommandText =
                         "REPLACE INTO `characters` " +
-                        "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
-                        "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
+                        "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`,`pvp_honor`,`pvp_kills`) " +
+                        "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at,@pvp_honor,@pvp_kills)";
 
                     command.Parameters.AddWithValue("@id", Id);
                     command.Parameters.AddWithValue("@account_id", AccountId);
@@ -1953,6 +1999,8 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@expanded_expert", ExpandedExpert);
                     command.Parameters.AddWithValue("@slots", slots.GetBytes());
                     command.Parameters.AddWithValue("@updated_at", Updated);
+                    command.Parameters.AddWithValue("@pvp_honor", PvPHonor);
+                    command.Parameters.AddWithValue("@pvp_kills", PvPKills);
                     command.ExecuteNonQuery();
                 }
 

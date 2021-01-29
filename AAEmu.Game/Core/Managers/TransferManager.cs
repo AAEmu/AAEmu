@@ -218,7 +218,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Name = LocalizationManager.Instance.Get("transfer", "comment", reader.GetUInt32("id"));
                             template.ModelId = reader.GetUInt32("model_id");
                             template.WaitTime = reader.GetFloat("wait_time");
-                            template.Cyclic = reader.GetBoolean("cyclic");
+                            template.Cyclic = reader.GetBoolean("cyclic", true);
                             template.PathSmoothing = reader.GetFloat("path_smoothing");
 
                             _templates.Add(template.Id, template);

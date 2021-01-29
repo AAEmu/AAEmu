@@ -512,12 +512,12 @@ namespace AAEmu.Game.Core.Managers
                             template.LevelDuration = reader.GetInt32("level_duration");
                             template.ReflectionRatio = reader.GetInt32("reflection_ratio");
                             template.ReflectionTargetRatio = reader.GetInt32("reflection_target_ratio");
-                            template.KnockbackImmune = reader.GetBoolean("knockback_immune");
+                            template.KnockbackImmune = reader.GetBoolean("knockback_immune", true);
                             template.ImmuneBuffTagId = reader.GetUInt32("immune_buff_tag_id", 0);
                             template.AuraRelationId = reader.GetUInt32("aura_relation_id");
                             template.GroupId = reader.GetUInt32("group_id", 0);
                             template.GroupRank = reader.GetInt32("group_rank");
-                            template.PerUnitCreation = reader.GetBoolean("per_unit_creation");
+                            template.PerUnitCreation = reader.GetBoolean("per_unit_creation", true);
                             template.TickAreaRadius = reader.GetFloat("tick_area_radius");
                             template.TickAreaRelationId = reader.GetUInt32("tick_area_relation_id");
                             template.RemoveOnMove = reader.GetBoolean("remove_on_move", true);

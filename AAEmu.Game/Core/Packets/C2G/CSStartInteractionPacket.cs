@@ -18,7 +18,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             var mouseButton = stream.ReadByte();
             var modifierKeys = stream.ReadInt32();
 
-            _log.Warn("StartInteraction, NpcObjId: {0}", npcObjId);
+            _log.Warn("StartInteraction, NpcObjId: {0} {1} {2} {3} {4} {5}", npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys);
+
         }
     }
 }

@@ -87,13 +87,6 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
-        [Obsolete("SendMail() is deprecated. Use Send() of a BaseMail descendant instead.")]
-        public void SendMail(MailType type, string receiverName, string senderName, string title, string text,
-            byte attachments, int[] moneyAmounts, long extra, List<Item> items)
-        {
-            throw new Exception("SendMail is deprecated, use BaseMail.Send() instead");
-        }
-
         public bool DeleteMail(long id)
         {
             lock (_deletedMailIds)

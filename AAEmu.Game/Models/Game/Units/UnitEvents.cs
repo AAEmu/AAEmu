@@ -106,7 +106,7 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class OnKillArgs : EventArgs
     {
-        public Unit target { get; set; }
+        public Unit died { get; set; }
     }
 
     public class OnDamagedCollisionArgs : EventArgs

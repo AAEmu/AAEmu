@@ -276,6 +276,10 @@ namespace AAEmu.Game.Models.Game.World
                         {
                             slave.AddVisibleObject(character1);
                         }
+                        else if (t is Mount mount)
+                        {
+                            mount.AddVisibleObject(character1);
+                        }
                         else
                         {
                             character1.SendPacket(new SCUnitStatePacket(t));

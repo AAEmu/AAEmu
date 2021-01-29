@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public AreaShape Shape { get; set; }
-        public Doodad Owner { get; set; }
+        public GameObject Owner { get; set; }
         public Unit Caster { get; set; }
         private List<Unit> Units { get; set; }
         

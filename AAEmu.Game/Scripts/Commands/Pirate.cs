@@ -32,6 +32,8 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
+            Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
+
             var newFactionId = 0u;
 
             var factionString = args[0];
@@ -55,7 +57,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            character.SetFaction(newFactionId);
+            targetPlayer.SetFaction(newFactionId);
         }
     }
 }

@@ -25,6 +25,7 @@
     "spawn": 50,
 
     // Admin
+    "savespawn": 100,
     "addbuff": 100,
     "addgold": 100,
     "additem": 100,

@@ -155,10 +155,10 @@ namespace AAEmu.Game.Models.Game.Items
                 return null;
         }
 
-        public bool TryGetItemByItemId(ulong item_id, out Item theItem)
+        public bool TryGetItemByItemId(ulong item_id, out Item theItem, int grade = -1)
         {
             foreach (var i in Items)
-                if (i.Id == item_id)
+                if (i.Id == item_id && (grade < 0 || i.Grade == grade))
                 {
                     theItem = i;
                     return true;
@@ -167,9 +167,29 @@ namespace AAEmu.Game.Models.Game.Items
             return false;
         }
 
-        public Item GetItemByItemId(ulong item_id)
+        public Item GetItemByItemId(ulong item_id, int grade = -1)
         {
-            if (TryGetItemByItemId(item_id, out var res))
+            if (TryGetItemByItemId(item_id, out var res, grade))
+                return res;
+            else
+                return null;
+        }
+
+        public bool TryGetFirstItemByTemplateId(ulong templateId, out Item theItem, int grade = -1)
+        {
+            foreach (var i in Items)
+                if (i.TemplateId == templateId && (grade < 0 || i.Grade == grade))
+                {
+                    theItem = i;
+                    return true;
+                }
+            theItem = null;
+            return false;
+        }
+
+        public Item GetFirstItemByTemplateId(ulong templateId, int grade = -1)
+        {
+            if (TryGetFirstItemByTemplateId(templateId, out var res, grade))
                 return res;
             else
                 return null;

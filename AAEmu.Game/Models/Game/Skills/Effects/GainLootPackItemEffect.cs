@@ -40,8 +40,20 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             var rowG = lootGroups.Length;
             var rowP = lootPacks.Length;
+
+            var madeBy = 0u;
+            if (lootPackItem != null)
+                madeBy = lootPackItem.MadeUnitId;
+
             if (rowG >= 1)
             {
+                // Do a check if player has enough space (group count)
+                if (character.Inventory.Bag.FreeSlotCount < rowG)
+                {
+                    character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                    return;
+                }
+
                 const float maxDropRate = (float)10000000;
                 for (var i = 0; i < rowG; i++)
                 {
@@ -105,7 +117,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         if (lootGroups[i].ItemGradeDistributionId > 0)
                             gradeId = GetGradeDistributionId(lootGroups[i].ItemGradeDistributionId);
 
-                        AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount);
+                        AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount, madeBy);
                     }
                 }
             }
@@ -113,6 +125,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 if (rowP >= 1)
                 {
+                    // Do a check if player has enough space (pack count)
+                    if (character.Inventory.Bag.FreeSlotCount < rowP)
+                    {
+                        character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                        return;
+                    }
+
                     for (var i = 1; i <= 17; i++) ////////max group here ////// in sqlite max group = 17 /////
                     {
                         var itemIdLoot = (uint)0;
@@ -153,11 +172,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             if (InheritGrade)
                                 gradeId = lootPackItem.Grade;
 
-                            AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount);
+                            AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount, madeBy);
                         }
                     }
                 }
             }
+
+            if (ConsumeSourceItem)
+                character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, lootPack.ItemTemplateId, 1, null);
 
             _log.Debug("GainLootPackItemEffect {0}", LootPackId);
         }
@@ -179,12 +201,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 new List<ItemTask> {new MoneyChange(goldAdd)}, new List<ulong>()));
         }
 
-        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount)
+        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount, uint crafterId)
         {
             var character = (Character)caster;
             if (character == null) return;
             var amount = Rand.Next(minAmount, maxAmount);
-            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount))
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount, gradeId, crafterId))
             {
                 // TODO: do proper handling of insufficient bag space
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);

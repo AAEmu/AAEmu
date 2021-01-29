@@ -36,10 +36,10 @@ namespace AAEmu.Game.Core.Managers
                             template.WiId = reader.GetUInt32("wi_id");
                             template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.ReqDoodadId = reader.GetUInt32("req_doodad_id", 0);
-                            template.NeedBind = reader.GetBoolean("need_bind");
+                            template.NeedBind = reader.GetBoolean("need_bind", true);
                             template.AcId = reader.GetUInt32("ac_id", 0);
                             template.ActabilityLimit = reader.GetInt32("actability_limit");
-                            template.ShowUpperCraft = reader.GetBoolean("show_upper_crafts");
+                            template.ShowUpperCraft = reader.GetBoolean("show_upper_crafts", true);
                             template.RecommendLevel = reader.GetInt32("recommend_level");
                             template.VisibleOrder = reader.GetInt32("visible_order");
                             _crafts.Add(template.Id, template);
@@ -66,9 +66,9 @@ namespace AAEmu.Game.Core.Managers
                             template.ItemId = reader.GetUInt32("item_id");
                             template.Amount = reader.GetInt32("amount", 1); //We always want to produce at least 1 item ?
                             template.Rate = reader.GetInt32("rate");
-                            template.ShowLowerCrafts = reader.GetBoolean("show_lower_crafts");
-                            template.UseGrade = reader.GetBoolean("use_grade");
-                            template.ItemGradeId = reader.GetUInt32("item_grade_id");
+                            template.ShowLowerCrafts = reader.GetBoolean("show_lower_crafts", true);
+                            template.UseGrade = reader.GetBoolean("use_grade", true);
+                            template.ItemGradeId = reader.GetInt32("item_grade_id");
 
                             _crafts[template.CraftId].CraftProducts.Add(template);
                         }
@@ -93,14 +93,15 @@ namespace AAEmu.Game.Core.Managers
                             template.CraftId = craftId;
                             template.ItemId = reader.GetUInt32("item_id");
                             template.Amount = reader.GetInt32("amount", 1); //We always want to cost at least 1 item ?
-                            template.MainGrade = reader.GetBoolean("main_grade");
+                            template.MainGrade = reader.GetBoolean("main_grade", true);
+                            template.RequiredGrade = reader.GetInt32("require_grade");
 
                             _crafts[craftId].CraftMaterials.Add(template);
                         }
                     }
                 }
 
-                using (var command = connection.CreateCommand())
+                /*using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM craft_pack_crafts";
                     command.Prepare();
@@ -114,10 +115,10 @@ namespace AAEmu.Game.Core.Managers
                             _crafts[craftId].IsPack = true;
                         }
                     }
-                }
+                }*/
             }
 
-            _log.Info("Loaded crafts", _crafts.Count);
+            _log.Info("Loaded {0} crafts", _crafts.Count);
         }
 
         public Craft GetCraftById(uint craftId)

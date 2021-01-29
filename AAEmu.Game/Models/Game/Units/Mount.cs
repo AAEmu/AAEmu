@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -357,6 +360,7 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCMateStatePacket(ObjId));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+
             if (Att1 > 0)
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(Att1);
@@ -365,7 +369,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
             if (Att2 > 0)
             {
-                var passenger = WorldManager.Instance.GetCharacterByObjId(Att1);
+                var passenger = WorldManager.Instance.GetCharacterByObjId(Att2);
                 if (passenger != null)
                     character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, 2, Reason2, ObjId));
             }
@@ -382,6 +386,24 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
+        public override void SetPosition(float x, float y, float z)
+        {
+            base.SetPosition(x, y, z);
+            updatePassengers();
+        }
+
+        public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        {
+            base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+            updatePassengers();
+        }
+
+        public override void SetPosition(Point pos)
+        {
+            base.SetPosition(pos);
+            updatePassengers();
+        }
+
         public override void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
@@ -391,6 +413,26 @@ namespace AAEmu.Game.Models.Game.Units
                 else if (OwnerObjId != character.ObjId)
                     character.SendPacket(packet);
             }
+        }
+
+        private void updatePassengers()
+        {
+            foreach (var passenger in getPassengers())
+            {
+                passenger.SetPosition(Position);
+            }
+        }
+
+        public List<Character> getPassengers()
+        {
+            var passengers = new List<Character>();
+            var owner = WorldManager.Instance.GetCharacterByObjId(Att1);
+            var passenger = WorldManager.Instance.GetCharacterByObjId(Att2);
+
+            if (owner != null) passengers.Add(owner);
+            if (passenger != null) passengers.Add(passenger);
+
+            return passengers;
         }
     }
 }

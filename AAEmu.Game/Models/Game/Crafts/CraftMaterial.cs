@@ -10,5 +10,6 @@
         public uint ItemId {get; set;}
         public int Amount {get; set;}
         public bool MainGrade {get; set;}
+        public int RequiredGrade { get; set; }
     }
 }

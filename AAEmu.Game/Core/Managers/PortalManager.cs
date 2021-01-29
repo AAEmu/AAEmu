@@ -10,10 +10,12 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using Portal = AAEmu.Game.Models.Game.Portal;
@@ -28,6 +30,8 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Portal> _allDistrictPortals;
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
         private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
+
+        const int PORTAL_DURATION = 30;
 
         public Portal GetPortalBySubZoneId(uint subZoneId)
         {
@@ -163,7 +167,7 @@ namespace AAEmu.Game.Core.Managers
             return false; // Not enough items
         }
 
-        private static void MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
+        private static Models.Game.Units.Portal MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
@@ -187,6 +191,8 @@ namespace AAEmu.Game.Core.Managers
             };
             var templateId = isExit ? 6949u : 3891u; // TODO - better way? maybe not hardcoded
             var template = NpcManager.Instance.GetTemplate(templateId);
+            template.AiFileId = 25; // Portals shouldn't move...
+
             var portalUnitModel = new Models.Game.Units.Portal
             {
                 ObjId = ObjectIdManager.Instance.GetNextId(),
@@ -203,6 +209,17 @@ namespace AAEmu.Game.Core.Managers
                 TeleportPosition = portalPointDestination
             };
             portalUnitModel.Spawn();
+
+            return portalUnitModel;
+        }
+
+        public static void OnPortalDeath(object sender, OnDeathArgs args)
+        {
+            if (sender is Models.Game.Units.Portal portal)
+            {
+                portal.Delete();
+                portal.OtherPortal.Delete();
+            }
         }
 
         public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)
@@ -210,8 +227,16 @@ namespace AAEmu.Game.Core.Managers
             var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
             if (!CheckCanOpenPortal(owner, portalInfo.ZoneId)) return;
 
-            MakePortal(owner, false, portalInfo, portalEffectObj);   // Entrance (green)
-            MakePortal(owner, true, portalInfo, portalEffectObj);    // Exit (yellow)
+            var entrance = MakePortal(owner, false, portalInfo, portalEffectObj);   // Entrance (green)
+            var exit = MakePortal(owner, true, portalInfo, portalEffectObj);    // Exit (yellow)
+
+            entrance.OtherPortal = exit;
+            exit.OtherPortal = entrance;
+
+            entrance.Events.OnDeath += OnPortalDeath;
+            exit.Events.OnDeath += OnPortalDeath;
+
+            TaskManager.Instance.Schedule(new PortalDespawnTask(entrance, exit), TimeSpan.FromSeconds(PORTAL_DURATION));
         }
 
         public void UsePortal(Character character, uint objId)

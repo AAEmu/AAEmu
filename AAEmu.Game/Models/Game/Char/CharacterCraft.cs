@@ -1,4 +1,8 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System;
+using System.Collections.Generic;
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -16,6 +20,8 @@ namespace AAEmu.Game.Models.Game.Char
         public Character Owner { get; set; }
         public bool IsCrafting = false;
 
+        private bool isTradePack;
+
         public CharacterCraft(Character owner) => Owner = owner;
 
         public void Craft(Craft craft, int count, uint doodadId)
@@ -28,18 +34,20 @@ namespace AAEmu.Game.Models.Game.Char
 
             foreach (var craftMaterial in craft.CraftMaterials)
             {
-                if (Owner.Inventory.GetItemsCount(craftMaterial.ItemId) < craftMaterial.Amount)
+                if (Owner.Inventory.GetItemsCount(craftMaterial.ItemId, craftMaterial.RequiredGrade) < craftMaterial.Amount)
                     hasMaterials = false;
-                /*
-                var materialItem = Owner.Inventory.GetItemByTemplateId(craftMaterial.ItemId);
-                if (materialItem == null || materialItem.Count < craftMaterial.Amount)
-                {
-                    hasMaterials = false;
-                }
-                */
             }
 
-            if (_craft.IsPack)
+            // Check if is a trade pack
+            foreach (var product in _craft.CraftProducts)
+            {
+                if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId)) {
+                    isTradePack = true;
+                    break;
+                }
+            }
+
+            if (isTradePack)
             {
                 var item = Owner.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
                 var backpackTemplate = (BackpackTemplate)item?.Template;
@@ -78,9 +86,27 @@ namespace AAEmu.Game.Models.Game.Char
             if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < _craft.CraftProducts.Count)
                 return;
 
+            var productGrade = -1;
+
             foreach (var material in _craft.CraftMaterials)
             {
-                Owner.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount,null);
+                Item itemToConsume = null;
+
+                // Consume the right item if requires a grade
+                if (material.RequiredGrade >= 0)
+                    itemToConsume = Owner.Inventory.Bag.GetFirstItemByTemplateId(material.ItemId, material.RequiredGrade);
+
+
+                // Check if one of the materials is the item to take the grade from
+                if (material.MainGrade)
+                {
+                    if (itemToConsume != null)
+                        productGrade = itemToConsume.Grade;
+                    else
+                        productGrade = Owner.Inventory.Bag.GetFirstItemByTemplateId(material.ItemId).Grade;
+                }
+
+                Owner.Inventory.Bag.ConsumeItem(Items.Actions.ItemTaskType.CraftActSaved, material.ItemId, material.Amount, itemToConsume);
             }
 
             foreach (var product in _craft.CraftProducts)
@@ -88,8 +114,18 @@ namespace AAEmu.Game.Models.Game.Char
                 // Check if we're crafting a tradepack, if so, try to remove currently equipped backpack slot
                 if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
                 {
+                    // Product has a set grade
+                    if (product.UseGrade)
+                    {
+                        productGrade = product.ItemGradeId;
+                    } else if (productGrade != -1 && ItemManager.Instance.GetTemplate(product.ItemId) is WeaponTemplate && DoGradeUpgradeRoll(product.ItemId))
+                    {   
+                        // Do grade upgrade if possible
+                        productGrade = GetNextGrade(ItemManager.Instance.GetGradeTemplate(productGrade), 1).Grade;
+                    }
+
                     Owner.Inventory.Bag.AcquireDefaultItem(Items.Actions.ItemTaskType.CraftPickupProduct,
-                        product.ItemId, product.Amount, -1, Owner.Id);
+                        product.ItemId, product.Amount, productGrade, Owner.Id);
                 }
                 else
                 {
@@ -114,8 +150,10 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            if (_count > 0 && !_craft.IsPack)
+            if (_count > 0 && !isTradePack)
+            {
                 Craft(_craft, _count, _doodadId);
+            }
             else
             {
                 CancelCraft();
@@ -129,8 +167,30 @@ namespace AAEmu.Game.Models.Game.Char
             _craft = null;
             _count = 0;
             _doodadId = 0;
+        }
 
-            // Might want to send a packet here, I think there is a packet when crafting fails. Not sure yet..
+        // This existed in the game but can't find it anywhere in the DB
+        private bool DoGradeUpgradeRoll(uint itemTemplateId)
+        {
+            if (!IsWeaponUpgradeable(itemTemplateId))
+                return false;
+
+            var successRoll = Rand.Next(0, 10000);
+            var successChance = 5000; // 50% for test
+
+            return successRoll < successChance;
+        }
+
+        public bool IsWeaponUpgradeable(uint itemTemplateId)
+        {
+            var template = ItemManager.Instance.GetTemplate(itemTemplateId);
+
+            return (template != null) && (template is WeaponTemplate)
+                && template.FixedGrade == -1 && template.Gradable;
+        }
+        private GradeTemplate GetNextGrade(GradeTemplate currentGrade, int gradeChange)
+        {
+            return ItemManager.Instance.GetGradeTemplateByOrder(currentGrade.GradeOrder + gradeChange);
         }
     }
 }

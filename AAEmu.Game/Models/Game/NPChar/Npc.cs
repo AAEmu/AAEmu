@@ -701,6 +701,9 @@ namespace AAEmu.Game.Models.Game.NPChar
                 character.Quests.OnKill(this);
             }
 
+            // ugly...    
+            NuiManager.Instance.Remove(this);
+
             Spawner?.DecreaseCount(this);
         }
 

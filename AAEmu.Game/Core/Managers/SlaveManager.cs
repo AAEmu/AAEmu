@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -308,7 +308,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 Name = LocalizationManager.Instance.Get("slaves", "name", reader.GetUInt32("id"), reader.GetString("name")),
                                 ModelId = reader.GetUInt32("model_id"),
-                                Mountable = reader.GetBoolean("mountable"),
+                                Mountable = reader.GetBoolean("mountable", true),
                                 SpawnXOffset = reader.GetFloat("spawn_x_offset"),
                                 SpawnYOffset = reader.GetFloat("spawn_y_offset"),
                                 FactionId = reader.GetUInt32("faction_id", 0),
@@ -388,7 +388,7 @@ namespace AAEmu.Game.Core.Managers
                                 OwnerType = reader.GetString("owner_type"),
                                 AttachPointId = reader.GetInt32("attach_point_id"),
                                 DoodadId = reader.GetUInt32("doodad_id"),
-                                Persist = reader.GetBoolean("persist"),
+                                Persist = reader.GetBoolean("persist", true),
                                 Scale = reader.GetFloat("scale")
                             };
                             if (_slaveTemplates.ContainsKey(template.OwnerId))

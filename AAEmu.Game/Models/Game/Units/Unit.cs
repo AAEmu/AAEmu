@@ -223,7 +223,7 @@ namespace AAEmu.Game.Models.Game.Units
             Hp = Math.Max(Hp - value, 0);
             if (Hp <= 0)
             {
-                attacker.Events.OnKill(attacker, new OnKillArgs { target = attacker });
+                attacker.Events.OnKill(attacker, new OnKillArgs { died = this });
                 DoDie(attacker);
                 //StopRegen();
             }
@@ -253,6 +253,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             Events.OnDeath(this, new OnDeathArgs { });
             Buffs.RemoveEffectsOnDeath();
+
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
             if (killer == this)
                 return;

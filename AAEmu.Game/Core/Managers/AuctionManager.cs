@@ -30,11 +30,11 @@ namespace AAEmu.Game.Core.Managers
             var newItem = player.Inventory.GetItemById(itemId);
             var newAuctionItem = CreateAuctionItem(player, newItem, startPrice, buyoutPrice, duration);
 
-            if (newAuctionItem == null) //TODO
+            if (newItem == null || newAuctionItem == null)
+            {
+                player.SendErrorMessage(Models.Game.Error.ErrorMessageType.AucInternalError);
                 return;
-
-            if (newItem == null) //TODO
-                return;
+            }
 
             var auctionFee = (newAuctionItem.DirectMoney * .01) * (duration + 1);
 
@@ -149,45 +149,60 @@ namespace AAEmu.Game.Core.Managers
         public void BidOnAuctionItem(Character player, ulong auctionId, int bidAmount)
         {
             var auctionItem = GetAuctionItemFromID(auctionId);
-            if (auctionItem != null)
+
+            if (auctionItem == null)
             {
-                if (bidAmount >= auctionItem.DirectMoney && auctionItem.DirectMoney != 0) //Buy now
+                player.SendErrorMessage(Models.Game.Error.ErrorMessageType.AucInvalidEntry);
+                return;
+            }
+
+            if (auctionItem.BidderId == player.Id)
+            {
+                player.SendErrorMessage(Models.Game.Error.ErrorMessageType.AucBidSelf);
+                return;
+            }
+            
+            if (bidAmount >= auctionItem.DirectMoney && auctionItem.DirectMoney != 0) //Buy now
+            {
+                if (auctionItem.BidderId != 0) // send mail to person who bid if item was bought at full price. 
                 {
-                    if (auctionItem.BidderId != 0) // send mail to person who bid if item was bought at full price. 
-                    {
-                        var newMail = new MailForAuction(auctionItem.ItemID, auctionItem.ClientId, auctionItem.DirectMoney, 0);
-                        newMail.FinalizeForBidFail(auctionItem.BidderId, auctionItem.BidMoney);
-                        newMail.Send();
-                    }
+                    var newMail = new MailForAuction(auctionItem.ItemID, auctionItem.ClientId, auctionItem.DirectMoney, 0);
+                    newMail.FinalizeForBidFail(auctionItem.BidderId, auctionItem.BidMoney);
+                    newMail.Send();
+                }
                     
-                    player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
-                    RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
-                }
+                player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
+                RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
+            }
 
-                else if(bidAmount > auctionItem.BidMoney) //Bid
+            else if(bidAmount > auctionItem.BidMoney) //Bid
+            {
+                if(auctionItem.BidderName != "") //Send mail to old bidder. 
                 {
-                    if(auctionItem.BidderName != "") //Send mail to old bidder. 
-                    {
-                        var moneyArray = new int[3];
-                        moneyArray[0] = (int)auctionItem.BidMoney;
+                    var moneyArray = new int[3];
+                    moneyArray[0] = (int)auctionItem.BidMoney;
 
-                        // TODO: Read this from saved data
-                        var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
-                        if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+                    // TODO: Read this from saved data
+                    var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
+                    if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
 
-                        var cancelMail = new MailForAuction(auctionItem.ItemID, auctionItem.ClientId, auctionItem.DirectMoney, (int)recalculatedFee);
-                        cancelMail.FinalizeForBidFail(auctionItem.BidderId, auctionItem.BidMoney);
-                        cancelMail.Send();
-                    }
-
-                    //Set info to new bidders info
-                    auctionItem.BidderName = player.Name;
-                    auctionItem.BidMoney = bidAmount;
-
-                    player.SubtractMoney(SlotType.Inventory, (int)bidAmount);
-                    player.SendPacket(new SCAuctionBidPacket(auctionItem));
-                    auctionItem.IsDirty = true;
+                    var cancelMail = new MailForAuction(auctionItem.ItemID, auctionItem.ClientId, auctionItem.DirectMoney, (int)recalculatedFee);
+                    cancelMail.FinalizeForBidFail(auctionItem.BidderId, auctionItem.BidMoney);
+                    cancelMail.Send();
                 }
+
+                //Set info to new bidders info
+                auctionItem.BidderId = player.Id;
+                auctionItem.BidderName = player.Name;
+                auctionItem.BidMoney = bidAmount;
+                auctionItem.BidWorldID = 1;
+
+                player.SubtractMoney(SlotType.Inventory, (int)bidAmount);
+                player.SendPacket(new SCAuctionBidPacket(auctionItem));
+                auctionItem.IsDirty = true;
+            } else
+            {
+                player.SendErrorMessage(Models.Game.Error.ErrorMessageType.AucBidMoneyUnderTopMost);
             }
         }
 
@@ -388,7 +403,7 @@ namespace AAEmu.Game.Core.Managers
                 EndTime = DateTime.UtcNow.AddHours(timeLeft),
                 LifespanMins = 0,
                 Type1 = 0,
-                WorldId = 0,
+                WorldId = 1,
                 UnpackDateTIme = DateTime.UtcNow,
                 UnsecureDateTime = DateTime.UtcNow,
                 WorldId2 = 0,

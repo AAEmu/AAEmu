@@ -256,7 +256,7 @@
         // 0x12e CSEnterBeautySalonPacket
         public const ushort CSRankCharacterPacket = 0x12F;
         public const ushort CSRequestSecondPasswordKeyTablesPacket = 0x125;
-        // 0x130 CSRankSnapshotPacket
+        public const ushort CSRankSnapshotPacket = 0x130;
         // 0x131 unk packet
         public const ushort CSIdleStatusPacket = 0x132;
         // 0x133 CSChangeAutoUseAAPointPacket

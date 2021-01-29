@@ -63,9 +63,10 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void SpawnMount(SkillItem skillData)
         {
-            if (MateManager.Instance.GetActiveMate(Owner.ObjId) != null)
+            var activeMate = MateManager.Instance.GetActiveMate(Owner.ObjId);
+            if (activeMate != null)
             {
-                DespawnMate(0);
+                DespawnMate(activeMate.TlId);
                 return;
             }
 

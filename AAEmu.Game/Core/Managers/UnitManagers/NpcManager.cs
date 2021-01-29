@@ -122,6 +122,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             npc.Hp = npc.MaxHp;
             npc.Mp = npc.MaxMp;
+
+            if (template.Id == 7989 || template.Id == 7988 || template.Id == 7987) // If is a nui, better way to do this?
+                NuiManager.Instance.Add(npc);
+
             return npc;
         }
 

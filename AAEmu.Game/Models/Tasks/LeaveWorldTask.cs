@@ -1,6 +1,5 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Packets.Proxy;
@@ -30,22 +29,7 @@ namespace AAEmu.Game.Models.Tasks
                 var activeMate = MateManager.Instance.GetActiveMate(_connection.ActiveChar.ObjId);
                 if (activeMate != null)
                 {
-                    _connection.ActiveChar.Mates.DespawnMate(activeMate.TlId);
-                }
-                else
-                {
-                    var isMounted = MateManager.Instance.GetIsMounted(_connection.ActiveChar.ObjId);
-                    if (isMounted != null)
-                    {
-                        if (isMounted.Att2 == _connection.ActiveChar.ObjId)
-                        {
-                            MateManager.Instance.UnMountMate(_connection.ActiveChar, isMounted.TlId, 2, 5); // TODO - REASON leave world
-                        }
-                        else
-                        {
-                            _connection.ActiveChar.Mates.DespawnMate(isMounted.TlId);
-                        }
-                    }
+                    MateManager.Instance.RemoveActiveMateAndDespawn(_connection.ActiveChar, activeMate.TlId); // TODO - REASON leave world
                 }
 
                 // Remove from Team (raid/party)

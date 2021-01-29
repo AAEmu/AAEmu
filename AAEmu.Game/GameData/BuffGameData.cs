@@ -53,7 +53,7 @@ namespace AAEmu.Game.GameData
                             UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
                             Value = reader.GetInt32("value"),
                             BuffId = reader.GetUInt32("buff_id", 0),
-                            Synergy = reader.GetBoolean("synergy"),
+                            Synergy = reader.GetBoolean("synergy", true),
                         };
 
                         if (!_buffModifiers.ContainsKey(template.OwnerId))
