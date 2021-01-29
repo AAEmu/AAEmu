@@ -54,7 +54,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(item.DirectMoney);
                     var offset = (ulong)random.Next(0, 10); //Adds offset to timeleft to prevent client from guessing it. 
                     stream.Write(item.TimeLeft + offset);
-                    stream.Write(item.BidWorldID);
+                    stream.Write(item.GameServerID);
                     stream.Write(item.BidderId);
                     stream.Write(item.BidderName);
                     stream.Write(item.BidMoney);

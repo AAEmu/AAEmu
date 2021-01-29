@@ -12,12 +12,6 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            // "Fixes" infinite loading, sends less causes packet error
-            stream.Write(0); 
-            stream.Write(0);
-            stream.Write(0);
-            stream.Write(0);
-            stream.Write(0);
             return stream;
         }
     }

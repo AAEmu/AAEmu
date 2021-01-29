@@ -389,19 +389,19 @@ namespace AAEmu.Game.Models.Game.Units
         public override void SetPosition(float x, float y, float z)
         {
             base.SetPosition(x, y, z);
-            updatePassengers();
+            UpdatePassengers();
         }
 
         public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
-            updatePassengers();
+            UpdatePassengers();
         }
 
         public override void SetPosition(Point pos)
         {
             base.SetPosition(pos);
-            updatePassengers();
+            UpdatePassengers();
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)
@@ -415,15 +415,15 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        private void updatePassengers()
+        private void UpdatePassengers()
         {
-            foreach (var passenger in getPassengers())
+            foreach (var passenger in GetPassengers())
             {
                 passenger.SetPosition(Position);
             }
         }
 
-        public List<Character> getPassengers()
+        public List<Character> GetPassengers()
         {
             var passengers = new List<Character>();
             var owner = WorldManager.Instance.GetCharacterByObjId(Att1);

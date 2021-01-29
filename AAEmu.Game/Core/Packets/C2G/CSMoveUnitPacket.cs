@@ -79,7 +79,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 RemoveEffects(mateInfo, _moveType);
                 mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
-                foreach (var passenger in mateInfo.getPassengers())
+                foreach (var passenger in mateInfo.GetPassengers())
                     RemoveEffects(passenger, _moveType);
 
                 // TODO: mount fall dmg

@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             var Random = new Random();
             var offsett = item.TimeLeft + (ulong)Random.Next(0, 10);
             stream.Write(offsett);
-            stream.Write(item.BidWorldID);
+            stream.Write(item.GameServerID);
             stream.Write(item.BidderId);
             stream.Write(item.BidderName);
             stream.Write(item.BidMoney);

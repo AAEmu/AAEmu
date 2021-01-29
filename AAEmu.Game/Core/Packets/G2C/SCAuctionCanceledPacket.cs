@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(item.StartMoney);
             stream.Write(item.DirectMoney);
             stream.Write(item.TimeLeft);
-            stream.Write(item.BidWorldID);
+            stream.Write(item.GameServerID);
             stream.Write(item.BidderId);
             stream.Write(item.BidderName);
             stream.Write(item.BidMoney);

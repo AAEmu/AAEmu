@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_auctionItem.ID);
-            stream.Write(_auctionItem.BidWorldID);
+            stream.Write(_auctionItem.GameServerID);
             stream.Write(_auctionItem.DetailType);
             stream.Write(_auctionItem.BidderName);
             stream.Write(_auctionItem.BidMoney);
