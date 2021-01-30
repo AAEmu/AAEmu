@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -68,7 +68,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             equipItem.TemperPhysical = 0;
             equipItem.TemperMagical = 0;
 
-            temperItem._holdingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
+            temperItem.HoldingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
             owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));
             // No indication ingame that the item's tempering has been successfully resetted 
             owner.SendMessage(ChatType.System, "Tempering reset");

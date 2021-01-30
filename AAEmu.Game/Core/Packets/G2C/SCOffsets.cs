@@ -460,7 +460,7 @@
         public const ushort SCIdleKickPacket = 0x16f;
         public const ushort SCUnknownPacket_0x215 = 0x215;
         public const ushort SCLevelRestrictionConfigPacket = 0x17a;
-        public const ushort SCUnknownPacket_0x23a = 0x23a;
+        public const ushort SCCharacterPortalsPacket = 0x23a;
         public const ushort SCCharacterReturnDistrictsPacket = 0x1bd;
         public const ushort SCCharacterLaborPowerChangedPacket = 0x043;
         public const ushort SCCharacterBoundPacket = 0x0d0;
@@ -566,7 +566,6 @@
         public const ushort SCSlaveCreatedPacket = 0xfff;
         public const ushort SCTeamPingPosPacket = 0xfff;
         public const ushort SCUnknownPacket = 0xfff;
-        public const ushort SCCharacterPortalsPacket = 0xfff;
         public const ushort SCDominionDeletedPacket = 0xfff;
         public const ushort SCHouseBuildPayChangedPacket = 0xfff;
     }

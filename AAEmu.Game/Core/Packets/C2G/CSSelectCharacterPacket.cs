@@ -42,41 +42,41 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 Connection.ActiveChar.Simulation = new Simulation(character);
 
-                Connection.SendPacket(new SCCharacterStatePacket(character)); // ++
-                Connection.SendPacket(new SCCharacterGamePointsPacket(character)); // ++
-                Connection.ActiveChar.Inventory.Send(); // ++
-                Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots)); // ++
+                Connection.SendPacket(new SCCharacterStatePacket(character));
+                Connection.SendPacket(new SCCharacterGamePointsPacket(character));
+                Connection.ActiveChar.Inventory.Send();
+                Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
 
-                Connection.ActiveChar.Quests.Send();          // ++
-                Connection.ActiveChar.Quests.SendCompleted(); // ++
+                Connection.ActiveChar.Quests.Send();
+                Connection.ActiveChar.Quests.SendCompleted();
 
-                Connection.ActiveChar.Actability.Send();      // ++
-                Connection.ActiveChar.Mails.SendUnreadMailCount(); //++
-                Connection.ActiveChar.Appellations.Send(); // ++
-                Connection.ActiveChar.Portals.Send();      // ++
-                Connection.ActiveChar.Friends.Send();      // ++
-                Connection.ActiveChar.Blocked.Send();      // ++
+                Connection.ActiveChar.Actability.Send();
+                Connection.ActiveChar.Mails.SendUnreadMailCount();
+                Connection.ActiveChar.Appellations.Send();
+                Connection.ActiveChar.Portals.Send();
+                Connection.ActiveChar.Friends.Send();
+                Connection.ActiveChar.Blocked.Send();
 
                 foreach (var house in houses)
                 {
-                    Connection.SendPacket(new SCMyHouseStatePacket(house)); // ++
+                    Connection.SendPacket(new SCMyHouseStatePacket(house));
                 }
 
                 foreach (var conflict in ZoneManager.Instance.GetConflicts())
                 {
-                    Connection.SendPacket(new SCConflictZoneStatePacket(conflict.ZoneGroupId, conflict.CurrentZoneState, conflict.NextStateTime)); // ++
+                    Connection.SendPacket(new SCConflictZoneStatePacket(conflict.ZoneGroupId, conflict.CurrentZoneState, conflict.NextStateTime));
                 }
 
-                FactionManager.Instance.SendFactions(Connection.ActiveChar);       // ++
-                FactionManager.Instance.SendRelations(Connection.ActiveChar);      // ++
-                ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar); // ++
+                FactionManager.Instance.SendFactions(Connection.ActiveChar);
+                FactionManager.Instance.SendRelations(Connection.ActiveChar);
+                ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
 
                 if (Connection.ActiveChar.Expedition != null)
                 {
-                    ExpeditionManager.Instance.SendExpeditionInfo(Connection.ActiveChar); // ++
+                    ExpeditionManager.Instance.SendExpeditionInfo(Connection.ActiveChar);
                 }
 
-                Connection.ActiveChar.SendOption(1); // ++
+                Connection.ActiveChar.SendOption(1);
                 Connection.ActiveChar.SendOption(2);
                 Connection.ActiveChar.SendOption(5);
             }

@@ -215,7 +215,7 @@
         public const ushort CSCleanupLogicLinkPacket = 0x0d7;
         public const ushort CSSelectInteractionExPacket = 0x00d;
         public const ushort CSChangeDoodadDataPacket = 0x113;
-        public const ushort SetGameTypePacket = 0x03e;
+        public const ushort CSBuyItemsPacket = 0x03e;
         public const ushort CSBuyCoinItemPacket = 0x0ad;
         public const ushort CSChangeDoodadPhasePacket = 0x08d;
         public const ushort CSHangPacket = 0x132;
@@ -309,7 +309,6 @@
         public const ushort CSSpecialtyRecordLoadPacket = 0xfff;
         public const ushort CSAcceptCheatQuestContextPacket = 0xfff;
         public const ushort CSBidAuctionPacket = 0xfff;
-        public const ushort CSBuyItemsPacket = 0xfff;
         public const ushort CSBuySpecialtyItemPacket = 0xfff;
         public const ushort CSChangeExpeditionSponsorPacket = 0xfff;
         public const ushort CSChangeSlaveTargetPacket = 0xfff;

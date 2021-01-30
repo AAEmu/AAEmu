@@ -227,6 +227,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.AttachPointId = reader.GetByte("attach_point_id");
                             func.Space = reader.GetInt32("space");
                             func.BondKindId = reader.GetByte("bond_kind_id");
+                            func.AnimActionId = reader.GetUInt32("anim_action_id"); // added in 1.7
                             _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);
                         }
                     }

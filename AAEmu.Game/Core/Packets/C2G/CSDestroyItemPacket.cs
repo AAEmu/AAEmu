@@ -37,13 +37,13 @@ namespace AAEmu.Game.Core.Packets.C2G
             else
             {
                 // Sanity check in case we're destroying something we're not actually holding?
-                if (item._holdingContainer == null)
+                if (item.HoldingContainer == null)
                 {
                     ItemManager.Instance.ReleaseId(item.Id);
                     Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
                 }
                 else
-                if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
+                if (!item.HoldingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
                 {
                     _log.Warn("DestroyItem: Failed to destroy item...");
                 }

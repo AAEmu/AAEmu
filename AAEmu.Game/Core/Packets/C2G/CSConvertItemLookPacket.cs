@@ -45,7 +45,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, new List<ItemTask>() { new ItemUpdate(toImage) }, new List<ulong>()));
 
             // Remove image item
-            imageItem._holdingContainer.RemoveItem(ItemTaskType.ConvertItemLook, imageItem, true);
+            imageItem.HoldingContainer.RemoveItem(ItemTaskType.ConvertItemLook, imageItem, true);
         }
     }
 }

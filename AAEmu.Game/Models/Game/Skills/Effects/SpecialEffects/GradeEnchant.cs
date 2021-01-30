@@ -138,7 +138,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (result == GradeEnchantResult.Break)
             {
                 // Poof
-                item._holdingContainer.RemoveItem(ItemTaskType.GradeEnchant, item, true);
+                item.HoldingContainer.RemoveItem(ItemTaskType.GradeEnchant, item, true);
             }
             else
             {

@@ -9,11 +9,11 @@ namespace AAEmu.Game.Models.Game.Items
     {
         public override ItemDetailType DetailType => ItemDetailType.Equipment;
 
-        public byte Durability { get; set; }
-        public uint RuneId { get; set; }
-        public uint[] GemIds { get; set; }
-        public ushort TemperPhysical { get; set; }
-        public ushort TemperMagical { get; set; }
+        //public byte Durability { get; set; }
+        //public uint RuneId { get; set; }
+        //public uint[] GemIds { get; set; }
+        //public ushort TemperPhysical { get; set; }
+        //public ushort TemperMagical { get; set; }
 
         public virtual int Str => 0;
         public virtual int Dex => 0;
@@ -48,38 +48,38 @@ namespace AAEmu.Game.Models.Game.Items
             GemIds = new uint[7];
         }
 
-        public override void ReadDetails(PacketStream stream)
-        {
-            ImageItemTemplateId = stream.ReadUInt32();
-            Durability = stream.ReadByte();
-            stream.ReadInt16();
-            RuneId = stream.ReadUInt32();
+        //public override void ReadDetails(PacketStream stream)
+        //{
+        //    ImageItemTemplateId = stream.ReadUInt32();
+        //    Durability = stream.ReadByte();
+        //    stream.ReadInt16();
+        //    RuneId = stream.ReadUInt32();
 
-            stream.ReadBytes(12);
+        //    stream.ReadBytes(12);
 
-            for (var i = 0; i < GemIds.Length; i++)
-                GemIds[i] = stream.ReadUInt32();
+        //    for (var i = 0; i < GemIds.Length; i++)
+        //        GemIds[i] = stream.ReadUInt32();
 
-            TemperPhysical = stream.ReadUInt16();
-            TemperMagical = stream.ReadUInt16();
-        }
+        //    TemperPhysical = stream.ReadUInt16();
+        //    TemperMagical = stream.ReadUInt16();
+        //}
 
-        public override void WriteDetails(PacketStream stream)
-        {
-            stream.Write(ImageItemTemplateId);
-            stream.Write(Durability);
-            stream.Write((short)0);
-            stream.Write(RuneId);
+        //public override void WriteDetails(PacketStream stream)
+        //{
+        //    stream.Write(ImageItemTemplateId);
+        //    stream.Write(Durability);
+        //    stream.Write((short)0);
+        //    stream.Write(RuneId);
 
-            stream.Write((uint)0);
-            stream.Write((uint)0);
-            stream.Write((uint)0);
+        //    stream.Write((uint)0);
+        //    stream.Write((uint)0);
+        //    stream.Write((uint)0);
 
-            foreach (var gemId in GemIds)
-                stream.Write(gemId);
+        //    foreach (var gemId in GemIds)
+        //        stream.Write(gemId);
 
-            stream.Write(TemperPhysical);
-            stream.Write(TemperMagical);
-        }
+        //    stream.Write(TemperPhysical);
+        //    stream.Write(TemperMagical);
+        //}
     }
 }

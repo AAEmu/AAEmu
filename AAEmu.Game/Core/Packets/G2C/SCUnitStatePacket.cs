@@ -194,8 +194,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(0);
             stream.Write(_unit.Hp * 100); // preciseHealth
             stream.Write(_unit.Mp * 100); // preciseMana
-            //stream.Write(_attachPoint);   // point
-            //_modelPostureType = ModelPostureType.None;
+
+            #region AttachPoint1
             if (_unit is Transfer)
             {
                 var transfer = (Transfer)_unit;
@@ -221,13 +221,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 stream.Write((sbyte)-1);   // point
             }
+            #endregion AttachPoint1
 
-            //if (_attachPoint != 255)      // -1
-            //{
-            //    var transfer = (Transfer)_unit;
-            //    stream.WriteBc(transfer.OwnerId); // point to the owner where to attach
-            //}
-
+            #region AttachPoint2
             if (_unit is Character character2)
             {
                 if (character2.Bonding == null)
@@ -252,20 +248,15 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
             else if (_unit is Transfer transfer)
             {
-                //if (transfer.BondingObjId > 0)
-                //{
-                //    stream.WriteBc(transfer.BondingObjId);
-                //}
-                //else
-                //{
                 stream.Write((sbyte)-1); // point
-                //}
             }
             else
             {
                 stream.Write((sbyte)-1); // point
             }
+            #endregion AttachPoint2
 
+            #region ModelPosture
             // TODO added that NPCs can be hunted to move their legs while moving, but if they sit or do anything they will just stand there
             if (_baseUnitType == BaseUnitType.Npc) // NPC
             {
@@ -321,6 +312,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(0f); // yaw
                     break;
             }
+            #endregion ModelPosture
 
             stream.Write(_unit.ActiveWeapon);
 
@@ -331,7 +323,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 foreach (var skill in character.Skills.Skills.Values)
                 {
                     stream.Write(skill.Id);
-                    stream.Write(skill.Level);
+                    //stream.Write(skill.Level);
                 }
 
                 stream.Write(character.Skills.PassiveBuffs.Count);
@@ -426,7 +418,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
                 stream.WriteBc(0);
 
-                character.VisualOptions.Write(stream, 31);
+                character.VisualOptions.Write(stream, 0x20); // cosplay_visual
 
                 stream.Write(1); // premium
 

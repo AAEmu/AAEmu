@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             equipItem.TemperPhysical = physicalScale;
             equipItem.TemperMagical = magicalScale;
 
-            temperItem._holdingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
+            temperItem.HoldingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
             owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));
             // Note: According to various videos I have found, there is no information on the % reached by a temper ingame. This is sent to help indicate what was achieved.
             owner.SendMessage(ChatType.System, "Temper:\n |cFFFFFFFF{0}%|r Physical\n|cFFFFFFFF{1}%|r Magical", physicalScale, magicalScale);

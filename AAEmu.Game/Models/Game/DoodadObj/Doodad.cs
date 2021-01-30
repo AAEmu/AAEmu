@@ -264,7 +264,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(-1); // puzzleGroup /for instances maybe?
             stream.Write((byte)OwnerType); // ownerType
             stream.Write(DbHouseId); // dbHouseId
-            stream.Write(Data); // data
+            stream.Write(Data);  // data
+            stream.Write(false); // spawn, added in 1.7
 
             return stream;
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
@@ -13,6 +13,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public float AngVelZ { get; set; }
         public sbyte Steering { get; set; }
         public sbyte Throttle { get; set; }
+        public sbyte Rpm { get; set; } // added in 1.7
         public ushort ZoneId { get; set; }
         public bool Stuck { get; set; }
 
@@ -32,6 +33,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             AngVelZ = stream.ReadSingle();
             Steering = stream.ReadSByte();
             Throttle = stream.ReadSByte();
+            Rpm = stream.ReadSByte(); // added in 1.7
             ZoneId = stream.ReadUInt16();
             Stuck = stream.ReadBoolean();
         }
@@ -55,7 +57,8 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             
             stream.Write(Steering);
             stream.Write(Throttle);
-            
+            stream.Write(Rpm); // added in 1.7
+
             stream.Write(ZoneId);
             stream.Write(Stuck);
 

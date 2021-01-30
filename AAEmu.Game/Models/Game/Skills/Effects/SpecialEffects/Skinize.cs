@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             itemToImage.SetFlag(ItemFlag.Skinized);
             character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Sknize, new List<ItemTask>() { new ItemUpdateBits(itemToImage) } , new List<ulong>()));
-            powderItem._holdingContainer.ConsumeItem(ItemTaskType.Sknize, powderItem.TemplateId, 1, powderItem);
+            powderItem.HoldingContainer.ConsumeItem(ItemTaskType.Sknize, powderItem.TemplateId, 1, powderItem);
         }
     }
 }
