@@ -381,7 +381,7 @@
         public const ushort SCDoodadReqBattleFieldPacket = 0x191;
         public const ushort SCCraftFailedPacket = 0x20d;
         public const ushort SCUnitLocationPacket = 0x070;
-        public const ushort SCRestrictInfoPacket = 0x1b0;
+        public const ushort SCLevelRestrictionInfo = 0x1b0;
         public const ushort SCIsUnitInFarmPacket = 0x1cb;
         public const ushort SCResponseUIDataPacket = 0x019;
         public const ushort SCUnitVisualOptionsPacket = 0x22b;

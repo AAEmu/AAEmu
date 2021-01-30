@@ -7,14 +7,16 @@ namespace AAEmu.Game.Models.Game.Items.Actions
     {
         private readonly Item _item;
         private readonly byte _bits;
+        private readonly byte _prevBits;
         private readonly bool _isUnsecureExcess;
         private readonly bool _isUnsecureSet;
         private readonly bool _isUnpack;
 
-        public ItemUpdateSecurity(Item item, byte bits, bool isUnsecureExcess, bool isUnsecureSet, bool isUnpack)
+        public ItemUpdateSecurity(Item item, byte bits, byte prevBits, bool isUnsecureExcess, bool isUnsecureSet, bool isUnpack)
         {
             _item = item;
             _bits = bits;
+            _prevBits = prevBits;
             _isUnsecureExcess = isUnsecureExcess;
             _isUnsecureSet = isUnsecureSet;
             _isUnpack = isUnpack;
@@ -28,6 +30,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write((byte)_item.Slot);
             stream.Write(_item.Id);
             stream.Write(_bits);
+            stream.Write(_prevBits);
             stream.Write(_isUnsecureExcess);
             stream.Write(_isUnsecureSet);
             stream.Write(_isUnpack);

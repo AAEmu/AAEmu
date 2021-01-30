@@ -1,29 +1,33 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Items.Actions
 {
-    public class ItemRemoveSlot : ItemTask
+    public class ItemUpdateChargeUseSkillTime : ItemTask
     {
         private readonly ulong _itemId;
         private readonly SlotType _slotType;
         private readonly byte _slot;
+        private readonly DateTime _chargeUseSkillTime;
 
-        public ItemRemoveSlot(Item item)
+        public ItemUpdateChargeUseSkillTime(Item item)
         {
-            _type = ItemAction.Seize; // 13
+            _type = ItemAction.UpdateChargeUseSkillTime; // 19
 
             _itemId = item.Id;
             _slotType = item.SlotType;
             _slot = (byte)item.Slot;
+            _chargeUseSkillTime = item.ChargeUseSkillTime;
         }
 
-        public ItemRemoveSlot(ulong itemId,SlotType slotType,byte slot)
+        public ItemUpdateChargeUseSkillTime(ulong itemId, SlotType slotType, byte slot, DateTime chargeUseSkillTime)
         {
-            _type = ItemAction.Seize; // 13
+            _type = ItemAction.UpdateChargeUseSkillTime; // 19
 
             _itemId = itemId;
             _slotType = slotType;
             _slot = slot;
+            _chargeUseSkillTime = chargeUseSkillTime;
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -32,6 +36,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write((byte)_slotType);
             stream.Write(_slot); // index
             stream.Write(_itemId);
+            stream.Write(_chargeUseSkillTime);
             return stream;
         }
     }

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemUpdate(Item item)
         {
-            _type = ItemAction.UpdateDetail;
+            _type = ItemAction.UpdateDetail; // 9
             _item = item;
         }
 

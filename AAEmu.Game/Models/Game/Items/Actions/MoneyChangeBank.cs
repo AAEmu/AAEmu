@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public MoneyChangeBank(int amount)
         {
-            _type = ItemAction.ChangeBankMoneyAmount;
+            _type = ItemAction.ChangeBankMoneyAmount; // 2
             _amount = amount;
         }
 

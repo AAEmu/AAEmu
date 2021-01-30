@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         {
             _amount = amount;
             _kind = kind;
-            _type = ItemAction.ChangeGamePoint;
+            _type = ItemAction.ChangeGamePoint; // 3
         }
 
         public override PacketStream Write(PacketStream stream)
