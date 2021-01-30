@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Managers
 {
     class NuiManager : Singleton<NuiManager>
     {
-        private Dictionary<uint, AreaTrigger> _nuiTriggers;
+        private Dictionary<uint, AreaTrigger> _nuiTriggers = new Dictionary<uint, AreaTrigger>();
 
         public void Add(Npc nui)
         {
