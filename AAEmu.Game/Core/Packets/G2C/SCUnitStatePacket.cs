@@ -136,57 +136,68 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.Level);
             stream.Write(_unit.ModelId); // modelRef
 
-            if (_unit is Character)
+            switch (_unit)
             {
-                var character = (Character)_unit;
-                var items = character.Inventory.Equipment.GetSlottedItemsList();
-                foreach (var item in items)
+                case Character unit:
                 {
-                    if (item == null)
+                    var character = unit;
+                    for (var i = 0; i < character.Inventory.Equipment.GetSlottedItemsList().Count; i++)
                     {
-                        stream.Write(0);
-                    }
-                    else
-                    {
-                        stream.Write(item);
-                    }
-                }
-            }
-            else if (_unit is Npc)
-            {
-                var npc = (Npc)_unit;
-                for (var i = 0; i < npc.Equipment.GetSlottedItemsList().Count; i++)
-                {
-                    var item = npc.Equipment.GetItemBySlot(i);
-
-                    if (item is BodyPart)
-                    {
-                        stream.Write(item.TemplateId);
-                    }
-                    else if (item != null)
-                    {
-                        if (i == 27) // Cosplay
+                        var item = character.Inventory.Equipment.GetItemBySlot(i);
+                        if (item is BodyPart)
+                        {
+                            stream.Write(item.TemplateId);
+                        }
+                        else if (item != null)
                         {
                             stream.Write(item);
                         }
                         else
                         {
-                            stream.Write(item.TemplateId);
-                            stream.Write(0L);
-                            stream.Write((byte)0);
+                            stream.Write(0);
                         }
                     }
-                    else
+                    break;
+                }
+                case Npc unit:
+                {
+                    var npc = unit;
+                    for (var i = 0; i < npc.Equipment.GetSlottedItemsList().Count; i++)
+                    {
+                        var item = npc.Equipment.GetItemBySlot(i);
+
+                        if (item is BodyPart)
+                        {
+                            stream.Write(item.TemplateId);
+                        }
+                        else if (item != null)
+                        {
+                            if (i == 27) // Cosplay
+                            {
+                                stream.Write(item);
+                            }
+                            else
+                            {
+                                stream.Write(item.TemplateId);
+                                stream.Write(0L);
+                                stream.Write((byte)0);
+                            }
+                        }
+                        else
+                        {
+                            stream.Write(0);
+                        }
+                    }
+                    break;
+                }
+                default:
+                {
+                    for (var i = 0; i < 28; i++)
                     {
                         stream.Write(0);
                     }
-                }
-            }
-            else
-            {
-                for (var i = 0; i < 28; i++)
-                {
-                    stream.Write(0);
+
+                    break;
                 }
             }
 

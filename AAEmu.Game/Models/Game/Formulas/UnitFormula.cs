@@ -62,7 +62,12 @@
         HealDpsInc = 43,
         HealCriticalBonus = 44,
         Block = 45,
-        Dodge = 46
+        Dodge = 46,
+
+        // TODO v.1.7
+        Mass = 47,
+        SteeringSpeed = 48,
+        ReverseVelocity = 49
     }
 
     public class UnitFormula : Formula

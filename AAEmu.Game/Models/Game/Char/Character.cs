@@ -2196,16 +2196,20 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Family);
 
             // in 1.2 max 28 items
-            var items = Inventory.Equipment.GetSlottedItemsList();
-            foreach (var item in items)
+            for (var i = 0; i < Inventory.Equipment.GetSlottedItemsList().Count; i++)
             {
-                if (item == null)
+                var item = Inventory.Equipment.GetItemBySlot(i);
+                if (item is BodyPart)
                 {
-                    stream.Write(0);
+                    stream.Write(item.TemplateId);
+                }
+                else if (item != null)
+                {
+                    stream.Write(item);
                 }
                 else
                 {
-                    stream.Write(item);
+                    stream.Write(0);
                 }
             }
 

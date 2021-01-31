@@ -311,7 +311,7 @@ LABEL_11:
 
                     stream.Write(TemperPhysical);
                     stream.Write(TemperMagical);
-                    //mDetailLength = 56;
+                    //mDetailLength = 56; // 56 - 1 = 55
                     break;
                 case 2:
                     mDetailLength = 30;
