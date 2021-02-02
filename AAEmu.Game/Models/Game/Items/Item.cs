@@ -198,7 +198,7 @@ namespace AAEmu.Game.Models.Game.Items
                 return;
             Id = stream.ReadUInt64();
             Grade = stream.ReadByte();
-            Flags = stream.ReadByte();
+            ItemFlags = (ItemFlag)stream.ReadByte();
             Count = stream.ReadInt32();
 
             DetailType = (ItemDetailType) stream.ReadByte();
