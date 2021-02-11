@@ -15,6 +15,7 @@ namespace AAEmu.Game.Models.Game
 
         public uint SubZoneId { get; set; }
         public uint Owner { get; set; }
+        public uint DoodadId { get; set; }
 
         public override PacketStream Write(PacketStream stream)
         {

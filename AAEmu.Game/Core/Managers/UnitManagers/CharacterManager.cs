@@ -481,7 +481,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Ability1 = (AbilityType) ability1;
                 character.Ability2 = AbilityType.None;
                 character.Ability3 = AbilityType.None;
-                character.ReturnDictrictId = template.ReturnDictrictId;
+                character.ReturnDictrictId = PortalManager.Instance.GetStarterSubZoneId(template.Race); // Use start zone id
                 character.ResurrectionDictrictId = template.ResurrectionDictrictId;
                 character.Slots = new ActionSlot[85];
                 for (var i = 0; i < character.Slots.Length; i++)

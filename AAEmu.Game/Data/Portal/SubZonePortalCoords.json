@@ -1,6 +1,5 @@
 [
     {
-        "Id": 1,
         "Name": "Nuian Starting Area",
         "X": 15574.05,
         "Y": 15375.35,
@@ -8,10 +7,10 @@
         "ZoneId": 179,
         "ZRot": 58,
         "SubZoneId": 324,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 0
     },
     {
-        "Id": 2,
         "Name": "Desireen",
         "X": 15667.92,
         "Y": 15166.73,
@@ -19,10 +18,10 @@
         "ZoneId": 179,
         "ZRot": -18,
         "SubZoneId": 325,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 850
     },
     {
-        "Id": 3,
         "Name": "Wardton",
         "X": 14809.21,
         "Y": 14295.77,
@@ -30,10 +29,10 @@
         "ZoneId": 179,
         "ZRot": 54,
         "SubZoneId": 332,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 853
     },
     {
-        "Id": 5,
         "Name": "Crescent Throne",
         "X": 15376.02,
         "Y": 13865.8,
@@ -41,10 +40,9 @@
         "ZoneId": 178,
         "ZRot": 75,
         "SubZoneId": 499,
-        "Owner": 0
+        "Owner": 851
     },
     {
-        "Id": 6,
         "Name": "Solzreed Public Farm",
         "X": 14948.63,
         "Y": 14239.77,
@@ -52,10 +50,10 @@
         "ZoneId": 179,
         "ZRot": 34,
         "SubZoneId": 335,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 6205
     },
     {
-        "Id": 8,
         "Name": "Lacton",
         "X": 13596.49,
         "Y": 14531.33,
@@ -63,10 +61,10 @@
         "ZoneId": 142,
         "ZRot": 18,
         "SubZoneId": 338,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 852
     },
     {
-        "Id": 242,
         "Name": "Windshade",
         "X": 12613.38,
         "Y": 15485.65,
@@ -74,10 +72,10 @@
         "ZoneId": 195,
         "ZRot": -33,
         "SubZoneId": 242,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1708
     },
     {
-        "Id": 243,
         "Name": "Riverspan",
         "X": 13564.56,
         "Y": 15875.9,
@@ -85,10 +83,10 @@
         "ZoneId": 144,
         "ZRot": 43,
         "SubZoneId": 243,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1886
     },
     {
-        "Id": 753,
         "Name": "Rockmar Barrow",
         "X": 12778.46,
         "Y": 16164.77,
@@ -96,10 +94,10 @@
         "ZoneId": 195,
         "ZRot": 4,
         "SubZoneId": 753,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1887
     },
     {
-        "Id": 610,
         "Name": "Spywatch Camp",
         "X": 11409.06,
         "Y": 15279.6,
@@ -107,10 +105,10 @@
         "ZoneId": 182,
         "ZRot": 66,
         "SubZoneId": 610,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3062
     },
     {
-        "Id": 1080,
         "Name": "Gweonid Public Farm",
         "X": 10824.02,
         "Y": 15557.6,
@@ -118,10 +116,10 @@
         "ZoneId": 182,
         "ZRot": 75,
         "SubZoneId": 1080,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 6204
     },
     {
-        "Id": 12,
         "Name": "Lakeside",
         "X": 10825.26,
         "Y": 15312.19,
@@ -129,10 +127,10 @@
         "ZoneId": 182,
         "ZRot": -39,
         "SubZoneId": 12,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 844
     },
     {
-        "Id": 14,
         "Name": "Memoria",
         "X": 10668.83,
         "Y": 14959.68,
@@ -140,10 +138,10 @@
         "ZoneId": 181,
         "ZRot": 65,
         "SubZoneId": 14,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 843
     },
     {
-        "Id": 4,
         "Name": "Sylvan Devi",
         "X": 10000.61,
         "Y": 15291.61,
@@ -151,10 +149,10 @@
         "ZoneId": 129,
         "ZRot": 3,
         "SubZoneId": 4,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3073
     },
     {
-        "Id": 218,
         "Name": "Iona",
         "X": 9718.053,
         "Y": 17036.54,
@@ -162,10 +160,10 @@
         "ZoneId": 145,
         "ZRot": 55,
         "SubZoneId": 218,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 5840
     },
     {
-        "Id": 220,
         "Name": "Lavis",
         "X": 10507.88,
         "Y": 17341.86,
@@ -173,10 +171,10 @@
         "ZoneId": 145,
         "ZRot": 29,
         "SubZoneId": 220,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 5842
     },
     {
-        "Id": 219,
         "Name": "Wyrmkin Camp",
         "X": 9536.186,
         "Y": 17837.28,
@@ -184,10 +182,10 @@
         "ZoneId": 145,
         "ZRot": 65,
         "SubZoneId": 219,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 5841
     },
     {
-        "Id": 163,
         "Name": "Ardenia",
         "X": 10629.37,
         "Y": 13206.33,
@@ -195,10 +193,10 @@
         "ZoneId": 244,
         "ZRot": 23,
         "SubZoneId": 163,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 871
     },
     {
-        "Id": 158,
         "Name": "Birchkeep",
         "X": 9722.727,
         "Y": 12761.87,
@@ -206,10 +204,10 @@
         "ZoneId": 143,
         "ZRot": -35,
         "SubZoneId": 158,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 870
     },
     {
-        "Id": 203,
         "Name": "Hatora",
         "X": 20030.19,
         "Y": 7597.91,
@@ -217,10 +215,10 @@
         "ZoneId": 187,
         "ZRot": -33,
         "SubZoneId": 203,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3033
     },
     {
-        "Id": 188,
         "Name": "Harani Starting Area",
         "X": 19305.09,
         "Y": 7643.314,
@@ -228,10 +226,10 @@
         "ZoneId": 187,
         "ZRot": 79,
         "SubZoneId": 188,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 0
     },
     {
-        "Id": 204,
         "Name": "Parchsun Settlement",
         "X": 20511.29,
         "Y": 7150.438,
@@ -239,10 +237,10 @@
         "ZoneId": 188,
         "ZRot": -25,
         "SubZoneId": 204,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3034
     },
     {
-        "Id": 207,
         "Name": "Widesleeves",
         "X": 22272.59,
         "Y": 7018.791,
@@ -250,10 +248,10 @@
         "ZoneId": 189,
         "ZRot": 1,
         "SubZoneId": 207,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3036
     },
     {
-        "Id": 315,
         "Name": "Anvilton",
         "X": 21754.85,
         "Y": 8136.982,
@@ -261,10 +259,10 @@
         "ZoneId": 258,
         "ZRot": -6,
         "SubZoneId": 315,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1631
     },
     {
-        "Id": 687,
         "Name": "Tigerseye",
         "X": 21731.1,
         "Y": 8610.533,
@@ -272,10 +270,10 @@
         "ZoneId": 158,
         "ZRot": 15,
         "SubZoneId": 687,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1632
     },
     {
-        "Id": 276,
         "Name": "Poacher's Watch",
         "X": 20080.65,
         "Y": 8472.799,
@@ -283,10 +281,10 @@
         "ZoneId": 197,
         "ZRot": -9,
         "SubZoneId": 276,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1147
     },
     {
-        "Id": 270,
         "Name": "Pallace Cellar",
         "X": 19345.46,
         "Y": 8518.229,
@@ -294,10 +292,10 @@
         "ZoneId": 196,
         "ZRot": 40,
         "SubZoneId": 270,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 7426
     },
     {
-        "Id": 625,
         "Name": "Mahadevi",
         "X": 19384.5,
         "Y": 8608.803,
@@ -305,10 +303,10 @@
         "ZoneId": 196,
         "ZRot": 39,
         "SubZoneId": 625,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3089
     },
     {
-        "Id": 606,
         "Name": "Traveler's Rest",
         "X": 18736.61,
         "Y": 9272.502,
@@ -316,10 +314,10 @@
         "ZoneId": 153,
         "ZRot": -9,
         "SubZoneId": 606,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3083
     },
     {
-        "Id": 572,
         "Name": "Herb Farm",
         "X": 20326.83,
         "Y": 9313.734,
@@ -327,10 +325,10 @@
         "ZoneId": 197,
         "ZRot": 6,
         "SubZoneId": 572,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3079
     },
     {
-        "Id": 588,
         "Name": "Traveler's Spring",
         "X": 16858.26,
         "Y": 8028.756,
@@ -338,10 +336,10 @@
         "ZoneId": 141,
         "ZRot": 45,
         "SubZoneId": 588,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3128
     },
     {
-        "Id": 597,
         "Name": "Halo Hollow",
         "X": 15645.82,
         "Y": 7608.426,
@@ -349,10 +347,10 @@
         "ZoneId": 141,
         "ZRot": 68,
         "SubZoneId": 597,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3127
     },
     {
-        "Id": 579,
         "Name": "Freedom Plaza",
         "X": 16749.3,
         "Y": 9012.928,
@@ -360,10 +358,10 @@
         "ZoneId": 191,
         "ZRot": 83,
         "SubZoneId": 579,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3173
     },
     {
-        "Id": 538,
         "Name": "Winebalm",
         "X": 21749.11,
         "Y": 10293.11,
@@ -371,10 +369,9 @@
         "ZoneId": 256,
         "ZRot": 83,
         "SubZoneId": 538,
-        "Owner": 0
+        "Owner": 944
     },
     {
-        "Id": 542,
         "Name": "Lutesong Harbor",
         "X": 21179.46,
         "Y": 10615.56,
@@ -382,10 +379,9 @@
         "ZoneId": 160,
         "ZRot": -27,
         "SubZoneId": 542,
-        "Owner": 0
+        "Owner": 943
     },
     {
-        "Id": 673,
         "Name": "Huntsman's Retreat",
         "X": 22729.05,
         "Y": 12114.22,
@@ -393,10 +389,9 @@
         "ZoneId": 159,
         "ZRot": 25,
         "SubZoneId": 673,
-        "Owner": 0
+        "Owner": 3076
     },
     {
-        "Id": 671,
         "Name": "Vedisa",
         "X": 22307.31,
         "Y": 12122.74,
@@ -404,10 +399,10 @@
         "ZoneId": 159,
         "ZRot": 15,
         "SubZoneId": 671,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3075
     },
     {
-        "Id": 471,
         "Name": "Glitterstone",
         "X": 21594.3,
         "Y": 12448.27,
@@ -415,10 +410,10 @@
         "ZoneId": 259,
         "ZRot": 1,
         "SubZoneId": 471,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3402
     },
     {
-        "Id": 460,
         "Name": "Village of Nui's Way",
         "X": 20287.12,
         "Y": 12033.49,
@@ -426,10 +421,10 @@
         "ZoneId": 139,
         "ZRot": 49,
         "SubZoneId": 460,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3403
     },
     {
-        "Id": 468,
         "Name": "Caernord",
         "X": 20917.77,
         "Y": 13142.48,
@@ -437,10 +432,10 @@
         "ZoneId": 139,
         "ZRot": -22,
         "SubZoneId": 468,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3401
     },
     {
-        "Id": 61,
         "Name": "Royster's Camp",
         "X": 12862.81,
         "Y": 14420.16,
@@ -448,10 +443,10 @@
         "ZoneId": 140,
         "ZRot": 43,
         "SubZoneId": 61,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 847
     },
     {
-        "Id": 72,
         "Name": "Sandcloud",
         "X": 12155.06,
         "Y": 13294.1,
@@ -459,10 +454,10 @@
         "ZoneId": 185,
         "ZRot": 58,
         "SubZoneId": 72,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 848
     },
     {
-        "Id": 84,
         "Name": "Sharpwind Mines",
         "X": 11356.92,
         "Y": 13133.95,
@@ -470,10 +465,10 @@
         "ZoneId": 185,
         "ZRot": 55,
         "SubZoneId": 84,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 7425
     },
     {
-        "Id": 359,
         "Name": "Marianople",
         "X": 11140.59,
         "Y": 12080.09,
@@ -481,10 +476,10 @@
         "ZoneId": 183,
         "ZRot": 68,
         "SubZoneId": 359,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 846
     },
     {
-        "Id": 565,
         "Name": "Dawnsliver",
         "X": 10678.66,
         "Y": 11877.77,
@@ -492,10 +487,10 @@
         "ZoneId": 133,
         "ZRot": 17,
         "SubZoneId": 565,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 845
     },
     {
-        "Id": 120,
         "Name": "Sundowne",
         "X": 12541.22,
         "Y": 15335.7,
@@ -503,10 +498,10 @@
         "ZoneId": 195,
         "ZRot": 0,
         "SubZoneId": 120,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1311
     },
     {
-        "Id": 129,
         "Name": "Moonswept Homes",
         "X": 12541.22,
         "Y": 15335.7,
@@ -514,10 +509,10 @@
         "ZoneId": 195,
         "ZRot": 0,
         "SubZoneId": 129,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3192
     },
     {
-        "Id": 126,
         "Name": "Arena",
         "X": 12541.22,
         "Y": 15335.7,
@@ -525,10 +520,10 @@
         "ZoneId": 195,
         "ZRot": 0,
         "SubZoneId": 126,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1312
     },
     {
-        "Id": 144,
         "Name": "Ezna",
         "X": 12541.22,
         "Y": 15335.7,
@@ -536,10 +531,10 @@
         "ZoneId": 195,
         "ZRot": 0,
         "SubZoneId": 144,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 1313
     },
     {
-        "Id": 169,
         "Name": "Burnt Castle Camp",
         "X": 12541.22,
         "Y": 15335.7,
@@ -547,10 +542,10 @@
         "ZoneId": 195,
         "ZRot": 0,
         "SubZoneId": 169,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3130
     },
     {
-        "Id": 182,
         "Name": "Seachild Wharf",
         "X": 12541.22,
         "Y": 15335.7,
@@ -558,10 +553,10 @@
         "ZoneId": 195,
         "ZRot": 0,
         "SubZoneId": 182,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3129
     },
     {
-        "Id": 176,
         "Name": "Burnt Castle",
         "X": 12541.22,
         "Y": 15335.7,
@@ -569,10 +564,10 @@
         "ZoneId": 195,
         "ZRot": 0,
         "SubZoneId": 176,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 7427
     },
     {
-        "Id": 290,
         "Name": "Solisa",
         "X": 11301.41,
         "Y": 10718.12,
@@ -580,10 +575,10 @@
         "ZoneId": 207,
         "ZRot": 35,
         "SubZoneId": 290,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3589
     },
     {
-        "Id": 300,
         "Name": "Winking Bottle Brewery",
         "X": 10620.14,
         "Y": 10740.94,
@@ -591,10 +586,10 @@
         "ZoneId": 207,
         "ZRot": 54,
         "SubZoneId": 300,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 5042
     },
     {
-        "Id": 291,
         "Name": "Sun's End",
         "X": 9332.145,
         "Y": 10318.4,
@@ -602,10 +597,10 @@
         "ZoneId": 206,
         "ZRot": 30,
         "SubZoneId": 291,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3591
     },
     {
-        "Id": 444,
         "Name": "Golden Fable Harbor",
         "X": 12541.22,
         "Y": 15335.7,
@@ -613,10 +608,10 @@
         "ZoneId": 245,
         "ZRot": 0,
         "SubZoneId": 444,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3799
     },
     {
-        "Id": 416,
         "Name": "Blueglass",
         "X": 12541.22,
         "Y": 15335.7,
@@ -624,10 +619,10 @@
         "ZoneId": 162,
         "ZRot": 0,
         "SubZoneId": 416,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3798
     },
     {
-        "Id": 413,
         "Name": "Grenwolf",
         "X": 8844.188,
         "Y": 8230.217,
@@ -635,10 +630,10 @@
         "ZoneId": 162,
         "ZRot": 66,
         "SubZoneId": 413,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3797
     },
     {
-        "Id": 900,
         "Name": "Trieste Thespians",
         "X": 8026.04,
         "Y": 7814.944,
@@ -646,10 +641,10 @@
         "ZoneId": 161,
         "ZRot": 0,
         "SubZoneId": 900,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3826
     },
     {
-        "Id": 899,
         "Name": "Haven",
         "X": 8026.04,
         "Y": 7814.944,
@@ -657,10 +652,10 @@
         "ZoneId": 161,
         "ZRot": 0,
         "SubZoneId": 899,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3825
     },
     {
-        "Id": 898,
         "Name": "Anarchi",
         "X": 8026.04,
         "Y": 7814.944,
@@ -668,10 +663,10 @@
         "ZoneId": 161,
         "ZRot": 0,
         "SubZoneId": 898,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3824
     },
     {
-        "Id": 905,
         "Name": "Howling Abyss",
         "X": 8026.04,
         "Y": 7814.944,
@@ -679,10 +674,10 @@
         "ZoneId": 161,
         "ZRot": 0,
         "SubZoneId": 905,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 7429
     },
     {
-        "Id": 869,
         "Name": "Growlgate Isle",
         "X": 15109,
         "Y": 22983,
@@ -690,10 +685,10 @@
         "ZoneId": 284,
         "ZRot": 0,
         "SubZoneId": 869,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3390
     },
     {
-        "Id": 746,
         "Name": "Halfmoon",
         "X": 23596.99,
         "Y": 9842.461,
@@ -701,10 +696,10 @@
         "ZoneId": 156,
         "ZRot": 23,
         "SubZoneId": 746,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3126
     },
     {
-        "Id": 742,
         "Name": "Oxion Clan",
         "X": 23767.23,
         "Y": 9176.551,
@@ -712,10 +707,10 @@
         "ZoneId": 156,
         "ZRot": 38,
         "SubZoneId": 742,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3124
     },
     {
-        "Id": 728,
         "Name": "Whisperwind",
         "X": 24143.14,
         "Y": 9999.193,
@@ -723,10 +718,10 @@
         "ZoneId": 184,
         "ZRot": -40,
         "SubZoneId": 728,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3122
     },
     {
-        "Id": 748,
         "Name": "Cloudgrain",
         "X": 23241.44,
         "Y": 9018.236,
@@ -734,10 +729,10 @@
         "ZoneId": 156,
         "ZRot": 66,
         "SubZoneId": 748,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3125
     },
     {
-        "Id": 736,
         "Name": "Graymist",
         "X": 24020.15,
         "Y": 8622.912,
@@ -745,10 +740,10 @@
         "ZoneId": 184,
         "ZRot": 44,
         "SubZoneId": 736,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3123
     },
     {
-        "Id": 99,
         "Name": "Firetalon",
         "X": 23831.45,
         "Y": 7325.709,
@@ -756,10 +751,10 @@
         "ZoneId": 136,
         "ZRot": 10,
         "SubZoneId": 99,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3841
     },
     {
-        "Id": 104,
         "Name": "Firesnarl",
         "X": 24675.77,
         "Y": 6918.801,
@@ -767,10 +762,10 @@
         "ZoneId": 136,
         "ZRot": -2,
         "SubZoneId": 104,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3842
     },
     {
-        "Id": 106,
         "Name": "Skyfang Village",
         "X": 25912.84,
         "Y": 6832.059,
@@ -778,10 +773,10 @@
         "ZoneId": 247,
         "ZRot": 49,
         "SubZoneId": 106,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3843
     },
     {
-        "Id": 952,
         "Name": "Herbalist Camp",
         "X": 26987.86,
         "Y": 7075.008,
@@ -789,10 +784,10 @@
         "ZoneId": 243,
         "ZRot": 63,
         "SubZoneId": 952,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 4328
     },
     {
-        "Id": 955,
         "Name": "Stonehew",
         "X": 27813.54,
         "Y": 6737.143,
@@ -800,10 +795,10 @@
         "ZoneId": 137,
         "ZRot": -26,
         "SubZoneId": 955,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 4316
     },
     {
-        "Id": 963,
         "Name": "Archeology Base Camp",
         "X": 28539.42,
         "Y": 6148.309,
@@ -811,10 +806,10 @@
         "ZoneId": 242,
         "ZRot": 0,
         "SubZoneId": 963,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 4327
     },
     {
-        "Id": 917,
         "Name": "Galegarden",
         "X": 28939.52,
         "Y": 7679.402,
@@ -822,10 +817,10 @@
         "ZoneId": 155,
         "ZRot": 27,
         "SubZoneId": 917,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3995
     },
     {
-        "Id": 920,
         "Name": "Jadegale",
         "X": 28651.23,
         "Y": 8533.164,
@@ -833,10 +828,10 @@
         "ZoneId": 272,
         "ZRot": 64,
         "SubZoneId": 920,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3998
     },
     {
-        "Id": 930,
         "Name": "Veroe",
         "X": 29998.48,
         "Y": 8743.883,
@@ -844,10 +839,10 @@
         "ZoneId": 272,
         "ZRot": -11,
         "SubZoneId": 930,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3999
     },
     {
-        "Id": 932,
         "Name": "Tehmika Tribe",
         "X": 30024.71,
         "Y": 7829.107,
@@ -855,10 +850,10 @@
         "ZoneId": 155,
         "ZRot": 36,
         "SubZoneId": 932,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 3997
     },
     {
-        "Id": 56,
         "Name": "Kroloal Craddle Entrance",
         "X": 26862.96,
         "Y": 9042.939,
@@ -866,10 +861,10 @@
         "ZoneId": 138,
         "ZRot": -30,
         "SubZoneId": 56,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 7430
     },
     {
-        "Id": 983,
         "Name": "Watermist",
         "X": 25410.24,
         "Y": 9769.465,
@@ -877,10 +872,10 @@
         "ZoneId": 138,
         "ZRot": 14,
         "SubZoneId": 983,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 4183
     },
     {
-        "Id": 49,
         "Name": "Duskgleam",
         "X": 24919.67,
         "Y": 10605.08,
@@ -888,10 +883,10 @@
         "ZoneId": 246,
         "ZRot": 24,
         "SubZoneId": 49,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 4181
     },
     {
-        "Id": 462,
         "Name": "Hadir Farm",
         "X": 20023.23,
         "Y": 12779.68,
@@ -899,10 +894,10 @@
         "ZoneId": 139,
         "ZRot": 76,
         "SubZoneId": 462,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 7428
     },
     {
-        "Id": 217,
         "Name": "Hardbleak Island",
         "X": 9260.123,
         "Y": 16673.17,
@@ -910,10 +905,10 @@
         "ZoneId": 145,
         "ZRot": 67,
         "SubZoneId": 217,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 5839
     },
     {
-        "Id": 727,
         "Name": "Firran Starting Area",
         "X": 23880.16,
         "Y": 10492.45,
@@ -921,6 +916,18 @@
         "ZoneId": 184,
         "ZRot": 70,
         "SubZoneId": 727,
-        "Owner": 0
+        "Owner": 0,
+		"DoodadId": 0
+    },
+    {
+        "Name": "Elf Starting Area",
+        "X": 10388.576,
+        "Y": 15982.466,
+        "Z": 367.606,
+        "ZoneId": 129,
+        "ZRot": 12,
+        "SubZoneId": 2,
+        "Owner": 0,
+	"DoodadId": 0
     }
 ]

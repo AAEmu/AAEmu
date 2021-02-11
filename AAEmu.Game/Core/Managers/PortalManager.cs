@@ -26,8 +26,8 @@ namespace AAEmu.Game.Core.Managers
     {
         private readonly Logger _log = LogManager.GetCurrentClassLogger();
         
-        private Dictionary<uint, uint> _allDistrictPortalsKey;
         private Dictionary<uint, Portal> _allDistrictPortals;
+        private Dictionary<uint, Portal> _allDistrictPortalsByDoodad;
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
         private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
 
@@ -38,9 +38,9 @@ namespace AAEmu.Game.Core.Managers
             return _allDistrictPortals.ContainsKey(subZoneId) ? _allDistrictPortals[subZoneId] : null;
         }
 
-        public Portal GetPortalById(uint id)
+        public Portal GetPortalByDoodadId(uint doodadId)
         {
-            return _allDistrictPortalsKey.ContainsKey(id) ? (_allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id]) ? _allDistrictPortals[_allDistrictPortalsKey[id]] : null) : null;
+            return _allDistrictPortalsByDoodad.ContainsKey(doodadId) ? _allDistrictPortalsByDoodad[doodadId] : null;
         }
 
         public void Load()
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Core.Managers
             _openPortalInlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _openPortalOutlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _allDistrictPortals = new Dictionary<uint, Portal>();
-            _allDistrictPortalsKey = new Dictionary<uint, uint>();
+            _allDistrictPortalsByDoodad = new Dictionary<uint, Portal>();
             _log.Info("Loading Portals ...");
 
             #region FileManager
@@ -62,8 +62,14 @@ namespace AAEmu.Game.Core.Managers
             if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
                 foreach (var portal in portals)
                 {
+                    portal.Id = portal.SubZoneId; // Id of district portal is the subzoneId?
+
                     _allDistrictPortals.Add(portal.SubZoneId, portal);
-                    _allDistrictPortalsKey.Add(portal.Id, portal.SubZoneId);
+
+                    if (portal.DoodadId != 0)
+                    {
+                        _allDistrictPortalsByDoodad.Add(portal.DoodadId, portal);
+                    }
                 }
             else
                 throw new Exception($"PortalManager: Parse {filePath} file");
@@ -259,6 +265,20 @@ namespace AAEmu.Game.Core.Managers
             var portalInfo = owner.Portals.GetPortalInfo(id);
             if (portalInfo == null) return;
             owner.Portals.RemoveFromBookPortal(portalInfo, isPrivate);
+        }
+
+        public uint GetStarterSubZoneId(Race race)
+        {
+            if (race == Race.Nuian)
+                return 324u;
+            else if (race == Race.Hariharan)
+                return 188u;
+            else if (race == Race.Ferre)
+                return 727u;
+            else if (race == Race.Elf)
+                return 2u;
+            else
+                return 0u;
         }
     }
 }

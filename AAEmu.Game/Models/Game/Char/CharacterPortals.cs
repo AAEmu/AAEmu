@@ -108,7 +108,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var portals = new Portal[DistrictPortals.Count];
                 DistrictPortals.Values.CopyTo(portals, 0);
-                Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, 139)); // INFO - What is returnDistrictId?
+                Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, Owner.ReturnDictrictId));
             }
         }
 
