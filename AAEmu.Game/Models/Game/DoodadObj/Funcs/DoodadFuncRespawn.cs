@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             }
             var spawnPos = character.Transform.Clone();
             spawnPos.Local.AddDistanceToFront(1f);
-            spawnPos.Local.Position.Z = WorldManager.Instance.GetHeight(spawnPos);
+            spawnPos.Local.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
             var doodad = new DoodadSpawner
             {
                 Id = 0,

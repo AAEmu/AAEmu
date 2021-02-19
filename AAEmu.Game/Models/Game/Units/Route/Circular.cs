@@ -62,8 +62,9 @@ namespace AAEmu.Game.Models.Game.Units.Route
             // 圆形巡航
             // Round cruising
             var hudu = 4 * Math.PI / 360 * Count;
-            moveType.X = npc.Transform.Local.Position.X = npc.Spawner.Position.X + (float)Math.Sin(hudu) * Radius;
-            moveType.Y = npc.Transform.Local.Position.Y = npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
+            moveType.X = npc.Spawner.Position.X + (float)Math.Sin(hudu) * Radius;
+            moveType.Y =  npc.Spawner.Position.Y + Radius - (float)Math.Cos(hudu) * Radius;
+            npc.Transform.Local.SetPosition(moveType.X, moveType.Y, npc.Transform.Local.Position.Z);
 
             if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
             {

@@ -43,15 +43,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 if (x < 0)
                 {
-                    npc.Transform.Local.Position.X += tempMovingDistance;
+                    npc.Transform.Local.Translate(tempMovingDistance, 0f, 0f);
                 }
                 else
                 {
-                    npc.Transform.Local.Position.X -= tempMovingDistance;
+                    npc.Transform.Local.Translate(-tempMovingDistance, 0f, 0f);
                 }
                 if (Math.Abs(x) < tempMovingDistance)
                 {
-                    npc.Transform.Local.Position.X = Position.X;
+                    npc.Transform.Local.SetPosition(Position.X, npc.Transform.Local.Position.Y, npc.Transform.Local.Position.Z);
                 }
                 move = true;
             }
@@ -68,15 +68,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (y < 0)
                 {
-                    npc.Transform.Local.Position.Y += tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, tempMovingDistance, 0f);
                 }
                 else
                 {
-                    npc.Transform.Local.Position.Y -= tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, -tempMovingDistance, 0f);
                 }
                 if (Math.Abs(y) < tempMovingDistance)
                 {
-                    npc.Transform.Local.Position.Y = Position.Y;
+                    npc.Transform.Local.SetPosition(npc.Transform.Local.Position.X, Position.Y, npc.Transform.Local.Position.Z);
                 }
                 move = true;
             }
@@ -93,15 +93,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (z < 0)
                 {
-                    npc.Transform.Local.Position.Z += tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, 0f, tempMovingDistance);
                 }
                 else
                 {
-                    npc.Transform.Local.Position.Z -= tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, 0f, -tempMovingDistance);
                 }
                 if (Math.Abs(z) < tempMovingDistance)
                 {
-                    npc.Transform.Local.Position.Z = Position.Z;
+                    npc.Transform.Local.SetHeight(Position.Z);
                 }
                 move = true;
             }

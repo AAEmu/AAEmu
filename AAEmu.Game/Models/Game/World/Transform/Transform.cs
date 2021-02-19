@@ -4,15 +4,19 @@ using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Utils;
 
+// INFO
+// https://www.versluis.com/2020/09/what-is-yaw-pitch-and-roll-in-3d-axis-values/
+// https://en.wikipedia.org/wiki/Euler_angles
+
 namespace AAEmu.Game.Models.Game.World
 {
     public class PositionAndRotation
     {
-        public Vector3 Position;
-        public Quaternion Rotation;
+        public Vector3 Position { get; set; }
+        public Quaternion Rotation { get; set; }
 
-        private const float ToShortDivider = (1f / 32768f); // 0.000030518509f ;
-        private const float ToSByteDivider = (1f / 127f); // 0.000030518509f ;
+        private const float ToShortDivider = (1f / 32768f); // ~0.000030518509f ;
+        private const float ToSByteDivider = (1f / 127f);   // ~0.007874015748f ;
 
         public PositionAndRotation()
         {
@@ -40,7 +44,7 @@ namespace AAEmu.Game.Models.Game.World
         public Vector3 ToYawPitchRoll()
         {
             // Store the Euler angles in radians
-            Vector3 yawPitchRoll = new Vector3();
+            var yawPitchRoll = new Vector3();
 
             double sqw = Rotation.W * Rotation.W;
             double sqx = Rotation.X * Rotation.X;
@@ -54,34 +58,46 @@ namespace AAEmu.Game.Models.Game.World
             if (test > 0.4999f * unit)                              // 0.4999f OR 0.5f - EPSILON
             {
                 // Singularity at north pole
-                yawPitchRoll.X = 2f * (float)Math.Atan2(Rotation.X, Rotation.W);  // Yaw
+                yawPitchRoll.Z = 2f * (float)Math.Atan2(Rotation.X, Rotation.W);  // Yaw
                 yawPitchRoll.Y = MathF.PI * 0.5f;                   // Pitch
-                yawPitchRoll.Z = 0f;                                // Roll
+                yawPitchRoll.X = 0f;                                // Roll
                 return yawPitchRoll;
             }
             else if (test < -0.4999f * unit)                        // -0.4999f OR -0.5f + EPSILON
             {
                 // Singularity at south pole
-                yawPitchRoll.X = -2f * (float)Math.Atan2(Rotation.X, Rotation.W); // Yaw
+                yawPitchRoll.Z = -2f * (float)Math.Atan2(Rotation.X, Rotation.W); // Yaw
                 yawPitchRoll.Y = -MathF.PI * 0.5f;                  // Pitch
-                yawPitchRoll.Z = 0f;                                // Roll
+                yawPitchRoll.X = 0f;                                // Roll
                 return yawPitchRoll;
             }
             else
             {
-                yawPitchRoll.X = (float)Math.Atan2(2f * Rotation.Y * Rotation.W - 2f * Rotation.X * Rotation.Z, sqx - sqy - sqz + sqw);       // Yaw
+                yawPitchRoll.Z = (float)Math.Atan2(2f * Rotation.Y * Rotation.W - 2f * Rotation.X * Rotation.Z, sqx - sqy - sqz + sqw);       // Yaw
                 yawPitchRoll.Y = (float)Math.Asin(2f * test / unit);                                             // Pitch
-                yawPitchRoll.Z = (float)Math.Atan2(2f * Rotation.X * Rotation.W - 2f * Rotation.Y * Rotation.Z, -sqx + sqy - sqz + sqw);      // Roll
+                yawPitchRoll.X = (float)Math.Atan2(2f * Rotation.X * Rotation.W - 2f * Rotation.Y * Rotation.Z, -sqx + sqy - sqz + sqw);      // Roll
             }
 
             return yawPitchRoll;
         }
 
-        internal void SetPosition(float x, float y, float z)
+        public Vector3 ToYawPitchRollDegrees()
+        {
+            var ypr = ToYawPitchRoll();
+            return new Vector3((float)MathUtil.RadianToDegree(ypr.X), (float)MathUtil.RadianToDegree(ypr.Y), (float)MathUtil.RadianToDegree(ypr.Z));
+        }
+        
+        public void SetPosition(float x, float y, float z)
         {
             Position = new Vector3(x, y, z);
         }
-        internal void SetPosition(float x, float y, float z, float yaw, float pitch, float roll)
+
+        public void SetHeight(float z)
+        {
+            Position = new Vector3(Position.X, Position.Y, z);
+        }
+        
+        public void SetPosition(float x, float y, float z, float yaw, float pitch, float roll)
         {
             Position = new Vector3(x, y, z);
             Rotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
@@ -108,17 +124,17 @@ namespace AAEmu.Game.Models.Game.World
 
         public void SetZRotation(float rotZ)
         {
-            Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rotZ);
+            Rotation = Quaternion.CreateFromYawPitchRoll(rotZ, 0f, 0f);
         }
 
         public void SetZRotation(short rotZ)
         {
-            Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation(rotZ)));
+            Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation(rotZ)), 0f, 0f);
         }
 
         public void SetZRotation(sbyte rotZ)
         {
-            Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)MathUtil.ConvertDirectionToRadian(rotZ));
+            Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(rotZ), 0f, 0f);
         }
 
         public void Translate(Vector3 offset)
@@ -160,6 +176,12 @@ namespace AAEmu.Game.Models.Game.World
         {
             return new Vector3(Position.X,Position.Y,Position.Z);
         }
+
+        public override string ToString()
+        {
+            var ypr = ToYawPitchRollDegrees();
+            return string.Format("x:{0:#,0.#} y:{1:#,0.#} z:{2:#,0.#}  y:{3:#,0.#}° p:{4:#,0.#}° r:{5:#,0.#}°", Position.X, Position.Y, Position.Z, ypr.X, ypr.Y, ypr.Z);
+        }
     }
 
     /// <summary>
@@ -168,9 +190,9 @@ namespace AAEmu.Game.Models.Game.World
     public class Transform : IDisposable
     {
         private GameObject _owningObject;
-        private uint _worldId ;
-        private uint _instanceId ;
-        private uint _zoneId;
+        private uint _worldId = 0;
+        private uint _instanceId = 1;
+        private uint _zoneId = 0;
         private PositionAndRotation _localPosRot;
         private Transform _parentTransform;
         private List<Transform> _children;
@@ -205,16 +227,23 @@ namespace AAEmu.Game.Models.Game.World
         /// The Local Transform information (relative to Parent)
         /// </summary>
         public PositionAndRotation Local { get => _localPosRot; }
+        /// <summary>
+        /// Position information relative to world (with processed parents)
+        /// </summary>
         public Vector3 WorldPosition { get => GetWorldPosition().Position; }
+        /// <summary>
+        /// Rotation information relative to world (with processed parents)
+        /// </summary>
         public Quaternion WorldRotation { get => GetWorldPosition().Rotation; }
         /// <summary>
         /// The Global Transform information (relative to game world)
         /// </summary>
         public PositionAndRotation World { get => GetWorldPosition(); }
+        // TODO: It MIGHT be interesting to cache the world Transform, but would generate more overhead when moving parents (vehicles/mounts)
 
-        protected void InternalInitializeTransform(GameObject owningObject, Transform parentTransform = null)
+        private void InternalInitializeTransform(GameObject owningObject, Transform parentTransform = null)
         {
-            _worldId = 1;
+            _worldId = 0;
             _instanceId = 1;
             _owningObject = owningObject;
             _parentTransform = parentTransform;
@@ -300,6 +329,12 @@ namespace AAEmu.Game.Models.Game.World
         {
             return new Transform(_owningObject, _parentTransform, WorldId, ZoneId, InstanceId, _localPosRot);
         }
+        
+        /// <summary>
+        /// Clones a Transform, keeps the parent Transform set, but replaces owning object with newOwner
+        /// </summary>
+        /// <param name="newOwner"></param>
+        /// <returns></returns>
         public Transform Clone(GameObject newOwner)
         {
             return new Transform(newOwner, _parentTransform, WorldId, ZoneId, InstanceId, _localPosRot);
@@ -314,6 +349,11 @@ namespace AAEmu.Game.Models.Game.World
             return new Transform(null, null, WorldId, ZoneId, InstanceId, GetWorldPosition());
         }
 
+        /// <summary>
+        /// Clones a Transform without Parent Transform but with newOwner as new owner, using the current World relative position
+        /// </summary>
+        /// <param name="newOwner"></param>
+        /// <returns></returns>
         public Transform CloneDetached(GameObject newOwner)
         {
             return new Transform(newOwner, null, WorldId, ZoneId, InstanceId, GetWorldPosition());
@@ -328,6 +368,10 @@ namespace AAEmu.Game.Models.Game.World
             return new Transform(childObject, this, WorldId, ZoneId, InstanceId, new PositionAndRotation());
         }
 
+        /// <summary>
+        /// Clones the current World Transform into a WorldSpawnPosition object
+        /// </summary>
+        /// <returns></returns>
         public WorldSpawnPosition CloneAsSpawnPosition()
         {
             var ypr = this.World.ToYawPitchRoll();
@@ -354,6 +398,9 @@ namespace AAEmu.Game.Models.Game.World
             DetachAll();
         }
 
+        /// <summary>
+        /// Detaches this Transform from it's Parent, and detaches all it's children. Children get their World Transform as Local
+        /// </summary>
         public void DetachAll()
         {
             Parent = null;
@@ -361,6 +408,10 @@ namespace AAEmu.Game.Models.Game.World
                 child.Parent = null;
         }
 
+        /// <summary>
+        /// Assigns a new Parent Transform, automatically handles related child Transforms
+        /// </summary>
+        /// <param name="parent"></param>
         protected void SetParent(Transform parent)
         {
             if ((parent == null) || (!parent.Equals(_parentTransform)))
@@ -391,6 +442,10 @@ namespace AAEmu.Game.Models.Game.World
             }
         }
 
+        /// <summary>
+        /// Calculates and returns a Transform by processing all underlying parents
+        /// </summary>
+        /// <returns></returns>
         protected PositionAndRotation GetWorldPosition()
         {
             if (_parentTransform == null)
@@ -413,7 +468,7 @@ namespace AAEmu.Game.Models.Game.World
         }
 
         /// <summary>
-        /// Detaches the transform, and moves set the Local position to what is defined in the WorldSpawnPosition
+        /// Detaches the transform, and moves set the Local Position and Rotation to what is defined in the WorldSpawnPosition
         /// </summary>
         /// <param name="wsp">WorldSpawnPosition to copy information from</param>
         /// <param name="newInstanceId">new InstanceId to assign to this transform, unchanged if 0</param>

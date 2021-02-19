@@ -30,11 +30,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (Connection.ActiveChar.CurrentTarget == null)
                 return;
             if (Connection.ActiveChar.CurrentTarget is Npc npc)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}", targetId, npc.TemplateId);
+                Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Pos: {2}", targetId, npc.TemplateId, npc.Transform.World.ToString());
             else if (Connection.ActiveChar.CurrentTarget is House house)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}", targetId, house.Id);
+                Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.World.ToString());
             else if (Connection.ActiveChar.CurrentTarget is Character character)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}", targetId, character.Id);
+                Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, Pos: {2}", targetId, character.Id, character.Transform.World.ToString());
         }
     }
 }

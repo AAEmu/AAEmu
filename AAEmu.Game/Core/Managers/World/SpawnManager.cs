@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
@@ -37,17 +38,20 @@ namespace AAEmu.Game.Core.Managers.World
 
             var worlds = WorldManager.Instance.GetWorlds();
             _log.Info("Loading spawns...");
+            var jsonFileName = string.Empty;
             foreach (var world in worlds)
             {
                 var npcSpawners = new Dictionary<uint, NpcSpawner>();
                 var doodadSpawners = new Dictionary<uint, DoodadSpawner>();
                 var transferSpawners = new Dictionary<uint, TransferSpawner>();
+                var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
 
+                // Load NPC Spawns
+                jsonFileName = Path.Combine(worldPath, "npc_spawns.json");
                 var contents =
-                    FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
+                    FileManager.GetFileContents(jsonFileName);
                 if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn(
-                        $"File {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json doesn't exists or is empty.");
+                    _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> spawners, out _))
@@ -56,17 +60,19 @@ namespace AAEmu.Game.Core.Managers.World
                             if (!NpcManager.Instance.Exist(spawner.UnitId))
                                 continue; // TODO ... so mb warn here?
                             spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            spawner.Position.ZoneId =
+                                WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                             npcSpawners.Add(spawner.Id, spawner);
                         }
                     else
-                        throw new Exception($"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json file");
+                        throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
                 }
 
-                contents = FileManager.GetFileContents(
-                    $"{FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json");
+                // Load Doodad spawns
+                jsonFileName = Path.Combine(worldPath, "doodad_spawns.json");
+                contents = FileManager.GetFileContents(jsonFileName);
                 if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json doesn't exists or is empty.");
+                    _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
                 else
                 {
                     if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
@@ -81,13 +87,15 @@ namespace AAEmu.Game.Core.Managers.World
                             doodadSpawners.Add(spawner.Id, spawner);
                         }
                     else
-                        throw new Exception($"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/doodad_spawns.json file");
+                        throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
                 }
 
-                contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json");
+                // Load Transfers
+                jsonFileName = Path.Combine(worldPath, "transfer_spawns.json");
+                contents = FileManager.GetFileContents(jsonFileName);
                 if (string.IsNullOrWhiteSpace(contents))
                 {
-                    _log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json doesn't exists or is empty.");
+                    _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
                 }
                 else
                 {
@@ -104,14 +112,13 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                     else
                     {
-                        throw new Exception($"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/transfer_spawns.json file");
+                        throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
                     }
                 }
 
                 _npcSpawners.Add((byte)world.Id, npcSpawners);
                 _doodadSpawners.Add((byte)world.Id, doodadSpawners);
                 _transferSpawners.Add((byte)world.Id, transferSpawners);
-
             }
 
             var respawnThread = new Thread(CheckRespawns) { Name = "RespawnThread" };

@@ -109,7 +109,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             {
                 posUnit.Transform.Local.AddDistanceToFront((args.Distance / 1000f) - 0.01f);
             }
-            posUnit.Transform.Local.Position.Z = WorldManager.Instance.GetHeight(posUnit.Transform);
+            posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)
             {
@@ -178,7 +178,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             posUnit.Transform.WorldId = PreviousTarget.Transform.WorldId;
             posUnit.Transform.Local.SetZRotation((float)MathUtil.DegreeToRadian((float)Rand.Next(-180, 180)));
             posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
-            posUnit.Transform.Local.Position.Z = WorldManager.Instance.GetHeight(posUnit.Transform);
+            posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)
             {

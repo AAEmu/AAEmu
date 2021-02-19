@@ -71,6 +71,14 @@ namespace AAEmu.Game.Core.Managers
             return re.Matches(baseString).Cast<Match>().Select(m => m.Value).ToArray();
         }
 
+        public string UnAliasCommandName(string cmd)
+        {
+            if (_commandAliases.TryGetValue(cmd.ToLower(), out var realName))
+                return realName;
+            else
+                return cmd;
+        }
+
         public bool Handle(Character character, string text)
         {
             // Un-escape the string, as the client sends it escaped

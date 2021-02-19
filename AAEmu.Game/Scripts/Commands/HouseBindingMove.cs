@@ -43,9 +43,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         house.Delete();
 
-                        attachPointObj.Transform.Local.Position.X = x;
-                        attachPointObj.Transform.Local.Position.Y = y;
-                        attachPointObj.Transform.Local.Position.Z = z;
+                        attachPointObj.Transform.Local.SetPosition(x, y, z);
 
                         house.Spawn();
                         

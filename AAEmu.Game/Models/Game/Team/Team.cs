@@ -14,13 +14,13 @@ namespace AAEmu.Game.Models.Game.Team
         public TeamMember[] Members { get; set; }
         public LootingRule LootingRule { get; set; }
         public (byte, uint)[] MarksList { get; set; }
-        public Point PingPosition { get; set; }
+        public WorldSpawnPosition PingPosition { get; set; }
 
         public Team()
         {
             Members = new TeamMember[50];
             ResetMarks();
-            PingPosition = new Point(0, 0, 0);
+            PingPosition = new WorldSpawnPosition();
         }
 
         public void ResetMarks()

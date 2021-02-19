@@ -177,7 +177,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         Item item = new Item();
                         item.TemplateId = lootPacks[uii].ItemId;
-                        item.WorldId = 1;
+                        item.WorldId = 0;
                         item.CreateTime = DateTime.Now;
                         item.Id = ++itemId;
                         item.MadeUnitId = npcId;
@@ -194,7 +194,7 @@ namespace AAEmu.Game.Core.Managers
             var item2 = new Item
             {
                 TemplateId = Item.Coins,
-                WorldId = 1,
+                WorldId = 0,
                 CreateTime = DateTime.Now,
                 Id = ++itemId,
                 Count = Rand.Next(unit.Level * 5, unit.Level * 400),

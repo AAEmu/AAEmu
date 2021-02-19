@@ -167,8 +167,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             for (var i = 0; i < pointsList.Count - 1; i++)
             {
                 s = pointsList[i];
-                TargetPosition.Local.Position.Y = ExtractValue(s, 2);
-                TargetPosition.Local.Position.X = ExtractValue(s, 1);
+                TargetPosition.Local.SetPosition(ExtractValue(s, 1), ExtractValue(s, 2), TargetPosition.Local.Position.Z);
 
                 //_log.Warn(s + " x:=" + Position.X + " y:=" + Position.Y);
 
@@ -335,15 +334,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 if (x < 0)
                 {
-                    npc.Transform.Local.Position.X += tempMovingDistance;
+                    npc.Transform.Local.Translate(tempMovingDistance, 0f, 0f);
                 }
                 else
                 {
-                    npc.Transform.Local.Position.X -= tempMovingDistance;
+                    npc.Transform.Local.Translate(-tempMovingDistance, 0f, 0f);
                 }
                 if (Math.Abs(x) < tempMovingDistance)
                 {
-                    npc.Transform.Local.Position.X = TargetPosition.Local.Position.X;
+                    npc.Transform.Local.SetPosition(TargetPosition.Local.Position.X, npc.Transform.Local.Position.Y, npc.Transform.Local.Position.Z); 
                 }
                 move = true;
             }
@@ -360,15 +359,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (y < 0)
                 {
-                    npc.Transform.Local.Position.Y += tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, tempMovingDistance, 0f);
                 }
                 else
                 {
-                    npc.Transform.Local.Position.Y -= tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, -tempMovingDistance, 0f);
                 }
                 if (Math.Abs(y) < tempMovingDistance)
                 {
-                    npc.Transform.Local.Position.Y = TargetPosition.Local.Position.Y;
+                    npc.Transform.Local.SetPosition(npc.Transform.Local.Position.X, TargetPosition.Local.Position.Y, npc.Transform.Local.Position.Z);
                 }
                 move = true;
             }
@@ -385,15 +384,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (z < 0)
                 {
-                    npc.Transform.Local.Position.Z += tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, 0f, tempMovingDistance);
                 }
                 else
                 {
-                    npc.Transform.Local.Position.Z -= tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, 0f, -tempMovingDistance);
                 }
                 if (Math.Abs(z) < tempMovingDistance)
                 {
-                    npc.Transform.Local.Position.Z = TargetPosition.Local.Position.Z;
+                    npc.Transform.Local.SetHeight(TargetPosition.Local.Position.Z);
                 }
                 move = true;
             }

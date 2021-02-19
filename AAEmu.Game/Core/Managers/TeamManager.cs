@@ -419,7 +419,7 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.BroadcastPacket(new SCTeamLootingRuleChangedPacket(teamId, newRules, flags));
         }
 
-        public void SetPingPos(Character unit, uint teamId, bool hasPing, Point position, uint insId)
+        public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
         {
             var activeTeam = GetActiveTeam(teamId);
             if ( (activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id)) ) return;

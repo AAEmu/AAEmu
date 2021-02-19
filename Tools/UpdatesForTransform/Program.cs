@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using Newtonsoft.Json;
 
 namespace UpdatesForTransform
@@ -30,17 +31,17 @@ namespace UpdatesForTransform
         }
 
 
-        static void ConvertNpcSpawnsFile(string filename)
+        static void ConvertNpcSpawnsFile(string fileName)
         {
-            var oldfilename = Path.ChangeExtension(filename, ".json.old");
+            var oldFileName = Path.ChangeExtension(fileName, ".json.old");
 
-            if (File.Exists(oldfilename))
+            if (File.Exists(oldFileName))
             {
-                Console.WriteLine("Already converted {0}", filename);
+                Console.WriteLine("Already converted {0}", fileName);
                 return;
             }
 
-            var oldJsonData = File.ReadAllText(filename);
+            var oldJsonData = File.ReadAllText(fileName);
 
             var oldSpawners = JsonConvert.DeserializeObject<List<NpcSpawnerOld>>(oldJsonData);
 
@@ -63,20 +64,21 @@ namespace UpdatesForTransform
                     ns.Position.X = os.Position.X;
                     ns.Position.Y = os.Position.Y;
                     ns.Position.Z = os.Position.Z;
-                    ns.Position.Yaw = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX));
+                    ns.Position.Yaw = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ));
                     ns.Position.Pitch = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY));
-                    ns.Position.Roll = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ));
+                    ns.Position.Roll = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX));
                     newSpawners.Add(ns);
                 }
             }
 
             if (newSpawners.Count != oldSpawners.Count)
-                throw new Exception(string.Format("Not everything was converted for file {0}",filename));
+                throw new Exception(string.Format("Not everything was converted for file {0}",fileName));
 
-            // File.Move(filename, oldfilename);
+            File.Move(fileName, oldFileName);
 
             var newJsonData = JsonConvert.SerializeObject(newSpawners,Formatting.Indented);
-            File.WriteAllText(filename+".new", newJsonData);
+            File.WriteAllText(fileName, newJsonData);
+            // File.WriteAllText(fileName + ".new", newJsonData);
         }
 
         static void Main(string[] args)
@@ -85,25 +87,30 @@ namespace UpdatesForTransform
             Console.WriteLine("-----------------------------------------------------------------------------------------------------------");
             Console.WriteLine();
 
-            var searchpath = Path.Combine(".", "Data");
+            var searchPath = Path.Combine(".", "Data");
             // var searchpath = Path.Combine("..", "..", "..", "..", "..", "AAEmu.Game", "Data");
-            searchpath = Path.GetFullPath(searchpath);
-            var di = new DirectoryInfo(searchpath);
-            Console.WriteLine("Searching for files in {0}", searchpath);
-            var npc_spawns_jsons = di.GetFiles("npc_spawns.json", SearchOption.AllDirectories).ToList();
-            /*
-            Console.WriteLine();
-            foreach (var file in npc_spawns_jsons)
+            searchPath = Path.GetFullPath(searchPath);
+            Console.WriteLine("Change Source Path ? (leave blank to keep default folder)");
+            Console.Write("{0} : ",searchPath);
+            var customPath = Console.ReadLine();
+            if (!string.IsNullOrEmpty(customPath))
             {
-                Console.WriteLine(file.FullName);
+                searchPath = Path.GetFullPath(customPath);
             }
-            Console.WriteLine();
-            */
-            Console.WriteLine("Found {0} files.",npc_spawns_jsons.Count);
+            var di = new DirectoryInfo(searchPath);
+            Console.WriteLine("Searching for files in {0}", searchPath);
+            var npc_spawns_jsons = di.GetFiles("npc_spawns.json", SearchOption.AllDirectories).ToList();
+            var doodad_spawns_jsons = di.GetFiles("doodad_spawns.json", SearchOption.AllDirectories).ToList();
+            var transfer_spawns_jsons = di.GetFiles("transfer_spawns.json", SearchOption.AllDirectories).ToList();
+            var allFiles = new List<FileInfo>();
+            allFiles.AddRange(npc_spawns_jsons);
+            allFiles.AddRange(doodad_spawns_jsons);
+            allFiles.AddRange(transfer_spawns_jsons);
+            Console.WriteLine("Found {0} files found ({1} NPC, {2} Doodad and {3} transfers).", allFiles.Count, npc_spawns_jsons.Count, doodad_spawns_jsons.Count, transfer_spawns_jsons.Count);
 
             Console.WriteLine();
             Console.Write("Continue ? (y/N): ");
-            var confirm = Console.ReadLine().ToLower();
+            var confirm = Console.ReadLine()?.ToLower();
             if (confirm != "y")
             {
                 Console.WriteLine("Aborted.");
@@ -112,13 +119,12 @@ namespace UpdatesForTransform
 
             Console.WriteLine();
             Console.WriteLine("Converting files ...");
-            foreach (var file in npc_spawns_jsons)
+            foreach (var file in allFiles)
             {
                 ConvertNpcSpawnsFile(file.FullName);
             }
 
-            Console.Write("Done ... ");
-            Console.ReadLine();
+            Console.WriteLine("Done ... ");
         }
     }
 }

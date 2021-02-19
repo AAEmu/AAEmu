@@ -30,11 +30,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
             if (Count < Degree / 2)
             {
-                npc.Transform.Local.Position.X += (float)0.1;
+                npc.Transform.Local.Translate(0.1f, 0f, 0f);
             }
             else if (Count < Degree)
             {
-                npc.Transform.Local.Position.X -= (float)0.1;
+                npc.Transform.Local.Translate(-0.1f, 0f, 0f);
             }
             //    if (Count < Degree / 4 || (Count > (Degree / 4 + Degree / 2) && Count < Degree))
             //    {

@@ -135,7 +135,7 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterCraft Craft { get; set; }
 
         public int AccessLevel { get; set; }
-        public Point LocalPingPosition { get; set; } // added as a GM command helper
+        public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
         private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
 
         private bool _inParty;
@@ -1778,7 +1778,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             Craft = new CharacterCraft(this);
             Procs = new UnitProcs(this);
-            LocalPingPosition = new Point();
+            LocalPingPosition = new WorldSpawnPosition();
 
             using (var connection = MySQL.CreateConnection())
             {

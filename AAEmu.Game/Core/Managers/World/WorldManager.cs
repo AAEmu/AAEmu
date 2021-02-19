@@ -267,7 +267,7 @@ namespace AAEmu.Game.Core.Managers.World
             if (AppConfiguration.Instance.HeightMapsEnable)
                 try
                 {
-                    var world = GetWorldByZone(transform.ZoneId);
+                    var world = GetWorld(transform.WorldId);
                     return world?.GetHeight(transform.World.Position.X, transform.World.Position.Y) ?? transform.World.Position.Z;
                 }
                 catch

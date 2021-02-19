@@ -152,7 +152,7 @@ namespace AAEmu.Game.Core.Managers
             var spawnPos = owner.Transform.Clone();
             spawnPos.Local.Translate(slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset, 0f);
             if (slaveTemplate.SlaveKind == SlaveKind.Boat)
-                spawnPos.Local.Position.Z = 100.0f;
+                spawnPos.Local.SetHeight(100.0f);
 
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);

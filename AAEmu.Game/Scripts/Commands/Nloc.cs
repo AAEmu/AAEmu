@@ -70,9 +70,7 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.X = x;
                 moveType.Y = y;
                 moveType.Z = z;
-                character.CurrentTarget.Transform.Local.Position.X = x;
-                character.CurrentTarget.Transform.Local.Position.Y = y;
-                character.CurrentTarget.Transform.Local.Position.Z = z;
+                character.CurrentTarget.Transform.Local.SetPosition(x, y, z);
 
                 var characterRot = character.CurrentTarget.Transform.World.ToYawPitchRollSBytes();
                 moveType.RotationX = characterRot.Item1 ;
