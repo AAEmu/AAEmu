@@ -252,9 +252,9 @@ namespace AAEmu.Game.Models.Game.Housing
                 command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
                 command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
                 //command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
-                command.Parameters.AddWithValue("@yaw", Transform.World.ToYawPitchRoll().X);
-                command.Parameters.AddWithValue("@pitch", Transform.World.ToYawPitchRoll().Y);
-                command.Parameters.AddWithValue("@roll", Transform.World.ToYawPitchRoll().Z);
+                command.Parameters.AddWithValue("@yaw", Transform.World.ToRollPitchYaw().X);
+                command.Parameters.AddWithValue("@pitch", Transform.World.ToRollPitchYaw().Y);
+                command.Parameters.AddWithValue("@roll", Transform.World.ToRollPitchYaw().Z);
                 command.Parameters.AddWithValue("@current_step", CurrentStep);
                 command.Parameters.AddWithValue("@current_action", NumAction);
                 command.Parameters.AddWithValue("@permission", (byte)Permission);

@@ -128,13 +128,13 @@ namespace AAEmu.Game.Core.Managers.World
                 slave.Speed -= (slave.Speed / 45);
 
 
-            var ypr = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
-            var slaveRotRad = ypr.Item1 + (90 * (Math.PI/ 180.0f));
+            var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
+            var slaveRotRad = rpy.Item1 + (90 * (Math.PI/ 180.0f));
             
             rigidBody.AddForce(new JVector(slave.Throttle * rigidBody.Mass * (float)Math.Cos(slaveRotRad), 0.0f, slave.Throttle * rigidBody.Mass * (float)Math.Sin(slaveRotRad)));
             rigidBody.AddTorque(new JVector(0, -slave.Steering * (rigidBody.Mass * 2), 0));
 
-            var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(ypr.Item3, ypr.Item2, ypr.Item1);
+            var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rpy.Item1, rpy.Item2, rpy.Item3);
             moveType.RotationX = rotX;
             moveType.RotationY = rotY;
             moveType.RotationZ = rotZ;

@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 character.DisabledSetPosition = true;
 
-                var ypr = character.MainWorldPosition.World.ToYawPitchRoll();
+                var ypr = character.MainWorldPosition.World.ToRollPitchYaw();
                 character.SendPacket(
                     new SCLoadInstancePacket(
                         1,

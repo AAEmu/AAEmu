@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 var distance = (float)value1 / 1000f;
                 pos.Local.AddDistanceToFront(distance);
                 // TODO: does the 0f here need to be distance ?
-                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, (float)MathUtil.RadianToDegree(pos.Local.ToYawPitchRoll().Z), pos.Local.Position.X, pos.Local.Position.Y, pos.Local.Position.Z));
+                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, (float)MathUtil.RadianToDegree(pos.Local.ToRollPitchYaw().Z), pos.Local.Position.X, pos.Local.Position.Y, pos.Local.Position.Z));
             }
         }
     }

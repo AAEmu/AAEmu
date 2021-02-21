@@ -222,7 +222,7 @@ namespace AAEmu.Game.Core.Managers
             // TODO - Maybe need unitstate?
             // TODO - Reason, ErrorMessage
             character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.WorldPosition.X,
-                portalInfo.TeleportPosition.WorldPosition.Y, portalInfo.TeleportPosition.WorldPosition.Z, portalInfo.TeleportPosition.World.ToYawPitchRoll().Z));
+                portalInfo.TeleportPosition.WorldPosition.Y, portalInfo.TeleportPosition.WorldPosition.Z, portalInfo.TeleportPosition.World.ToRollPitchYaw().Z));
         }
 
         public void DeletePortal(Character owner, byte type, uint id)

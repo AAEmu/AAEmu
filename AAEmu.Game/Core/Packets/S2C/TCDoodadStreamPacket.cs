@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.S2C
                 stream.WriteBc(doodad.ObjId);
                 stream.Write(doodad.TemplateId);
                 stream.WritePosition(doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z);
-                var (yaw, pitch, roll) = doodad.Transform.World.ToYawPitchRollShorts();
+                var (yaw, pitch, roll) = doodad.Transform.World.ToRollPitchYawShorts();
                 stream.Write(yaw);
                 stream.Write(pitch);
                 stream.Write(roll);

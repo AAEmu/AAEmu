@@ -340,7 +340,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0);       // learnedBuffCount
             }
 
-            var (yaw, pitch, roll) = _unit.Transform.Local.ToYawPitchRollSBytes();
+            var (yaw, pitch, roll) = _unit.Transform.Local.ToRollPitchYawSBytes();
             stream.Write(yaw);
             stream.Write(pitch);
             stream.Write(roll);

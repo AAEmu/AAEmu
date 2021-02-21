@@ -1927,7 +1927,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@x", MainWorldPosition?.World.Position.X ?? Transform.World.Position.X);
                     command.Parameters.AddWithValue("@y", MainWorldPosition?.World.Position.Y ?? Transform.World.Position.Y);
                     command.Parameters.AddWithValue("@z", MainWorldPosition?.World.Position.Z ?? Transform.World.Position.Z);
-                    var ypr = MainWorldPosition?.World.ToYawPitchRoll() ?? Transform.World.ToYawPitchRoll();
+                    var ypr = MainWorldPosition?.World.ToRollPitchYaw() ?? Transform.World.ToRollPitchYaw();
                     command.Parameters.AddWithValue("@yaw", ypr.X);
                     command.Parameters.AddWithValue("@pitch", ypr.Y);
                     command.Parameters.AddWithValue("@roll", ypr.Z);

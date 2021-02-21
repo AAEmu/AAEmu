@@ -67,7 +67,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             X = slave.Transform.World.Position.X;
             Y = slave.Transform.World.Position.Y;
             Z = slave.Transform.World.Position.Z;
-            (RotationX, RotationY, RotationZ) = slave.Transform.World.ToYawPitchRollShorts();
+            (RotationX, RotationY, RotationZ) = slave.Transform.World.ToRollPitchYawShorts();
             VelX = 0;
             VelY = 0;
             VelZ = 0;

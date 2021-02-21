@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     break;
                 case PlotObjectType.POSITION:
                     stream.WritePosition(Position.Local.Position);
-                    var ypr = Position.Local.ToYawPitchRollSBytes();
+                    var ypr = Position.Local.ToRollPitchYawSBytes();
                     stream.Write(ypr.Item1);
                     stream.Write(ypr.Item2);
                     stream.Write(ypr.Item3);

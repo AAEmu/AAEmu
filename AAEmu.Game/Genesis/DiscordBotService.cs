@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,7 +35,10 @@ namespace AAEmu.Game.Genesis
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            await _client.StopAsync();
+            if (_client != null)
+                await _client.StopAsync();
+            else
+                return;
         }
         
         private async Task UpdatePlayerCountPeriodically(TimeSpan interval, CancellationToken cancellationToken)

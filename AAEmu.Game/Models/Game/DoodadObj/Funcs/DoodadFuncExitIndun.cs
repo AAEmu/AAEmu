@@ -26,9 +26,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                             character.MainWorldPosition.World.Position.X,
                             character.MainWorldPosition.World.Position.Y,
                             character.MainWorldPosition.World.Position.Z,
-                            character.MainWorldPosition.World.ToYawPitchRoll().X,
-                            character.MainWorldPosition.World.ToYawPitchRoll().Y,
-                            character.MainWorldPosition.World.ToYawPitchRoll().Z
+                            character.MainWorldPosition.World.ToRollPitchYaw().X,
+                            character.MainWorldPosition.World.ToRollPitchYaw().Y,
+                            character.MainWorldPosition.World.ToRollPitchYaw().Z
                         )
                     );
 

@@ -41,10 +41,10 @@ namespace AAEmu.Game.Models.Game.World
             return new PositionAndRotation(Position.X, Position.Y, Position.Z, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W);
         }
 
-        public Vector3 ToYawPitchRoll()
+        public Vector3 ToRollPitchYaw()
         {
             // Store the Euler angles in radians
-            var yawPitchRoll = new Vector3();
+            var rollPitchYaw = new Vector3();
 
             double sqw = Rotation.W * Rotation.W;
             double sqx = Rotation.X * Rotation.X;
@@ -58,33 +58,33 @@ namespace AAEmu.Game.Models.Game.World
             if (test > 0.4999f * unit)                              // 0.4999f OR 0.5f - EPSILON
             {
                 // Singularity at north pole
-                yawPitchRoll.Z = 2f * (float)Math.Atan2(Rotation.X, Rotation.W);  // Yaw
-                yawPitchRoll.Y = MathF.PI * 0.5f;                   // Pitch
-                yawPitchRoll.X = 0f;                                // Roll
-                return yawPitchRoll;
+                rollPitchYaw.Z = 2f * (float)Math.Atan2(Rotation.X, Rotation.W);  // Yaw
+                rollPitchYaw.Y = MathF.PI * 0.5f;                   // Pitch
+                rollPitchYaw.X = 0f;                                // Roll
+                return rollPitchYaw;
             }
             else if (test < -0.4999f * unit)                        // -0.4999f OR -0.5f + EPSILON
             {
                 // Singularity at south pole
-                yawPitchRoll.Z = -2f * (float)Math.Atan2(Rotation.X, Rotation.W); // Yaw
-                yawPitchRoll.Y = -MathF.PI * 0.5f;                  // Pitch
-                yawPitchRoll.X = 0f;                                // Roll
-                return yawPitchRoll;
+                rollPitchYaw.Z = -2f * (float)Math.Atan2(Rotation.X, Rotation.W); // Yaw
+                rollPitchYaw.Y = -MathF.PI * 0.5f;                  // Pitch
+                rollPitchYaw.X = 0f;                                // Roll
+                return rollPitchYaw;
             }
             else
             {
-                yawPitchRoll.Z = (float)Math.Atan2(2f * Rotation.Y * Rotation.W - 2f * Rotation.X * Rotation.Z, sqx - sqy - sqz + sqw);       // Yaw
-                yawPitchRoll.Y = (float)Math.Asin(2f * test / unit);                                             // Pitch
-                yawPitchRoll.X = (float)Math.Atan2(2f * Rotation.X * Rotation.W - 2f * Rotation.Y * Rotation.Z, -sqx + sqy - sqz + sqw);      // Roll
+                rollPitchYaw.Z = (float)Math.Atan2(2f * Rotation.Y * Rotation.W - 2f * Rotation.X * Rotation.Z, sqx - sqy - sqz + sqw);       // Yaw
+                rollPitchYaw.Y = (float)Math.Asin(2f * test / unit);                                             // Pitch
+                rollPitchYaw.X = (float)Math.Atan2(2f * Rotation.X * Rotation.W - 2f * Rotation.Y * Rotation.Z, -sqx + sqy - sqz + sqw);      // Roll
             }
 
-            return yawPitchRoll;
+            return rollPitchYaw;
         }
 
-        public Vector3 ToYawPitchRollDegrees()
+        public Vector3 ToRollPitchYawDegrees()
         {
-            var ypr = ToYawPitchRoll();
-            return new Vector3((float)MathUtil.RadianToDegree(ypr.X), (float)MathUtil.RadianToDegree(ypr.Y), (float)MathUtil.RadianToDegree(ypr.Z));
+            var rpy = ToRollPitchYaw();
+            return new Vector3((float)MathUtil.RadianToDegree(rpy.X), (float)MathUtil.RadianToDegree(rpy.Y), (float)MathUtil.RadianToDegree(rpy.Z));
         }
         
         public void SetPosition(float x, float y, float z)
@@ -103,23 +103,23 @@ namespace AAEmu.Game.Models.Game.World
             Rotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
         }
 
-        public (short,short,short) ToYawPitchRollShorts()
+        public (short,short,short) ToRollPitchYawShorts()
         {
             // ((short) = ((float)reverseQuat.X / 0.00003052f)
             // Still needs a Quaternion.Normalize maybe ?
-            short x = (short)(Rotation.X / ToShortDivider);
-            short y = (short)(Rotation.Y / ToShortDivider);
-            short z = (short)(Rotation.Z / ToShortDivider);
-            return (x,y,z);
+            short roll = (short)(Rotation.X / ToShortDivider);
+            short pitch = (short)(Rotation.Y / ToShortDivider);
+            short yaw = (short)(Rotation.Z / ToShortDivider);
+            return (roll, pitch, yaw);
         }
 
-        public (sbyte, sbyte, sbyte) ToYawPitchRollSBytes()
+        public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()
         {
             // Still needs a Quaternion.Normalize maybe ?
-            sbyte x = (sbyte)(Rotation.X / ToSByteDivider);
-            sbyte y = (sbyte)(Rotation.Y / ToSByteDivider);
-            sbyte z = (sbyte)(Rotation.Z / ToSByteDivider);
-            return (x, y, z);
+            sbyte roll = (sbyte)(Rotation.X / ToSByteDivider);
+            sbyte pitch = (sbyte)(Rotation.Y / ToSByteDivider);
+            sbyte yaw = (sbyte)(Rotation.Z / ToSByteDivider);
+            return (roll, pitch, yaw);
         }
 
         public void SetZRotation(float rotZ)
@@ -159,14 +159,14 @@ namespace AAEmu.Game.Models.Game.World
         /// <param name="distance"></param>
         public void AddDistanceToFront(float distance)
         {
-            var ypr = ToYawPitchRoll();
+            var ypr = ToRollPitchYaw();
             var off = new Vector3((distance * (float)Math.Cos(ypr.Z)), (distance * (float)Math.Sin(ypr.Z)), 0);
             Translate(off);
         }
 
         public void AddDistanceToRight(float distance)
         {
-            var ypr = ToYawPitchRoll();
+            var ypr = ToRollPitchYaw();
             var z = ypr.Z - (MathF.PI / 2);
             var off = new Vector3((distance * (float)Math.Cos(z)), (distance * (float)Math.Sin(z)), 0);
             Translate(off);
@@ -179,8 +179,8 @@ namespace AAEmu.Game.Models.Game.World
 
         public override string ToString()
         {
-            var ypr = ToYawPitchRollDegrees();
-            return string.Format("x:{0:#,0.#} y:{1:#,0.#} z:{2:#,0.#}  y:{3:#,0.#}° p:{4:#,0.#}° r:{5:#,0.#}°", Position.X, Position.Y, Position.Z, ypr.X, ypr.Y, ypr.Z);
+            var rpy = ToRollPitchYawDegrees();
+            return string.Format("x:{0:#,0.#} y:{1:#,0.#} z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°", Position.X, Position.Y, Position.Z, rpy.X, rpy.Y, rpy.Z);
         }
     }
 
@@ -374,7 +374,7 @@ namespace AAEmu.Game.Models.Game.World
         /// <returns></returns>
         public WorldSpawnPosition CloneAsSpawnPosition()
         {
-            var ypr = this.World.ToYawPitchRoll();
+            var ypr = this.World.ToRollPitchYaw();
             return new WorldSpawnPosition()
             {
                 WorldId = this.WorldId,
