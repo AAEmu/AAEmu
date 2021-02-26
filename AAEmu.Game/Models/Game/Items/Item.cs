@@ -1,6 +1,6 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items
@@ -111,7 +111,11 @@ namespace AAEmu.Game.Models.Game.Items
         /// <returns></returns>
         public int CompareTo(Item otherItem)
         {
-            if (otherItem == null) return 1;
+            if (otherItem == null)
+            {
+                return 1;
+            }
+
             return this.Slot.CompareTo(otherItem.Slot);
         }
 
@@ -195,13 +199,16 @@ namespace AAEmu.Game.Models.Game.Items
         {
             TemplateId = stream.ReadUInt32();
             if (TemplateId == 0)
+            {
                 return;
+            }
+
             Id = stream.ReadUInt64();
             Grade = stream.ReadByte();
             ItemFlags = (ItemFlag)stream.ReadByte();
             Count = stream.ReadInt32();
 
-            DetailType = (ItemDetailType) stream.ReadByte();
+            DetailType = (ItemDetailType)stream.ReadByte();
             ReadDetails(stream);
 
             CreateTime = stream.ReadDateTime();
@@ -217,7 +224,10 @@ namespace AAEmu.Game.Models.Game.Items
         {
             stream.Write(TemplateId);
             if (TemplateId == 0)
+            {
                 return stream;
+            }
+
             stream.Write(Id);
             stream.Write(Grade);
             stream.Write((byte)ItemFlags); //bounded
@@ -246,12 +256,11 @@ namespace AAEmu.Game.Models.Game.Items
                     Durability = stream.ReadByte();
                     stream.ReadInt16();
                     RuneId = stream.ReadUInt32();
-
                     stream.ReadBytes(12);
-
                     for (var i = 0; i < GemIds.Length; i++)
+                    {
                         GemIds[i] = stream.ReadUInt32();
-
+                    }
                     TemperPhysical = stream.ReadUInt16();
                     TemperMagical = stream.ReadUInt16();
                     //mDetailLength = 56;
@@ -283,6 +292,7 @@ namespace AAEmu.Game.Models.Game.Items
                     mDetailLength = 13;
 LABEL_11:
                     mDetailLength -= 1;
+                    Detail = new byte[mDetailLength];
                     Detail = stream.ReadBytes(mDetailLength);
 
                     break;
@@ -307,11 +317,14 @@ LABEL_11:
                     stream.Write((uint)0);
 
                     foreach (var gemId in GemIds)
+                    {
                         stream.Write(gemId);
+                    }
 
                     stream.Write(TemperPhysical);
                     stream.Write(TemperMagical);
                     //mDetailLength = 56; // 56 - 1 = 55
+                    //goto LABEL_11;
                     break;
                 case 2:
                     mDetailLength = 30;
@@ -340,11 +353,8 @@ LABEL_11:
                     mDetailLength = 13;
 LABEL_11:
                     mDetailLength -= 1;
-                    if (mDetailLength > 0)
-                    {
-                        //Detail = new byte[mDetailLength];
-                        stream.Write(Detail);
-                    }
+                    //Detail = new byte[mDetailLength];
+                    stream.Write(Detail);
 
                     break;
                 default:

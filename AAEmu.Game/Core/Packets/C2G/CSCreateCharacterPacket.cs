@@ -27,6 +27,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var ability2 = stream.ReadByte();
             var ability3 = stream.ReadByte();
             var level = stream.ReadByte();
+            var introZoneId = stream.ReadInt32();
 
             CharacterManager.Instance.Create(Connection, name, race, gender, items, customModel, ability1);
         }

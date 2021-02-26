@@ -2212,6 +2212,38 @@ namespace AAEmu.Game.Models.Game.Char
                     stream.Write(0);
                 }
             }
+            //var v17 = 0;
+            //do
+            //{
+            //    var item = Inventory.Equipment.GetItemBySlot(v17);
+            //    if ((v17 - 19) < 0 || (v17 - 19) > 6)
+            //    {
+            //        if (item != null)
+            //        {
+            //            stream.Write(item);
+            //        }
+            //        else
+            //        {
+            //            stream.Write(0);
+            //        }
+            //    }
+            //    else // BodyParts
+            //    {
+            //        //(a2->Read->UInt32)(a2, "type", v7 + 8, 0);
+            //        //if ( (a2->Read->len)(a2) )
+            //        //    sub_3936BE90(v7, *(v7 + 2));
+            //        if (item != null)
+            //        {
+            //            stream.Write(item.TemplateId);
+            //        }
+            //        else
+            //        {
+            //            stream.Write(0);
+            //        }
+            //    }
+            //    ++v17;
+            //}
+            //while (v17 < 28);
 
             stream.Write((byte)Ability1);
             stream.Write((byte)Ability2);

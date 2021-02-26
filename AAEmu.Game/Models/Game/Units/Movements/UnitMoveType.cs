@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             Alertness = stream.ReadSByte();
             ColliOpt = stream.ReadByte();    // add in 1200 march 2015
             ActorFlags = stream.ReadByte();
-            if ((ActorFlags & 0x80) == 0x80)
+            if ((ActorFlags & 0x80) == 0x80) // ActorFlags < 0
                 FallVel = stream.ReadUInt16(); // actor.fallVel
             if ((ActorFlags & 0x20) == 0x20)
             {

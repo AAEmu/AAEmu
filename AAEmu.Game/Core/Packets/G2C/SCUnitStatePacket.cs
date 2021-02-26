@@ -77,7 +77,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 case BaseUnitType.Character:
                     var character = (Character)_unit;
                     stream.Write(character.Id); // type(id)
-                    stream.Write(0L);           // v?
+                    stream.Write(0UL);          // v
                     break;
                 case BaseUnitType.Npc:
                     var npc = (Npc)_unit;
@@ -88,7 +88,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case BaseUnitType.Slave:
                     var slave = (Slave)_unit;
-                    stream.Write(slave.Id);         // Id ?
+                    stream.Write(slave.Id);         // Id
                     stream.Write(slave.TlId);       // tl
                     stream.Write(slave.TemplateId); // templateId
                     stream.Write(slave.Summoner.ObjId); // ownerId
@@ -98,7 +98,6 @@ namespace AAEmu.Game.Core.Packets.G2C
                     var buildStep = house.CurrentStep == -1
                         ? 0
                         : -house.Template.BuildSteps.Count + house.CurrentStep;
-
                     stream.Write(house.TlId);       // tl
                     stream.Write(house.TemplateId); // house templateId
                     stream.Write((short)buildStep); // buildstep
@@ -132,73 +131,104 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
 
             stream.WritePosition(_unit.Position.X, _unit.Position.Y, _unit.Position.Z);
-            stream.Write(_unit.Scale);
-            stream.Write(_unit.Level);
+            stream.Write(_unit.Scale);   // scale
+            stream.Write(_unit.Level);   // level
             stream.Write(_unit.ModelId); // modelRef
 
             switch (_unit)
             {
                 case Character unit:
-                {
-                    var character = unit;
-                    for (var i = 0; i < character.Inventory.Equipment.GetSlottedItemsList().Count; i++)
                     {
-                        var item = character.Inventory.Equipment.GetItemBySlot(i);
-                        if (item is BodyPart)
+                        var character = unit;
+                        for (var i = 0; i < character.Inventory.Equipment.GetSlottedItemsList().Count; i++)
                         {
-                            stream.Write(item.TemplateId);
-                        }
-                        else if (item != null)
-                        {
-                            stream.Write(item);
-                        }
-                        else
-                        {
-                            stream.Write(0);
-                        }
-                    }
-                    break;
-                }
-                case Npc unit:
-                {
-                    var npc = unit;
-                    for (var i = 0; i < npc.Equipment.GetSlottedItemsList().Count; i++)
-                    {
-                        var item = npc.Equipment.GetItemBySlot(i);
-
-                        if (item is BodyPart)
-                        {
-                            stream.Write(item.TemplateId);
-                        }
-                        else if (item != null)
-                        {
-                            if (i == 27) // Cosplay
+                            var item = character.Inventory.Equipment.GetItemBySlot(i);
+                            if (item is BodyPart)
+                            {
+                                stream.Write(item.TemplateId);
+                            }
+                            else if (item != null)
                             {
                                 stream.Write(item);
                             }
                             else
                             {
-                                stream.Write(item.TemplateId);
-                                stream.Write(0L);
-                                stream.Write((byte)0);
+                                stream.Write(0);
                             }
                         }
-                        else
+                        //stream.WriteBc(0); // TODO added to fix HP & MP
+                        //var v17 = 0;
+                        //do
+                        //{
+                        //    var item = character.Inventory.Equipment.GetItemBySlot(v17);
+                        //    if ((v17 - 19) < 0 || (v17 - 19) > 6)
+                        //    {
+                        //        if (item != null)
+                        //        {
+                        //            stream.Write(item);
+                        //        }
+                        //        else
+                        //        {
+                        //            stream.Write(0);
+                        //        }
+                        //    }
+                        //    else // BodyParts somehow_special [19..25]
+                        //    {
+                        //        if (item != null)
+                        //        {
+                        //            stream.Write(item.TemplateId);
+                        //        }
+                        //        else
+                        //        {
+                        //            stream.Write(0);
+                        //        }
+                        //    }
+                        //    ++v17;
+                        //}
+                        //while (v17 < 28);
+
+                        break;
+                    }
+                case Npc unit:
+                    {
+                        var npc = unit;
+                        for (var i = 0; i < npc.Equipment.GetSlottedItemsList().Count; i++)
+                        {
+                            var item = npc.Equipment.GetItemBySlot(i);
+
+                            if (item is BodyPart)
+                            {
+                                stream.Write(item.TemplateId);
+                            }
+                            else if (item != null)
+                            {
+                                if (i >= 26) // Cosplay
+                                {
+                                    stream.Write(item);
+                                }
+                                else
+                                {
+                                    stream.Write(item.TemplateId);
+                                    stream.Write(0L);
+                                    stream.Write((byte)0);
+                                }
+                            }
+                            else
+                            {
+                                stream.Write(0);
+                            }
+                        }
+                        break;
+                    }
+                default:
+                    {
+                        for (var i = 0; i < 28; i++)
                         {
                             stream.Write(0);
                         }
-                    }
-                    break;
-                }
-                default:
-                {
-                    for (var i = 0; i < 28; i++)
-                    {
-                        stream.Write(0);
-                    }
 
-                    break;
-                }
+                        break;
+                    }
             }
 
             stream.Write(_unit.ModelParams);
@@ -334,7 +364,6 @@ namespace AAEmu.Game.Core.Packets.G2C
                 foreach (var skill in character.Skills.Skills.Values)
                 {
                     stream.Write(skill.Id);
-                    //stream.Write(skill.Level);
                 }
 
                 stream.Write(character.Skills.PassiveBuffs.Count);

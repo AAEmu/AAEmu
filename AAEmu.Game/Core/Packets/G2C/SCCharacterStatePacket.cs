@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_character.InstanceId); // iid
-            stream.Write(_character.Guid);       // guid
+            stream.Write(_character.Guid);       // guid 16 байт
             stream.Write(0);                     // rwd
 
             _character.Write(stream); // CharacterReader

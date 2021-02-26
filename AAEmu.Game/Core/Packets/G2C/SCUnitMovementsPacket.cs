@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Units.Movements;
 
@@ -18,8 +18,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((ushort) _movements.Length); // TODO ... max size is 400
             foreach (var (id, type) in _movements)
             {
-                stream.WriteBc(id);
-                stream.Write(type);
+                stream.WriteBc(id);            // unitId
+                stream.Write((byte)type.Type); // moveType
+                stream.Write(type);            // MoveTypeEnum.ActorData
             }
 
             return stream;
