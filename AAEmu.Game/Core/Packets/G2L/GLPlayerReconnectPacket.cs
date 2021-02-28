@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Login;
 
 namespace AAEmu.Game.Core.Packets.G2L
@@ -6,10 +6,10 @@ namespace AAEmu.Game.Core.Packets.G2L
     public class GLPlayerReconnectPacket : LoginPacket
     {
         private readonly byte _gsId;
-        private readonly uint _accountId;
+        private readonly ulong _accountId;
         private readonly uint _connectionId;
 
-        public GLPlayerReconnectPacket(byte gsId, uint accountId, uint connectionId) : base(0x02)
+        public GLPlayerReconnectPacket(byte gsId, ulong accountId, uint connectionId) : base(0x02)
         {
             _gsId = gsId;
             _accountId = accountId;

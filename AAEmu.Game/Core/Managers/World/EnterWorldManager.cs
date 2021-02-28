@@ -16,14 +16,14 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<uint, uint> _accounts;
+        private Dictionary<uint, ulong> _accounts;
 
         protected EnterWorldManager()
         {
-            _accounts = new Dictionary<uint, uint>();
+            _accounts = new Dictionary<uint, ulong>();
         }
 
-        public void AddAccount(uint accountId, uint connectionId)
+        public void AddAccount(ulong accountId, uint connectionId)
         {
             var connection = LoginNetwork.Instance.GetConnection();
             var gsId = AppConfiguration.Instance.Id;
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void Login(GameConnection connection, uint accountId, uint token)
+        public void Login(GameConnection connection, ulong accountId, uint token)
         {
             if (_accounts.ContainsKey(token))
             {

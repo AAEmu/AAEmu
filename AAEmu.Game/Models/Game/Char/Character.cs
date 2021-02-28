@@ -60,7 +60,7 @@ namespace AAEmu.Game.Models.Game.Char
         public List<IDisposable> Subscribers { get; set; }
 
         public uint Id { get; set; }
-        public uint AccountId { get; set; }
+        public ulong AccountId { get; set; }
         public Race Race { get; set; }
         public Gender Gender { get; set; }
         public short LaborPower { get; set; }
@@ -1680,7 +1680,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public static Character Load(uint characterId, uint accountId)
+        public static Character Load(uint characterId, ulong accountId)
         {
             using (var connection = MySQL.CreateConnection())
             {
@@ -1720,7 +1720,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         #region Database
 
-        public static Character Load(MySqlConnection connection, uint characterId, uint accountId)
+        public static Character Load(MySqlConnection connection, uint characterId, ulong accountId)
         {
             Character character = null;
             using (var command = connection.CreateCommand())
@@ -1856,7 +1856,7 @@ namespace AAEmu.Game.Models.Game.Char
                         {
                             Position = new Point(),
                             Id = reader.GetUInt32("id"),
-                            AccountId = reader.GetUInt32("account_id"),
+                            AccountId = reader.GetUInt64("account_id"),
                             Name = reader.GetString("name"),
                             AccessLevel = reader.GetInt32("access_level"),
                             Race = (Race)reader.GetByte("race"),

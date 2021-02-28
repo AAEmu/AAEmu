@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Genesis;
 using AAEmu.Game.Models;
 using AAEmu.Game.Utils.DB;
@@ -27,6 +28,9 @@ namespace AAEmu.Game
 
         public static async Task Main(string[] args)
         {
+            CliUtil.WriteHeader("Game & Stream", ConsoleColor.DarkGreen);
+            CliUtil.LoadingTitle();
+            
             Initialization();
             
             if (FileManager.FileExists(FileManager.AppPath + "Config.json"))

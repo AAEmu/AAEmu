@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
                     Connection.SendPacket(new SCChatSpamDelayPacket());
                     Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true })); // TODO
-                    Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15 })); // TODO - config files
+                    // TODO Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15 })); // TODO - config files
                     break;
                 case 1:
                     Connection.SendPacket(new ChangeStatePacket(2));

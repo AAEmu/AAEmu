@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using NLog;
@@ -9,11 +9,11 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private ConcurrentDictionary<uint, GameConnection> _accounts;
+        private ConcurrentDictionary<ulong, GameConnection> _accounts;
 
         public AccountManager()
         {
-            _accounts = new ConcurrentDictionary<uint, GameConnection>();
+            _accounts = new ConcurrentDictionary<ulong, GameConnection>();
         }
 
         public void Add(GameConnection connection)
@@ -23,12 +23,12 @@ namespace AAEmu.Game.Core.Managers
             _accounts.TryAdd(connection.AccountId, connection);
         }
 
-        public void Remove(uint id)
+        public void Remove(ulong id)
         {
             _accounts.TryRemove(id, out _);
         }
 
-        public bool Contains(uint id)
+        public bool Contains(ulong id)
         {
             return _accounts.ContainsKey(id);
         }

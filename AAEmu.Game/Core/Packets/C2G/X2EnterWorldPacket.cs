@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var pFrom = stream.ReadUInt32();
             var pTo = stream.ReadUInt32();
-            var accountId = stream.ReadUInt32();
+            var accountId = stream.ReadUInt64();
             var cookie = stream.ReadUInt32();
             var zoneId = stream.ReadInt32();
             var tb = stream.ReadByte();

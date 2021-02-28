@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using AAEmu.Commons.Models;
@@ -17,7 +17,7 @@ namespace AAEmu.Login.Core.Network.Connections
         public InternalConnection InternalConnection { get; set; }
         public PacketStream LastPacket { get; set; }
 
-        public uint AccountId { get; set; }
+        public ulong AccountId { get; set; }
         public string AccountName { get; set; }
         public DateTime LastLogin { get; set; }
         public IPAddress LastIp { get; set; }

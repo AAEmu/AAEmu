@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.Housing
         private int _currentStep;
         private int _allAction;
         private uint _id;
-        private uint _accountId;
+        private ulong _accountId;
         private uint _coOwnerId;
         private uint _templateId;
         private int _baseAction;
@@ -51,7 +51,7 @@ namespace AAEmu.Game.Models.Game.Housing
         /// </summary>
         public bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public uint Id { get => _id; set { _id = value; _isDirty = true; } }
-        public uint AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
+        public ulong AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
         public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
         //public ushort TlId { get; set; }
         public uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }

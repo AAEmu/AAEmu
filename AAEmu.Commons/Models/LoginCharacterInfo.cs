@@ -5,7 +5,7 @@ namespace AAEmu.Commons.Models
     public class LoginCharacterInfo : PacketMarshaler
     {
         public uint Id { get; set; }
-        public uint AccountId { get; set; }
+        public ulong AccountId { get; set; }
         public byte GsId { get; set; }
         public string Name { get; set; }
         public byte Race { get; set; }
@@ -14,7 +14,7 @@ namespace AAEmu.Commons.Models
         public override void Read(PacketStream stream)
         {
             Id = stream.ReadUInt32();
-            AccountId = stream.ReadUInt32();
+            AccountId = stream.ReadUInt64();
             Name = stream.ReadString();
             Race = stream.ReadByte();
             Gender = stream.ReadByte();

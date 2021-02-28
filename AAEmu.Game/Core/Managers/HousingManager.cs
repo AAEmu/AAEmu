@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Managers
         private static int MAX_HEAVY_TAX_COUNTED = 10; // Maximum number of heavy tax buildings to take into account for tax calculation
         private bool isCheckingTaxTiming = false;
 
-        public int GetByAccountId(Dictionary<uint, House> values, uint accountId)
+        public int GetByAccountId(Dictionary<uint, House> values, ulong accountId)
         {
             foreach (var (id, house) in _houses)
                 if (house.AccountId == accountId)
@@ -253,7 +253,7 @@ namespace AAEmu.Game.Core.Managers
                             var factionId = reader.GetUInt32("faction_id");
                             var house = Create(templateId, factionId);
                             house.Id = reader.GetUInt32("id");
-                            house.AccountId = reader.GetUInt32("account_id");
+                            house.AccountId = reader.GetUInt64("account_id");
                             house.OwnerId = reader.GetUInt32("owner");
                             house.CoOwnerId = reader.GetUInt32("co_owner");
                             house.Name = reader.GetString("name");
@@ -656,7 +656,7 @@ namespace AAEmu.Game.Core.Managers
             //SpawnManager.Instance.AddDespawn(house);
         }
 
-        public bool CalculateBuildingTaxInfo(uint AccountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate)
+        public bool CalculateBuildingTaxInfo(ulong AccountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate)
         {
             totalTaxToPay = 0;
             heavyHouseCount = 0;

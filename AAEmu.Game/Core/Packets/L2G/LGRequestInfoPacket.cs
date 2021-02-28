@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.L2G
         {
             var connectionId = stream.ReadUInt32();
             var requestId = stream.ReadUInt32();
-            var accountId = stream.ReadUInt32();
+            var accountId = stream.ReadUInt64();
             var characters = accountId != 0
                 ? CharacterManager.Instance.LoadCharacters(accountId)
                 : new List<LoginCharacterInfo>();

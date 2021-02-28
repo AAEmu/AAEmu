@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
@@ -11,11 +11,11 @@ namespace AAEmu.Game.Core.Managers.World
     public class StreamManager : Singleton<StreamManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        private readonly Dictionary<uint, uint> _accounts;
+        private readonly Dictionary<uint, ulong> _accounts;
 
         protected StreamManager()
         {
-            _accounts = new Dictionary<uint, uint>();
+            _accounts = new Dictionary<uint, ulong>();
         }
 
         public void Load()
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Managers.World
             // TODO ...
         }
 
-        public void AddToken(uint accountId, uint connectionId)
+        public void AddToken(ulong accountId, uint connectionId)
         {
             _accounts.Add(connectionId, accountId);
         }
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Managers.World
             _accounts.Remove(token);
         }
 
-        public void Login(StreamConnection connection, uint accountId, uint token)
+        public void Login(StreamConnection connection, ulong accountId, uint token)
         {
             if (_accounts.ContainsKey(token))
             {
