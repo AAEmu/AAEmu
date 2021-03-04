@@ -1,0 +1,9 @@
+{
+    "minute_tick": 1,
+    "premium_offline_tick": 1,
+    "fremium_offline_tick": 0,
+    "fremium_labor_change": 5,
+    "premium_labor_change": 10,
+    "fremium_labor_maximum": 2000,
+    "premium_labor_maximum": 5000
+}
