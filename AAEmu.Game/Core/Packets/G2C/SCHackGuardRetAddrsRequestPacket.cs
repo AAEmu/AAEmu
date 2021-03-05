@@ -9,7 +9,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _spMd5;
         private readonly bool _spLuaMd5;
         private readonly string _dir;
-        private readonly bool _modPack;
+        //private readonly bool _modPack; // secondPriceType- missing in version 1.8
+
 
         public SCHackGuardRetAddrsRequestPacket(bool sendAddrs, bool spMd5) : base(SCOffsets.SCHackGuardRetAddrsRequestPacket, 5)
         {
@@ -17,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             _spMd5 = spMd5;
             _spLuaMd5 = true;
             _dir = "x2ui/hud";
-            _modPack = false;
+            //_modPack = false; // secondPriceType- missing in version 1.8
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -26,7 +27,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_spMd5);
             stream.Write(_spLuaMd5);
             stream.Write(_dir);
-            stream.Write(_modPack);
+            //stream.Write(_modPack); // secondPriceType- missing in version 1.8
             return stream;
         }
     }

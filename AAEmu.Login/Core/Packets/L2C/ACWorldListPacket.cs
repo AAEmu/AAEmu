@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
@@ -27,7 +27,9 @@ namespace AAEmu.Login.Core.Packets.L2C
                 stream.Write(gs.Active);
                 if (gs.Active)
                 {
+                    //Server Status - 0x00 - normal / 0x01 - load / 0x02 - queue
                     stream.Write((byte) gs.Load); // con
+                    //The following sections are the racial restrictions on server creation for this server selection interface 0 Normal 2 Prohibited
                     for (var i = 0; i < 9; i++) // race
                         stream.Write((byte) 0); // rcon
                     /*

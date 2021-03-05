@@ -7,11 +7,11 @@ namespace AAEmu.Game.Core.Packets.G2L
 {
     public class GLRequestInfoPacket : LoginPacket
     {
-        private readonly ulong _connectionId;
+        private readonly uint _connectionId;
         private readonly uint _requestId;
         private readonly List<LoginCharacterInfo> _characters;
 
-        public GLRequestInfoPacket(ulong connectionId, uint requestId, List<LoginCharacterInfo> characters) : base(0x03)
+        public GLRequestInfoPacket(uint connectionId, uint requestId, List<LoginCharacterInfo> characters) : base(0x03)
         {
             _connectionId = connectionId;
             _requestId = requestId;

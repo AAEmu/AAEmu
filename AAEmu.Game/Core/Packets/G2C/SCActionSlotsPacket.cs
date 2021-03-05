@@ -16,12 +16,25 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            foreach (var slot in _slots) // in 1.2 = 85
+            foreach (var slot in _slots) // in 1.2 ... 1.8 = 85
             {
                 stream.Write((byte)slot.Type);
-                if (slot.Type != ActionSlotType.None)
+                switch (slot.Type)
                 {
-                    stream.Write(slot.ActionId);
+                    case ActionSlotType.None:
+                    case ActionSlotType.Unk3:
+                        break;
+                    case ActionSlotType.Item:
+                    case ActionSlotType.Skill:
+                    case ActionSlotType.Unk5:
+                        stream.Write(slot.ActionId);
+                        break;
+                    case ActionSlotType.Unk4:
+                        stream.Write(slot.ItemId);
+                        break;
+                    default:
+                        _log.Error("SCActionSlotsPacket, Unknown ActionSlotType!");
+                        break;
                 }
             }
 

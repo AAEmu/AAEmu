@@ -99,15 +99,15 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(true); // canUseBank
             stream.Write(true); // canUseCopper
 
-            stream.Write((byte)0); // ingameShopVersion
-            stream.Write((byte)2); // secondPriceType
+            //stream.Write((byte)0); // ingameShopVersion- missing in version 1.8
+            //stream.Write((byte)2); // secondPriceType- missing in version 1.8
             /*
              * 0 - kr aapoint
              * 1 - ru aapoint
              * 2 - na loyalt token
-             */
-            stream.Write((byte)0); // secondPasswordMaxFailCount
+            */
 
+            stream.Write((byte)0); // secondPasswordMaxFailCount
             stream.Write(0u); // idleKickTime Uint32 in 1.7, Uint16 in 1.2 march
 
             return stream;

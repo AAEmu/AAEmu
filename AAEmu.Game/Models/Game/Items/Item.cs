@@ -269,7 +269,7 @@ namespace AAEmu.Game.Models.Game.Items
                     mDetailLength = 30;
                     goto LABEL_11;
                 case 3:
-                    mDetailLength = 21;
+                    mDetailLength = 7;
                     goto LABEL_11;
                 case 4:
                     mDetailLength = 10;
@@ -330,7 +330,7 @@ LABEL_11:
                     mDetailLength = 30;
                     goto LABEL_11;
                 case 3:
-                    mDetailLength = 21;
+                    mDetailLength = 7;
                     goto LABEL_11;
                 case 4:
                     mDetailLength = 10;

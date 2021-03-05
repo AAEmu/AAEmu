@@ -509,7 +509,7 @@
         public const ushort SCGradeEnchantBroadcasPacket = 0x068;
         public const ushort SCCvFCombatRelationshipPacket = 0x076;
         public const ushort SCFvFCombatRelationshipPacket = 0x062;
-        public const ushort SCChatSpamDelayPacket = 0x124;
+        public const ushort SCChatSpamConfig = 0x124;
         public const ushort SCTeamMemberDisconnectedPacket = 0x0b4;
         public const ushort SCUnknownPacket_0x16a = 0x16a;
         public const ushort SCUnknownPacket_0x09e = 0x09e;

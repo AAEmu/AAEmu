@@ -7,8 +7,8 @@
         // double _01_&_05_
         public const ushort CSResturnAddrsPacket = 0x0fe;     // level = 1
         public const ushort CSResturnAddrs_05_Packet = 0x0fe; // level = 5
-        public const ushort CSHgResponsePacket = 0x049;       // level = 1
-        public const ushort CSHgResponse_05_Packet = 0x049;   // level = 5
+        public const ushort CSHgResponsePacket = 0x104;       // level = 1
+        public const ushort CSHgResponse_05_Packet = 0x104;   // level = 5
         public const ushort CSAesXorKeyPacket = 0x12c;        // level = 1
         public const ushort CSAesXorKey_05_Packet = 0x12c;    // level = 5
 
@@ -81,7 +81,6 @@
         public const ushort CSChangeAppellationPacket = 0x146;
         public const ushort CSStartedCinemaPacket = 0x04d;
         public const ushort CSHSResponsePacket = 0x0d8;
-        public const ushort CSHGResponsePacket = 0x104;
         public const ushort CSBroadcastVisualOptionPacket = 0x101;
         public const ushort CSUnknownPacket_0x0f2 = 0x0f2;
         public const ushort CSRestrictCheckPacket = 0x054;

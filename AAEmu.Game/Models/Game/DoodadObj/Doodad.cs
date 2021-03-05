@@ -266,6 +266,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(DbHouseId); // dbHouseId
             stream.Write(Data);  // data
             stream.Write(false); // spawn, added in 1.7
+            stream.Write(false); // preSpawnable, added in 1.8
 
             return stream;
         }

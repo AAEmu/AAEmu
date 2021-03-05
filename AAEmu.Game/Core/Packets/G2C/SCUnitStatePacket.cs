@@ -422,6 +422,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 }
 
                 stream.WritePisc(0, 0); // очки чести полученные в PvP, кол-во убийств в PvP
+                stream.Write(0u); // periodLeadership, added in 1.8
                 stream.Write(flags.ToByteArray()); // flags(ushort)
                 /*
                  * 0x01 - 8bit - режим боя
@@ -436,8 +437,36 @@ namespace AAEmu.Game.Core.Packets.G2C
             else
             {
                 stream.WritePisc(0, 0); // pisc
+                stream.Write(0u); // periodLeadership, added in 1.8
                 stream.Write((ushort)0); // flags
             }
+
+            /*
+                (a2->Read->UInt16)("flags", &v64, 0);
+            ...
+                v22 = BYTE1(v64);
+            ...
+                v26 = v22 & 1;
+            ...
+                if ( v26 ) // flags
+                {
+                  (a2->Read->UInt32)("firstHitterTeamId", v2 + 8004, 0);
+                }
+                if ( v65 )
+                {
+                  (a2->Read->UInt16)(a2, "tl", v2 + 7228, 0);
+                  (a2->Read->UInt16)(a2, "tl", v2 + 7232, 0);
+                  (a2->Read->UInt16)(a2, "tl", v2 + 7236, 0);
+                  (a2->Read->UInt16)(a2, "tl", v2 + 7240, 0);
+                }
+                if ( v66 )
+                {
+                  v45 = 0;
+                  do
+                    (a2->Read->Byte)("gmmode", &v2[v45++ + 7980], 0);
+                  while ( v45 < 7 );
+                }
+             */
 
             if (_unit is Character)
             {
@@ -457,6 +486,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 }
 
                 stream.WriteBc(0);
+                stream.Write(0u); // type, added in 1.8
 
                 character.VisualOptions.Write(stream, 0x20); // cosplay_visual
 

@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS `aaemu_game17`;
-USE aaemu_game17;
+CREATE DATABASE IF NOT EXISTS `aaemu_game1800`;
+USE aaemu_game1800;
 -- --------------------------------------------------------------------------
 -- Make sure to remove the above two lines if you want use your own DB names
 -- --------------------------------------------------------------------------
@@ -26,10 +26,10 @@ CREATE TABLE `abilities` (
 -- ----------------------------
 DROP TABLE IF EXISTS `actabilities`;
 CREATE TABLE `actabilities` (
-  `id` int(10) unsigned NOT NULL,
-  `point` int(10) unsigned NOT NULL DEFAULT '0',
+  `id` int(11) unsigned NOT NULL,
+  `point` int(11) unsigned NOT NULL DEFAULT '0',
   `step` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `owner` int(10) unsigned NOT NULL,
+  `owner` int(11) unsigned NOT NULL,
   PRIMARY KEY (`owner`,`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
@@ -42,9 +42,9 @@ CREATE TABLE `actabilities` (
 -- ----------------------------
 DROP TABLE IF EXISTS `appellations`;
 CREATE TABLE `appellations` (
-  `id` int(10) unsigned NOT NULL,
+  `id` int(11) unsigned NOT NULL,
   `active` tinyint(1) NOT NULL DEFAULT '0',
-  `owner` int(10) unsigned NOT NULL,
+  `owner` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
 
@@ -71,34 +71,34 @@ CREATE TABLE `blocked` (
 -- ----------------------------
 DROP TABLE IF EXISTS `cash_shop_item`;
 CREATE TABLE `cash_shop_item` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'shop_id',
-  `uniq_id` int(10) unsigned DEFAULT '0' COMMENT '唯一ID',
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT 'shop_id',
+  `uniq_id` int(11) unsigned DEFAULT '0' COMMENT '唯一ID',
   `cash_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '出售名称',
   `main_tab` tinyint(3) unsigned DEFAULT '1' COMMENT '主分类1-6',
   `sub_tab` tinyint(3) unsigned DEFAULT '1' COMMENT '子分类1-7',
   `level_min` tinyint(3) unsigned DEFAULT '0' COMMENT '等级限制',
   `level_max` tinyint(3) unsigned DEFAULT '0' COMMENT '等级限制',
-  `item_template_id` int(10) unsigned DEFAULT '0' COMMENT '物品模板id',
+  `item_template_id` int(11) unsigned DEFAULT '0' COMMENT '物品模板id',
   `is_sell` tinyint(1) unsigned DEFAULT '0' COMMENT '是否出售',
   `is_hidden` tinyint(1) unsigned DEFAULT '0' COMMENT '是否隐藏',
   `limit_type` tinyint(3) unsigned DEFAULT '0',
   `buy_count` smallint(5) unsigned DEFAULT '0',
   `buy_type` tinyint(3) unsigned DEFAULT '0',
-  `buy_id` int(10) unsigned DEFAULT '0',
+  `buy_id` int(11) unsigned DEFAULT '0',
   `start_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT '出售开始',
   `end_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT '出售截止',
   `type` tinyint(3) unsigned DEFAULT '0' COMMENT '货币类型',
-  `price` int(10) unsigned DEFAULT '0' COMMENT '价格',
-  `remain` int(10) unsigned DEFAULT '0' COMMENT '剩余数量',
-  `bonus_type` int(10) unsigned DEFAULT '0' COMMENT '赠送类型',
-  `bouns_count` int(10) unsigned DEFAULT '0' COMMENT '赠送数量',
+  `price` int(11) unsigned DEFAULT '0' COMMENT '价格',
+  `remain` int(11) unsigned DEFAULT '0' COMMENT '剩余数量',
+  `bonus_type` int(11) unsigned DEFAULT '0' COMMENT '赠送类型',
+  `bouns_count` int(11) unsigned DEFAULT '0' COMMENT '赠送数量',
   `cmd_ui` tinyint(1) unsigned DEFAULT '0' COMMENT '是否限制一人一次',
-  `item_count` int(10) unsigned DEFAULT '1' COMMENT '捆绑数量',
+  `item_count` int(11) unsigned DEFAULT '1' COMMENT '捆绑数量',
   `select_type` tinyint(3) unsigned DEFAULT '0',
   `default_flag` tinyint(3) unsigned DEFAULT '0',
   `event_type` tinyint(3) unsigned DEFAULT '0' COMMENT '活动类型',
   `event_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT '活动时间',
-  `dis_price` int(10) unsigned DEFAULT '0' COMMENT '当前售价',
+  `dis_price` int(11) unsigned DEFAULT '0' COMMENT '当前售价',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=20100054 DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC COMMENT='此表来自于代码中的字段并去除重复字段生成。字段名称和内容以代码为准。';
 
@@ -155,7 +155,7 @@ INSERT INTO `cash_shop_item` VALUES ('20100053', '20100053', '6-7', '6', '7', '0
 DROP TABLE IF EXISTS `characters`;
 CREATE TABLE `characters` (
   `id` int(11) unsigned NOT NULL,
-  `account_id` int(11) unsigned NOT NULL,
+  `account_id` bigint(20) unsigned NOT NULL,
   `name` varchar(128) NOT NULL,
   `access_level` int(3) unsigned NOT NULL DEFAULT '0',
   `race` tinyint(2) NOT NULL,
@@ -335,10 +335,10 @@ CREATE TABLE `friends` (
 DROP TABLE IF EXISTS `housings`;
 CREATE TABLE `housings` (
   `id` int(11) NOT NULL,
-  `account_id` int(10) unsigned NOT NULL,
-  `owner` int(10) unsigned NOT NULL,
-  `co_owner` int(10) unsigned NOT NULL,
-  `template_id` int(10) unsigned NOT NULL,
+  `account_id` bigint(20) unsigned NOT NULL,
+  `owner` int(11) unsigned NOT NULL,
+  `co_owner` int(11) unsigned NOT NULL,
+  `template_id` int(11) unsigned NOT NULL,
   `name` varchar(128) NOT NULL,
   `x` float NOT NULL,
   `y` float NOT NULL,
@@ -349,8 +349,8 @@ CREATE TABLE `housings` (
   `permission` tinyint(4) NOT NULL,
   `place_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `protected_until` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `faction_id` int(10) unsigned NOT NULL DEFAULT '1',
-  `sell_to` int(10) unsigned NOT NULL DEFAULT '0',
+  `faction_id` int(11) unsigned NOT NULL DEFAULT '1',
+  `sell_to` int(11) unsigned NOT NULL DEFAULT '0',
   `sell_price` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`account_id`,`owner`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

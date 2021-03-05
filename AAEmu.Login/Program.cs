@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils;
 using AAEmu.Login.Models;
 using AAEmu.Login.Utils;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +26,9 @@ namespace AAEmu.Login
 
         public static async Task Main(string[] args)
         {
+            CliUtil.WriteHeader("Login", ConsoleColor.DarkGreen);
+            CliUtil.LoadingTitle();
+            
             Initialization();
 
             if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
