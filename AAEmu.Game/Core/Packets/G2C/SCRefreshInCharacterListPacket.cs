@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            for (var i = 0; i < 9; i++) // in 1.2 ... 1.8 = 9
+            for (var i = 0; i < 9; i++) // in 1.2 ... 2.0 = 9
                 stream.Write((byte) 0);
             /*
              RACE_NONE = 0,

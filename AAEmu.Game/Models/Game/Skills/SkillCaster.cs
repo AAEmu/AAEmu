@@ -106,10 +106,10 @@ namespace AAEmu.Game.Models.Game.Skills
         public override void Read(PacketStream stream)
         {
             base.Read(stream);
-            ItemId = stream.ReadUInt64();
-            ItemTemplateId = stream.ReadUInt32();
-            Type1 = stream.ReadByte();
-            Type2 = stream.ReadUInt32();
+            ItemId = stream.ReadUInt64(); // itemId
+            ItemTemplateId = stream.ReadUInt32(); // itemType
+            Type1 = stream.ReadByte(); // type
+            Type2 = stream.ReadUInt32(); // type
         }
 
         public override PacketStream Write(PacketStream stream)

@@ -87,12 +87,32 @@ namespace AAEmu.Game.Models.Game.Units
             MovableDecalMoveX = stream.ReadInt16();
             MovableDecalMoveY = stream.ReadInt16();
 
-            foreach (var asset in FixedDecalAsset)
-                asset.Read(stream);
+            //foreach (var asset in FixedDecalAsset)
+            //    asset.Read(stream);
+            // --- begin pish
+            var mAssets = stream.ReadPisc(4);
+            // --- end pish
+            FixedDecalAsset[0].AssetId = (uint)mAssets[0];
+            FixedDecalAsset[1].AssetId = (uint)mAssets[1];
+            FixedDecalAsset[2].AssetId = (uint)mAssets[2];
+            FixedDecalAsset[3].AssetId = (uint)mAssets[3];
 
-            DiffuseMapId = stream.ReadUInt32();
-            NormalMapId = stream.ReadUInt32();
-            EyelashMapId = stream.ReadUInt32();
+            //DiffuseMapId = stream.ReadUInt32();
+            //NormalMapId = stream.ReadUInt32();
+            //EyelashMapId = stream.ReadUInt32();
+            // --- begin pish
+            var mMap = stream.ReadPisc(3);
+            // --- end pish
+            DiffuseMapId = (uint)mMap[0];
+            NormalMapId = (uint)mMap[1];
+            EyelashMapId = (uint)mMap[2];
+
+            for (var i = 0; i < 4; i++)
+            {
+                FixedDecalAsset[i].AssetWeight = stream.ReadSingle(); // weight
+            }
+
+
             NormalMapWeight = stream.ReadSingle();
             LipColor = stream.ReadUInt32();
             LeftPupilColor = stream.ReadUInt32();
@@ -112,12 +132,20 @@ namespace AAEmu.Game.Models.Game.Units
             stream.Write(MovableDecalMoveX);
             stream.Write(MovableDecalMoveY);
 
-            foreach (var asset in FixedDecalAsset)
-                stream.Write(asset);
+            //foreach (var asset in FixedDecalAsset)
+            //    stream.Write(asset);
+            stream.WritePisc(FixedDecalAsset[0].AssetId, FixedDecalAsset[1].AssetId, FixedDecalAsset[2].AssetId, FixedDecalAsset[3].AssetId);
 
-            stream.Write(DiffuseMapId);
-            stream.Write(NormalMapId);
-            stream.Write(EyelashMapId);
+            //stream.Write(DiffuseMapId);
+            //stream.Write(NormalMapId);
+            //stream.Write(EyelashMapId);
+            stream.WritePisc(DiffuseMapId, NormalMapId, EyelashMapId);
+            
+            for (var i = 0; i < 4; i++)
+            {
+                stream.Write(FixedDecalAsset[i].AssetWeight); // weight
+            }
+
             stream.Write(NormalMapWeight);
             stream.Write(LipColor);
             stream.Write(LeftPupilColor);

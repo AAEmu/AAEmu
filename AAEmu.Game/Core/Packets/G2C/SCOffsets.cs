@@ -2,7 +2,7 @@
 {
     public static class SCOffsets
     {
-        // All opcodes here are updated for version client_18_r243378
+        // All opcodes here are updated for version client_2017_r249376
         public const ushort X2EnterWorldResponsePacket = 0x000;
         public const ushort SCReconnectAuthPacket = 0x14a;
         public const ushort SCPrepareLeaveWorldPacket = 0x1bb;

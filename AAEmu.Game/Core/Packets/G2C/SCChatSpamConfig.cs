@@ -18,18 +18,19 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((byte)2);                     // version = 0 or 2 ? in 4.0.3.6 = 2
             stream.Write((short)60);                   // reportDelay
 
-            for (var i = 0; i < 15; i++)               // in 1.2 = 15, in 1.7 = 15, in 1.8 = 15, in 3.5 = 17
+            for (var i = 0; i < 17; i++)               // in 1.2 = 15, in 1.7 = 15, in 1.8 = 15, in 2.0 ... 3.5 = 17
             {
                 stream.Write((byte)0); // chatTypeGroup
             }
 
-            for (var i = 0; i < 15; i++)               // in 1.2 = 15, in 1.7 = 15, in 1.8 = 15, in 3.5 = 17
+            for (var i = 0; i < 17; i++)               // in 1.2 = 15, in 1.7 = 15, in 1.8 = 15, in 2.0 ... 3.5 = 17
             {
                 stream.Write(0f); // chatGroupDelay
             }
 
             stream.Write(_applyConfig, true);  // applyConfig, len = 1
             stream.Write(_detectConfig, true); // detectConfig, len = 19
+
             return stream;
         }
     }

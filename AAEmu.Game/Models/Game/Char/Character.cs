@@ -2195,59 +2195,46 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Expedition?.Id ?? 0);
             stream.Write(Family);
 
-            // in 1.2 max 28 items
-            for (var i = 0; i < Inventory.Equipment.GetSlottedItemsList().Count; i++)
+            #region CharacterInfo_A5D0
+            // calculate validFlags
+            var index = 0;
+            var validFlags = 0;
+            var items = Inventory.Equipment.GetSlottedItemsList();
+            foreach (var item in items)
             {
-                var item = Inventory.Equipment.GetItemBySlot(i);
-                if (item is BodyPart)
+                if (item != null)
                 {
-                    stream.Write(item.TemplateId);
+                    validFlags |= 1 << index;
                 }
-                else if (item != null)
+                index++;
+            }
+
+            stream.Write((uint)validFlags); // validFlags added in 2.0
+
+            foreach (var item in items)
+            {
+                if (item != null)
                 {
                     stream.Write(item);
                 }
-                else
-                {
-                    stream.Write(0);
-                }
             }
-            //var v17 = 0;
-            //do
-            //{
-            //    var item = Inventory.Equipment.GetItemBySlot(v17);
-            //    if ((v17 - 19) < 0 || (v17 - 19) > 6)
-            //    {
-            //        if (item != null)
-            //        {
-            //            stream.Write(item);
-            //        }
-            //        else
-            //        {
-            //            stream.Write(0);
-            //        }
-            //    }
-            //    else // BodyParts
-            //    {
-            //        //(a2->Read->UInt32)(a2, "type", v7 + 8, 0);
-            //        //if ( (a2->Read->len)(a2) )
-            //        //    sub_3936BE90(v7, *(v7 + 2));
-            //        if (item != null)
-            //        {
-            //            stream.Write(item.TemplateId);
-            //        }
-            //        else
-            //        {
-            //            stream.Write(0);
-            //        }
-            //    }
-            //    ++v17;
-            //}
-            //while (v17 < 28);
+            if (validFlags != 0)
+            {
+                stream.Write((uint)0); // validFlags added in 2.0
+            }
+            #endregion CharacterInfo_A5D0
 
             stream.Write((byte)Ability1);
             stream.Write((byte)Ability2);
             stream.Write((byte)Ability3);
+
+            for (var i = 0; i < 3; i++)
+            {
+                for (var j = 0; j < 3; j++)
+                {
+                    stream.Write((byte)0); // savedAbilitySets
+                }
+            }
 
             stream.Write(Helpers.ConvertLongX(Position.X));
             stream.Write(Helpers.ConvertLongY(Position.Y));

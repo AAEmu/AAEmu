@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -27,6 +27,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_payStart);
             stream.Write(_payEnd);
             stream.Write((long)0); // realPayTime
+            stream.Write(0); // buyPremiumCount, added in 2.0
+
             return stream;
         }
     }

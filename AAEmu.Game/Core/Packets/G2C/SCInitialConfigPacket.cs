@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write("aaemu.local"); // host
+            stream.Write("aaemu.local"); // TODO host - needs to be initiated in the config file
 
             // siege -> (byte)fset[0] & 1 == 1
             // premium -> (byte)fset[0] & 0x10 == 0x10
@@ -107,8 +107,13 @@ namespace AAEmu.Game.Core.Packets.G2C
              * 2 - na loyalt token
             */
 
-            stream.Write((byte)0); // secondPasswordMaxFailCount
-            stream.Write(0u); // idleKickTime Uint32 in 1.7, Uint16 in 1.2 march
+            stream.Write((byte)0);   // secondPasswordMaxFailCount
+            stream.Write(0u);        // idleKickTime Uint32 in 1.7, Uint16 in 1.2 march
+            stream.Write(false);     // enable - включает тестовый период запрещающий создание персонажей, added in 2.0
+            stream.Write(true);      // pcbang, added in 2.0
+            stream.Write(true);      // premium, added in 2.0
+            stream.Write((byte)4);   // maxCh, added in 2.0
+            stream.Write((ushort)5); // honorPointDuringWarPercent, added in 2.0
 
             return stream;
         }

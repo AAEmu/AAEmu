@@ -40,12 +40,12 @@ namespace AAEmu.Game.Models.Game.Items
 
         public EquipItem()
         {
-            GemIds = new uint[7];
+            GemIds = new uint[16];
         }
 
         public EquipItem(ulong id, ItemTemplate template, int count) : base(id, template, count)
         {
-            GemIds = new uint[7];
+            GemIds = new uint[16];
         }
 
         //public override void ReadDetails(PacketStream stream)

@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_total);
+            //stream.Write(_total); // missing in version 2.0
             stream.Write((byte)_members.Count); // TODO in 1.2 max length 20
             stream.Write(_id); // expedition id
             foreach (var member in _members)
