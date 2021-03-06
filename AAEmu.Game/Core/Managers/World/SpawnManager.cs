@@ -62,6 +62,10 @@ namespace AAEmu.Game.Core.Managers.World
                             spawner.Position.WorldId = world.Id;
                             spawner.Position.ZoneId =
                                 WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            // Convert degrees from the file to radians for use
+                            spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
+                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
                             npcSpawners.Add(spawner.Id, spawner);
                         }
                     else
@@ -84,6 +88,10 @@ namespace AAEmu.Game.Core.Managers.World
                             spawner.Position.ZoneId = WorldManager
                                 .Instance
                                 .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            // Convert degrees from the file to radians for use
+                            spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
+                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
                             doodadSpawners.Add(spawner.Id, spawner);
                         }
                     else
@@ -107,6 +115,10 @@ namespace AAEmu.Game.Core.Managers.World
                                 continue;
                             spawner.Position.WorldId = world.Id;
                             spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                            // Convert degrees from the file to radians for use
+                            spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
+                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
                             transferSpawners.Add(spawner.Id, spawner);
                         }
                     }

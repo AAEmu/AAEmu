@@ -41,6 +41,10 @@ namespace AAEmu.Game.Models.Game.World
             return new PositionAndRotation(Position.X, Position.Y, Position.Z, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W);
         }
 
+        /// <summary>
+        /// Convert current rotation to Roll Pitch Yaw in radians
+        /// </summary>
+        /// <returns></returns>
         public Vector3 ToRollPitchYaw()
         {
             // Store the Euler angles in radians
@@ -105,20 +109,19 @@ namespace AAEmu.Game.Models.Game.World
 
         public (short,short,short) ToRollPitchYawShorts()
         {
-            // ((short) = ((float)reverseQuat.X / 0.00003052f)
-            // Still needs a Quaternion.Normalize maybe ?
-            short roll = (short)(Rotation.X / ToShortDivider);
-            short pitch = (short)(Rotation.Y / ToShortDivider);
-            short yaw = (short)(Rotation.Z / ToShortDivider);
+            var vec3 = ToRollPitchYaw();
+            short roll = (short)(vec3.X / (Math.PI * 2) / ToShortDivider);
+            short pitch = (short)(vec3.Y / (Math.PI * 2) / ToShortDivider);
+            short yaw = (short)(vec3.Z / (Math.PI * 2) / ToShortDivider);
             return (roll, pitch, yaw);
         }
 
         public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()
         {
-            // Still needs a Quaternion.Normalize maybe ?
-            sbyte roll = (sbyte)(Rotation.X / ToSByteDivider);
-            sbyte pitch = (sbyte)(Rotation.Y / ToSByteDivider);
-            sbyte yaw = (sbyte)(Rotation.Z / ToSByteDivider);
+            var vec3 = ToRollPitchYaw();
+            sbyte roll = (sbyte)(vec3.X / (Math.PI * 2) / ToSByteDivider);
+            sbyte pitch = (sbyte)(vec3.Y / (Math.PI * 2) / ToSByteDivider);
+            sbyte yaw = (sbyte)(vec3.Z / (Math.PI * 2) / ToSByteDivider);
             return (roll, pitch, yaw);
         }
 

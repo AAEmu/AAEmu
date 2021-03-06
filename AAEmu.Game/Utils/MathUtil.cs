@@ -36,12 +36,12 @@ namespace AAEmu.Game.Utils
 
         public static double RadianToDegree(double angle)
         {
-            return angle * (180.0 / Math.PI);
+            return angle * 180.0 / Math.PI;
         }
 
         public static double DegreeToRadian(double angle)
         {
-            return angle / (180.0 * Math.PI);
+            return angle / 180.0 * Math.PI;
         }
 
         public static double ConvertSbyteDirectionToDegree(sbyte direction)

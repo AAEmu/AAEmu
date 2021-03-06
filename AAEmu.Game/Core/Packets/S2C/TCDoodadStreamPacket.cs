@@ -28,10 +28,10 @@ namespace AAEmu.Game.Core.Packets.S2C
                 stream.WriteBc(doodad.ObjId);
                 stream.Write(doodad.TemplateId);
                 stream.WritePosition(doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z);
-                var (yaw, pitch, roll) = doodad.Transform.World.ToRollPitchYawShorts();
-                stream.Write(yaw);
-                stream.Write(pitch);
+                var (roll, pitch, yaw) = doodad.Transform.World.ToRollPitchYawShorts();
                 stream.Write(roll);
+                stream.Write(pitch);
+                stream.Write(yaw);
                 stream.Write(doodad.Scale);
                 stream.Write(doodad.CurrentPhaseId); // doodad_func_groups Id
                 stream.Write(doodad.TimeLeft); // growing
