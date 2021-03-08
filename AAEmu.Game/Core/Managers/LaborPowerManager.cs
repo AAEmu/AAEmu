@@ -98,7 +98,7 @@ namespace AAEmu.Game.Core.Managers
                         _log.Info("No need to increase Labor Points for {0} as they reached the limit {1}", character.Value.Name, up_limit);
                         continue;
                     }
-					
+
                     var change = (short)(up_limit - character.Value.LaborPower);
                     if (change >= lp_change)
                     {
