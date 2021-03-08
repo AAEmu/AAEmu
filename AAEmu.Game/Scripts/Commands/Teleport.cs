@@ -113,7 +113,7 @@ namespace AAEmu.Game.Scripts.Commands
                     }
                 }
                 else
-                if (character.InstanceId != 1)
+                if (character.InstanceId != 0)
                 {
                     character.SendMessage("|cFFFFFF00[Teleport] Named teleports are not allowed inside a instance.|r");
                 }

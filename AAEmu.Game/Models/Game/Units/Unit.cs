@@ -14,7 +14,9 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -28,6 +30,7 @@ namespace AAEmu.Game.Models.Game.Units
         public UnitEvents Events { get; }
         private Task _regenTask;
         public uint ModelId { get; set; }
+        public SkillController ActiveSkillController { get; set; }
 
         public override float ModelSize
         {
@@ -130,15 +133,16 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.Facets)]
         public virtual int Facets { get; set; }
         [UnitAttribute(UnitAttribute.MeleeDamageMul)]
-        public virtual float MeleeDamageMul { get; set; }
+        public virtual float MeleeDamageMul { get; set; } = 1.0f;
         [UnitAttribute(UnitAttribute.RangedDamageMul)]
-        public virtual float RangedDamageMul { get; set; }
+        public virtual float RangedDamageMul { get; set; } = 1.0f;
         [UnitAttribute(UnitAttribute.SpellDamageMul)]
-        public virtual float SpellDamageMul { get; set; }
+        public virtual float SpellDamageMul { get; set; } = 1.0f;
+
         [UnitAttribute(UnitAttribute.IncomingHealMul)]
-        public virtual float IncomingHealMul { get; set; }
+        public virtual float IncomingHealMul { get; set; } = 1.0f;
         [UnitAttribute(UnitAttribute.HealMul)]
-        public virtual float HealMul { get; set; }
+        public virtual float HealMul { get; set; }  = 1.0f;
         [UnitAttribute(UnitAttribute.IncomingDamageMul)]
         public virtual float IncomingDamageMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.IncomingMeleeDamageMul)]
@@ -147,6 +151,16 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual float IncomingRangedDamageMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.IncomingSpellDamageMul)]
         public virtual float IncomingSpellDamageMul { get; set; } = 1f;
+        [UnitAttribute(UnitAttribute.AggroMul)]
+        public float AggroMul
+        {
+            get => (float)CalculateWithBonuses(100d, UnitAttribute.AggroMul);
+        }
+        [UnitAttribute(UnitAttribute.IncomingAggroMul)]
+        public float IncomingAggroMul
+        {
+            get => (float)CalculateWithBonuses(100d, UnitAttribute.IncomingAggroMul);
+        }
         public BaseUnit CurrentTarget { get; set; }
         public virtual byte RaceGender => 0;
         public virtual UnitCustomModelParams ModelParams { get; set; }
@@ -158,10 +172,12 @@ namespace AAEmu.Game.Models.Game.Units
         public SkillTask SkillTask { get; set; }
         public SkillTask AutoAttackTask { get; set; }
         public DateTime GlobalCooldown { get; set; }
+        public bool IsGlobalCooldowned => GlobalCooldown > DateTime.UtcNow;
         public object GCDLock { get; set; }
         public DateTime SkillLastUsed { get; set; }
         public PlotState ActivePlotState { get; set; }
         public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
+        public UnitCooldowns Cooldowns { get; set; }
         public Expedition Expedition { get; set; }
         public bool IsInBattle { get; set; }
         public bool IsInPatrol { get; set; } // so as not to run the route a second time
@@ -193,6 +209,7 @@ namespace AAEmu.Game.Models.Game.Units
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
             Equipment.ContainerSize = 28;
             ChargeLock = new object();
+            Cooldowns = new UnitCooldowns();
         }
 
         public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
@@ -251,9 +268,9 @@ namespace AAEmu.Game.Models.Game.Units
         {
             InterruptSkills();
 
-            Events.OnDeath(this, new OnDeathArgs { });
+            Events.OnDeath(this, new OnDeathArgs { Killer = killer, Victim =  this});
             Buffs.RemoveEffectsOnDeath();
-            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, 1, killer), true);
+            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.Damage, killer), true);
             if (killer == this)
                 return;
 
@@ -503,6 +520,11 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 return Hp < MaxHp || Mp < MaxMp;
             }
+        }
+
+        public virtual void OnSkillEnd(Skill skill)
+        {
+            
         }
     }
 }

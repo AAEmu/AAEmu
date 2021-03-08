@@ -12,7 +12,7 @@ using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Models.Game.Units
 {
-    public sealed class Mount : Unit
+    public sealed class Mate : Unit
     {
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
         //public ushort TlId { get; set; }
@@ -35,9 +35,11 @@ namespace AAEmu.Game.Models.Game.Units
         public int Mileage { get; set; }
         public uint SpawnDelayTime { get; set; }
         public List<uint> Skills { get; set; }
+        public MateDb DbInfo { get; set; }
 
         #region Attributes
 
+        [UnitAttribute(UnitAttribute.Str)]
         public int Str
         {
             get
@@ -61,6 +63,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.Dex)]
         public int Dex
         {
             get
@@ -83,6 +86,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.Sta)]
         public int Sta
         {
             get
@@ -105,6 +109,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.Int)]
         public int Int
         {
             get
@@ -127,6 +132,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.Spi)]
         public int Spi
         {
             get
@@ -149,6 +155,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.Fai)]
         public int Fai
         {
             get
@@ -168,11 +175,15 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.MaxHealth)]
         public override int MaxHp
         {
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.MaxHealth);
+                var mateKindVariable = FormulaManager.Instance.GetUnitVariable(formula.Id,
+                    UnitFormulaVariableType.MateKind, (uint)Template.MateKindId);
+
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -181,21 +192,18 @@ namespace AAEmu.Game.Models.Game.Units
                     ["sta"] = Sta,
                     ["int"] = Int,
                     ["spi"] = Spi,
-                    ["fai"] = Fai
+                    ["fai"] = Fai,
+                    ["mate_kind"] = mateKindVariable
                 };
                 var res = (int)formula.Evaluate(parameters);
-                foreach (var bonus in GetBonuses(UnitAttribute.MaxHealth))
-                {
-                    if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (int)(res * bonus.Value / 100f);
-                    else
-                        res += bonus.Value;
-                }
+
+                res = (int)CalculateWithBonuses(res, UnitAttribute.MaxHealth);
 
                 return res;
             }
         }
 
+        [UnitAttribute(UnitAttribute.HealthRegen)]
         public override int HpRegen
         {
             get
@@ -209,7 +217,8 @@ namespace AAEmu.Game.Models.Game.Units
                     ["sta"] = Sta,
                     ["int"] = Int,
                     ["spi"] = Spi,
-                    ["fai"] = Fai
+                    ["fai"] = Fai,
+                    ["mate_kind"] = Template.MateKindId
                 };
                 var res = (int)formula.Evaluate(parameters);
                 res += Spi / 10;
@@ -225,6 +234,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.PersistentHealthRegen)]
         public override int PersistentHpRegen
         {
             get
@@ -238,7 +248,8 @@ namespace AAEmu.Game.Models.Game.Units
                     ["sta"] = Sta,
                     ["int"] = Int,
                     ["spi"] = Spi,
-                    ["fai"] = Fai
+                    ["fai"] = Fai,
+                    ["mate_kind"] = Template.MateKindId
                 };
                 var res = (int)formula.Evaluate(parameters);
                 res /= 5; // TODO ...
@@ -254,6 +265,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.MaxMana)]
         public override int MaxMp
         {
             get
@@ -267,7 +279,8 @@ namespace AAEmu.Game.Models.Game.Units
                     ["sta"] = Sta,
                     ["int"] = Int,
                     ["spi"] = Spi,
-                    ["fai"] = Fai
+                    ["fai"] = Fai,
+                    ["mate_kind"] = Template.MateKindId
                 };
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.MaxMana))
@@ -282,6 +295,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.ManaRegen)]
         public override int MpRegen
         {
             get
@@ -295,7 +309,8 @@ namespace AAEmu.Game.Models.Game.Units
                     ["sta"] = Sta,
                     ["int"] = Int,
                     ["spi"] = Spi,
-                    ["fai"] = Fai
+                    ["fai"] = Fai,
+                    ["mate_kind"] = Template.MateKindId
                 };
                 var res = (int)formula.Evaluate(parameters);
                 res += Spi / 10;
@@ -311,6 +326,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        [UnitAttribute(UnitAttribute.PersistentManaRegen)]
         public override int PersistentMpRegen
         {
             get
@@ -324,7 +340,8 @@ namespace AAEmu.Game.Models.Game.Units
                     ["sta"] = Sta,
                     ["int"] = Int,
                     ["spi"] = Spi,
-                    ["fai"] = Fai
+                    ["fai"] = Fai,
+                    ["mate_kind"] = Template.MateKindId
                 };
                 var res = (int)formula.Evaluate(parameters);
                 res /= 5; // TODO ...
@@ -340,9 +357,32 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
+        // [UnitAttribute(UnitAttribute.Dps)]
+        public override float LevelDps
+        {
+            get
+            {
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Mate, UnitFormulaKind.LevelDps);
+                var parameters = new Dictionary<string, double>
+                {
+                    ["level"] = Level,
+                    ["str"] = Str,
+                    ["dex"] = Dex,
+                    ["sta"] = Sta,
+                    ["int"] = Int,
+                    ["spi"] = Spi,
+                    ["fai"] = Fai,
+                    ["mate_kind"] = Template.MateKindId
+                };
+                
+                var res = formula.Evaluate(parameters);
+                return (float)res;
+            }
+        }
+
         #endregion
 
-        public Mount()
+        public Mate()
         {
             ModelParams = new UnitCustomModelParams();
             Skills = new List<uint>();
@@ -350,6 +390,41 @@ namespace AAEmu.Game.Models.Game.Units
             Reason1 = 0;
             Att2 = 0u;
             Reason2 = 0;
+        }
+        
+        public void AddExp(int exp)
+        {
+            var expMultiplier = 1d;
+            if (exp == 0)
+                return;
+            if (float.TryParse(ConfigurationManager.Instance.GetConfiguration("ExperienceMultiplierInPercent"), out var xpm))
+                expMultiplier = xpm / 100f;
+            var totalExp = Math.Round(expMultiplier * exp);
+            exp = (int)totalExp;
+            Exp += exp;
+            SendPacket(new SCExpChangedPacket(ObjId, exp, false));
+            CheckLevelUp();
+        }
+        
+        public void CheckLevelUp()
+        {
+            var needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            var change = false;
+            while (Exp >= needExp)
+            {
+                change = true;
+                Level++;
+                needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
+            }
+
+            if (change)
+            {
+                BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
+                StartRegen();
+            }
+
+            DbInfo.Xp = Exp;
+            DbInfo.Level = Level;
         }
 
         public override void AddVisibleObject(Character character)

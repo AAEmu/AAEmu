@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
     {
         public override void Execute(object sender, EventArgs eventArgs)
         {
-            var args = eventArgs as OnDamageArgs;
+            var args = eventArgs as OnDamagedArgs;
 
             _log.Trace("Buff[{0}] {1} executed. Applying {2}[{3}]!", _buff.Template.BuffId, this.GetType().Name, Template.Effect.GetType().Name, Template.Effect.Id);
 
@@ -21,12 +21,32 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
                 return;   
             }
 
-            var target = owner;
+            var target = _buff.Owner;
+            var source = (Unit)_buff.Owner;
+
+            if (Template.UseOriginalSource)
+            {
+                source = _buff.Caster;
+            }
+
             if (Template.EffectOnSource)
-                target = args.Attacker;
+            {
+                target = source;
+            }
+
+            if (Template.TargetBuffTagId != 0)
+            {
+                if (!target.Buffs.CheckBuffTag(Template.TargetBuffTagId))
+                    return;
+            }
+            if (Template.TargetNoBuffTagId != 0)
+            {
+                if (target.Buffs.CheckBuffTag(Template.TargetNoBuffTagId))
+                    return;
+            }
             
             Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
-                new EffectSource(), // TODO : EffectSource Type trigger 
+                new EffectSource(_buff.Template) {Amount = args?.Amount ?? 0, IsTrigger = true}, // TODO : EffectSource Type trigger 
                 null, DateTime.Now);
         }
 

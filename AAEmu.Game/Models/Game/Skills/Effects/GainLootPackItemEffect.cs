@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -35,6 +36,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
             var lootGroups = ItemManager.Instance.GetLootGroups(LootPackId);
             var lootPackItem = character.Inventory.GetItemById(lootPack.ItemId);
+
+            Item sourceItem = null;
+            if (casterObj is SkillItem skillItem)
+                sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
+
 
             _log.Debug("LootGroups {0}", lootGroups);
 
@@ -105,7 +111,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         if (lootGroups[i].ItemGradeDistributionId > 0)
                             gradeId = GetGradeDistributionId(lootGroups[i].ItemGradeDistributionId);
 
-                        AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount);
+                        AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount, sourceItem);
                     }
                 }
             }
@@ -153,7 +159,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             if (InheritGrade)
                                 gradeId = lootPackItem.Grade;
 
-                            AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount);
+                            AddItem(caster, itemIdLoot, gradeId, minAmount, maxAmount, sourceItem);
                         }
                     }
                 }
@@ -179,15 +185,26 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 new List<ItemTask> {new MoneyChange(goldAdd)}, new List<ulong>()));
         }
 
-        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount)
+        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount, Item sourceItem = null)
         {
             var character = (Character)caster;
             if (character == null) return;
             var amount = Rand.Next(minAmount, maxAmount);
-            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount))
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, itemId, amount, gradeId))
             {
                 // TODO: do proper handling of insufficient bag space
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+            }
+            else
+            {
+                if(ConsumeSourceItem)
+                {
+                    character.Inventory.Bag.RemoveItem(ItemTaskType.ConsumeSkillSource, sourceItem, true);
+                }
+                else
+                {
+                    character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
+                }
             }
         }
 

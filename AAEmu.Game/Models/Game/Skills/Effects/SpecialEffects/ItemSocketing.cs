@@ -80,8 +80,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             // Add gem to proper slot
             var gemRoll = Rand.Next(0, 10000);
-            var gemChance = ItemManager.Instance.GetSocketChance(gemCount);
-
+            /// TODO : REMOVE THIS
+            // var gemChance = ItemManager.Instance.GetSocketChance(gemCount);
+            var gemChance = int.MaxValue;
+            
             byte result = 0;
             if (gemRoll < gemChance)
             {

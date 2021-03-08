@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 using MySql.Data.MySqlClient;
@@ -51,7 +52,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Name = LocalizationManager.Instance.Get("npcs","name",npctemplate.Id,npctemplate.Name), // npctemplate.Name,
                 Owner = Owner.Id,
                 Mileage = 0,
-                Xp = ExpirienceManager.Instance.GetExpForLevel(50, true),
+                Xp = ExpirienceManager.Instance.GetExpForLevel(npctemplate.Level, true),
                 Hp = 9999,
                 Mp = 9999,
                 UpdatedAt = DateTime.Now,
@@ -79,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Char
             var objId = ObjectIdManager.Instance.GetNextId();
             var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template); // TODO - new name
 
-            var mount = new Mount
+            var mount = new Units.Mate
             {
                 ObjId = objId,
                 TlId = tlId,
@@ -90,8 +91,8 @@ namespace AAEmu.Game.Models.Game.Char
                 ModelId = template.ModelId,
                 Faction = Owner.Faction,
                 Level = (byte)mateDbInfo.Level,
-                Hp = mateDbInfo.Hp,
-                Mp = mateDbInfo.Mp,
+                Hp = mateDbInfo.Hp > 0 ? mateDbInfo.Hp : 100,
+                Mp = mateDbInfo.Mp > 0 ? mateDbInfo.Mp : 100,
                 Position = Owner.Position.Clone(),
                 OwnerObjId = Owner.ObjId,
 
@@ -101,10 +102,24 @@ namespace AAEmu.Game.Models.Game.Char
                 Exp = mateDbInfo.Xp,
                 Mileage = mateDbInfo.Mileage,
                 SpawnDelayTime = 0, // TODO
+                DbInfo = mateDbInfo
             };
+            
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
             {
                 mount.Skills.Add(skill);
+            }
+            
+            foreach (var buffId in template.Buffs)
+            {
+                var buff = SkillManager.Instance.GetBuffTemplate(buffId);
+                if (buff == null)
+                {
+                    continue;
+                }
+
+                var obj = new SkillCasterUnit(mount.ObjId);
+                buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.Now);
             }
 
             var (newX, newY) = MathUtil.AddDistanceToFront(3, mount.Position.X, mount.Position.Y, mount.Position.RotationZ);

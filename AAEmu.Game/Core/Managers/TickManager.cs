@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using NLog;
 
@@ -23,7 +24,11 @@ namespace AAEmu.Game.Core.Managers
             sw.Start();
             while(DoTickLoop)
             {
+                var before = sw.Elapsed;
                 OnTick.Invoke();
+                var time = sw.Elapsed - before;
+                if(time > TimeSpan.FromMilliseconds(100))
+                    _log.Warn("Tick took {0}ms to finish", time.TotalMilliseconds);
                 Thread.Sleep(20);
             }
             sw.Stop();
@@ -31,8 +36,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void Initialize()
         {
-            TickThread = new Thread(TickLoop);
-            TickThread.Start();
+            new Thread(() => TickLoop()).Start();
         }
 
         public void Stop()
@@ -46,15 +50,20 @@ namespace AAEmu.Game.Core.Managers
         public TickEventHandler.OnTickEvent Event { get; }
         public TimeSpan LastExecution {get; set;}
         public TimeSpan TickRate { get; }
+        public Task ActiveTask { get; set; }
+        public bool UseAsync { get; }
 
-        public TickEventEntity(TickEventHandler.OnTickEvent ev, TimeSpan tickRate)
+        public TickEventEntity(TickEventHandler.OnTickEvent ev, TimeSpan tickRate, bool useAsync)
         {
             Event = ev;
             TickRate = tickRate;
+            UseAsync = useAsync;
         }
     }
     public class TickEventHandler
     {
+        private static Logger _log = LogManager.GetCurrentClassLogger();
+
         public delegate void OnTickEvent(TimeSpan delta);
         private List<TickEventEntity> _eventList;
         private Queue<TickEventEntity> _eventsToAdd;
@@ -83,28 +92,55 @@ namespace AAEmu.Game.Core.Managers
                 while (_eventsToRemove.Count > 0)
                 {
                     var ev = _eventsToRemove.Dequeue();
-                    var evToRemove = _eventList.FirstOrDefault(o => o.Event.GetHashCode() == ev.GetHashCode());
-                    if (evToRemove.Event != null)
+                    var evToRemove = _eventList.FirstOrDefault(o => o.Event == ev);
+                    if (evToRemove?.Event != null)
                         _eventList.Remove(evToRemove);
                 }
             }
 
             foreach (var ev in _eventList)
             {
-                var delta = _sw.Elapsed - ev.LastExecution;
+                var delta = ev.LastExecution != default ? _sw.Elapsed - ev.LastExecution : ev.TickRate.Add(TimeSpan.FromMilliseconds(1));
                 if (delta > ev.TickRate)
                 {
-                    ev.LastExecution = _sw.Elapsed;
-                    ev.Event(delta);
+                    if(ev.UseAsync)
+                    {
+                        if (ev.ActiveTask == null || ev.ActiveTask.IsCompleted)
+                        {
+                            ev.LastExecution = _sw.Elapsed;
+                            ev.ActiveTask = Task.Run(() => {
+                                try
+                                {
+                                    ev.Event(delta);
+                                }
+                                catch(Exception e)
+                                {
+                                    _log.Error("{0}\n{1}", e.Message, e.StackTrace);
+                                }
+                            });
+                        }
+                    }
+                    else
+                    {
+                        ev.LastExecution = _sw.Elapsed;
+                        try
+                        {
+                            ev.Event(delta);
+                        }
+                        catch (Exception e)
+                        {
+                            _log.Error("{0}\n{1}", e.Message, e.StackTrace);
+                        }
+                    }
                 }
             }
         }
 
-        public void Subscribe(OnTickEvent tickEvent, TimeSpan tickRate = default)
+        public void Subscribe(OnTickEvent tickEvent, TimeSpan tickRate = default, bool useAsync = false)
         {
             lock (_lock)
             {
-                _eventsToAdd.Enqueue(new TickEventEntity(tickEvent, tickRate));
+                _eventsToAdd.Enqueue(new TickEventEntity(tickEvent, tickRate, useAsync));
             }
         }
 
@@ -114,18 +150,6 @@ namespace AAEmu.Game.Core.Managers
             {
                 _eventsToRemove.Enqueue(tickEvent);
             }
-        }
-
-        public static TickEventHandler operator +(TickEventHandler handler, OnTickEvent tickEvent)
-        {
-            handler.Subscribe(tickEvent);
-            return handler;
-        }
-
-        public static TickEventHandler operator -(TickEventHandler handler, OnTickEvent tickEvent)
-        {
-            handler.UnSubscribe(tickEvent);
-            return handler;
         }
     }
 }

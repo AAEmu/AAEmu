@@ -21,7 +21,7 @@ namespace AAEmu.Game
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             _log.Info("Starting daemon: AAEmu.Game");
 
@@ -39,6 +39,7 @@ namespace AAEmu.Game
             TradeIdManager.Instance.Initialize();
 
             ItemIdManager.Instance.Initialize();
+            DoodadIdManager.Instance.Initialize();
             ChatManager.Instance.Initialize();
             CharacterIdManager.Instance.Initialize();
             FamilyIdManager.Instance.Initialize();
@@ -57,6 +58,10 @@ namespace AAEmu.Game
             GameDataManager.Instance.LoadGameData();
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
+            var heightmapTask = Task.Run(() =>
+            {
+                WorldManager.Instance.LoadHeightmaps();
+            });
             QuestManager.Instance.Load();
 
             ShipyardManager.Instance.Load();
@@ -88,15 +93,13 @@ namespace AAEmu.Game
             FriendMananger.Instance.Load();
             ModelManager.Instance.Load();
 
+            AIManager.Instance.Initialize();
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
             HousingManager.Instance.Load();
             TransferManager.Instance.Load();
 
             SpawnManager.Instance.Load();
-            SpawnManager.Instance.SpawnAll();
-            HousingManager.Instance.SpawnAll();
-            TransferManager.Instance.SpawnAll();
 
             AccessLevelManager.Instance.Load();
             CashShopManager.Instance.Load();
@@ -104,20 +107,32 @@ namespace AAEmu.Game
 
             TimeManager.Instance.Start();
             TaskManager.Instance.Start();
-            GameNetwork.Instance.Start();
-            StreamNetwork.Instance.Start();
-            LoginNetwork.Instance.Start();
-
+            
             SaveManager.Instance.Initialize();
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
             BoatPhysicsManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
+            CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
+
+            await heightmapTask;
+            
+            var spawnSw = new Stopwatch();
+            _log.Info("Spawning units...");
+            spawnSw.Start();
+            SpawnManager.Instance.SpawnAll();
+            HousingManager.Instance.SpawnAll();
+            TransferManager.Instance.SpawnAll();
+            spawnSw.Stop();
+            _log.Info("Units spawned in {0}", spawnSw.Elapsed);
+            
+            GameNetwork.Instance.Start();
+            StreamNetwork.Instance.Start();
+            LoginNetwork.Instance.Start();
+            
             stopWatch.Stop();
             _log.Info("Server started! Took {0}", stopWatch.Elapsed);
-
-            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

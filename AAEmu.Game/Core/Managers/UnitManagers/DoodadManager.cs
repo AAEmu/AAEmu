@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
@@ -8,6 +9,8 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
@@ -2287,6 +2290,37 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (funcs.ContainsKey(funcId))
                 return funcs[funcId];
             return null;
+        }
+
+        /// <summary>
+        /// Saves and creates a doodad 
+        /// </summary>
+        public void CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
+        {
+            _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
+            
+            // Create doodad
+            var doodad = Instance.Create(0, id, character);
+            doodad.Position = character.Position.Clone();
+            doodad.Position.X = x;
+            doodad.Position.Y = y;
+            doodad.Position.Z = z;
+            doodad.ItemId = itemId;
+            doodad.PlantTime = DateTime.Now;
+            
+            if (scale > 0)
+                doodad.SetScale(scale);
+            
+            // Consume item
+            var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
+            var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
+
+            foreach (var item in items)
+                character.Inventory.ConsumeItem(new [] {SlotType.Inventory}, ItemTaskType.DoodadCreate, item, 1, preferredItem);
+            
+            doodad.Spawn();
+            // TODO: Save doodad + current phase to database
+            doodad.Save();
         }
 
         // public void TriggerFunc(string className, Unit caster, Doodad doodad, uint skillId, uint nextPhase = 0)

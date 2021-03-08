@@ -49,31 +49,13 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_target);
             stream.Write(_skillObject);
 
-            if (_id == 2 || _id == 3 || _id == 4)
-            {
-                if (_dist)
-                {
-                    stream.Write(_effectDelay); // EffectDelay msec
-                    stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10)); // msec
-                    stream.Write((byte)0);      // f
-                    stream.Write(_fireAnimId);  // fire_anim_id
-                }
-                else
-                {
-                    stream.Write((ushort)0);   // EffectDelay msec
-                    stream.Write((ushort)0);   // ChannelingTime msec
-                    stream.Write((byte)1);     // f
-                    stream.Write((byte)15);    // c
-                    stream.Write(_fireAnimId); // fire_anim_id
-                }
-            }
-            else
-            {
-                stream.Write((short)(ComputedDelay / 10)); // TODO +10 It became visible flying arrows
-                stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
-                stream.Write((byte)0); // f
+            stream.Write((short)(ComputedDelay / 10)); // TODO +10 It became visible flying arrows
+            stream.Write((short)(_skill.Template.ChannelingTime / 10 + 10));
+            stream.Write((byte)0); // f
+            if (_skill.Template.Id != 2) // TODO: rotate between mainhand and offhand animation?
                 stream.Write(_skill.Template.FireAnim?.Id ?? 0); // fire_anim_id 
-            }
+            else
+                stream.Write(2);
 
             stream.Write((byte)0); // flag
 

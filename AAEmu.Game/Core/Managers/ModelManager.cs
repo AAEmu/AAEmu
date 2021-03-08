@@ -23,8 +23,11 @@ namespace AAEmu.Game.Core.Managers
 
             if (!_models.ContainsKey(modelType.SubType) || !_models[modelType.SubType].ContainsKey(modelType.SubId))
                 return null;
-            
-            return (ActorModel) _models[modelType.SubType][modelType.SubId];
+
+            var model = _models[modelType.SubType][modelType.SubId];
+            if (model is ActorModel actorModel)
+                return actorModel;
+            return null;
         }
         
         public ShipModel GetShipModel(uint modelId)
@@ -37,7 +40,10 @@ namespace AAEmu.Game.Core.Managers
             if (!_models.ContainsKey(modelType.SubType) || !_models[modelType.SubType].ContainsKey(modelType.SubId))
                 return null;
             
-            return (ShipModel) _models[modelType.SubType][modelType.SubId];
+            var model = _models[modelType.SubType][modelType.SubId];
+            if (model is ShipModel shipModel)
+                return shipModel;
+            return null;
         }
         
         public void Load()

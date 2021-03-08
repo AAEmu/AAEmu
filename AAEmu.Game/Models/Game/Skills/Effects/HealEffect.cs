@@ -107,7 +107,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (UseFixedHeal)
             {
                 value = Rand.Next(FixedMin, FixedMax);
-                value = (int) (value * tickModifier);
+                if (source.Buff != null && source.IsTrigger)
+                {
+                    value = (int)((value / 1000.0f) * source.Amount);
+                } else 
+                    value = (int) (value * tickModifier);
             }
             
             value = (int) (value * caster.HealMul);
@@ -119,10 +123,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 packetBuilder.AddPacket(packet);
             else
                 trg.BroadcastPacket(packet, true);
-            
+
             trg.Hp += value;
             trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
             trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+
+            trg.Events.OnHealed(this, new OnHealedArgs { Healer = caster, HealAmount = value });
         }
     }
 }

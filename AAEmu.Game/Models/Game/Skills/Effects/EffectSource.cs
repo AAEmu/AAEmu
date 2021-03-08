@@ -6,6 +6,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
     {
         public Skill Skill { get; set; }
         public BuffTemplate Buff { get; set; }
+        public int Amount { get; set; }
+        public bool IsTrigger { get; set; }
 
         public EffectSource()
         {

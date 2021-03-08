@@ -1,4 +1,6 @@
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -12,6 +14,12 @@ namespace AAEmu.Game.Models.Game.Units
         public Portal()
         {
             ModelParams = new UnitCustomModelParams();
+        }
+
+        public override void Delete()
+        {
+            BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.PortalTimeout), false);
+            base.Delete();
         }
     }
 }

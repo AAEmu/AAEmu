@@ -198,7 +198,7 @@ namespace AAEmu.Game.Core.Managers
 
                                         if (bindingDoodad.Position == null)
                                             bindingDoodad.Position = new Point(0, 0, 0);
-                                        bindingDoodad.Position.WorldId = 1;
+                                        bindingDoodad.Position.WorldId = 0;
 
                                         doodads.Add(bindingDoodad);
                                     }
@@ -259,7 +259,7 @@ namespace AAEmu.Game.Core.Managers
                             house.Name = reader.GetString("name");
                             house.Position = new Point(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"));
                             house.Position.RotationZ = reader.GetSByte("rotation_z");
-                            house.Position.WorldId = 1;
+                            house.Position.WorldId = 0;
                             house.Position.ZoneId = WorldManager.Instance.GetZoneId(house.Position.WorldId, house.Position.X, house.Position.Y);
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.NumAction = reader.GetInt32("current_action");
@@ -530,7 +530,7 @@ namespace AAEmu.Game.Core.Managers
             house.Position = position;
             house.Position.RotationZ = MathUtil.ConvertRadianToDirection(zRot);
 
-            house.Position.WorldId = 1;
+            house.Position.WorldId = 0;
             house.Position.ZoneId = zoneId;
             if (house.Template.BuildSteps.Count > 0)
                 house.CurrentStep = 0;

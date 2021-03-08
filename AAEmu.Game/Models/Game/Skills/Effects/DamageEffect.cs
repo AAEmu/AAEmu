@@ -423,9 +423,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
             }
-            if (trg is Npc npc && npc.CurrentTarget != caster)
+            if (trg is Npc npc/* && npc.CurrentTarget != caster*/)
             {
-                npc.OnDamageReceived(caster);
+                npc.OnDamageReceived(caster, value);
             }
 
             //Invoke even if damage is 0
@@ -438,10 +438,33 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (value > 0)
             {
                 caster.Events.OnDamage(this, new OnDamageArgs {
-                    Attacker = caster 
+                    Attacker = caster,
+                    Amount = value
                 });
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtc);
-                trg.Events.OnDamaged(this, new OnDamagedArgs { });
+                trg.Events.OnDamaged(this, new OnDamagedArgs {Attacker = caster,
+                    Amount = value });
+                
+                switch (DamageType)
+                {
+                    case DamageType.Melee:
+                        trg.Events.OnDamagedMelee(this, new OnDamagedArgs() {Attacker = caster,
+                            Amount = value });
+                        break;
+                    case DamageType.Ranged:
+                        trg.Events.OnDamagedRanged(this, new OnDamagedArgs() {Attacker = caster,
+                            Amount = value });
+                        break;
+                    case DamageType.Magic:
+                        trg.Events.OnDamagedSpell(this, new OnDamagedArgs() {Attacker = caster,
+                            Amount = value });
+                        break;
+                    case DamageType.Siege:
+                        trg.Events.OnDamagedSiege(this, new OnDamagedArgs() {Attacker = caster,
+                            Amount = value });
+                        break;
+                }
+                
                 trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtc);
             }
         }

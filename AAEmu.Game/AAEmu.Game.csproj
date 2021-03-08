@@ -29,6 +29,7 @@
     
     <ItemGroup>
         <Compile Remove="Scripts\**\**" />
+        <Compile Include="Scripts\Commands\TestAI.cs" />
         <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
         <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
@@ -48,6 +49,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="2.2.0" />
         <PackageReference Include="NLog" Version="4.5.11" />
+        <PackageReference Include="NLua" Version="1.5.6" />
         <PackageReference Include="Quartz" Version="3.2.3" />        
         <PackageReference Include="Ionic.Zlib" Version="1.9.1.5" />
     </ItemGroup>

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -10,6 +11,8 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils.DB;
+using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -26,6 +29,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Dictionary<byte, Dictionary<uint, NpcSpawner>> _npcSpawners;
         private Dictionary<byte, Dictionary<uint, DoodadSpawner>> _doodadSpawners;
         private Dictionary<byte, Dictionary<uint, TransferSpawner>> _transferSpawners;
+        private List<Doodad> _playerDoodads;
 
         public void Load()
         {
@@ -34,6 +38,7 @@ namespace AAEmu.Game.Core.Managers.World
             _npcSpawners = new Dictionary<byte, Dictionary<uint, NpcSpawner>>();
             _doodadSpawners = new Dictionary<byte, Dictionary<uint, DoodadSpawner>>();
             _transferSpawners = new Dictionary<byte, Dictionary<uint, TransferSpawner>>();
+            _playerDoodads = new List<Doodad>();
 
             var worlds = WorldManager.Instance.GetWorlds();
             _log.Info("Loading spawns...");
@@ -118,6 +123,54 @@ namespace AAEmu.Game.Core.Managers.World
 
             }
 
+            
+            _log.Info("Loading character doodads...");
+            using (var connection = MySQL.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM doodads";
+                    command.Prepare();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var templateId = reader.GetUInt32("template_id");
+                            var dbId = reader.GetUInt32("id");
+                            var phaseId = reader.GetUInt32("current_phase_id");
+                            var x = reader.GetFloat("x");
+                            var y = reader.GetFloat("y");
+                            var z = reader.GetFloat("z");
+                            var plantTime = reader.GetDateTime("plant_time");
+                            var growthTime = reader.GetDateTime("growth_time");
+                            var phaseTime = reader.GetDateTime("phase_time");
+                            var ownerId = reader.GetUInt32("owner_id");
+                            var ownerType = reader.GetByte("owner_type");
+
+                            var doodad = new Doodad
+                            {
+                                DbId = dbId,
+                                ObjId = ObjectIdManager.Instance.GetNextId(),
+                                TemplateId = templateId,
+                                Template = DoodadManager.Instance.GetTemplate(templateId),
+                                CurrentPhaseId = phaseId,
+                                OwnerId = ownerId,
+                                OwnerType = (DoodadOwnerType)ownerType,
+                                PlantTime = plantTime,
+                                GrowthTime = growthTime,
+                                Position = new Point(x, y, z)
+                                {
+                                    RotationZ = reader.GetSByte("rotation_z"), WorldId = 0
+                                }
+                            };
+                            
+                            _playerDoodads.Add(doodad);
+                        }
+                    }
+                }
+            }
+            
+            
             var respawnThread = new Thread(CheckRespawns) { Name = "RespawnThread" };
             respawnThread.Start();
         }
@@ -135,6 +188,15 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var (worldId, worldSpawners) in _transferSpawners)
                 foreach (var spawner in worldSpawners.Values)
                     spawner.SpawnAll();
+
+            Task.Run(() =>
+            {
+                foreach (var doodad in _playerDoodads)
+                {
+                    doodad.DoPhase(null, 0);
+                    doodad.Spawn();
+                }
+            });
         }
 
         public void Stop()

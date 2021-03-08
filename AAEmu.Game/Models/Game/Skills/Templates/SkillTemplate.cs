@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public int AbilityLevel { get; set; }
         public uint ChannelingDoodadId { get; set; }
         public int CooldownTagId { get; set; }
-        public int SkillControllerId { get; set; }
+        public uint SkillControllerId { get; set; }
         public int RepeatCount { get; set; }
         public int RepeatTick { get; set; }
         public uint ToggleBuffId { get; set; }

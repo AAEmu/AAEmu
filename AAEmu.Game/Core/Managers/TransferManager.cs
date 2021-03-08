@@ -152,7 +152,7 @@ namespace AAEmu.Game.Core.Managers
                 transfer.Mp = 12000;
                 transfer.ModelParams = new UnitCustomModelParams();
                 transfer.Position = new Point();
-                transfer.Position.WorldId = 1;
+                transfer.Position.WorldId = 0;
                 transfer.Position.ZoneId = 179;
                 transfer.Position.X = 15565.78f;
                 transfer.Position.Y = 14841.25f;
