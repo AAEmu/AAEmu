@@ -133,6 +133,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public AiParams AiParams { get; set; }
         public Dictionary<SkillUseConditionKind, List<NpcSkill>> Skills { get; set; }
         public List<NpcPassiveBuff> PassiveBuffs { get; set; }
+        public uint TotalCustomId { get; set; }
 
         public NpcTemplate()
         {

@@ -152,7 +152,9 @@ namespace AAEmu.Game
             MailManager.Instance.Save();
             ItemManager.Instance.Save();
             */
+            BoatPhysicsManager.Instance.Stop();
 
+            TickManager.Instance.Stop();
             TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }
