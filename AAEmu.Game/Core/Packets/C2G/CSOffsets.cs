@@ -78,7 +78,7 @@
         public const ushort CSDeleteCharacterPacket = 0x14e;
         public const ushort CSCancelCharacterDeletePacket = 0x0df;
         public const ushort CSSelectCharacterPacket = 0x0a4;
-        public const ushort CSCharacterConnectionRestrictPacket_ = 0x0ed;
+        public const ushort CSCharacterConnectionRestrictPacket = 0x0ed;
         public const ushort CSNotifyInGamePacket = 0x0c7;
         public const ushort CSNotifyInGameCompletedPacket = 0x05e;
         public const ushort CSChangeTargetPacket = 0x03e;
@@ -90,7 +90,7 @@
         public const ushort CSStartedCinemaPacket = 0x02d;
         public const ushort CSHSResponsePacket = 0x069;
         public const ushort CSBroadcastVisualOptionPacket = 0x016;
-        public const ushort CSUnknownPacket_0x07c = 0x07c;
+        public const ushort CSBroadcastOpenEquipInfoPacket = 0x07c;
         public const ushort CSRestrictCheckPacket = 0x0d0;
         public const ushort CSICSMenuListPacket = 0x052;
         public const ushort CSICSGoodsListPacket = 0x122;
@@ -267,7 +267,7 @@
         public const ushort CSUnknownPacket_0x021 = 0x021;
         public const ushort CSUnknownPacket_0x0ad = 0x0ad;
         public const ushort CSTakeAttachmentItemPacket = 0x024;
-        public const ushort CSUnknownPacket_0x0a2 = 0x0a2;
+        public const ushort CSActiveWeaponChangedPacket = 0x0a2;
         public const ushort CSUnknownPacket_0x096 = 0x096;
         public const ushort CSUnknownPacket_0x027 = 0x027;
         public const ushort CSUnknownPacket_0x0f4 = 0x0f4;
@@ -360,7 +360,6 @@
         public const ushort CSCharDetailPacket = 0xfff;
         public const ushort CSSetupSecondPasswordPacket = 0xfff;
         public const ushort CSListCharacterPacket = 0xfff;
-        public const ushort CSActiveWeaponChangedPacket = 0xfff;
         public const ushort CSListMailPacket = 0xfff;
         public const ushort CSListMailContinuePacket = 0xfff;
         public const ushort CSChangeHousePayPacket = 0xfff;

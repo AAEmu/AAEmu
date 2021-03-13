@@ -1,31 +1,26 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCHouseFarmPacket : StreamPacket
     {
-        public TCHouseFarmPacket() : base(0x0E)
+        private readonly string _name;
+        private readonly int _total;
+        private readonly int _harvestable;
+        public TCHouseFarmPacket(string name, int total, int harvestable) : base(0x0E)
         {
+            _name = name;
+            _total = total;
+            _harvestable = harvestable;
         }
         
         public override PacketStream Write(PacketStream stream)
         {
-            /*
-            v2 = (char *)this;
-            v3 = (char *)this + 16;
-            if ( a2->Reader->field_1C() )
-            {
-                v3[a2->Reader->ReadString1("name", v2 + 16, 128)] = 0;
-            }
-            else
-            {
-                v4 = GetStrLen(v2 + 16);
-                a2->Reader->ReadString("name", v2 + 16, v4);
-            }
-            a2->Reader->ReadInt32("total", v2 + 8, 0);
-            return a2->Reader->ReadInt32("harvestable", v2 + 12, 0);
-            */
+            stream.Write(_name);        // name
+            stream.Write(_total);       // total
+            stream.Write(_harvestable); // harvestable
+
             return stream;
         }
     }

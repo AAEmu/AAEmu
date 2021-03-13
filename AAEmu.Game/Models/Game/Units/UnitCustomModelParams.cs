@@ -90,7 +90,7 @@ namespace AAEmu.Game.Models.Game.Units
             //foreach (var asset in FixedDecalAsset)
             //    asset.Read(stream);
             // --- begin pish
-            var mAssets = stream.ReadPisc(4);
+            var mAssets = stream.ReadPisc(4); // added in 2.0
             // --- end pish
             FixedDecalAsset[0].AssetId = (uint)mAssets[0];
             FixedDecalAsset[1].AssetId = (uint)mAssets[1];
@@ -101,7 +101,7 @@ namespace AAEmu.Game.Models.Game.Units
             //NormalMapId = stream.ReadUInt32();
             //EyelashMapId = stream.ReadUInt32();
             // --- begin pish
-            var mMap = stream.ReadPisc(3);
+            var mMap = stream.ReadPisc(3); // added in 2.0
             // --- end pish
             DiffuseMapId = (uint)mMap[0];
             NormalMapId = (uint)mMap[1];
@@ -111,7 +111,6 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 FixedDecalAsset[i].AssetWeight = stream.ReadSingle(); // weight
             }
-
 
             NormalMapWeight = stream.ReadSingle();
             LipColor = stream.ReadUInt32();
@@ -134,11 +133,13 @@ namespace AAEmu.Game.Models.Game.Units
 
             //foreach (var asset in FixedDecalAsset)
             //    stream.Write(asset);
+            // added in 2.0
             stream.WritePisc(FixedDecalAsset[0].AssetId, FixedDecalAsset[1].AssetId, FixedDecalAsset[2].AssetId, FixedDecalAsset[3].AssetId);
 
             //stream.Write(DiffuseMapId);
             //stream.Write(NormalMapId);
             //stream.Write(EyelashMapId);
+            // added in 2.0
             stream.WritePisc(DiffuseMapId, NormalMapId, EyelashMapId);
             
             for (var i = 0; i < 4; i++)

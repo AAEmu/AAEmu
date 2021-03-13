@@ -1,16 +1,23 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCEmblemStreamDownloadPacket : StreamPacket
     {
-        public TCEmblemStreamDownloadPacket() : base(0x0C)
+        private readonly int _index;
+        private readonly byte[] _data;
+        public TCEmblemStreamDownloadPacket(int index, byte[] data) : base(0x0C)
         {
+            _index = index;
+            _data = data;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
+            stream.Write(_index); // index
+            stream.Write(_data.Length);  // size
+            stream.Write(_data, false);  // data, size max 3096
             /*
             v2 = (char *)this;
             a2->Reader->ReadInt32("index", (char *)this + 8, 0);

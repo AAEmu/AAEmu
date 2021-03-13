@@ -39,6 +39,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write(_item.UnsecureTime);
             stream.Write(_item.UnpackTime);
             stream.Write(_item.ChargeUseSkillTime); // added in 1.7
+
             return stream;
         }
     }

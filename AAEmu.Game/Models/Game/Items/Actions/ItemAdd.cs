@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             base.Write(stream);
 
             stream.Write((byte)_item.SlotType);
-            stream.Write((byte)_item.Slot);
+            stream.Write((byte)_item.Slot); // index
 
             stream.Write(_item.TemplateId);
             stream.Write(_item.Id);
@@ -39,6 +39,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write(_item.UnsecureTime);
             stream.Write(_item.UnpackTime);
             stream.Write(_item.ChargeUseSkillTime); // added in 1.7
+
             return stream;
         }
     }

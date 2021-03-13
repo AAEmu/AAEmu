@@ -17,14 +17,17 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_buff.SkillCaster);
-            stream.Write((_buff.Caster is Character character) ? character.Id : 0); // casterId
+            // ----
+            stream.Write(_buff.Caster is Character character ? character.Id : 0); // casterId
             stream.WriteBc(_buff.Owner.ObjId);   // targetBcId
-            stream.Write(_buff.Index);
+            stream.Write(_buff.Index);           // Buff Index
+            // ----
             stream.Write(_buff.Template.BuffId); // buffId
             stream.Write(_buff.Caster.Level);    // sourceLevel
             stream.Write((short)_buff.AbLevel);  // sourceAbLevel
+
             //TODO: Fix this applying CD to wrong skill
-            //stream.Write(_effect.Skill?.Template.Id ?? 0); // skillId
+            //stream.Write(_buff.Skill?.Template.Id ?? 0); // s skillId
             if (_buff.Skill != null && _buff.Skill.Template.ToggleBuffId == _buff.Template.Id)
             {
                 stream.Write(_buff.Skill.Template.Id); // skillId
@@ -34,7 +37,8 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0);
             }
 
-            _buff.WriteData(stream);
+            _buff.WriteData(stream); // pisc(totalTime, elapsedTime, tickTime, tickIndex), added in 2.0
+
             return stream;
         }
     }

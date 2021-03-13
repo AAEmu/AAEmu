@@ -21,6 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_familyId);
             stream.Write(_memberId);
             stream.Write(_online);
+
             return stream;
         }
     }

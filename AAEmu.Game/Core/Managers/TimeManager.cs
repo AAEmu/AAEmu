@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
@@ -10,11 +11,11 @@ namespace AAEmu.Game.Core.Managers
 {
     public class TimeManager : Singleton<TimeManager>, IObservable<float>
     {
-        private List<IObserver<float>> _observers;
+        private readonly List<IObserver<float>> _observers;
         private bool _work;
         private const float MaxTime = 86400;
         private float _time = 43200; // TODO 12h 00m
-        private float _tick = 3600 * Speed;
+        private readonly float _tick = 3600 * Speed;
 
         public static float Speed = .0016666f;
         public float GetTime() => _time / 3600f;
@@ -22,15 +23,17 @@ namespace AAEmu.Game.Core.Managers
         public TimeManager()
         {
             _observers = new List<IObserver<float>>();
-            ;
         }
 
         public IDisposable Subscribe(IObserver<float> observer)
         {
             if (_observers.Contains(observer))
+            {
                 return null;
+            }
+
             _observers.Add(observer);
-            
+
             return new Unsubscriber<float>(_observers, observer);
         }
 
@@ -42,9 +45,10 @@ namespace AAEmu.Game.Core.Managers
 
         public void Start()
         {
-            _time = 12 * 60 * 60;
+            var date = DateTime.UtcNow;
+            _time = date.Hour * 60 * 60 + date.Minute * 60;
             _work = true;
-            new Thread(Tick) {Name = "TimeManagerThread"}.Start();
+            new Thread(Tick) { Name = "TimeManagerThread" }.Start();
         }
 
         public void Stop()
@@ -58,9 +62,11 @@ namespace AAEmu.Game.Core.Managers
             {
                 _time += _tick * 10;
                 if (_time > MaxTime)
+                {
                     _time -= MaxTime;
+                }
 
-                new Thread(Push) {Name = "TimeManagerPushThread"}.Start();
+                new Thread(Push) { Name = "TimeManagerPushThread" }.Start();
                 Thread.Sleep(10000);
             }
         }
@@ -69,7 +75,9 @@ namespace AAEmu.Game.Core.Managers
         {
             var time = GetTime();
             foreach (var observer in _observers)
+            {
                 observer.OnNext(time);
+            }
         }
     }
 }

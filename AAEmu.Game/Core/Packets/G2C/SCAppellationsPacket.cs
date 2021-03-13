@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_appellations.Length); // countApps
-            // TODO in 1.2 max 512
+            // TODO in 1.2 ... 2.0 max 512
             foreach (var (id, selected) in _appellations)
             {
                 stream.Write(id);       // type UInt32

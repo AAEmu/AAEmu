@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly SystemFaction[] _factions;
 
-        public SCFactionListPacket() : base(0x007, 1)
+        public SCFactionListPacket() : base(SCOffsets.SCFactionListPacket, 5)
         {
             _factions = new SystemFaction[] { };
         }
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            // TODO in 1.2 max 20
+            // TODO in 1.2 ... 2.0 max 20
             stream.Write((byte)_factions.Length); // count Byte
             foreach (var faction in _factions)
             {

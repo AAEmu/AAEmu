@@ -14,7 +14,6 @@ namespace AAEmu.Game.Models.Game.Char
 
         public override void Read(PacketStream stream)
         {
-            // все эти данные необходимо читать из пакета
             _flag = stream.ReadByte(); // voptflag
             if ((_flag & 1) == 1)
                 Stp = stream.ReadBytes(6); // stp
@@ -38,7 +37,6 @@ namespace AAEmu.Game.Models.Game.Char
 
         public PacketStream Write(PacketStream stream, byte flag)
         {
-            // все эти данные необходимо выводить в пакет
             if ((flag & 1) == 1)
                 stream.Write(Stp); // stp
             if ((flag & 2) == 2)
@@ -51,6 +49,17 @@ namespace AAEmu.Game.Models.Game.Char
                 stream.Write(CosplayBackpack); // cosplay_backpack
             if ((flag & 0x20) == 0x20)
                 stream.Write(CosplayVisual); // cosplay_visual, added in 1.7
+            return stream;
+        }
+        public PacketStream WriteOptions(PacketStream stream, byte flag)
+        {
+            // все эти данные необходимо выводить в пакет UnitState
+            stream.Write(Stp); // stp
+            stream.Write(Helmet); // helmet
+            stream.Write(BackHoldable); // back_holdable
+            stream.Write(Cosplay); // cosplay
+            stream.Write(CosplayBackpack); // cosplay_backpack
+            stream.Write(CosplayVisual); // cosplay_visual, added in 1.7
             return stream;
         }
     }

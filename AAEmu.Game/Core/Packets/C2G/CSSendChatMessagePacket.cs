@@ -19,8 +19,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         private int ability;
         private byte languageType;
         private byte[] linkType = new byte[4];
-        private short[] start = new short[4];
-        private short[] lenght = new short[4];
+        private ushort[] start = new ushort[4];
+        private ushort[] lenght = new ushort[4];
         private readonly Dictionary<int, byte[]> data = new Dictionary<int, byte[]>();
         
         public CSSendChatMessagePacket() : base(CSOffsets.CSSendChatMessagePacket, 5)
@@ -43,8 +43,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 if (linkType[i] > 0)
                 {
-                    start[i] = stream.ReadInt16();
-                    lenght[i] = stream.ReadInt16();
+                    start[i] = stream.ReadUInt16();
+                    lenght[i] = stream.ReadUInt16();
                     switch (linkType[i])
                     {
                         case 1:

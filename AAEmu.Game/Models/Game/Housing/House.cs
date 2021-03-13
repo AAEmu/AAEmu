@@ -275,8 +275,7 @@ namespace AAEmu.Game.Models.Game.Housing
             stream.Write(Id);   // dbId
             stream.WriteBc(ObjId);
             stream.Write(TemplateId);
-            stream.WritePisc(ModelId, 0); // ?
-            //stream.Write(ModelId);      // ht
+            stream.Write(ModelId);        // ht
             stream.Write(CoOwnerId);      // type(id)
             stream.Write(OwnerId);        // type(id)
             stream.Write(ownerName ?? "");
@@ -294,15 +293,18 @@ namespace AAEmu.Game.Models.Game.Housing
                 stream.Write(CurrentAction); // curstep
             }
             
-            stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
+            //stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
+            
             stream.Write(Helpers.ConvertLongX(Position.X));
             stream.Write(Helpers.ConvertLongY(Position.Y));
             stream.Write(Position.Z);
-            stream.Write(Name); // house // TODO max length 128
-            stream.Write(true); // allowRecover
-            stream.Write(SellPrice); // Sale moneyAmount
-            stream.Write(SellToPlayerId); // type(id)
-            stream.Write(sellToPlayerName??""); // sellToName
+
+            stream.Write(Name);                   // house // TODO max length 128
+            stream.Write(true);                   // allowRecover
+            stream.Write(SellPrice);              // Sale moneyAmount
+            stream.Write(SellToPlayerId);         // type(id)
+            stream.Write(sellToPlayerName ?? ""); // sellToName
+
             return stream;
         }
 

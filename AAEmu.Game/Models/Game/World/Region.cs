@@ -324,10 +324,10 @@ namespace AAEmu.Game.Models.Game.World
                     }
                 }
 
-                for (var offset = 0; offset < unitIds.Length; offset += 500)
+                for (var offset = 0; offset < unitIds.Length; offset += 400)
                 {
                     var length = unitIds.Length - offset;
-                    var temp = new uint[length > 500 ? 500 : length];
+                    var temp = new uint[length > 400 ? 400 : length]; // in 2.0 max 400
                     Array.Copy(unitIds, offset, temp, 0, temp.Length);
                     character1.SendPacket(new SCUnitsRemovedPacket(temp));
                 }
@@ -335,7 +335,7 @@ namespace AAEmu.Game.Models.Game.World
                 for (var offset = 0; offset < doodadIds.Length; offset += 400)
                 {
                     var length = doodadIds.Length - offset;
-                    var last = length <= 400;
+                    var last = length <= 400; // max 400
                     var temp = new uint[last ? length : 400];
                     Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                     character1.SendPacket(new SCDoodadsRemovedPacket(last, temp));

@@ -24,6 +24,7 @@ namespace AAEmu.Game.Models.Game.Team
             stream.Write(Character.Level);
             stream.Write((byte)Role);
             stream.WriteBc(Character.ObjId);
+
             return stream;
         }
 
@@ -42,6 +43,7 @@ namespace AAEmu.Game.Models.Game.Team
             stream.Write((byte)Character.Ability2);
             stream.Write((byte)Character.Ability3);
             stream.Write(!Character.IsOnline);
+
             return stream;
         }
     }

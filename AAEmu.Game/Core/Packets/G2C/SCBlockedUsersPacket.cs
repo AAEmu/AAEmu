@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_total);
             stream.Write(_blocked.Length); // count
-            // TODO in 1.2 max length 500
+            // TODO in 1.2 ... 2.0  max length 500
             foreach (var blocked in _blocked)
             {
                 stream.Write(blocked);

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
@@ -20,12 +20,12 @@ namespace AAEmu.Game.Core.Packets.S2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_id);
-            stream.Write(_nextId);
-            stream.Write(_total);
-            stream.Write(_objIds.Length);
+            stream.Write(_id);            // id
+            stream.Write(_nextId);        // next
+            stream.Write(_total);         // total
+            stream.Write(_objIds.Length); // count
             foreach (var objId in _objIds)
-                stream.WriteBc(objId);
+                stream.WriteBc(objId);    // did - DoodadId ?
 
             return stream;
         }

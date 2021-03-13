@@ -33,11 +33,17 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new SetGameTypePacket(levelname, 0, 1)); // TODO - level
                     Connection.SendPacket(new SCInitialConfigPacket());
                     Connection.SendPacket(new SCTrionConfigPacket(false, "", "", "", "")); // TODO - config files
-
                     Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
-                    Connection.SendPacket(new SCChatSpamConfig());
+                    Connection.SendPacket(new SCChatSpamConfigPacket());
                     Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true })); // TODO
-                    // TODO Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15 })); // TODO - config files
+                    Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0 })); // TODO - config files
+                    Connection.SendPacket(new SCTaxItemConfigPacket(0));
+                    Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
+                    
+                    //Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
+                    //Connection.SendPacket(new SCProtectFactionPacket(1, DateTime.UtcNow));
+                    //Connection.SendPacket(new SCTaxItemConfig2Packet(0));
+                    
                     break;
                 case 1:
                     Connection.SendPacket(new ChangeStatePacket(2));

@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((byte)_rolePolicies.Count);  // count Byte
-            foreach (var rolePolicy in _rolePolicies) // TODO in 1.2 max length 20
+            foreach (var rolePolicy in _rolePolicies) // TODO in 1.2 ... 2.0 max length 20
             {
                 stream.Write(rolePolicy);
             }

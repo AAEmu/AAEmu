@@ -21,6 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(_id);
             stream.Write(_preciseHealth);
             stream.Write(_preciseMana);
+
             return stream;
         }
     }

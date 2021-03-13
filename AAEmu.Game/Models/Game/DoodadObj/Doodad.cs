@@ -20,6 +20,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         private float _scale;
 
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        public byte Flag { get; set; }
         public uint TemplateId { get; set; }
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
@@ -231,42 +232,43 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(ObjId); //The object # in the list
-            stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
-            stream.WriteBc(OwnerObjId); //The creator of the object
+            // TemplateId - The template id needed for that object, the client then uses the template configurations, not the server
+            // FuncGroupId - doodad_func_group_id
+            // QuestGlow - When this is higher than 0 it shows a blue orb over the doodad
+            // added in 2.0
+            stream.WritePisc(TemplateId, FuncGroupId, CurrentPhaseId, QuestGlow); // TODO требуется проверка, что здесь посылать из данных
+            stream.Write(Flag);
+            // ----
+            stream.WriteBc(OwnerObjId);  //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
             if (AttachPoint != 255 && AttachPosition != null)
             {
                 stream.WritePosition(AttachPosition.X, AttachPosition.Y, AttachPosition.Z);
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationX)); //''
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationY)); //''
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationZ)); //''
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationX)); // short
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationY)); // short
+                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationZ)); // short
             }
             else
             {
-                stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
-                stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
-                stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
-                stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
+                stream.WritePosition(Position.X, Position.Y, Position.Z);  // self explanatory
+                stream.Write(Helpers.ConvertRotation(Position.RotationX)); // short
+                stream.Write(Helpers.ConvertRotation(Position.RotationY)); // short
+                stream.Write(Helpers.ConvertRotation(Position.RotationZ)); // short
             }
 
-            stream.Write(Scale); //The size of the object
+            stream.Write(Scale); // The size of the object
             stream.Write(false); // hasLootItem
-            stream.Write(CurrentPhaseId); // doodad_func_group_id
             stream.Write(OwnerId); // characterId (Database relative)
             stream.Write(ItemId); // ?? must be ulong though (ItemId seems to be the only ulong)
             stream.Write(0u); //??type1
-            stream.Write(0u); //??type2
             stream.Write(TimeLeft); // growing
             stream.Write(PlantTime); //Time stamp of when it was planted
-            stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
             stream.Write(0); // family TODO
             stream.Write(-1); // puzzleGroup /for instances maybe?
             stream.Write((byte)OwnerType); // ownerType
             stream.Write(DbHouseId); // dbHouseId
             stream.Write(Data);  // data
-            stream.Write(false); // spawn, added in 1.7
-            stream.Write(false); // preSpawnable, added in 1.8
 
             return stream;
         }

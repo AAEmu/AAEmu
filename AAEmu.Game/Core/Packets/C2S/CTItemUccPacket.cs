@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S
@@ -11,29 +11,13 @@ namespace AAEmu.Game.Core.Packets.C2S
 
         public override void Read(PacketStream stream)
         {
-            /*
-            v2 = (char *)this;
-            a2->Reader->ReadUInt32("type", (char *)this + 8, 0);
-            v3 = (int *)(v2 + 240);
-            a2->Reader->ReadUInt32("num", v2 + 240, 0);
-            v4 = 0;
-            for ( i = (int)(v2 + 16); ; i += 8 )
+            var type = stream.ReadUInt32();
+            var num = stream.ReadUInt32();
+            var itemId = new ulong[num];
+            for (var i = 0; i < num; i++) // num, max 28
             {
-                v6 = *v3;
-                v11 = v6;
-                v9 = __OFSUB__(v6, 28);
-                v7 = v6 == 28;
-                v8 = v6 - 28 < 0;
-                result = &dword_397114E0;
-                if ( (unsigned __int8)(v8 ^ v9) | v7 )
-                result = &v11;
-                if ( v4 >= *result )
-                    break;
-                a2->Reader->ReadUInt64("itemId", i, 0);
-                ++v4;
+                itemId[i] = stream.ReadUInt64();
             }
-            return result;
-            */
         }
     }
 }

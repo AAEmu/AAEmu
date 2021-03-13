@@ -2232,7 +2232,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 for (var j = 0; j < 3; j++)
                 {
-                    stream.Write((byte)0); // savedAbilitySets
+                    stream.Write((byte)0); // savedAbilitySets, added in 2.0
                 }
             }
 

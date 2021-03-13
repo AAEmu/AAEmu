@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -120,7 +121,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
             }
 
-            if (_unit.OwnerId > 0) // master
+            if (_unit.OwnerId > 0) // master, size max 128
             {
                 var name = NameManager.Instance.GetCharacterName(_unit.OwnerId);
                 stream.Write(name ?? "");
@@ -133,6 +134,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WritePosition(_unit.Position.X, _unit.Position.Y, _unit.Position.Z);
             stream.Write(_unit.Scale);   // scale
             stream.Write(_unit.Level);   // level
+            stream.Write((byte)0);       // level, added in 2.0
             stream.Write(_unit.ModelId); // modelRef
 
             switch (_unit)
@@ -140,93 +142,207 @@ namespace AAEmu.Game.Core.Packets.G2C
                 case Character unit:
                     {
                         var character = unit;
-                        for (var i = 0; i < character.Inventory.Equipment.GetSlottedItemsList().Count; i++)
-                        {
-                            var item = character.Inventory.Equipment.GetItemBySlot(i);
-                            if (item is BodyPart)
-                            {
-                                stream.Write(item.TemplateId);
-                            }
-                            else if (item != null)
-                            {
-                                stream.Write(item);
-                            }
-                            else
-                            {
-                                stream.Write(0);
-                            }
-                        }
-                        //stream.WriteBc(0); // TODO added to fix HP & MP
-                        //var v17 = 0;
-                        //do
-                        //{
-                        //    var item = character.Inventory.Equipment.GetItemBySlot(v17);
-                        //    if ((v17 - 19) < 0 || (v17 - 19) > 6)
-                        //    {
-                        //        if (item != null)
-                        //        {
-                        //            stream.Write(item);
-                        //        }
-                        //        else
-                        //        {
-                        //            stream.Write(0);
-                        //        }
-                        //    }
-                        //    else // BodyParts somehow_special [19..25]
-                        //    {
-                        //        if (item != null)
-                        //        {
-                        //            stream.Write(item.TemplateId);
-                        //        }
-                        //        else
-                        //        {
-                        //            stream.Write(0);
-                        //        }
-                        //    }
-                        //    ++v17;
-                        //}
-                        //while (v17 < 28);
+                        var index = 0;
+                        var validFlags = 0;
 
+                        //for (var i = 0; i < character.Inventory.Equipment.GetSlottedItemsList().Count; i++)
+                        //{
+                        //    var item = character.Inventory.Equipment.GetItemBySlot(i);
+                        //    if (item is BodyPart)
+                        //    {
+                        //        stream.Write(item.TemplateId);
+                        //    }
+                        //    else if (item != null)
+                        //    {
+                        //        stream.Write(item);
+                        //    }
+                        //    else
+                        //    {
+                        //        stream.Write(0);
+                        //    }
+                        //}
+                        #region CharacterInfo_A5D0
+                        // calculate validFlags, added in  2.0
+                        var items = character.Inventory.Equipment.GetSlottedItemsList();
+                        foreach (var item in items)
+                        {
+                            if (item != null)
+                            {
+                                validFlags |= 1 << index;
+                            }
+
+                            index++;
+                        }
+                        stream.Write((uint)validFlags); // validFlags, added in  2.0
+                        var itemSlot = EquipmentItemSlot.Head;
+                        foreach (var item in items)
+                        {
+                            if (item == null)
+                            {
+                                itemSlot++;
+                                continue;
+                            }
+                            switch (itemSlot)
+                            {
+                                case EquipmentItemSlot.Head:
+                                case EquipmentItemSlot.Neck:
+                                case EquipmentItemSlot.Chest:
+                                case EquipmentItemSlot.Waist:
+                                case EquipmentItemSlot.Legs:
+                                case EquipmentItemSlot.Hands:
+                                case EquipmentItemSlot.Feet:
+                                case EquipmentItemSlot.Arms:
+                                case EquipmentItemSlot.Back:
+                                case EquipmentItemSlot.Undershirt:
+                                case EquipmentItemSlot.Underpants:
+                                case EquipmentItemSlot.Mainhand:
+                                case EquipmentItemSlot.Offhand:
+                                case EquipmentItemSlot.Ranged:
+                                case EquipmentItemSlot.Musical:
+                                case EquipmentItemSlot.Cosplay:
+                                    stream.Write(item);
+                                    break;
+                                case EquipmentItemSlot.Face:
+                                case EquipmentItemSlot.Hair:
+                                case EquipmentItemSlot.Glasses:
+                                case EquipmentItemSlot.Tail:
+                                case EquipmentItemSlot.Body:
+                                case EquipmentItemSlot.Beard:
+                                    stream.Write(item.TemplateId);
+                                    break;
+                                case EquipmentItemSlot.Ear1:
+                                case EquipmentItemSlot.Ear2:
+                                case EquipmentItemSlot.Finger1:
+                                case EquipmentItemSlot.Finger2:
+                                case EquipmentItemSlot.Backpack:
+                                case EquipmentItemSlot.Reserved:
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException();
+                            }
+                            itemSlot++;
+                        }
+                        #endregion CharacterInfo_A5D0
+
+                        if (_unit is Character chrUnit)
+                        {
+                            index = 0;
+                            var ItemFlags = 0u;
+                            foreach (var item in items)
+                            {
+                                if (item != null)
+                                {
+                                    var v15 = (uint)item.ItemFlags << index;
+                                    ++index;
+                                    ItemFlags |= v15;
+                                }
+                            }
+                            stream.Write(ItemFlags); // flags for 2.0
+                        }
                         break;
                     }
                 case Npc unit:
                     {
                         var npc = unit;
+                        var index = 0;
+                        var validFlags = 0;
+                        //for (var i = 0; i < npc.Equipment.GetSlottedItemsList().Count; i++)
+                        //{
+                        //    var item = npc.Equipment.GetItemBySlot(i);
+
+                        //    if (item is BodyPart)
+                        //    {
+                        //        stream.Write(item.TemplateId);
+                        //    }
+                        //    else if (item != null)
+                        //    {
+                        //        if (i >= 26) // Cosplay
+                        //        {
+                        //            stream.Write(item);
+                        //        }
+                        //        else
+                        //        {
+                        //            stream.Write(item.TemplateId);
+                        //            stream.Write(0L);
+                        //            stream.Write((byte)0);
+                        //        }
+                        //    }
+                        //    else
+                        //    {
+                        //        stream.Write(0);
+                        //    }
+                        //}
+                        // calculate validFlags, added in  2.0
                         for (var i = 0; i < npc.Equipment.GetSlottedItemsList().Count; i++)
                         {
                             var item = npc.Equipment.GetItemBySlot(i);
-
-                            if (item is BodyPart)
+                            if (item != null)
                             {
-                                stream.Write(item.TemplateId);
+                                validFlags |= 1 << index;
                             }
-                            else if (item != null)
+
+                            index++;
+                        }
+                        stream.Write((uint)validFlags); // validFlags for 3.0.3.0
+                        var itemSlot = EquipmentItemSlot.Head;
+                        var items = npc.Equipment.GetSlottedItemsList();
+                        foreach (var item in items)
+                        {
+                            if (item == null)
                             {
-                                if (i >= 26) // Cosplay
-                                {
-                                    stream.Write(item);
-                                }
-                                else
-                                {
+                                itemSlot++;
+                                continue;
+                            }
+                            switch (itemSlot)
+                            {
+                                case EquipmentItemSlot.Head:
+                                case EquipmentItemSlot.Neck:
+                                case EquipmentItemSlot.Chest:
+                                case EquipmentItemSlot.Waist:
+                                case EquipmentItemSlot.Legs:
+                                case EquipmentItemSlot.Hands:
+                                case EquipmentItemSlot.Feet:
+                                case EquipmentItemSlot.Arms:
+                                case EquipmentItemSlot.Back:
+                                case EquipmentItemSlot.Undershirt:
+                                case EquipmentItemSlot.Underpants:
+                                case EquipmentItemSlot.Mainhand:
+                                case EquipmentItemSlot.Offhand:
+                                case EquipmentItemSlot.Ranged:
+                                case EquipmentItemSlot.Musical:
                                     stream.Write(item.TemplateId);
                                     stream.Write(0L);
                                     stream.Write((byte)0);
-                                }
+                                    break;
+                                case EquipmentItemSlot.Cosplay:
+                                    stream.Write(item);
+                                    break;
+                                case EquipmentItemSlot.Face:
+                                case EquipmentItemSlot.Hair:
+                                case EquipmentItemSlot.Glasses:
+                                case EquipmentItemSlot.Tail:
+                                case EquipmentItemSlot.Body:
+                                case EquipmentItemSlot.Beard:
+                                    stream.Write(item.TemplateId);
+                                    break;
+                                case EquipmentItemSlot.Ear1:
+                                case EquipmentItemSlot.Ear2:
+                                case EquipmentItemSlot.Finger1:
+                                case EquipmentItemSlot.Finger2:
+                                case EquipmentItemSlot.Backpack:
+                                    break;
                             }
-                            else
-                            {
-                                stream.Write(0);
-                            }
+                            itemSlot++;
                         }
                         break;
                     }
-                default:
+                default: // for transfer and other
                     {
-                        for (var i = 0; i < 28; i++)
-                        {
-                            stream.Write(0);
-                        }
-
+                        //for (var i = 0; i < 28; i++)
+                        //{
+                        //    stream.Write(0);
+                        //}
+                        stream.Write(0u); // validFlags for 2.0
                         break;
                     }
             }
@@ -357,30 +473,91 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.Write(_unit.ActiveWeapon);
 
-            if (_unit is Character)
+            switch (_unit)
             {
-                var character = (Character)_unit;
-                stream.Write((byte)character.Skills.Skills.Count);
-                foreach (var skill in character.Skills.Skills.Values)
-                {
-                    stream.Write(skill.Id);
-                }
+                case Character character:
+                    {
+                        stream.Write((byte)character.Skills.Skills.Count);       // learnedSkillCount
+                        foreach (var skill in character.Skills.Skills.Values)
+                        {
+                            stream.WritePisc(skill.Id);
+                        }
 
-                stream.Write(character.Skills.PassiveBuffs.Count);
-                foreach (var buff in character.Skills.PassiveBuffs.Values)
-                {
-                    stream.Write(buff.Id);
-                }
+                        stream.Write(0u); // count
+                        /*
+                          (a3->Read->Int32)("count", v3 + 7844, 0);
+                          v19 = 0;
+                          if ( *(v3 + 7844) > 0 )
+                          {
+                            LODWORD(v90) = v3 + 7848;
+                            do
+                            {
+                              (a3->Read->UInt32)("type", LODWORD(v90), 0);
+                              LODWORD(v90) += 4;
+                              ++v19;
+                            }
+                            while ( v19 < *(v3 + 7844) );
+                          }
+                         */
+                        for (var i = 0; i < 3; i++)
+                        {
+                            stream.Write((byte)character.Skills.PassiveBuffs.Count); // savedSkillCount
+                            foreach (var buff in character.Skills.PassiveBuffs.Values)
+                            {
+                                stream.WritePisc(buff.Id);
+                            }
+                            stream.Write(0u); // count
+                            /*
+                                 (a3->Read->Int32)("count", v92, 0);
+                                v30 = 0;
+                                if ( *v92 > 0 )
+                                {
+                                  LODWORD(v89) = v92 + 4;
+                                  do
+                                  {
+                                    (a3->Read->UInt32)(a3, "type", LODWORD(v89), 0);
+                                    LODWORD(v89) += 4;
+                                    ++v30;
+                                  }
+                                  while ( v30 < *v92 );
+                                }
+    
+                             */
+                        }
+                        break;
+                    }
+                case Npc npc:
+                    stream.Write((byte)1); // learnedSkillCount
+                    stream.WritePisc(npc.Template.BaseSkillId);
+                    stream.Write(0u); // count
+                    for (var i = 0; i < 3; i++)
+                    {
+                        stream.Write((byte)0); // savedSkillCount
+                        stream.Write(0u); // count
+                    }
+                    break;
+                default:
+                    stream.Write((byte)0); // learnedSkillCount
+                    stream.Write(0u); // count
+                    for (var i = 0; i < 3; i++)
+                    {
+                        stream.Write((byte)0); // savedSkillCount
+                        stream.Write(0u); // count
+                    }
+                    break;
+            }
+
+            if (_baseUnitType == BaseUnitType.Housing)
+            {
+                stream.Write((float)_unit.Position.RotationZ); // должно быть float
+                //stream.Write(Helpers.ConvertDirectionToRadian(_unit.Position.RotationZ)); // должно быть float
             }
             else
             {
-                stream.Write((byte)0); // learnedSkillCount
-                stream.Write(0);       // learnedBuffCount
+                stream.Write(_unit.Position.RotationX);
+                stream.Write(_unit.Position.RotationY);
+                stream.Write(_unit.Position.RotationZ);
             }
-
-            stream.Write(_unit.Position.RotationX);
-            stream.Write(_unit.Position.RotationY);
-            stream.Write(_unit.Position.RotationZ);
 
             switch (_unit)
             {
@@ -395,33 +572,32 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
             }
 
-            if (_unit is Character)
+            if (_unit is Character character4) // added in 2.0
             {
-                stream.WritePisc(0, 0, ((Character)_unit).Appellations.ActiveAppellation, 0); // pisc
+                stream.WritePisc(0, 0, character4.Appellations.ActiveAppellation, 0);      // pisc
+                stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
             }
             else
             {
-                stream.WritePisc(0, 0, 0, 0); // pisc
+                stream.WritePisc(0, 0, 0, 0);
+                stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
             }
 
-            stream.WritePisc(_unit.Faction?.Id ?? 0, _unit.Expedition?.Id ?? 0, 0, 0); // pisc
-
-            if (_unit is Character)
+            if (_unit is Character character5)
             {
-                var character = (Character)_unit;
                 var flags = new BitSet(16);
 
-                if (character.Invisible)
+                if (character5.Invisible)
                 {
                     flags.Set(5);
                 }
 
-                if (character.IdleStatus)
+                if (character5.IdleStatus)
                 {
                     flags.Set(13);
                 }
 
-                stream.WritePisc(0, 0); // очки чести полученные в PvP, кол-во убийств в PvP
+                stream.WritePisc(0, 0, 0); // очки чести полученные в PvP, кол-во убийств в PvP, third value added in 2.0
                 stream.Write(0u); // periodLeadership, added in 1.8
                 stream.Write(flags.ToByteArray()); // flags(ushort)
                 /*
@@ -436,47 +612,18 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
             else
             {
-                stream.WritePisc(0, 0); // pisc
+                stream.WritePisc(0, 0, 0); // pisc, third value added in 2.0
                 stream.Write(0u); // periodLeadership, added in 1.8
                 stream.Write((ushort)0); // flags
             }
 
-            /*
-                (a2->Read->UInt16)("flags", &v64, 0);
-            ...
-                v22 = BYTE1(v64);
-            ...
-                v26 = v22 & 1;
-            ...
-                if ( v26 ) // flags
-                {
-                  (a2->Read->UInt32)("firstHitterTeamId", v2 + 8004, 0);
-                }
-                if ( v65 )
-                {
-                  (a2->Read->UInt16)(a2, "tl", v2 + 7228, 0);
-                  (a2->Read->UInt16)(a2, "tl", v2 + 7232, 0);
-                  (a2->Read->UInt16)(a2, "tl", v2 + 7236, 0);
-                  (a2->Read->UInt16)(a2, "tl", v2 + 7240, 0);
-                }
-                if ( v66 )
-                {
-                  v45 = 0;
-                  do
-                    (a2->Read->Byte)("gmmode", &v2[v45++ + 7980], 0);
-                  while ( v45 < 7 );
-                }
-             */
-
-            if (_unit is Character)
+            if (_unit is Character character6)
             {
-                var character = (Character)_unit;
-
-                var activeAbilities = character.Abilities.GetActiveAbilities();
-                foreach (var ability in character.Abilities.Values)
+                var activeAbilities = character6.Abilities.GetActiveAbilities();
+                foreach (var ability in character6.Abilities.Values) // in 1.2 ... 2.0 max 10
                 {
-                    stream.Write(ability.Exp);
-                    stream.Write(ability.Order);
+                    stream.Write(ability.Exp); // exp UInt32
+                    stream.Write(ability.Order); // order SByte
                 }
 
                 stream.Write((byte)activeAbilities.Count); // nActive
@@ -485,10 +632,18 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write((byte)ability); // active
                 }
 
+                for (var i = 0; i < 3; i++)
+                {
+                    for (var j = 0; j < 3; j++)
+                    {
+                        stream.Write((byte)0); // savedAbility, added in 2.0
+                    }
+                }
                 stream.WriteBc(0);
-                stream.Write(0u); // type, added in 1.8
+                //stream.Write(0u); // type, added in 1.8, removed in 2.0
+                stream.Write((byte)0); // camp, added in 2.0
 
-                character.VisualOptions.Write(stream, 0x20); // cosplay_visual
+                character6.VisualOptions.WriteOptions(stream, 0x20); // cosplay_visual
 
                 stream.Write(1); // premium
 
@@ -503,16 +658,16 @@ namespace AAEmu.Game.Core.Packets.G2C
             var hiddenBuffs = new List<Buff>();
 
             // TODO: Fix the patron and auction house license buff issue
-            if (_unit is Character)
+            if (_unit is Character caster)
             {
-                if (!_unit.Buffs.CheckBuff(8000011)) //TODO Wrong place
+                if (!caster.Buffs.CheckBuff(8000011)) //TODO Wrong place
                 {
-                    _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
+                    caster.Buffs.AddBuff(new Buff(_unit, caster, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
                 }
 
-                if (!_unit.Buffs.CheckBuff(8000012)) //TODO Wrong place
+                if (!caster.Buffs.CheckBuff(8000012)) //TODO Wrong place
                 {
-                    _unit.Buffs.AddBuff(new Buff(_unit, _unit, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
+                    caster.Buffs.AddBuff(new Buff(_unit, caster, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
                 }
             }
 
@@ -521,58 +676,61 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((byte)goodBuffs.Count); // TODO max 32
             foreach (var effect in goodBuffs)
             {
-                stream.Write(effect.Index);
-                stream.Write(effect.Template.BuffId);
+                stream.Write(effect.Index);           // Id
+                stream.Write(effect.Template.BuffId); // BuffId
                 stream.Write(effect.SkillCaster);
-                stream.Write(0u); // type(id)
-                stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)effect.AbLevel); // sourceAbLevel
-                stream.Write(effect.Duration); // totalTime
-                stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write((uint)effect.Tick); // tickTime
-                stream.Write(0); // tickIndex
-                stream.Write(1); // stack
-                stream.Write(0); // charged
-                stream.Write(0u); // type(id) -> cooldownSkill
+                stream.Write(effect.Caster is Character character ? character.Id : 0); // casterId
+                stream.Write(effect.Caster.Level);    // sourceLevel
+                stream.Write((ushort)effect.AbLevel); // sourceAbLevel in 1.2 ... 18 uint, in 2.0 ushort
+                stream.WritePisc(effect.Duration, effect.GetTimeElapsed(), (uint)effect.Tick, 0); // pisc(totalTime, elapsedTime, tickTime, tickIndex), added in 2.0
+                stream.Write(1);                      // stack
+                stream.Write(0);                      // charged
+                stream.Write(0u);                     // type(id) -> cooldownSkill
             }
 
             stream.Write((byte)badBuffs.Count); // TODO max 24
             foreach (var effect in badBuffs)
             {
-                stream.Write(effect.Index);
-                stream.Write(effect.Template.BuffId);
+                stream.Write(effect.Index);           // Id
+                stream.Write(effect.Template.BuffId); // BuffId
                 stream.Write(effect.SkillCaster);
-                stream.Write(0u); // type(id)
-                stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)effect.AbLevel); // sourceAbLevel
-                stream.Write(effect.Duration); // totalTime
-                stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write((uint)effect.Tick); // tickTime
-                stream.Write(0); // tickIndex
-                stream.Write(1); // stack
-                stream.Write(0); // charged
-                stream.Write(0u); // type(id) -> cooldownSkill
+                stream.Write(effect.Caster is Character character ? character.Id : 0); // casterId
+                stream.Write(effect.Caster.Level);    // sourceLevel
+                stream.Write((ushort)effect.AbLevel); // sourceAbLevel in 1.2 ... 18 uint, in 2.0 ushort
+                stream.WritePisc(effect.Duration, effect.GetTimeElapsed(), (uint)effect.Tick, 0); // pisc(totalTime, elapsedTime, tickTime, tickIndex), added in 2.0
+                stream.Write(1);                      // stack
+                stream.Write(0);                      // charged
+                stream.Write(0u);                     // type(id) -> cooldownSkill
             }
 
             stream.Write((byte)hiddenBuffs.Count); // TODO max 24
             foreach (var effect in hiddenBuffs)
             {
-                stream.Write(effect.Index);
-                stream.Write(effect.Template.BuffId);
+                stream.Write(effect.Index);           // Id
+                stream.Write(effect.Template.BuffId); // BuffId
                 stream.Write(effect.SkillCaster);
-                stream.Write(0u); // type(id)
-                stream.Write(effect.Caster.Level); // sourceLevel
-                stream.Write((short)effect.AbLevel); // sourceAbLevel
-                stream.Write(effect.Duration); // totalTime
-                stream.Write(effect.GetTimeElapsed()); // elapsedTime
-                stream.Write((uint)effect.Tick); // tickTime
-                stream.Write(0); // tickIndex
-                stream.Write(1); // stack
-                stream.Write(0); // charged
-                stream.Write(0u); // type(id) -> cooldownSkill
+                stream.Write(effect.Caster is Character character ? character.Id : 0); // casterId
+                stream.Write(effect.Caster.Level);    // sourceLevel
+                stream.Write((ushort)effect.AbLevel); // sourceAbLevel in 1.2 ... 18 uint, in 2.0 ushort
+                stream.WritePisc(effect.Duration, effect.GetTimeElapsed(), (uint)effect.Tick, 0); // pisc(totalTime, elapsedTime, tickTime, tickIndex), added in 2.0
+                stream.Write(1);                      // stack
+                stream.Write(0);                      // charged
+                stream.Write(0u);                     // type(id) -> cooldownSkill
+
+                //stream.Write(effect.Index);
+                //stream.Write(effect.Template.BuffId);
+                //stream.Write(effect.SkillCaster);
+                //stream.Write(0u); // type(id)
+                //stream.Write(effect.Caster.Level); // sourceLevel
+                //stream.Write((short)effect.AbLevel); // sourceAbLevel
+                //stream.Write(effect.Duration); // totalTime
+                //stream.Write(effect.GetTimeElapsed()); // elapsedTime
+                //stream.Write((uint)effect.Tick); // tickTime
+                //stream.Write(0); // tickIndex
+                //stream.Write(1); // stack
+                //stream.Write(0); // charged
+                //stream.Write(0u); // type(id) -> cooldownSkill
             }
-            //            for (var i = 0; i < 255; i++)
-            //                stream.Write(0);
 
             return stream;
         }

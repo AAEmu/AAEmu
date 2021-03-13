@@ -81,7 +81,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
             stream.Write(Z);
             stream.Write(Memo);
             stream.Write(TransferRequestedTime);
-            stream.Write(0); // contributionPoint, added in 2.0
+            stream.Write(0);  // contributionPoint, added in 2.0
             stream.Write(0f); // gearScore, added in 2.0
 
             return stream;

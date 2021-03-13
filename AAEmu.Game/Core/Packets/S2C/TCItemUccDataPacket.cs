@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
@@ -11,6 +11,14 @@ namespace AAEmu.Game.Core.Packets.S2C
         
         public override PacketStream Write(PacketStream stream)
         {
+            stream.Write(0u); // type
+            stream.Write(0u); // num
+            var _num = 0u;
+            for (var i = 0; i < _num; i++)
+            {
+                stream.Write(0UL); // itemId
+                stream.Write(0L);  // type
+            }
             /*
             v2 = (char *)this;
             a2->Reader->ReadUInt32("type", (char *)this + 8, 0);

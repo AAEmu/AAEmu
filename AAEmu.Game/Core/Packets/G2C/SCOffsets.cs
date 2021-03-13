@@ -58,7 +58,7 @@
         public const ushort SCCancelCharacterDeleteResponsePacket = 0x112;
         public const ushort SCCharacterCreationFailedPacket = 0x030;
         public const ushort SCRaceCongestionPacket = 0x068;
-        public const ushort SCUnknownPacket_0x18c = 0x18c;
+        public const ushort SCCheckRaceCongestionResponsePacket = 0x18c;
         public const ushort SCCharacterInvenInitPacket = 0x0ba;
         public const ushort SCCharacterInvenContentsPacket = 0x245;
         public const ushort SCInvenExpandedPacket = 0x199;
@@ -507,8 +507,8 @@
         public const ushort SCIdleKickPacket = 0x0e7;
         public const ushort SCUnknownPacket_0x0db = 0x0db;
         public const ushort SCUnknownPacket_0x14e = 0x14e;
-        public const ushort SCUnknownPacket_0x1a6 = 0x1a6;
-        public const ushort SCUnknownPacket_0x0d5 = 0x0d5;
+        public const ushort SCLevelRestrictionConfigPacket = 0x1a6;
+        public const ushort SCTaxItemConfigPacket = 0x0d5;
         public const ushort SCUnknownPacket_0x22b = 0x22b;
         public const ushort SCUnknownPacket_0x0d7 = 0x0d7;
         public const ushort SCUnknownPacket_0x1b9 = 0x1b9;
@@ -526,7 +526,7 @@
         public const ushort SCUnknownPacket_0x01b = 0x01b;
         public const ushort SCUnknownPacket_0x1fc = 0x1fc;
         public const ushort SCUnknownPacket_0x03f = 0x03f;
-        public const ushort SCUnknownPacket_0x1f8 = 0x1f8;
+        public const ushort SCInGameShopConfigPacket = 0x1f8;
         public const ushort SCUnknownPacket_0x0bc = 0x0bc;
         public const ushort SCUnknownPacket_0x152 = 0x152;
         public const ushort SCUnknownPacket_0x1dd = 0x1dd;
@@ -536,7 +536,7 @@
         public const ushort SCUnknownPacket_0x187 = 0x187;
         public const ushort SCUnknownPacket_0x180 = 0x180;
         public const ushort SCUnknownPacket_0x132 = 0x132;
-        public const ushort SCUnknownPacket_0x22e = 0x22e;
+        public const ushort SCAccountAttendancePacket = 0x22e;
         public const ushort SCUnknownPacket_0x0d8 = 0x0d8;
         public const ushort SCUnknownPacket_0x29b = 0x29b;
         public const ushort SCUnknownPacket_0x0f8 = 0x0f8;
@@ -562,7 +562,7 @@
         public const ushort SCGradeEnchantBroadcasPacket = 0x1f4;
         public const ushort SCCvFCombatRelationshiPacket = 0x23c;
         public const ushort SCFvFCombatRelationshiPacket = 0x28e;
-        public const ushort SCChatSpamConfig = 0x1aa;
+        public const ushort SCChatSpamConfigPacket = 0x1aa;
         public const ushort SCTeamMemberDisconnectedPacket = 0x1bf;
         public const ushort SCUnknownPacket_0x17d = 0x17d;
         public const ushort SCUnknownPacket_0x23f = 0x23f;
@@ -613,7 +613,7 @@
         public const ushort SCHouseTaxInfoPacket = 0x283;
         public const ushort SCConstructHouseTaxPacket = 0x25b;
         public const ushort SCHouseSetForSalePacket = 0x049;
-        public const ushort SCJoinedTeamPacket = 0x266;
+        public const ushort SCJoinedTeamPacket = 0x0CA;
         public const ushort SCTeamLootingRuleChangedPacket = 0x09f;
         public const ushort SCSiegeStatePacket = 0x0f4;
         public const ushort SCQuestsPacket = 0x055;
@@ -655,7 +655,6 @@
         public const ushort SCCharacterStatePacket = 0x060;
                                                                                                                              
         // no such packets
-        public const ushort SCAccountAttendancePacket = 0xfff;
         public const ushort SCSkillUpgradedPacket = 0xfff;
         public const ushort SCSlaveCreatedPacket = 0xfff;
         public const ushort SCTeamPingPosPacket = 0xfff;
@@ -666,7 +665,6 @@
         public const ushort SCGradeEnchantBroadcastPacket = 0xfff;
         public const ushort SCGradeEnchantResultPacket = 0xfff;
         public const ushort SCKnockBackUnitPacket = 0xfff;
-        public const ushort SCLevelRestrictionConfigPacket = 0xfff;
         public const ushort SCCvFCombatRelationshipPacket = 0xfff;
         public const ushort SCFvFCombatRelationshipPacket = 0xfff;
     }

@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
 
         public ItemMove(SlotType fromSlotType, byte fromSlot, ulong fromItemId, SlotType toSlotType, byte toSlot, ulong toItemId)
         {
-            _type = ItemAction.SwapSlot;
+            _type = ItemAction.SwapSlot; // 8
             _fromSlotType = fromSlotType;
             _fromSlot = fromSlot;
             _fromItemId = fromItemId;
@@ -36,6 +36,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write(_toItemId); // i2
 
             stream.Write(0); //flags
+
             return stream;
         }
     }

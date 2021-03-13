@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
 
@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_teamId);
             stream.Write(_member);
             stream.Write(_party);
+
             return stream;
         }
     }

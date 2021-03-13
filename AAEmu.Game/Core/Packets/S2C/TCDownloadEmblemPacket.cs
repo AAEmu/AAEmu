@@ -1,18 +1,25 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCDownloadEmblemPacket : StreamPacket
     {
-        public TCDownloadEmblemPacket() : base(0x04)
+        private readonly long _id;
+        private readonly byte[] _emblem;
+        private readonly ulong _modified;
+        public TCDownloadEmblemPacket(long id, byte[] emblem, ulong modified) : base(0x04)
         {
+            _id = id;
+            _emblem = emblem;
+            _modified = modified;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((long) 0); // type
-            stream.Write((int) 0); // size
+            stream.Write(_id);   // type
+            stream.Write(_emblem.Length); // size
+            stream.Write(_emblem, false); // emblem, size max 3072
             /*
             if ( *(_DWORD *)(v3 + 8) > 0 )
             {
@@ -28,7 +35,7 @@ namespace AAEmu.Game.Core.Packets.S2C
                 v8("emblem", (char *)(v3 + 12), v5);
             }
             */
-            stream.Write((ulong) 0); // modified
+            stream.Write(_modified); // modified
 
             return stream;
         }

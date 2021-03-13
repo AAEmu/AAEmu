@@ -104,7 +104,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     }
                 }
                 
-                mateInfo.BroadcastPacket(new SCUnitMovementsPacket(movements.ToArray()), false);
+                mateInfo.BroadcastPacket(new SCUnitMovementsPacket(movements.ToArray()), true);
             }
             else
             {
@@ -133,7 +133,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                         Connection.ActiveChar.DoFallDamage(mType.FallVel);
                 }
                 
-                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, _moveType), false);
+                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, _moveType), true);
             }
         }
 

@@ -14,8 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             Connection.ActiveChar.VisualOptions.Read(stream);
 
-            Connection.ActiveChar.BroadcastPacket(
-                new SCUnitVisualOptionsPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.VisualOptions), true);
+            Connection.ActiveChar.BroadcastPacket(new SCUnitVisualOptionsPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.VisualOptions), true);
         }
     }
 }

@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_last);
-            stream.Write((byte)_actabilities.Length); // TODO in 1.2 ... 1.8 max count 100
+            stream.Write((byte)_actabilities.Length); // TODO in 1.2 ... 2.0 max count 100
             foreach (var actability in _actabilities)
             {
                 stream.Write(actability.Id);    // action Int32

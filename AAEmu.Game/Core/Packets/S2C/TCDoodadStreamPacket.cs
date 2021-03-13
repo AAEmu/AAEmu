@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -22,19 +22,19 @@ namespace AAEmu.Game.Core.Packets.S2C
         {
             stream.Write(_id);
             stream.Write(_next);
-            stream.Write(_doodads.Length);
+            stream.Write(_doodads.Length); // count
             foreach (var doodad in _doodads)
             {
                 stream.WriteBc(doodad.ObjId);
                 stream.Write(doodad.TemplateId);
                 stream.WritePosition(doodad.Position.X, doodad.Position.Y, doodad.Position.Z);
-                stream.Write(Helpers.ConvertRotation(doodad.Position.RotationX));
-                stream.Write(Helpers.ConvertRotation(doodad.Position.RotationY));
-                stream.Write(Helpers.ConvertRotation(doodad.Position.RotationZ));
+                stream.Write(Helpers.ConvertRotation(doodad.Position.RotationX)); // Int16 "rot.x"
+                stream.Write(Helpers.ConvertRotation(doodad.Position.RotationY)); // Int16 "rot.y"
+                stream.Write(Helpers.ConvertRotation(doodad.Position.RotationZ)); // Int16 "rot.z"
                 stream.Write(doodad.Scale);
                 stream.Write(doodad.CurrentPhaseId); // doodad_func_groups Id
-                stream.Write(doodad.TimeLeft); // growing
-                stream.Write(doodad.PlantTime); // plantTime
+                //stream.Write(doodad.TimeLeft); // growing, missing in 2.0
+                //stream.Write(doodad.PlantTime); // plantTime, missing in 2.0
             }
 
             return stream;

@@ -63,6 +63,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSEditCharacterPacket, 5, typeof(CSEditCharacterPacket));
             RegisterPacket(CSOffsets.CSDeleteCharacterPacket, 5, typeof(CSDeleteCharacterPacket));
             RegisterPacket(CSOffsets.CSSelectCharacterPacket, 5, typeof(CSSelectCharacterPacket));
+            RegisterPacket(CSOffsets.CSCharacterConnectionRestrictPacket, 5, typeof(CSCharacterConnectionRestrictPacket));
             RegisterPacket(CSOffsets.CSSpawnCharacterPacket, 5, typeof(CSSpawnCharacterPacket));
             RegisterPacket(CSOffsets.CSCancelCharacterDeletePacket, 5, typeof(CSCancelCharacterDeletePacket));
             RegisterPacket(CSOffsets.CSNotifyInGamePacket, 5, typeof(CSNotifyInGamePacket));
@@ -273,6 +274,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSRequestUIDataPacket, 5, typeof(CSRequestUIDataPacket));
             RegisterPacket(CSOffsets.CSSaveUIDataPacket, 5, typeof(CSSaveUIDataPacket));
             RegisterPacket(CSOffsets.CSBroadcastVisualOptionPacket, 5, typeof(CSBroadcastVisualOptionPacket));
+            RegisterPacket(CSOffsets.CSBroadcastOpenEquipInfoPacket, 5, typeof(CSBroadcastOpenEquipInfoPacket));
             RegisterPacket(CSOffsets.CSRestrictCheckPacket, 5, typeof(CSRestrictCheckPacket));
             RegisterPacket(CSOffsets.CSICSMenuListPacket, 5, typeof(CSICSMenuListPacket));
             RegisterPacket(CSOffsets.CSICSGoodsListPacket, 5, typeof(CSICSGoodsListPacket));

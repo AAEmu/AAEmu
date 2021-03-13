@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(Id); // family UInt32
-            stream.Write(Members.Count); // TODO in 1.2 max length 8
+            stream.Write(Members.Count); // TODO in 1.2 ... 2.0 max length 8
             foreach (var member in Members)
             {
                 stream.Write(member);
@@ -172,6 +172,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Role);
             stream.Write(Online);
             stream.Write(Title);
+
             return stream;
         }
     }

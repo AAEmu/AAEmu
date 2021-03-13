@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
@@ -21,21 +21,21 @@ namespace AAEmu.Game.Core.Network.Stream
 
             RegisterPacket(0x01, typeof(CTJoinPacket));
             RegisterPacket(0x02, typeof(CTRequestCellPacket));
-//            RegisterPacket(0x03, typeof(CTRequestEmblemPacket));
+            RegisterPacket(0x03, typeof(CTRequestEmblemPacket));
             RegisterPacket(0x04, typeof(CTCancelCellPacket));
             RegisterPacket(0x05, typeof(CTContinuePacket));
-//            RegisterPacket(0x06, typeof(CTUccComplexPacket));
-//            RegisterPacket(0x07, typeof(CTUccStringPacket));
-//            RegisterPacket(0x08, typeof(CTUccPositionPacket));
+            RegisterPacket(0x06, typeof(CTUccComplexPacket));
+            RegisterPacket(0x07, typeof(CTUccStringPacket));
+            RegisterPacket(0x08, typeof(CTUccPositionPacket));
             RegisterPacket(0x09, typeof(CTUccCharacterNamePacket));
             RegisterPacket(0x0a, typeof(CTQueryCharNamePacket));
-//            RegisterPacket(0x0c, typeof(CTUploadEmblemStreamPacket));
-//            RegisterPacket(0x0d, typeof(CTEmblemStreamUploadStatusPacket));
-//            RegisterPacket(0x0e, typeof(CTStartUploadEmblemStreamPacket));
-//            RegisterPacket(0x0f, typeof(CTEmblemStreamDownloadStatusPacket));
-//            RegisterPacket(0x10, typeof(CTItemUccPacket));
-//            RegisterPacket(0x11, typeof(CTEmblemPartDownloadedPacket));
-//            RegisterPacket(0x12, typeof(CTUccComplexCheckValidPacket));
+            RegisterPacket(0x0c, typeof(CTUploadEmblemStreamPacket));
+            RegisterPacket(0x0d, typeof(CTEmblemStreamUploadStatusPacket));
+            RegisterPacket(0x0e, typeof(CTStartUploadEmblemStreamPacket));
+            RegisterPacket(0x0f, typeof(CTEmblemStreamDownloadStatusPacket));
+            RegisterPacket(0x10, typeof(CTItemUccPacket));
+            RegisterPacket(0x11, typeof(CTEmblemPartDownloadedPacket));
+            RegisterPacket(0x12, typeof(CTUccComplexCheckValidPacket));
         }
 
         public void Start()

@@ -40,6 +40,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(InParty);
             stream.Write(IsOnline);
             stream.Write(LastWorldLeaveTime);
+
             return stream;
         }
     }

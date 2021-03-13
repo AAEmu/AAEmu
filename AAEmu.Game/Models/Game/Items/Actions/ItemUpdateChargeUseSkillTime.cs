@@ -33,10 +33,12 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         public override PacketStream Write(PacketStream stream)
         {
             base.Write(stream);
+
             stream.Write((byte)_slotType);
             stream.Write(_slot); // index
             stream.Write(_itemId);
             stream.Write(_chargeUseSkillTime);
+
             return stream;
         }
     }

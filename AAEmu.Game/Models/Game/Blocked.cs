@@ -11,6 +11,7 @@ namespace AAEmu.Game.Models.Game
         {
             stream.Write(CharacterId);
             stream.Write(Name);
+
             return stream;
         }
     }

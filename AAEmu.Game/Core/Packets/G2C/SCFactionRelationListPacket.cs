@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(false); // uiRequest
             stream.Write((byte)_relations.Length); // count
-            // TODO in 1.2 max length 200
+            // TODO in 1.2 ... 2.0 max length 200
             foreach (var relation in _relations)
             {
                 stream.Write(relation.Id);
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((byte)relation.State);
                 stream.Write(relation.ExpTime);
                 stream.Write(0L);       // type(id)
-                stream.Write((byte)0); // nState
+                stream.Write((byte)0);  // nState
             }
 
             return stream;

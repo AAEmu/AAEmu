@@ -72,9 +72,9 @@ namespace AAEmu.Game.Core.Managers
                 {
                     var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
                     sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (int)(soldAmount - moneyAfterFee));
-                    sellMail.Send();   
+                    sellMail.Send();
                 }
-                
+
                 var buyMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
                 var buyerId = NameManager.Instance.GetCharacterId(buyer);
                 buyMail.FinalizeForSaleBuyer(buyerId);
@@ -88,7 +88,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if (!_auctionItems.Contains(itemToRemove))
                 return;
-            
+
             if (itemToRemove.BidderName != "") //Player won the bid. 
             {
                 RemoveAuctionItemSold(itemToRemove, itemToRemove.BidderName, itemToRemove.BidMoney);
@@ -109,7 +109,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     var failMail = new MailForAuction(newItem, itemToRemove.ClientId, itemToRemove.DirectMoney, (int)recalculatedFee);
                     failMail.FinalizeForFail();
-                    failMail.Send();   
+                    failMail.Send();
                 }
 
                 RemoveAuctionItem(itemToRemove);
@@ -159,14 +159,14 @@ namespace AAEmu.Game.Core.Managers
                         newMail.FinalizeForBidFail(auctionItem.BidderId, auctionItem.BidMoney);
                         newMail.Send();
                     }
-                    
+
                     player.SubtractMoney(SlotType.Inventory, (int)auctionItem.DirectMoney);
                     RemoveAuctionItemSold(auctionItem, player.Name, auctionItem.DirectMoney);
                 }
 
-                else if(bidAmount > auctionItem.BidMoney) //Bid
+                else if (bidAmount > auctionItem.BidMoney) //Bid
                 {
-                    if(auctionItem.BidderName != "") //Send mail to old bidder. 
+                    if (auctionItem.BidderName != "") //Send mail to old bidder. 
                     {
                         var moneyArray = new int[3];
                         moneyArray[0] = (int)auctionItem.BidMoney;
@@ -201,16 +201,16 @@ namespace AAEmu.Game.Core.Managers
                 myListing = true;
                 auctionItemsFound = _auctionItems.Where(c => c.ClientId == searchTemplate.PlayerId).ToList();
             }
-            
-            if(!myListing)
+
+            if (!myListing)
             {
                 var itemTemplateList = ItemManager.Instance.GetAllItems();
                 var query = from item in itemTemplateList
-                    where ((searchTemplate.ItemName != "") ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true)
-                    where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.AuctionCategoryA : true)
-                    where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.AuctionCategoryB : true)
-                    where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.AuctionCategoryC : true)
-                    select item;
+                            where ((searchTemplate.ItemName != "") ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true)
+                            where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.AuctionCategoryA : true)
+                            where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.AuctionCategoryB : true)
+                            where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.AuctionCategoryC : true)
+                            select item;
 
                 var selectedItemList = query.ToList();
 
@@ -254,7 +254,7 @@ namespace AAEmu.Game.Core.Managers
                     searchTemplate.Page = 0;
             }
 
-            if(auctionItemsFound.Count > 9)
+            if (auctionItemsFound.Count > 9)
             {
                 var tempList = new List<AuctionItem>();
 
@@ -337,18 +337,18 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Trace("Updating Auction House!");
             lock (_auctionItems)
-                {
-                    var itemsToRemove = _auctionItems.Where(c => DateTime.UtcNow > c.EndTime);
+            {
+                var itemsToRemove = _auctionItems.Where(c => DateTime.UtcNow > c.EndTime);
 
-                    foreach (var item in itemsToRemove)
-                    {
-                        if (item.BidderId != 0)
-                            RemoveAuctionItemSold(item, item.BidderName, item.BidMoney);
-                        else
-                            RemoveAuctionItemFail(item);
-                    }
+                foreach (var item in itemsToRemove)
+                {
+                    if (item.BidderId != 0)
+                        RemoveAuctionItemSold(item, item.BidderName, item.BidMoney);
+                    else
+                        RemoveAuctionItemFail(item);
                 }
             }
+        }
 
         public AuctionItem CreateAuctionItem(Character player, Item itemToList, int startPrice, int buyoutPrice, byte duration)
         {
@@ -373,7 +373,7 @@ namespace AAEmu.Game.Core.Managers
                     timeLeft = 6; //default to 6 hours
                     break;
             }
-            
+
             var newAuctionItem = new AuctionItem
             {
                 ID = GetNextId(),
@@ -505,7 +505,7 @@ namespace AAEmu.Game.Core.Managers
                     command.Parameters.AddWithValue("@stack_size", mtbs.StackSize);
                     command.Parameters.AddWithValue("@detail_type", mtbs.DetailType);
                     command.Parameters.AddWithValue("@creation_time", mtbs.CreationTime);
-                    command.Parameters.AddWithValue("@end_time",mtbs.EndTime);
+                    command.Parameters.AddWithValue("@end_time", mtbs.EndTime);
                     command.Parameters.AddWithValue("@lifespan_mins", mtbs.LifespanMins);
                     command.Parameters.AddWithValue("@type_1", mtbs.Type1);
                     command.Parameters.AddWithValue("@world_id", mtbs.WorldId);

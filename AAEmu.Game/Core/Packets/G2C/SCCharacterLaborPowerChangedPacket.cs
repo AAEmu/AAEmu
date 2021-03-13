@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -26,6 +26,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_action);
             stream.Write(_point);
             stream.Write(_step);
+
             return stream;
         }
     }

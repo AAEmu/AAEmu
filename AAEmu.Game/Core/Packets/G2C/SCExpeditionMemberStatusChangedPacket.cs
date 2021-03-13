@@ -20,6 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_expeditionMember);
             stream.Write(_flag);
+
             return stream;
         }
     }

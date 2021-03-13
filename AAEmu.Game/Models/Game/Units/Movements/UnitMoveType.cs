@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public sbyte[] DeltaMovement { get; set; }
         public sbyte Stance { get; set; }
         public sbyte Alertness { get; set; }
-        public byte ColliOpt { get; set; } // add in 1200 march 2015
+        //public byte ColliOpt { get; set; } // add in 1200 march 2015
         public byte GcFlags { get; set; }
         public ushort GcPartId { get; set; }
         public float X2 { get; set; }
@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public uint ClimbData { get; set; }
         public uint GcId { get; set; }
         public ushort FallVel { get; set; }
-        public byte ActorFlags { get; set; }
+        public ushort ActorFlags { get; set; }
 
         public override void Read(PacketStream stream)
         {
@@ -35,12 +35,11 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             DeltaMovement[0] = stream.ReadSByte();
             DeltaMovement[1] = stream.ReadSByte();
             DeltaMovement[2] = stream.ReadSByte();
-            Stance = stream.ReadSByte();
-            Alertness = stream.ReadSByte();
-            ColliOpt = stream.ReadByte();    // add in 1200 march 2015
-            ActorFlags = stream.ReadByte();
-            if ((ActorFlags & 0x80) == 0x80) // ActorFlags < 0
-                FallVel = stream.ReadUInt16(); // actor.fallVel
+            Stance = stream.ReadSByte();    // actor.stance
+            Alertness = stream.ReadSByte(); // actor.alertness
+            ActorFlags = stream.ReadUInt16(); // actor.flags in 1.2 ... 1.8 byte, in 2.0 ushort (flags(byte) + colliopt(byte))
+            if ((ActorFlags & 0x8000) == 0x8000) // ActorFlags < 0
+                FallVel = stream.ReadUInt16();   // actor.fallVel
             if ((ActorFlags & 0x20) == 0x20)
             {
                 GcFlags = stream.ReadByte();          // actor.gcFlags
@@ -72,9 +71,8 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             stream.Write(DeltaMovement[2]);
             stream.Write(Stance);
             stream.Write(Alertness);
-            stream.Write(ColliOpt);    // add in 1200 march 2015
-            stream.Write(ActorFlags);
-            if ((ActorFlags & 0x80) == 0x80)
+            stream.Write(ActorFlags); // actor.flags in 1.2 ... 1.8 byte, in 2.0 ushort (flags(byte) + colliopt(byte))
+            if ((ActorFlags & 0x8000) == 0x8000) // ActorFlags < 0
                 stream.Write(FallVel);
             if ((ActorFlags & 0x20) == 0x20)
             {

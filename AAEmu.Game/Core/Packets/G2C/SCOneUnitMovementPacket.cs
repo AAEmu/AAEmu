@@ -20,6 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(_id);             // unitId
             stream.Write((byte) _type.Type); // moveType
             stream.Write(_type);             // MoveTypeEnum.ActorData
+
             return stream;
         }
     }

@@ -1,5 +1,8 @@
+using System;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Network.Stream;
+using AAEmu.Game.Models.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S
 {
@@ -15,16 +18,21 @@ namespace AAEmu.Game.Core.Packets.C2S
             var type = stream.ReadInt64();
             var total = stream.ReadInt32();
             // -----------------------
-            var pat1 = stream.ReadInt32();
-            var pat2 = stream.ReadInt32();
-            for (var i = 0; i < 3; i++)
+
+
+            if (total == 0) // simple
             {
-                var r = stream.ReadInt32();
-                var g = stream.ReadInt32();
-                var b = stream.ReadInt32();
+                var defaultUcc = new DefaultUcc()
+                {
+                    UploaderId = Connection.GameConnection.ActiveChar.Id
+                };
+                defaultUcc.Read(stream);
+                UccManager.Instance.AddDefaultUcc(defaultUcc, Connection);
             }
-            // -----------------------
-            var modified = stream.ReadUInt64();
+            else // complex
+            {
+                UccManager.Instance.StartUpload(Connection);
+            }
         }
     }
 }

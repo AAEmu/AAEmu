@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            foreach (var slot in _slots) // in 1.2 ... 1.8 = 85
+            foreach (var slot in _slots) // in 1.2 ... 2.0 = 85
             {
                 stream.Write((byte)slot.Type);
                 switch (slot.Type)

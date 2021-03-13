@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((uint)0);                   // returnDistrict -> type(id)
             stream.Write((uint)0);                   // resurrectionDistrict -> type(id)
 
-            for (var i = 0; i < 11; i++)             // in 1.2 = 11, in 1.7 = 11, in 3.5 = 13
+            for (var i = 0; i < 11; i++)             // in 1.2 ... 2.0 = 11, in 3.5 = 13
             {
                 stream.Write((uint)0); // abilityExp
             }
@@ -68,6 +68,14 @@ namespace AAEmu.Game.Core.Packets.G2C
             // added in 1.7
             stream.Write(0L);               // nationJoinTime
             stream.Write((byte)0);          // remainBotCheckCnt
+            stream.Write((short)0);         // failedBotCheckAccumCnt, added in 2.0
+            for (var i = 0; i < 5; i++)     // in 2.0 = 5
+            {
+                stream.Write(0UL);          // instantTime, added in 2.0
+            }
+            stream.Write(0u);               // dailyLeadershipPoint, added in 2.0
+            stream.Write(0UL);              // lastDailyLeadershipPointTime, added in 2.0
+            stream.Write(0);                // totalReportBadUser, added in 2.0
 
             return stream;
         }

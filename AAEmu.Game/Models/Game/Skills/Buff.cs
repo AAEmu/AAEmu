@@ -204,7 +204,8 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void WriteData(PacketStream stream)
         {
-            stream.WritePisc(Charge, Duration / 10, 0, (long)(Template.Tick / 10));
+            //stream.WritePisc(Charge, Duration / 10, 0, (long)(Template.Tick / 10));
+            stream.WritePisc(Duration, GetTimeElapsed(), (long)(Template.Tick / 10), 0); // pisc(totalTime, elapsedTime, tickTime, tickIndex), added in 2.0
         }
         
         /// <summary>

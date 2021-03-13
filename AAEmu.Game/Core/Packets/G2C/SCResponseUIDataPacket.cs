@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_uiDataType);
             stream.Write(_uiData);
             stream.Write(_uiData.Length + 1);
+
             return stream;
         }
     }

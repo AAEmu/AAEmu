@@ -24,6 +24,7 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Y);
             stream.Write(Z);
             stream.Write(ZRot);
+
             return stream;
         }
 

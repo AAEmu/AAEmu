@@ -683,10 +683,15 @@ namespace AAEmu.Game.Models.Game.Quests
             stream.Write(Id);
             stream.Write(TemplateId);
             stream.Write((byte)Status);
-            foreach (var objective in Objectives) // TODO in 1.2 ... 1.8 do-while, count 5
-            {
-                stream.Write(objective);
-            }
+            //foreach (var objective in Objectives) // TODO in 1.2 ... 1.8 do-while, count 5
+            //{
+            //    stream.Write(objective);
+            //}
+            // added in 2.0, count 5
+            // --- begin pish
+            stream.WritePisc(Objectives[0], Objectives[1], Objectives[2], Objectives[3]);
+            stream.WritePisc(Objectives[4]);
+            // --- end pish
 
             stream.Write(false);             // isCheckSet
             stream.WriteBc(0);

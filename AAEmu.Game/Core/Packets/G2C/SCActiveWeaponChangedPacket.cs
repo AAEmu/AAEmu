@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -18,6 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.WriteBc(_objId);
             stream.Write(_activeWeapon);
+
             return stream;
         }
     }

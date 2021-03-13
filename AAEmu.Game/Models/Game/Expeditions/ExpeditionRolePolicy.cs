@@ -76,6 +76,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
             stream.Write(ManagerChat);
             stream.Write(SiegeMaster);
             stream.Write(JoinSiege);
+
             return stream;
         }
 

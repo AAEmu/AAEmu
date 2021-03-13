@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_quests.Length); // TODO in 1.2 ... 1.8 max 200
+            stream.Write(_quests.Length); // TODO in 1.2 ... 2.0 max 200
             foreach (var quest in _quests)
             {
                 var body = new byte[8]; // UInt64
