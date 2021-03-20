@@ -1395,6 +1395,8 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var moved = !Transform.LocalPosition.X.Equals(x) || !Transform.LocalPosition.Y.Equals(y) || !Transform.LocalPosition.Z.Equals(z);
             var lastZoneKey = Transform.ZoneId;
+            //Connection.ActiveChar.SendMessage("Move Old Pos: {0}", Transform.World.ToString());
+            
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
             //TODO: Need way to determine when player is under any body of water.
@@ -1402,6 +1404,9 @@ namespace AAEmu.Game.Models.Game.Char
                 IsUnderWater = true;
             else if (IsUnderWater && Transform.World.Position.Z > 98)
                 IsUnderWater = false;
+            
+            //Connection.ActiveChar.SendMessage("Move New Rot: {0}, {1}, {2}", rotationX.ToString("0.00"),rotationY.ToString("0.00"),rotationZ.ToString("0.00"));
+            Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.World.ToString());
             
             if (!moved)
                 return;

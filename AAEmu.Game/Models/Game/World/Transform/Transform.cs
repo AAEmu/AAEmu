@@ -127,17 +127,20 @@ namespace AAEmu.Game.Models.Game.World
 
         public void SetZRotation(float rotZ)
         {
-            Rotation = Quaternion.CreateFromYawPitchRoll(rotZ, 0f, 0f);
+            var oldR = ToRollPitchYaw();
+            Rotation = Quaternion.CreateFromYawPitchRoll(rotZ, oldR.Y, oldR.X);
         }
 
         public void SetZRotation(short rotZ)
         {
-            Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation(rotZ)), 0f, 0f);
+            var oldR = ToRollPitchYaw();
+            Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation(rotZ)), oldR.Y, oldR.X);
         }
 
         public void SetZRotation(sbyte rotZ)
         {
-            Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(rotZ), 0f, 0f);
+            var oldR = ToRollPitchYaw();
+            Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(rotZ), oldR.Y, oldR.X);
         }
 
         public void Translate(Vector3 offset)
@@ -183,7 +186,7 @@ namespace AAEmu.Game.Models.Game.World
         public override string ToString()
         {
             var rpy = ToRollPitchYawDegrees();
-            return string.Format("x:{0:#,0.#} y:{1:#,0.#} z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°", Position.X, Position.Y, Position.Z, rpy.X, rpy.Y, rpy.Z);
+            return string.Format("X:{0:#,0.#} Y:{1:#,0.#} Z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°", Position.X, Position.Y, Position.Z, rpy.X, rpy.Y, rpy.Z);
         }
     }
 

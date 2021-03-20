@@ -64,7 +64,8 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.RotationY = 0;
                 moveType.RotationZ = rotZ;
 
-                character.CurrentTarget.Transform.Local.SetZRotation(rotZ);
+                character.CurrentTarget.Transform.Local.SetZRotation((float)MathUtil.DegreeToRadian(angle));
+                // character.CurrentTarget.Transform.Local.SetZRotation(rotZ);
 
                 moveType.Flags = 5;
                 moveType.DeltaMovement = new sbyte[3];
@@ -76,6 +77,7 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.Time = Seq;
 
                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
+                character.SendMessage("New rotation {0}° ({1} rad, sbyte {2}) for {3}",angle, character.CurrentTarget.Transform.Local.Rotation.Z.ToString("0.00"),rotZ,character.CurrentTarget.ObjId);
             }
             else
                 character.SendMessage("[Rotate] You need to target something first");
