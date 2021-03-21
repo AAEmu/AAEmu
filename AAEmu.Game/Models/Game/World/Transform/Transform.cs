@@ -12,6 +12,7 @@ namespace AAEmu.Game.Models.Game.World
 {
     public class PositionAndRotation
     {
+        public bool IsLocal { get; set; } = true;
         public Vector3 Position { get; set; }
         public Quaternion Rotation { get; set; }
 
@@ -452,7 +453,7 @@ namespace AAEmu.Game.Models.Game.World
         /// Calculates and returns a Transform by processing all underlying parents
         /// </summary>
         /// <returns></returns>
-        protected PositionAndRotation GetWorldPosition()
+        private PositionAndRotation GetWorldPosition()
         {
             if (_parentTransform == null)
                 return _localPosRot;
@@ -470,6 +471,7 @@ namespace AAEmu.Game.Models.Game.World
             // Extract global location and split them again
             parentPosAndRot.Position = Vector3.Transform(LocalPosition, resMatrix);
             parentPosAndRot.Rotation = Quaternion.CreateFromRotationMatrix(resMatrix);
+            parentPosAndRot.IsLocal = false;
             return parentPosAndRot;
         }
 

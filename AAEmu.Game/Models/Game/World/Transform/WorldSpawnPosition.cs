@@ -14,15 +14,15 @@ namespace AAEmu.Game.Models.Game.World
         public float Z { get; set; } = 0f;
 
         /// <summary>
-        /// Around Z-Axis in °
+        /// Rotation around Z-Axis in radians
         /// </summary>
         public float Yaw { get; set; } = 0f;
         /// <summary>
-        /// Around Y-Axis in °
+        /// Rotation around Y-Axis in radians
         /// </summary>
         public float Pitch { get; set; } = 0f;
         /// <summary>
-        /// Around X-Axis in °
+        /// Rotation around X-Axis in radians
         /// </summary>
         public float Roll { get; set; } = 0f;
 

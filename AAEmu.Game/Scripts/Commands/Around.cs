@@ -19,13 +19,13 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<doodad||npc||player> [radius]";
+            return "<doodad||npc||player> [radius] [verbose]";
         }
 
         public string GetCommandHelpText()
         {
             return "Creates a list of specified <objectType> in a [radius] radius around you. Default radius is 30.\n" +
-                "Note: Only lists objects in viewing range of you (recommanded maximum radius of 100).";
+                "Note: Only lists objects in viewing range of you (recommended maximum radius of 100).";
         }
 
         public void Execute(Character character, string[] args)
@@ -43,6 +43,8 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
+            var verbose = ((args.Length > 2) && (!string.IsNullOrWhiteSpace(args[2])));
+
             var sb = new StringBuilder();
             switch (args[0])
             {
@@ -55,6 +57,8 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")");
                         // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString());
+                        if (verbose)
+                            character.SendMessage("#" + (i + 1).ToString() + " -> " + doodads[i].Transform.World.ToString()+"\n");
                     }
                     character.SendMessage(sb.ToString());
                     character.SendMessage("[Around] Doodad count: {0}", doodads.Count);
@@ -72,6 +76,8 @@ namespace AAEmu.Game.Scripts.Commands
                         // string OriginalNPCName = NpcManager.Instance.GetTemplate(npcs[i].TemplateId).Name;
                         character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + npcs[i].ObjId.ToString() + " NpcTemplateId: " + npcs[i].TemplateId.ToString() + " - @NPC_NAME(" + npcs[i].TemplateId.ToString() + ")");
                         // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + npcs[i].ObjId.ToString() + " NpcTemplateId: " + npcs[i].TemplateId.ToString());
+                        if (verbose)
+                            character.SendMessage("#" + (i + 1).ToString() + " -> " + npcs[i].Transform.World.ToString()+"\n");
                     }
 
                     // character.SendMessage(sb.ToString());
@@ -90,6 +96,8 @@ namespace AAEmu.Game.Scripts.Commands
                         character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + characters[i].ObjId.ToString() + " CharacterId: " + characters[i].Id.ToString() + " - " + characters[i].Name);
                         // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + characters[i].ObjId.ToString() + " CharacterId: " + characters[i].Id.ToString() + " - " + characters[i].Name);
                         //    sb.AppendLine($"#.{i + 1} -> BcId: {characters[i].ObjId} CharacterId: {characters[i].Id}");
+                        if (verbose)
+                            character.SendMessage("#" + (i + 1).ToString() + " -> " + characters[i].Transform.World.ToString()+"\n");
                     }
                     // character.SendMessage(sb.ToString());
                     character.SendMessage("[Around] Character count: {0}", characters.Count);
