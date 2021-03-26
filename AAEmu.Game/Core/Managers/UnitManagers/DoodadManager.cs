@@ -69,7 +69,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.ModelKindId = reader.GetUInt32("model_kind_id");
                             template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
                             template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
-                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                            //template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.GroupId = reader.GetUInt32("group_id");
                             template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
                             template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
@@ -328,7 +328,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncBuyFishModel();
                             func.Id = reader.GetUInt32("id");
-                            func.Name = reader.GetString("name");
+                            //func.Name = reader.GetString("name");
                             _funcTemplates["DoodadFuncBuyFishModel"].Add(func.Id, func);
                         }
                     }
@@ -566,7 +566,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncConsumeChangerModel();
                             func.Id = reader.GetUInt32("id");
-                            func.Name = reader.GetString("name");
+                            //func.Name = reader.GetString("name");
                             _funcTemplates["DoodadFuncConsumeChangerModel"].Add(func.Id, func);
                         }
                     }

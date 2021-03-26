@@ -108,8 +108,8 @@ namespace AAEmu.Game.Core.Managers.World
                         while (reader.Read())
                         {
                             var template = new SpecialtyNpc();
-                            template.Id = reader.GetUInt32("id");
-                            template.Name = reader.GetString("name");
+                            //template.Id = reader.GetUInt32("id");
+                            //template.Name = reader.GetString("name");
                             template.NpcId = reader.GetUInt32("npc_id");
                             template.SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id");
                             

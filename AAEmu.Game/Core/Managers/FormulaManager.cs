@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using AAEmu.Commons.Utils;
@@ -125,12 +125,10 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var formula = new WearableFormula
-                            {
-                                Id = reader.GetUInt32("id"),
-                                Type = (WearableFormulaType) reader.GetByte("kind_id"),
-                                TextFormula = reader.GetString("formula")
-                            };
+                            var formula = new WearableFormula();
+                            //formula.Id = reader.GetUInt32("id");
+                            formula.Type = (WearableFormulaType) reader.GetByte("kind_id");
+                            formula.TextFormula = reader.GetString("formula");
                             if (formula.Prepare())
                                 _wearableFormulas.Add(formula.Type, formula);
                         }

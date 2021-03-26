@@ -211,13 +211,14 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new NpcMountSkills()
+                            var template = new NpcMountSkills();
+                            //template.Id = reader.GetUInt32("id");
+                            template.NpcId = reader.GetUInt32("npc_id");
+                            template.MountSkillId = reader.GetUInt32("mount_skill_id");
+                            if (_slaveMountSkills.ContainsKey(template.Id))
                             {
-                                Id = reader.GetUInt32("id"),
-                                NpcId = reader.GetUInt32("npc_id"),
-                                MountSkillId = reader.GetUInt32("mount_skill_id")
-                            };
-                            _slaveMountSkills.Add(template.Id, template);
+                                _slaveMountSkills.Add(template.Id, template);
+                            }
                         }
                     }
                 }

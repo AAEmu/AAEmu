@@ -358,7 +358,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Unmount = reader.GetBoolean("unmount", true);
                             template.DamageTypeId = reader.GetUInt32("damage_type_id", 0);
                             template.AllowToPrisoner = reader.GetBoolean("allow_to_prisoner", true);
-                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                            //template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.MatchAnimation = reader.GetBoolean("match_animation", true);
                             template.Plot = reader.IsDBNull("plot_id") ? null : PlotManager.Instance.GetPlot(reader.GetUInt32("plot_id"));
                             template.UseAnimTime = reader.GetBoolean("use_anim_time", true);
@@ -1434,18 +1434,16 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SkillModifier
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OwnerId = reader.GetUInt32("owner_id"),
-                                OwnerType = reader.GetString("owner_type"),
-                                TagId = reader.GetUInt32("tag_id", 0),
-                                SkillAttribute = (SkillAttribute)reader.GetUInt32("skill_attribute_id"),
-                                UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
-                                Value = reader.GetInt32("value"),
-                                SkillId = reader.GetUInt32("skill_id", 0),
-                                Synergy = reader.GetBoolean("synergy", true),
-                            };
+                            var template = new SkillModifier();
+                            //template.Id = reader.GetUInt32("id");
+                            template.OwnerId = reader.GetUInt32("owner_id");
+                            template.OwnerType = reader.GetString("owner_type");
+                            template.TagId = reader.GetUInt32("tag_id", 0);
+                            template.SkillAttribute = (SkillAttribute)reader.GetUInt32("skill_attribute_id");
+                            template.UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id");
+                            template.Value = reader.GetInt32("value");
+                            template.SkillId = reader.GetUInt32("skill_id", 0);
+                            template.Synergy = reader.GetBoolean("synergy", true);
 
                             if (!_skillModifiers.ContainsKey(template.OwnerId))
                                 _skillModifiers.Add(template.OwnerId, new List<SkillModifier>());

@@ -432,14 +432,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         var step = 0;
                         while (reader.Read())
                         {
-                            var template = new ExpandExpertLimit
-                            {
-                                Id = reader.GetUInt32("id"),
-                                ExpandCount = reader.GetByte("expand_count"),
-                                LifePoint = reader.GetInt32("life_point"),
-                                ItemId = reader.GetUInt32("item_id", 0),
-                                ItemCount = reader.GetInt32("item_count")
-                            };
+                            var template = new ExpandExpertLimit();
+                            //template.Id = reader.GetUInt32("id");
+                            template.ExpandCount = reader.GetByte("expand_count");
+                            template.LifePoint = reader.GetInt32("life_point");
+                            template.ItemId = reader.GetUInt32("item_id", 0);
+                            template.ItemCount = reader.GetInt32("item_count");
                             _expandExpertLimits.Add(step++, template);
                         }
                     }

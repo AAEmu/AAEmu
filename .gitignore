@@ -26,3 +26,4 @@ publish/
 *.aelcf
 
 AAEmu.Tests/TestResults/
+*.sqlite3

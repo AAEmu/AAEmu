@@ -363,7 +363,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.BaseSkillId = reader.GetInt32("base_skill_id", 0);
                             template.TrackFriendship = reader.GetBoolean("track_friendship", true);
                             template.Priest = reader.GetBoolean("priest", true);
-                            template.NpcTedencyId = reader.GetInt32("npc_tendency_id", 0);
+                            //template.NpcTedencyId = reader.GetInt32("npc_tendency_id", 0);
                             template.Blacksmith = reader.GetBoolean("blacksmith", true);
                             template.Teleporter = reader.GetBoolean("teleporter", true);
                             template.Opacity = reader.GetFloat("opacity");
@@ -371,7 +371,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.Scale = reader.GetFloat("scale");
                             template.SightRangeScale = reader.GetFloat("sight_range_scale");
                             template.SightFovScale = reader.GetFloat("sight_fov_scale");
-                            template.MilestoneId = reader.GetInt32("milestone_id", 0);
+                            //template.MilestoneId = reader.GetInt32("milestone_id", 0);
                             template.AttackStartRangeScale = reader.GetFloat("attack_start_range_scale");
                             template.Aggression = reader.GetBoolean("aggression", true);
                             template.ExpMultiplier = reader.GetFloat("exp_multiplier");
@@ -635,22 +635,22 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
 
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "SELECT * FROM merchants";
-                    command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                    {
-                        while (reader.Read())
-                        {
-                            var id = reader.GetUInt32("npc_id");
-                            if (!_templates.ContainsKey(id))
-                                continue;
-                            var template = _templates[id];
-                            template.MerchantPackId = reader.GetUInt32("merchant_pack_id");
-                        }
-                    }
-                }
+                //using (var command = connection.CreateCommand())
+                //{
+                //    command.CommandText = "SELECT * FROM merchants";
+                //    command.Prepare();
+                //    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                //    {
+                //        while (reader.Read())
+                //        {
+                //            var id = reader.GetUInt32("npc_id");
+                //            if (!_templates.ContainsKey(id))
+                //                continue;
+                //            var template = _templates[id];
+                //            template.MerchantPackId = reader.GetUInt32("merchant_pack_id");
+                //        }
+                //    }
+                //}
 
                 _log.Info("Loaded {0} npc templates", _templates.Count);
                 _log.Info("Loading merchant packs...");

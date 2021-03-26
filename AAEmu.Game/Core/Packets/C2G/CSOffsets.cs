@@ -231,7 +231,7 @@
         public const ushort CSDeletePortalPacket = 0x0b3;
         public const ushort CSUnknownPacket_0x015 = 0x015;
         public const ushort CSSetForceAttackPacket = 0x074;
-        public const ushort CSStartSkillPacket = 0xfff;
+        public const ushort CSStartSkillPacket = 0x16e;
         public const ushort CSCreateDoodadPacket = 0x04d;
         public const ushort CSNaviTeleportPacket = 0x15f;
         public const ushort CSNaviOpenPortalPacket = 0x176;

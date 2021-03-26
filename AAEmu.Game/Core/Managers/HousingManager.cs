@@ -98,7 +98,7 @@ namespace AAEmu.Game.Core.Managers
                         while (reader.Read())
                         {
                             var template = new HousingItemHousings();
-                            template.Id = reader.GetUInt32("id");
+                            //template.Id = reader.GetUInt32("id");
                             template.Item_Id = reader.GetUInt32("item_id");
                             template.Design_Id = reader.GetUInt32("design_id");
                             _housingItemHousings.Add(template);
@@ -178,10 +178,9 @@ namespace AAEmu.Game.Core.Managers
                             var templateBindings = binding.Find(x => x.TemplateId.Contains(template.Id));
                             using (var command2 = connection.CreateCommand())
                             {
-                                command2.CommandText =
-                                    "SELECT * FROM housing_binding_doodads WHERE owner_id=@owner_id AND owner_type='Housing'";
+                                command2.CommandText = "SELECT * FROM housing_binding_doodads WHERE housing_id=@housing_id";
                                 command2.Prepare();
-                                command2.Parameters.AddWithValue("owner_id", template.Id);
+                                command2.Parameters.AddWithValue("housing_id", template.Id);
                                 using (var reader2 = new SQLiteWrapperReader(command2.ExecuteReader()))
                                 {
                                     var doodads = new List<HousingBindingDoodad>();
@@ -190,19 +189,17 @@ namespace AAEmu.Game.Core.Managers
                                         var bindingDoodad = new HousingBindingDoodad();
                                         bindingDoodad.AttachPointId = reader2.GetUInt32("attach_point_id");
                                         bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
-
-                                        if (templateBindings != null &&
-                                            templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
-                                            bindingDoodad.Position = templateBindings
-                                                .AttachPointId[bindingDoodad.AttachPointId].Clone();
-
+                                        if (templateBindings != null && templateBindings.AttachPointId.ContainsKey(bindingDoodad.AttachPointId))
+                                        {
+                                            bindingDoodad.Position = templateBindings.AttachPointId[bindingDoodad.AttachPointId].Clone();
+                                        }
                                         if (bindingDoodad.Position == null)
+                                        {
                                             bindingDoodad.Position = new Point(0, 0, 0);
+                                        }
                                         bindingDoodad.Position.WorldId = 1;
-
                                         doodads.Add(bindingDoodad);
                                     }
-
                                     template.HousingBindingDoodad = doodads.ToArray();
                                 }
                             }

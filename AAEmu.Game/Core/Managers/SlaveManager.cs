@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -334,12 +334,10 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlaveInitialBuffs
-                            {
-                                Id = reader.GetUInt32("id"),
-                                SlaveId = reader.GetUInt32("slave_id"),
-                                BuffId = reader.GetUInt32("buff_id")
-                            };
+                            var template = new SlaveInitialBuffs();
+                            //template.Id = reader.GetUInt32("id");
+                            template.SlaveId = reader.GetUInt32("slave_id");
+                            template.BuffId = reader.GetUInt32("buff_id");
                             if (_slaveTemplates.ContainsKey(template.SlaveId))
                             {
                                 _slaveTemplates[template.SlaveId].InitialBuffs.Add(template);
@@ -357,13 +355,11 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlavePassiveBuffs
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OwnerId = reader.GetUInt32("owner_id"),
-                                OwnerType = reader.GetString("owner_type"),
-                                PassiveBuffId = reader.GetUInt32("passive_buff_id")
-                            };
+                            var template = new SlavePassiveBuffs();
+                            //template.Id = reader.GetUInt32("id");
+                            template.OwnerId = reader.GetUInt32("owner_id");
+                            template.OwnerType = reader.GetString("owner_type");
+                            template.PassiveBuffId = reader.GetUInt32("passive_buff_id");
                             if (_slaveTemplates.ContainsKey(template.OwnerId))
                             {
                                 _slaveTemplates[template.OwnerId].PassiveBuffs.Add(template);
@@ -381,16 +377,14 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlaveDoodadBindings
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OwnerId = reader.GetUInt32("owner_id"),
-                                OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = reader.GetInt32("attach_point_id"),
-                                DoodadId = reader.GetUInt32("doodad_id"),
-                                Persist = reader.GetBoolean("persist"),
-                                Scale = reader.GetFloat("scale")
-                            };
+                            var template = new SlaveDoodadBindings();
+                            //template.Id = reader.GetUInt32("id");
+                            template.OwnerId = reader.GetUInt32("owner_id");
+                            template.OwnerType = reader.GetString("owner_type");
+                            template.AttachPointId = reader.GetInt32("attach_point_id");
+                            template.DoodadId = reader.GetUInt32("doodad_id");
+                            template.Persist = reader.GetBoolean("persist");
+                            template.Scale = reader.GetFloat("scale");
                             if (_slaveTemplates.ContainsKey(template.OwnerId))
                             {
                                 _slaveTemplates[template.OwnerId].DoodadBindings.Add(template);
@@ -408,15 +402,13 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var template = new SlaveBindings()
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OwnerId = reader.GetUInt32("owner_id"),
-                                OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = reader.GetUInt32("attach_point_id"),
-                                SlaveId = reader.GetUInt32("slave_id")
-                            };
-                            
+                            var template = new SlaveBindings();
+                            //template.Id = reader.GetUInt32("id");
+                            template.OwnerId = reader.GetUInt32("owner_id");
+                            template.OwnerType = reader.GetString("owner_type");
+                            template.AttachPointId = reader.GetUInt32("attach_point_id");
+                            template.SlaveId = reader.GetUInt32("slave_id");
+
                             if (_slaveTemplates.ContainsKey(template.OwnerId))
                             {
                                 _slaveTemplates[template.OwnerId].SlaveBindings.Add(template);
