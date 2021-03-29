@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using Newtonsoft.Json;
 
 namespace UpdatesForTransform
@@ -11,6 +10,7 @@ namespace UpdatesForTransform
     {
 
         private static List<string> OldConvertedFiles = new List<string>();
+        private static int OldEntriesFound = 0;
 
         public static float ConvertSbyteDirectionToDegree(sbyte direction)
         {
@@ -81,6 +81,9 @@ namespace UpdatesForTransform
                     ns.Position.Pitch = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY)) * -1f);
                     ns.Position.Roll = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX)) * -1f);
                     newSpawners.Add(ns);
+
+                    if ((os.Position.RotationX != 0f) || (os.Position.RotationY != 0f) || (os.Position.RotationZ != 0f))
+                        OldEntriesFound++;
                 }
             }
 
@@ -133,13 +136,25 @@ namespace UpdatesForTransform
 
             Console.WriteLine();
             Console.WriteLine("Converting files ...");
+            OldEntriesFound = 0;
+            OldConvertedFiles.Clear();
             foreach (var file in allFiles)
             {
                 ConvertNpcSpawnsFile(file.FullName);
             }
-
             Console.WriteLine("Done ... ");
             Console.WriteLine("");
+            if (OldEntriesFound <= 0)
+            {
+                Console.WriteLine("+----------------------------------------------------------------+");
+                Console.WriteLine("| It looks like the json files were already converted previously |");
+                Console.WriteLine("| as no old rotation data was found.                             |");
+                Console.WriteLine("| It is HIGHLY ADVICED to RESTORE the created .json.old files !  |");
+                Console.WriteLine("| You will need to do this manually.                             |");
+                Console.WriteLine("+----------------------------------------------------------------+");
+                Console.WriteLine("");
+                System.Threading.Thread.Sleep(1500);
+            }
             Console.Write("Do you want to delete the {0} old files ? (y/N) : ",OldConvertedFiles.Count);
             var doDelete = Console.ReadLine();
             var deleted = 0;
@@ -151,9 +166,12 @@ namespace UpdatesForTransform
                         File.Delete(oldFName);
                         deleted++;
                     }
-                    catch { }
+                    catch 
+                    {
+                        Console.WriteLine("Failed to delete: {0}", oldFName);
+                    }
             }
-            Console.WriteLine("Delete {0} old files.", deleted);
+            Console.WriteLine("Deleted {0} old files.", deleted);
         }
     }
 }
