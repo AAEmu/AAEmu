@@ -10,6 +10,8 @@ namespace UpdatesForTransform
     class Program
     {
 
+        private static List<string> OldConvertedFiles = new List<string>();
+
         public static float ConvertSbyteDirectionToDegree(sbyte direction)
         {
             var angle = direction * (360f / 128);
@@ -27,6 +29,16 @@ namespace UpdatesForTransform
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
                 res = (sbyte)((degree - 360) / (360f / 128));
+            return res;
+        }
+
+        public static float NormalizeAngle(float aAngle)
+        {
+            float res = aAngle;
+            while (res > 360f)
+                res -= 360f;
+            while (res < -180f)
+                res += 360f;
             return res;
         }
 
@@ -64,9 +76,10 @@ namespace UpdatesForTransform
                     ns.Position.X = os.Position.X;
                     ns.Position.Y = os.Position.Y;
                     ns.Position.Z = os.Position.Z;
-                    ns.Position.Yaw = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ));
-                    ns.Position.Pitch = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY));
-                    ns.Position.Roll = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX));
+                    ns.Position.Yaw = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ)));
+                    // new system is mirrored for XY axis, so * -1
+                    ns.Position.Pitch = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY)) * -1f);
+                    ns.Position.Roll = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX)) * -1f);
                     newSpawners.Add(ns);
                 }
             }
@@ -75,6 +88,7 @@ namespace UpdatesForTransform
                 throw new Exception(string.Format("Not everything was converted for file {0}",fileName));
 
             File.Move(fileName, oldFileName);
+            OldConvertedFiles.Add(oldFileName);
 
             var newJsonData = JsonConvert.SerializeObject(newSpawners,Formatting.Indented);
             File.WriteAllText(fileName, newJsonData);
@@ -125,6 +139,21 @@ namespace UpdatesForTransform
             }
 
             Console.WriteLine("Done ... ");
+            Console.WriteLine("");
+            Console.Write("Do you want to delete the {0} old files ? (y/N) : ",OldConvertedFiles.Count);
+            var doDelete = Console.ReadLine();
+            var deleted = 0;
+            if (doDelete.ToLower().StartsWith("y"))
+            {
+                foreach (var oldFName in OldConvertedFiles)
+                    try
+                    {
+                        File.Delete(oldFName);
+                        deleted++;
+                    }
+                    catch { }
+            }
+            Console.WriteLine("Delete {0} old files.", deleted);
         }
     }
 }

@@ -65,8 +65,8 @@ namespace AAEmu.Game.Core.Managers.World
                             // Convert degrees from the file to radians for use
                             // TODO: invert pitch and roll values in converter instead of here
                             spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f * -1f);
-                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f * -1f);
+                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
                             npcSpawners.Add(spawner.Id, spawner);
                         }
                     else
@@ -92,8 +92,8 @@ namespace AAEmu.Game.Core.Managers.World
                             // Convert degrees from the file to radians for use
                             // TODO: invert pitch and roll values in converter instead of here
                             spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f * -1f);
-                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f * -1f);
+                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
                             doodadSpawners.Add(spawner.Id, spawner);
                         }
                     else
@@ -120,8 +120,8 @@ namespace AAEmu.Game.Core.Managers.World
                             // Convert degrees from the file to radians for use
                             // TODO: invert pitch and roll values in converter instead of here
                             spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f * -1f);
-                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f * -1f);
+                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
                             transferSpawners.Add(spawner.Id, spawner);
                         }
                     }
