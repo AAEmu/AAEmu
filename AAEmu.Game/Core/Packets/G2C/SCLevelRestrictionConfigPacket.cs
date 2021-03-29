@@ -30,7 +30,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_postLevel);
             stream.Write(_trade);
             stream.Write(_mail);
-            for (var i = 0; i < 17; i++) // in 1.2 = 15, in 1.7 = 15, in 2.0 ... 3.5 = 17
+            for (var i = 0; i < 18; i++) // in 1.2 = 15, in 1.7 = 15, in 2.0 ... 3.5 = 17, 18 in 7.5
             {
                 stream.Write(_limitLevels[i]);
             }

@@ -19,19 +19,20 @@ namespace AAEmu.Login.Core.Network.Login
         {
             _handler = new LoginProtocolHandler();
 
-            RegisterPacket(0x01, typeof(CARequestAuthPacket)); // TODO +---
-            RegisterPacket(0x02, typeof(CARequestAuthTencentPacket));
-            RegisterPacket(0x03, typeof(CARequestAuthGameOnPacket));
-            RegisterPacket(0x04, typeof(CARequestAuthTrionPacket));
-            RegisterPacket(0x05, typeof(CARequestAuthMailRuPacket)); // TODO +
-            RegisterPacket(0x06, typeof(CAChallengeResponsePacket));
-            RegisterPacket(0x07, typeof(CAChallengeResponse2Packet));
-            RegisterPacket(0x08, typeof(CAOtpNumberPacket));
-            RegisterPacket(0x0a, typeof(CAPcCertNumberPacket));
-            RegisterPacket(0x0b, typeof(CAListWorldPacket)); // TODO +
-            RegisterPacket(0x0c, typeof(CAEnterWorldPacket)); // TODO +
-            RegisterPacket(0x0d, typeof(CACancelEnterWorldPacket));
-            RegisterPacket(0x0e, typeof(CARequestReconnectPacket)); // TODO +
+            RegisterPacket(0x01, typeof(CARequestAuthPacket)); // требует клиент 3.5.1.4 tw
+            //RegisterPacket(0x02, typeof(CARequestAuthTencentPacket));
+            //RegisterPacket(0x03, typeof(CARequestAuthGameOnPacket));
+            //RegisterPacket(0x05, typeof(CARequestAuthMailRuPacket));
+            //RegisterPacket(0x05, typeof(CAChallengeResponsePacket));
+            //RegisterPacket(0x08, typeof(CAOtpNumberPacket));
+            //RegisterPacket(0x0a, typeof(CAPcCertNumberPacket));
+            //RegisterPacket(0x0d, typeof(CACancelEnterWorldPacket));
+            RegisterPacket(0x06, typeof(CARequestAuthMailRuPacket)); // если включен русский язык в лаунчере
+            RegisterPacket(0x0C, typeof(CAListWorldPacket));
+            RegisterPacket(0x0D, typeof(CAEnterWorldPacket));
+            RegisterPacket(0x0F, typeof(CARequestReconnectPacket));
+            RegisterPacket(0x11, typeof(CARequestAuthTWPacket));
+            RegisterPacket(0x05, typeof(CARequestAuthTrionPacket)); // если включен английский язык в лаунчере
         }
 
         public void Start()

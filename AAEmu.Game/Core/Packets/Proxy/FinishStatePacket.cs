@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
             {
                 case 0:
                     Connection.SendPacket(new ChangeStatePacket(1));
-                    Connection.SendPacket(new SCHackGuardRetAddrsRequestPacket(false, false)); // HG_REQ? // TODO - config files
+                    Connection.SendPacket(new SCHackGuardRetAddrsRequestPacket(true, false,false)); // HG_REQ? // TODO - config files
                     var levelname = string.Empty;
                     if (Connection.ActiveChar != null)
                     {
@@ -35,12 +35,12 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     Connection.SendPacket(new SCTrionConfigPacket(false, "", "", "", "")); // TODO - config files
                     Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
                     Connection.SendPacket(new SCChatSpamConfigPacket());
-                    Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true })); // TODO
-                    Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0 })); // TODO - config files
+                    Connection.SendPacket(new SCAccountAttributeConfigPacket(new[] { false, true, false })); // TODO
+                    Connection.SendPacket(new SCLevelRestrictionConfigPacket(0, 10, 0, 0, 0, new byte[] { 0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0 })); // TODO - config files 6070
                     Connection.SendPacket(new SCTaxItemConfigPacket(0));
                     Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
                     
-                    //Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
+                    Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
                     //Connection.SendPacket(new SCProtectFactionPacket(1, DateTime.UtcNow));
                     //Connection.SendPacket(new SCTaxItemConfig2Packet(0));
                     

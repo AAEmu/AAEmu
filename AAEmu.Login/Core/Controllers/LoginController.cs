@@ -51,8 +51,10 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastLogin = DateTime.Now;
                         connection.LastIp = connection.Ip;
 
-                        connection.SendPacket(new ACJoinResponsePacket(0, 6));
-                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+                        //connection.SendPacket(new ACJoinResponsePacket(0, 6, 0));
+                        //connection.SendPacket(new ACJoinResponsePacket(1, 0x480306, 0));
+                        connection.SendPacket(new ACJoinResponsePacket(1, 0x02020402, 0));
+                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
                     }
                 }
             }
@@ -103,8 +105,8 @@ namespace AAEmu.Login.Core.Controllers
                         connection.LastIp = connection.Ip;
 
                         _log.Info("{0} connected.", connection.AccountName);
-                        connection.SendPacket(new ACJoinResponsePacket(0, 6));
-                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+                        connection.SendPacket(new ACJoinResponsePacket(1, 0x02020402, 0));
+                        connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
                     }
                 }
             }
@@ -164,8 +166,8 @@ namespace AAEmu.Login.Core.Controllers
             if (_tokens[gsId][token] == accountId)
             {
                 connection.AccountId = accountId;
-                connection.SendPacket(new ACJoinResponsePacket(0, 6));
-                connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 6));
+                connection.SendPacket(new ACJoinResponsePacket(1, 0x02020402, 0));
+                connection.SendPacket(new ACAuthResponsePacket(connection.AccountId, 0));
             }
             else
             {

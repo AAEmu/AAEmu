@@ -272,6 +272,10 @@ namespace AAEmu.Commons.Network
         {
             return Insert(offset, copyArray, 0, copyArray.Length);
         }
+        public PacketStream Insert(int offset, float[] copyArray)
+        {
+            return Insert(offset, copyArray, 0, copyArray.Length * 4);
+        }
 
         public PacketStream Insert(int offset, PacketStream copyStream, int copyStreamOffset, int count)
         {
@@ -279,6 +283,17 @@ namespace AAEmu.Commons.Network
         }
 
         public PacketStream Insert(int offset, byte[] copyArray, int copyArrayOffset, int count)
+        {
+            Reserve(Count + count);
+            // передвигаем данные с позиции offset до позиции offset + count
+            SBuffer.BlockCopy(Buffer, offset, Buffer, offset + count, Count - offset);
+            // копируем новый массив данных в позицию offset
+            SBuffer.BlockCopy(copyArray, copyArrayOffset, Buffer, offset, count);
+            Count += count;
+            return this;
+        }
+
+        public PacketStream Insert(int offset, float[] copyArray, int copyArrayOffset, int count)
         {
             Reserve(Count + count);
             // передвигаем данные с позиции offset до позиции offset + count
@@ -578,6 +593,13 @@ namespace AAEmu.Commons.Network
         {
             PushBack(value);
             return this;
+        }
+
+        public PacketStream Write(float[] value, bool appendSize = false)
+        {
+            if (appendSize)
+                Write((ushort) value.Length);
+            return Insert(Count, value);
         }
 
         public PacketStream Write(byte[] value, bool appendSize = false)

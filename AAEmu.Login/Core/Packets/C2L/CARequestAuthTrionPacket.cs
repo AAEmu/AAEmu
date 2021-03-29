@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Controllers;
@@ -8,7 +8,7 @@ namespace AAEmu.Login.Core.Packets.C2L
 {
     public class CARequestAuthTrionPacket : LoginPacket
     {
-        public CARequestAuthTrionPacket() : base(0x04)
+        public CARequestAuthTrionPacket() : base(0x05)
         {
         }
 
@@ -21,6 +21,7 @@ namespace AAEmu.Login.Core.Packets.C2L
             var ticket = stream.ReadString();
             var signature = stream.ReadString();
             var isLast = stream.ReadBoolean();
+            var is64bit = stream.ReadBoolean(); // added 5.7.5.0
 
             var xmlDoc = XDocument.Parse(ticket);
 

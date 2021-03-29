@@ -11,13 +11,12 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _dir;
         private readonly bool _modPack;
 
-
-        public SCHackGuardRetAddrsRequestPacket(bool sendAddrs, bool spMd5) : base(SCOffsets.SCHackGuardRetAddrsRequestPacket, 5)
+        public SCHackGuardRetAddrsRequestPacket(bool sendAddrs, bool spLuaMd5, bool spMd5) : base(SCOffsets.SCHGRequestPacket, 5)
         {
             _sendAddrs = sendAddrs;
             _spMd5 = spMd5;
-            _spLuaMd5 = true;
-            _dir = "x2ui/hud";
+            _spLuaMd5 = spLuaMd5;
+            _dir = ""; // "x2ui/hud";
             _modPack = false;
         }
 
@@ -28,7 +27,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_spLuaMd5);
             stream.Write(_dir);
             stream.Write(_modPack);
-
             return stream;
         }
     }
