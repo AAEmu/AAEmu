@@ -460,7 +460,7 @@ namespace AAEmu.Game.Models.Game.Items
                 if ((crafterId > 0) && (newItem.Template.MaxCount == 1))
                 {
                     newItem.MadeUnitId = crafterId;
-                    newItem.WorldId = 0; // TODO: proper world id handling
+                    newItem.WorldId = 1; // TODO: proper world id handling
                 }
                 amountToAdd -= addAmount;
                 var prefSlot = -1;

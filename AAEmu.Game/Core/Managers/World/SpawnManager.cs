@@ -48,86 +48,109 @@ namespace AAEmu.Game.Core.Managers.World
 
                 // Load NPC Spawns
                 jsonFileName = Path.Combine(worldPath, "npc_spawns.json");
-                var contents =
-                    FileManager.GetFileContents(jsonFileName);
-                if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
+
+                var contents = string.Empty;
+
+                if (!File.Exists(jsonFileName))
+                {
+                    _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
+                }
                 else
                 {
-                    if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> spawners, out _))
-                        foreach (var spawner in spawners)
-                        {
-                            if (!NpcManager.Instance.Exist(spawner.UnitId))
-                                continue; // TODO ... so mb warn here?
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId =
-                                WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            // Convert degrees from the file to radians for use
-                            // TODO: invert pitch and roll values in converter instead of here
-                            spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
-                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
-                            npcSpawners.Add(spawner.Id, spawner);
-                        }
+                    contents = FileManager.GetFileContents(jsonFileName);
+
+                    if (string.IsNullOrWhiteSpace(contents))
+                        _log.Warn("File {0} is empty.", jsonFileName);
                     else
-                        throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                    {
+                        if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> spawners, out _))
+                            foreach (var spawner in spawners)
+                            {
+                                if (!NpcManager.Instance.Exist(spawner.UnitId))
+                                    continue; // TODO ... so mb warn here?
+                                spawner.Position.WorldId = world.Id;
+                                spawner.Position.ZoneId =
+                                    WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                // Convert degrees from the file to radians for use
+                                spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
+                                spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                                spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
+                                npcSpawners.Add(spawner.Id, spawner);
+                            }
+                        else
+                            throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                    }
                 }
 
                 // Load Doodad spawns
                 jsonFileName = Path.Combine(worldPath, "doodad_spawns.json");
-                contents = FileManager.GetFileContents(jsonFileName);
-                if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
+
+                if (!File.Exists(jsonFileName))
+                {
+                    _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
+                }
                 else
                 {
-                    if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
-                        foreach (var spawner in spawners)
-                        {
-                            if (!DoodadManager.Instance.Exist(spawner.UnitId))
-                                continue; // TODO ... so mb warn here?
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager
-                                .Instance
-                                .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            // Convert degrees from the file to radians for use
-                            // TODO: invert pitch and roll values in converter instead of here
-                            spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
-                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
-                            doodadSpawners.Add(spawner.Id, spawner);
-                        }
+                    contents = FileManager.GetFileContents(jsonFileName);
+                    if (string.IsNullOrWhiteSpace(contents))
+                        _log.Warn("File {0} is empty.", jsonFileName);
                     else
-                        throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                    {
+                        if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
+                            foreach (var spawner in spawners)
+                            {
+                                if (!DoodadManager.Instance.Exist(spawner.UnitId))
+                                    continue; // TODO ... so mb warn here?
+                                spawner.Position.WorldId = world.Id;
+                                spawner.Position.ZoneId = WorldManager
+                                    .Instance
+                                    .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                // Convert degrees from the file to radians for use
+                                spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
+                                spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                                spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
+                                doodadSpawners.Add(spawner.Id, spawner);
+                            }
+                        else
+                            throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                    }
                 }
 
                 // Load Transfers
                 jsonFileName = Path.Combine(worldPath, "transfer_spawns.json");
-                contents = FileManager.GetFileContents(jsonFileName);
-                if (string.IsNullOrWhiteSpace(contents))
+
+                if (!File.Exists(jsonFileName))
                 {
-                    _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
+                    _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
                 }
                 else
                 {
-                    if (JsonHelper.TryDeserializeObject(contents, out List<TransferSpawner> spawners, out _))
+                    contents = FileManager.GetFileContents(jsonFileName);
+                    if (string.IsNullOrWhiteSpace(contents))
                     {
-                        foreach (var spawner in spawners)
-                        {
-                            if (!TransferManager.Instance.Exist(spawner.UnitId))
-                                continue;
-                            spawner.Position.WorldId = world.Id;
-                            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
-                            // Convert degrees from the file to radians for use
-                            // TODO: invert pitch and roll values in converter instead of here
-                            spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                            spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
-                            spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
-                            transferSpawners.Add(spawner.Id, spawner);
-                        }
+                        _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
                     }
                     else
                     {
-                        throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                        if (JsonHelper.TryDeserializeObject(contents, out List<TransferSpawner> spawners, out _))
+                        {
+                            foreach (var spawner in spawners)
+                            {
+                                if (!TransferManager.Instance.Exist(spawner.UnitId))
+                                    continue;
+                                spawner.Position.WorldId = world.Id;
+                                spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                // Convert degrees from the file to radians for use
+                                spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
+                                spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
+                                spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
+                                transferSpawners.Add(spawner.Id, spawner);
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                        }
                     }
                 }
 

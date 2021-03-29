@@ -1406,7 +1406,7 @@ namespace AAEmu.Game.Models.Game.Char
                 IsUnderWater = false;
             
             //Connection.ActiveChar.SendMessage("Move New Rot: {0}, {1}, {2}", rotationX.ToString("0.00"),rotationY.ToString("0.00"),rotationZ.ToString("0.00"));
-            Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.World.ToString());
+            // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.World.ToString());
             
             if (!moved)
                 return;

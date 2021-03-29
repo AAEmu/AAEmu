@@ -199,7 +199,7 @@ namespace AAEmu.Game.Core.Managers
 
                                         if (bindingDoodad.Position == null)
                                             bindingDoodad.Position = new WorldSpawnPosition();
-                                        bindingDoodad.Position.WorldId = 0;
+                                        bindingDoodad.Position.WorldId = 1;
 
                                         doodads.Add(bindingDoodad);
                                     }
@@ -262,7 +262,7 @@ namespace AAEmu.Game.Core.Managers
                                 new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
                                 Quaternion.CreateFromYawPitchRoll(reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll"))
                                 );
-                            house.Transform.WorldId = 0;
+                            house.Transform.WorldId = 1;
                             house.Transform.ZoneId = WorldManager.Instance.GetZoneId(house.Transform.WorldId, house.Transform.WorldPosition.X, house.Transform.WorldPosition.Y);
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.NumAction = reader.GetInt32("current_action");
@@ -463,12 +463,12 @@ namespace AAEmu.Game.Core.Managers
 
                 var userTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
                 var userBoundTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
-                var totatUserTaxCount = userTaxCount + userBoundTaxCount;
+                var totalUserTaxCount = userTaxCount + userBoundTaxCount;
                 var totalCertsCost = (int)Math.Ceiling(totalTaxAmountDue / 10000f);
 
                 // Alloyingly complex item consumption, maybe we need a seperate function in inventory to handle this kind of thing
                 var consumedCerts = totalCertsCost;
-                if (totalCertsCost > totatUserTaxCount)
+                if (totalCertsCost > totalUserTaxCount)
                 {
                     connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
                     return;

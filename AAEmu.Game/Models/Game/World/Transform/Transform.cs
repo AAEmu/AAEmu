@@ -306,7 +306,7 @@ namespace AAEmu.Game.Models.Game.World
             ZoneId = zoneId;
             InstanceId = instanceId;
             LocalPosition = new Vector3(posX, posY, posZ);
-            LocalRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rotZ);
+            LocalRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, rotZ);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw, float pitch, float roll)

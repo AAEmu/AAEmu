@@ -239,8 +239,9 @@ namespace AAEmu.Game.Models.Game.Housing
 
                 command.CommandText =
                     "REPLACE INTO `housings` " +
-                    "(`id`,`account_id`,`owner`,`co_owner`,`template_id`,`name`,`x`,`y`,`z`,`rotation_z`,`current_step`,`current_action`,`permission`,`place_date`,`protected_until`,`faction_id`,`sell_to`,`sell_price`) " +
-                    "VALUES(@id,@account_id,@owner,@co_owner,@template_id,@name,@x,@y,@z,@yaw,@pitch,@roll,@current_step,@current_action,@permission,@placedate,@protecteduntil,@factionid,@sellto,@sellprice)";
+                    "(`id`,`account_id`,`owner`,`co_owner`,`template_id`,`name`,`x`,`y`,`z`,`yaw`,`pitch`,`roll`,`current_step`,`current_action`,`permission`,`place_date`,`protected_until`,`faction_id`,`sell_to`,`sell_price`) " +
+                    "VALUES(@id,@account_id,@owner,@co_owner,@template_id,@name,@x,@y,@z,@yaw,@pitch,@roll,@current_step,@current_action,@permission,@placedate," +
+                    "@protecteduntil,@factionid,@sellto,@sellprice)";
 
                 command.Parameters.AddWithValue("@id", Id);
                 command.Parameters.AddWithValue("@account_id", AccountId);
@@ -263,6 +264,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 command.Parameters.AddWithValue("@factionid", Faction.Id);
                 command.Parameters.AddWithValue("@sellto", SellToPlayerId);
                 command.Parameters.AddWithValue("@sellprice", SellPrice);
+                command.Prepare();
                 command.ExecuteNonQuery();
             }
 
