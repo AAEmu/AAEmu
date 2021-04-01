@@ -449,7 +449,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
 
-            var zoneId = WorldManager.Instance.GetZoneId(1, position.X, position.Y);
+            var zoneId = WorldManager.Instance.GetZoneId(0, position.X, position.Y);
 
             var houseTemplate = _housingTemplates[designId];
             CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate);
