@@ -19,6 +19,17 @@ namespace AAEmu.Game.Utils
         }
 
         /// <summary>
+        /// Return degree value of object 2 to the horizontal line with object 1 being the origin (using Transform.World) 
+        /// </summary>
+        /// <param name="obj1"></param>
+        /// <param name="obj2"></param>
+        /// <returns>Angle in degree</returns>
+        public static double CalculateAngleFrom(Transform obj1, Transform obj2)
+        {
+            return CalculateAngleFrom(obj1.World.Position.X, obj1.World.Position.Y, obj2.World.Position.X, obj2.World.Position.Y);
+        }
+        
+        /// <summary>
         /// Return degree value of object 2 to the horizontal line with object 1 being the origin 
         /// </summary>
         /// <param name="obj1X"></param>
@@ -29,7 +40,7 @@ namespace AAEmu.Game.Utils
         public static double CalculateAngleFrom(float obj1X, float obj1Y, float obj2X, float obj2Y)
         {
             var angleTarget = RadianToDegree(Math.Atan2(obj2Y - obj1Y, obj2X - obj1X));
-            if (angleTarget < 0)
+            if (angleTarget < -90)
                 angleTarget += 360;
             return angleTarget;
         }

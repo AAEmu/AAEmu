@@ -30,9 +30,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             if (caster is Character character)
             {
-                var (endX, endY) = MathUtil.AddDistanceToFront(value1, character.Transform.World.Position.X, character.Transform.World.Position.Y, (sbyte)value2);
-                var endZ = character.Transform.World.Position.Z;
-                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, endX, endY, endZ));
+                character.SendMessage("From: " + character.Transform.World.ToString());
+                var newPos = character.Transform.CloneDetached(); 
+                newPos.Local.AddDistanceToFront(value1);
+                //var (endX, endY) = MathUtil.AddDistanceToFront(value1, character.Transform.World.Position.X, character.Transform.World.Position.Y, (sbyte)value2);
+                //var endZ = character.Transform.World.Position.Z;
+                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, newPos.Local.Position.X, newPos.Local.Position.Y, newPos.Local.Position.Z));
+                character.SendMessage("To: " + newPos.World.ToString());
+                //character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, value1, value2, endX, endY, endZ));
             }
         }
     }

@@ -161,21 +161,21 @@ namespace AAEmu.Game.Models.Game.World
         }
 
         /// <summary>
-        /// Adds distance in front (only takes into account Z direction, roll)
+        /// Adds distance in front (only takes into account Z direction, yaw)
         /// </summary>
         /// <param name="distance"></param>
         public void AddDistanceToFront(float distance)
         {
-            var ypr = ToRollPitchYaw();
-            var off = new Vector3((distance * (float)Math.Cos(ypr.Z)), (distance * (float)Math.Sin(ypr.Z)), 0);
+            // TODO: Use Quaternion to do a proper InFront, currently height is ignored
+            var rpy = ToRollPitchYaw();
+            var off = new Vector3((distance * (float)Math.Sin(rpy.Z)), (distance * (float)Math.Cos(rpy.Z)), 0);
             Translate(off);
         }
 
         public void AddDistanceToRight(float distance)
         {
-            var ypr = ToRollPitchYaw();
-            var z = ypr.Z - (MathF.PI / 2);
-            var off = new Vector3((distance * (float)Math.Cos(z)), (distance * (float)Math.Sin(z)), 0);
+            var rpy = ToRollPitchYaw();
+            var off = new Vector3((distance * (float)Math.Cos(rpy.Z)), (distance * (float)Math.Sin(rpy.Z)), 0);
             Translate(off);
         }
 
