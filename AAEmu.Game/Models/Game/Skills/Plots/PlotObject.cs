@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots
 {

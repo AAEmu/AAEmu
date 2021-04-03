@@ -8,7 +8,7 @@ using AAEmu.Game.Utils;
 // https://www.versluis.com/2020/09/what-is-yaw-pitch-and-roll-in-3d-axis-values/
 // https://en.wikipedia.org/wiki/Euler_angles
 
-namespace AAEmu.Game.Models.Game.World
+namespace AAEmu.Game.Models.Game.World.Transform
 {
     public class PositionAndRotation
     {
@@ -126,6 +126,16 @@ namespace AAEmu.Game.Models.Game.World
             return (roll, pitch, yaw);
         }
 
+        public void SetRotation(float roll, float pitch, float yaw)
+        {
+            Rotation = Quaternion.CreateFromYawPitchRoll(roll, pitch, yaw);
+        }
+        
+        public void SetRotationDegree(float roll, float pitch, float yaw)
+        {
+            Rotation = Quaternion.CreateFromYawPitchRoll(yaw / 180f * MathF.PI, pitch / 180f * MathF.PI, roll / 180f * MathF.PI);
+        }
+        
         public void SetZRotation(float rotZ)
         {
             var oldR = ToRollPitchYaw();
@@ -144,11 +154,21 @@ namespace AAEmu.Game.Models.Game.World
             Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(rotZ), oldR.Y, oldR.X);
         }
 
+        /// <summary>
+        /// Move position by a given offset
+        /// </summary>
+        /// <param name="offset">Amount to offset</param>
         public void Translate(Vector3 offset)
         {
             Position += offset;
         }
 
+        /// <summary>
+        /// Move position by a given offset
+        /// </summary>
+        /// <param name="offsetX"></param>
+        /// <param name="offsetY"></param>
+        /// <param name="offsetZ"></param>
         public void Translate(float offsetX, float offsetY, float offsetZ)
         {
             Position += new Vector3(offsetX, offsetY, offsetZ);
@@ -161,24 +181,53 @@ namespace AAEmu.Game.Models.Game.World
         }
 
         /// <summary>
-        /// Adds distance in front (only takes into account Z direction, yaw)
+        /// Moves Transform forward by distance units
         /// </summary>
         /// <param name="distance"></param>
-        public void AddDistanceToFront(float distance)
+        /// <param name="useFullRotation">When true, takes into account the full rotation instead of just on the horizontal pane. (not implemented yet)</param>
+        public void AddDistanceToFront(float distance, bool useFullRotation = false)
         {
             // TODO: Use Quaternion to do a proper InFront, currently height is ignored
+            // TODO: Take into account IsLocal = false
             var rpy = ToRollPitchYaw();
             var off = new Vector3((distance * (float)Math.Sin(rpy.Z)), (distance * (float)Math.Cos(rpy.Z)), 0);
             Translate(off);
         }
 
-        public void AddDistanceToRight(float distance)
+        /// <summary>
+        /// Moves Transform to it's right by distance units
+        /// </summary>
+        /// <param name="distance"></param>
+        /// <param name="useFullRotation">When true, takes into account the full rotation instead of just on the horizontal pane. (not implemented yet)</param>
+        public void AddDistanceToRight(float distance, bool useFullRotation = false)
         {
+            // TODO: Use Quaternion to do a proper InFront, currently height is ignored
+            // TODO: Take into account IsLocal = false
             var rpy = ToRollPitchYaw();
             var off = new Vector3((distance * (float)Math.Cos(rpy.Z)), (distance * (float)Math.Sin(rpy.Z)), 0);
             Translate(off);
         }
 
+        /// <summary>
+        /// Rotates Transform to make it face towards targetPosition's direction
+        /// </summary>
+        /// <param name="targetPosition"></param>
+        public void LookAt(Vector3 targetPosition)
+        {
+            // TODO: Fix this as it's still wrong
+            var forward = Vector3.Normalize(Position - targetPosition);
+            var tmp = Vector3.Normalize(Vector3.UnitZ);
+            var right = Vector3.Cross(tmp, forward);
+            var up = Vector3.Cross(forward, right);
+            var m = Matrix4x4.CreateLookAt(Position, targetPosition, up);
+            var qr = Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(m));
+            Rotation = qr;
+        }
+
+        /// <summary>
+        /// Clones current Position into a new Vector3
+        /// </summary>
+        /// <returns></returns>
         public Vector3 ClonePosition()
         {
             return new Vector3(Position.X,Position.Y,Position.Z);

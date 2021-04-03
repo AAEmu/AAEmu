@@ -19,7 +19,6 @@ using NLog.Targets;
 using System.ComponentModel.DataAnnotations;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Tasks.Mails;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Features;
 
 namespace AAEmu.Game.Core.Managers

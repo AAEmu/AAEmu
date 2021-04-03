@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             int count = Rand.Next(CountMin, CountMax);
             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
-                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                character.SendErrorMessage(ErrorMessageType.BagFull);
             // else
             // {
             //     character.SendErrorMessage(Error.ErrorMessageType.BagFull);

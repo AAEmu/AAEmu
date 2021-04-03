@@ -5,7 +5,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World
@@ -19,12 +18,12 @@ namespace AAEmu.Game.Models.Game.World
         /// <summary>
         /// Contains position, rotation, zone and instance information
         /// </summary>
-        public Transform Transform { get; set; }
+        public Transform.Transform Transform { get; set; }
         //public Point Position { get; set; }
         /// <summary>
         /// When not null, this is the location where the character last entered a instance from
         /// </summary>
-        public Transform MainWorldPosition { get; set; }
+        public Transform.Transform MainWorldPosition { get; set; }
         public Region Region { get; set; }
         public DateTime Respawn { get; set; }
         public DateTime Despawn { get; set; }
@@ -34,7 +33,7 @@ namespace AAEmu.Game.Models.Game.World
 
         public GameObject()
         {
-            Transform = new Transform(this,null);
+            Transform = new Transform.Transform(this,null);
         }
 
         public virtual void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)

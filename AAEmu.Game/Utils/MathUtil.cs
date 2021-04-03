@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using Microsoft.VisualBasic.CompilerServices;
 
 namespace AAEmu.Game.Utils

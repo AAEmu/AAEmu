@@ -97,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Char
             // First verify source items, and add them to the attachments of body
             if (!mail.PrepareAttachmentItems(itemSlots))
             {
-                Self.SendErrorMessage(Error.ErrorMessageType.MailInvalidItem);
+                Self.SendErrorMessage(ErrorMessageType.MailInvalidItem);
                 return false;
             }
 
@@ -105,7 +105,7 @@ namespace AAEmu.Game.Models.Game.Char
             var mailFee = mail.GetMailFee();
             if ((mailFee + money0) > Self.Money)
             {
-                Self.SendErrorMessage(Error.ErrorMessageType.MailNotEnoughMoney);
+                Self.SendErrorMessage(ErrorMessageType.MailNotEnoughMoney);
                 return false;
             }
 
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     if (Self.LaborPower <= 1)
                     {
-                        Self.SendErrorMessage(Error.ErrorMessageType.NotEnoughLaborPower);
+                        Self.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
                         takeMoney = false;
                     }
                     else
@@ -207,7 +207,7 @@ namespace AAEmu.Game.Models.Game.Char
                             else
                             {
                                 // Bag Full
-                                Self.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                                Self.SendErrorMessage(ErrorMessageType.BagFull);
                             }
                         }
                     }

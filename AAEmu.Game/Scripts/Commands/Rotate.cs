@@ -53,19 +53,27 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.Y = character.CurrentTarget.Transform.World.Position.Y;
                 moveType.Z = character.CurrentTarget.Transform.World.Position.Z;
 
-                var angle = (float)MathUtil.CalculateAngleFrom(character.CurrentTarget, character);
+                var angle = (float)MathUtil.CalculateAngleFrom(character.CurrentTarget, character) - 90f;
                 var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
-                if (args.Length > 0) 
+                /*
+                if (args.Length > 0)
                 {
-                    sbyte.TryParse(args[0], out rotZ);
+                    if (!sbyte.TryParse(args[0], out rotZ))
+                        character.SendMessage("Rotation sbyte out of range");
                 }
 
-                moveType.RotationX = 0;
-                moveType.RotationY = 0;
-                moveType.RotationZ = rotZ;
+                var angle2 = angle;
+                angle = (float)MathUtil.ConvertSbyteDirectionToDegree(rotZ);
+                */
+                character.CurrentTarget.Transform.Local.SetRotationDegree(0f,0f,angle);
+                
+                //character.CurrentTarget.Transform.Local.LookAt(character.Transform.Local.Position);
 
-                character.CurrentTarget.Transform.Local.SetZRotation((float)MathUtil.DegreeToRadian(angle));
-                // character.CurrentTarget.Transform.Local.SetZRotation(rotZ);
+                var rpy = character.CurrentTarget.Transform.Local.ToRollPitchYaw();
+                moveType.RotationX = MathUtil.ConvertRadianToDirection(rpy.X);
+                moveType.RotationY = MathUtil.ConvertRadianToDirection(rpy.Y);
+                moveType.RotationZ = MathUtil.ConvertRadianToDirection(rpy.Z);
+                //moveType.RotationZ = rotZ;
 
                 moveType.Flags = 5;
                 moveType.DeltaMovement = new sbyte[3];
@@ -77,7 +85,9 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.Time = Seq;
 
                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
-                character.SendMessage("New rotation {0}° ({1} rad, sbyte {2}) for {3}",angle, character.CurrentTarget.Transform.Local.Rotation.Z.ToString("0.00"),rotZ,character.CurrentTarget.ObjId);
+                character.SendMessage("New rotation {0}° ({1} rad, sbyte {2}) for {3}",angle, character.CurrentTarget.Transform.Local.ToRollPitchYaw().Z.ToString("0.00"),rotZ,character.CurrentTarget.ObjId);
+                character.SendMessage("New position {0}",character.CurrentTarget.Transform.Local.ToString());
+                //character.SendMessage("New position A1:{0}  A2:{1}  {2}",angle,angle2,character.CurrentTarget.Transform.Local.ToString());
             }
             else
                 character.SendMessage("[Rotate] You need to target something first");

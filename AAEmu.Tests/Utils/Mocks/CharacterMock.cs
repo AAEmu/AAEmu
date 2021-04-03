@@ -1,8 +1,7 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
 
-namespace AAEmu.Tests.Utils
+namespace AAEmu.Tests.Utils.Mocks
 {
     public class CharacterMock : Character
     {

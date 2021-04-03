@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AAEmu.Game.Models.Game.Skills.Effects
+﻿namespace AAEmu.Game.Models.Game.Skills.Effects.Enums
 {
     public enum SkillEffectApplicationMethod
     {

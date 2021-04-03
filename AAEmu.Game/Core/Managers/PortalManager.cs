@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using Portal = AAEmu.Game.Models.Game.Portal;

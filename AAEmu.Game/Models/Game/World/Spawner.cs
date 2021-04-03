@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.World
+﻿using AAEmu.Game.Models.Game.World.Transform;
+
+namespace AAEmu.Game.Models.Game.World
 {
     public class Spawner<T> where T : GameObject
     {

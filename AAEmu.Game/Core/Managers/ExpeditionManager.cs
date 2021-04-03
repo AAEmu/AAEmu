@@ -13,11 +13,11 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using AAEmu.Game.Models.Game.Team;
 using System.Numerics;
+using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Managers
 {

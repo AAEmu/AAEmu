@@ -276,6 +276,11 @@ namespace AAEmu.Game.Models.Game.World
                         {
                             slave.AddVisibleObject(character1);
                         }
+                        else if (t is Shipyard.Shipyard shipyard)
+                        {
+                            character1.SendPacket(new SCUnitStatePacket(t));
+                            character1.SendPacket(new SCShipyardStatePacket(shipyard.Template));
+                        }
                         else
                         {
                             character1.SendPacket(new SCUnitStatePacket(t));

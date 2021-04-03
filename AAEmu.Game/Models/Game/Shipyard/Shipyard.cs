@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCShipyardStatePacket(Template));
-            //character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         }
 
         public override void RemoveVisibleObject(Character character)

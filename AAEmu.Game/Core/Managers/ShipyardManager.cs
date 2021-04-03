@@ -22,12 +22,24 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, ShipyardsTemplate> _shipyards;
+        private Dictionary<ulong, Shipyard> _allShipyard;
+
+        private ulong GetNewShipYardId()
+        {
+            ulong res = 1;
+            foreach (var sy in _allShipyard)
+            {
+                if (sy.Key >= res)
+                    res = sy.Key + 1;
+            }
+            return res;
+        }
 
         public void Create(Character owner, uint id, float x, float y, float z, float zrot, uint type1, uint type2, uint type3, int step)
         {
             var objId = ObjectIdManager.Instance.GetNextId();
             var template = _shipyards[id];
-            var shipId = 7199u;
+            var shipId = GetNewShipYardId();  // 7199u;
             var shipyard = new Shipyard
             {
                 ObjId = objId,
@@ -62,11 +74,13 @@ namespace AAEmu.Game.Core.Managers
                 Step = step
             };
             shipyard.Spawn();
+            _allShipyard.Add(shipyard.Template.Id, shipyard);
         }
 
         public void Load()
         {
             _shipyards = new Dictionary<uint, ShipyardsTemplate>();
+            _allShipyard = new Dictionary<ulong, Shipyard>();
 
             _log.Info("Loading Shipyards...");
             using (var connection = SQLite.CreateConnection())

@@ -22,6 +22,7 @@ using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using System.Numerics;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
 {

@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 using System;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World
 {

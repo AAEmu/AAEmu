@@ -92,7 +92,7 @@ namespace AAEmu.Game.Core.Managers
 
             // Only enable the force_scripts_reload when we don't have anything loaded, this is simply a failsafe function in case
             // things aren't working out when live-editing scripts
-            if ((thisCommand == "force_scripts_reload") && (_commands.Count <= 0))
+            if ((_commands.Count <= 0) && (words.Length == 2) && (thisCommand == "scripts") && (words[1] == "reload"))
             {
                 ForceScriptsReload(character);
                 return true;
@@ -100,7 +100,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (_commands.Count <= 0)
             {
-                character.SendMessage("[Error] No commands have been loaded, this is usually because of compile errors. Try using " + CommandManager.CommandPrefix + "force_scripts_reload after the issues have been fixed.");
+                character.SendMessage("[Error] No commands have been loaded, this is usually because of compile errors. Try using \"" + CommandManager.CommandPrefix + "scripts reload\" after the issues have been fixed.");
                 return false;
             }
 

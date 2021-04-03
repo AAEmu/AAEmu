@@ -17,6 +17,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers.World
 {

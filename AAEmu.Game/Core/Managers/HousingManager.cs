@@ -14,7 +14,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Items.Actions;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -22,6 +21,8 @@ using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Tasks.Housing;
 using Microsoft.CodeAnalysis.Text;
 using System.Numerics;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
 {

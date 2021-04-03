@@ -136,6 +136,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.Level);
             stream.Write(_unit.ModelId); // modelRef
 
+            // Equipped gear slots
             if (_unit is Character)
             {
                 var character = (Character)_unit;
@@ -196,6 +197,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_unit.Mp * 100); // preciseMana
             //stream.Write(_attachPoint);   // point
             //_modelPostureType = ModelPostureType.None;
+            
+            // Attachment points
             if (_unit is Transfer)
             {
                 var transfer = (Transfer)_unit;
@@ -318,6 +321,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.Write(_unit.ActiveWeapon);
 
+            // Skills and Passive Buffs
             if (_unit is Character)
             {
                 var character = (Character)_unit;
@@ -340,10 +344,11 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0);       // learnedBuffCount
             }
 
-            var (yaw, pitch, roll) = _unit.Transform.Local.ToRollPitchYawSBytes();
-            stream.Write(yaw);
-            stream.Write(pitch);
+            // Rotation
+            var (roll, pitch, yaw) = _unit.Transform.Local.ToRollPitchYawSBytes();
             stream.Write(roll);
+            stream.Write(pitch);
+            stream.Write(yaw);
 
             switch (_unit)
             {

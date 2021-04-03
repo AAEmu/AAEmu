@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 using NLog;
 using System;
@@ -89,7 +90,7 @@ namespace AAEmu.Game.Scripts.Commands
                         }
                         else
                         {
-                            angle = MathUtil.DegreeToRadian(angle);
+                            angle = (float)MathUtil.DegreeToRadian(angle);
                             character.SendMessage("[Spawn] NPC {0} facing you using angle {1} rad", unitId, angle);
                         }
                         npcSpawner.Position.Yaw = angle;
@@ -121,7 +122,7 @@ namespace AAEmu.Game.Scripts.Commands
                         }
                         else
                         {
-                            angle = MathUtil.DegreeToRadian(angle);
+                            angle = (float)MathUtil.DegreeToRadian(angle);
                             character.SendMessage("[Spawn] Doodad {0} facing you, using characters angle {1}", unitId, angle);
                         }
                         doodadSpawner.Position.Yaw = angle;
