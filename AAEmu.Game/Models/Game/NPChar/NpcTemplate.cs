@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -128,6 +130,10 @@ namespace AAEmu.Game.Models.Game.NPChar
         public (uint ItemId, bool NpcOnly)[] BodyItems { get; set; }
         public List<uint> Buffs { get; set; }
         public List<BonusTemplate> Bonuses { get; set; }
+        public AiParams AiParams { get; set; }
+        public Dictionary<SkillUseConditionKind, List<NpcSkill>> Skills { get; set; }
+        public List<NpcPassiveBuff> PassiveBuffs { get; set; }
+        public uint TotalCustomId { get; set; }
 
         public NpcTemplate()
         {
@@ -137,6 +143,19 @@ namespace AAEmu.Game.Models.Game.NPChar
             BodyItems = new (uint, bool)[7];
             Buffs = new List<uint>();
             Bonuses = new List<BonusTemplate>();
+            Skills = new Dictionary<SkillUseConditionKind, List<NpcSkill>>();
+            PassiveBuffs = new List<NpcPassiveBuff>();
+        }
+
+        public void BindSkills(List<NpcSkill> skills)
+        {
+            foreach (var skill in skills)
+            {
+                if (!Skills.ContainsKey(skill.SkillUseCondition))
+                    Skills.Add(skill.SkillUseCondition, new List<NpcSkill>());
+                
+                Skills[skill.SkillUseCondition].Add(skill);
+            }
         }
     }
 }

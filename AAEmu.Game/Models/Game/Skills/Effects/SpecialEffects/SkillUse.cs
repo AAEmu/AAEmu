@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill);//Not sure if it belongs here.
             TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, casterObj, target, targetObj, skillObject), TimeSpan.FromMilliseconds(delay));
             //useSkill.ApplyEffects(caster, casterObj, target, targetObj, skillObject);
-            _log.Warn("SkillId {0}, Delay {1}, Chance {2}, value4 {3}", skillId, delay, chance, value4);
+            _log.Trace("SkillId {0}, Delay {1}, Chance {2}, value4 {3}", skillId, delay, chance, value4);
         }
     }
 }

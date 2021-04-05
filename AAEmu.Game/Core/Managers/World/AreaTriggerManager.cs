@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Managers.World
         
         public void Initialize()
         {
-            TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(200));
+            TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(200), true);
         }
 
         public void AddAreaTrigger(AreaTrigger trigger)
@@ -61,7 +61,9 @@ namespace AAEmu.Game.Core.Managers.World
 
                 foreach (var trigger in _areaTriggers)
                 {
-                    trigger?.Tick(delta);
+                    // if (trigger.Owner.Position)
+                    if(trigger?.Owner?.Region?.HasPlayerActivity() ?? false)
+                        trigger?.Tick(delta);
                 }
 
                 lock (_remLock)

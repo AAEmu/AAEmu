@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -37,6 +37,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             {
                 ScType = stream.ReadUInt32();
                 Phase = stream.ReadByte();
+                _log.Warn("ScType: {0} Phase: {1}", ScType, Phase);
             }
         }
 

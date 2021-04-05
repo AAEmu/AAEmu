@@ -196,6 +196,8 @@ CREATE TABLE `characters` (
   `vocation_point` int(11) NOT NULL,
   `crime_point` int(11) NOT NULL,
   `crime_record` int(11) NOT NULL,
+  `pvp_honor` int(11) NOT NULL DEFAULT 0,
+  `hostile_faction_kills` int(11) NOT NULL DEFAULT 0,
   `delete_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `transfer_request_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `delete_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
@@ -568,3 +570,32 @@ CREATE TABLE `auction_house` (
   `extra` int NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+
+DROP TABLE IF EXISTS `accounts`;
+CREATE TABLE `accounts` (
+  `account_id` INT NOT NULL,
+  `credits` INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`account_id`)
+)  ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+DROP TABLE IF EXISTS `aaemu_game`.`doodads`;
+CREATE TABLE `aaemu_game`.`doodads` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `owner_id` int,
+  `owner_type` tinyint(4) unsigned DEFAULT 255,
+  `template_id` int NOT NULL,
+  `current_phase_id` int NOT NULL,
+  `plant_time` datetime NOT NULL,
+  `growth_time` datetime NOT NULL,
+  `phase_time` datetime NOT NULL,
+  `x` float NOT NULL,
+  `y` float NOT NULL,
+  `z` float NOT NULL,
+  `rotation_x` tinyint(4) NOT NULL,
+  `rotation_y` tinyint(4) NOT NULL,
+  `rotation_z` tinyint(4) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+

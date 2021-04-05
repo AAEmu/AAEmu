@@ -246,7 +246,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
     public class Transform : IDisposable
     {
         private GameObject _owningObject;
-        private uint _worldId = 0;
+        private uint _worldId = 1;
         private uint _instanceId = 1;
         private uint _zoneId = 0;
         private PositionAndRotation _localPosRot;

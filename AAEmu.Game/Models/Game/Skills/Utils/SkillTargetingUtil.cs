@@ -49,7 +49,8 @@ namespace AAEmu.Game.Models.Game.Skills.Utils
                     var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
                     return team?.IsObjMember(target.ObjId) ?? false;
                 case SkillTargetRelation.Others:
-                    return caster.GetRelationStateTo(target) == RelationState.Neutral;
+                    // return caster.GetRelationStateTo(target) == RelationState.Neutral;
+                    return caster.ObjId != target.ObjId;
                 default:
                     return true;
             }
