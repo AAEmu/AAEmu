@@ -24,6 +24,11 @@ namespace AAEmu.Game.Utils
             return CalculateAngleFrom(p1.X, p1.Y, p2.X, p2.Y);
         }
 
+        public static double CalculateAngleFrom(Vector3 p1, Vector3 p2)
+        {
+            return CalculateAngleFrom(p1.X, p1.Y, p2.X, p2.Y);
+        }
+
         /// <summary>
         /// Return degree value of object 2 to the horizontal line with object 1 being the origin (using Transform.World) 
         /// </summary>
@@ -280,6 +285,11 @@ namespace AAEmu.Game.Utils
             }
 
             return (float)Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        public static float CalculateDistance(GameObject loc, GameObject loc2, bool includeZAxis = false)
+        {
+            return CalculateDistance(loc.Transform.World.Position, loc2.Transform.World.Position, includeZAxis);
         }
 
         [Obsolete("Please use the Vector3 variant")]

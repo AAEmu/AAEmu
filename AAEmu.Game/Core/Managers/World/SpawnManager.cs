@@ -199,12 +199,11 @@ namespace AAEmu.Game.Core.Managers.World
                                 OwnerType = (DoodadOwnerType)ownerType,
                                 PlantTime = plantTime,
                                 GrowthTime = growthTime,
-                                Position = new Point(x, y, z)
-                                {
-                                    RotationZ = reader.GetSByte("rotation_z"), WorldId = 0
-                                }
                             };
-                            
+                            doodad.Transform.Local.SetPosition(x, y, z);
+                            doodad.Transform.Local.SetZRotation(reader.GetFloat("yaw"));
+
+
                             _playerDoodads.Add(doodad);
                         }
                     }

@@ -33,11 +33,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 //this shouldn't happen?
                 return;
             }
-            
-            var pos = target.Position;
+
+            var pos = target.Transform.World.Position;
             var distance = (float)value1 / 1000f;
-            var rot = MathUtil.ConvertDegreeToDirection(MathUtil.ConvertDirectionToDegree(pos.RotationZ) + (float)value3);
-            var (endX, endY) = MathUtil.AddDistanceToFront(distance, target.Position.X, target.Position.Y, rot);
+            var (endX, endY) = MathUtil.AddDistanceToFront(distance, target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.ToRollPitchYawDegrees().Z);
             
             switch (caster)
             {

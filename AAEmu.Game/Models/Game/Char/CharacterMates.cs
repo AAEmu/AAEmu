@@ -93,7 +93,6 @@ namespace AAEmu.Game.Models.Game.Char
                 Level = (byte)mateDbInfo.Level,
                 Hp = mateDbInfo.Hp > 0 ? mateDbInfo.Hp : 100,
                 Mp = mateDbInfo.Mp > 0 ? mateDbInfo.Mp : 100,
-                Position = Owner.Position.Clone(),
                 OwnerObjId = Owner.ObjId,
                 Id = mateDbInfo.Id,
                 ItemId = mateDbInfo.ItemId,

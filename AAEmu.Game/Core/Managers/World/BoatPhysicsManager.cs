@@ -80,7 +80,7 @@ namespace AAEmu.Game.Core.Managers.World
             if (shipModel == null)
                 return;
 
-            var oriY = MathUtil.ConvertDirectionToDegree(slave.Position.RotationZ);
+            var oriY = slave.Transform.World.ToRollPitchYawDegrees().Z;
             oriY -= 90.0f;
 
             var rigidBody = new RigidBody(new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY))

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -17,6 +18,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Models.Tasks.UnitMove;
 using AAEmu.Game.Utils;
@@ -830,35 +832,37 @@ namespace AAEmu.Game.Models.Game.NPChar
             }*/
         }
 
-        public void MoveTowards(Point other, float distance, byte flags = 4)
+        public void MoveTowards(Vector3 other, float distance, byte flags = 4)
         {
             if (ActiveSkillController != null && ActiveSkillController.State != SCState.Ended)
                 return;
-            
-            var targetDist = MathUtil.CalculateDistance(Position, other);
+
+            var oldPosition = Transform.World.ClonePosition();
+
+            var targetDist = MathUtil.CalculateDistance(this.Transform.World.Position, other);
             if (targetDist <= 0.01f)
                 return;
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             var travelDist = Math.Min(targetDist, distance);
-            var angle = MathUtil.CalculateAngleFrom(this.Position, other);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-            var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Position.X, Position.Y, rotZ);
+            var angle = MathUtil.CalculateAngleFrom(this.Transform.World.Position, other);
+            // TODO: Implement proper use for Transform.World.AddDistanceToFront)
+            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
+            var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Transform.World.Position.X, Transform.World.Position.Y, rotZ);
             var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, rotZ);
 
-            Position.X = newX;
-            Position.Y = newY;
-            Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(Position.ZoneId, Position.X, Position.Y) : Position.Z;
-            Position.RotationZ = rotZ;
+            // TODO: Implement Transform.World to do proper movement
+            Transform.Local.SetPosition(newX,newY, AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(Transform.ZoneId, Transform.World.Position.X, Transform.World.Position.Y) : Transform.World.Position.Z);
+            Transform.Local.SetRotationDegree(0f, 0f, (float)angle);
             
-            moveType.X = Position.X;
-            moveType.Y = Position.Y;
-            moveType.Z = Position.Z;
+            moveType.X = Transform.Local.Position.X;
+            moveType.Y = Transform.Local.Position.Y;
+            moveType.Z = Transform.Local.Position.Z;
             moveType.VelX = (short) velX;
             moveType.VelY = (short) velY;
             moveType.RotationX = 0;
             moveType.RotationY = 0;
-            moveType.RotationZ = Position.RotationZ;
+            moveType.RotationZ = Transform.World.ToRollPitchYawSBytes().Item3;
             moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
             moveType.Flags = 4;
             
@@ -870,26 +874,29 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = (uint) (DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
 
-            SetPosition(Position);
+            CheckMovedPosition(oldPosition);
+            //SetPosition(Position);
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }
         
-        public void LookTowards(Point other, byte flags = 4)
+        public void LookTowards(Vector3 other, byte flags = 4)
         {
-           
+            var oldPosition = Transform.World.ClonePosition();
+
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
-            var angle = MathUtil.CalculateAngleFrom(this.Position, other);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            var angle = MathUtil.CalculateAngleFrom(this.Transform.World.Position, other);
+            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
 
-           Position.RotationZ = rotZ;
-            
-            moveType.X = Position.X;
-            moveType.Y = Position.Y;
-            moveType.Z = Position.Z;
+            // TODO: Implement Transform.World to do proper movement
+            Transform.Local.SetRotationDegree(0f, 0f, (float)angle);
+
+            moveType.X = Transform.Local.Position.X;
+            moveType.Y = Transform.Local.Position.Y;
+            moveType.Z = Transform.Local.Position.Z;
             moveType.RotationX = 0;
             moveType.RotationY = 0;
-            moveType.RotationZ = Position.RotationZ;
+            moveType.RotationZ = Transform.World.ToRollPitchYawSBytes().Item3;
             moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
             moveType.Flags = 4;
             
@@ -901,19 +908,20 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = (uint) (DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
 
-            SetPosition(Position);
+            CheckMovedPosition(oldPosition);
+            //SetPosition(Position);
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }
         
         public void StopMovement()
         {
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
-            moveType.X = Position.X;
-            moveType.Y = Position.Y;
-            moveType.Z = Position.Z;
+            moveType.X = Transform.Local.Position.X;
+            moveType.Y = Transform.Local.Position.Y;
+            moveType.Z = Transform.Local.Position.Z;
             moveType.RotationX = 0;
             moveType.RotationY = 0;
-            moveType.RotationZ = Position.RotationZ;
+            moveType.RotationZ = Transform.World.ToRollPitchYawSBytes().Item3;
             moveType.Flags = 4;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;

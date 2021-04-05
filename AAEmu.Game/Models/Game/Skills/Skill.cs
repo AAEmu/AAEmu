@@ -330,12 +330,12 @@ namespace AAEmu.Game.Models.Game.Skills
                 var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
                 var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
             
-                var trg = (Unit)target;
-                var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, trg.Transform.World.Position, true);
+                var targetUnit = (Unit)target;
+                var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, targetUnit.Transform.World.Position, true);
                 if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
                 {
                     
-                    var sc = SkillController.CreateSkillController(scTemplate, caster, trgUnit);
+                    var sc = SkillController.CreateSkillController(scTemplate, caster, targetUnit);
                     if (sc != null)
                     {
                         if(caster.ActiveSkillController != null)

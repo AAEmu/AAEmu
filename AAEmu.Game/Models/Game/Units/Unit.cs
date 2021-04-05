@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -213,12 +215,27 @@ namespace AAEmu.Game.Models.Game.Units
 
         public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
-            var moved = !Transform.LocalPosition.X.Equals(x) || !Transform.LocalPosition.Y.Equals(y) || !Transform.LocalPosition.Z.Equals(z);
+            var moved = !Transform.Local.Position.X.Equals(x) || !Transform.Local.Position.Y.Equals(y) || !Transform.Local.Position.Z.Equals(z);
             if (moved)
             {
                 Events.OnMovement(this, new OnMovementArgs());
             }
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+        }
+
+        public bool CheckMovedPosition(Vector3 oldPosition)
+        {
+            var moved = !Transform.World.Position.X.Equals(oldPosition.X) || !Transform.World.Position.Y.Equals(oldPosition.Y) || !Transform.World.Position.Z.Equals(oldPosition.Z);
+            if (moved)
+            {
+                Events.OnMovement(this, new OnMovementArgs());
+            }
+            if (DisabledSetPosition)
+                return moved;
+
+            WorldManager.Instance.AddVisibleObject(this);
+            // base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+            return moved;
         }
 
         public virtual void ReduceCurrentHp(Unit attacker, int value)

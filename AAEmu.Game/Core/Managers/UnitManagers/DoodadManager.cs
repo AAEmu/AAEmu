@@ -2301,10 +2301,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             
             // Create doodad
             var doodad = Instance.Create(0, id, character);
-            doodad.Position = character.Position.Clone();
-            doodad.Position.X = x;
-            doodad.Position.Y = y;
-            doodad.Position.Z = z;
+            doodad.IsPersistent = true;
+            doodad.Transform = character.Transform.CloneDetached(doodad);
             doodad.ItemId = itemId;
             doodad.PlantTime = DateTime.Now;
             

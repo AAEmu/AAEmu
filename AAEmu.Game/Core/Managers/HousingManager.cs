@@ -264,7 +264,7 @@ namespace AAEmu.Game.Core.Managers
                                 Quaternion.CreateFromYawPitchRoll(reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll"))
                                 );
                             house.Transform.WorldId = 1;
-                            house.Transform.ZoneId = WorldManager.Instance.GetZoneId(house.Transform.WorldId, house.Transform.WorldPosition.X, house.Transform.WorldPosition.Y);
+                            house.Transform.ZoneId = WorldManager.Instance.GetZoneId(house.Transform.WorldId, house.Transform.World.Position.X, house.Transform.World.Position.Y);
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.NumAction = reader.GetInt32("current_action");
                             house.Permission = (HousingPermission)reader.GetByte("permission");

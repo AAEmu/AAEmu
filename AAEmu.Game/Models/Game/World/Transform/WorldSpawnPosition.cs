@@ -1,25 +1,45 @@
-﻿namespace AAEmu.Game.Models.Game.World.Transform
+﻿using System.ComponentModel;
+using System.Numerics;
+using Newtonsoft.Json;
+
+namespace AAEmu.Game.Models.Game.World.Transform
 {
     public class WorldSpawnPosition
     {
-        public uint WorldId { get; set; } = 0;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(1)]
+        public uint WorldId { get; set; } = 1;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(0)]
         public uint ZoneId { get; set; } = 0;
 
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(0f)]
         public float X { get; set; } = 0f;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(0f)]
         public float Y { get; set; } = 0f;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(0f)]
         public float Z { get; set; } = 0f;
 
         /// <summary>
         /// Rotation around Z-Axis in radians
         /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(0f)]
         public float Yaw { get; set; } = 0f;
         /// <summary>
         /// Rotation around Y-Axis in radians
         /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(0f)]
         public float Pitch { get; set; } = 0f;
         /// <summary>
         /// Rotation around X-Axis in radians
         /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(0f)]
         public float Roll { get; set; } = 0f;
 
         public WorldSpawnPosition Clone()
@@ -35,6 +55,15 @@
                 Pitch = this.Pitch,
                 Roll = this.Roll
             };
+        }
+
+        /// <summary>
+        /// Returns a Vector3 copy of the X Y and Z values
+        /// </summary>
+        /// <returns></returns>
+        public Vector3 AsPositionVector()
+        {
+            return new Vector3(X, Y, Z);
         }
     }
 }

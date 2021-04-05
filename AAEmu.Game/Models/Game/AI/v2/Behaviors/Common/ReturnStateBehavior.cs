@@ -44,9 +44,9 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         public override void Tick(TimeSpan delta)
         {
-            Ai.Owner.MoveTowards(Ai.IdlePosition, 2.4f * (delta.Milliseconds / 1000.0f)); // TODO: Get proper npc speed
+            Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, 2.4f * (delta.Milliseconds / 1000.0f)); // TODO: Get proper npc speed
             
-            var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Position);
+            var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position);
             if (distanceToIdle < 1.0f)
                 OnCompletedReturnNoTeleport();
             
@@ -56,10 +56,10 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         private void OnCompletedReturn()
         {
-            var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Position);
+            var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition.Local.Position, Ai.Owner.Transform.World.Position);
             if (distanceToIdle > 2 * 2)
             {
-                Ai.Owner.MoveTowards(Ai.IdlePosition, 1000000.0f);
+                Ai.Owner.MoveTowards(Ai.IdlePosition.Local.Position, 1000000.0f);
                 Ai.Owner.StopMovement();
             }
 

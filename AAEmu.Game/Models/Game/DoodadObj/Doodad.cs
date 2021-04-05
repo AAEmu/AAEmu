@@ -25,6 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public uint TemplateId { get; set; }
         public uint DbId { get; set; }
+        public bool IsPersistent { get; set; } = false;
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
         public uint FuncGroupId { get; set; }
@@ -299,14 +300,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public void Save()
         {
+            if (!IsPersistent)
+                return;
             DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = 
-                        "REPLACE INTO doodads (id, owner_id, owner_type, template_id, current_phase_id, plant_time, growth_time, phase_time, x, y, z, rotation_x, rotation_y, rotation_z) " +
-                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @rotation_x, @rotation_y, @rotation_z)";
+                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`) " +
+                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw)";
                     command.Parameters.AddWithValue("@id", DbId);
                     command.Parameters.AddWithValue("@owner_id", OwnerId);
                     command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -315,12 +318,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@plant_time", PlantTime);
                     command.Parameters.AddWithValue("@growth_time", GrowthTime);
                     command.Parameters.AddWithValue("@phase_time", DateTime.MinValue);
-                    command.Parameters.AddWithValue("@x", Position.X);
-                    command.Parameters.AddWithValue("@y", Position.Y);
-                    command.Parameters.AddWithValue("@z", Position.Z);
-                    command.Parameters.AddWithValue("@rotation_x", Position.RotationX);
-                    command.Parameters.AddWithValue("@rotation_y", Position.RotationY);
-                    command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
+                    command.Parameters.AddWithValue("@x", Transform.World.Position.X);
+                    command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
+                    command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
+                    var rpy = Transform.World.ToRollPitchYaw();
+                    command.Parameters.AddWithValue("@roll", rpy.X);
+                    command.Parameters.AddWithValue("@pitch", rpy.Y);
+                    command.Parameters.AddWithValue("@yaw", rpy.Z);
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }

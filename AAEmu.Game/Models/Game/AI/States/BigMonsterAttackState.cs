@@ -63,14 +63,14 @@ namespace AAEmu.Game.Models.Game.AI.States
             // Check distance to aggro list, top to bottom
             // If no one is within return distance, reset HP, MP and go back to idle position
             // TODO : Use aggro list, not single target
-            var distanceToTarget = MathUtil.CalculateDistance(AI.Owner.Position, Target.Position, true);
+            var distanceToTarget = MathUtil.CalculateDistance(AI.Owner, Target, true);
             if (distanceToTarget > OwnerTemplate.ReturnDistance)
             {
                 GoToReturnToIdle();
                 return;
             }
 
-            var distanceToIdle = MathUtil.CalculateDistance(AI.Owner.Position, AI.IdlePosition, true);
+            var distanceToIdle = MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position, true);
             if (distanceToIdle > OwnerTemplate.AbsoluteReturnDistance)
             {
                 GoToReturnToIdle();
@@ -102,13 +102,13 @@ namespace AAEmu.Game.Models.Game.AI.States
             switch (skill.Template.TargetType)
             {
                 case SkillTargetType.Pos:
-                    var pos = Npc.Position;
+                    var pos = Npc.Transform.World.Position;
                     skillCastTarget = new SkillCastPositionTarget() {
                         ObjId = Npc.ObjId,
                         PosX = pos.X,
                         PosY = pos.Y,
                         PosZ = pos.Z,
-                        PosRot = (float)MathUtil.ConvertDirectionToDegree(pos.RotationZ)
+                        PosRot = Npc.Transform.World.ToRollPitchYawDegrees().Z
                         };
                     break;
                 default:

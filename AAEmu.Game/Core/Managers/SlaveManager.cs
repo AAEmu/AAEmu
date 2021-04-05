@@ -168,9 +168,6 @@ namespace AAEmu.Game.Core.Managers
             if (slaveTemplate.SlaveKind == SlaveKind.Boat)
                 spawnPos.Local.SetHeight(100.0f);
 
-            var degZ = MathUtil.ConvertDirectionToDegree(spawnPos.RotationZ);
-            spawnPos.RotationZ = MathUtil.ConvertDegreeToDirection(degZ + 90);
-
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
             var template = new Slave
@@ -218,7 +215,7 @@ namespace AAEmu.Game.Core.Managers
                 doodad.SetScale(doodadBinding.Scale);
 
                 doodad.CurrentPhaseId = doodad.GetFuncGroupId();
-                doodad.Position = template.Position.Clone();
+                doodad.Transform = template.Transform.CloneDetached(doodad);
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {

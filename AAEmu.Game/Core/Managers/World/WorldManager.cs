@@ -18,6 +18,7 @@ using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.World.Transform;
+using System.Diagnostics;
 
 namespace AAEmu.Game.Core.Managers.World
 {
@@ -258,7 +259,9 @@ namespace AAEmu.Game.Core.Managers.World
 
         public InstanceWorld GetWorld(uint worldId)
         {
-            return _worlds.ContainsKey(worldId) ? _worlds[worldId] : null;
+            if (_worlds.TryGetValue(worldId, out var res))
+                return res;
+            return null;
         }
 
         public InstanceWorld[] GetWorlds()
@@ -268,7 +271,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public InstanceWorld GetWorldByZone(uint zoneId)
         {
-            return _worlds[_worldIdByZoneId[zoneId]];
+            return GetWorld(_worldIdByZoneId[zoneId]);
         }
 
         public uint GetZoneId(uint worldId, float x, float y)
@@ -330,11 +333,6 @@ namespace AAEmu.Game.Core.Managers.World
             obj = GetRootObj(obj);
             InstanceWorld world = GetWorld(obj.Transform.WorldId);
             return GetRegion(world, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
-        }
-
-        public Region GetRegion(Point point)
-        {
-            return GetRegion(point.ZoneId, point.X, point.Y);
         }
 
         public Region[] GetNeighbors(uint worldId, int x, int y)
@@ -567,11 +565,11 @@ namespace AAEmu.Game.Core.Managers.World
 
         private bool RadiusFitsCurrentRegion(GameObject obj, float radius)
         {
-            var xMod = obj.Position.X % REGION_SIZE;
+            var xMod = obj.Transform.World.Position.X % REGION_SIZE;
             if (xMod - radius < 0 || xMod + radius > REGION_SIZE)
                 return false; 
             
-            var yMod = obj.Position.Y % REGION_SIZE;
+            var yMod = obj.Transform.World.Position.Y % REGION_SIZE;
             if (yMod - radius < 0 || yMod + radius > REGION_SIZE)
                 return false;
             return true;
