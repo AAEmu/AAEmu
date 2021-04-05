@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Numerics;
+using AAEmu.Game.Core.Managers.World;
 using Newtonsoft.Json;
 
 namespace AAEmu.Game.Models.Game.World.Transform
@@ -7,8 +8,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
     public class WorldSpawnPosition
     {
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [DefaultValue(1)]
-        public uint WorldId { get; set; } = 1;
+        [DefaultValue(1)] // Make sure to manualy change this when default world is changed
+        public uint WorldId { get; set; } = WorldManager.DefaultWorldId;
+
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0)]
         public uint ZoneId { get; set; } = 0;
@@ -16,9 +18,11 @@ namespace AAEmu.Game.Models.Game.World.Transform
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0f)]
         public float X { get; set; } = 0f;
+        
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0f)]
         public float Y { get; set; } = 0f;
+        
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0f)]
         public float Z { get; set; } = 0f;
@@ -29,12 +33,14 @@ namespace AAEmu.Game.Models.Game.World.Transform
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0f)]
         public float Yaw { get; set; } = 0f;
+        
         /// <summary>
         /// Rotation around Y-Axis in radians
         /// </summary>
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0f)]
         public float Pitch { get; set; } = 0f;
+        
         /// <summary>
         /// Rotation around X-Axis in radians
         /// </summary>

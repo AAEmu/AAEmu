@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Utils;
 
 // INFO
@@ -246,8 +247,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
     public class Transform : IDisposable
     {
         private GameObject _owningObject;
-        private uint _worldId = 1;
-        private uint _instanceId = 1;
+        private uint _worldId = WorldManager.DefaultWorldId ;
+        private uint _instanceId = WorldManager.DefaultInstanceId;
         private uint _zoneId = 0;
         private PositionAndRotation _localPosRot;
         private Transform _parentTransform;
@@ -299,8 +300,6 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         private void InternalInitializeTransform(GameObject owningObject, Transform parentTransform = null)
         {
-            _worldId = 0;
-            _instanceId = 1;
             _owningObject = owningObject;
             _parentTransform = parentTransform;
             _children = new List<Transform>();

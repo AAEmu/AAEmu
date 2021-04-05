@@ -24,6 +24,9 @@ namespace AAEmu.Game.Core.Managers.World
 {
     public class WorldManager : Singleton<WorldManager>
     {
+        // Default World and Instance ID that will be assigned to all Transforms as a Default value
+        public static readonly uint DefaultWorldId = 1;
+        public static readonly uint DefaultInstanceId = 0;
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, InstanceWorld> _worlds;

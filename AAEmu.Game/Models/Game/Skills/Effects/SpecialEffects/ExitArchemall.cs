@@ -45,7 +45,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                     )
                 );
 
-                character.InstanceId = 1; // TODO ....
                 character.Transform = character.MainWorldPosition.Clone();
                 character.MainWorldPosition = null;
             }

@@ -200,7 +200,6 @@ namespace AAEmu.Game.Core.Managers
 
                                         if (bindingDoodad.Position == null)
                                             bindingDoodad.Position = new WorldSpawnPosition();
-                                        bindingDoodad.Position.WorldId = 1;
 
                                         doodads.Add(bindingDoodad);
                                     }
@@ -263,7 +262,6 @@ namespace AAEmu.Game.Core.Managers
                                 new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
                                 Quaternion.CreateFromYawPitchRoll(reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll"))
                                 );
-                            house.Transform.WorldId = 1;
                             house.Transform.ZoneId = WorldManager.Instance.GetZoneId(house.Transform.WorldId, house.Transform.World.Position.X, house.Transform.World.Position.Y);
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.NumAction = reader.GetInt32("current_action");

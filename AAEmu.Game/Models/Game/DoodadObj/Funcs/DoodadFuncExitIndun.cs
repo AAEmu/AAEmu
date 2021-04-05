@@ -34,7 +34,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                     character.Transform = character.MainWorldPosition.Clone(character);
                     character.MainWorldPosition = null;
-                    character.InstanceId = 1; // TODO ....
                 }
                 else
                 {

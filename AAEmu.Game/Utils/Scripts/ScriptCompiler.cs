@@ -124,9 +124,9 @@ namespace AAEmu.Game.Utils.Scripts
                 foreach (var diagnostic in result)
                 {
                     if (diagnostic.Severity == DiagnosticSeverity.Error)
-                        _log.Error("{0}: {1}", diagnostic.Id, diagnostic);
+                        _log.Error(diagnostic);
                     else
-                        _log.Warn("{0}: {1}", diagnostic.Id, diagnostic);
+                        _log.Warn(diagnostic);
                 }
             }
 
