@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World
@@ -24,6 +25,32 @@ namespace AAEmu.Game.Models.Game.World
         public float Value1 { get; set; }
         public float Value2 { get; set; }
         public float Value3 { get; set; }
+
+        public List<T> ComputeCuboid<T>(GameObject origin, List<T> toCheck) where T : GameObject
+        {
+            // Z check
+            var zOffset = Value3;
+            toCheck = toCheck.Where(o => (o.Position.Z >= origin.Position.Z - zOffset) && (o.Position.Z <= origin.Position.Z + zOffset)).ToList();
+            if (toCheck.Count == 0)
+                return toCheck;
+            
+            // Triangle check
+            var vertices = MathUtil.GetCuboidVertices(Value1, Value2, origin.Position.X, origin.Position.Y,
+                origin.Position.RotationZ);
+
+            toCheck = toCheck.Where(o =>
+            {
+                var tri1 = MathUtil.PointInTriangle((o.Position.X, o.Position.Y), vertices[0], vertices[1],
+                    vertices[2]);
+                
+                var tri2 = MathUtil.PointInTriangle((o.Position.X, o.Position.Y), vertices[1], vertices[2],
+                    vertices[3]);
+
+                return tri1 || tri2;
+            }).ToList();
+            
+            return toCheck;
+        }
     }
 
     public class AreaTrigger
@@ -101,6 +128,8 @@ namespace AAEmu.Game.Models.Game.World
         public void ApplyEffects()
         {
             if (InsideBuffTemplate == null)
+                return;
+            if (Caster == null)
                 return;
             
             var unitsToApply = SkillTargetingUtil.FilterWithRelation(TargetRelation, Caster, Units);

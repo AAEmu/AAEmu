@@ -182,6 +182,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
             EndPlotChannel(state);
 
+            state.Caster.Cooldowns.AddCooldown(state.ActiveSkill.Template.Id, (uint)state.ActiveSkill.Template.CooldownTime);
+
             if (state.Caster is Character character && character.IgnoreSkillCooldowns)
                 character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
 
@@ -191,6 +193,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 state.Caster.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs { });
 
             SkillManager.Instance.ReleaseId(state.ActiveSkill.TlId);
+            
+            state.Caster?.OnSkillEnd(state.ActiveSkill);
+            state.ActiveSkill.Callback?.Invoke();
+            if (state.Caster?.ActivePlotState == state)
+                state.Caster.ActivePlotState = null;
         }
     }
 }

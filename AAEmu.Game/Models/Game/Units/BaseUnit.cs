@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
@@ -115,5 +116,14 @@ namespace AAEmu.Game.Models.Game.Units
         }
 
         public virtual void InterruptSkills() {}
+
+        public virtual bool UnitIsVisible(BaseUnit unit)
+        {
+            if (unit == null)
+                return false;
+
+            //Some weird stuff happens here when in an invalid region..
+            return Region?.GetNeighbors()?.Any(o => (o?.Id ?? 0) == (unit.Region?.Id ?? 0)) ?? false;
+        }
     }
 }

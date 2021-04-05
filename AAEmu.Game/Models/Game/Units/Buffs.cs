@@ -184,7 +184,14 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public void AddBuff(Buff buff, uint index = 0)
+        public void AddBuff(uint buffId, Unit caster)
+        {
+            var buff = SkillManager.Instance.GetBuffTemplate(buffId);
+            var casterObj = new SkillCasterUnit(caster.ObjId);
+            AddBuff(new Buff(GetOwner(), caster, casterObj, buff, null, DateTime.Now));
+        }
+
+        public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)
         {
             var finalToleranceBuffId = 0u;
             lock (_lock)
@@ -257,7 +264,10 @@ namespace AAEmu.Game.Models.Game.Units
                     if (buff.Caster is Character && buff.Owner is Character)
                         buff.Duration = (int)(buff.Duration * ((100 - buffTolerance.CharacterTimeReduction) / 100.0));
                 }
-                
+
+                if (forcedDuration != 0)
+                    buff.Duration = forcedDuration;
+
                 if (buff.Duration > 0 && buff.StartTime == DateTime.MinValue)
                 {
                     buff.StartTime = DateTime.Now;
@@ -308,7 +318,6 @@ namespace AAEmu.Game.Models.Game.Units
                         owner.InterruptSkills();
                 }
                 
-                //if (buff.Duration > 0)
                 if (buff.Duration > 0 || buff.Template.TickEffects.Count > 0)
                     buff.SetInUse(true, false);
                 else
@@ -596,6 +605,11 @@ namespace AAEmu.Game.Models.Game.Units
         public IEnumerable<Buff> GetAbsorptionEffects()
         {
             return _effects.Where(e => e.Template.DamageAbsorptionTypeId > 0);
+        }
+        
+        public bool HasEffectsMatchingCondition(Func<Buff, bool> predicate)
+        {
+            return _effects.Any(predicate);
         }
     }
 }

@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
@@ -28,6 +29,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Jitter.World _physWorld;
         private Buoyancy _buoyancy;
         private uint _tickCount = 0;
+        private bool ThreadRunning = true;
 
         public void Initialize()
         {
@@ -43,7 +45,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void PhysicsThread()
         {
-            while (Thread.CurrentThread.IsAlive)
+            while (ThreadRunning && Thread.CurrentThread.IsAlive)
             {
                 Thread.Sleep(1000 / 60);
                 _physWorld.Step(1 / 60.0f, false);
@@ -77,11 +79,15 @@ namespace AAEmu.Game.Core.Managers.World
             var shipModel = ModelManager.Instance.GetShipModel(slave.ModelId);
             if (shipModel == null)
                 return;
-            
+
+            var oriY = MathUtil.ConvertDirectionToDegree(slave.Position.RotationZ);
+            oriY -= 90.0f;
+
             var rigidBody = new RigidBody(new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY))
             {
                 Position = new JVector(slave.Transform.World.Position.X - (shipModel.MassBoxSizeX / 2.0f), slave.Transform.World.Position.Z - (shipModel.MassBoxSizeZ / 2.0f), slave.Transform.World.Position.Y - (shipModel.MassBoxSizeY / 2.0f)),
                 // Mass = shipModel.Mass
+                Orientation = JMatrix.CreateRotationY((float) ((float) oriY * (Math.PI / 180.0f)))
             };
                     
             _buoyancy.Add(rigidBody, 3);
@@ -104,7 +110,7 @@ namespace AAEmu.Game.Core.Managers.World
             var maxVelForward = 12.9f; //per s
             var maxVelBackward = -5.0f;
 
-            if (slave.Bounded == null)
+            if (!slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver))
             {
                 slave.ThrottleRequest = 0;
                 slave.SteeringRequest = 0;
@@ -141,7 +147,12 @@ namespace AAEmu.Game.Core.Managers.World
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
             // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
         }
-        
+
+        internal void Stop()
+        {
+            ThreadRunning = false;
+        }
+
         public void ComputeThrottle(Slave slave)
         {
             int throttleAccel = 6;

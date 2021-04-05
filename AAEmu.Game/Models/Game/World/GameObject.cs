@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.World
     {
         public Guid Guid { get; set; } = Guid.NewGuid();
         public uint ObjId { get; set; }
-        public uint InstanceId { get; set; } = 1;
+        public uint InstanceId { get; set; } = 0;
         public bool DisabledSetPosition { get; set; }
         /// <summary>
         /// Contains position, rotation, zone and instance information

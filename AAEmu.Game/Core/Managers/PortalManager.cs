@@ -201,6 +201,9 @@ namespace AAEmu.Game.Core.Managers
                 TeleportPosition = portalPointDestination
             };
             portalUnitModel.Spawn();
+
+            var killTask = new KillPortalTask(portalUnitModel);
+            TaskManager.Instance.Schedule(killTask, TimeSpan.FromSeconds(30));
         }
 
         public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)

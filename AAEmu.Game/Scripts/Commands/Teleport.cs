@@ -110,10 +110,17 @@ namespace AAEmu.Game.Scripts.Commands
                             character.DisabledSetPosition = true;
                             character.SendPacket(new SCTeleportUnitPacket(0, 0, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
                         }
+                        else
+                        {
+                            height += 2.5f; // compensate a bit for terrain irregularities
+                            character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.X + " Y:" + character.LocalPingPosition.Y + " Z:" + height + "|r");
+                            character.DisabledSetPosition = true;
+                            character.SendPacket(new SCTeleportUnitPacket(0, 0, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
+                        }
                     }
                 }
                 else
-                if (character.InstanceId != 1)
+                if (character.InstanceId != 0)
                 {
                     character.SendMessage("|cFFFFFF00[Teleport] Named teleports are not allowed inside a instance.|r");
                 }

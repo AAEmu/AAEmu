@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
@@ -32,13 +33,21 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 //this shouldn't happen?
                 return;
             }
-            if (caster is Character character)
+            
+            var pos = target.Position;
+            var distance = (float)value1 / 1000f;
+            var rot = MathUtil.ConvertDegreeToDirection(MathUtil.ConvertDirectionToDegree(pos.RotationZ) + (float)value3);
+            var (endX, endY) = MathUtil.AddDistanceToFront(distance, target.Position.X, target.Position.Y, rot);
+            
+            switch (caster)
             {
-                var pos = target.Transform.CloneDetached();
-                var distance = (float)value1 / 1000f;
-                pos.Local.AddDistanceToFront(distance);
-                // TODO: does the 0f here need to be distance ?
-                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, (float)MathUtil.RadianToDegree(pos.Local.ToRollPitchYaw().Z), pos.Local.Position.X, pos.Local.Position.Y, pos.Local.Position.Z));
+                case Character character:
+                    character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, pos.Z));
+                    break;
+                case Npc npc:
+                    npc.MoveTowards(pos, 10000);
+                    npc.StopMovement();
+                    break;
             }
         }
     }

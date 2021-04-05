@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models
         public int Location { get; set; } = 1;
 
         public DateTime StartTime { get; set; } = DateTime.MinValue;
-        public DateTime EndTime { get; set; } = new DateTime(2020, 1, 1);
+        public DateTime EndTime { get; set; } = new DateTime(2030, 1, 1);
 
         public AccountPayment(GameConnection connection)
         {

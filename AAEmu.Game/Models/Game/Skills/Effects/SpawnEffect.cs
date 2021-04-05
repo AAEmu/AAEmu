@@ -1,4 +1,6 @@
 using System;
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -28,6 +30,28 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Debug("SpawnEffect");
+
+            if (OwnerTypeId == 1) // NPC
+            {
+                var npc = NpcManager.Instance.Create(0, SubType);
+                npc.SetPosition(target.Position);
+                if (AppConfiguration.Instance.HeightMapsEnable)
+                    npc.Position.Z = WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y);
+                
+                if (npc.Ai != null)
+                {
+                    npc.Ai.IdlePosition = npc.Position;
+                    npc.Ai.GoToSpawn();
+                }
+                
+                npc.Faction = caster.Faction;
+                npc.Spawn();
+
+                if (UseSummoneerAggroTarget)
+                {
+                    // TODO : Pick random target off of Aggro table ?
+                }
+            }
         }
     }
 }

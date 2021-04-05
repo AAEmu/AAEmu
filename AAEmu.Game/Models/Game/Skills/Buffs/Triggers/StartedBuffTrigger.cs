@@ -32,6 +32,18 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
                 owner = (Unit)_buff.Caster;
             }
 
+            if(Template.TargetBuffTagId != 0)
+            {
+                if (!target.Buffs.CheckBuffTag(Template.TargetBuffTagId))
+                    return;
+            }
+            if (Template.TargetNoBuffTagId != 0)
+            {
+                if (target.Buffs.CheckBuffTag(Template.TargetNoBuffTagId))
+                    return;
+            }
+
+
             Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
                 new EffectSource(), // TODO : EffectSource Type trigger 
                 null, DateTime.Now);
