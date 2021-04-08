@@ -153,7 +153,7 @@ namespace AAEmu.Game.Core.Managers
                 transfer.Hp = 19000;
                 transfer.Mp = 12000;
                 transfer.ModelParams = new UnitCustomModelParams();
-                transfer.Transform = new Transform(transfer, owner.Transform, 1, 179, 1,
+                transfer.Transform = new Transform(transfer, owner.Transform, WorldManager.DefaultWorldId, 179, WorldManager.DefaultInstanceId,
                     15565.78f, 14841.25f, 145.2947f, (float)MathUtil.ConvertDirectionToRadian((sbyte)63));
                 transfer.Patrol = null;
                 transfer.Faction = FactionManager.Instance.GetFaction(143);

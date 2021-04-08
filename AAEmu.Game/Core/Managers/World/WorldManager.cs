@@ -264,6 +264,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             if (_worlds.TryGetValue(worldId, out var res))
                 return res;
+            _log.Fatal("GetWorld(): No such WorldId {0}",worldId);
             return null;
         }
 
@@ -274,15 +275,26 @@ namespace AAEmu.Game.Core.Managers.World
 
         public InstanceWorld GetWorldByZone(uint zoneId)
         {
-            return GetWorld(_worldIdByZoneId[zoneId]);
+            if (_worldIdByZoneId.TryGetValue(zoneId, out var worldId))
+                return GetWorld(worldId);
+            _log.Fatal("GetWorldByZone(): No world defined for ZoneId {0}", zoneId);
+            return null;
         }
 
         public uint GetZoneId(uint worldId, float x, float y)
         {
-            var world = _worlds[worldId];
+            if (!_worlds.TryGetValue(worldId, out var world))
+            {
+                _log.Fatal("GetZoneId(): No such WorldId {0}", worldId);
+                return 0;
+            }
             var sx = (int)(x / REGION_SIZE);
             var sy = (int)(y / REGION_SIZE);
-            return world.ZoneIds[sx, sy];
+
+            if ((sx <= (world.CellX * CELL_SIZE)) && (sy <= (world.CellY * CELL_SIZE)) && (sx >= 0) && (sy >= 0))
+                return world.ZoneIds[sx, sy];
+            _log.Fatal("GetZoneId(): Coordicates out of bounds for WorldId {0} - x:{1:#,0.#} - y: {2:#,0.#}",worldId,x,y);
+            return 0;
         }
 
         public float GetHeight(uint zoneId, float x, float y)

@@ -1412,6 +1412,12 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
 
             Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
+            
+            // Update the party member position on the map
+            // TODO: Check the format of the send packet, as it doesn't seem to be correct
+            // TODO: Somehow make sure that players in instances don't show on the main world map 
+            if (this.InParty)
+                TeamManager.Instance.UpdatePosition(this.Id);
 
             if (Transform.ZoneId == lastZoneKey)
                 return;
