@@ -16,12 +16,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             //TODO check skill refrences and consume items if items are required for skills
             
-            // Make caster cast skill ? 
-            
+            owner.cancelPhasing = true;
+
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);
             if (skillTemplate == null)
                 return;
 
+            // Make caster cast skill ? 
             if (SkillId > 0)
             {
                 var useSkill = new Skill(skillTemplate);
@@ -30,6 +31,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                         new SkillCastDoodadTarget() {ObjId = owner.ObjId}, null), TimeSpan.FromMilliseconds(0));
                 // owner.Use(caster);
             }
+            if (nextPhase > 0)
+                owner.GoToPhase(null, nextPhase, skillId);
+
+            owner.cancelPhasing = !(skillId > 0);
         }
     }
 }

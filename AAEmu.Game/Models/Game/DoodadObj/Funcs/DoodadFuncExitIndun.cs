@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -42,6 +42,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     _log.Warn("DoodadFuncExitIndun, Not have return point!");
                 }
             }
+            owner.cancelPhasing = true;
         }
     }
 }

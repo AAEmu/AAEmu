@@ -63,6 +63,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });
             }
+            owner.cancelPhasing = true;
         }
     }
 }

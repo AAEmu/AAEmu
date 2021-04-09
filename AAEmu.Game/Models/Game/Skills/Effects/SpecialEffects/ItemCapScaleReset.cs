@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -14,8 +14,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ItemCapScaleReset : SpecialEffectAction
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

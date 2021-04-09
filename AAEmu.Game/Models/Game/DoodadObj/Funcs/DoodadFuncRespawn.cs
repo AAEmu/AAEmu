@@ -15,6 +15,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Debug("DoodadFuncRespawn: MinTime {0}, MaxTime {1}", MinTime, MaxTime);
 
+            owner.cancelPhasing = true;
+
             // Doodad spawn
             if (!(caster is Character character))
             {

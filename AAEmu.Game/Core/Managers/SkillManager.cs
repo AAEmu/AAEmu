@@ -1380,6 +1380,10 @@ namespace AAEmu.Game.Core.Managers
 
                             var template = new SkillEffect();
                             var effectId = reader.GetUInt32("effect_id");
+                            
+                            //for easier debugging
+                            template.EffectId = effectId;
+
                             var type = _types[effectId];
                             if (_effects.ContainsKey(type.Type))
                                 template.Template = _effects[type.Type][type.ActualId];

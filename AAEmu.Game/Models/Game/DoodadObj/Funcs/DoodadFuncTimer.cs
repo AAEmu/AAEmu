@@ -38,6 +38,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
                 owner.Use(caster, skillId);
             }
+            owner.cancelPhasing = true;
         }
     }
 }

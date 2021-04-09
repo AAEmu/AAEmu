@@ -43,6 +43,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             if (addedItem)
                 owner.Delete();
+            owner.cancelPhasing = true;
         }
     }
 }

@@ -18,10 +18,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Debug("DoodadFuncLootPack : LootPackId {0}, SkillId {1}", LootPackId, skillId);
 
-            Character character = (Character)caster;
-            LootPacks[] lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
-            Random itemQuantity = new Random();
-            var count = 0;
+            var character = (Character)caster;
+            var lootPacks = ItemManager.Instance.GetLootPacks(LootPackId);
+            var itemQuantity = new Random();
             if (character.Inventory.Bag.FreeSlotCount >= lootPacks.Length)
             {
                 foreach (var pack in lootPacks)
@@ -37,13 +36,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     //_log.Warn(pack.AlwaysDrop);
 
                     //TODO create dropRate chance
-                    count = itemQuantity.Next(pack.MinAmount, pack.MaxAmount);
+                    var count = itemQuantity.Next(pack.MinAmount, pack.MaxAmount);
                     character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, pack.ItemId, count);
                 }
                 // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
+                owner.cancelPhasing = false;
             }
             else
+            {
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                owner.cancelPhasing = true;
+            }
         }
     }
 }

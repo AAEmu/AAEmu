@@ -47,7 +47,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             // }
             if (After > 0)
             {
-                owner.FuncTask = new DoodadFuncFinalTask(caster, owner, skillId, Respawn);
+                owner.FuncTask = new DoodadFuncFinalTask(caster, owner, skillId, Respawn, delay);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility
             }
             else
@@ -55,6 +55,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 owner.Delete();
             }
             // owner.Delete();
+            owner.cancelPhasing = true;
         }
     }
 }

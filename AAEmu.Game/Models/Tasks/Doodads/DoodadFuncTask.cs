@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.DoodadObj;
+﻿using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Tasks.Doodads

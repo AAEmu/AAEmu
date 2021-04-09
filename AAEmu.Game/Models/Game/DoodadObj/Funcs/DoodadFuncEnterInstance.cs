@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -44,6 +44,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 else
                     _log.Warn("World #.{0}, not have default spawn position.", world.Id);
             }
+            owner.cancelPhasing = true;
         }
     }
 }

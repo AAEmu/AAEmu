@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -8,8 +8,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class Resurrection : SpecialEffectAction
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

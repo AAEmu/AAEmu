@@ -27,19 +27,28 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            Character character = (Character)caster;
-            if (character == null) return;
+            var character = (Character)caster;
+            if (character == null)
+            {
+                owner.cancelPhasing = true;
+                return;
+            }
 
-            int chance = Rand.Next(0, 10000);
-            if (chance > Percent) return;
+            var chance = Rand.Next(0, 10000);
+            if (chance > Percent)
+            {
+                owner.cancelPhasing = true;
+                return;
+            }
 
-            int count = Rand.Next(CountMin, CountMax);
+            var count = Rand.Next(CountMin, CountMax);
             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
             // else
             // {
             //     character.SendErrorMessage(Error.ErrorMessageType.BagFull);
             // }
+            owner.cancelPhasing = false;
         }
     }
 }
