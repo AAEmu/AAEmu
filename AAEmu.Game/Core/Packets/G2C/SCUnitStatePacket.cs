@@ -426,7 +426,8 @@ namespace AAEmu.Game.Core.Packets.G2C
 
                 stream.WriteBc(0);
 
-                character.VisualOptions.Write(stream, 31);
+                //character.VisualOptions.Write(stream, 31);
+                character.VisualOptions.WriteOptions(stream); // cosplay_visual
 
                 stream.Write(1); // premium
 
@@ -509,8 +510,6 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0); // charged
                 stream.Write(0u); // type(id) -> cooldownSkill
             }
-            //            for (var i = 0; i < 255; i++)
-            //                stream.Write(0);
 
             return stream;
         }

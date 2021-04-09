@@ -2,6 +2,7 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Shipyard;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -27,9 +28,17 @@ namespace AAEmu.Game.Core.Packets.C2G
             var mAABBmxZ = stream.ReadSingle();
             var autoUseAAPoint = stream.ReadBoolean();
 
-            _log.Warn("CreateShipyard, Id: {0}, X: {1}, Y: {2}, Z: {3}, DesignItem: {4}", id, x, y, z, designItem);
+            var shipyardData = new ShipyardData();
+            shipyardData.TemplateId = id;
+            shipyardData.X = x;
+            shipyardData.Y = y;
+            shipyardData.Z = z;
+            shipyardData.zRot = zRot;
+            shipyardData.Id = designItem;
 
-            ShipyardManager.Instance.Create(Connection.ActiveChar, id, x, y, z, (short)zRot, 0, 0, 0, 0);
+            _log.Warn("CreateShipyard, Id: {0}, X: {1}, Y: {2}, Z: {3}, DesignItem: {4}", id, x, y, z, designItem);
+            //ShipyardManager.Instance.Create(Connection.ActiveChar, id, x, y, z, (short)zRot, 0, 0, 0, 0);
+            ShipyardManager.Instance.Create(Connection.ActiveChar, shipyardData, 0);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
@@ -41,6 +42,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
             stream.Write(Spawned);
             stream.WriteBc(ObjId);
             stream.Write(Hp);
+
             return stream;
         }
     }

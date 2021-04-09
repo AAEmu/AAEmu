@@ -1,17 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Templates;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -21,6 +17,52 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, ShipyardsTemplate> _shipyards;
+
+        public void Create(Character owner, ShipyardData shipyardData, int step)
+        {
+            var pos = owner.Position.Clone();
+            pos.X = shipyardData.X;
+            pos.Y = shipyardData.Y;
+            pos.Z = shipyardData.Z;
+            pos.RotationZ = Helpers.ConvertRotation((short)shipyardData.zRot);
+            var objId = ObjectIdManager.Instance.GetNextId();
+            var template = _shipyards[shipyardData.TemplateId];
+            //var shipId = 3039u;
+
+            var shipyard = new Shipyard
+            {
+                ObjId = objId,
+                Position = pos,
+                Faction = owner.Faction,
+                Level = 30,
+                Hp = 10000,
+                MaxHp = 10000,
+                Name = owner.Name,
+                ModelId = template.ShipyardSteps[step].ModelId
+            };
+
+            shipyard.Template = new ShipyardData
+            {
+                Id = shipyardData.Id,
+                TemplateId = template.Id,
+                X = pos.X,
+                Y = pos.Y,
+                Z = pos.Z,
+                zRot = pos.RotationZ,
+                MoneyAmount = 0,
+                Actions = step,
+                Type = template.OriginItemId, // type1
+                OwnerName = owner.Name,
+                Type2 = owner.Id, // type2
+                Type3 = owner.Faction.Id, // type3
+                Spawned = DateTime.MinValue,
+                ObjId = objId,
+                Hp = template.ShipyardSteps[step].MaxHp * 100,
+                Step = step
+            };
+            shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(3554), null, System.DateTime.UtcNow));
+            shipyard.Spawn();
+        }
 
         public void Create(Character owner, uint id, float x, float y, float z, short zrot, uint type1, uint type2, uint type3, int step)
         {
@@ -57,7 +99,7 @@ namespace AAEmu.Game.Core.Managers
                 OwnerName = owner.Name,
                 Type2 = type2,
                 Type3 = type3,
-                Spawned = DateTime.Now,
+                Spawned = DateTime.UtcNow,
                 ObjId = objId,
                 Hp = template.ShipyardSteps[step].MaxHp * 100,
                 Step = step
