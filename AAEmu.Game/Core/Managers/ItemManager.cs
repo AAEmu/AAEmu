@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -14,15 +14,13 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
-using Microsoft.CodeAnalysis.Text;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
-using Quartz.Util;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -56,16 +54,16 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, List<LootGroups>> _lootGroups;
         private Dictionary<int, GradeDistributions> _itemGradeDistributions;
         private Dictionary<uint, List<Item>> _lootDropItems;
-        
+
         // ItemLookConvert
         private Dictionary<uint, ItemLookConvert> _itemLookConverts;
         private Dictionary<uint, uint> _holdableItemLookConverts;
         private Dictionary<uint, uint> _wearableItemLookConverts;
-        
+
         private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
         private Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>> _armorGradeBuffs;
         private Dictionary<uint, EquipItemSet> _equipItemSets;
-        
+
         // Events
         public event EventHandler OnItemsLoaded;
 
@@ -160,7 +158,7 @@ namespace AAEmu.Game.Core.Managers
                 return items;
             }
             items = new List<Item>();
-            ulong itemId = ((ulong)npcId << 32) + 65536;
+            var itemId = ((ulong)npcId << 32) + 65536;
             foreach (var lootPackDroppingNpc in lootPackDroppingNpcs)
             {
                 var lootPacks = GetLootPacks(lootPackDroppingNpc.LootPackId);
@@ -175,7 +173,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     if (lootPacks[uii].DropRate + dropRateItemId >= dropRateItem)
                     {
-                        Item item = new Item();
+                        var item = new Item();
                         item.TemplateId = lootPacks[uii].ItemId;
                         item.WorldId = 1;
                         item.CreateTime = DateTime.Now;
@@ -225,7 +223,7 @@ namespace AAEmu.Game.Core.Managers
              * -> click for manual loot doesn't trigger a new packet. so it won't loot
              * Note: Re-opening the loot window lets you loot the remaining items
             */
-            bool isDone = true;
+            var isDone = true;
             var lootDropItems = ItemManager.Instance.GetLootDropItems(id);
             if (lootAll)
             {
@@ -238,7 +236,7 @@ namespace AAEmu.Game.Core.Managers
             }
             else
             {
-                isDone = (lootDropItems.Count <= 0);
+                isDone = lootDropItems.Count <= 0;
                 character.SendPacket(new SCLootBagDataPacket(lootDropItems, lootAll));
             }
             return isDone;
@@ -252,7 +250,7 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="lootDropItem"></param>
         /// <param name="count"></param>
         /// <returns>Returns false if the item could not be picked up.</returns>
-        public bool TookLootDropItem(Character character,List<Item> lootDropItems, Item lootDropItem, int count)
+        public bool TookLootDropItem(Character character, List<Item> lootDropItems, Item lootDropItem, int count)
         {
             var objId = (uint)(lootDropItem.Id >> 32);
             if (lootDropItem.TemplateId == Item.Coins)
@@ -368,21 +366,61 @@ namespace AAEmu.Game.Core.Managers
             }
             return res;
         }
-        
-        public ItemLookConvert GetWearableItemLookConvert(uint slotTypeId) 
+
+        public List<ItemTemplate> GetItemTemplatesForAuctionSearch(AuctionSearchTemplate searchTemplate)
+        {
+            var templateList = new List<ItemTemplate>();
+            var itemIds = new List<uint>();
+
+            if (searchTemplate.ItemName != "")
+                itemIds = GetItemIdsBySearchName(searchTemplate.ItemName);
+
+            if (itemIds.Count > 0)
+            {
+                for (var i = 0; i < itemIds.Count; i++)
+                {
+                    var query = from item in _templates.Values
+                                where itemIds[i] != 0 ? item.Id == itemIds[i] : true
+                                where searchTemplate.CategoryA != 0 ? item.AuctionCategoryA == searchTemplate.CategoryA : true
+                                where searchTemplate.CategoryB != 0 ? item.AuctionCategoryB == searchTemplate.CategoryB : true
+                                where searchTemplate.CategoryC != 0 ? item.AuctionCategoryC == searchTemplate.CategoryC : true
+                                select item;
+                    var _list = query.ToList<ItemTemplate>();
+
+                    foreach (var item in _list)
+                    {
+                        templateList.Add(item);
+                    }
+
+                }
+                return templateList;
+            }
+            else
+            {
+                var query = from item in _templates.Values
+                            where searchTemplate.CategoryA != 0 ? item.AuctionCategoryA == searchTemplate.CategoryA : true
+                            where searchTemplate.CategoryB != 0 ? item.AuctionCategoryB == searchTemplate.CategoryB : true
+                            where searchTemplate.CategoryC != 0 ? item.AuctionCategoryC == searchTemplate.CategoryC : true
+                            select item;
+                templateList = query.ToList<ItemTemplate>();
+                return templateList;
+            }
+        }
+
+        public ItemLookConvert GetWearableItemLookConvert(uint slotTypeId)
         {
             if (_wearableItemLookConverts.ContainsKey(slotTypeId))
                 return _itemLookConverts[_wearableItemLookConverts[slotTypeId]];
             return null;
         }
 
-        public ItemLookConvert GetHoldableItemLookConvert(uint holdableId) 
+        public ItemLookConvert GetHoldableItemLookConvert(uint holdableId)
         {
             if (_holdableItemLookConverts.ContainsKey(holdableId))
                 return _itemLookConverts[_holdableItemLookConverts[holdableId]];
             return null;
         }
-        
+
         public ItemProcTemplate GetItemProcTemplate(uint templateId)
         {
             if (_itemProcTemplates.ContainsKey(templateId))
@@ -427,7 +465,7 @@ namespace AAEmu.Game.Core.Managers
 
             item.Grade = grade;
 
-            if(item.Template.BindType == ItemBindType.BindOnPickup) // Bind on pickup.
+            if (item.Template.BindType == ItemBindType.BindOnPickup) // Bind on pickup.
                 item.SetFlag(ItemFlag.SoulBound);
 
             if (item.Template.FixedGrade >= 0)
@@ -549,7 +587,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM item_grades";
@@ -751,7 +789,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            uint id = reader.GetUInt32("equip_item_set_id");
+                            var id = reader.GetUInt32("equip_item_set_id");
                             if (!_equipItemSets.ContainsKey(id))
                                 _equipItemSets.Add(id, new EquipItemSet { Id = id });
 
@@ -971,6 +1009,10 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
+                // HACKFIX FOR CREST INK
+                var uccItemTemplate = new UccTemplate { Id = 17663 };
+                _templates.Add(uccItemTemplate.Id, uccItemTemplate);
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM items";
@@ -1065,7 +1107,7 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM item_socket_chances";
@@ -1251,14 +1293,14 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
-                using(var command = connection.CreateCommand())
+
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Item'";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var itemId = reader.GetUInt32("owner_id");
                             var template = new BonusTemplate
@@ -1268,33 +1310,33 @@ namespace AAEmu.Game.Core.Managers
                                 Value = reader.GetInt32("value"),
                                 LinearLevelBonus = reader.GetInt32("linear_level_bonus")
                             };
-                            
+
                             if (!_itemUnitModifiers.ContainsKey(itemId))
                                 _itemUnitModifiers.Add(itemId, new List<BonusTemplate>());
                             _itemUnitModifiers[itemId].Add(template);
                         }
                     }
                 }
-                
-                using(var command = connection.CreateCommand())
+
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM armor_grade_buffs";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var armorGradeBuff = new ArmorGradeBuff()
                             {
                                 Id = reader.GetByte("id"),
-                                ArmorType = (ArmorType) reader.GetUInt32("armor_type_id"),
-                                ItemGrade = (ItemGrade) reader.GetUInt32("item_grade_id"),
+                                ArmorType = (ArmorType)reader.GetUInt32("armor_type_id"),
+                                ItemGrade = (ItemGrade)reader.GetUInt32("item_grade_id"),
                                 BuffId = reader.GetUInt32("buff_id")
                             };
-                            
+
                             if (!_armorGradeBuffs.ContainsKey(armorGradeBuff.ArmorType))
                                 _armorGradeBuffs.Add(armorGradeBuff.ArmorType, new Dictionary<ItemGrade, ArmorGradeBuff>());
-                            
+
                             if (!_armorGradeBuffs[armorGradeBuff.ArmorType].ContainsKey(armorGradeBuff.ItemGrade))
                                 _armorGradeBuffs[armorGradeBuff.ArmorType].Add(armorGradeBuff.ItemGrade, armorGradeBuff);
                         }
@@ -1303,7 +1345,7 @@ namespace AAEmu.Game.Core.Managers
 
                 // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
                 var invalidItemCount = 0;
-                foreach(var i in _templates)
+                foreach (var i in _templates)
                 {
                     if (i.Value.Name == null)
                     {
@@ -1313,11 +1355,11 @@ namespace AAEmu.Game.Core.Managers
                     i.Value.searchString = (i.Value.Name + " " + LocalizationManager.Instance.Get("items", "name", i.Value.Id)).ToLower();
                 }
 
-                _log.Info("Loaded {0} item templates (with {1} unused) ...",_templates.Count(), invalidItemCount);
+                _log.Info("Loaded {0} item templates (with {1} unused) ...", _templates.Count(), invalidItemCount);
 
 
             }
-            
+
             OnItemsLoaded?.Invoke(this, new EventArgs());
         }
 
@@ -1481,7 +1523,7 @@ namespace AAEmu.Game.Core.Managers
 
                         // Overwrite Fixed-grade items, just to make sure. Retail does not do this, but it just feels better if we do
                         if (item.Template.FixedGrade >= 0)
-                            item.Grade = (byte)item.Template.FixedGrade; 
+                            item.Grade = (byte)item.Template.FixedGrade;
                         else if (item.Template.Gradable)
                             item.Grade = reader.GetByte("grade"); // Load from our DB if the item is gradable
 
@@ -1508,7 +1550,7 @@ namespace AAEmu.Game.Core.Managers
             var itemId = ItemIdManager.Instance.GetNextId();
             lock (_removedItems)
             {
-                if ((itemId != 0) && _removedItems.Contains(itemId))
+                if (itemId != 0 && _removedItems.Contains(itemId))
                     _removedItems.Remove(itemId);
             }
             return itemId;
@@ -1522,7 +1564,7 @@ namespace AAEmu.Game.Core.Managers
         {
             lock (_removedItems)
             {
-                if ((itemId != 0) && !_removedItems.Contains(itemId))
+                if (itemId != 0 && !_removedItems.Contains(itemId))
                     _removedItems.Add(itemId);
             }
             lock (_allItems)
@@ -1540,7 +1582,7 @@ namespace AAEmu.Game.Core.Managers
             var res = (from i in _allItems where i.Value.OwnerId == character.Id select i.Value).ToList();
             return res;
         }
-        
+
         public void OnSkillsLoaded(object sender, EventArgs e)
         {
             foreach (var procTemplate in _itemProcTemplates.Values)
@@ -1553,7 +1595,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var template = GetTemplate(itemTemplateId);
             // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
-            return ((template != null) && (template is BackpackTemplate bt) && !template.BindType.HasFlag(ItemBindType.BindOnEquip));
+            return template != null && template is BackpackTemplate bt && !template.BindType.HasFlag(ItemBindType.BindOnEquip);
         }
     }
 }
