@@ -182,7 +182,7 @@ namespace AAEmu.Game.Models.Game.World
                 var units = GetList(new List<Unit>(), character1.ObjId);
                 foreach (var t in units)
                 {
-                    if (t is Npc npc)
+                    if (t is Npc npc && npc.Ai != null)
                     {
                         npc.Ai.ShouldTick = false;
                     }
