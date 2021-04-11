@@ -1393,9 +1393,9 @@ namespace AAEmu.Game.Models.Game.Char
         
         public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
-            var moved = !Transform.LocalPosition.X.Equals(x) || !Transform.LocalPosition.Y.Equals(y) || !Transform.LocalPosition.Z.Equals(z);
+            var moved = !Transform.Local.Position.X.Equals(x) || !Transform.Local.Position.Y.Equals(y) || !Transform.Local.Position.Z.Equals(z);
             var lastZoneKey = Transform.ZoneId;
-            //Connection.ActiveChar.SendMessage("Move Old Pos: {0}", Transform.World.ToString());
+            //Connection.ActiveChar.SendMessage("Move Old Pos: {0}", Transform.ToString());
             
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
@@ -1405,8 +1405,7 @@ namespace AAEmu.Game.Models.Game.Char
             else if (IsUnderWater && Transform.World.Position.Z > 98)
                 IsUnderWater = false;
             
-            //Connection.ActiveChar.SendMessage("Move New Rot: {0}, {1}, {2}", rotationX.ToString("0.00"),rotationY.ToString("0.00"),rotationZ.ToString("0.00"));
-            // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.World.ToString());
+            // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.ToString());
             
             if (!moved)
                 return;
@@ -1419,9 +1418,9 @@ namespace AAEmu.Game.Models.Game.Char
             if (this.InParty)
                 TeamManager.Instance.UpdatePosition(this.Id);
 
+            // Check if zone changed
             if (Transform.ZoneId == lastZoneKey)
                 return;
-            
             OnZoneChange(lastZoneKey,Transform.ZoneId);
         }
 
@@ -1463,7 +1462,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            // Ok, we actually changed zone groups, we'll leave to do some chat channel stuff
+            // Ok, we actually changed zone groups, we'll have to do some chat channel stuff
             if (lastZoneGroupId != 0)
                 ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(this);
 
@@ -1475,13 +1474,13 @@ namespace AAEmu.Game.Models.Game.Char
 
             // Entered a forbidden zone
             /*
-                            if (!thisChar.isGM)
-                            {
-                                // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
-                                // TODO: Remove backpack immediately
-                            }
-                            */
-            // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour
+                if (!thisChar.isGM)
+                {
+                    // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
+                    // TODO: Remove backpack immediately
+                }
+            */
+            // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour!
             if (newZone != null)
                 SendMessage(ChatType.System,
                     "|cFFFF0000You have entered a closed zone ({0} - {1})!\nPlease leave immediately!|r",

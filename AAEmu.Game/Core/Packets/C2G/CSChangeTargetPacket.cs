@@ -32,11 +32,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (Connection.ActiveChar.CurrentTarget is Npc npc)
                 Connection.ActiveChar.SendMessage("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3}", targetId, npc.TemplateId, npc.Ai?.GetType().Name.Replace("AiCharacter", ""), npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""));
             else if (Connection.ActiveChar.CurrentTarget is House house)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.World.ToString());
+                Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.ToString());
             else if (Connection.ActiveChar.CurrentTarget is Character character)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, Pos: {2}", targetId, character.Id, character.Transform.World.ToString());
+                Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, Pos: {2}", targetId, character.Id, character.Transform.ToString());
             else
-                Connection.ActiveChar.SendMessage("ObjId: {0}, Pos: {1}, {2}", targetId, Connection.ActiveChar.CurrentTarget.Transform.World.ToString(),Connection.ActiveChar.CurrentTarget.Name);
+                Connection.ActiveChar.SendMessage("ObjId: {0}, Pos: {1}, {2}", targetId, Connection.ActiveChar.CurrentTarget.Transform.ToString(),Connection.ActiveChar.CurrentTarget.Name);
         }
     }
 }

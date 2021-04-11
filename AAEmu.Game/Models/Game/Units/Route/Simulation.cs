@@ -410,14 +410,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;
-            if (runningMode)
-            {
-                moveType.ActorFlags = 4;      // 5-walk, 4-run, 3-stand still
-            }
-            else
-            {
-                moveType.ActorFlags = 5;      // 5-walk, 4-run, 3-stand still
-            }
+            moveType.ActorFlags = runningMode ? (byte)4 : (byte)5 ;      // 5-walk, 4-run, 3-stand still
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
             moveType.DeltaMovement[1] = 127;

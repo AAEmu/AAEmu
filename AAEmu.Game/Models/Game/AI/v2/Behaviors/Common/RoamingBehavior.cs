@@ -77,7 +77,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             // TODO : Group member handling
            
-            _targetRoamPosition = AIUtils.CalcNextRoamingPosition(Ai).LocalPosition;
+            _targetRoamPosition = AIUtils.CalcNextRoamingPosition(Ai).Local.Position;
         }
 
         public void OnEnemySeen(Unit target)

@@ -105,7 +105,7 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             moveType.Z = Owner.Transform.Local.Position.Z;
             moveType.VelX = (short)velX;
             moveType.VelY = (short)velY;
-            var rpy = Owner.Transform.Local.ToRollPitchYawSBytes();
+            var rpy = Owner.Transform.Local.ToRollPitchYawSBytesMovement();
             moveType.RotationX = rpy.Item1;
             moveType.RotationY = rpy.Item2;
             moveType.RotationZ = rpy.Item3;

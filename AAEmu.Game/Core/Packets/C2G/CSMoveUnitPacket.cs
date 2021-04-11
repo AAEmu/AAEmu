@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -116,16 +117,37 @@ namespace AAEmu.Game.Core.Packets.C2G
                 
                 if ((mType.ActorFlags & 0x20) != 0)
                 {
-                    Connection
-                        .ActiveChar
-                        .SetPosition(mType.X2, mType.Y2, mType.Z2, mType.RotationX, mType.RotationY, mType.RotationZ);
-
+                    
+                    var parentObject = WorldManager.Instance.GetBaseUnit(mType.GcId);
+                    if (parentObject.Transform != null)
+                    {
+                        Connection.ActiveChar.SendMessage("Standing on Object: {0} ({4}) @ x{1} y{2} z{3} || World: {5}",mType.GcId,mType.X,mType.Y,mType.Z,parentObject.Name,Connection.ActiveChar.Transform.World.ToString());
+                        Connection.ActiveChar.Transform.Parent = parentObject.Transform;
+                        Connection.ActiveChar.Transform.Local.SetPosition(mType.X,mType.Y,mType.Z);
+                        Connection.ActiveChar.Transform.Local.SetRotation(
+                            (float)MathUtil.ConvertDirectionToRadian(mType.RotationX),
+                            (float)MathUtil.ConvertDirectionToRadian(mType.RotationY),
+                            (float)MathUtil.ConvertDirectionToRadian(mType.RotationZ));
+                    }
+                    else
+                    {
+                        Connection.ActiveChar.SendMessage("|cFFFF0000Standing on Unknown Object: {0}|r @ x{1} y{2} z{3}",mType.GcId,mType.X,mType.Y,mType.Z);
+                        // Somehow didn't send correct parent object maybe ?
+                        // Just use the proposed position instead
+                        // TODO: Make this exploit-proof
+                        Connection.ActiveChar.Transform.Parent = null;
+                        Connection
+                            .ActiveChar
+                            .SetPosition(mType.X2, mType.Y2, mType.Z2, mType.RotationX, mType.RotationY, mType.RotationZ);
+                    }
                     //do we need it for boats?
                     if (mType.FallVel > 0)
                         Connection.ActiveChar.DoFallDamage(mType.FallVel);
+                    
                 }
                 else
                 {
+                    Connection.ActiveChar.Transform.Parent = null;
                     Connection
                         .ActiveChar
                         .SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
@@ -135,6 +157,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
                 
                 Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, _moveType), false);
+                Connection.ActiveChar.SendMessage("Pos: {0}",Connection.ActiveChar.Transform.ToString());
             }
         }
 

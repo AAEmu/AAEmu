@@ -463,10 +463,10 @@ namespace AAEmu.Game.Models.Game.Units
         
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
-            if (Transform.WorldPosition.Equals(baseUnit.Transform.WorldPosition))
+            if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
                 return 0.0f;
             
-            var rawDist = MathUtil.CalculateDistance(this.Transform.WorldPosition, baseUnit.Transform.WorldPosition, includeZAxis);
+            var rawDist = MathUtil.CalculateDistance(this.Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
 
             rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
             if (baseUnit is Unit unit)

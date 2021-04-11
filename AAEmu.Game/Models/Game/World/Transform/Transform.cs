@@ -127,6 +127,20 @@ namespace AAEmu.Game.Models.Game.World.Transform
             return (roll, pitch, yaw);
         }
 
+        public (sbyte, sbyte, sbyte) ToRollPitchYawSBytesMovement()
+        {
+            var vec3 = ToRollPitchYaw();
+            sbyte roll =  MathUtil.ConvertRadianToDirection(vec3.X - (MathF.PI / 2));
+            sbyte pitch = MathUtil.ConvertRadianToDirection(vec3.Y - (MathF.PI / 2));
+            sbyte yaw =   MathUtil.ConvertRadianToDirection(vec3.Z - (MathF.PI / 2));
+            /*
+            sbyte roll = (sbyte)(vec3.X / (Math.PI * 2) / ToSByteDivider);
+            sbyte pitch = (sbyte)(vec3.Y / (Math.PI * 2) / ToSByteDivider);
+            sbyte yaw = (sbyte)(vec3.Z / (Math.PI * 2) / ToSByteDivider);
+            */
+            return (roll, pitch, yaw);
+        }
+        
         public void SetRotation(float roll, float pitch, float yaw)
         {
             Rotation = Quaternion.CreateFromYawPitchRoll(roll, pitch, yaw);
@@ -237,7 +251,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public override string ToString()
         {
             var rpy = ToRollPitchYawDegrees();
-            return string.Format("X:{0:#,0.#} Y:{1:#,0.#} Z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°", Position.X, Position.Y, Position.Z, rpy.X, rpy.Y, rpy.Z);
+            return string.Format("X:{0:#,0.#} Y:{1:#,0.#} Z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°",
+                Position.X, Position.Y, Position.Z, rpy.X, rpy.Y, rpy.Z);
         }
     }
 
@@ -278,20 +293,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// Zone ID (Key)
         /// </summary>
         public uint ZoneId { get => _zoneId; set => _zoneId = value; }
-        public Vector3 LocalPosition { get => _localPosRot.Position; set => _localPosRot.Position = value; }
-        public Quaternion LocalRotation { get => _localPosRot.Rotation; set => _localPosRot.Rotation = value; }
         /// <summary>
         /// The Local Transform information (relative to Parent)
         /// </summary>
         public PositionAndRotation Local { get => _localPosRot; }
-        /// <summary>
-        /// Position information relative to world (with processed parents)
-        /// </summary>
-        public Vector3 WorldPosition { get => GetWorldPosition().Position; }
-        /// <summary>
-        /// Rotation information relative to world (with processed parents)
-        /// </summary>
-        public Quaternion WorldRotation { get => GetWorldPosition().Rotation; }
         /// <summary>
         /// The Global Transform information (relative to game world)
         /// </summary>
@@ -314,27 +319,27 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public Transform(GameObject owningObject, Transform parentTransform, float x, float y, float z)
         {
             InternalInitializeTransform(owningObject, parentTransform);
-            LocalPosition = new Vector3(x, y, z);
+            Local.Position = new Vector3(x, y, z);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, Vector3 position)
         {
             InternalInitializeTransform(owningObject, parentTransform);
-            LocalPosition = position;
+            Local.Position = position;
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, float posX, float posY, float posZ, float rotX, float rotY, float rotZ, float rotW)
         {
             InternalInitializeTransform(owningObject, parentTransform);
-            LocalPosition = new Vector3(posX, posY, posZ);
-            LocalRotation = new Quaternion(rotX, rotY, rotZ, rotW);
+            Local.Position = new Vector3(posX, posY, posZ);
+            Local.Rotation = new Quaternion(rotX, rotY, rotZ, rotW);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, Vector3 position, Quaternion rotation)
         {
             InternalInitializeTransform(owningObject, parentTransform);
-            LocalPosition = position;
-            LocalRotation = rotation;
+            Local.Position = position;
+            Local.Rotation = rotation;
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float rotX, float rotY, float rotZ, float rotW)
@@ -343,8 +348,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
-            LocalPosition = new Vector3(posX, posY, posZ);
-            LocalRotation = new Quaternion(rotX, rotY, rotZ, rotW);
+            Local.Position = new Vector3(posX, posY, posZ);
+            Local.Rotation = new Quaternion(rotX, rotY, rotZ, rotW);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float rotZ)
@@ -353,8 +358,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
-            LocalPosition = new Vector3(posX, posY, posZ);
-            LocalRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, rotZ);
+            Local.Position = new Vector3(posX, posY, posZ);
+            Local.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, rotZ);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw, float pitch, float roll)
@@ -363,8 +368,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
-            LocalPosition = new Vector3(posX, posY, posZ);
-            LocalRotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+            Local.Position = new Vector3(posX, posY, posZ);
+            Local.Rotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, PositionAndRotation posRot)
@@ -506,25 +511,26 @@ namespace AAEmu.Game.Models.Game.World.Transform
             if (_parentTransform == null)
                 return _localPosRot;
             var parentPosAndRot = _parentTransform.GetWorldPosition().Clone();
+            
             // Is this even correct ?
-            var parentPosMatrix = Matrix4x4.CreateTranslation(parentPosAndRot.Position);
-            var parentRotMatrix = Matrix4x4.CreateFromQuaternion(parentPosAndRot.Rotation);
-            // Combine parent pos and rot
-            var resMatrix = Matrix4x4.Multiply(parentPosMatrix, parentRotMatrix);
+            var parentMatrix = Matrix4x4.CreateTranslation(parentPosAndRot.Position);
+            parentMatrix = Matrix4x4.Transform(parentMatrix, parentPosAndRot.Rotation);
+            
             // Add local position and rotation
-            var localPosMatrix = Matrix4x4.CreateTranslation(_localPosRot.Position);
-            var localRotMatrix = Matrix4x4.CreateFromQuaternion(_localPosRot.Rotation);
-            resMatrix = Matrix4x4.Multiply(resMatrix, localPosMatrix);
-            resMatrix = Matrix4x4.Multiply(resMatrix, localRotMatrix);
+            var localMatrix = Matrix4x4.CreateTranslation(_localPosRot.Position);
+            localMatrix = Matrix4x4.Transform(localMatrix, _localPosRot.Rotation);
+            
+            var resMatrix = Matrix4x4.Add(parentMatrix, localMatrix);
+            
             // Extract global location and split them again
-            parentPosAndRot.Position = Vector3.Transform(LocalPosition, resMatrix);
+            parentPosAndRot.Position = Vector3.Transform(Local.Position, resMatrix);
             parentPosAndRot.Rotation = Quaternion.CreateFromRotationMatrix(resMatrix);
             parentPosAndRot.IsLocal = false;
             return parentPosAndRot;
         }
 
         /// <summary>
-        /// Detaches the transform, and moves set the Local Position and Rotation to what is defined in the WorldSpawnPosition
+        /// Detaches the transform, and sets the Local Position and Rotation to what is defined in the WorldSpawnPosition
         /// </summary>
         /// <param name="wsp">WorldSpawnPosition to copy information from</param>
         /// <param name="newInstanceId">new InstanceId to assign to this transform, unchanged if 0</param>
@@ -538,5 +544,14 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
             Local.Rotation = Quaternion.CreateFromYawPitchRoll(wsp.Yaw, wsp.Pitch, wsp.Roll);
         }
+        
+        public override string ToString()
+        {
+            var res = Local.ToString();
+            if (_parentTransform != null)
+                res += " @( " + _parentTransform.ToString() + " )";
+            return res;
+        }
+
     }
 }

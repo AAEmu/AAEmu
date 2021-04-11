@@ -33,9 +33,9 @@ namespace AAEmu.Game.Models.Game
             stream.Write((byte)Ability1);
             stream.Write((byte)Ability2);
             stream.Write((byte)Ability3);
-            stream.Write(Helpers.ConvertLongX(Position.WorldPosition.X));
-            stream.Write(Helpers.ConvertLongY(Position.WorldPosition.Y));
-            stream.Write(Position.WorldPosition.Z);
+            stream.Write(Helpers.ConvertLongX(Position.World.Position.X));
+            stream.Write(Helpers.ConvertLongY(Position.World.Position.Y));
+            stream.Write(Position.World.Position.Z);
             stream.Write(Position.ZoneId);
             stream.Write((uint)0); // type(id)
             stream.Write(InParty);

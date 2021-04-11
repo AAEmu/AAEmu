@@ -862,7 +862,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.VelY = (short) velY;
             moveType.RotationX = 0;
             moveType.RotationY = 0;
-            moveType.RotationZ = Transform.World.ToRollPitchYawSBytes().Item3;
+            moveType.RotationZ = Transform.World.ToRollPitchYawSBytesMovement().Item3;
             moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
             moveType.Flags = 4;
             
@@ -896,7 +896,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.Z = Transform.Local.Position.Z;
             moveType.RotationX = 0;
             moveType.RotationY = 0;
-            moveType.RotationZ = Transform.World.ToRollPitchYawSBytes().Item3;
+            moveType.RotationZ = Transform.World.ToRollPitchYawSBytesMovement().Item3;
             moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
             moveType.Flags = 4;
             
@@ -921,7 +921,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.Z = Transform.Local.Position.Z;
             moveType.RotationX = 0;
             moveType.RotationY = 0;
-            moveType.RotationZ = Transform.World.ToRollPitchYawSBytes().Item3;
+            moveType.RotationZ = Transform.World.ToRollPitchYawSBytesMovement().Item3;
             moveType.Flags = 4;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;

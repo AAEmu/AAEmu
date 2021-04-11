@@ -170,18 +170,14 @@ namespace AAEmu.Game.Core.Managers
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
-            var portalPointDestination = new Transform(null,null)
+            var portalPointDestination = new Transform(null,null,new Vector3(portalInfo.X, portalInfo.Y, portalInfo.Z),Quaternion.CreateFromAxisAngle(Vector3.UnitZ, portalInfo.ZRot))
             {
-                LocalPosition = new Vector3(portalInfo.X, portalInfo.Y, portalInfo.Z),
                 ZoneId = portalInfo.ZoneId,
-                LocalRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, portalInfo.ZRot),
                 WorldId = WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id
             };
-            var portalPointLocation = new Transform(null,null)
+            var portalPointLocation = new Transform(null,null,new Vector3(portalEffectObj.X,portalEffectObj.Y,portalEffectObj.Z),owner.Transform.Local.Rotation)
             {
-                LocalPosition = new Vector3(portalEffectObj.X,portalEffectObj.Y,portalEffectObj.Z),
                 ZoneId = owner.Transform.ZoneId,
-                LocalRotation = owner.Transform.LocalRotation,
                 WorldId = owner.Transform.WorldId
             };
             var templateId = isExit ? 6949u : 3891u; // TODO - better way? maybe not hardcoded
@@ -226,8 +222,8 @@ namespace AAEmu.Game.Core.Managers
             // TODO - UnitPortalUsed
             // TODO - Maybe need unitstate?
             // TODO - Reason, ErrorMessage
-            character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.WorldPosition.X,
-                portalInfo.TeleportPosition.WorldPosition.Y, portalInfo.TeleportPosition.WorldPosition.Z, portalInfo.TeleportPosition.World.ToRollPitchYaw().Z));
+            character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.World.Position.X,
+                portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z, portalInfo.TeleportPosition.World.ToRollPitchYaw().Z));
         }
 
         public void DeletePortal(Character owner, byte type, uint id)
