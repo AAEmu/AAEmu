@@ -64,9 +64,15 @@ namespace AAEmu.Game.Core.Managers.World
                     var yDelt = slaveRigidBody.Position.Z - slave.Transform.World.Position.Y;
                     var zDelt = slaveRigidBody.Position.Y - slave.Transform.World.Position.Z;
                     
+                    slave.Transform.Local.Translate(xDelt,yDelt,zDelt); 
+                    var rot = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
+                    slave.Transform.Local.Rotation = new Quaternion(rot.X, rot.Y, rot.Z, rot.W);
+                    
                     if (_tickCount % 6 == 0)
                     {
-                        // slave.Move(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y);
+                        //var rpy = slave.Transform.Local.ToRollPitchYaw();
+                        //slave.SetPosition(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y, rpy.X, rpy.Y, rpy.Z);
+                        //slave.Move(slaveRigidBody.Position.X, slaveRigidBody.Position.Z, slaveRigidBody.Position.Y);
                         _physWorld.CollisionSystem.Detect(true);
                         BoatPhysicsTick(slave, slaveRigidBody);
                     }
@@ -81,7 +87,7 @@ namespace AAEmu.Game.Core.Managers.World
                 return;
 
             var oriY = slave.Transform.World.ToRollPitchYawDegrees().Z;
-            oriY -= 90.0f;
+            //oriY -= 90.0f;
 
             var rigidBody = new RigidBody(new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY))
             {
@@ -107,6 +113,7 @@ namespace AAEmu.Game.Core.Managers.World
             var moveType = (ShipMoveType)MoveType.GetType(MoveTypeEnum.Ship);
             moveType.UseSlaveBase(slave);
             var velAccel = 2.0f; //per s
+            var rotAccel = 0.5f; //per s
             var maxVelForward = 12.9f; //per s
             var maxVelBackward = -5.0f;
 
@@ -120,30 +127,52 @@ namespace AAEmu.Game.Core.Managers.World
             ComputeSteering(slave);
             slave.RigidBody.IsActive = true;
             
-            slave.Speed += (slave.Throttle * 0.00787401575f) * (velAccel / 20f);
+            if ((slave.Throttle > 0) && (slave.Speed < 1f))
+                slave.Speed = 1f;
+            if ((slave.Throttle < 0) && (slave.Speed > -1f))
+                slave.Speed = -1f;
+            slave.Speed += ((float)slave.Throttle * 0.00787401575f) * (velAccel / 10f);
+                
             slave.Speed = Math.Min(slave.Speed, maxVelForward);
             slave.Speed = Math.Max(slave.Speed, maxVelBackward);
             
-            slave.RotSpeed += (slave.Steering * 0.00787401575f) * (velAccel / 20f);
-            slave.RotSpeed = Math.Min(slave.RotSpeed, 1);
-            slave.RotSpeed = Math.Max(slave.RotSpeed, -1);
-            
-            if (slave.Steering == 0)
-                slave.RotSpeed -= (slave.RotSpeed / 20);
-            if (slave.Throttle == 0) // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
-                slave.Speed -= (slave.Speed / 45);
+            slave.RotSpeed += ((float)slave.Steering * 0.00787401575f) * (rotAccel / 100f);
+            slave.RotSpeed = Math.Min(slave.RotSpeed, 1f);
+            slave.RotSpeed = Math.Max(slave.RotSpeed, -1f);
 
+            if (slave.Steering == 0)
+            {
+                slave.RotSpeed -= (slave.RotSpeed / 20);
+                if (Math.Abs(slave.RotSpeed) <= 0.01)
+                    slave.RotSpeed = 0;
+            }
+
+            if (slave.Throttle == 0) // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
+            {
+                slave.Speed -= (slave.Speed / 20f);
+                if (Math.Abs(slave.Speed) < 0.01)
+                    slave.Speed = 0;
+            }
+
+            _log.Debug("Slave Speed: {0}  Rotation Speed: {1}",slave.Speed, slave.RotSpeed);
 
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = rpy.Item1 + (90 * (Math.PI/ 180.0f));
-            
-            rigidBody.AddForce(new JVector(slave.Throttle * rigidBody.Mass * (float)Math.Cos(slaveRotRad), 0.0f, slave.Throttle * rigidBody.Mass * (float)Math.Sin(slaveRotRad)));
+
+            var forceThrottle = (float)slave.Speed * 50f;
+            rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * (float)Math.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * (float)Math.Sin(slaveRotRad)));
             rigidBody.AddTorque(new JVector(0, -slave.Steering * (rigidBody.Mass * 2), 0));
 
-            var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rpy.Item1, rpy.Item2, rpy.Item3);
+            var (rotZ, rotY, rotX) = MathUtil.GetSlaveRotationFromDegrees(rpy.Item1, rpy.Item2, rpy.Item3);
             moveType.RotationX = rotX;
             moveType.RotationY = rotY;
             moveType.RotationZ = rotZ;
+
+            slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
+            var jRot = JQuaternion.CreateFromMatrix(rigidBody.Orientation);
+            slave.Transform.Local.Rotation = new Quaternion(jRot.X, jRot.Y, jRot.Z, jRot.W);
+            var rpys = slave.Transform.Local.ToRollPitchYaw();
+            slave.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y, rpys.X, rpys.Y, rpys.Z);
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
             // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
         }

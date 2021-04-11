@@ -36,6 +36,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             // TODO: We can probably rewrite this
             if (_objId != Connection.ActiveChar.ObjId) // Can be mate
             {
+                // We are not controlling our main character
                 switch (_moveType)
                 {
                     case ShipRequestMoveType srmt:
@@ -47,6 +48,10 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                             slave.ThrottleRequest = srmt.Throttle;
                             slave.SteeringRequest = srmt.Steering;
+
+                            // Also update driver's position
+                            Connection.ActiveChar.SetPosition(slave.Transform.World.Position.X,
+                                slave.Transform.World.Position.Y, slave.Transform.World.Position.Z, 0, 0, 0);
                             break;
                         }
                     case VehicleMoveType vmt:
@@ -110,6 +115,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else
             {
+                // We are controlling our own character directly
                 RemoveEffects(Connection.ActiveChar, _moveType);
 
                 if (!(_moveType is UnitMoveType mType))
@@ -117,11 +123,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                 
                 if ((mType.ActorFlags & 0x20) != 0)
                 {
+                    // ActorFlag 0x20 means we're standing on another object ?
                     
                     var parentObject = WorldManager.Instance.GetBaseUnit(mType.GcId);
-                    if (parentObject.Transform != null)
+                    if ((parentObject != null) && (parentObject.Transform != null))
                     {
-                        Connection.ActiveChar.SendMessage("Standing on Object: {0} ({4}) @ x{1} y{2} z{3} || World: {5}",mType.GcId,mType.X,mType.Y,mType.Z,parentObject.Name,Connection.ActiveChar.Transform.World.ToString());
+                        //Connection.ActiveChar.SendMessage("Standing on Object: {0} ({4}) @ x{1} y{2} z{3} || World: {5}",mType.GcId,mType.X,mType.Y,mType.Z,parentObject.Name,Connection.ActiveChar.Transform.World.ToString());
                         Connection.ActiveChar.Transform.Parent = parentObject.Transform;
                         Connection.ActiveChar.Transform.Local.SetPosition(mType.X,mType.Y,mType.Z);
                         Connection.ActiveChar.Transform.Local.SetRotation(
@@ -140,24 +147,23 @@ namespace AAEmu.Game.Core.Packets.C2G
                             .ActiveChar
                             .SetPosition(mType.X2, mType.Y2, mType.Z2, mType.RotationX, mType.RotationY, mType.RotationZ);
                     }
-                    //do we need it for boats?
-                    if (mType.FallVel > 0)
-                        Connection.ActiveChar.DoFallDamage(mType.FallVel);
                     
                 }
                 else
                 {
+                    // We're "standing" on the main world 
                     Connection.ActiveChar.Transform.Parent = null;
                     Connection
                         .ActiveChar
                         .SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
-
-                    if (mType.FallVel > 0)
-                        Connection.ActiveChar.DoFallDamage(mType.FallVel);
                 }
                 
+                // Handle Fall Velocity
+                if (mType.FallVel > 0)
+                    Connection.ActiveChar.DoFallDamage(mType.FallVel);
+                
                 Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, _moveType), false);
-                Connection.ActiveChar.SendMessage("Pos: {0}",Connection.ActiveChar.Transform.ToString());
+                //Connection.ActiveChar.SendMessage("Pos: {0}",Connection.ActiveChar.Transform.ToString());
             }
         }
 

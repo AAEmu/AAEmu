@@ -163,8 +163,9 @@ namespace AAEmu.Game.Core.Managers
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
 
-            var spawnPos = owner.Transform.Clone();
+            var spawnPos = owner.Transform.CloneDetached();
             spawnPos.Local.Translate(slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset, 0f);
+            spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.ToRollPitchYaw().Z); // Always spawn horizontal
             if (slaveTemplate.SlaveKind == SlaveKind.Boat)
                 spawnPos.Local.SetHeight(100.0f);
 
@@ -175,7 +176,6 @@ namespace AAEmu.Game.Core.Managers
                 TlId = tlId,
                 ObjId = objId,
                 TemplateId = slaveTemplate.Id,
-                Transform = spawnPos.Clone(),
                 Name = slaveTemplate.Name,
                 Level = (byte)slaveTemplate.Level,
                 ModelId = slaveTemplate.ModelId,
@@ -191,6 +191,7 @@ namespace AAEmu.Game.Core.Managers
                 AttachedCharacters = new Dictionary<AttachPointKind, Character>(),
                 SpawnTime = DateTime.Now
             };
+            template.Transform = spawnPos.CloneDetached(template);
             template.Spawn();
             
             // TODO - DOODAD SERVER SIDE

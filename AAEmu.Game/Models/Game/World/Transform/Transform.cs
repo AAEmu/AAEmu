@@ -143,7 +143,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         
         public void SetRotation(float roll, float pitch, float yaw)
         {
-            Rotation = Quaternion.CreateFromYawPitchRoll(roll, pitch, yaw);
+            Rotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
         }
         
         public void SetRotationDegree(float roll, float pitch, float yaw)
@@ -510,11 +510,16 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             if (_parentTransform == null)
                 return _localPosRot;
-            var parentPosAndRot = _parentTransform.GetWorldPosition().Clone();
-            
+            var res = _parentTransform.GetWorldPosition().Clone();
+
+            // TODO: This is not taking into account parent rotation !
+            res.Translate(Local.Position);
+            res.Rotate(Local.Rotation);
+           
+            /*
             // Is this even correct ?
-            var parentMatrix = Matrix4x4.CreateTranslation(parentPosAndRot.Position);
-            parentMatrix = Matrix4x4.Transform(parentMatrix, parentPosAndRot.Rotation);
+            var parentMatrix = Matrix4x4.CreateTranslation(res.Position);
+            parentMatrix = Matrix4x4.Transform(parentMatrix, res.Rotation);
             
             // Add local position and rotation
             var localMatrix = Matrix4x4.CreateTranslation(_localPosRot.Position);
@@ -523,10 +528,12 @@ namespace AAEmu.Game.Models.Game.World.Transform
             var resMatrix = Matrix4x4.Add(parentMatrix, localMatrix);
             
             // Extract global location and split them again
-            parentPosAndRot.Position = Vector3.Transform(Local.Position, resMatrix);
-            parentPosAndRot.Rotation = Quaternion.CreateFromRotationMatrix(resMatrix);
-            parentPosAndRot.IsLocal = false;
-            return parentPosAndRot;
+            res.Position = Vector3.Transform(Local.Position, resMatrix);
+            res.Rotation = Quaternion.CreateFromRotationMatrix(resMatrix);
+            */
+            
+            res.IsLocal = false;
+            return res;
         }
 
         /// <summary>
