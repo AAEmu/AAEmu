@@ -71,5 +71,16 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             return new Vector3(X, Y, Z);
         }
+
+        public Quaternion AsRotationQuaternion()
+        {
+            return Quaternion.CreateFromYawPitchRoll(Yaw, Pitch, Roll);
+        }
+
+        public override string ToString()
+        {
+            return string.Format("X:{0:#,0.#} Y:{1:#,0.#} Z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°",
+                X, Y, Z, Roll, Pitch, Yaw);
+        }
     }
 }

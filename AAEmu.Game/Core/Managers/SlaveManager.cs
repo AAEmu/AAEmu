@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, SlaveTemplate> _slaveTemplates;
         private Dictionary<uint, Slave> _activeSlaves;
         private Dictionary<uint, Slave> _tlSlaves;
-        public Dictionary<uint, Dictionary<int, PositionAndRotation>> _attachPoints;
+        public Dictionary<uint, Dictionary<int, WorldSpawnPosition>> _attachPoints;
 
         private SlaveTemplate GetSlaveTemplate(uint id)
         {
@@ -192,6 +192,7 @@ namespace AAEmu.Game.Core.Managers
                 SpawnTime = DateTime.Now
             };
             template.Transform = spawnPos.CloneDetached(template);
+            template.Transform.Local.SetHeight(100f); // TODO: get actual water body height
             template.Spawn();
             
             // TODO - DOODAD SERVER SIDE
@@ -217,18 +218,22 @@ namespace AAEmu.Game.Core.Managers
 
                 doodad.CurrentPhaseId = doodad.GetFuncGroupId();
                 doodad.Transform = template.Transform.CloneDetached(doodad);
+                doodad.Transform.Parent = template.Transform;
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {
                     if (_attachPoints[template.ModelId].ContainsKey(doodadBinding.AttachPointId))
                     {
                         doodad.Transform = template.Transform.CloneAttached(doodad);
-                        doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].Position);
-                        doodad.Transform.Local.Rotate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].Rotation);
+                        doodad.Transform.Parent = template.Transform;
+                        //doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsPositionVector());
+                        //doodad.Transform.Local.Rotate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsRotationQuaternion());
+                        _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", template.ModelId,
+                            doodadBinding.AttachPointId, _attachPoints[template.ModelId][doodadBinding.AttachPointId], doodad.Transform);
                     }
                     else
                     {
-                        _log.Warn("Model id: {0} incomplete attach point information");
+                        _log.Warn("Model id: {0} incomplete attach point information", template.ModelId);
                     }                    
                 }
                 else
@@ -252,7 +257,6 @@ namespace AAEmu.Game.Core.Managers
                     TlId = ctlId,
                     ObjId = cobjId,
                     TemplateId = childSlaveTemplate.Id,
-                    Transform = spawnPos.Clone(),
                     Name = childSlaveTemplate.Name,
                     Level = (byte)childSlaveTemplate.Level,
                     ModelId = childSlaveTemplate.ModelId,
@@ -270,6 +274,8 @@ namespace AAEmu.Game.Core.Managers
                     AttachPointId = (sbyte) slaveBinding.AttachPointId,
                     OwnerObjId = template.ObjId
                 };
+                childSlave.Transform = spawnPos.CloneDetached(childSlave);
+                childSlave.Transform.Parent = template.Transform;
                 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {
@@ -278,8 +284,9 @@ namespace AAEmu.Game.Core.Managers
                         var attachPoint = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
                         // childSlave.AttachPosition = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
                         childSlave.Transform = template.Transform.CloneAttached(childSlave);
-                        childSlave.Transform.Local.Translate(attachPoint.Position);
-                        childSlave.Transform.Local.Rotate(attachPoint.Rotation);
+                        childSlave.Transform.Parent = template.Transform;
+                        childSlave.Transform.Local.Translate(attachPoint.AsPositionVector());
+                        childSlave.Transform.Local.Rotate(attachPoint.AsRotationQuaternion());
                         /*
                         childSlave.Position = template.Position.Clone();
                         childSlave.Position.X += attachPoint.X;
@@ -289,7 +296,6 @@ namespace AAEmu.Game.Core.Managers
                     }
                     else
                     {
-                        childSlave.Transform = template.Transform.CloneAttached(childSlave);
                         _log.Warn("Model id: {0} incomplete attach point information");
                     }                    
                 }
@@ -466,7 +472,7 @@ namespace AAEmu.Game.Core.Managers
             else
                 _log.Warn("Slave model attach points not loaded...");
             
-            _attachPoints = new Dictionary<uint, Dictionary<int, PositionAndRotation>>();
+            _attachPoints = new Dictionary<uint, Dictionary<int, WorldSpawnPosition>>();
             foreach (var set in attachPoints)
             {
                 _attachPoints[set.ModelId] = set.AttachPoints;
@@ -492,6 +498,6 @@ namespace AAEmu.Game.Core.Managers
     public class SlaveModelAttachPoint
     {
         public uint ModelId;
-        public Dictionary<int, PositionAndRotation> AttachPoints;
+        public Dictionary<int, WorldSpawnPosition> AttachPoints;
     }
 }

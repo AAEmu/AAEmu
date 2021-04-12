@@ -158,6 +158,7 @@ namespace AAEmu.Game.Models.Game.World
                         }
                     }
                 }
+                
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
                 for (var i = 0; i < doodads.Length; i += 30)
                 {

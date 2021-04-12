@@ -154,7 +154,7 @@ namespace AAEmu.Game.Core.Managers.World
                     slave.Speed = 0;
             }
 
-            _log.Debug("Slave Speed: {0}  Rotation Speed: {1}",slave.Speed, slave.RotSpeed);
+            // _log.Debug("Slave Speed: {0}  Rotation Speed: {1}",slave.Speed, slave.RotSpeed);
 
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = rpy.Item1 + (90 * (Math.PI/ 180.0f));
@@ -171,8 +171,8 @@ namespace AAEmu.Game.Core.Managers.World
             slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
             var jRot = JQuaternion.CreateFromMatrix(rigidBody.Orientation);
             slave.Transform.Local.Rotation = new Quaternion(jRot.X, jRot.Y, jRot.Z, jRot.W);
-            var rpys = slave.Transform.Local.ToRollPitchYaw();
-            slave.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y, rpys.X, rpys.Y, rpys.Z);
+            var rpySlave = slave.Transform.Local.ToRollPitchYaw();
+            slave.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y, rpySlave.X, rpySlave.Y, rpySlave.Z);
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
             // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
         }
