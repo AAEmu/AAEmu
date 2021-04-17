@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
@@ -11,7 +11,7 @@ namespace AAEmu.Login.Core.Packets.L2C
         private readonly List<GameServer> _gs;
         private readonly List<LoginCharacterInfo> _characters;
 
-        public ACWorldListPacket(List<GameServer> gs, List<LoginCharacterInfo> characters) : base(0x08)
+        public ACWorldListPacket(List<GameServer> gs, List<LoginCharacterInfo> characters) : base(LCOffsets.ACWorldListPacket)
         {
             _gs = gs;
             _characters = characters;

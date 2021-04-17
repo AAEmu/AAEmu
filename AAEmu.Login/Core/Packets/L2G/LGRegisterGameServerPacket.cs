@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Models;
 
@@ -8,7 +8,7 @@ namespace AAEmu.Login.Core.Packets.L2G
     {
         private readonly GSRegisterResult _result;
 
-        public LGRegisterGameServerPacket(GSRegisterResult result) : base(0x00)
+        public LGRegisterGameServerPacket(GSRegisterResult result) : base(LGOffsets.LGRegisterGameServerPacket)
         {
             _result = result;
         }

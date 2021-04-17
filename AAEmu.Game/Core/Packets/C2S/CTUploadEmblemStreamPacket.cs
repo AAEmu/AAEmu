@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models.Stream;
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2S
 {
     public class CTUploadEmblemStreamPacket : StreamPacket
     {
-        public CTUploadEmblemStreamPacket() : base(0x0C)
+        public CTUploadEmblemStreamPacket() : base(CTOffsets.CTUploadEmblemStreamPacket)
         {
         }
 

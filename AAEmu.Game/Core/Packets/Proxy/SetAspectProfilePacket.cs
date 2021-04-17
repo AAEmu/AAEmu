@@ -1,11 +1,11 @@
-using AAEmu.Game.Core.Network.Game;
+﻿using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy
 {
     public class SetAspectProfilePacket : GamePacket
     {
         // TODO Only command without body...
-        public SetAspectProfilePacket() : base(0x00d, 2)
+        public SetAspectProfilePacket() : base(PPOffsets.SetAspectProfilePacket, 2)
         {
         }
     }

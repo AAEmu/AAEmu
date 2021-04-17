@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         private EmblemStreamStatus _status;
         
-        public TCEmblemStreamRecvStatusPacket(EmblemStreamStatus status) : base(0x0A)
+        public TCEmblemStreamRecvStatusPacket(EmblemStreamStatus status) : base(TCOffsets.TCEmblemStreamRecvStatusPacket)
         {
             _status = status;
         }

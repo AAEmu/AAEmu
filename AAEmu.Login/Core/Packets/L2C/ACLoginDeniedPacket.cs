@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C
@@ -7,7 +7,7 @@ namespace AAEmu.Login.Core.Packets.L2C
     {
         private byte _reason;
 
-        public ACLoginDeniedPacket(byte reason) : base(0x0C)
+        public ACLoginDeniedPacket(byte reason) : base(LCOffsets.ACLoginDeniedPacket)
         {
             _reason = reason;
         }

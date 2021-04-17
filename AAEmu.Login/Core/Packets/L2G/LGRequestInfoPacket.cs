@@ -9,7 +9,7 @@ namespace AAEmu.Login.Core.Packets.L2G
         private readonly uint _requestId;
         private readonly ulong _accountId;
 
-        public LGRequestInfoPacket(uint connectionId, uint requestId, uint accountId) : base(0x03)
+        public LGRequestInfoPacket(uint connectionId, uint requestId, uint accountId) : base(LGOffsets.LGRequestInfoPacket)
         {
             _connectionId = connectionId;
             _requestId = requestId;

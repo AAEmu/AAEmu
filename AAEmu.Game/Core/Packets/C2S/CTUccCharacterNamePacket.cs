@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Core.Packets.S2C;
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2S
 {
     public class CTUccCharacterNamePacket : StreamPacket
     {
-        public CTUccCharacterNamePacket() : base(0x09)
+        public CTUccCharacterNamePacket() : base(CTOffsets.CTUccCharacterNamePacket)
         {
         }
 

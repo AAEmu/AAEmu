@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Login;
@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2L
         private readonly uint _requestId;
         private readonly List<LoginCharacterInfo> _characters;
 
-        public GLRequestInfoPacket(uint connectionId, uint requestId, List<LoginCharacterInfo> characters) : base(0x03)
+        public GLRequestInfoPacket(uint connectionId, uint requestId, List<LoginCharacterInfo> characters) : base(GLOffsets.GLRequestInfoPacket)
         {
             _connectionId = connectionId;
             _requestId = requestId;

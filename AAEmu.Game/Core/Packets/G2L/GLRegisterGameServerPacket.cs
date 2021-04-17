@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2L
         private readonly byte _gsId;
         private readonly byte[] _additionalesGsId;
 
-        public GLRegisterGameServerPacket(string secretKey, byte gsId, byte[] additionalesGsId) : base(0x00)
+        public GLRegisterGameServerPacket(string secretKey, byte gsId, byte[] additionalesGsId) : base(GLOffsets.GLRegisterGameServerPacket)
         {
             _secretKey = secretKey;
             _gsId = gsId;

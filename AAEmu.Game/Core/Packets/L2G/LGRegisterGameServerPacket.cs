@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.L2G
 {
     public class LGRegisterGameServerPacket : LoginPacket
     {
-        public LGRegisterGameServerPacket() : base(0x00)
+        public LGRegisterGameServerPacket() : base(LGOffsets.LGRegisterGameServerPacket)
         {
         }
 

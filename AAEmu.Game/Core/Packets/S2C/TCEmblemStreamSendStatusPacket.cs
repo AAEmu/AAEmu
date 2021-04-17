@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models.Stream;
 
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         private Ucc _ucc;
         private EmblemStreamStatus _emblemStreamStatus;
-        public TCEmblemStreamSendStatusPacket(Ucc ucc, EmblemStreamStatus status) : base(0x0B)
+        public TCEmblemStreamSendStatusPacket(Ucc ucc, EmblemStreamStatus status) : base(TCOffsets.TCEmblemStreamSendStatusPacket)
         {
             _ucc = ucc;
             _emblemStreamStatus = status;

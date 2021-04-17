@@ -19,19 +19,19 @@ namespace AAEmu.Login.Core.Network.Login
         {
             _handler = new LoginProtocolHandler();
 
-            RegisterPacket(0x01, typeof(CARequestAuthPacket)); // TODO +---
-            RegisterPacket(0x02, typeof(CARequestAuthTencentPacket));
-            RegisterPacket(0x03, typeof(CARequestAuthGameOnPacket));
-            RegisterPacket(0x04, typeof(CARequestAuthTrionPacket));
-            RegisterPacket(0x05, typeof(CARequestAuthMailRuPacket)); // TODO +
-            RegisterPacket(0x06, typeof(CAChallengeResponsePacket));
-            RegisterPacket(0x07, typeof(CAChallengeResponse2Packet));
-            RegisterPacket(0x08, typeof(CAOtpNumberPacket));
-            RegisterPacket(0x0a, typeof(CAPcCertNumberPacket));
-            RegisterPacket(0x0b, typeof(CAListWorldPacket)); // TODO +
-            RegisterPacket(0x0c, typeof(CAEnterWorldPacket)); // TODO +
-            RegisterPacket(0x0d, typeof(CACancelEnterWorldPacket));
-            RegisterPacket(0x0e, typeof(CARequestReconnectPacket)); // TODO +
+            RegisterPacket(CLOffsets.CARequestAuthPacket, typeof(CARequestAuthPacket));
+            RegisterPacket(CLOffsets.CARequestAuthTencentPacket, typeof(CARequestAuthTencentPacket));
+            RegisterPacket(CLOffsets.CARequestAuthGameOnPacket, typeof(CARequestAuthGameOnPacket));
+            RegisterPacket(CLOffsets.CARequestAuthTrionPacket, typeof(CARequestAuthTrionPacket));
+            RegisterPacket(CLOffsets.CARequestAuthMailRuPacket, typeof(CARequestAuthMailRuPacket));
+            RegisterPacket(CLOffsets.CAChallengeResponsePacket, typeof(CAChallengeResponsePacket));
+            RegisterPacket(CLOffsets.CAChallengeResponse2Packet, typeof(CAChallengeResponse2Packet));
+            RegisterPacket(CLOffsets.CAOtpNumberPacket, typeof(CAOtpNumberPacket));
+            RegisterPacket(CLOffsets.CAPcCertNumberPacket, typeof(CAPcCertNumberPacket));
+            RegisterPacket(CLOffsets.CAListWorldPacket, typeof(CAListWorldPacket));
+            RegisterPacket(CLOffsets.CAEnterWorldPacket, typeof(CAEnterWorldPacket));
+            RegisterPacket(CLOffsets.CACancelEnterWorldPacket, typeof(CACancelEnterWorldPacket));
+            RegisterPacket(CLOffsets.CARequestReconnectPacket, typeof(CARequestReconnectPacket));
         }
 
         public void Start()

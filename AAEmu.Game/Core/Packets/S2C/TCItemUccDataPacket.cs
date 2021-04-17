@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCItemUccDataPacket : StreamPacket
     {
-        public TCItemUccDataPacket() : base(0x0D)
+        public TCItemUccDataPacket() : base(TCOffsets.TCItemUccDataPacket)
         {
         }
         

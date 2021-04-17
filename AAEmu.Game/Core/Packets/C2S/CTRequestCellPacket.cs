@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Stream;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2S
 {
     public class CTRequestCellPacket : StreamPacket
     {
-        public CTRequestCellPacket() : base(0x02)
+        public CTRequestCellPacket() : base(CTOffsets.CTRequestCellPacket)
         {
         }
 

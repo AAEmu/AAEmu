@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
     {
         private readonly uint _sent;
 
-        public FastPongPacket(uint sent) : base(0x016, 2)
+        public FastPongPacket(uint sent) : base(PPOffsets.FastPongPacket, 2)
         {
             _sent = sent;
         }

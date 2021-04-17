@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy
 {
     public class ChangeCVarPacket : GamePacket
     {
-        public ChangeCVarPacket() : base(0x010, 2)
+        public ChangeCVarPacket() : base(PPOffsets.ChangeCVarPacket, 2)
         {
         }
 

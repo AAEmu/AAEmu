@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
@@ -9,7 +9,7 @@ namespace AAEmu.Login.Core.Packets.G2L
 {
     public class GLRegisterGameServerPacket : InternalPacket
     {
-        public GLRegisterGameServerPacket() : base(0x00)
+        public GLRegisterGameServerPacket() : base(GLOffsets.GLRegisterGameServerPacket)
         {
         }
 

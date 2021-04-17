@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.Models.Stream;
 
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.S2C
     public class TCUccComplexPacket : StreamPacket
     {
         private Ucc _ucc;
-        public TCUccComplexPacket(Ucc ucc) : base(0x05)
+        public TCUccComplexPacket(Ucc ucc) : base(TCOffsets.TCUccComplexPacket)
         {
             _ucc = ucc;
         }

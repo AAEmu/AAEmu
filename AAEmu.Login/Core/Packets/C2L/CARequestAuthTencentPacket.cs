@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L
 {
     public class CARequestAuthTencentPacket : LoginPacket
     {
-        public CARequestAuthTencentPacket() : base(0x02)
+        public CARequestAuthTencentPacket() : base(CLOffsets.CARequestAuthTencentPacket)
         {
         }
 

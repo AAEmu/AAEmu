@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Stream;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2S
 {
     public class CTContinuePacket : StreamPacket
     {
-        public CTContinuePacket() : base(0x05)
+        public CTContinuePacket() : base(CTOffsets.CTContinuePacket)
         {
         }
 

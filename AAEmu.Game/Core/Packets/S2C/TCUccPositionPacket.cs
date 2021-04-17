@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCUccPositionPacket : StreamPacket
     {
-        public TCUccPositionPacket() : base(0x07)
+        public TCUccPositionPacket() : base(TCOffsets.TCUccPositionPacket)
         {
         }
 
