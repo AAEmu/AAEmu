@@ -78,8 +78,7 @@ namespace AAEmu.Game.Core.Managers
         public void UnbindSlave(Character character, uint tlId)
         {
             var slave = _tlSlaves[tlId];
-            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, 5), true);
-            // slave.Driver = null;
+            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, 15), true);
             var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
             if (attachPoint != default)
                 slave.AttachedCharacters.Remove(attachPoint);
@@ -91,7 +90,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (slave.AttachedCharacters.ContainsKey((AttachPointKind)attachPointId))
                 return;
-            
+
             character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPointId, bondKind, objId), true);
             if (attachPointId == (int) AttachPointKind.Driver)
                 character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
@@ -166,6 +165,7 @@ namespace AAEmu.Game.Core.Managers
             var spawnPos = owner.Transform.CloneDetached();
             spawnPos.Local.Translate(slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset, 0f);
             spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.ToRollPitchYaw().Z); // Always spawn horizontal
+            // TODO: get actual target location water body height
             if (slaveTemplate.SlaveKind == SlaveKind.Boat)
                 spawnPos.Local.SetHeight(100.0f);
 
@@ -192,7 +192,6 @@ namespace AAEmu.Game.Core.Managers
                 SpawnTime = DateTime.Now
             };
             template.Transform = spawnPos.CloneDetached(template);
-            template.Transform.Local.SetHeight(100f); // TODO: get actual water body height
             template.Spawn();
             
             // TODO - DOODAD SERVER SIDE
@@ -217,7 +216,7 @@ namespace AAEmu.Game.Core.Managers
                 doodad.SetScale(doodadBinding.Scale);
 
                 doodad.CurrentPhaseId = doodad.GetFuncGroupId();
-                doodad.Transform = template.Transform.CloneDetached(doodad);
+                doodad.Transform = template.Transform.CloneAttached(doodad);
                 doodad.Transform.Parent = template.Transform;
 
                 if (_attachPoints.ContainsKey(template.ModelId))
@@ -225,9 +224,8 @@ namespace AAEmu.Game.Core.Managers
                     if (_attachPoints[template.ModelId].ContainsKey(doodadBinding.AttachPointId))
                     {
                         doodad.Transform = template.Transform.CloneAttached(doodad);
-                        doodad.Transform.Parent = template.Transform;
-                        //doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsPositionVector());
-                        //doodad.Transform.Local.Rotate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsRotationQuaternion());
+                        doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsPositionVector());
+                        doodad.Transform.Local.Rotate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsRotationQuaternion());
                         _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", template.ModelId,
                             doodadBinding.AttachPointId, _attachPoints[template.ModelId][doodadBinding.AttachPointId], doodad.Transform);
                     }
@@ -239,7 +237,7 @@ namespace AAEmu.Game.Core.Managers
                 else
                 {
                     doodad.Transform = new Transform(doodad, null);
-                    _log.Warn("Model id: {0} has no attach point information");
+                    _log.Warn("Model id: {0} has no attach point information", template.ModelId);
                 }
 
                 template.AttachedDoodads.Add(doodad);
@@ -313,6 +311,28 @@ namespace AAEmu.Game.Core.Managers
             
             owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId, template.Hp, template.Mp,
                 template.Transform.World.Position.X, template.Transform.World.Position.Y, template.Transform.World.Position.Z));
+        }
+
+        public void LoadSlaveAttachmentPointLocations()
+        {
+            _log.Info("Loading Slave Model Attach Points...");
+
+            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/slave_attach_points.json");
+            if (string.IsNullOrWhiteSpace(contents))
+                throw new IOException(
+                    $"File {FileManager.AppPath}Data/slave_attach_points.json doesn't exists or is empty.");
+
+            List<SlaveModelAttachPoint> attachPoints;
+            if (JsonHelper.TryDeserializeObject(contents, out attachPoints, out _))
+                _log.Info("Slave model attach points loaded...");
+            else
+                _log.Warn("Slave model attach points not loaded...");
+            
+            _attachPoints = new Dictionary<uint, Dictionary<int, WorldSpawnPosition>>();
+            foreach (var set in attachPoints)
+            {
+                _attachPoints[set.ModelId] = set.AttachPoints;
+            }
         }
 
         public void Load()
@@ -459,24 +479,7 @@ namespace AAEmu.Game.Core.Managers
             #endregion
 
 
-            _log.Info("Loading Slave Model Attach Points...");
-
-            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/slave_attach_points.json");
-            if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException(
-                    $"File {FileManager.AppPath}Data/slave_attach_points.json doesn't exists or is empty.");
-
-            List<SlaveModelAttachPoint> attachPoints;
-            if (JsonHelper.TryDeserializeObject(contents, out attachPoints, out _))
-                _log.Info("Slave model attach points loaded...");
-            else
-                _log.Warn("Slave model attach points not loaded...");
-            
-            _attachPoints = new Dictionary<uint, Dictionary<int, WorldSpawnPosition>>();
-            foreach (var set in attachPoints)
-            {
-                _attachPoints[set.ModelId] = set.AttachPoints;
-            }
+            LoadSlaveAttachmentPointLocations();
         }
         
         public void Initialize()

@@ -89,14 +89,17 @@ namespace AAEmu.Game.Core.Managers.World
             var oriY = slave.Transform.World.ToRollPitchYawDegrees().Z;
             //oriY -= 90.0f;
 
-            var rigidBody = new RigidBody(new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY))
+            var slaveBox = new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY);
+            var slaveMaterial = new Material();
+
+            var rigidBody = new RigidBody(slaveBox,slaveMaterial)
             {
                 Position = new JVector(slave.Transform.World.Position.X - (shipModel.MassBoxSizeX / 2.0f), slave.Transform.World.Position.Z - (shipModel.MassBoxSizeZ / 2.0f), slave.Transform.World.Position.Y - (shipModel.MassBoxSizeY / 2.0f)),
-                // Mass = shipModel.Mass
+                //Mass = shipModel.Mass,
                 Orientation = JMatrix.CreateRotationY((float) ((float) oriY * (Math.PI / 180.0f)))
             };
-                    
-            _buoyancy.Add(rigidBody, 3);
+               
+            _buoyancy.Add(rigidBody, 4);
             _physWorld.AddBody(rigidBody);
             slave.RigidBody = rigidBody;
         }
@@ -154,14 +157,18 @@ namespace AAEmu.Game.Core.Managers.World
                     slave.Speed = 0;
             }
 
-            // _log.Debug("Slave Speed: {0}  Rotation Speed: {1}",slave.Speed, slave.RotSpeed);
+            _log.Debug("Slave Speed: {0}  Rotation Speed: {1}",slave.Speed, slave.RotSpeed);
 
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = rpy.Item1 + (90 * (Math.PI/ 180.0f));
 
             var forceThrottle = (float)slave.Speed * 50f;
             rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * (float)Math.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * (float)Math.Sin(slaveRotRad)));
-            rigidBody.AddTorque(new JVector(0, -slave.Steering * (rigidBody.Mass * 2), 0));
+            // Make sure the steering is reversed when going backwards.
+            var steer = slave.Steering;
+            if (forceThrottle < 0)
+                steer *= -1;
+            rigidBody.AddTorque(new JVector(0, -steer * (rigidBody.Mass * 2), 0));
 
             var (rotZ, rotY, rotX) = MathUtil.GetSlaveRotationFromDegrees(rpy.Item1, rpy.Item2, rpy.Item3);
             moveType.RotationX = rotX;
@@ -175,6 +182,7 @@ namespace AAEmu.Game.Core.Managers.World
             slave.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y, rpySlave.X, rpySlave.Y, rpySlave.Z);
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
             // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
+            slave.Transform.FinalizeTransform();
         }
 
         internal void Stop()

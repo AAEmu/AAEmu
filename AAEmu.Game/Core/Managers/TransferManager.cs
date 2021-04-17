@@ -158,7 +158,7 @@ namespace AAEmu.Game.Core.Managers
                 transfer.Patrol = null;
                 transfer.Faction = FactionManager.Instance.GetFaction(143);
 
-                //TODO  create a boardingPart and indicate that we attach to the Carriage object 
+                // TODO: Create a boardingPart and indicate that we attach to the Carriage object 
                 _activeTransfers.Add(transfer.ObjId, transfer);
 
 

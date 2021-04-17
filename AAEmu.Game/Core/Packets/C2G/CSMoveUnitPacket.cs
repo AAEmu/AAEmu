@@ -50,8 +50,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                             slave.SteeringRequest = srmt.Steering;
 
                             // Also update driver's position
-                            Connection.ActiveChar.SetPosition(slave.Transform.World.Position.X,
-                                slave.Transform.World.Position.Y, slave.Transform.World.Position.Z, 0, 0, 0);
+                            Connection.ActiveChar.Transform.Parent = slave.Transform;
+                            // Connection.ActiveChar.SetPosition(slave.Transform.World.Position.X, slave.Transform.World.Position.Y, slave.Transform.World.Position.Z, 0, 0, 0);
                             break;
                         }
                     case VehicleMoveType vmt:
@@ -66,6 +66,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                             slave.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, vmt.RotationX, vmt.RotationY, vmt.RotationZ);
                             // slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
                             slave.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
+                            slave.Transform.FinalizeTransform();
+                            /*
+                            Connection.ActiveChar.Transform.Parent = null;
+                            Connection.ActiveChar.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z);
+                            Connection.ActiveChar.Transform.FinalizeTransform();
+                            */
                             break;
                         }
                     // TODO : check target has Telekinesis buff
@@ -128,8 +134,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var parentObject = WorldManager.Instance.GetBaseUnit(mType.GcId);
                     if ((parentObject != null) && (parentObject.Transform != null))
                     {
-                        //Connection.ActiveChar.SendMessage("Standing on Object: {0} ({4}) @ x{1} y{2} z{3} || World: {5}",mType.GcId,mType.X,mType.Y,mType.Z,parentObject.Name,Connection.ActiveChar.Transform.World.ToString());
+                        if (Connection.ActiveChar.Transform.Parent != parentObject.Transform)
+                            Connection.ActiveChar.SendMessage(
+                                "|cFF888822Standing on Object: {0} ({4}) @ x{1} y{2} z{3} || World: {5}|r", mType.GcId, mType.X,
+                                mType.Y, mType.Z, parentObject.Name, Connection.ActiveChar.Transform.World.ToString());
                         Connection.ActiveChar.Transform.Parent = parentObject.Transform;
+                        
                         Connection.ActiveChar.Transform.Local.SetPosition(mType.X,mType.Y,mType.Z);
                         Connection.ActiveChar.Transform.Local.SetRotation(
                             (float)MathUtil.ConvertDirectionToRadian(mType.RotationX),
@@ -151,18 +161,23 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
                 else
                 {
+                    if (Connection.ActiveChar.Transform.Parent != null)
+                        Connection.ActiveChar.SendMessage(
+                            "|cFF888844No longer standing on Object: x{0} y{1} z{2} || World: {3}|r", mType.X,
+                            mType.Y, mType.Z, Connection.ActiveChar.Transform.World.ToString());
+
                     // We're "standing" on the main world 
                     Connection.ActiveChar.Transform.Parent = null;
                     Connection
                         .ActiveChar
-                        .SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                        .SetPosition(mType.X, mType.Y, mType.Z, mType.RotationX, mType.RotationY, mType.RotationZ);
                 }
                 
                 // Handle Fall Velocity
                 if (mType.FallVel > 0)
                     Connection.ActiveChar.DoFallDamage(mType.FallVel);
                 
-                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, _moveType), false);
+                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, mType), false);
                 //Connection.ActiveChar.SendMessage("Pos: {0}",Connection.ActiveChar.Transform.ToString());
             }
         }

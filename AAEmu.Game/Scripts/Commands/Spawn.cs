@@ -46,8 +46,6 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 // character.SendMessage("[Spawn] Arg 0 --- {0} Arg 1 {1}", args[0], args[1]);
 
-                float newX;
-                float newY;
                 float angle;
                 float newRotZ;
                 var charPos = character.Transform.CloneDetached();

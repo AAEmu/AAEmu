@@ -37,7 +37,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 var unit = WorldManager.Instance.GetUnit(scu.ObjId);
                 if (unit is Character character)
+                {
                     _log.Debug("{0} is using skill {1}", character.Name, skillId);
+                }
             }
 
             if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))

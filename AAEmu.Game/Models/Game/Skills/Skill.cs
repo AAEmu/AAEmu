@@ -287,7 +287,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                 positionUnit.Region = caster.Region;
                 target = positionUnit;
-            } else if (Template.TargetType == SkillTargetType.BallisticPos)
+            } 
+            else if (Template.TargetType == SkillTargetType.BallisticPos)
             {
                 var positionTarget = (SkillCastPositionTarget)targetCaster;
                 var positionUnit = new BaseUnit();

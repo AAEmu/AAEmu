@@ -99,6 +99,8 @@ namespace AAEmu.Game.Core.Managers
                                 MassBoxSizeX = reader.GetFloat("mass_box_size_x"),
                                 MassBoxSizeY = reader.GetFloat("mass_box_size_y"),
                                 MassBoxSizeZ = reader.GetFloat("mass_box_size_z"),
+                                WaterDensity = reader.GetFloat("water_density",1f),
+                                WaterResistance = reader.GetFloat("water_resistance",1f),
                                 SteerVel = reader.GetFloat("steer_vel"),
                                 Accel = reader.GetFloat("accel"),
                                 ReverseAccel = reader.GetFloat("reverse_accel"),

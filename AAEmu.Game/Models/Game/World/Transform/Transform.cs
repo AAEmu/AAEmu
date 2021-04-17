@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 
 // INFO
@@ -479,6 +481,28 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 if (_parentTransform != null)
                     _parentTransform.InternalDetachChild(this);
 
+                if ((_owningObject != null) && (_owningObject is Character player))
+                {
+                    var oldS = "Null";
+                    var newS = "Null";
+                    if ((_parentTransform != null) && (_parentTransform._owningObject is BaseUnit oldParentUnit))
+                    {
+                        oldS = oldParentUnit.Name;
+                        if (oldS == string.Empty)
+                            oldS = oldParentUnit.ToString();
+                        oldS += " (" + oldParentUnit.ObjId +")";
+                    }
+                    if ((parent != null) && (parent._owningObject is BaseUnit newParentUnit))
+                    {
+                        newS = newParentUnit.Name;
+                        if (newS == string.Empty)
+                            newS = newParentUnit.ToString();
+                        newS += " (" + newParentUnit.ObjId +")";
+                    }
+
+                    if (_parentTransform?._owningObject != parent?._owningObject)
+                        player.SendMessage("|cFF88FF88Changing parent {0} => {1}|r", oldS, newS);
+                }
                 _parentTransform = parent;
 
                 if (_parentTransform != null)
@@ -491,6 +515,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             if (!_children.Contains(child))
             {
                 _children.Add(child);
+                child.Local.Position -= Local.Position;
             }
         }
 
@@ -499,6 +524,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             if (_children.Contains(child))
             {
                 _children.Remove(child);
+                child.Local.Position += Local.Position;
             }
         }
 
@@ -551,12 +577,43 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
             Local.Rotation = Quaternion.CreateFromYawPitchRoll(wsp.Yaw, wsp.Pitch, wsp.Roll);
         }
+
+        /// <summary>
+        /// Delegates the current position and rotation to the owning GameObject.SetPosition() function
+        /// </summary>
+        public void FinalizeTransform(bool includeChildren = true)
+        {
+            if (_owningObject == null)
+                return;
+            if (!_owningObject.DisabledSetPosition)
+                WorldManager.Instance.AddVisibleObject(_owningObject);
+
+            if (includeChildren)
+                foreach (var child in _children)
+                    child.FinalizeTransform();
+            //var rpy = Local.ToRollPitchYaw();
+            //_owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,rpy.X,rpy.Y,rpy.Z);
+        }
         
+        /// <summary>
+        /// Returns a summary of the current local location and parent objects if this is a child
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             var res = Local.ToString();
             if (_parentTransform != null)
-                res += " @( " + _parentTransform.ToString() + " )";
+            {
+                res += " on ( ";
+                if (_parentTransform._owningObject is BaseUnit bu)
+                {
+                    if (bu.Name != string.Empty)
+                        res += bu.Name + " ";
+                    res += "#" + bu.ObjId + " ";
+                }
+                res += _parentTransform.ToString();
+                res += " )";
+            }
             return res;
         }
 

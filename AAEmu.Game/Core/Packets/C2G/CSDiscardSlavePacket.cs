@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var tlId = stream.ReadUInt16();
 
-            //_log.Debug("DiscardSlave, Tl: {0}", tlId);
+            _log.Debug("DiscardSlave, Tl: {0}", tlId);
             SlaveManager.Instance.UnbindSlave(Connection.ActiveChar, tlId);
         }
     }

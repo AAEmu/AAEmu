@@ -47,6 +47,10 @@ namespace AAEmu.Game.Scripts.Commands
                     else
                         character.SendMessage("|cFFFF0000[Scripts] Save - Failed saving user database, was possible already in the process of saving, please check server console for details.|r");
                     break;
+                case "reloadslavepoints":
+                    SlaveManager.Instance.LoadSlaveAttachmentPointLocations();
+                    character.SendMessage("[Scripts] Slave Attachment Point Locations .json Reloaded");
+                    break;
                 default:
                     character.SendMessage("|cFFFF0000[Scripts] Undefined action...|r");
                     break;

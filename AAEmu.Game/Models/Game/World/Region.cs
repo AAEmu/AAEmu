@@ -143,6 +143,10 @@ namespace AAEmu.Game.Models.Game.World
                             character1.SendPacket(new SCUnitStatePacket(t));
                             character1.SendPacket(new SCHouseStatePacket(house));
                         }
+                        else if (t is Transfer transfer)
+                        {
+                            character1.SendPacket(new SCUnitStatePacket(t));
+                        }
                         else if (t is Slave slave)
                         {
                             slave.AddVisibleObject(character1);

@@ -32,8 +32,6 @@ namespace AAEmu.Game.Scripts.Commands
 
         public void Execute(Character character, string[] args)
         {
-            float newX;
-            float newY;
             float angle;
             
             if (!NpcManager.Instance.Exist(DUMMY_NPC_TEMPLATE_ID))
