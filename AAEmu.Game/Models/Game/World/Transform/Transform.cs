@@ -270,6 +270,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         private PositionAndRotation _localPosRot;
         private Transform _parentTransform;
         private List<Transform> _children;
+        private Vector3 _lastFinalizePos = Vector3.Zero; // Might use this later for cheat detection
 
         /// <summary>
         /// Parent Transform this Transform is attached to, leave null for World
@@ -583,6 +584,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// </summary>
         public void FinalizeTransform(bool includeChildren = true)
         {
+            _lastFinalizePos = World.ClonePosition();
             if (_owningObject == null)
                 return;
             if (!_owningObject.DisabledSetPosition)
