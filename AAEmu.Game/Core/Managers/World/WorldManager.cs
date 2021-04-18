@@ -693,7 +693,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         private bool ValidRegion(uint worldId, int x, int y)
         {
-            var world = _worlds[worldId];
+            var world = GetWorld(worldId);
             return world.ValidRegion(x, y);
         }
 

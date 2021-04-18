@@ -1649,7 +1649,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Ability2 = (AbilityType)reader.GetByte("ability2");
                         character.Ability3 = (AbilityType)reader.GetByte("ability3");
                         character.Transform = new Transform(character, null,
-                            reader.GetUInt32("world_id"), reader.GetUInt32("zone_id"), 1,
+                            reader.GetUInt32("world_id"), reader.GetUInt32("zone_id"), WorldManager.DefaultInstanceId,
                             reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"),
                             reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll")
                             );
@@ -1752,7 +1752,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Ability2 = (AbilityType)reader.GetByte("ability2");
                         character.Ability3 = (AbilityType)reader.GetByte("ability3");
                         character.Transform = new Transform(character, null,
-                            reader.GetUInt32("world_id"), reader.GetUInt32("zone_id"), 1,
+                            reader.GetUInt32("world_id"), reader.GetUInt32("zone_id"), WorldManager.DefaultInstanceId,
                             reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"),
                             reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll")
                             );
