@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Route;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World
@@ -65,7 +69,7 @@ namespace AAEmu.Game.Models.Game.World
                 if (obj is Character)
                 {
                     _charactersSize++;
-                    foreach(var region in GetNeighbors())
+                    foreach (var region in GetNeighbors())
                     {
                         Interlocked.Increment(ref region._playerCount);
                     }
@@ -133,19 +137,29 @@ namespace AAEmu.Game.Models.Game.World
                     {
                         if (npc.Ai != null)
                             npc.Ai.ShouldTick = true;
-                        character1.SendPacket(new SCUnitStatePacket(npc));
+                        npc.AddVisibleObject(character1);
                     }
                     else
                     {
-                        
                         if (t is House house)
                         {
-                            character1.SendPacket(new SCUnitStatePacket(t));
-                            character1.SendPacket(new SCHouseStatePacket(house));
+                            house.AddVisibleObject(character1);
+                        }
+                        else if (t is Transfer transfer)
+                        {
+                            transfer.AddVisibleObject(character1);
+                        }
+                        else if (t is Gimmick gimmick)
+                        {
+                            gimmick.AddVisibleObject(character1);
                         }
                         else if (t is Slave slave)
                         {
                             slave.AddVisibleObject(character1);
+                        }
+                        else if (t is Shipyard.Shipyard shipyard)
+                        {
+                            shipyard.AddVisibleObject(character1);
                         }
                         else
                         {
@@ -341,7 +355,7 @@ namespace AAEmu.Game.Models.Game.World
                 var finalrad = sqrad;
                 if (useModelSize)
                     finalrad += (obj.ModelSize * obj.ModelSize);
-                
+
                 var dx = obj.Position.X - x;
                 dx *= dx;
                 if (dx > finalrad)

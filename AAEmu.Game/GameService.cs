@@ -100,6 +100,7 @@ namespace AAEmu.Game
             DoodadManager.Instance.Load();
             HousingManager.Instance.Load();
             TransferManager.Instance.Load();
+            GimmickManager.Instance.Load();
 
             SpawnManager.Instance.Load();
 
@@ -115,6 +116,7 @@ namespace AAEmu.Game
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
             BoatPhysicsManager.Instance.Initialize();
+            GimmickManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
@@ -156,6 +158,7 @@ namespace AAEmu.Game
             ItemManager.Instance.Save();
             */
             BoatPhysicsManager.Instance.Stop();
+            GimmickManager.Instance.Stop();
 
             TickManager.Instance.Stop();
             TimeManager.Instance.Stop();
