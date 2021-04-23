@@ -18,6 +18,7 @@ namespace AAEmu.Game.Models.Game.World
         public bool DisabledSetPosition { get; set; }
         public Point Position { get; set; }
         public Point WorldPosition { get; set; }
+        public WorldPos WorldPos { get; set; }
         public Region Region { get; set; }
         public DateTime Respawn { get; set; }
         public DateTime Despawn { get; set; }

@@ -64,7 +64,7 @@ namespace AAEmu.Commons.Utils
 
             if (time < DateTime.MinValue.Second)
                 return DateTime.MinValue;
-            
+
             return _unixDate.AddSeconds(time);
         }
 
@@ -245,6 +245,28 @@ namespace AAEmu.Commons.Utils
         {
             var size = data.Length;
             return Crc8(data, size);
+        }
+        public static float ConvertDirectionToRadian(sbyte rotation)
+        {
+            var z = rotation * 0.0078740157; // переводим из направления в радианы
+            z *= Math.PI * 2;
+
+            return (float)z;
+        }
+        public static float ConvertDirectionToRadian(short rotation)
+        {
+            var z = rotation * 0.000030518509; // переводим из направления в радианы
+            z *= Math.PI * 2;
+
+            return (float)z;
+        }
+        public static sbyte ConvertRadianToSbyteDirection(float radian)
+        {
+            var z = radian * 0.15915494309189533576888376337251; // values.X / (float)Math.PI * 2; // переводим из радиан в направление
+
+            var dir = Convert.ToSByte(z * 127f);
+
+            return dir;
         }
     }
 }

@@ -1,7 +1,36 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Numerics;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
+    public enum EStance : sbyte
+    {
+        Null = -1,
+        Combat = 0,
+        Idle = 1,
+        Swim = 2,
+        Coswim = 3,
+        Zerog = 4,
+        Stealth = 5,
+        Climb = 6,
+        Prone = 7,
+        Fly = 8,
+        Last = 9
+    }
+    public enum AiAlertness : sbyte
+    {
+        Idle = 0,
+        Alert = 1,
+        Combat = 2
+    }
+    public enum ActorMoveType : ushort
+    {
+        StandStill = 3,
+        Run = 4,
+        Walk = 5,
+    }
+    
     public class UnitMoveType : MoveType
     {
         public sbyte[] DeltaMovement { get; set; }
@@ -18,6 +47,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public sbyte RotationZ2 { get; set; }
         public uint ClimbData { get; set; }
         public uint GcId { get; set; }
+        public WorldPos GcWorldPos { get; set; }
         public ushort FallVel { get; set; }
         public ushort ActorFlags { get; set; }
 

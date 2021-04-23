@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Numerics;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
-
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Transfers
@@ -19,6 +20,9 @@ namespace AAEmu.Game.Models.Game.Transfers
         private Transfer _lastSpawn;
         private int _scheduledCount;
         private int _spawnCount;
+        public float RotationX;
+        public float RotationY;
+        public float RotationZ;
 
         public uint Count { get; set; }
 
@@ -45,7 +49,7 @@ namespace AAEmu.Game.Models.Game.Transfers
 
         public override Transfer Spawn(uint objId)
         {
-            var transfer = TransferManager.Instance.Create(objId, UnitId);
+            var transfer = TransferManager.Instance.Create(objId, UnitId, this);
             if (transfer == null)
             {
                 _log.Warn("Transfer {0}, from spawn not exist at db", UnitId);
@@ -58,6 +62,75 @@ namespace AAEmu.Game.Models.Game.Transfers
             {
                 _log.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
                 return null;
+            }
+            // использование путей из клиента для отдельного потока движения
+            // исключаем прицепы
+            if (transfer.TemplateId != 46 && transfer.TemplateId != 4 && transfer.TemplateId != 122 && transfer.TemplateId != 135 && transfer.TemplateId != 137)
+            {
+                //if (transfer.TemplateId == 134)
+                {
+                    if (!transfer.IsInPatrol)
+                    {
+                        //var path = new Simulation(transfer, transfer.Template.PathSmoothing);
+                        // организуем последовательность участков дороги для следования "Транспорта"
+                        for (var i = 0; i < transfer.Template.TransferRoads.Count; i++)
+                        {
+                            transfer.Routes.TryAdd(i, transfer.Template.TransferRoads[i].Pos);
+                        }
+                        transfer.TransferPath = transfer.Routes[0]; // начнем с самого начала
+
+                        if (transfer.Routes[0] != null)
+                        {
+                            //_log.Warn("TransfersPath #" + transfer.TemplateId);
+                            //_log.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
+                            transfer.IsInPatrol = true; // so as not to run the route a second time
+
+                            transfer.Steering = 0;
+                            transfer.PathPointIndex = 0;
+
+                            // попробуем заспавнить в последней точке пути (она как раз напротив стоянки) и попробуем смотреть на следующую точку
+                            //var point = path.Routes[path.Routes.Count - 1][path.Routes[path.Routes.Count - 1].Count - 1];
+                            //var point = path.Routes[0][0];
+
+                            // попробуем заспавнить в первой точке пути и попробуем смотреть на следующую точку
+                            var point = transfer.Routes[0][0];
+                            var point2 = transfer.Routes[0][1];
+
+                            var vPosition = new Vector3(point.X, point.Y, point.Z);
+                            var vTarget = new Vector3(point2.X, point2.Y, point2.Z);
+                            transfer.Angle = MathUtil.CalculateDirection(vPosition, vTarget);
+
+                            transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(transfer.Angle));
+
+                            var quat = Quaternion.CreateFromYawPitchRoll((float)transfer.Angle, 0.0f, 0.0f);
+                            transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
+
+                            transfer.Position.WorldId = 1;
+                            transfer.Position.ZoneId = transfer.Template.TransferRoads[0].ZoneId;
+                            transfer.Position.ZoneId = WorldManager.Instance.GetZoneId(transfer.Position.WorldId, point.X, point.Y);
+                            transfer.Position.X = point.X;
+                            transfer.Position.Y = point.Y;
+                            transfer.Position.Z = point.Z;
+
+                            transfer.WorldPos = new WorldPos(Helpers.ConvertLongX(point.X), Helpers.ConvertLongY(point.Y), point.Z);
+                            _log.Warn("TransfersPath #" + transfer.TemplateId);
+                            _log.Warn("New spawn X={0}", transfer.Position.X);
+                            _log.Warn("New spawn Y={0}", transfer.Position.Y);
+                            _log.Warn("New spawn Z={0}", transfer.Position.Z);
+                            _log.Warn("transfer.Rot={0}, rotZ={1}, zoneId={2}", transfer.Rot, transfer.Position.RotationZ, transfer.Position.ZoneId);
+
+                            //transfer.InPatrol = false;
+
+                            transfer.GoToPath(transfer);
+                            TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);
+                        }
+                        else
+                        {
+                            _log.Warn("PathName: " + transfer.Template.TransferAllPaths[0].PathName + " not found!");
+                        }
+                    }
+
+                }
             }
 
             transfer.Spawn();

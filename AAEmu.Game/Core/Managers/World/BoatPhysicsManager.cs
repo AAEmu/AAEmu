@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
@@ -21,8 +21,10 @@ namespace AAEmu.Game.Core.Managers.World
 {
     public class BoatPhysicsManager : Singleton<BoatPhysicsManager>
     {
-        private Thread thread;
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        
+        private Thread thread;
+        private bool ThreadRunning = true;
         
         private CollisionSystem _collisionSystem;
         private Jitter.World _physWorld;
@@ -190,6 +192,10 @@ namespace AAEmu.Game.Core.Managers.World
                     slave.Steering = (sbyte) Math.Min(slave.Steering + steeringAccel, 0);
                 }
             }
+        }
+        internal void Stop()
+        {
+            ThreadRunning = false;
         }
     }
 }

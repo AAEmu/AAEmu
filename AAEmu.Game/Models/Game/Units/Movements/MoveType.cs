@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Network;
+﻿using System.Numerics;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -16,18 +18,22 @@ namespace AAEmu.Game.Models.Game.Units.Movements
     {
         public MoveTypeEnum Type { get; set; }
         public uint Time { get; set; }
+        public WorldPos WorldPos { get; set; }
         public byte Flags { get; set; }
         public uint ScType { get; set; }
         public byte Phase { get; set; }
         public float X { get; set; }
         public float Y { get; set; }
         public float Z { get; set; }
+        public Quaternion Rot { get; set; } // значение поворота по оси Z должно быть в радианах
+        public Vector3 Velocity { get; set; }
         public short VelX { get; set; }
         public short VelY { get; set; }
         public short VelZ { get; set; }
         public sbyte RotationX { get; set; }
         public sbyte RotationY { get; set; }
         public sbyte RotationZ { get; set; }
+        public UnitMoveType actorFlags { get; set; } // 5-walk, 4-run, 3-stand still и ещё предположительно мы : 32-на корабле, 36-на дилижансе
 
         public override void Read(PacketStream stream)
         {
@@ -71,15 +77,14 @@ namespace AAEmu.Game.Models.Game.Units.Movements
                     mType = new ShipRequestMoveType();
                     break;
                 case MoveTypeEnum.Transfer:
-                    // TODO ...
+                    mType = new TransferData();
                     break;
                 default:
                     mType = new DefaultMoveType();
                     break;
             }
 
-            if (mType != null)
-                mType.Type = type;
+            mType.Type = type;
             return mType;
         }
     }

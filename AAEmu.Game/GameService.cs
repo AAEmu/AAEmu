@@ -102,7 +102,7 @@ namespace AAEmu.Game
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();
             HousingManager.Instance.SpawnAll();
-            TransferManager.Instance.SpawnAll();
+            //TransferManager.Instance.SpawnAll();
             #endregion
 
             #region Other Managers
@@ -122,6 +122,7 @@ namespace AAEmu.Game
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
             BoatPhysicsManager.Instance.Initialize();
+            TransferManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
             #endregion
@@ -149,6 +150,9 @@ namespace AAEmu.Game
             ItemManager.Instance.Save();
             */
 
+            BoatPhysicsManager.Instance.Stop();
+            TransferManager.Instance.Stop();
+            
             TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }

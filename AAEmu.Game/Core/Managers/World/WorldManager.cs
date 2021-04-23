@@ -17,6 +17,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Shipyard;
 
 namespace AAEmu.Game.Core.Managers.World
 {
@@ -35,6 +36,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, Npc> _npcs;
         private readonly ConcurrentDictionary<uint, Character> _characters;
         private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes;
+        private readonly ConcurrentDictionary<uint, Transfer> _transfers;
 
         public const int REGION_SIZE = 64;
         public const int CELL_SIZE = 1024 / REGION_SIZE;
@@ -54,6 +56,7 @@ namespace AAEmu.Game.Core.Managers.World
             _npcs = new ConcurrentDictionary<uint, Npc>();
             _characters = new ConcurrentDictionary<uint, Character>();
             _areaShapes = new ConcurrentDictionary<uint, AreaShape>();
+            _transfers = new ConcurrentDictionary<uint, Transfer>();
         }
 
         public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
@@ -382,6 +385,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _npcs.TryAdd(npc.ObjId, npc);
             if (obj is Character character)
                 _characters.TryAdd(character.ObjId, character);
+            if (obj is Transfer transfer)
+                _transfers.TryAdd(transfer.ObjId, transfer);
         }
 
         public void RemoveObject(GameObject obj)
@@ -401,6 +406,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _npcs.TryRemove(obj.ObjId, out _);
             if (obj is Character)
                 _characters.TryRemove(obj.ObjId, out _);
+            if (obj is Transfer)
+                _transfers.TryRemove(obj.ObjId, out _);
         }
 
         public void AddVisibleObject(GameObject obj)
@@ -634,14 +641,41 @@ namespace AAEmu.Game.Core.Managers.World
             var stuffs = WorldManager.Instance.GetAround<Unit>(character, 1000f);
             foreach (var stuff in stuffs)
             {
-                if (stuff is House)
-                    character.SendPacket(new SCHouseStatePacket((House)stuff));
-                else
-                if (stuff is Unit)
-                    character.SendPacket(new SCUnitStatePacket((Unit)stuff));
+                switch (stuff)
+                {
+                    case Npc npc:
+                        //character.SendPacket(new SCUnitStatePacket(npc));
+                        npc.AddVisibleObject(character);
+                        break;
+                    case Character chr:
+                        //character.SendPacket(new SCUnitStatePacket(chr));
+                        chr.AddVisibleObject(character);
+                        break;
+                    case Slave slave:
+                        //character.SendPacket(new SCUnitStatePacket(slave));
+                        slave.AddVisibleObject(character);
+                        break;
+                    case House house:
+                        //character.SendPacket(new SCHouseStatePacket(house));
+                        house.AddVisibleObject(character);
+                        break;
+                    case Transfer transfer:
+                        //character.SendPacket(new SCUnitStatePacket(transfer));
+                        //character.SendPacket(new SCUnitPointsPacket(transfer.ObjId, transfer.Hp, transfer.Mp, transfer.HighAbilityRsc));
+                        transfer.AddVisibleObject(character);
+                        break;
+                    case Mount mount:
+                        //character.SendPacket(new SCUnitStatePacket(mount));
+                        mount.AddVisibleObject(character);
+                        break;
+                    case Shipyard shipyard:
+                        //character.SendPacket(new SCUnitStatePacket(shipyard));
+                        shipyard.AddVisibleObject(character);
+                        break;
+                }
             }
 
-            var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();
+            var doodads = Instance.GetAround<Doodad>(character, 1000f).ToArray();
             for (var i = 0; i < doodads.Length; i += 30)
             {
                 var count = doodads.Length - i;
