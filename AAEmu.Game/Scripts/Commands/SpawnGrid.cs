@@ -43,11 +43,12 @@ namespace AAEmu.Game.Scripts.Commands
             doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
             doodadSpawner.Position.Y = newY;
             doodadSpawner.Position.X = newX;
-            var angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.Y, doodadSpawner.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.X);
-            doodadSpawner.Position.Yaw = 0;
+            var angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.X, doodadSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
+            doodadSpawner.Position.Yaw = angle.DegToRad(); // TODO: this seems wrong for now, will need to replace with a LookAt() at some later point
             doodadSpawner.Position.Pitch = 0;
-            doodadSpawner.Position.Roll = angle;
+            doodadSpawner.Position.Roll = 0;
             doodadSpawner.Spawn(0);
+            character.SendMessage(doodadSpawner.Position.ToString());
         }
 
         public void SpawnNPC(uint unitId,Character character,float newX, float newY)
@@ -59,9 +60,9 @@ namespace AAEmu.Game.Scripts.Commands
             npcSpawner.Position.Y = newY;
             npcSpawner.Position.X = newX;
             var angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
-            npcSpawner.Position.Yaw = 0;
+            npcSpawner.Position.Yaw = angle.DegToRad();
             npcSpawner.Position.Pitch = 0;
-            npcSpawner.Position.Roll = angle;
+            npcSpawner.Position.Roll = 0;
             npcSpawner.SpawnAll();
         }
 
@@ -111,8 +112,6 @@ namespace AAEmu.Game.Scripts.Commands
                     return;
             }
 
-            float newX;
-            float newY;
             float startX;
             float startY;
 
@@ -121,21 +120,21 @@ namespace AAEmu.Game.Scripts.Commands
             for (var y = 0; y < rows; y++)
             {
                 float sizeY = rows * spacing;
-                float posY = y * spacing;
+                float posY = (y+1) * spacing;
                 for (var x = 0; x < columns; x++)
                 {
                     float sizeX = columns * spacing;
                     float posX = (x * spacing) - (sizeX / 2);
-                    var characterRot = character.Transform.World.ToRollPitchYaw();
-                    (newX, newY) = MathUtil.AddDistanceToFront(posY, startX, startY, characterRot.Z);
-                    (newX, newY) = MathUtil.AddDistanceToRight(posX, newX, newY, characterRot.Z);
+                    var newPos = character.Transform.CloneDetached();
+                    newPos.Local.AddDistanceToFront(posY);
+                    newPos.Local.AddDistanceToRight(posX);
                     switch(action)
                     {
                         case "npc":
-                            SpawnNPC(templateId, character, newX, newY);
+                            SpawnNPC(templateId, character, newPos.World.Position.X, newPos.World.Position.Y);
                             break;
                         case "doodad":
-                            SpawnDoodad(templateId, character, newX, newY);
+                            SpawnDoodad(templateId, character, newPos.World.Position.X, newPos.World.Position.Y);
                             break;
                     }
                 }

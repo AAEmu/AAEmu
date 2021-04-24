@@ -92,7 +92,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public Vector3 ToRollPitchYawDegrees()
         {
             var rpy = ToRollPitchYaw();
-            return new Vector3((float)MathUtil.RadianToDegree(rpy.X), (float)MathUtil.RadianToDegree(rpy.Y), (float)MathUtil.RadianToDegree(rpy.Z));
+            return new Vector3(rpy.X.RadToDeg(), rpy.Y.RadToDeg(), rpy.Z.RadToDeg());
         }
         
         public void SetPosition(float x, float y, float z)
@@ -150,7 +150,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         
         public void SetRotationDegree(float roll, float pitch, float yaw)
         {
-            Rotation = Quaternion.CreateFromYawPitchRoll(yaw / 180f * MathF.PI, pitch / 180f * MathF.PI, roll / 180f * MathF.PI);
+            Rotation = Quaternion.CreateFromYawPitchRoll(yaw.DegToRad(), pitch.DegToRad(), roll.DegToRad());
         }
         
         public void SetZRotation(float rotZ)

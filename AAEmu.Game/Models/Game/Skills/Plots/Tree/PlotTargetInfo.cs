@@ -104,7 +104,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             posUnit.ObjId = uint.MaxValue;
             posUnit.Region = PreviousTarget.Region;
             posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
-            posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll((float)(MathUtil.RadianToDegree(args.Angle) * -1f), 0f, 0f));
+            posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle * -1f), 0f, 0f));
             if (args.Distance != 0)
             {
                 posUnit.Transform.Local.AddDistanceToFront((args.Distance / 1000f) - 0.01f);
@@ -176,7 +176,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
             posUnit.Transform.ZoneId = PreviousTarget.Transform.ZoneId;
             posUnit.Transform.WorldId = PreviousTarget.Transform.WorldId;
-            posUnit.Transform.Local.SetZRotation((float)MathUtil.DegreeToRadian((float)Rand.Next(-180, 180)));
+            posUnit.Transform.Local.SetZRotation(((float)Rand.Next(-180, 180)).DegToRad());
             posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
             posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 

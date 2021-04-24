@@ -52,7 +52,7 @@ namespace AAEmu.Game.Scripts.Commands
             angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
             npcSpawner.Position.Yaw = 0;
             npcSpawner.Position.Pitch = 0;
-            npcSpawner.Position.Roll = (float)MathUtil.DegreeToRadian(angle);
+            npcSpawner.Position.Roll = angle.DegToRad();
             npcSpawner.SpawnAll();
         }
     }

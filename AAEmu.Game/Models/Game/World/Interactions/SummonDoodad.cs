@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers.UnitManagers;
+﻿using System;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;

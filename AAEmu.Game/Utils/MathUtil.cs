@@ -50,20 +50,10 @@ namespace AAEmu.Game.Utils
         /// <returns>Angle in degrees</returns>
         public static double CalculateAngleFrom(float obj1X, float obj1Y, float obj2X, float obj2Y)
         {
-            var angleTarget = RadianToDegree(Math.Atan2(obj2Y - obj1Y, obj2X - obj1X));
+            var angleTarget = (Math.Atan2(obj2Y - obj1Y, obj2X - obj1X)).RadToDeg();
             if (angleTarget < -90)
                 angleTarget += 360;
             return angleTarget;
-        }
-
-        public static double RadianToDegree(double angle)
-        {
-            return angle * 180.0 / Math.PI;
-        }
-
-        public static double DegreeToRadian(double angle)
-        {
-            return angle / 180.0 * Math.PI;
         }
 
         public static double ConvertSbyteDirectionToDegree(sbyte direction)
@@ -264,7 +254,7 @@ namespace AAEmu.Game.Utils
 
         public static sbyte ConvertRadianToDirection(double radian) // TODO float zRot
         {
-            var degree = RadianToDegree(radian);
+            var degree = radian.RadToDeg();
             if (degree < 0)
                 degree = 360 + degree;
             var res = (sbyte)(degree / (360f / 128));

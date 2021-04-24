@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -77,9 +78,9 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.ZoneId =
                                     WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
-                                spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                                spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
-                                spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
+                                spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
+                                spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
+                                spawner.Position.Roll = spawner.Position.Roll.DegToRad();
                                 npcSpawners.Add(spawner.Id, spawner);
                             }
                         else
@@ -111,9 +112,9 @@ namespace AAEmu.Game.Core.Managers.World
                                     .Instance
                                     .GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
-                                spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                                spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
-                                spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
+                                spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
+                                spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
+                                spawner.Position.Roll = spawner.Position.Roll.DegToRad();
                                 doodadSpawners.Add(spawner.Id, spawner);
                             }
                         else
@@ -146,9 +147,9 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
                                 // Convert degrees from the file to radians for use
-                                spawner.Position.Yaw = (spawner.Position.Yaw / 360f * MathF.PI * 2f);
-                                spawner.Position.Pitch = (spawner.Position.Pitch / 360f * MathF.PI * 2f);
-                                spawner.Position.Roll = (spawner.Position.Roll / 360f * MathF.PI * 2f);
+                                spawner.Position.Yaw = spawner.Position.Yaw.DegToRad();
+                                spawner.Position.Pitch = spawner.Position.Pitch.DegToRad();
+                                spawner.Position.Roll = spawner.Position.Roll.DegToRad();
                                 transferSpawners.Add(spawner.Id, spawner);
                             }
                         }
