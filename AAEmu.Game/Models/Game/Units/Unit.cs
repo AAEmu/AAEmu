@@ -225,6 +225,13 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 attacker.Events.OnKill(attacker, new OnKillArgs { died = this });
                 DoDie(attacker);
+                // TODO: Proper honor calculation accounting for assist, buffs, etc
+                // TODO: Add this to the event handler of OnKill maybe ?
+                if ((attacker is Character a) && (this is Character c))
+                {
+                    a.AddHonorFromKill(100, true);
+                    c.AddHonorFromKill(-20,false);
+                }
                 //StopRegen();
             }
             else

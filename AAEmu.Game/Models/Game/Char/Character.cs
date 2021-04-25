@@ -1258,10 +1258,13 @@ namespace AAEmu.Game.Models.Game.Char
         public void AddHonorFromKill(int honor, bool isKill = false)
         {
             HonorPoint += honor;
-            PvPHonor += honor;
 
             SendPacket(new SCGamePointChangedPacket(0, honor));
-            BroadcastPacket(new SCUnitPvPPointsChangedPacket(ObjId, 0, PvPHonor), true);
+            if (honor > 0)
+            {
+                PvPHonor += honor;
+                BroadcastPacket(new SCUnitPvPPointsChangedPacket(ObjId, 0, PvPHonor), true);
+            }
 
             if (isKill)
             {
