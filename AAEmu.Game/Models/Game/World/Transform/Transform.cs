@@ -10,6 +10,7 @@ using AAEmu.Game.Utils;
 // INFO
 // https://www.versluis.com/2020/09/what-is-yaw-pitch-and-roll-in-3d-axis-values/
 // https://en.wikipedia.org/wiki/Euler_angles
+// https://gamemath.com/
 
 namespace AAEmu.Game.Models.Game.World.Transform
 {
@@ -119,18 +120,18 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public (short,short,short) ToRollPitchYawShorts()
         {
             var vec3 = ToRollPitchYaw();
-            short roll = (short)(vec3.X / (Math.PI * 2) / ToShortDivider);
-            short pitch = (short)(vec3.Y / (Math.PI * 2) / ToShortDivider);
-            short yaw = (short)(vec3.Z / (Math.PI * 2) / ToShortDivider);
+            short roll = (short)(vec3.X / (MathF.PI * 2) / ToShortDivider);
+            short pitch = (short)(vec3.Y / (MathF.PI * 2) / ToShortDivider);
+            short yaw = (short)(vec3.Z / (MathF.PI * 2) / ToShortDivider);
             return (roll, pitch, yaw);
         }
 
         public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()
         {
             var vec3 = ToRollPitchYaw();
-            sbyte roll = (sbyte)(vec3.X / (Math.PI * 2) / ToSByteDivider);
-            sbyte pitch = (sbyte)(vec3.Y / (Math.PI * 2) / ToSByteDivider);
-            sbyte yaw = (sbyte)(vec3.Z / (Math.PI * 2) / ToSByteDivider);
+            sbyte roll = (sbyte)(vec3.X / (MathF.PI * 2) / ToSByteDivider);
+            sbyte pitch = (sbyte)(vec3.Y / (MathF.PI * 2) / ToSByteDivider);
+            sbyte yaw = (sbyte)(vec3.Z / (MathF.PI * 2) / ToSByteDivider);
             return (roll, pitch, yaw);
         }
 
@@ -193,6 +194,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <param name="offsetZ"></param>
         public void Translate(float offsetX, float offsetY, float offsetZ)
         {
+            // TODO: Take into account IsLocal = false
             Position += new Vector3(offsetX, offsetY, offsetZ);
         }
 
@@ -229,7 +231,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             var off = new Vector3((distance * (float)Math.Cos(rpy.Z)), (distance * (float)Math.Sin(rpy.Z)), 0);
             Translate(off);
         }
-
+        
         /// <summary>
         /// Rotates Transform to make it face towards targetPosition's direction
         /// </summary>
@@ -264,7 +266,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public bool IsOrigin()
         {
-            return (Position.X == 0f) && (Position.Y == 0f) && (Position.Z == 0f);
+            return Position.Equals(Vector3.Zero);
         }
     }
 
@@ -280,7 +282,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         private PositionAndRotation _localPosRot;
         private Transform _parentTransform;
         private List<Transform> _children;
-        private Vector3 _lastFinalizePos = Vector3.Zero; // Might use this later for cheat detection
+        private Vector3 _lastFinalizePos = Vector3.Zero; // Might use this later for cheat detection or delta movement
 
         /// <summary>
         /// Parent Transform this Transform is attached to, leave null for World
@@ -494,8 +496,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
                 if ((_owningObject != null) && (_owningObject is Character player))
                 {
-                    var oldS = "Null";
-                    var newS = "Null";
+                    var oldS = "<null>";
+                    var newS = "<null>";
                     if ((_parentTransform != null) && (_parentTransform._owningObject is BaseUnit oldParentUnit))
                     {
                         oldS = oldParentUnit.Name;
@@ -526,6 +528,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             if (!_children.Contains(child))
             {
                 _children.Add(child);
+                // TODO: This needs better handling and take into account rotations
                 child.Local.Position -= Local.Position;
             }
         }
@@ -535,6 +538,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             if (_children.Contains(child))
             {
                 _children.Remove(child);
+                // TODO: This needs better handling and take into account rotations
                 child.Local.Position += Local.Position;
             }
         }
@@ -552,23 +556,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
             // TODO: This is not taking into account parent rotation !
             res.Translate(Local.Position);
             res.Rotate(Local.Rotation);
-           
-            /*
             // Is this even correct ?
-            var parentMatrix = Matrix4x4.CreateTranslation(res.Position);
-            parentMatrix = Matrix4x4.Transform(parentMatrix, res.Rotation);
-            
-            // Add local position and rotation
-            var localMatrix = Matrix4x4.CreateTranslation(_localPosRot.Position);
-            localMatrix = Matrix4x4.Transform(localMatrix, _localPosRot.Rotation);
-            
-            var resMatrix = Matrix4x4.Add(parentMatrix, localMatrix);
-            
-            // Extract global location and split them again
-            res.Position = Vector3.Transform(Local.Position, resMatrix);
-            res.Rotation = Quaternion.CreateFromRotationMatrix(resMatrix);
-            */
-            
+           
             res.IsLocal = false;
             return res;
         }
