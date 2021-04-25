@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C
 {
     public class ACEnterPcCertPacket : LoginPacket
     {
-        public ACEnterPcCertPacket() : base(0x07)
+        public ACEnterPcCertPacket() : base(LCOffsets.ACEnterPcCertPacket)
         {
         }
 

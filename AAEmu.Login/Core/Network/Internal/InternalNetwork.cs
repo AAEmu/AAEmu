@@ -19,10 +19,10 @@ namespace AAEmu.Login.Core.Network.Internal
         {
             _handler = new InternalProtocolHandler();
 
-            RegisterPacket(0x00, typeof(GLRegisterGameServerPacket));
-            RegisterPacket(0x01, typeof(GLPlayerEnterPacket));
-            RegisterPacket(0x02, typeof(GLPlayerReconnectPacket));
-            RegisterPacket(0x03, typeof(LGRequestInfoPacket));
+            RegisterPacket(GLOffsets.GLRegisterGameServerPacket, typeof(GLRegisterGameServerPacket));
+            RegisterPacket(GLOffsets.GLPlayerEnterPacket, typeof(GLPlayerEnterPacket));
+            RegisterPacket(GLOffsets.GLPlayerReconnectPacket, typeof(GLPlayerReconnectPacket));
+            RegisterPacket(GLOffsets.LGRequestInfoPacket, typeof(LGRequestInfoPacket));
         }
 
         public void Start()

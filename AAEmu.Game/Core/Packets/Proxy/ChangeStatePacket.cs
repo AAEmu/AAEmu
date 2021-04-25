@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
     {
         private readonly int _state;
 
-        public ChangeStatePacket(int state) : base(0x000, 2)
+        public ChangeStatePacket(int state) : base(PPOffsets.ChangeStatePacket, 2)
         {
             _state = state;
         }

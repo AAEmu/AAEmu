@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -54,6 +55,7 @@ namespace AAEmu.Game
             LaborPowerManager.Instance.Initialize();
             QuestIdManager.Instance.Initialize();
             MailIdManager.Instance.Initialize();
+            UccIdManager.Instance.Initialize();
 
             GameDataManager.Instance.LoadGameData();
             ZoneManager.Instance.Load();
@@ -98,11 +100,13 @@ namespace AAEmu.Game
             DoodadManager.Instance.Load();
             HousingManager.Instance.Load();
             TransferManager.Instance.Load();
+            GimmickManager.Instance.Load();
 
             SpawnManager.Instance.Load();
 
             AccessLevelManager.Instance.Load();
             CashShopManager.Instance.Load();
+            UccManager.Instance.Load();
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();
@@ -112,6 +116,7 @@ namespace AAEmu.Game
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
             BoatPhysicsManager.Instance.Initialize();
+            GimmickManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
@@ -153,6 +158,7 @@ namespace AAEmu.Game
             ItemManager.Instance.Save();
             */
             BoatPhysicsManager.Instance.Stop();
+            GimmickManager.Instance.Stop();
 
             TickManager.Instance.Stop();
             TimeManager.Instance.Stop();

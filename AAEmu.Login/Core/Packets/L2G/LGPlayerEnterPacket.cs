@@ -8,7 +8,7 @@ namespace AAEmu.Login.Core.Packets.L2G
         private readonly uint _accountId;
         private readonly uint _connectionId;
 
-        public LGPlayerEnterPacket(uint accountId, uint connectionId) : base(0x01)
+        public LGPlayerEnterPacket(uint accountId, uint connectionId) : base(LGOffsets.LGPlayerEnterPacket)
         {
             _accountId = accountId;
             _connectionId = connectionId;

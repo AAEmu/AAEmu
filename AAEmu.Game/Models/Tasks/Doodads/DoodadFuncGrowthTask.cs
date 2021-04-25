@@ -15,9 +15,6 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 
         public override void Execute()
         {
-            // _owner.FuncGroupId = _nextPhase;
-            // _owner.FuncTask = null;
-            // DoodadManager.Instance.TriggerPhases(GetType().Name, _caster, _owner, _skillId);
             _owner.GoToPhase(_caster, _nextPhase);
         }
     }

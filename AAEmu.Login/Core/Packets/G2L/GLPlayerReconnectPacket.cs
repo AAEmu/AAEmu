@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Login.Core.Packets.G2L
 {
     public class GLPlayerReconnectPacket : InternalPacket
     {
-        public GLPlayerReconnectPacket() : base(0x02)
+        public GLPlayerReconnectPacket() : base(GLOffsets.GLPlayerReconnectPacket)
         {
         }
 

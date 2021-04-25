@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Login;
 
 namespace AAEmu.Game.Core.Packets.G2L
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2L
         private readonly byte _gsId;
         private readonly byte _result;
 
-        public GLPlayerEnterPacket(uint connectionId, byte gsId, byte result) : base(0x01)
+        public GLPlayerEnterPacket(uint connectionId, byte gsId, byte result) : base(GLOffsets.GLPlayerEnterPacket)
         {
             _connectionId = connectionId;
             _gsId = gsId;

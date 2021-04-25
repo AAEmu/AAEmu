@@ -6,6 +6,7 @@ namespace AAEmu.Game.Models.Game.Skills
 {
     public class SkillEffect
     {
+        public uint EffectId { get; set; }
         public EffectTemplate Template { get; set; }
         public int Weight { get; set; }
         public byte StartLevel { get; set; }

@@ -55,8 +55,6 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 stream.Write(skillId);
             }
-            //stream.Write(13238); // use warehouse
-            // stream.Write(12083); // use auctioneer
             stream.Write((byte)1); // interactable, doesn't seem to matter what we set here
             stream.Write(_modifierKeys);
 

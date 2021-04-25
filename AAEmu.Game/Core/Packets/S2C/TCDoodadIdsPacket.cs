@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.S2C
         private readonly int _total;
         private readonly uint[] _objIds;
         
-        public TCDoodadIdsPacket(int id, int nextId, int total, uint[] objIds) : base(0x03)
+        public TCDoodadIdsPacket(int id, int nextId, int total, uint[] objIds) : base(TCOffsets.TCDoodadIdsPacket)
         {
             _id = id;
             _nextId = nextId;

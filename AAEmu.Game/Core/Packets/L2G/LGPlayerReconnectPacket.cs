@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Packets.G2C;
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.L2G
 {
     public class LGPlayerReconnectPacket : LoginPacket
     {
-        public LGPlayerReconnectPacket() : base(0x02)
+        public LGPlayerReconnectPacket() : base(LGOffsets.LGPlayerReconnectPacket)
         {
         }
 

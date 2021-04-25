@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C
 {
     public class ACChallenge2Packet : LoginPacket
     {
-        public ACChallenge2Packet() : base(0x04)
+        public ACChallenge2Packet() : base(LCOffsets.ACChallenge2Packet)
         {
 
         }

@@ -8,6 +8,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
@@ -31,6 +32,7 @@ namespace AAEmu.Game.Core.Managers.World
         private Dictionary<byte, Dictionary<uint, NpcSpawner>> _npcSpawners;
         private Dictionary<byte, Dictionary<uint, DoodadSpawner>> _doodadSpawners;
         private Dictionary<byte, Dictionary<uint, TransferSpawner>> _transferSpawners;
+        private Dictionary<byte, Dictionary<uint, GimmickSpawner>> _gimmickSpawners;
         private List<Doodad> _playerDoodads;
 
         public void Load()
@@ -40,6 +42,7 @@ namespace AAEmu.Game.Core.Managers.World
             _npcSpawners = new Dictionary<byte, Dictionary<uint, NpcSpawner>>();
             _doodadSpawners = new Dictionary<byte, Dictionary<uint, DoodadSpawner>>();
             _transferSpawners = new Dictionary<byte, Dictionary<uint, TransferSpawner>>();
+            _gimmickSpawners = new Dictionary<byte, Dictionary<uint, GimmickSpawner>>();
             _playerDoodads = new List<Doodad>();
 
             var worlds = WorldManager.Instance.GetWorlds();
@@ -50,6 +53,7 @@ namespace AAEmu.Game.Core.Managers.World
                 var npcSpawners = new Dictionary<uint, NpcSpawner>();
                 var doodadSpawners = new Dictionary<uint, DoodadSpawner>();
                 var transferSpawners = new Dictionary<uint, TransferSpawner>();
+                var gimmickSpawners = new Dictionary<uint, GimmickSpawner>();
                 var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
 
                 // Load NPC Spawns
@@ -160,9 +164,51 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                 }
 
+                contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/gimmick_spawns.json");
+                if (string.IsNullOrWhiteSpace(contents))
+                {
+                    //_log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/gimmick_spawns.json doesn't exists or is empty.");
+                }
+                
+                jsonFileName = Path.Combine(worldPath, "gimmick_spawns.json");
+
+                if (!File.Exists(jsonFileName))
+                {
+                    _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
+                }
+                else
+                {
+                    contents = FileManager.GetFileContents(jsonFileName);
+                    if (string.IsNullOrWhiteSpace(contents))
+                    {
+                        _log.Warn("File {0} doesn't exists or is empty.", jsonFileName);
+                    }
+                    else
+                    {
+                        if (JsonHelper.TryDeserializeObject(contents, out List<GimmickSpawner> spawners, out _))
+                        {
+                            foreach (var spawner in spawners)
+                            {
+                                if (!GimmickManager.Instance.Exist(spawner.UnitId))
+                                    continue;
+                                spawner.Position.WorldId = world.Id;
+                                spawner.Position.ZoneId =
+                                    WorldManager.Instance.GetZoneId(world.Id, spawner.Position.X, spawner.Position.Y);
+                                gimmickSpawners.Add(spawner.Id, spawner);
+                            }
+                        }
+                        else
+                        {
+                            throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+                        }
+                    }
+
+                }
+
                 _npcSpawners.Add((byte)world.Id, npcSpawners);
                 _doodadSpawners.Add((byte)world.Id, doodadSpawners);
                 _transferSpawners.Add((byte)world.Id, transferSpawners);
+                _gimmickSpawners.Add((byte)world.Id, gimmickSpawners);
             }
 
             
@@ -229,6 +275,10 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var (worldId, worldSpawners) in _transferSpawners)
                 foreach (var spawner in worldSpawners.Values)
                     spawner.SpawnAll();
+
+            foreach (var (worldId, worldSpawners) in _gimmickSpawners)
+            foreach (var spawner in worldSpawners.Values)
+                spawner.Spawn(0);
 
             Task.Run(() =>
             {
@@ -327,6 +377,8 @@ namespace AAEmu.Game.Core.Managers.World
                             doodad.Spawner.Respawn(doodad);
                         if (obj is Transfer transfer)
                             transfer.Spawner.Respawn(transfer);
+                        if (obj is Gimmick gimmick)
+                            gimmick.Spawner.Respawn(gimmick);
                         RemoveRespawn(obj);
                     }
                 }
@@ -344,6 +396,8 @@ namespace AAEmu.Game.Core.Managers.World
                             doodad.Spawner.Despawn(doodad);
                         else if (obj is Transfer transfer && transfer.Spawner != null)
                             transfer.Spawner.Despawn(transfer);
+                        else if (obj is Gimmick gimmick && gimmick.Spawner != null)
+                            gimmick.Spawner.Despawn(gimmick);
                         else
                         {
                             ObjectIdManager.Instance.ReleaseId(obj.ObjId);

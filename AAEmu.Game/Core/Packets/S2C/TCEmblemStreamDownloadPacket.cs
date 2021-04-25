@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCEmblemStreamDownloadPacket : StreamPacket
     {
-        public TCEmblemStreamDownloadPacket() : base(0x0C)
+        public TCEmblemStreamDownloadPacket() : base(TCOffsets.TCEmblemStreamDownloadPacket)
         {
         }
 

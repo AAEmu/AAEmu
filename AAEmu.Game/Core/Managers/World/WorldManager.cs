@@ -19,6 +19,9 @@ using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.World.Transform;
 using System.Diagnostics;
+using System.Threading.Tasks;
+using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.Shipyard;
 
 namespace AAEmu.Game.Core.Managers.World
 {
@@ -40,6 +43,8 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, Npc> _npcs;
         private readonly ConcurrentDictionary<uint, Character> _characters;
         private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes;
+        private readonly ConcurrentDictionary<uint, Transfer> _transfers;
+        private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks;
 
         public const int REGION_SIZE = 64;
         public const int CELL_SIZE = 1024 / REGION_SIZE;
@@ -59,6 +64,8 @@ namespace AAEmu.Game.Core.Managers.World
             _npcs = new ConcurrentDictionary<uint, Npc>();
             _characters = new ConcurrentDictionary<uint, Character>();
             _areaShapes = new ConcurrentDictionary<uint, AreaShape>();
+            _transfers = new ConcurrentDictionary<uint, Transfer>();
+            _gimmicks = new ConcurrentDictionary<uint, Gimmick>();
         }
 
         public void ActiveRegionTick(TimeSpan delta)
@@ -176,7 +183,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                 }
-            
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM aoe_shapes";
@@ -234,15 +241,15 @@ namespace AAEmu.Game.Core.Managers.World
                                         if (br.ReadBoolean())
                                             continue;
                                         for (var i = 0; i < 16; i++)
-                                        for (var j = 0; j < 16; j++)
-                                        for (var x = 0; x < 32; x++)
-                                        for (var y = 0; y < 32; y++)
-                                        {
-                                            var sx = cellX * 512 + i * 32 + x;
-                                            var sy = cellY * 512 + j * 32 + y;
+                                            for (var j = 0; j < 16; j++)
+                                                for (var x = 0; x < 32; x++)
+                                                    for (var y = 0; y < 32; y++)
+                                                    {
+                                                        var sx = cellX * 512 + i * 32 + x;
+                                                        var sy = cellY * 512 + j * 32 + y;
 
-                                            world.HeightMaps[sx, sy] = br.ReadUInt16();
-                                        }
+                                                        world.HeightMaps[sx, sy] = br.ReadUInt16();
+                                                    }
                                     }
                                 }
                             }
@@ -451,6 +458,10 @@ namespace AAEmu.Game.Core.Managers.World
                 _npcs.TryAdd(npc.ObjId, npc);
             if (obj is Character character)
                 _characters.TryAdd(character.ObjId, character);
+            if (obj is Transfer transfer)
+                _transfers.TryAdd(transfer.ObjId, transfer);
+            if (obj is Gimmick gimmick)
+                _gimmicks.TryAdd(gimmick.ObjId, gimmick);
         }
 
         public void RemoveObject(GameObject obj)
@@ -470,6 +481,10 @@ namespace AAEmu.Game.Core.Managers.World
                 _npcs.TryRemove(obj.ObjId, out _);
             if (obj is Character)
                 _characters.TryRemove(obj.ObjId, out _);
+            if (obj is Transfer)
+                _transfers.TryRemove(obj.ObjId, out _);
+            if (obj is Gimmick)
+                _gimmicks.TryRemove(obj.ObjId, out _);
         }
 
         public void AddVisibleObject(GameObject obj)
@@ -600,7 +615,7 @@ namespace AAEmu.Game.Core.Managers.World
                 var height = shape.Value2;
                 return GetAround<T>(obj, radius, true);
             }
-            
+
             if(shape.Type == AreaShapeType.Cuboid)
             {
                 var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
@@ -608,7 +623,7 @@ namespace AAEmu.Game.Core.Managers.World
                 res = shape.ComputeCuboid(obj, res);
                 return res;
             }
-            
+
             _log.Error("AreaShape had impossible type");
             throw new ArgumentNullException("AreaShape type does not exist!");
         }
@@ -701,14 +716,14 @@ namespace AAEmu.Game.Core.Managers.World
         {
             //turn snow on off 
             Snow(character);
-           
+
             //family stuff
             if (character.Family > 0)
             {
                 FamilyManager.Instance.OnCharacterLogin(character);
             }
         }
-        
+
         public void Snow(Character character)
         {
             //send the char the packet
@@ -722,11 +737,38 @@ namespace AAEmu.Game.Core.Managers.World
             var stuffs = WorldManager.Instance.GetAround<Unit>(character, 1000f);
             foreach (var stuff in stuffs)
             {
-                if (stuff is House)
-                    character.SendPacket(new SCHouseStatePacket((House)stuff));
-                else
-                if (stuff is Unit)
-                    character.SendPacket(new SCUnitStatePacket((Unit)stuff));
+                switch (stuff)
+                {
+                    case Npc npc:
+                        //character.SendPacket(new SCUnitStatePacket(npc));
+                        npc.AddVisibleObject(character);
+                        break;
+                    case Character chr:
+                        //character.SendPacket(new SCUnitStatePacket(chr));
+                        chr.AddVisibleObject(character);
+                        break;
+                    case Slave slave:
+                        //character.SendPacket(new SCUnitStatePacket(slave));
+                        slave.AddVisibleObject(character);
+                        break;
+                    case House house:
+                        //character.SendPacket(new SCHouseStatePacket(house));
+                        house.AddVisibleObject(character);
+                        break;
+                    case Transfer transfer:
+                        //character.SendPacket(new SCUnitStatePacket(transfer));
+                        //character.SendPacket(new SCUnitPointsPacket(transfer.ObjId, transfer.Hp, transfer.Mp, transfer.HighAbilityRsc));
+                        transfer.AddVisibleObject(character);
+                        break;
+                    case Mate mount:
+                        //character.SendPacket(new SCUnitStatePacket(mount));
+                        mount.AddVisibleObject(character);
+                        break;
+                    case Shipyard shipyard:
+                        //character.SendPacket(new SCUnitStatePacket(shipyard));
+                        shipyard.AddVisibleObject(character);
+                        break;
+                }
             }
 
             var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();
@@ -743,7 +785,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             return _characters.Values.ToList();
         }
-        
+
         public AreaShape GetAreaShapeById(uint id)
         {
             if (_areaShapes.TryGetValue(id, out AreaShape res))

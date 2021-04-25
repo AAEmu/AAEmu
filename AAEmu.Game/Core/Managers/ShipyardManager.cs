@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Templates;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -24,57 +20,50 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, ShipyardsTemplate> _shipyards;
         private Dictionary<ulong, Shipyard> _allShipyard;
 
-        private ulong GetNewShipYardId()
+        public void Create(Character owner, ShipyardData shipyardData, int step)
         {
-            ulong res = 1;
-            foreach (var sy in _allShipyard)
-            {
-                if (sy.Key >= res)
-                    res = sy.Key + 1;
-            }
-            return res;
-        }
-
-        public void Create(Character owner, uint id, float x, float y, float z, float zrot, uint type1, uint type2, uint type3, int step)
-        {
+            var pos = owner.Transform.CloneAsSpawnPosition();
+            pos.X = shipyardData.X;
+            pos.Y = shipyardData.Y;
+            pos.Z = shipyardData.Z;
+            pos.Yaw = (float)(MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation((short)shipyardData.zRot)));
             var objId = ObjectIdManager.Instance.GetNextId();
-            var template = _shipyards[id];
-            var shipId = GetNewShipYardId();  // 7199u;
+            var template = _shipyards[shipyardData.TemplateId];
+            //var shipId = 3039u;
+
             var shipyard = new Shipyard
             {
                 ObjId = objId,
                 Faction = owner.Faction,
-                Level = 1,
+                Level = 30,
                 Hp = 10000,
                 MaxHp = 10000,
                 Name = owner.Name,
                 ModelId = template.ShipyardSteps[step].ModelId
             };
-            shipyard.Transform = owner.Transform.CloneDetached(shipyard);
-            shipyard.Transform.Local.SetPosition(x, y, z);
-            shipyard.Transform.Local.SetZRotation(zrot);
+            shipyard.Transform.ApplyWorldSpawnPosition(pos);
 
             shipyard.Template = new ShipyardData
             {
-                Id = shipId,
-                TemplateId = id,
-                X = x,
-                Y = y,
-                Z = z,
-                zRot = zrot,
+                Id = shipyardData.Id,
+                TemplateId = template.Id,
+                X = pos.X,
+                Y = pos.Y,
+                Z = pos.Z,
+                zRot = pos.Yaw,
                 MoneyAmount = 0,
-                Actions = 0,
-                Type = type1,
+                Actions = step,
+                Type = template.OriginItemId, // type1
                 OwnerName = owner.Name,
-                Type2 = type2,
-                Type3 = type3,
-                Spawned = DateTime.Now,
+                Type2 = owner.Id, // type2
+                Type3 = owner.Faction.Id, // type3
+                Spawned = DateTime.MinValue,
                 ObjId = objId,
                 Hp = template.ShipyardSteps[step].MaxHp * 100,
                 Step = step
             };
+            shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(3554), null, System.DateTime.UtcNow));
             shipyard.Spawn();
-            _allShipyard.Add(shipyard.Template.Id, shipyard);
         }
 
         public void Load()

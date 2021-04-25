@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Network.Internal;
@@ -7,7 +7,7 @@ namespace AAEmu.Login.Core.Packets.G2L
 {
     public class GLPlayerEnterPacket : InternalPacket
     {
-        public GLPlayerEnterPacket() : base(0x01)
+        public GLPlayerEnterPacket() : base(GLOffsets.GLPlayerEnterPacket)
         {
         }
 

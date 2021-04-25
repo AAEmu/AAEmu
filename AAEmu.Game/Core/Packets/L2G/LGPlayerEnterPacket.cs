@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Login;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.L2G
 {
     public class LGPlayerEnterPacket : LoginPacket
     {
-        public LGPlayerEnterPacket() : base(0x01)
+        public LGPlayerEnterPacket() : base(LGOffsets.LGPlayerEnterPacket)
         {
         }
 

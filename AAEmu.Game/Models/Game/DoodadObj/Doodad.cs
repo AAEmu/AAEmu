@@ -84,6 +84,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             // Apply them
             var nextFunc = 0;
             var isUse = false;
+            cancelPhasing = true;
+
             try
             {
                 foreach (var func in funcs)
@@ -91,14 +93,20 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     if (func.SkillId > 0 && func.SkillId == skillId)
                     {
                         func.Use(unit, this, skillId, func.NextPhase);
-                        if (func.NextPhase != 0) nextFunc = func.NextPhase;
-                        if (func.FuncType == "DoodadFuncUse") isUse = true;
+                        if (!cancelPhasing)
+                        {
+                            isUse = true;
+                            nextFunc = func.NextPhase;
+                        }
                     }
                     else if (func.SkillId == 0)
                     {
                         func.Use(unit, this, skillId);
-                        if (func.NextPhase != 0) nextFunc = func.NextPhase;
-                        if (func.FuncType == "DoodadFuncUse") isUse = true;
+                        if (!cancelPhasing)
+                        {
+                            isUse = true;
+                            nextFunc = func.NextPhase;
+                        }
                     }
                 }
             }
@@ -181,7 +189,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (funcGroupId == -1)
             {
                 // Delete doodad
-                Delete();
+                //Delete();
             }
             else
             {
@@ -212,6 +220,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     return funcGroup.Id;
             }
             return 0;
+        }
+
+        public void OnSkillHit(Unit caster, uint skillId)
+        {
+            var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
+            foreach (var func in funcs)
+            {
+                if (func.FuncType == "DoodadFuncSkillHit")
+                {
+                    Use(null, skillId);
+                }
+            }
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)

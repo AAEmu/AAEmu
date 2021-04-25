@@ -17,8 +17,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ItemCapScale : SpecialEffectAction
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

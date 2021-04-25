@@ -17,6 +17,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 character.Quests.Add(QuestId);
             }
+            owner.cancelPhasing = true;
         }
     }
 }

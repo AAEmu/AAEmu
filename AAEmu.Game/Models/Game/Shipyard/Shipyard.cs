@@ -1,7 +1,7 @@
 ﻿using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Units;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Shipyard
@@ -25,6 +25,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCShipyardStatePacket(Template));
+            // TODO This packet is not available on the 3.5 server, but on the 1.2 server the shipyard is required to revive
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         }
 

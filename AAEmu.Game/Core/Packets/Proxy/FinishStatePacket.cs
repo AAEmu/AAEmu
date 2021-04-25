@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
 {
     public class FinishStatePacket : GamePacket
     {
-        public FinishStatePacket() : base(0x001, 2)
+        public FinishStatePacket() : base(PPOffsets.FinishStatePacket, 2)
         {
         }
 

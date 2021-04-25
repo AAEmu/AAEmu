@@ -25,6 +25,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
@@ -1377,7 +1378,7 @@ namespace AAEmu.Game.Models.Game.Char
             // TODO : If castle owner -> Nope
             var defaultFactionId = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender).FactionId;
 
-            var newFaction = pirate ? (uint)Factions.FACTION_PIRATE : defaultFactionId;
+            var newFaction = pirate ? FactionsEnum.Pirate : defaultFactionId;
             BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, newFaction, false), true);
             Faction = FactionManager.Instance.GetFaction(newFaction);
             HousingManager.Instance.UpdateOwnedHousingFaction(Id, newFaction);

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.S2C
         private readonly uint _id;
         private readonly string _name;
 
-        public TCUccCharNamePacket(uint id, string name) : base(0x08)
+        public TCUccCharNamePacket(uint id, string name) : base(TCOffsets.TCUccCharNamePacket)
         {
             _id = id;
             _name = name;

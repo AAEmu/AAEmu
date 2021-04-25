@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.L2G
 {
     public class LGRequestInfoPacket : LoginPacket
     {
-        public LGRequestInfoPacket() : base(0x03)
+        public LGRequestInfoPacket() : base(LGOffsets.LGRequestInfoPacket)
         {
         }
 

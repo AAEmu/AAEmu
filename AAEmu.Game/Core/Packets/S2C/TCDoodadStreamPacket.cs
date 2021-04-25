@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.S2C
         private readonly int _next;
         private readonly Doodad[] _doodads;
 
-        public TCDoodadStreamPacket(int id, int next, Doodad[] doodads) : base(0x02)
+        public TCDoodadStreamPacket(int id, int next, Doodad[] doodads) : base(TCOffsets.TCDoodadStreamPacket)
         {
             _id = id;
             _next = next;

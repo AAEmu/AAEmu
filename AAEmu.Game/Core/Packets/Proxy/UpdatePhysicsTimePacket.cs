@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
     {
         private long _tm;
 
-        public UpdatePhysicsTimePacket() : base(0x004, 2)
+        public UpdatePhysicsTimePacket() : base(PPOffsets.UpdatePhysicsTimePacket, 2)
         {
         }
 

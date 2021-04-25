@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCHouseFarmPacket : StreamPacket
     {
-        public TCHouseFarmPacket() : base(0x0E)
+        public TCHouseFarmPacket() : base(TCOffsets.TCHouseFarmPacket)
         {
         }
         

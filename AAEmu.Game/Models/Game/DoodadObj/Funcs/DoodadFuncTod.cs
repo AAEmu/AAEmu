@@ -22,8 +22,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (caster is Character character)
             {
                 //I think this is used to reschedule anything that needs triggered at a specific gametime
-
             }
+            owner.cancelPhasing = true;
         }
     }
 }

@@ -99,6 +99,11 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             Position = new Vector3(x, y, z);
         }
+        
+        public void SetPosition(Vector3 pos)
+        {
+            Position = pos;
+        }
 
         public void SetHeight(float z)
         {
@@ -255,6 +260,11 @@ namespace AAEmu.Game.Models.Game.World.Transform
             var rpy = ToRollPitchYawDegrees();
             return string.Format("X:{0:#,0.#} Y:{1:#,0.#} Z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°",
                 Position.X, Position.Y, Position.Z, rpy.X, rpy.Y, rpy.Z);
+        }
+
+        public bool IsOrigin()
+        {
+            return (Position.X == 0f) && (Position.Y == 0f) && (Position.Z == 0f);
         }
     }
 

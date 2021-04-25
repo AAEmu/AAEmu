@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -44,6 +44,17 @@ namespace AAEmu.Game.Models.Game.Char
                 stream.Write(Cosplay);
             if ((flag & 16) == 16)
                 stream.Write(CosplayBackpack);
+            return stream;
+        }
+        public PacketStream WriteOptions(PacketStream stream)
+        {
+            // all this data must be output to the SCUnitStatePacket
+            stream.Write(Stp);             // stp
+            stream.Write(Helmet);          // helmet
+            stream.Write(BackHoldable);    // back_holdable
+            stream.Write(Cosplay);         // cosplay
+            stream.Write(CosplayBackpack); // cosplay_backpack
+
             return stream;
         }
     }

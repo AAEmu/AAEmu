@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
         private ulong _checksum;
         private byte _immersive;
 
-        public SetGameTypePacket(string level, ulong checksum, byte immersive) : base(0x00f, 2)
+        public SetGameTypePacket(string level, ulong checksum, byte immersive) : base(PPOffsets.SetGameTypePacket, 2)
         {
             _level = level;
             _checksum = checksum;

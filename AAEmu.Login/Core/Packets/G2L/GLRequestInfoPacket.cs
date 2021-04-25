@@ -1,4 +1,4 @@
-using AAEmu.Commons.Models;
+﻿using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Connections;
@@ -8,7 +8,7 @@ namespace AAEmu.Login.Core.Packets.G2L
 {
     public class LGRequestInfoPacket : InternalPacket
     {
-        public LGRequestInfoPacket() : base(0x03)
+        public LGRequestInfoPacket() : base(GLOffsets.LGRequestInfoPacket)
         {
         }
 

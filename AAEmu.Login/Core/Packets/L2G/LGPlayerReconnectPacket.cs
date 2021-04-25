@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Internal;
 
 namespace AAEmu.Login.Core.Packets.L2G
@@ -7,7 +7,7 @@ namespace AAEmu.Login.Core.Packets.L2G
     {
         private readonly uint _token;
 
-        public LGPlayerReconnectPacket(uint token) : base(0x02)
+        public LGPlayerReconnectPacket(uint token) : base(LGOffsets.LGPlayerReconnectPacket)
         {
             _token = token;
         }
