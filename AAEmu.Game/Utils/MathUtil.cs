@@ -204,7 +204,42 @@ namespace AAEmu.Game.Utils
             var newY = (distance * (float)Math.Sin(rad)) + y;
             return (newX, newY);
         }
+        
+        public static (float, float)[] GetCuboidVertices(float length, float width, float x, float y, float rotationZ)
+        {
+            // TODO: Probably needs more verification
+            var radFront = (rotationZ - (MathF.PI / 2f)) * -1f;
+            var radRight = rotationZ * -1f;
 
+            // Console.WriteLine("GetCuboidVertices - rotationZ = " + rotationZ.RadToDeg() + "° > F: " + radFront.RadToDeg() + "°  R: " + radRight.RadToDeg() + "°");
+
+            var cosFront = (float)MathF.Cos(radFront);
+            var sinFront = (float)MathF.Sin(radFront);
+            var cosRight = (float)MathF.Cos(radRight);
+            var sinRight = (float)MathF.Sin(radRight);
+            
+            var result = new (float, float)[4];
+
+            var p1 = ((width * cosFront) + x, (width * sinFront) + y);
+            p1 = ((length * cosRight) + p1.Item1, (length * sinRight) + p1.Item2);
+            result[0] = p1;
+            
+            var p2 = ((width * cosFront) + x, (width * sinFront) + y);
+            p2 = ((-length * cosRight) + p2.Item1, (-length * sinRight) + p2.Item2);
+            result[1] = p2;
+            
+            var p3 = ((-width * cosFront) + x, (-width * sinFront) + y);
+            p3 = ((-length * cosRight) + p3.Item1, (-length * sinRight) + p3.Item2);
+            result[2] = p3;
+            
+            var p4 = ((-width * cosFront) + x, (-width * sinFront) + y);
+            p4 = ((length * cosRight) + p4.Item1, (length * sinRight) + p4.Item2);
+            result[3] = p4;
+            
+            return result;
+        }
+
+        [Obsolete("Please use the variant with float rotation")]
         public static (float, float)[] GetCuboidVertices(float length, float width, float x, float y, sbyte rotZ)
         {
             var radFront = ConvertDirectionToRadian(rotZ);
