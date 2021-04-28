@@ -47,7 +47,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             }
             else if (Connection.ActiveChar.CurrentTarget is Transfer transfer)
             {
-                Connection.ActiveChar.SendMessage("ObjId: {0}, TransferId: {1}", targetId, transfer.Id);
+                Connection.ActiveChar.SendMessage("ObjId: {0}, TransferId: {1}", targetId, transfer.Template.Id);
             }
         }
     }

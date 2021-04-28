@@ -68,7 +68,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             Stance = stream.ReadSByte();    // actor.stance
             Alertness = stream.ReadSByte(); // actor.alertness
             ActorFlags = stream.ReadUInt16(); // actor.flags in 1.2 ... 1.8 byte, in 2.0 ushort (flags(byte) + colliopt(byte))
-            if ((ActorFlags & 0x8000) == 0x8000) // ActorFlags < 0
+            if ((ActorFlags & 0x80) == 0x80) // ActorFlags < 0
                 FallVel = stream.ReadUInt16();   // actor.fallVel
             if ((ActorFlags & 0x20) == 0x20)
             {
@@ -102,7 +102,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             stream.Write(Stance);
             stream.Write(Alertness);
             stream.Write(ActorFlags); // actor.flags in 1.2 ... 1.8 byte, in 2.0 ushort (flags(byte) + colliopt(byte))
-            if ((ActorFlags & 0x8000) == 0x8000) // ActorFlags < 0
+            if ((ActorFlags & 0x80) == 0x80) // ActorFlags < 0
                 stream.Write(FallVel);
             if ((ActorFlags & 0x20) == 0x20)
             {

@@ -27,6 +27,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(_id);
 
             stream.Write(_reason);
+
             return stream;
         }
     }

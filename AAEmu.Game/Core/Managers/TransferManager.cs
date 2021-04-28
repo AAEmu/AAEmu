@@ -238,8 +238,15 @@ namespace AAEmu.Game.Core.Managers
             owner.Mp = owner.MaxMp;
             owner.ModelParams = new UnitCustomModelParams();
             owner.Position = spawner.Position.Clone();
-            owner.Position.RotationZ = spawner.Position.RotationZ;
-            owner.Rot = new Quaternion(0f, 0f, spawner.RotationZ, 1f);
+            //owner.Position.RotationZ = MathUtil.ConvertRadianToDirection(spawner.RotationZ);
+            ////owner.Rot = new Quaternion(0f, 0f, spawner.RotationZ, 1f);
+            //owner.Rot = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
+
+            owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
+            var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+            owner.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
+
+
             owner.Faction = new SystemFaction();
             //owner.Faction = FactionManager.Instance.GetFaction(1);
             owner.Patrol = null;
@@ -248,7 +255,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, System.DateTime.Now));
 
             // create Carriage like a normal object.
-            owner.Spawn();
+            //owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
 
             if (Carriage.TransferBindings.Count <= 0) { return owner; }
@@ -270,11 +277,13 @@ namespace AAEmu.Game.Core.Managers
             transfer.Mp = transfer.MaxMp;
             transfer.ModelParams = new UnitCustomModelParams();
             transfer.Position = spawner.Position.Clone();
-            transfer.Position.RotationZ = spawner.Position.RotationZ;
-            transfer.Rot = new Quaternion(0f, 0f, 0, 1f);
+            //transfer.Position.RotationZ = MathUtil.ConvertRadianToDirection(spawner.RotationZ);
+            //transfer.Rot = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
+            transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
+            var quat2 = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+            transfer.Rot = new Quaternion(quat2.X, quat2.Z, quat2.Y, quat2.W);
 
             (transfer.Position.X, transfer.Position.Y) = MathUtil.AddDistanceToFront(-9.24417f, transfer.Position.X, transfer.Position.Y, transfer.Position.RotationZ);
-            //var tempPoint = new TransfersPathPoint(transfer.Position.WorldId, transfer.Position.ZoneId, -0.33f, -9.01f, 2.44f, 0, 0, 0);
             transfer.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, transfer.Position.X, transfer.Position.Y) : transfer.Position.Z;
 
             transfer.Faction = new SystemFaction();
@@ -282,6 +291,7 @@ namespace AAEmu.Game.Core.Managers
             // add effect
             buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
             transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, System.DateTime.Now));
+            owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
             //TODO  create a boardingPart and indicate that we attach to the Carriage object 
             transfer.Spawn();

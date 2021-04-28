@@ -112,6 +112,10 @@ namespace AAEmu.Game.Models.Game.Transfers
                             transfer.Position.Y = point.Y;
                             transfer.Position.Z = point.Z;
 
+                            //transfer.Bounded.Position = transfer.Position.Clone();
+                            //(transfer.Bounded.Position.X, transfer.Bounded.Position.Y) = MathUtil.AddDistanceToFront(-9.24417f, transfer.Position.X, transfer.Position.Y, MathUtil.ConvertDegreeToDirection(transfer.Rot.Z));
+                            //transfer.Bounded.Rot = transfer.Rot;
+
                             transfer.WorldPos = new WorldPos(Helpers.ConvertLongX(point.X), Helpers.ConvertLongY(point.Y), point.Z);
                             _log.Warn("TransfersPath #" + transfer.TemplateId);
                             _log.Warn("New spawn X={0}", transfer.Position.X);
@@ -123,6 +127,7 @@ namespace AAEmu.Game.Models.Game.Transfers
 
                             transfer.GoToPath(transfer);
                             TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);
+                            //transfer.CheckWaitTime(transfer);
                         }
                         else
                         {

@@ -845,11 +845,17 @@ namespace AAEmu.Commons.Network
         public PacketStream WriteQuaternionShort(Quaternion values, bool scalar = false)
         {
             var temp = new PacketStream();
-
-            temp.Write(Convert.ToInt16(values.X * 32767f));
-            temp.Write(Convert.ToInt16(values.Y * 32767f));
-            temp.Write(Convert.ToInt16(values.Z * 32767f));
-
+            try
+            {
+                temp.Write(Convert.ToInt16(values.X * 32767f));
+                temp.Write(Convert.ToInt16(values.Y * 32767f));
+                temp.Write(Convert.ToInt16(values.Z * 32767f));
+            }
+            catch (Exception e)
+            {
+                var res = new byte[6];
+                temp.Write(res);
+            }
             if (scalar)
             {
                 temp.Write(Convert.ToInt16(values.W));

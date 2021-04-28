@@ -724,20 +724,20 @@
 //        "RotationZ": 2.35,
 //        "Scale": 1.0
 //    },
-    {
-        "Count": 1,
-        "Id": 75,
-        "UnitId": 75,
-        "Position": {
-        "X": 22322.86,
-        "Y": 7015.539,
-        "Z": 277.7635
-        },
-        "RotationX": 0,
-        "RotationY": 0,
-        "RotationZ": 0.1654983,
-        "Scale": 1.0
-    },
+//    {
+//        "Count": 1,
+//        "Id": 75,
+//        "UnitId": 75,
+//        "Position": {
+//        "X": 22322.86,
+//        "Y": 7015.539,
+//        "Z": 277.7635
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0.1654983,
+//        "Scale": 1.0
+//    },
     {
         "Count": 1,
         "Id": 76,

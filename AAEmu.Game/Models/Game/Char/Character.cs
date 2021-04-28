@@ -20,6 +20,7 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -135,7 +136,7 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterCraft Craft { get; set; }
 
         public int AccessLevel { get; set; }
-        public Point LocalPingPosition { get; set; } // added as a GM command helper
+        public PingPosition LocalPingPosition { get; set; } // added as a GM command helper
         private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
 
         private bool _inParty;
@@ -1605,6 +1606,11 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void DoFallDamage(ushort fallVel)
         {
+            if (AccessLevel > 0)
+            {
+                _log.Warn("FallDamage disable for GMs & Admins");
+                return; // GM & Admin не разбиваются
+            }
             var fallDmg = Math.Min(Hp, (int)(Hp * ((fallVel - 5000) / 20000f)));
             ReduceCurrentHp(this, fallDmg);
 
@@ -1948,7 +1954,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             Craft = new CharacterCraft(this);
             Procs = new UnitProcs(this);
-            LocalPingPosition = new Point();
+            LocalPingPosition = new PingPosition();
 
             using (var connection = MySQL.CreateConnection())
             {

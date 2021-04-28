@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Team
             stream.Write((byte)Character.Gender);
             stream.Write(Character.Level);
             stream.Write((byte)Role);
-            stream.WriteBc(Character.ObjId);
+            stream.WriteBc(Character.ObjId); // uid
 
             return stream;
         }

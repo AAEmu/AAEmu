@@ -2,7 +2,6 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -14,21 +13,16 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Read(PacketStream stream)
         {
-            var teamId = stream.ReadUInt32();
-            var hasPing = stream.ReadBoolean();
-            var position = new Point(stream.ReadSingle(), stream.ReadSingle(), stream.ReadSingle());
-            var insId = stream.ReadUInt32();
-            
-            // _log.Warn("SetPingPos, teamId {0}, hasPing {1}, insId {2}", teamId, hasPing, insId);
             var owner = Connection.ActiveChar;
-            owner.LocalPingPosition = position;
+            var teamId = stream.ReadUInt32(); // teamId
+            owner.LocalPingPosition.Read(stream);
             if (teamId > 0)
             {
-                TeamManager.Instance.SetPingPos(owner, teamId, hasPing, position, insId);
+                TeamManager.Instance.SetPingPos(owner, teamId, owner.LocalPingPosition);
             }
             else
             {
-                owner.SendPacket(new SCTeamPingPosPacket(hasPing, position, insId));
+                owner.SendPacket(new SCTeamPingPosPacket(owner.LocalPingPosition));
             }
         }
     }
