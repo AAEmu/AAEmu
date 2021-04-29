@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_team);
             foreach (var member in _team.Members)
             {
-                if (member?.Character == null)
+                if (member?.Member == null)
                 {
                     continue;
                 }

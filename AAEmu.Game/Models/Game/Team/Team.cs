@@ -49,7 +49,7 @@ namespace AAEmu.Game.Models.Game.Team
             var count = 0;
             foreach (var member in Members)
             {
-                if (member?.Character != null)
+                if (member?.Member != null)
                 {
                     count++;
                 }
@@ -63,7 +63,7 @@ namespace AAEmu.Game.Models.Game.Team
             var count = 0;
             foreach (var member in Members)
             {
-                if ((member?.Character != null) && (member.Character.IsOnline))
+                if ((member?.Member != null) && (member.Member.IsOnline))
                 {
                     count++;
                 }
@@ -76,7 +76,7 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member?.Character != null && member.Character.Id == id)
+                if (member?.Member != null && member.Member.Id == id)
                 {
                     return true;
                 }
@@ -89,7 +89,7 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member?.Character != null && member.Character.ObjId == objId)
+                if (member?.Member != null && member.Member.ObjId == objId)
                 {
                     return true;
                 }
@@ -102,9 +102,9 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member?.Character != null && member.Character.IsOnline && member.Character.Id != OwnerId)
+                if (member?.Member != null && member.Member.IsOnline && member.Member.Id != OwnerId)
                 {
-                    return member.Character.Id;
+                    return member.Member.Id;
                 }
             }
 
@@ -115,7 +115,7 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member == null || member.Character?.Id != id)
+                if (member == null || member.Member?.Id != id)
                 {
                     continue;
                 }
@@ -136,7 +136,7 @@ namespace AAEmu.Game.Models.Game.Team
         {
             for (var i = 0; i < Members.Length; i++)
             {
-                if (Members[i]?.Character != null)
+                if (Members[i]?.Member != null)
                 {
                     continue;
                 }
@@ -186,7 +186,7 @@ namespace AAEmu.Game.Models.Game.Team
             }
 
             // TODO ...
-            Members[i].Character = unit;
+            Members[i].Member = unit;
 
             // Members[i] = new TeamMember(unit);
             return Members[i];
@@ -196,12 +196,9 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member?.Character == null || !member.Character.IsOnline || member.Character.Id == id)
-                {
+                if (member?.Member == null || !member.Member.IsOnline || member.Member.Id == id)
                     continue;
-                }
-
-                member.Character.SendPacket(packet);
+                member.Member.SendPacket(packet);
             }
         }
 
@@ -209,7 +206,7 @@ namespace AAEmu.Game.Models.Game.Team
         {
             for (var i = 0; i < Members.Length; i++)
             {
-                if (Members[i]?.Character != null && Members[i].Character.Id == id)
+                if (Members[i]?.Member != null && Members[i].Member.Id == id)
                 {
                     return i;
                 }
@@ -233,7 +230,7 @@ namespace AAEmu.Game.Models.Game.Team
             var result = new byte[10];
             for (var i = 0; i < Members.Length; i++)
             {
-                if (Members[i]?.Character == null)
+                if (Members[i]?.Member == null)
                 {
                     continue;
                 }
@@ -260,8 +257,8 @@ namespace AAEmu.Game.Models.Game.Team
             // in 1.2 max 50
             foreach (var member in Members)
             {
-                stream.Write(member?.Character?.Id ?? 0u);          // type
-                stream.Write(member?.Character?.IsOnline ?? false); // con
+                stream.Write(member?.Member?.Id ?? 0u);          // type
+                stream.Write(member?.Member?.IsOnline ?? false); // con
             }
 
             // in 1.2 max 12

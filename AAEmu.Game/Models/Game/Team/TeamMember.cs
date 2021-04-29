@@ -6,43 +6,43 @@ namespace AAEmu.Game.Models.Game.Team
 {
     public class TeamMember : PacketMarshaler
     {
-        public Character Character { get; set; }
+        public Character Member { get; set; }
         public MemberRole Role { get; set; }
 
         public TeamMember(Character character = null)
         {
-            Character = character;
+            Member = character;
             Role = MemberRole.Undecided;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(Character.Id);
-            stream.Write(Character.Name);
-            stream.Write((byte)Character.Race);
-            stream.Write((byte)Character.Gender);
-            stream.Write(Character.Level);
+            stream.Write(Member.Id);
+            stream.Write(Member.Name);
+            stream.Write((byte)Member.Race);
+            stream.Write((byte)Member.Gender);
+            stream.Write(Member.Level);
             stream.Write((byte)Role);
-            stream.WriteBc(Character.ObjId); // uid
+            stream.WriteBc(Member.ObjId); // uid
 
             return stream;
         }
 
         public PacketStream WritePerson(PacketStream stream)
         {
-            stream.Write(Character.Id);
+            stream.Write(Member.Id);
             stream.Write((ulong)0); // zi
-            stream.Write(Character.Level);
-            stream.Write(Character.Hp);
-            stream.Write(Character.MaxHp);
-            stream.Write(Character.Mp);
-            stream.Write(Character.MaxMp);
-            stream.WritePosition(Character.Position.X, Character.Position.Y, Character.Position.Z);
-            stream.Write(MathUtil.ConvertDirectionToDegree(Character.Position.RotationZ)); // angZ
-            stream.Write((byte)Character.Ability1);
-            stream.Write((byte)Character.Ability2);
-            stream.Write((byte)Character.Ability3);
-            stream.Write(!Character.IsOnline);
+            stream.Write(Member.Level);
+            stream.Write(Member.Hp);
+            stream.Write(Member.MaxHp);
+            stream.Write(Member.Mp);
+            stream.Write(Member.MaxMp);
+            stream.WritePosition(Member.Position.X, Member.Position.Y, Member.Position.Z);
+            stream.Write(MathUtil.ConvertDirectionToDegree(Member.Position.RotationZ)); // angZ
+            stream.Write((byte)Member.Ability1);
+            stream.Write((byte)Member.Ability2);
+            stream.Write((byte)Member.Ability3);
+            stream.Write(!Member.IsOnline);
 
             return stream;
         }

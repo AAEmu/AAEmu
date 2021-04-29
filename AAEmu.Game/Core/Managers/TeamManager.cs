@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     if (member == null)
                         continue;
-                    if (member.Character.Id == unitId)
+                    if (member.Member.Id == unitId)
                         return team;
                 }
             }
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     if (member == null)
                         continue;
-                    if (member.Character.ObjId == objId)
+                    if (member.Member.ObjId == objId)
                         return team;
                 }
             }
@@ -334,16 +334,16 @@ namespace AAEmu.Game.Core.Managers
                 activeTeam.BroadcastPacket(new SCTeamDismissedPacket(teamId));
                 foreach (var member in activeTeam.Members)
                 {
-                    if (member?.Character != null)
+                    if (member?.Member != null)
                     {
                         if (!activeTeam.IsParty)
-                            ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(member.Character);
-                        ChatManager.Instance.GetPartyChat(activeTeam, member.Character).LeaveChannel(member.Character);
+                            ChatManager.Instance.GetRaidChat(activeTeam).LeaveChannel(member.Member);
+                        ChatManager.Instance.GetPartyChat(activeTeam, member.Member).LeaveChannel(member.Member);
 
-                        if (member.Character.IsOnline)
+                        if (member.Member.IsOnline)
                         {
-                            member.Character.SendPacket(new SCLeavedTeamPacket(teamId, false, true));
-                            member.Character.InParty = false;
+                            member.Member.SendPacket(new SCLeavedTeamPacket(teamId, false, true));
+                            member.Member.InParty = false;
                         }
                     }
                 }
@@ -372,8 +372,8 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.IsParty = false;
             activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));
             foreach (var m in activeTeam.Members)
-                if ((m != null) && (m.Character != null))
-                    ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(m.Character);
+                if ((m != null) && (m.Member != null))
+                    ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(m.Member);
         }
 
         public void SetTeamMemberRole(Character unit, uint teamId, uint memberId, MemberRole role)

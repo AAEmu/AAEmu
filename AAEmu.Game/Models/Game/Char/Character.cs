@@ -1608,7 +1608,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             if (AccessLevel > 0)
             {
-                _log.Warn("FallDamage disable for GMs & Admins");
+                _log.Warn("FallDamage disabled for GMs & Admins");
                 return; // GM & Admin не разбиваются
             }
             var fallDmg = Math.Min(Hp, (int)(Hp * ((fallVel - 5000) / 20000f)));

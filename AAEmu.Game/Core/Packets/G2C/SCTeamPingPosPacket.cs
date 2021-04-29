@@ -1,7 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
-using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {

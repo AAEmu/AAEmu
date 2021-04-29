@@ -216,20 +216,20 @@ namespace AAEmu.Game.Core.Managers
 
             foreach (var m in teamMembers)
             {
-                if (m?.Character == null)
+                if (m?.Member == null)
                     continue;
 
-                if (m.Character.Level < _config.Create.Level)
+                if (m.Member.Level < _config.Create.Level)
                 {
                     connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateLevel);
                     return;
                 }
-                if (m.Character.Expedition != null)
+                if (m.Member.Expedition != null)
                 {
                     connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateMemberExpedition);
                     return;
                 }
-                if (m.Character.Faction.MotherId != owner.Faction.MotherId)
+                if (m.Member.Faction.MotherId != owner.Faction.MotherId)
                 {
                     connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateFaction);
                     return;
@@ -282,10 +282,10 @@ namespace AAEmu.Game.Core.Managers
 
             foreach(var m in validMembers)
             {
-                if (m.Character.Id == owner.Id)
+                if (m.Member.Id == owner.Id)
                     continue;
 
-                var invited = m.Character;
+                var invited = m.Member;
                 var newMember = GetMemberFromCharacter(expedition, invited, false);
 
                 invited.Expedition = expedition;

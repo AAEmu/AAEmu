@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Team
     public class PingPosition : PacketMarshaler
     {
         //public uint TeamId { get; set; }
-        public bool HasPing { get; set; }
+        public byte SetPingType { get; set; }
         public byte Flag { get; set; }
         public List<Point> Position1 { get; set; }
         public List<Point> Position2 { get; set; }
@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Team
 
         public override void Read(PacketStream stream)
         {
-            HasPing = stream.ReadBoolean(); // setPingType
+            SetPingType = stream.ReadByte(); // setPingType
             Flag = stream.ReadByte();       // flag, added in 2.0.1.7
 
             for (var i = 0; i < 6; i++) // added in 2.0.1.7
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.Team
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(HasPing);
+            stream.Write(SetPingType);
             stream.Write(Flag);
             foreach (var pos in Position1) // max 6
             {

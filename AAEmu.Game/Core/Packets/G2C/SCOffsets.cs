@@ -159,7 +159,7 @@
         public const ushort SCTeamRemoteMembersExPacket = 0x16a;
         public const ushort SCTeamAreaInvitedPacket = 0x24c;
         public const ushort SCOverHeadMarkerSetPacket = 0x0d4;
-        public const ushort SCUnknownPacket_0x149 = 0x149;
+        public const ushort SCTeamPingPosPacket = 0x149;
         public const ushort SCTeamAckRiskyActionPacket = 0x297;
         public const ushort SCUnknownPacket_0x193 = 0x193;
         public const ushort SCUnknownPacket_0x090 = 0x090;
@@ -657,7 +657,6 @@
         // no such packets
         public const ushort SCSkillUpgradedPacket = 0xfff;
         public const ushort SCSlaveCreatedPacket = 0xfff;
-        public const ushort SCTeamPingPosPacket = 0xfff;
         public const ushort SCUnknownPacket = 0xfff;
         public const ushort SCDominionDeletedPacket = 0xfff;
         public const ushort SCHouseBuildPayChangedPacket = 0xfff;

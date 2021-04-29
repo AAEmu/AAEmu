@@ -344,9 +344,9 @@ namespace AAEmu.Game.Core.Managers
             uint partyNumber = 0;
             for(uint i = 0; i < party.Members.Length;i++)
             {
-                if ((party.Members[i] == null) || (party.Members[i].Character == null))
+                if ((party.Members[i] == null) || (party.Members[i].Member == null))
                     continue;
-                if (party.Members[i].Character.Id == myChar.Id)
+                if (party.Members[i].Member.Id == myChar.Id)
                 {
                     partyNumber = (i / 5);
                     break;
