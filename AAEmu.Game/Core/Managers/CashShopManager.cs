@@ -61,6 +61,8 @@ namespace AAEmu.Game.Core.Managers
                             cashShopItem.BonusType = reader.GetInt32("bonus_type");
                             cashShopItem.BonusCount = reader.GetUInt32("bouns_count");
                             cashShopItem.CmdUi = reader.GetByte("cmd_ui");
+                            //cashShopItem.PayItemType = reader.GetUInt32("pay_iItem_type"); // TODO Add field to table
+                            //cashShopItem.DisPrice = reader.GetUInt32("dis_price");         // TODO Add field to table
 
                             cashShopItemDetail.ItemCount = reader.GetUInt32("item_count");
                             cashShopItemDetail.SelectType = reader.GetByte("select_type");
@@ -68,6 +70,9 @@ namespace AAEmu.Game.Core.Managers
                             cashShopItemDetail.EventType = reader.GetByte("event_type");
                             cashShopItemDetail.EventDate = reader.GetDateTime("event_date");
                             cashShopItemDetail.DisPrice = reader.GetUInt32("dis_price");
+                            //cashShopItemDetail.BonusType = reader.GetUInt32("bonus_type");     // TODO Add field to table
+                            //cashShopItemDetail.BonusCount = reader.GetUInt32("bonus_count");   // TODO Add field to table
+                            //cashShopItemDetail.PayItemType = reader.GetUInt32("pay_item_type"); // TODO Add field to table
 
                             _cashShopItem.Add(cashShopItem);
                             _cashShopItemDetail.Add(cashShopItem.CashShopId, cashShopItemDetail);

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             // Empty struct
             _log.Warn("ICSMoneyRequest");
 
-            Connection.SendPacket(new SCICSCashPointPacket(5678));
+            Connection.SendPacket(new SCICSCashPointPacket(5678, true));
         }
     }
 }

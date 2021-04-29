@@ -794,7 +794,7 @@ namespace AAEmu.Game.Models.Game.Units
                 else
                 {
                     // Проверяем остановки на маршруте
-                    _log.Warn("we reached checkpoint go further...");
+                    //_log.Warn("we reached checkpoint go further...");
                     // продолжим путь
                     Steering++; // укажем на следующий участок пути
                     TransferPath = Routes[Steering];

@@ -21,9 +21,8 @@ namespace AAEmu.Game.Core.Packets.C2G
             for (var i = items.Count - 1; i >= 0; i--)
             {
                 var itemDetail = CashShopManager.Instance.GetCashShopItemDetail(items[i].CashShopId);
-                var end = false;
-                if (i <= 0) end = true;
-                Connection.SendPacket(new SCICSGoodListPacket(end, 1, items[i]));
+                var end = i <= 0;
+                Connection.SendPacket(new SCICSGoodListPacket(end, 0, 1, items[i]));
                 Connection.SendPacket(new SCICSGoodDetailPacket(end, itemDetail));
             }
         }
