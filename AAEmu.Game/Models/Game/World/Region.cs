@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
@@ -126,9 +127,9 @@ namespace AAEmu.Game.Models.Game.World
                         case Slave slave:
                             slave.AddVisibleObject(character);
                             break;
-                        //case Gimmick gimmick:
-                        //    gimmick.AddVisibleObject(character);
-                        //    break;
+                        case Gimmick gimmick:
+                            gimmick.AddVisibleObject(character);
+                            break;
                         case Transfer transfer:
                             transfer.AddVisibleObject(character);
                             break;

@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Gimmicks;
 using NLog;
 using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 using AAEmu.Game.Models.Game.Housing;
@@ -37,6 +38,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, Character> _characters;
         private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes;
         private readonly ConcurrentDictionary<uint, Transfer> _transfers;
+        private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks;
 
         public const int REGION_SIZE = 64;
         public const int CELL_SIZE = 1024 / REGION_SIZE;
@@ -57,6 +59,7 @@ namespace AAEmu.Game.Core.Managers.World
             _characters = new ConcurrentDictionary<uint, Character>();
             _areaShapes = new ConcurrentDictionary<uint, AreaShape>();
             _transfers = new ConcurrentDictionary<uint, Transfer>();
+            _gimmicks = new ConcurrentDictionary<uint, Gimmick>();
         }
 
         public WorldInteractionGroup? GetWorldInteractionGroup(uint worldInteractionType)
@@ -387,6 +390,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _characters.TryAdd(character.ObjId, character);
             if (obj is Transfer transfer)
                 _transfers.TryAdd(transfer.ObjId, transfer);
+            if (obj is Gimmick gimmick)
+                _gimmicks.TryAdd(gimmick.ObjId, gimmick);
         }
 
         public void RemoveObject(GameObject obj)
@@ -408,6 +413,8 @@ namespace AAEmu.Game.Core.Managers.World
                 _characters.TryRemove(obj.ObjId, out _);
             if (obj is Transfer)
                 _transfers.TryRemove(obj.ObjId, out _);
+            if (obj is Gimmick)
+                _gimmicks.TryRemove(obj.ObjId, out _);
         }
 
         public void AddVisibleObject(GameObject obj)
@@ -663,6 +670,11 @@ namespace AAEmu.Game.Core.Managers.World
                         //character.SendPacket(new SCUnitStatePacket(transfer));
                         //character.SendPacket(new SCUnitPointsPacket(transfer.ObjId, transfer.Hp, transfer.Mp, transfer.HighAbilityRsc));
                         transfer.AddVisibleObject(character);
+                        break;
+                    case Gimmick gimmick:
+                        //character.SendPacket(new SCUnitStatePacket(transfer));
+                        //character.SendPacket(new SCUnitPointsPacket(transfer.ObjId, transfer.Hp, transfer.Mp, transfer.HighAbilityRsc));
+                        gimmick.AddVisibleObject(character);
                         break;
                     case Mount mount:
                         //character.SendPacket(new SCUnitStatePacket(mount));

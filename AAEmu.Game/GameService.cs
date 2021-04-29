@@ -98,6 +98,7 @@ namespace AAEmu.Game
             DoodadManager.Instance.Load();
             HousingManager.Instance.Load();
             TransferManager.Instance.Load();
+            GimmickManager.Instance.Load();
 
             SpawnManager.Instance.Load();
             SpawnManager.Instance.SpawnAll();
@@ -123,6 +124,7 @@ namespace AAEmu.Game
             SpecialtyManager.Instance.Initialize();
             BoatPhysicsManager.Instance.Initialize();
             TransferManager.Instance.Initialize();
+            GimmickManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
             #endregion
@@ -152,7 +154,8 @@ namespace AAEmu.Game
 
             BoatPhysicsManager.Instance.Stop();
             TransferManager.Instance.Stop();
-            
+            GimmickManager.Instance.Stop();
+
             TimeManager.Instance.Stop();
             return Task.CompletedTask;
         }
