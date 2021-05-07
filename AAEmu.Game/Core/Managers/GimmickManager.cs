@@ -138,7 +138,7 @@ namespace AAEmu.Game.Core.Managers
 
         private void GimmickThread()
         {
-            while (Thread.CurrentThread.IsAlive)
+            while (ThreadRunning && Thread.CurrentThread.IsAlive)
             {
                 Thread.Sleep(50);
                 var activeGimmicks = Instance.GetActiveGimmicks();

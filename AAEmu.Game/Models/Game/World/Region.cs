@@ -127,7 +127,7 @@ namespace AAEmu.Game.Models.Game.World
                 return;
 
             // show the player all the facilities in the region
-            if (obj is Character character1)
+            if (obj is Character character)
             {
                 var units = GetList(new List<Unit>(), obj.ObjId);
                 foreach (var t in units)
@@ -137,34 +137,11 @@ namespace AAEmu.Game.Models.Game.World
                     {
                         if (npc.Ai != null)
                             npc.Ai.ShouldTick = true;
-                        npc.AddVisibleObject(character1);
+                        npc.AddVisibleObject(character);
                     }
                     else
                     {
-                        if (t is House house)
-                        {
-                            house.AddVisibleObject(character1);
-                        }
-                        else if (t is Transfer transfer)
-                        {
-                            transfer.AddVisibleObject(character1);
-                        }
-                        else if (t is Gimmick gimmick)
-                        {
-                            gimmick.AddVisibleObject(character1);
-                        }
-                        else if (t is Slave slave)
-                        {
-                            slave.AddVisibleObject(character1);
-                        }
-                        else if (t is Shipyard.Shipyard shipyard)
-                        {
-                            shipyard.AddVisibleObject(character1);
-                        }
-                        else
-                        {
-                            character1.SendPacket(new SCUnitStatePacket(t));
-                        }
+                        t.AddVisibleObject(character);
                     }
                 }
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
@@ -173,13 +150,13 @@ namespace AAEmu.Game.Models.Game.World
                     var count = doodads.Length - i;
                     var temp = new Doodad[count <= 30 ? count : 30];
                     Array.Copy(doodads, i, temp, 0, temp.Length);
-                    character1.SendPacket(new SCDoodadsCreatedPacket(temp));
+                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }
             }
             // show the object to all players in the region
-            foreach (var character in GetList(new List<Character>(), obj.ObjId))
+            foreach (var character2 in GetList(new List<Character>(), obj.ObjId))
             {
-                obj.AddVisibleObject(character);
+                obj.AddVisibleObject(character2);
             }
         }
 

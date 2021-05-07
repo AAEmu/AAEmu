@@ -703,38 +703,7 @@ namespace AAEmu.Game.Core.Managers.World
             var stuffs = WorldManager.Instance.GetAround<Unit>(character, 1000f);
             foreach (var stuff in stuffs)
             {
-                switch (stuff)
-                {
-                    case Npc npc:
-                        //character.SendPacket(new SCUnitStatePacket(npc));
-                        npc.AddVisibleObject(character);
-                        break;
-                    case Character chr:
-                        //character.SendPacket(new SCUnitStatePacket(chr));
-                        chr.AddVisibleObject(character);
-                        break;
-                    case Slave slave:
-                        //character.SendPacket(new SCUnitStatePacket(slave));
-                        slave.AddVisibleObject(character);
-                        break;
-                    case House house:
-                        //character.SendPacket(new SCHouseStatePacket(house));
-                        house.AddVisibleObject(character);
-                        break;
-                    case Transfer transfer:
-                        //character.SendPacket(new SCUnitStatePacket(transfer));
-                        //character.SendPacket(new SCUnitPointsPacket(transfer.ObjId, transfer.Hp, transfer.Mp, transfer.HighAbilityRsc));
-                        transfer.AddVisibleObject(character);
-                        break;
-                    case Mate mount:
-                        //character.SendPacket(new SCUnitStatePacket(mount));
-                        mount.AddVisibleObject(character);
-                        break;
-                    case Shipyard shipyard:
-                        //character.SendPacket(new SCUnitStatePacket(shipyard));
-                        shipyard.AddVisibleObject(character);
-                        break;
-                }
+                stuff.AddVisibleObject(character);
             }
 
             var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();

@@ -13,7 +13,6 @@ using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
-using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
