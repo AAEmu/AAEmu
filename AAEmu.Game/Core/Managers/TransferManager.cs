@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -25,6 +25,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<uint, TransferTemplate> _templates;
         private Dictionary<uint, Transfer> _activeTransfers;
+        private Dictionary<uint, Transfer> _moveTransfers;
 
         public bool Exist(uint templateId)
         {
@@ -37,6 +38,14 @@ namespace AAEmu.Game.Core.Managers
             {
                 tr.Spawn();
             }
+        }
+        /// <summary>
+        /// Взять список всех движущихся транспортов, исключая прицепы
+        /// </summary>
+        /// <returns></returns>
+        public Transfer[] GetMoveTransfers()
+        {
+            return _moveTransfers.Values.ToArray();
         }
 
         public TransferTemplate GetTemplate(uint templateId)
@@ -130,6 +139,7 @@ namespace AAEmu.Game.Core.Managers
 
             // create Carriage like a normal object.
             _activeTransfers.Add(owner.ObjId, owner);
+            _moveTransfers.Add(owner.ObjId, owner); // TODO переместить в TransferSpawner
 
             if (Carriage.TransferBindings.Count > 0)
             {
@@ -199,6 +209,8 @@ namespace AAEmu.Game.Core.Managers
         {
             _templates = new Dictionary<uint, TransferTemplate>();
             _activeTransfers = new Dictionary<uint, Transfer>();
+            _moveTransfers = new Dictionary<uint, Transfer>();
+
 
             #region SQLLite
 

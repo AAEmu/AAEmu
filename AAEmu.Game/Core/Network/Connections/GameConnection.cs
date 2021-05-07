@@ -241,6 +241,9 @@ namespace AAEmu.Game.Core.Network.Connections
             if (ActiveChar == null)
                 return;
 
+            // stopping the TransferTelescopeTickStartTask if character disconnected
+            TransferTelescopeManager.Instance.StopTransferTelescopeTick();
+
             ActiveChar.Delete();
             // Removed ReleaseId here to try and fix party/raid disconnect and reconnect issues. Replaced with saving the data
             //ObjectIdManager.Instance.ReleaseId(ActiveChar.ObjId);

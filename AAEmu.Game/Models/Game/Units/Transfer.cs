@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -76,6 +77,16 @@ namespace AAEmu.Game.Models.Game.Units
                 Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsRemovedPacket(last, temp));
             }
+        }
+        
+        public PacketStream WriteTelescopeUnit(PacketStream stream)
+        {
+            stream.WriteBc(ObjId);
+            stream.Write(Template.Id);
+            stream.WritePosition(Position.X, Position.Y, Position.Z);
+            stream.Write(Template.Name);
+
+            return stream;
         }
     }
 }
