@@ -1,16 +1,1497 @@
 [
-  {
-   "Count": 1,
-    "Id": 1,
-    "UnitId": 6,
-    "Position": {
-      "X": 13654.9,
-      "Y": 14673.0,
-      "Z": 114.1,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 79
+    {
+        // 10_11
+        "Count": 1,
+        "Id": 3,
+        "UnitId": 3,
+        "Position": {
+        "X": 10936.29,
+        "Y": 12044.84,
+        "Z": 130.2533
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7470685, // угол в радианах
+        "Scale": 1.0
     },
-    "Scale": 0.0
-  }
+    {
+        // 20_08
+        "Count": 1,
+        "Id": 5,
+        "UnitId": 5,
+        "Position": {
+        "X": 22085.94,
+        "Y": 8411.039,
+        "Z": 433.9845
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.4532934,
+        "Scale": 1.0
+    },
+    {
+        // second point --vvv--
+        // <Transfer Name="lily_solzreed_in1" Type="6" cellX="1" cellY="0">
+        //  <Point Pos="1345.4559,1023.161,158.53363" /> 
+        // 012 - cellX = 11 * 1024 = 11264 + 1345.4559 = 12609.4559
+        // 014 - cellY = 14 * 1024 = 14336 + 1023.161 = 15359.161
+
+        // first point --vvv--
+        // 12_14 <Transfer Name="lilyut_in2" Type="0" cellX="1" cellY="0">
+        // <Point Pos="1345.3906,1023.7513,158.57738" /> 
+        // 012 - cellX = 11 * 1024 = 11264 + 1345.3906 = 12609.3906
+        // 014 - cellY = 14 * 1024 = 14336 + 1023.7513 = 15359.7513
+
+        // 12_14
+        "Count": 1,
+        "Id": 6,
+        "UnitId": 6,
+        "Position": {
+        "X": 12609.46, //12610.4,
+        "Y": 15359.16, //15359.76,
+        "Z": 158.5336
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.02047222,
+        "Scale": 1.0
+    },
+//    {
+//        "Count": 1,
+//        "Id": 7,
+//        "UnitId": 7,
+//        "Position": {
+//        "X": 12610.4,
+//        "Y": 15359.76,
+//        "Z": 158.57
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 1.5831,
+//        "Scale": 1.0
+//    },
+    {
+        // 11_14
+        "Count": 1,
+        "Id": 8,
+        "UnitId": 8,
+        "Position": {
+        "X": 11994.4,
+        "Y": 14992.87,
+        "Z": 110.617
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.3542243,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 10,
+        "UnitId": 10,
+        "Position": {
+        "X": 9697.087,
+        "Y": 12787.42,
+        "Z": 162.2975
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.9541488,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 13,
+        "UnitId": 13,
+        "Position": {
+        "X": 11567.3,
+        "Y": 11843.07,
+        "Z": 109.3991
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.3774967,
+        "Scale": 1.0
+    },
+        {
+        "Count": 1,
+        "Id": 14,
+        "UnitId": 14,
+        "Position": {
+        "X": 19679.69,
+        "Y": 8783.647,
+        "Z": 226.4547
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7627815,
+        "Scale": 1.0
+    },
+//    {
+//        "Count": 1,
+//        "Id": 16,
+//        "UnitId": 16,
+//        "Position": {
+//        "X": 9700.989,
+//        "Y": 12787.48,
+//        "Z": 162.39
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 1.73,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 17,
+//        "UnitId": 17,
+//        "Position": {
+//        "X": 6355.295,
+//        "Y": 5341.883,
+//        "Z": 1132.433
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": -3.562012,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 18,
+//        "UnitId": 18,
+//        "Position": {
+//        "X": 6324.122,
+//        "Y": 5428.482,
+//        "Z": 1203.377
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": -5.615883,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 19,
+//        "UnitId": 19,
+//        "Position": {
+//        "X": 6250.493,
+//        "Y": 5455.908,
+//        "Z": 1130.813
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 2.413409,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 20,
+//        "UnitId": 20,
+//        "Position": {
+//        "X": 6356.917,
+//        "Y": 5345.588,
+//        "Z": 1132.414
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 2.146488,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 21,
+//        "UnitId": 21,
+//        "Position": {
+//        "X": 6248.891,
+//        "Y": 5452.591,
+//        "Z": 1130.913
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": -4.101606,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 22,
+//        "UnitId": 22,
+//        "Position": {
+//        "X": 6327.763,
+//        "Y": 5428.716,
+//        "Z": 1203.751
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0,
+//        "Scale": 1.0
+//    },
+    {
+        "Count": 1,
+        "Id": 23,
+        "UnitId": 23,
+        "Position": {
+        "X": 1902.979,
+        "Y": 1179.431,
+        "Z": 834.3651
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.6599877,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 24,
+        "UnitId": 24,
+        "Position": {
+        "X": 7485.59,
+        "Y": 12620.1,
+        "Z": 761.6985
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.8906547,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 25,
+        "UnitId": 25,
+        "Position": {
+        "X": 22137.22,
+        "Y": 8481.675,
+        "Z": 481.347
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.4570286,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 26,
+        "UnitId": 26,
+        "Position": {
+        "X": 22207.93,
+        "Y": 8578.971,
+        "Z": 525.1285
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.4591243,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 27,
+        "UnitId": 27,
+        "Position": {
+        "X": 22295.9,
+        "Y": 8700.021,
+        "Z": 620.0759
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.4543817,
+        "Scale": 1.0
+    },
+//    {
+//        "Count": 1,
+//        "Id": 38,
+//        "UnitId": 38,
+//        "Position": {
+//        "X": 9700.989,
+//        "Y": 12787.48,
+//        "Z": 162.39
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 1.73,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 39,
+//        "UnitId": 39,
+//        "Position": {
+//        "X": 9700.989,
+//        "Y": 12787.48,
+//        "Z": 162.39
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 1.73,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 40,
+//        "UnitId": 40,
+//        "Position": {
+//        "X": 9700.989,
+//        "Y": 12787.48,
+//        "Z": 162.39
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 1.73,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 41,
+//        "UnitId": 41,
+//        "Position": {
+//        "X": 9700.989,
+//        "Y": 12787.48,
+//        "Z": 162.39
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 1.73,
+//        "Scale": 1.0
+//    },
+    {
+        "Count": 1,
+        "Id": 44,
+        "UnitId": 44,
+        "Position": {
+        "X": 23501.38,
+        "Y": 8471.251,
+        "Z": 584.9286
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.8149008,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 45,
+        "UnitId": 45,
+        "Position": {
+        "X": 21727.45,
+        "Y": 8015.013,
+        "Z": 382.3839
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.6885602,
+        "Scale": 1.0
+    },
+//    {
+//        "Count": 1,
+//        "Id": 47,
+//        "UnitId": 47,
+//        "Position": {
+//        "X": 9700.989,
+//        "Y": 12787.48,
+//        "Z": 162.39
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 48,
+//        "UnitId": 48,
+//        "Position": {
+//        "X": 9700.989,
+//        "Y": 12787.48,
+//        "Z": 162.39
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0,
+//        "Scale": 1.0
+//    },
+    {
+        // second point --vvv--
+        // <Transfer Name="lilyut_goto_garandol1" Type="49" cellX="1" cellY="0">
+        //  <Point Pos="1332.663,1010.326,158.20993" /> 
+        // first point --vvv--
+        // <Transfer Name="goto_lilyut2" Type="0" cellX="1" cellY="0">
+        // 12_14 <Point Pos="1332.1849,1010.5906,158.21985" /> 
+        // 012 * 1024 = 12288 + 1332.1849 = 13620,1849
+        // 014 * 1024 = 14336 + 1010.5906 = 15346,5906
+        "Count": 1,
+        "Id": 49,
+        "UnitId": 49,
+        "Position": {
+        "X": 12596.66, //12600.45,
+        "Y": 15346.33, //15344.05,
+        "Z": 158.2099
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7414277,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 50,
+        "UnitId": 50,
+        "Position": {
+        "X": 9683.988,
+        "Y": 12768.16,
+        "Z": 159.9848
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.6388448,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 51,
+        "UnitId": 51,
+        "Position": {
+        "X": 23712.45,
+        "Y": 9074.629,
+        "Z": 649.8428
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7350695,
+        "Scale": 1.0
+    },
+    {
+        // 10_14
+        "Count": 1,
+        "Id": 52,
+        "UnitId": 52,
+        "Position": {
+        "X": 10501.73,
+        "Y": 15121.58,
+        "Z": 279.7
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.8240063,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 57,
+        "UnitId": 57,
+        "Position": {
+        "X": 10282.77,
+        "Y": 12606.7,
+        "Z": 155.4828
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9189504,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 58,
+        "UnitId": 58,
+        "Position": {
+        "X": 10275.9,
+        "Y": 12610.84,
+        "Z": 155.4828
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9841403,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 59,
+        "UnitId": 59,
+        "Position": {
+        "X": 10268.62,
+        "Y": 12611.92,
+        "Z": 155.4828
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9998295,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 60,
+        "UnitId": 60,
+        "Position": {
+        "X": 10048.35,
+        "Y": 12562.81,
+        "Z": 155.4228
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.9913577,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 61,
+        "UnitId": 61,
+        "Position": {
+        "X": 9697.63,
+        "Y": 12714.69,
+        "Z": 155.4828
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9729396,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 62,
+        "UnitId": 62,
+        "Position": {
+        "X": 9675.811,
+        "Y": 12717.66,
+        "Z": 155.4828
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9901228,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 63,
+        "UnitId": 63,
+        "Position": {
+        "X": 9680.988,
+        "Y": 12727.27,
+        "Z": 155.4828
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.1220261,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 64,
+        "UnitId": 64,
+        "Position": {
+        "X": 9694.318,
+        "Y": 12726.17,
+        "Z": 155.4828
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.03111083,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 65,
+        "UnitId": 65,
+        "Position": {
+        "X": 9868.324,
+        "Y": 12680.07,
+        "Z": 228.3359
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.01155095,
+        "Scale": 1.0
+    },
+//    {
+//        "Count": 1,
+//        "Id": 66,
+//        "UnitId": 66,
+//        "Position": {
+//        "X": 9777.504,
+//        "Y": 12725.31,
+//        "Z": 228.3359
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 2.35,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 67,
+//        "UnitId": 67,
+//        "Position": {
+//        "X": 9777.504,
+//        "Y": 12725.31,
+//        "Z": 228.3359
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 2.35,
+//        "Scale": 1.0
+//    },
+    {
+        "Count": 1,
+        "Id": 68,
+        "UnitId": 68,
+        "Position": {
+        "X": 6125.655,
+        "Y": 12822.73,
+        "Z": 1113.042
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.02666784,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 69,
+        "UnitId": 69,
+        "Position": {
+        "X": 6179.282,
+        "Y": 12965.0,
+        "Z": 1094.819
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.9944594,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 70,
+        "UnitId": 70,
+        "Position": {
+        "X": 19674.19,
+        "Y": 8800.341,
+        "Z": 226.1275
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.1419451,
+        "Scale": 1.0
+    },
+//    {
+//        "Count": 1,
+//        "Id": 71,
+//        "UnitId": 71,
+//        "Position": {
+//        "X": 9777.504,
+//        "Y": 12725.31,
+//        "Z": 228.3359
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 2.35,
+//        "Scale": 1.0
+//    },
+    {
+        "Count": 1,
+        "Id": 72,
+        "UnitId": 72,
+        "Position": {
+        "X": 21223.57,
+        "Y": 10521.02,
+        "Z": 110.3631
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.6903777,
+        "Scale": 1.0
+    },
+//    {
+//        "Count": 1,
+//        "Id": 73,
+//        "UnitId": 73,
+//        "Position": {
+//        "X": 9777.504,
+//        "Y": 12725.31,
+//        "Z": 228.3359
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 2.35,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 74,
+//        "UnitId": 74,
+//        "Position": {
+//        "X": 9777.504,
+//        "Y": 12725.31,
+//        "Z": 228.3359
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 2.35,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 75,
+//        "UnitId": 75,
+//        "Position": {
+//        "X": 22322.86,
+//        "Y": 7015.539,
+//        "Z": 277.7635
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0.1654983,
+//        "Scale": 1.0
+//    },
+    {
+        "Count": 1,
+        "Id": 76,
+        "UnitId": 76,
+        "Position": {
+        "X": 11091.17,
+        "Y": 11602.21,
+        "Z": 115.6705
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7992472,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 77,
+        "UnitId": 77,
+        "Position": {
+        "X": 11264.74,
+        "Y": 10660.31,
+        "Z": 127.8699
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.3204457,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 78,
+        "UnitId": 78,
+        "Position": {
+        "X": 11260.47,
+        "Y": 10664.36,
+        "Z": 128.5782
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9378837,
+        "Scale": 1.0
+    },
+//    {
+//        "Count": 1,
+//        "Id": 80,
+//        "UnitId": 80,
+//        "Position": {
+//        "X": 9408.811,
+//        "Y": 10659.61,
+//        "Z": 128.6238
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0,
+//        "Scale": 1.0
+//    },
+      {
+          "Count": 1,
+          "Id": 81,
+          "UnitId": 81,
+          "Position": {
+          "X": 22274.59,
+          "Y": 7093.339,
+          "Z": 277.775
+          },
+          "RotationX": 0,
+          "RotationY": 0,
+          "RotationZ": 0.460541,
+          "Scale": 1.0
+      },
+//    {
+//        "Count": 1,
+//        "Id": 82,
+//        "UnitId": 82,
+//        "Position": {
+//        "X": 9408.811,
+//        "Y": 10659.61,
+//        "Z": 128.6238
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 83,
+//        "UnitId": 83,
+//        "Position": {
+//        "X": 9408.811,
+//        "Y": 10659.61,
+//        "Z": 128.6238
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 84,
+//        "UnitId": 84,
+//        "Position": {
+//        "X": 9408.811,
+//        "Y": 10659.61,
+//        "Z": 128.6238
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0,
+//        "Scale": 1.0
+//    },
+//    {
+//        "Count": 1,
+//        "Id": 85,
+//        "UnitId": 85,
+//        "Position": {
+//        "X": 9408.811,
+//        "Y": 10659.61,
+//        "Z": 128.6238
+//        },
+//        "RotationX": 0,
+//        "RotationY": 0,
+//        "RotationZ": 0,
+//        "Scale": 1.0
+//    },
+    {
+        "Count": 1,
+        "Id": 86,
+        "UnitId": 86,
+        "Position": {
+        "X": 25523.52,
+        "Y": 9601.004,
+        "Z": 688.3059
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.5478098,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 88,
+        "UnitId": 88,
+        "Position": {
+        "X": 24892.8,
+        "Y": 7662.631,
+        "Z": 317.4191
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.9643663,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 89,
+        "UnitId": 89,
+        "Position": {
+        "X": 23828.41,
+        "Y": 7274.625,
+        "Z": 308.2701
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7227504,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 90,
+        "UnitId": 90,
+        "Position": {
+        "X": 27769.93,
+        "Y": 6619.167,
+        "Z": 551.4822
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7614406,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 91,
+        "UnitId": 91,
+        "Position": {
+        "X": 27001.02,
+        "Y": 7045.104,
+        "Z": 434.172
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.367538,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 92,
+        "UnitId": 92,
+        "Position": {
+        "X": 20082.35,
+        "Y": 12669.29,
+        "Z": 126.3989
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.1782202,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 93,
+        "UnitId": 93,
+        "Position": {
+        "X": 7545.379,
+        "Y": 9844.99,
+        "Z": 188.7788
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.4299751,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 94,
+        "UnitId": 94,
+        "Position": {
+        "X": 7878.319,
+        "Y": 7916.761,
+        "Z": 181.3234
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.1493443,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 95,
+        "UnitId": 95,
+        "Position": {
+        "X": 8805.075,
+        "Y": 8337.898,
+        "Z": 138.3206
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.866735,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 96,
+        "UnitId": 96,
+        "Position": {
+        "X": 9882.292,
+        "Y": 9561.748,
+        "Z": 154.0747
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.3209787,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 97,
+        "UnitId": 97,
+        "Position": {
+        "X": 24878.01,
+        "Y": 10729.12,
+        "Z": 681.304
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.7398942,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 98,
+        "UnitId": 98,
+        "Position": {
+        "X": 23771.36,
+        "Y": 11306.66,
+        "Z": 361.3741
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9240144,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 99,
+        "UnitId": 99,
+        "Position": {
+        "X": 23261.65,
+        "Y": 12486.94,
+        "Z": 264.2838
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.9999242,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 100,
+        "UnitId": 100,
+        "Position": {
+        "X": 28537.06,
+        "Y": 6118.918,
+        "Z": 557.4817
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.00479643,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 101,
+        "UnitId": 101,
+        "Position": {
+        "X": 29434.52,
+        "Y": 8508.24,
+        "Z": 427.0179
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.07672501,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 102,
+        "UnitId": 102,
+        "Position": {
+        "X": 28763.69,
+        "Y": 7649.998,
+        "Z": 548.4348
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.5099529,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 103,
+        "UnitId": 103,
+        "Position": {
+        "X": 12939.76,
+        "Y": 14528.59,
+        "Z": 139.0744
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.60299,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 104,
+        "UnitId": 104,
+        "Position": {
+        "X": 12667.98,
+        "Y": 11255.07,
+        "Z": 115.6611
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.3273031,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 105,
+        "UnitId": 105,
+        "Position": {
+        "X": 13348.12,
+        "Y": 10729.9,
+        "Z": 155.5319
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.3007633,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 106,
+        "UnitId": 106,
+        "Position": {
+        "X": 14349.24,
+        "Y": 11264.23,
+        "Z": 178.301
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.2265202,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 107,
+        "UnitId": 107,
+        "Position": {
+        "X": 16719.04,
+        "Y": 8005.229,
+        "Z": 142.9733
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.973647,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 108,
+        "UnitId": 108,
+        "Position": {
+        "X": 16870.77,
+        "Y": 8047.715,
+        "Z": 145.5514
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.8777692,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 109,
+        "UnitId": 109,
+        "Position": {
+        "X": 17767.51,
+        "Y": 8366.282,
+        "Z": 260.4665
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.9985845,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 110,
+        "UnitId": 110,
+        "Position": {
+        "X": 12849.58,
+        "Y": 14412.62,
+        "Z": 196.31
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": 0.05996681,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 111,
+        "UnitId": 111,
+        "Position": {
+        "X": 10728.41,
+        "Y": 9374.819,
+        "Z": 188.76
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -0.9515706,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 112,
+        "UnitId": 112,
+        "Position": {
+        "X": 10235.85,
+        "Y": 10212.76,
+        "Z": 183.01
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -4.365842,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 113,
+        "UnitId": 113,
+        "Position": {
+        "X": 10160.41,
+        "Y": 10135.83,
+        "Z": 183.01
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -4.365842,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 114,
+        "UnitId": 114,
+        "Position": {
+        "X": 10815.03,
+        "Y": 11836.77,
+        "Z": 173.5046
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -4.365842,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 116,
+        "UnitId": 116,
+        "Position": {
+        "X": 23306.04,
+        "Y": 9325.963,
+        "Z": 649.9935
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -4.365842,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 117,
+        "UnitId": 117,
+        "Position": {
+        "X": 23279.34,
+        "Y": 9243.983,
+        "Z": 636.8342
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -4.365842,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 118,
+        "UnitId": 118,
+        "Position": {
+        "X": 24076.84,
+        "Y": 10516.21,
+        "Z": 774.4688
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -4.365842,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 119,
+        "UnitId": 119,
+        "Position": {
+        "X": 24158.38,
+        "Y": 10553.21,
+        "Z": 774.5669
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -4.365842,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 120,
+        "UnitId": 120,
+        "Position": {
+        "X": 10672.06,
+        "Y": 13172.79,
+        "Z": 124.7228
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -3.112159,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 123,
+        "UnitId": 123,
+        "Position": {
+        "X": 19816.4,
+        "Y": 27964.12,
+        "Z": 114.2262
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -3.575818,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 124,
+        "UnitId": 124,
+        "Position": {
+        "X": 20163.71,
+        "Y": 27857.26,
+        "Z": 135.7526
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -1.88858,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 125,
+        "UnitId": 125,
+        "Position": {
+        "X": 20163.71,
+        "Y": 27857.26,
+        "Z": 135.7526
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -1.88858,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 126,
+        "UnitId": 126,
+        "Position": {
+        "X": 20163.71,
+        "Y": 27857.26,
+        "Z": 135.7526
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -1.88858,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 127,
+        "UnitId": 127,
+        "Position": {
+        "X": 20163.71,
+        "Y": 27857.26,
+        "Z": 135.7526
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -1.88858,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 128,
+        "UnitId": 128,
+        "Position": {
+        "X": 20163.71,
+        "Y": 27857.26,
+        "Z": 135.7526
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -1.88858,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 129,
+        "UnitId": 129,
+        "Position": {
+        "X": 20163.71,
+        "Y": 27857.26,
+        "Z": 135.7526
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -1.88858,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 130,
+        "UnitId": 130,
+        "Position": {
+        "X": 10419.33,
+        "Y": 15196.28,
+        "Z": 218.3148
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -3.575818,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 131,
+        "UnitId": 131,
+        "Position": {
+        "X": 10419.33,
+        "Y": 15196.28,
+        "Z": 218.3148
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -3.575818,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 132,
+        "UnitId": 132,
+        "Position": {
+        "X": 14420.31,
+        "Y": 14412.04,
+        "Z": 108.5801
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -3.575818,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 133,
+        "UnitId": 133,
+        "Position": {
+        "X": 15252.99,
+        "Y": 14060.4,
+        "Z": 143.9139
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -3.575818,
+        "Scale": 1.0
+    },
+    {
+        "Count": 1,
+        "Id": 134,
+        "UnitId": 134,
+        "Position": {
+        "X": 15565.99,
+        "Y": 14841.05,
+        "Z": 139.2941
+        },
+        "RotationX": 0,
+        "RotationY": 0,
+        "RotationZ": -3.575818,
+        "Scale": 1.0
+    }
 ]

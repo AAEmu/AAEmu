@@ -1,12 +1,7 @@
 ﻿using System;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
-using AAEmu.Game.Models.Game.Error;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World
 {
@@ -18,6 +13,7 @@ namespace AAEmu.Game.Models.Game.World
         public bool DisabledSetPosition { get; set; }
         public Point Position { get; set; }
         public Point WorldPosition { get; set; }
+        public WorldPos WorldPos { get; set; }
         public Region Region { get; set; }
         public DateTime Respawn { get; set; }
         public DateTime Despawn { get; set; }

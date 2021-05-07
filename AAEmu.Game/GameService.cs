@@ -116,6 +116,7 @@ namespace AAEmu.Game
             AreaTriggerManager.Instance.Initialize();
             SpecialtyManager.Instance.Initialize();
             BoatPhysicsManager.Instance.Initialize();
+            TransferManager.Instance.Initialize();
             GimmickManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
             CashShopManager.Instance.Initialize();
