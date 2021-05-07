@@ -1481,6 +1481,11 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void DoFallDamage(ushort fallVel)
         {
+            if (AccessLevel > 0)
+            {
+                _log.Warn("FallDamage disabled for GMs & Admins");
+                return; // GM & Admin не разбиваются
+            }
             var fallDmg = Math.Min(MaxHp, (int)(MaxHp * ((fallVel - 8600) / 15000f)));
             var minHpLeft = MaxHp / 20; //5% of hp 
             var maxDmgLeft = Hp - minHpLeft; // Max damage one can take 

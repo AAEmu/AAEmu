@@ -59,7 +59,7 @@ namespace AAEmu.Game.Models.Game.Units
         public sbyte RequestSteering { get; set; }
         public sbyte RequestThrottle { get; set; }
         public DateTime WaitTime { get; set; }
-        public uint TimeLeft => WaitTime > DateTime.Now ? (uint)(WaitTime - DateTime.Now).TotalMilliseconds : 0;
+        public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
 
         public Transfer()
         {
@@ -656,7 +656,7 @@ namespace AAEmu.Game.Models.Game.Units
             //    Bounded.Velocity = Velocity;
             //}
 
-            if (TemplateId == 490)
+            if (TemplateId == 103)
             {
                 // для проверки
 
@@ -722,7 +722,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public bool DoSpeedReduction()
         {
-            var tec = Steering;
+            var current = Steering;
             var next = 0;
             if (Steering + 1 >= Template.TransferAllPaths.Count)
             {
@@ -733,10 +733,10 @@ namespace AAEmu.Game.Models.Game.Units
                 next++;
             }
 
-            if (Template.TransferAllPaths[tec].WaitTimeEnd > 0 || Template.TransferAllPaths[next].WaitTimeStart > 0)
+            if (Template.TransferAllPaths[current].WaitTimeEnd > 0 || Template.TransferAllPaths[next].WaitTimeStart > 0)
             {
                 // за несколько (3 ?) точек до конца участка будем тормозить
-                if (TransferPath.Count - MoveStepIndex <= 3)
+                if (TransferPath.Count - MoveStepIndex <= 6)
                 {
                     if (velAccel > 0)
                     {
@@ -756,6 +756,8 @@ namespace AAEmu.Game.Models.Game.Units
 
         private void NextPoint(Transfer transfer)
         {
+            double time;
+
             if (!MoveToPathEnabled)
             {
                 //_log.Warn("OnMove disabled");
@@ -795,9 +797,13 @@ namespace AAEmu.Game.Models.Game.Units
                     s = TransferPath[MoveStepIndex];
                     vTarget = new Vector3(s.X, s.Y, s.Z);
                     // здесь будет пауза в конце участка пути, если она есть в базе данных
-                    if (MoveStepIndex == 0 && Steering != 0 && transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0)
+                    if (MoveStepIndex == 0 && Steering != 0 && (transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0))
                     {
-                        var time = transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd;
+                        time = transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0
+                            ?
+                            transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd
+                            :
+                            transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
                         WaitTime = DateTime.UtcNow.AddSeconds(time);
                     }
                 }
@@ -807,7 +813,7 @@ namespace AAEmu.Game.Models.Game.Units
                 // здесь будет пауза в начале участка пути, если она есть в базе данных
                 if (MoveStepIndex == 0 && Steering == 0 && transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0)
                 {
-                    var time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
+                    time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
                     WaitTime = DateTime.UtcNow.AddSeconds(time);
                 }
 
