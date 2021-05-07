@@ -158,7 +158,6 @@ namespace AAEmu.Game
             ItemManager.Instance.Save();
             */
             BoatPhysicsManager.Instance.Stop();
-            GimmickManager.Instance.Stop();
 
             TickManager.Instance.Stop();
             TimeManager.Instance.Stop();
