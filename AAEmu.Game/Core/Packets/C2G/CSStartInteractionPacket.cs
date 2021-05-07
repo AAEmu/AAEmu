@@ -7,7 +7,9 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -42,26 +44,26 @@ namespace AAEmu.Game.Core.Packets.C2G
                 
                 var skills = new List<uint>();
                 if (npc.Template.Banker)
-                    skills.Add(13238); // Open warehouse
+                    skills.Add(SkillsEnum.UseWarehouse); // Open warehouse
                 // TODO: fill in the skills and maybe change the order to what it would show in-game
                 else if (npc.Template.AbilityChanger)
-                    skills.Add(12082); // Open Skill-Trainer
+                    skills.Add(SkillsEnum.ChangeSkillsets); // Open Skill-Trainer
                 else if (npc.Template.Auctioneer)
-                    skills.Add(12083); // Open Auctioneer
+                    skills.Add(SkillsEnum.UseAuctioneer); // Open Auctioneer
                 else if (npc.Template.Priest)
-                    skills.Add(12084); // Open Recover-Exp dialog ?
+                    skills.Add(SkillsEnum.Blessing); // Open Recover-Exp dialog ?
                 else if (npc.Template.Repairman)
-                    skills.Add(12086); // Open Repair dialog ?
+                    skills.Add(SkillsEnum.Repair); // Open Repair dialog ?
                 else if (npc.Template.Merchant)
-                    skills.Add(12087); // Open Shop dialog ?
+                    skills.Add(SkillsEnum.UseStore); // Open Shop dialog ?
                 else if (npc.Template.Stabler)
-                    skills.Add(12195); // Open Pet Recovery dialog ?
+                    skills.Add(SkillsEnum.HealPetSWounds); // Open Pet Recovery dialog ?
                 else if (npc.Template.Expedition)
-                    skills.Add(13736); // Open Repair dialog ?
+                    skills.Add(SkillsEnum.FormGuild); // Open Repair dialog ?
                 else if (npc.Template.RecrutingBattlefieldId > 0)
-                    skills.Add(12660); // Open Arena dialog ?
+                    skills.Add(SkillsEnum.WarSupport); // Open Arena dialog ?
                 else if (npc.Template.Blacksmith)
-                    skills.Add(23478); // Open Item Fuse dialog ?
+                    skills.Add(SkillsEnum.ItemFusion); // Open Item Fuse dialog ?
 
                 // Add a dummy-skill of 0 when we didn't intercept anything.
                 // This also fixes the right-click on quest NPCs
