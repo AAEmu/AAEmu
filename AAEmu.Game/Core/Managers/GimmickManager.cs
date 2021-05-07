@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Threading;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -10,6 +9,8 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks;
+using AAEmu.Game.Models.Tasks.Gimmicks;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -22,8 +23,9 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<uint, GimmickTemplate> _templates;
         private Dictionary<uint, Gimmick> _activeGimmicks;
-        public Thread thread { get; set; }
-        private bool ThreadRunning = true;
+        private const double Delay = 50;
+        private const double DelayInit = 1;
+        private Task GimmickTickTask { get; set; }
 
         public bool Exist(uint templateId)
         {
@@ -127,26 +129,25 @@ namespace AAEmu.Game.Core.Managers
 
         public void Initialize()
         {
-            thread = new Thread(GimmickThread);
-            thread.Start();
+            _log.Warn("GimmickTickTask: Started");
+
+            GimmickTickTask = new GimmickTickStartTask();
+            TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
+        }
+        internal void GimmickTick()
+        {
+            var activeGimmicks = GetActiveGimmicks();
+            foreach (var gimmick in activeGimmicks)
+            {
+                GimmickTick(gimmick);
+            }
+
+            TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
         }
 
         private Gimmick[] GetActiveGimmicks()
         {
             return _activeGimmicks.Values.ToArray();
-        }
-
-        private void GimmickThread()
-        {
-            while (ThreadRunning && Thread.CurrentThread.IsAlive)
-            {
-                Thread.Sleep(50);
-                var activeGimmicks = Instance.GetActiveGimmicks();
-                foreach (var gimmick in activeGimmicks)
-                {
-                    GimmickTick(gimmick);
-                }
-            }
         }
 
         private static void GimmickTick(Gimmick gimmick)
@@ -304,11 +305,6 @@ namespace AAEmu.Game.Core.Managers
                 gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
                 gimmick.WaitTime = DateTime.Now.AddSeconds(gimmick.Spawner.WaitTime);
             }
-        }
-
-        internal void Stop()
-        {
-            ThreadRunning = false;
         }
     }
 }
