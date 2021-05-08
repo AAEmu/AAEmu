@@ -339,8 +339,7 @@ namespace AAEmu.Game.Core.Managers
                             var template = new TransferTemplate();
 
                             template.Id = reader.GetUInt32("id"); // OwnerId
-                            template.Name = LocalizationManager.Instance.Get("transfers", "comment", reader.GetUInt32("id"));
-                            //template.Name = reader.GetString("comment");
+                            template.Name = LocalizationManager.Instance.Get("transfers", "comment", reader.GetUInt32("id"), reader.GetString("comment"));
                             template.ModelId = reader.GetUInt32("model_id");
                             template.WaitTime = reader.GetFloat("wait_time");
                             template.Cyclic = reader.GetBoolean("cyclic");

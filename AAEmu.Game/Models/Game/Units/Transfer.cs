@@ -642,6 +642,10 @@ namespace AAEmu.Game.Models.Game.Units
                             && Math.Abs(vDistance.Z) < RangeToCheckPoint;
 
             Angle = MathUtil.CalculateDirection(vPosition, vTarget);
+            if (Reverse)
+            {
+                Angle += MathF.PI;
+            }
             var quat = MathUtil.ConvertRadianToDirectionShort(Angle);
             Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
 
@@ -657,14 +661,14 @@ namespace AAEmu.Game.Models.Game.Units
             //    Bounded.Velocity = Velocity;
             //}
 
-            if (TemplateId == 1030)
+            if (TemplateId == 27)
             {
                 // для проверки
 
                 _log.Warn("x=" + Position.X + " y=" + Position.Y + " z=" + Position.Z + " Angle=" + Angle + " Rot=" + Rot);
                 _log.Warn("velx=" + Velocity.X + " vely=" + Velocity.Y + " velz=" + Velocity.Z);
             }
-            
+
             if (nextPoint)
             {
                 // get next path or point # in current path
@@ -768,62 +772,111 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (TransferPath.Count <= 0) { return; }
 
-            var s = TransferPath[MoveStepIndex];
-            vTarget = new Vector3(s.X, s.Y, s.Z);
-            //_log.Info("TransfersPath #" + transfer.Template.Id);
-            //_log.Warn("path #" + Steering);
-            //_log.Warn("walk to #" + MoveStepIndex);
-            //_log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
-            // Проходим по очереди все участки пути из списка, с начала каждого пути
-            if (MoveStepIndex >= TransferPath.Count - 1)
+            if (transfer.Template.Cyclic)
             {
-                // точки участка пути закончились
-                MoveStepIndex = 0;
-                if (Steering >= Routes.Count - 1)
+
+                //var s = TransferPath[MoveStepIndex];
+                //vTarget = new Vector3(s.X, s.Y, s.Z);
+                //_log.Info("TransfersPath #" + transfer.Template.Id);
+                //_log.Warn("path #" + Steering);
+                //_log.Warn("walk to #" + MoveStepIndex);
+                //_log.Warn("x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
+                // Проходим по очереди все участки пути из списка, с начала каждого пути
+                if (MoveStepIndex >= TransferPath.Count - 1)
                 {
-                    // закончились все участки пути дороги, нужно начать сначала
-                    //_log.Warn("we are at the end point.");
-                    Steering = 0; // укажем на начальный путь
-                    TransferPath = Routes[Steering];
-                    s = TransferPath[MoveStepIndex];
-                    vTarget = new Vector3(s.X, s.Y, s.Z);
+                    // точки участка пути закончились
+                    MoveStepIndex = 0;
+                    if (Steering >= Routes.Count - 1)
+                    {
+                        // закончились все участки пути дороги, нужно начать сначала
+                        //_log.Warn("we are at the end point.");
+                        Steering = 0; // укажем на начальный путь
+                        TransferPath = Routes[Steering];
+                        var s = TransferPath[MoveStepIndex];
+                        vTarget = new Vector3(s.X, s.Y, s.Z);
+                    }
+                    else
+                    {
+                        // Проверяем остановки на маршруте
+                        //_log.Warn("we reached checkpoint go further...");
+                        // продолжим путь
+                        Steering++; // укажем на следующий участок пути
+                        TransferPath = Routes[Steering];
+                        var s = TransferPath[MoveStepIndex];
+                        vTarget = new Vector3(s.X, s.Y, s.Z);
+                        // здесь будет пауза в конце участка пути, если она есть в базе данных
+                        if (MoveStepIndex == 0 && Steering != 0 && (transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0))
+                        {
+                            time = transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0
+                                ? transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd
+                                : transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
+                            WaitTime = DateTime.UtcNow.AddSeconds(time);
+                        }
+                    }
                 }
                 else
                 {
-                    // Проверяем остановки на маршруте
-                    //_log.Warn("we reached checkpoint go further...");
-                    // продолжим путь
-                    Steering++; // укажем на следующий участок пути
-                    TransferPath = Routes[Steering];
-                    s = TransferPath[MoveStepIndex];
-                    vTarget = new Vector3(s.X, s.Y, s.Z);
-                    // здесь будет пауза в конце участка пути, если она есть в базе данных
-                    if (MoveStepIndex == 0 && Steering != 0 && (transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0))
+                    // здесь будет пауза в начале участка пути, если она есть в базе данных
+                    if (MoveStepIndex == 0 && Steering == 0 && (transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0 || transfer.Template.WaitTime > 0))
                     {
-                        time = transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0
-                            ?
-                            transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd
-                            :
-                            transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
+                        time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0
+                            ? transfer.Template.TransferAllPaths[Steering].WaitTimeStart
+                            : transfer.Template.WaitTime;
                         WaitTime = DateTime.UtcNow.AddSeconds(time);
                     }
+
+                    // путь еще не закончился, продолжаем движение
+                    MoveStepIndex++;
+                    var s = TransferPath[MoveStepIndex];
+                    vTarget = new Vector3(s.X, s.Y, s.Z);
                 }
             }
             else
             {
-                // здесь будет пауза в начале участка пути, если она есть в базе данных
-                if (MoveStepIndex == 0 && Steering == 0 && transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0)
+                // всего один участок, двигаемся сначала вперед, затем назад
+                Steering = 0; // всегда 0
+                //var s = TransferPath[MoveStepIndex];
+                // vTarget = new Vector3(s.X, s.Y, s.Z);
+                // закончились все участки пути дороги, нужно возвращаться назад
+                if (MoveStepIndex >= TransferPath.Count - 1)
                 {
-                    time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
+                    //_log.Warn("we are at the end point.");
+                    transfer.Reverse = true;
+                    // здесь будет пауза в начале участка пути
+                    time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0
+                        ? transfer.Template.TransferAllPaths[Steering].WaitTimeStart
+                        : transfer.Template.WaitTime;
+                    WaitTime = DateTime.UtcNow.AddSeconds(time);
+                }
+                // начальная точка, двигаемся вперед
+                if (MoveStepIndex == 0)
+                {
+                    //_log.Warn("we are at the begin point.");
+                    transfer.Reverse = false;
+                    // здесь будет пауза в конце участка пути
+                    time = transfer.Template.TransferAllPaths[Steering].WaitTimeEnd > 0
+                        ? transfer.Template.TransferAllPaths[Steering].WaitTimeEnd
+                        : transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
                     WaitTime = DateTime.UtcNow.AddSeconds(time);
                 }
 
-                // путь еще не закончился, продолжаем движение
-                MoveStepIndex++;
-                s = TransferPath[MoveStepIndex];
-                vTarget = new Vector3(s.X, s.Y, s.Z);
+                if (transfer.Reverse)
+                {
+                    // двигаемся назад по тому же пути
+                    MoveStepIndex--;
+                    //TransferPath = Routes[Steering];
+                    var s = TransferPath[MoveStepIndex];
+                    vTarget = new Vector3(s.X, s.Y, s.Z);
+                }
+                else
+                {
+                    // продолжим путь
+                    MoveStepIndex++;
+                    //TransferPath = Routes[Steering];
+                    var s = TransferPath[MoveStepIndex];
+                    vTarget = new Vector3(s.X, s.Y, s.Z);
+                }
             }
-
         }
     }
 }
