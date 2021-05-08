@@ -35,18 +35,18 @@ namespace AAEmu.Game.Core.Managers
         {
             const int MaxCount = 10;
             var transfers = TransferManager.Instance.GetMoveTransfers();
-            var transfers2 = new List<Transfer>();
             // не ограничивать дальность видимости для GM & Admins
             if (owner.AccessLevel == 0)
             {
+                var transfers2 = new List<Transfer>();
                 foreach (var t in transfers)
                 {
                     if (!(MathF.Abs(MathUtil.CalculateDistance(owner.Position, t.Position)) < 1000f)) { continue; }
 
                     transfers2.Add(t);
                 }
+                transfers = transfers2.ToArray();
             }
-            transfers = transfers2.ToArray();
             if (transfers.Length > 0)
             {
                 for (var i = 0; i < transfers.Length; i += MaxCount)
