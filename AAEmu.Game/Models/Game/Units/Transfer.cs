@@ -486,7 +486,7 @@ namespace AAEmu.Game.Models.Game.Units
         public float Distance { get; set; }
         public float MaxVelocityForward { get; set; } = 5.4f;
         public float MaxVelocityBackward { get; set; } = 0.25f;
-        public float RangeToCheckPoint { get; set; } = 1.0f; // distance to checkpoint at which it is considered that we have reached it
+        public float RangeToCheckPoint { get; set; } = 0.9f; // distance to checkpoint at which it is considered that we have reached it
         public float velAccel { get; set; } = 0.3f;
         public double Angle { get; set; }
 
@@ -495,7 +495,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (transfer == null) { return; }
             if (TransferPath.Count <= 0) { return; }
 
-            transfer.MoveToPathEnabled = !transfer.MoveToPathEnabled;
+            transfer.MoveToPathEnabled = true;
             transfer.MoveToForward = true;
             transfer.MaxVelocityForward = transfer.Template.PathSmoothing + 1.6f; // попробуем взять эти значения как скорость движения транспорта
 
@@ -589,12 +589,16 @@ namespace AAEmu.Game.Models.Game.Units
             var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
             moveTypeTr.UseTransferBase(this);
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), true);
-            MoveToPathEnabled = false;
+            //MoveToPathEnabled = false;
         }
 
         public void MoveTo()
         {
-            if (TimeLeft > 0) { return; } // Пауза в начале/конце пути и на остановках
+            if (TimeLeft > 0)
+            {
+                //_log.Warn("TimeLeft=" + TimeLeft);
+                return;
+            } // Пауза в начале/конце пути и на остановках
 
             if (!MoveToPathEnabled || Position == null || !IsInPatrol)
             {
@@ -661,12 +665,14 @@ namespace AAEmu.Game.Models.Game.Units
             //    Bounded.Velocity = Velocity;
             //}
 
-            if (TemplateId == 500)
+            if (TemplateId == 700)
             {
                 // для проверки
 
+                _log.Warn("Reverse=" + Reverse + " Cyclic=" + Template.Cyclic);
+                _log.Warn("MoveStepIndex=" + MoveStepIndex + " Steering=" + Steering);
                 _log.Warn("x=" + Position.X + " y=" + Position.Y + " z=" + Position.Z + " Angle=" + Angle + " Rot=" + Rot);
-                _log.Warn("velx=" + Velocity.X + " vely=" + Velocity.Y + " velz=" + Velocity.Z);
+                //_log.Warn("velx=" + Velocity.X + " vely=" + Velocity.Y + " velz=" + Velocity.Z);
             }
 
             if (nextPoint)

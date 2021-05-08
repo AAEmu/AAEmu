@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Transfer> _moveTransfers;
         private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
         private const double Delay = 100;
-        private const double DelayInit = 2;
+        private const double DelayInit = 1;
         private Task TransferTickTask { get; set; }
 
         public void Initialize()
@@ -342,7 +342,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Name = LocalizationManager.Instance.Get("transfers", "comment", reader.GetUInt32("id"), reader.GetString("comment"));
                             template.ModelId = reader.GetUInt32("model_id");
                             template.WaitTime = reader.GetFloat("wait_time");
-                            template.Cyclic = reader.GetBoolean("cyclic");
+                            template.Cyclic = reader.GetBoolean("cyclic", true);
                             template.PathSmoothing = reader.GetFloat("path_smoothing");
 
                             _templates.Add(template.Id, template);
