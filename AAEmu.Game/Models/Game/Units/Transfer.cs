@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
@@ -35,8 +36,8 @@ namespace AAEmu.Game.Models.Game.Units
         public TransferSpawner Spawner { get; set; }
         public override UnitCustomModelParams ModelParams { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
+        public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
         public DateTime SpawnTime { get; set; }
-        public DateTime GameTime { get; set; }
         public float RotationDegrees { get; set; }
         public Quaternion Rot { get; set; } // значение поворота по оси Z должно быть в радианах
         public short RotationX { get; set; }
@@ -656,7 +657,7 @@ namespace AAEmu.Game.Models.Game.Units
             //    Bounded.Velocity = Velocity;
             //}
 
-            if (TemplateId == 103)
+            if (TemplateId == 1030)
             {
                 // для проверки
 

@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Transfer> _moveTransfers;
         private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
         private const double Delay = 100;
-        private const double DelayInit = 1;
+        private const double DelayInit = 2;
         private Task TransferTickTask { get; set; }
 
         public void Initialize()
@@ -45,7 +45,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Warn("TransferTickStart: Started");
 
             TransferTickTask = new TransferTickStartTask();
-            TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit));
+            TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit), TimeSpan.FromMilliseconds(Delay));
         }
 
         internal void TransferTick()
@@ -56,7 +56,7 @@ namespace AAEmu.Game.Core.Managers
                 transfer.MoveTo();
             }
 
-            TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
+            //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
         }
 
         public void AddMoveTransfers(uint ObjId, Transfer transfer)
@@ -144,15 +144,15 @@ namespace AAEmu.Game.Core.Managers
         {
             // спавним кабину
             character.SendPacket(new SCUnitStatePacket(tr));
-            //character.SendPacket(new SCUnitPointsPacket(tr.ObjId, 10000, 10000));
             character.SendPacket(new SCUnitPointsPacket(tr.ObjId, tr.Hp, tr.Mp));
+            character.SendPacket(new SCSlaveStatePacket(tr.ObjId, tr.TlId, "", tr.Spawner.Id, tr.Template.Id));
 
             // пробуем спавнить прицеп
             if (tr.Bounded != null)
             {
                 character.SendPacket(new SCUnitStatePacket(tr.Bounded));
-                //character.SendPacket(new SCUnitPointsPacket(tr.Bounded.ObjId, 10000, 10000));
                 character.SendPacket(new SCUnitPointsPacket(tr.Bounded.ObjId, tr.Bounded.Hp, tr.Bounded.Mp));
+                character.SendPacket(new SCSlaveStatePacket(tr.Bounded.ObjId, tr.Bounded.TlId, "", tr.Spawner.Id, tr.Bounded.Template.Id));
 
                 if (tr.Bounded.AttachedDoodads.Count > 0)
                 {
@@ -211,22 +211,27 @@ namespace AAEmu.Game.Core.Managers
             owner.Template = Carriage;
             owner.BondingObjId = 0;
             owner.AttachPointId = 255;
-            owner.Level = 1;
+            owner.Level = 50;
             owner.Hp = owner.MaxHp;
             owner.Mp = owner.MaxMp;
             owner.ModelParams = new UnitCustomModelParams();
             owner.Position = spawner.Position.Clone();
-            owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
-            var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+            //owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
+            //var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+
+            owner.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
+            var quat = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
+            owner.SetPosition(owner.Position.X, owner.Position.Y, owner.Position.Z, 0, 0, owner.Position.RotationZ);
+
             owner.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
 
             owner.Faction = new SystemFaction();
-            owner.Faction = FactionManager.Instance.GetFaction(143);
+            owner.Faction = FactionManager.Instance.GetFaction(164);
             
             owner.Patrol = null;
             // add effect
             var buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
-            owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, System.DateTime.UtcNow));
+            owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
 
             // create Carriage like a normal object.
             owner.Spawn();
@@ -246,27 +251,32 @@ namespace AAEmu.Game.Core.Managers
             transfer.Id = boardingPart.Id;
             transfer.ModelId = boardingPart.ModelId;
             transfer.Template = boardingPart;
-            transfer.Level = 1;
+            transfer.Level = 50;
             transfer.BondingObjId = owner.ObjId;
             transfer.AttachPointId = owner.Template.TransferBindings[0].AttachPointId;
             transfer.Hp = transfer.MaxHp;
             transfer.Mp = transfer.MaxMp;
             transfer.ModelParams = new UnitCustomModelParams();
             transfer.Position = spawner.Position.Clone();
-            transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
-            var quat2 = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+            //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
+            //var quat2 = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+
+            transfer.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
+            var quat2 = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
+            transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, 0, 0, transfer.Position.RotationZ);
+
             transfer.Rot = new Quaternion(quat2.X, quat2.Z, quat2.Y, quat2.W);
 
             (transfer.Position.X, transfer.Position.Y) = MathUtil.AddDistanceToFront(-9.24417f, transfer.Position.X, transfer.Position.Y, transfer.Position.RotationZ);
             transfer.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, transfer.Position.X, transfer.Position.Y) : transfer.Position.Z;
 
             transfer.Faction = new SystemFaction();
-            owner.Faction = FactionManager.Instance.GetFaction(143);
+            owner.Faction = FactionManager.Instance.GetFaction(164);
             
             transfer.Patrol = null;
             // add effect
             buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
-            transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, System.DateTime.UtcNow));
+            transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
             //TODO  create a boardingPart and indicate that we attach to the Carriage object 
@@ -329,8 +339,8 @@ namespace AAEmu.Game.Core.Managers
                             var template = new TransferTemplate();
 
                             template.Id = reader.GetUInt32("id"); // OwnerId
-                            //template.Name = LocalizationManager.Instance.Get("transfer", "comment", reader.GetUInt32("id"));
-                            template.Name = reader.GetString("comment");
+                            template.Name = LocalizationManager.Instance.Get("transfers", "comment", reader.GetUInt32("id"));
+                            //template.Name = reader.GetString("comment");
                             template.ModelId = reader.GetUInt32("model_id");
                             template.WaitTime = reader.GetFloat("wait_time");
                             template.Cyclic = reader.GetBoolean("cyclic");

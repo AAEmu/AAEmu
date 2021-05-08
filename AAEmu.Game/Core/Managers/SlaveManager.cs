@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Slave> _tlSlaves;
         public Dictionary<uint, Dictionary<int, Point>> _attachPoints;
 
-        private SlaveTemplate GetSlaveTemplate(uint id)
+        public SlaveTemplate GetSlaveTemplate(uint id)
         {
             return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
         }

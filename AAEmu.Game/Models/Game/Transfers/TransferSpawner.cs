@@ -94,9 +94,12 @@ namespace AAEmu.Game.Models.Game.Transfers
                         var vTarget = new Vector3(point2.X, point2.Y, point2.Z);
                         transfer.Angle = MathUtil.CalculateDirection(vPosition, vTarget);
 
-                        transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(transfer.Angle));
+                        //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(transfer.Angle));
+                        //var quat = Quaternion.CreateFromYawPitchRoll((float)transfer.Angle, 0.0f, 0.0f);
+                        
+                        transfer.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection((float)transfer.Angle);
+                        var quat = MathUtil.ConvertRadianToDirectionShort(transfer.Angle);
 
-                        var quat = Quaternion.CreateFromYawPitchRoll((float)transfer.Angle, 0.0f, 0.0f);
                         transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
 
                         transfer.Position.WorldId = 0;
