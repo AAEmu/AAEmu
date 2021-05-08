@@ -485,9 +485,9 @@ namespace AAEmu.Game.Models.Game.Units
         public Vector3 vVelocity { get; set; }
         public float Distance { get; set; }
         public float MaxVelocityForward { get; set; } = 5.4f;
-        public float MaxVelocityBackward { get; set; } = 0f;
-        public float RangeToCheckPoint { get; set; } = 1.25f; // distance to checkpoint at which it is considered that we have reached it
-        public float velAccel { get; set; } = 0.25f;
+        public float MaxVelocityBackward { get; set; } = 0.25f;
+        public float RangeToCheckPoint { get; set; } = 1.0f; // distance to checkpoint at which it is considered that we have reached it
+        public float velAccel { get; set; } = 0.3f;
         public double Angle { get; set; }
 
         public void GoToPath(Transfer transfer)
@@ -661,7 +661,7 @@ namespace AAEmu.Game.Models.Game.Units
             //    Bounded.Velocity = Velocity;
             //}
 
-            if (TemplateId == 27)
+            if (TemplateId == 500)
             {
                 // для проверки
 
@@ -741,7 +741,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (Template.TransferAllPaths[current].WaitTimeEnd > 0 || Template.TransferAllPaths[next].WaitTimeStart > 0)
             {
                 // за несколько (3 ?) точек до конца участка будем тормозить
-                if (TransferPath.Count - MoveStepIndex <= 6)
+                if (TransferPath.Count - MoveStepIndex <= 3)
                 {
                     if (velAccel > 0)
                     {
