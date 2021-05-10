@@ -465,7 +465,7 @@ namespace AAEmu.Game.Models.Game.Units
             stream.WriteBc(ObjId);
             stream.Write(Template.Id);
             stream.WritePosition(Position.X, Position.Y, Position.Z);
-            stream.Write("Salislead Peninsula ~ Liriot Hillside Loop Carriage");
+            stream.Write(Template.Name);
 
             return stream;
         }

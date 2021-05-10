@@ -36,17 +36,12 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Transfer> _moveTransfers;
         private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
         public Thread threadTransfer { get; set; }
-        public Thread threadTelescope { get; set; }
         private bool ThreadRunning = true;
         private bool once { get; set; }
         public void Initialize()
         {
             threadTransfer = new Thread(TransferThread);
             threadTransfer.Start();
-
-            // TODO think about where to move the code
-            threadTelescope = new Thread(TransferTelescopeThread);
-            threadTelescope.Start();
         }
 
         public List<(uint, MoveType)> Movements { get; set; }
@@ -67,39 +62,6 @@ namespace AAEmu.Game.Core.Managers
                     if (Movements == null || Movements.Count <= 0) { break; }
                     transfer.BroadcastPacket(new SCUnitMovementsPacket(Movements.ToArray()), true);
                 }
-            }
-        }
-        private void TransferTelescopeThread()
-        {
-            while (ThreadRunning && Thread.CurrentThread.IsAlive)
-            {
-                Thread.Sleep(500);
-                var activeTransfers = Instance.GetMoveTransfers();
-                TransferTelescopeTick(activeTransfers);
-            }
-        }
-
-        private void TransferTelescopeTick(Transfer[] transfers)
-        {
-            const int MaxCount = 10;
-            if (transfers.Length == 0) { return; }
-            //if (!once)
-            //{
-            //    transfers[2].BroadcastPacket(new SCTransferTelescopeToggledPacket(true, 1000f), true);
-            //    once = true;
-            //}
-
-            for (var i = 0; i < transfers.Length; i += MaxCount)
-            {
-                if (i == 0)
-                {
-                    transfers[2].BroadcastPacket(new SCTransferTelescopeToggledPacket(true, 1000f), true);
-                }
-                
-                var last = transfers.Length - i <= MaxCount;
-                var temp = new Transfer[last ? transfers.Length - i : MaxCount];
-                Array.Copy(transfers, i, temp, 0, temp.Length);
-                transfers[2].BroadcastPacket(new SCTransferTelescopeUnitsPacket(last, temp), true);
             }
         }
 
@@ -148,11 +110,20 @@ namespace AAEmu.Game.Core.Managers
 
             return null;
         }
+
+        /// <summary>
+        /// Взять список всех движущихся транспортов, исключая прицепы
+        /// </summary>
+        /// <returns></returns>
         public Transfer[] GetMoveTransfers()
         {
             return _moveTransfers.Values.ToArray();
         }
 
+        /// <summary>
+        /// Взять список всех движущихся транспортов, включая прицепы
+        /// </summary>
+        /// <returns></returns>
         public void AddMoveTransfers(uint ObjId, Transfer transfer)
         {
             _moveTransfers.Add(ObjId, transfer);
@@ -232,9 +203,10 @@ namespace AAEmu.Game.Core.Managers
             owner.Name = Carriage.Name;
             owner.TlId = (ushort)TlIdManager.Instance.GetNextId();
             owner.ObjId = objectId == 0 ? ObjectIdManager.Instance.GetNextId() : objectId;
-            owner.OwnerId = 255;
+            owner.OwnerId = (uint)DoodadOwnerType.System;
             owner.Spawner = spawner;
             owner.TemplateId = Carriage.Id;
+            owner.Id = Carriage.Id;
             owner.ModelId = Carriage.ModelId;
             owner.Template = Carriage;
             owner.BondingObjId = 0;
@@ -248,12 +220,14 @@ namespace AAEmu.Game.Core.Managers
             ////owner.Rot = new Quaternion(0f, 0f, spawner.RotationZ, 1f);
             //owner.Rot = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
 
-            owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
-            var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+            //owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
+            //var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+            owner.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
+            var quat = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
+            owner.SetPosition(owner.Position.X, owner.Position.Y, owner.Position.Z, 0, 0, owner.Position.RotationZ);
             owner.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
-
-
-            owner.Faction = new SystemFaction();
+            
+            //owner.Faction = new SystemFaction();
             //owner.Faction = FactionManager.Instance.GetFaction(1);
             owner.Patrol = null;
             // add effect
@@ -263,6 +237,7 @@ namespace AAEmu.Game.Core.Managers
             // create Carriage like a normal object.
             //owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
+            _moveTransfers.Add(owner.ObjId, owner);
 
             if (Carriage.TransferBindings.Count <= 0) { return owner; }
 
@@ -271,9 +246,10 @@ namespace AAEmu.Game.Core.Managers
             transfer.Name = boardingPart.Name;
             transfer.TlId = (ushort)TlIdManager.Instance.GetNextId();
             transfer.ObjId = ObjectIdManager.Instance.GetNextId();
-            transfer.OwnerId = 255;
+            transfer.OwnerId = (uint)DoodadOwnerType.System;
             transfer.Spawner = owner.Spawner;
             transfer.TemplateId = boardingPart.Id;
+            transfer.Id = boardingPart.Id;
             transfer.ModelId = boardingPart.ModelId;
             transfer.Template = boardingPart;
             transfer.Level = 1;
@@ -285,14 +261,15 @@ namespace AAEmu.Game.Core.Managers
             transfer.Position = spawner.Position.Clone();
             //transfer.Position.RotationZ = MathUtil.ConvertRadianToDirection(spawner.RotationZ);
             //transfer.Rot = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
-            transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
-            var quat2 = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+            transfer.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
+            var quat2 = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
+            transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, 0, 0, transfer.Position.RotationZ);
             transfer.Rot = new Quaternion(quat2.X, quat2.Z, quat2.Y, quat2.W);
 
             (transfer.Position.X, transfer.Position.Y) = MathUtil.AddDistanceToFront(-9.24417f, transfer.Position.X, transfer.Position.Y, transfer.Position.RotationZ);
             transfer.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, transfer.Position.X, transfer.Position.Y) : transfer.Position.Z;
 
-            transfer.Faction = new SystemFaction();
+            //transfer.Faction = new SystemFaction();
             transfer.Patrol = null;
             // add effect
             buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
@@ -302,7 +279,6 @@ namespace AAEmu.Game.Core.Managers
             //TODO  create a boardingPart and indicate that we attach to the Carriage object 
             transfer.Spawn();
             _activeTransfers.Add(transfer.ObjId, transfer);
-
 
             foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
             {

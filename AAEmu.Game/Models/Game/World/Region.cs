@@ -1,19 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Numerics;
 
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.Gimmicks;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.Units.Route;
-using AAEmu.Game.Utils;
 
 using NLog;
 
@@ -140,15 +134,15 @@ namespace AAEmu.Game.Models.Game.World
 
                                 if (npc.Patrol == null)
                                 {
-                                    npc.IsInBattle = false;
-                                    npc.Patrol = new Roaming { Interrupt = true, Loop = true, Abandon = false };
-                                    npc.Patrol.PausePosition = npc.Position.Clone(); // стартовая позиция
-                                    npc.Patrol.Interrupt = true; // можно прервать
-                                    npc.Patrol.Loop = true;      // повторять в цикле
-                                    npc.Patrol.Abandon = false;  // не прерванный
-                                    npc.Patrol.Pause(npc);
-                                    npc.Patrol.LastPatrol = null; // предыдущего патруля нет
-                                    npc.Patrol.Recovery(npc);     // запустим патруль
+                                    //npc.IsInBattle = false;
+                                    //npc.Patrol = new Roaming { Interrupt = true, Loop = true, Abandon = false };
+                                    //npc.Patrol.PausePosition = npc.Position.Clone(); // стартовая позиция
+                                    //npc.Patrol.Interrupt = true; // можно прервать
+                                    //npc.Patrol.Loop = true;      // повторять в цикле
+                                    //npc.Patrol.Abandon = false;  // не прерванный
+                                    //npc.Patrol.Pause(npc);
+                                    //npc.Patrol.LastPatrol = null; // предыдущего патруля нет
+                                    //npc.Patrol.Recovery(npc);     // запустим патруль
                                 }
                                 else
                                 {

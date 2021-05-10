@@ -18,8 +18,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
         public abstract bool OnActionTime { get; }
 
         public abstract void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
-            EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null);
+            CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null);
 
         public virtual void Start(Unit caster, BaseUnit owner, Buff buff)
         {

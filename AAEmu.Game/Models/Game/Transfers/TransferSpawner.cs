@@ -126,7 +126,7 @@ namespace AAEmu.Game.Models.Game.Transfers
                             //transfer.InPatrol = false;
 
                             transfer.GoToPath(transfer);
-                            TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);
+                            //TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);
                             //transfer.CheckWaitTime(transfer);
                         }
                         else

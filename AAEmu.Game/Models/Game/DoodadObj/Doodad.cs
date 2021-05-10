@@ -233,12 +233,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             stream.WriteBc(ObjId); //The object # in the list
             // TemplateId - The template id needed for that object, the client then uses the template configurations, not the server
-            // FuncGroupId - doodad_func_group_id
+            // CurrentPhaseId - doodad_func_group_id
             // QuestGlow - When this is higher than 0 it shows a blue orb over the doodad
             // added in 2.0
-            stream.WritePisc(TemplateId, FuncGroupId, CurrentPhaseId, QuestGlow); // TODO требуется проверка, что здесь посылать из данных
+            stream.WritePisc(TemplateId, CurrentPhaseId, 0, QuestGlow); // TODO требуется проверка, что здесь посылать из данных
             stream.Write(Flag);
-            // ----
             stream.WriteBc(OwnerObjId);  //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
@@ -256,7 +255,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 stream.Write(Helpers.ConvertRotation(Position.RotationY)); // short
                 stream.Write(Helpers.ConvertRotation(Position.RotationZ)); // short
             }
-
             stream.Write(Scale); // The size of the object
             stream.Write(false); // hasLootItem
             stream.Write(OwnerId); // characterId (Database relative)
