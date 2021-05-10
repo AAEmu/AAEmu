@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 var manaCost = character.SkillModifiersCache.ApplyModifiers(skill, SkillAttribute.ManaCost, value1 + value2);
                 character.ReduceCurrentMp(null, (int)manaCost);
                 
-                character.LastCast = DateTime.Now;
+                character.LastCast = DateTime.UtcNow;
                 character.IsInPostCast = true;
                 // TODO / 10
             }

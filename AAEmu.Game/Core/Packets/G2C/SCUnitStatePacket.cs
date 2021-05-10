@@ -92,7 +92,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write(slave.Id);         // Id
                     stream.Write(slave.TlId);       // tl
                     stream.Write(slave.TemplateId); // templateId
-                    stream.Write(slave.Summoner.ObjId); // ownerId
+                    stream.Write(slave.Summoner.Id); // ownerId
                     break;
                 case BaseUnitType.Housing:
                     var house = (House)_unit;
@@ -662,12 +662,12 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 if (!caster.Buffs.CheckBuff(8000011)) //TODO Wrong place
                 {
-                    caster.Buffs.AddBuff(new Buff(_unit, caster, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.Now));
+                    caster.Buffs.AddBuff(new Buff(_unit, caster, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000011), null, System.DateTime.UtcNow));
                 }
 
                 if (!caster.Buffs.CheckBuff(8000012)) //TODO Wrong place
                 {
-                    caster.Buffs.AddBuff(new Buff(_unit, caster, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.Now));
+                    caster.Buffs.AddBuff(new Buff(_unit, caster, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(8000012), null, System.DateTime.UtcNow));
                 }
             }
 

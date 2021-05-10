@@ -174,7 +174,7 @@ namespace AAEmu.Game.Core.Managers
                 Summoner = owner,
                 AttachedDoodads = new List<Doodad>(),
                 AttachedSlaves = new List<Slave>(),
-                SpawnTime = DateTime.Now
+                SpawnTime = DateTime.UtcNow
             };
             template.Spawn();
             
@@ -189,7 +189,7 @@ namespace AAEmu.Game.Core.Managers
                     ParentObjId = template.ObjId,
                     AttachPoint = (byte)doodadBinding.AttachPointId,
                     OwnerId = owner.Id,
-                    PlantTime = DateTime.Now,
+                    PlantTime = DateTime.UtcNow,
                     OwnerType = DoodadOwnerType.Slave,
                     DbHouseId = template.Id,
                     Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
@@ -247,7 +247,7 @@ namespace AAEmu.Game.Core.Managers
                     Summoner = owner,
                     AttachedDoodads = new List<Doodad>(),
                     AttachedSlaves = new List<Slave>(),
-                    SpawnTime = DateTime.Now,
+                    SpawnTime = DateTime.UtcNow,
                     AttachPointId = (sbyte) slaveBinding.AttachPointId,
                     OwnerObjId = template.ObjId
                 };

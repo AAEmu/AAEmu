@@ -89,7 +89,7 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.Time = Seq;    // has to change all the time for normal motion.
 
                 character.SendMessage("[nloc] New position {0} {1} {2}", character.CurrentTarget.Position.X, character.CurrentTarget.Position.Y, character.CurrentTarget.Position.Z);
-                character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
+// TODO remove                character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
             }
             else
                 character.SendMessage("[nloc] You need to target something first");

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -46,17 +46,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 Y = lodestone.Position.Y,
                 Z = lodestone.Position.Z,
                 TaxRate = 50,
-                ReignStartTime = DateTime.Now,
+                ReignStartTime = DateTime.UtcNow,
                 ExpeditionId = caster.Expedition.Id,
                 CurHouseTaxMoney = 500000,
                 CurHuntTaxMoney = 9000,
                 PeaceTaxMoney = 300000,
                 CurHouseTaxAaPoint = 0,
                 PeaceTaxAaPoint = 0,
-                LastPaidTime = DateTime.Now,
-                LastSiegeEndTime = DateTime.Now,
-                LastTaxRateChangedTime = DateTime.Now,
-                LastNationalTaxRateChagedTime = DateTime.Now,
+                LastPaidTime = DateTime.UtcNow,
+                LastSiegeEndTime = DateTime.UtcNow,
+                LastTaxRateChangedTime = DateTime.UtcNow,
+                LastNationalTaxRateChagedTime = DateTime.UtcNow,
                 NationalTaxRate = 500,
                 NationalMonumentDbId = 0,
                 NationalMonumentX = 0,
@@ -106,7 +106,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                     }
                 },
                 NonPvPDuration = 0,
-                NonPvPStart = DateTime.Now,
+                NonPvPStart = DateTime.UtcNow,
                 ZoneId = (ushort) ZoneManager.Instance.GetZoneByKey(lodestone.Position.ZoneId).GroupId,
                 ObjId = 0
             };

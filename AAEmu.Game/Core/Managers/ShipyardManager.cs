@@ -57,7 +57,7 @@ namespace AAEmu.Game.Core.Managers
                 OwnerName = owner.Name,
                 Type2 = type2,
                 Type3 = type3,
-                Spawned = DateTime.Now,
+                Spawned = DateTime.UtcNow,
                 ObjId = objId,
                 Hp = template.ShipyardSteps[step].MaxHp * 100,
                 Step = step

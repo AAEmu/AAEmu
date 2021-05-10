@@ -35,66 +35,72 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, Transfer> _activeTransfers;
         private Dictionary<uint, Transfer> _moveTransfers;
         private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
-        public Thread thread { get; set; }
+        public Thread threadTransfer { get; set; }
+        public Thread threadTelescope { get; set; }
         private bool ThreadRunning = true;
-
+        private bool once { get; set; }
         public void Initialize()
         {
-            thread = new Thread(TransferThread);
-            thread.Start();
+            threadTransfer = new Thread(TransferThread);
+            threadTransfer.Start();
+
+            // TODO think about where to move the code
+            threadTelescope = new Thread(TransferTelescopeThread);
+            threadTelescope.Start();
         }
+
+        public List<(uint, MoveType)> Movements { get; set; }
 
         private void TransferThread()
         {
-            while (Thread.CurrentThread.IsAlive)
+            while (ThreadRunning && Thread.CurrentThread.IsAlive)
             {
                 Thread.Sleep(100);
                 var activeTransfers = Instance.GetMoveTransfers();
+                Instance.Movements = new List<(uint, MoveType)>();
                 foreach (var transfer in activeTransfers)
                 {
-                    //TransfersTick(transfer);
                     transfer.MoveTo();
+                }
+                foreach (var transfer in activeTransfers)
+                {
+                    if (Movements == null || Movements.Count <= 0) { break; }
+                    transfer.BroadcastPacket(new SCUnitMovementsPacket(Movements.ToArray()), true);
                 }
             }
         }
-
-        private void TransfersTick(Transfer transfer)
+        private void TransferTelescopeThread()
         {
-            if (transfer.TimeLeft > 0) { return; } // Пауза в начале/конце пути и на остановках
+            while (ThreadRunning && Thread.CurrentThread.IsAlive)
+            {
+                Thread.Sleep(500);
+                var activeTransfers = Instance.GetMoveTransfers();
+                TransferTelescopeTick(activeTransfers);
+            }
+        }
 
-            var moveType = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
-            moveType.UseTransferBase(transfer);
-            var velAccel = 2.0f; //per s
-            var maxVelForward = 9.5f; //per s
-            var maxVelBackward = -5.0f;
+        private void TransferTelescopeTick(Transfer[] transfers)
+        {
+            const int MaxCount = 10;
+            if (transfers.Length == 0) { return; }
+            //if (!once)
+            //{
+            //    transfers[2].BroadcastPacket(new SCTransferTelescopeToggledPacket(true, 1000f), true);
+            //    once = true;
+            //}
 
-            transfer.Speed += (transfer.Throttle * 0.00787401575f) * (velAccel / 20f);
-            transfer.Speed = Math.Min(transfer.Speed, maxVelForward);
-            transfer.Speed = Math.Max(transfer.Speed, maxVelBackward);
-
-            transfer.RotSpeed += (transfer.Steering * 0.00787401575f) * (velAccel / 20f);
-            transfer.RotSpeed = Math.Min(transfer.RotSpeed, 1);
-            transfer.RotSpeed = Math.Max(transfer.RotSpeed, -1);
-
-            if (transfer.Steering == 0)
-                transfer.RotSpeed -= (transfer.RotSpeed / 20);
-            if (transfer.Throttle == 0) // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
-                transfer.Speed -= (transfer.Speed / 45);
-
-            //var slaveRotRad = ypr.Item1 + (90 * (Math.PI / 180.0f));
-            //var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(ypr.Item3, ypr.Item2, ypr.Item1);
-            var vPosition = new Vector3();
-            var vTarget = new Vector3();
-            var Angle = MathUtil.CalculateDirection(vPosition, vTarget);
-            var quat = MathUtil.ConvertRadianToDirectionShort(Angle);
-            moveType.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
-
-            //moveType.RotationX = rotX;
-            //moveType.RotationY = rotY;
-            //moveType.RotationZ = rotZ;
-
-            transfer.BroadcastPacket(new SCOneUnitMovementPacket(transfer.ObjId, moveType), false);
-            // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
+            for (var i = 0; i < transfers.Length; i += MaxCount)
+            {
+                if (i == 0)
+                {
+                    transfers[2].BroadcastPacket(new SCTransferTelescopeToggledPacket(true, 1000f), true);
+                }
+                
+                var last = transfers.Length - i <= MaxCount;
+                var temp = new Transfer[last ? transfers.Length - i : MaxCount];
+                Array.Copy(transfers, i, temp, 0, temp.Length);
+                transfers[2].BroadcastPacket(new SCTransferTelescopeUnitsPacket(last, temp), true);
+            }
         }
 
         public bool Exist(uint templateId)
@@ -252,7 +258,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Patrol = null;
             // add effect
             var buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
-            owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, System.DateTime.Now));
+            owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, System.DateTime.UtcNow));
 
             // create Carriage like a normal object.
             //owner.Spawn();
@@ -290,7 +296,7 @@ namespace AAEmu.Game.Core.Managers
             transfer.Patrol = null;
             // add effect
             buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
-            transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, System.DateTime.Now));
+            transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, System.DateTime.UtcNow));
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
             //TODO  create a boardingPart and indicate that we attach to the Carriage object 
@@ -354,10 +360,10 @@ namespace AAEmu.Game.Core.Managers
                             var template = new TransferTemplate();
 
                             template.Id = reader.GetUInt32("id"); // OwnerId
-                            template.Name = LocalizationManager.Instance.Get("transfer", "comment", reader.GetUInt32("id"));
+                            template.Name = LocalizationManager.Instance.Get("transfers", "comment", reader.GetUInt32("id"), reader.GetString("comment"));
                             template.ModelId = reader.GetUInt32("model_id");
                             template.WaitTime = reader.GetFloat("wait_time");
-                            template.Cyclic = reader.GetBoolean("cyclic");
+                            template.Cyclic = reader.GetBoolean("cyclic", true);
                             template.PathSmoothing = reader.GetFloat("path_smoothing");
 
                             _templates.Add(template.Id, template);

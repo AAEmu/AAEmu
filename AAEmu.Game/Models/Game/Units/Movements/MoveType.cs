@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
         public sbyte RotationX { get; set; }
         public sbyte RotationY { get; set; }
         public sbyte RotationZ { get; set; }
-        public UnitMoveType actorFlags { get; set; } // 5-walk, 4-run, 3-stand still и ещё предположительно мы : 32-на корабле, 36-на дилижансе
+        public byte ExtraFlags { get; set; }
 
         public override void Read(PacketStream stream)
         {

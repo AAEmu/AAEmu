@@ -24,6 +24,6 @@ CREATE TABLE `auction_house` (
   `type_3` int(11) NOT NULL,
   `bidder_name` varchar(45) NOT NULL,
   `bid_money` int(11) NOT NULL,
-  `extra` int(11) NOT NULL,
+  `extra` bigint(20) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;

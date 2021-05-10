@@ -126,6 +126,10 @@ namespace AAEmu.Game
             TransferManager.Instance.Initialize();
             GimmickManager.Instance.Initialize();
             SlaveManager.Instance.Initialize();
+
+            NpcManager.Instance.Initialize();
+
+            
             GameDataManager.Instance.PostLoadGameData();
             #endregion
             stopWatch.Stop();

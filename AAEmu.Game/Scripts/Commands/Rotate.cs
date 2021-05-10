@@ -75,7 +75,7 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.Alertness = 0; //idle=0, combat=2
                 moveType.Time = Seq;    // has to change all the time for normal motion.
 
-                character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
+// TODO remove                character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
             }
             else
                 character.SendMessage("[Rotate] You need to target something first");

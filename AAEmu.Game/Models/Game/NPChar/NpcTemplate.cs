@@ -2,6 +2,7 @@
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 
 namespace AAEmu.Game.Models.Game.NPChar
 {

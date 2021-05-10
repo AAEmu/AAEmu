@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills
             // owner.Modifiers.AddModifiers(Template.BuffId);
             var template = SkillManager.Instance.GetBuffTemplate(Template.BuffId);
             var newEffect =
-                new Buff(owner, owner, new SkillCasterUnit(), template, null, DateTime.Now)
+                new Buff(owner, owner, new SkillCasterUnit(), template, null, DateTime.UtcNow)
                 {
                     Passive = true
                 };

@@ -169,12 +169,12 @@ namespace AAEmu.Game.Models.Game.Transfers
             _spawned.Remove(transfer);
             if (RespawnTime > 0 && (_spawnCount + _scheduledCount) < Count)
             {
-                transfer.Respawn = DateTime.Now.AddSeconds(RespawnTime);
+                transfer.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
                 SpawnManager.Instance.AddRespawn(transfer);
                 _scheduledCount++;
             }
 
-            transfer.Despawn = DateTime.Now.AddSeconds(DespawnTime);
+            transfer.Despawn = DateTime.UtcNow.AddSeconds(DespawnTime);
             SpawnManager.Instance.AddDespawn(transfer);
         }
     }

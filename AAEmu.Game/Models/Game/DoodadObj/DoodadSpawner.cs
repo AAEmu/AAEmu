@@ -83,7 +83,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             if (RespawnTime > 0)
             {
-                doodad.Respawn = DateTime.Now.AddSeconds(RespawnTime);
+                doodad.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
                 SpawnManager.Instance.AddRespawn(doodad);
             }
             else

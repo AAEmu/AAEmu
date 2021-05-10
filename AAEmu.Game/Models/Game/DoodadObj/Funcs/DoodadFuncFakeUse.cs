@@ -53,6 +53,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //
                 // var fakeSkill = new Skill(SkillManager.Instance.GetSkillTemplate(FakeSkillId));
                 // fakeSkill.Use(caster, skillCaster, target);    
+                if (FakeSkillId == 20580)
+                {
+                    owner.BroadcastPacket(new SCTransferTelescopeToggledPacket(true, 1000f), true);
+                    owner.GoToPhaseAndUse(caster, nextPhase, skillId);
+                }
                 if (FakeSkillId == skillId)
                     owner.GoToPhaseAndUse(caster, nextPhase, skillId);
             }

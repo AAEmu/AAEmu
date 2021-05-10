@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             //_log.Debug("ShowEndTime " + ShowEndTime);
             //_log.Debug("Tip " + Tip);
 
-            owner.GrowthTime = DateTime.Now.AddMilliseconds(Delay + 1); // TODO need here
+            owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(Delay + 1); // TODO need here
 
             if (NextPhase > 0)
             {

@@ -1,0 +1,44 @@
+[
+  {
+    "Count": 1,
+    "Id": 1,
+    "UnitId": 502,
+    "Position": {
+      "X": 23039.76,
+      "Y": 11540.64,
+      "Z": 252.7,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -13
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 23506,
+    "UnitId": 3492,
+    "Position": {
+      "X": 15499.241,
+      "Y": 15253.628,
+      "Z": 133.1114,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 23507,
+    "UnitId": 3492,
+    "Position": {
+      "X": 15498.241,
+      "Y": 15252.628,
+      "Z": 133.1114,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 0
+    },
+    "Scale": 0.0
+  }
+]

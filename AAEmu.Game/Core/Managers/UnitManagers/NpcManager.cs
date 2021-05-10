@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -11,6 +12,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -26,6 +28,37 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         private Dictionary<uint, List<uint>> _tccLookup;
         // you can provide a seed here if you want NPCs to more reliable retain their appearance between reboots, or leave out the seed to get it random every time
         private Random _loadCustomRandom = new Random(223748);
+        public Thread threadMovement { get; set; }
+        private bool ThreadRunning = true;
+        public List<(uint, MoveType)> Movements { get; set; }
+
+        public void Initialize()
+        {
+            //threadMovement = new Thread(TransferThread);
+            //threadMovement.Start();
+
+            Movements = new List<(uint, MoveType)>();
+        }
+        private void TransferThread()
+        {
+            while (Thread.CurrentThread.IsAlive)
+            {
+                //Thread.Sleep(100);
+                //var activeTransfers = Instance.GetMoveTransfers();
+                //foreach (var transfer in activeTransfers)
+                //{
+                //    transfer.MoveTo();
+                //}
+            }
+        }
+        internal void Stop()
+        {
+            ThreadRunning = false;
+        }
+        //public Transfer[] GetMoveTransfers()
+        //{
+        //    return _moveTransfers.Values.ToArray();
+        //}
 
         public bool Exist(uint templateId)
         {
@@ -107,7 +140,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 var obj = new SkillCasterUnit(npc.ObjId);
-                buff.Apply(npc, obj, npc, null, null, new EffectSource(), null, DateTime.Now);
+                buff.Apply(npc, obj, npc, null, null, new EffectSource(), null, DateTime.UtcNow);
             }
 
             foreach (var bonusTemplate in template.Bonuses)

@@ -243,7 +243,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                 var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
                 var targetObj = new SkillCastUnitTarget(owner.ObjId);
                 var skillObj = new SkillObject(); // TODO ?
-                eff.Apply(caster, buff.SkillCaster, owner, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
+                eff.Apply(caster, buff.SkillCaster, owner, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
             }
         }
 
@@ -288,7 +288,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                         continue;
 
                     var targetObj = new SkillCastUnitTarget(trg.ObjId);
-                    eff.Apply((Unit)source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.Now);
+                    eff.Apply((Unit)source, buff.SkillCaster, trg, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
                 }
             }
         }

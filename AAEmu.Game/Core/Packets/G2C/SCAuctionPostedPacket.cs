@@ -29,13 +29,13 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(item.DetailType);
             #endregion ItemDetail
 
-            stream.Write(DateTime.Now); // creationTime
+            stream.Write(DateTime.UtcNow); // creationTime
             stream.Write(item.LifespanMins);
             stream.Write(item.Type1);
             stream.Write(item.WorldId);
-            stream.Write(DateTime.Now); // unsecureDateTime
-            stream.Write(DateTime.Now); // unpackDateTime
-            stream.Write(DateTime.Now); // chargeUseSkillTime
+            stream.Write(DateTime.UtcNow); // unsecureDateTime
+            stream.Write(DateTime.UtcNow); // unpackDateTime
+            stream.Write(DateTime.UtcNow); // chargeUseSkillTime
             #endregion Item
             
             stream.Write(item.WorldId2);

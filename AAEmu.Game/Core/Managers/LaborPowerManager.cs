@@ -56,13 +56,13 @@ namespace AAEmu.Game.Core.Managers
                     if (change >= LpChange)
                     {
                         _log.Warn("Added {0} Labor Point for Char: {1}", LpChange, character.Value.Name);
-                        character.Value.LaborPowerModified = DateTime.Now;
+                        character.Value.LaborPowerModified = DateTime.UtcNow;
                         character.Value.ChangeLabor(LpChange, 0);
                     }
                     else if (change != 0)
                     {
                         _log.Warn("Added {0} Labor Point for Char: {1}", change, character.Value.Name);
-                        character.Value.LaborPowerModified = DateTime.Now;
+                        character.Value.LaborPowerModified = DateTime.UtcNow;
                         character.Value.ChangeLabor(change, 0);
                     }
                 }

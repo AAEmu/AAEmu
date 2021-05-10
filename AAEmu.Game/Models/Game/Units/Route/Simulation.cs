@@ -432,7 +432,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             if (move)
             {
                 // moving to the point #
-                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+// TODO remove                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 RepeatMove(sim, npc, TargetX, TargetY, TargetZ);
             }
             else
@@ -478,7 +478,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = Seq;    // has to change all the time for normal motion.
-            npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+// TODO remove            npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
             MoveToPathEnabled = false;
         }
         public void PauseMove(Npc npc)
@@ -502,7 +502,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Stance = 1;     // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 0;  // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
             moveType.Time = Seq;    // has to change all the time for normal motion.
-            npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+// TODO remove            npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
         }
 
         public void OnMove(Npc npc)

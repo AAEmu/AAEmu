@@ -334,7 +334,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     var casterObj = new Models.Game.Skills.SkillCasterUnit(house.ObjId);
                     house.Buffs.AddBuff(new Models.Game.Skills.Buff(house, house, casterObj,
-                        protectionBuffTemplate, null, System.DateTime.Now));
+                        protectionBuffTemplate, null, System.DateTime.UtcNow));
                 }
                 else
                 {
@@ -361,7 +361,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         var casterObj = new Models.Game.Skills.SkillCasterUnit(house.ObjId);
                         house.Buffs.AddBuff(new Models.Game.Skills.Buff(house, house, casterObj,
-                            protectionBuffTemplate, null, System.DateTime.Now));
+                            protectionBuffTemplate, null, System.DateTime.UtcNow));
                     }
                     else
                     {
@@ -649,7 +649,7 @@ namespace AAEmu.Game.Core.Managers
             // TODO: not sure how to handle this, just insta-delete it for now
             house.Delete();
             // TODO: Add to despawn handler
-            //house.Despawn = DateTime.Now.AddSeconds(20);
+            //house.Despawn = DateTime.UtcNow.AddSeconds(20);
             //SpawnManager.Instance.AddDespawn(house);
         }
 

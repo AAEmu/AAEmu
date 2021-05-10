@@ -84,12 +84,12 @@ namespace AAEmu.Game.Models.Game.NPChar
             _spawned.Remove(npc);
             if (RespawnTime > 0 && (_spawnCount + _scheduledCount) < Count)
             {
-                npc.Respawn = DateTime.Now.AddSeconds(RespawnTime);
+                npc.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
                 SpawnManager.Instance.AddRespawn(npc);
                 _scheduledCount++;
             }
 
-            npc.Despawn = DateTime.Now.AddSeconds(DespawnTime);
+            npc.Despawn = DateTime.UtcNow.AddSeconds(DespawnTime);
             SpawnManager.Instance.AddDespawn(npc);
         }
     }

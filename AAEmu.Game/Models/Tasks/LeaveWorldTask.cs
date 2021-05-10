@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Tasks
             {
                 _connection.ActiveChar.DisabledSetPosition = true;
                 _connection.ActiveChar.IsOnline = false;
-                _connection.ActiveChar.LeaveTime = DateTime.Now;
+                _connection.ActiveChar.LeaveTime = DateTime.UtcNow;
 
                 // Handle mount stuff
                 var activeMate = MateManager.Instance.GetActiveMate(_connection.ActiveChar.ObjId);

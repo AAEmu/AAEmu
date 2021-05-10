@@ -78,7 +78,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         {
             if (RespawnTime > 0)
             {
-                gimmick.Respawn = DateTime.Now.AddSeconds(RespawnTime);
+                gimmick.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
                 SpawnManager.Instance.AddRespawn(gimmick);
             }
             else

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Items.Procs
 
         public bool Apply(Unit owner, bool ignoreRoll = false)
         {
-            if (DateTime.Now < LastProc.AddSeconds(Template.CooldownSec))
+            if (DateTime.UtcNow < LastProc.AddSeconds(Template.CooldownSec))
                 return false;
             
             if (ignoreRoll || Rand.Next(0, 100) > Template.ChanceRate)

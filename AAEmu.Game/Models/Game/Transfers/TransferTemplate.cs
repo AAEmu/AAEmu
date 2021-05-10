@@ -11,11 +11,11 @@ namespace AAEmu.Game.Models.Game.Transfers
         public bool Cyclic { get; set; }
         public float PathSmoothing { get; set; }
         public List<TransferBindings> TransferBindings { get; }            // selection by owner_id
-        public List<TransferPaths> TransferAllPaths { get; }               // selection by owner_id, здесь список всех участков дорог
-        public List<TransferRoads> TransferRoads { get; }                   // здесь список участков дороги для конкретной модели транспорта
+        public List<TransferPaths> TransferAllPaths { get; }               // selection by owner_id, here is a list of all road sections
+        public List<TransferRoads> TransferRoads { get; }                   // here is a list of road sections for a specific transport model
         public List<TransferBindingDoodads> TransferBindingDoodads { get; } // selection by owner_id
         //                  v--TemplateId
-        //public Dictionary<uint, List<TransferRoads>> TransferAllRoads { get; }  // непосредственно список точек всех путей
+        //public Dictionary<uint, List<TransferRoads>> TransferAllRoads { get; }  // directly list the points of all paths
 
         public TransferTemplate()
         {

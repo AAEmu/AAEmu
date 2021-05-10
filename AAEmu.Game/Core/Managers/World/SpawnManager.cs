@@ -220,7 +220,7 @@ namespace AAEmu.Game.Core.Managers.World
 
             var res = new HashSet<GameObject>();
             foreach (var npc in temp)
-                if (npc.Respawn <= DateTime.Now)
+                if (npc.Respawn <= DateTime.UtcNow)
                     res.Add(npc);
             return res;
         }
@@ -235,7 +235,7 @@ namespace AAEmu.Game.Core.Managers.World
 
             var res = new HashSet<GameObject>();
             foreach (var item in temp)
-                if (item.Despawn <= DateTime.Now)
+                if (item.Despawn <= DateTime.UtcNow)
                     res.Add(item);
             return res;
         }
@@ -249,7 +249,7 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     foreach (var obj in respawns)
                     {
-                        if (obj.Respawn >= DateTime.Now)
+                        if (obj.Respawn >= DateTime.UtcNow)
                             continue;
                         if (obj is Npc npc)
                             npc.Spawner.Respawn(npc);
@@ -268,7 +268,7 @@ namespace AAEmu.Game.Core.Managers.World
                 {
                     foreach (var obj in despawns)
                     {
-                        if (obj.Despawn >= DateTime.Now)
+                        if (obj.Despawn >= DateTime.UtcNow)
                             continue;
                         if (obj is Npc npc && npc.Spawner != null)
                             npc.Spawner.Despawn(npc);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using ThreadTask = System.Threading.Tasks.Task;
@@ -67,7 +67,7 @@ namespace AAEmu.Game.Core.Managers
             if (startTime == null)
                 triggerBuild.StartNow();
             else
-                triggerBuild.StartAt(DateTime.Now.Add((TimeSpan) startTime));
+                triggerBuild.StartAt(DateTime.UtcNow.Add((TimeSpan) startTime));
 
             if (task.Scheduler == null)
             {

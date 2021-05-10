@@ -285,7 +285,7 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     character2.StopAutoSkill(character2);
                     character2.IsInBattle = false; // we need the character to be "not in battle"
-                    character2.DeadTime = DateTime.Now;
+                    character2.DeadTime = DateTime.UtcNow;
                 }
 
                 killer.CurrentTarget = null;
@@ -339,7 +339,7 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.RETRIBUTION_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
-                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
+                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow));
             }
             else
             {
@@ -354,7 +354,7 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.BLOODLUST_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
-                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
+                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow));
             }
             else
             {

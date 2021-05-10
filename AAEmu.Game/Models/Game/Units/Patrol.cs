@@ -1,8 +1,11 @@
 ﻿using System;
-
+using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.UnitMove;
@@ -69,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// 暂停巡航点
         /// Suspension of cruise points
         /// </summary>
-        protected Point PausePosition { get; set; }
+        public Point PausePosition { get; set; }
 
         /// <summary>
         /// 上次任务
@@ -83,7 +86,6 @@ namespace AAEmu.Game.Models.Game.Units
         public bool Abandon { get; set; } = false;
         public const float tolerance = 0.5f;
 
-
         /// <summary>
         /// 执行巡逻任务
         /// Perform patrol missions
@@ -93,7 +95,8 @@ namespace AAEmu.Game.Models.Game.Units
         {
             //如果NPC不存在或不处于巡航模式或者当前执行次数不为0
             //If NPC does not exist or is not in cruise mode or the current number of executions is not zero
-            if (npc.Patrol == null || (npc.Patrol.Running == false && this != npc.Patrol) || (npc.Patrol.Running == true && this == npc.Patrol))
+            if (npc.Patrol == null || (npc.Patrol.Running == false && this != npc.Patrol) ||
+                (npc.Patrol.Running == true && this == npc.Patrol))
             {
                 //如果上次巡航模式处于暂停状态则保存上次巡航模式
                 //If the last cruise mode is suspended, save the last cruise mode
@@ -101,11 +104,20 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     LastPatrol = npc.Patrol;
                 }
+
                 ++Count;
-                Seq += 50;
+                Seq += 100;
                 Running = true;
                 npc.Patrol = this;
+
+                //NpcManager.Instance.Movements = new List<(uint, MoveType)>();
+                
                 Execute(npc);
+
+                //if (NpcManager.Instance.Movements?.Count > 0)
+                //{
+                //    npc.BroadcastPacket(new SCUnitMovementsPacket(NpcManager.Instance.Movements.ToArray()), true);
+                //}
             }
         }
 

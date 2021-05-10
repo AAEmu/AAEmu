@@ -96,13 +96,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             //Not sure if we should put htis here or world
             foreach (var character in WorldManager.Instance.GetAllCharacters())
             {
-                if (character.IsInCombat && character.LastCombatActivity.AddSeconds(30) < DateTime.Now)
+                if (character.IsInCombat && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
                 {
                     character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
                     character.IsInCombat = false;
                 }
 
-                if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.Now)
+                if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
                 {
                     character.IsInPostCast = false;
                 }

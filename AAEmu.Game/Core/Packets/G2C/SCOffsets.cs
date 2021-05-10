@@ -172,8 +172,8 @@
         public const ushort SCSiegeAlertPacket = 0x227;
         public const ushort SCConflictZoneStatePacket = 0x13c;
         public const ushort SCConflictZoneHonorPointSumPacket = 0x124;
-        public const ushort SCTimeOfDayPacket = 0x12e;
-        public const ushort SCUnknownPacket_0x052 = 0x052;
+        public const ushort SCFestivalZoneStatePacket = 0x12e;
+        public const ushort SCTimeOfDayPacket = 0x052;
         public const ushort SCDetailedTimeOfDayPacket = 0x0f2;
         public const ushort SCNpcInteractionSkillListPacket = 0x173;
         public const ushort SCNpcInteractionEndedByZonePacket = 0x106;

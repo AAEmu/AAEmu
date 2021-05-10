@@ -44,7 +44,7 @@ namespace AAEmu.Game.Scripts.Commands
                             conflict.ZoneGroupId,
                             ZoneConflictType.Trouble0,
                             conflict.NoKillMin[0] > 0
-                                ? DateTime.Now.AddMinutes(conflict.NoKillMin[0])
+                                ? DateTime.UtcNow.AddMinutes(conflict.NoKillMin[0])
                                 : DateTime.MinValue
                         )
                     );

@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             AngVelY = 0;
             AngVelZ = 0;
             ZoneId = (ushort) slave.Position.ZoneId;
-            Time = (uint)(DateTime.Now - slave.SpawnTime).TotalMilliseconds;
+            Time = (uint)(DateTime.UtcNow - slave.SpawnTime).TotalMilliseconds;
             Stuck = false;
             Throttle = slave.ThrottleRequest;
             Steering = slave.SteeringRequest;

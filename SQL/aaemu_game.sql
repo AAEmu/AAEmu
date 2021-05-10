@@ -92,7 +92,7 @@ CREATE TABLE `auction_house`  (
   `bidder_id` int(11) NOT NULL,
   `bidder_name` varchar(45) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `bid_money` int(11) NOT NULL,
-  `extra` int(11) NOT NULL,
+  `extra` bigint(20) NOT NULL,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 

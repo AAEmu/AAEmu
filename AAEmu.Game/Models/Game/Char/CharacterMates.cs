@@ -54,8 +54,8 @@ namespace AAEmu.Game.Models.Game.Char
                 Xp = ExpirienceManager.Instance.GetExpForLevel(50, true),
                 Hp = 9999,
                 Mp = 9999,
-                UpdatedAt = DateTime.Now,
-                CreatedAt = DateTime.Now
+                UpdatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
             };
             _mates.Add(template.ItemId, template);
             return template;
@@ -128,7 +128,7 @@ namespace AAEmu.Game.Models.Game.Char
                     mateDbInfo.Xp = mateInfo.Exp;
                     mateDbInfo.Mileage = mateInfo.Mileage;
                     mateDbInfo.Name = mateInfo.Name;
-                    mateDbInfo.UpdatedAt = DateTime.Now;
+                    mateDbInfo.UpdatedAt = DateTime.UtcNow;
                 }
             }
 

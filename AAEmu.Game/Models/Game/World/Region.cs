@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
@@ -10,7 +11,9 @@ using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Utils;
 
 using NLog;
 
@@ -116,27 +119,45 @@ namespace AAEmu.Game.Models.Game.World
                 var units = GetList(new List<Unit>(), obj.ObjId);
                 foreach (var t in units)
                 {
-                    switch (t)
+                    if (t is Npc npc)
                     {
-                        case Npc npc:
-                            npc.AddVisibleObject(character);
-                            break;
-                        case House house:
-                            house.AddVisibleObject(character);
-                            break;
-                        case Slave slave:
-                            slave.AddVisibleObject(character);
-                            break;
-                        case Gimmick gimmick:
-                            gimmick.AddVisibleObject(character);
-                            break;
-                        case Transfer transfer:
-                            transfer.AddVisibleObject(character);
-                            break;
-                        default:
-                            character.SendPacket(new SCUnitStatePacket(t));
-                            break;
+                        // Monstrosity & Hostile & Fish
+                        if (npc.Faction.Id == 115 || npc.Faction.Id == 3 || npc.Faction.Id == 172)
+                        {
+                            if (npc.Template.AiFileId == (int)AiFilesType.Roaming ||
+                                     npc.Template.AiFileId == (int)AiFilesType.BigMonsterRoaming ||
+                                     npc.Template.AiFileId == (int)AiFilesType.ArcherRoaming ||
+                                     npc.Template.AiFileId == (int)AiFilesType.WildBoarRoaming
+                                     || npc.TemplateId == 4200
+                                     )
+                            {
+                                // Npc roams around the spawn point in random directions
+                                if (npc.CurrentTarget != null)
+                                {
+                                    character.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, 0), true);
+                                    npc.CurrentTarget = null;
+                                }
+
+                                if (npc.Patrol == null)
+                                {
+                                    npc.IsInBattle = false;
+                                    npc.Patrol = new Roaming { Interrupt = true, Loop = true, Abandon = false };
+                                    npc.Patrol.PausePosition = npc.Position.Clone(); // стартовая позиция
+                                    npc.Patrol.Interrupt = true; // можно прервать
+                                    npc.Patrol.Loop = true;      // повторять в цикле
+                                    npc.Patrol.Abandon = false;  // не прерванный
+                                    npc.Patrol.Pause(npc);
+                                    npc.Patrol.LastPatrol = null; // предыдущего патруля нет
+                                    npc.Patrol.Recovery(npc);     // запустим патруль
+                                }
+                                else
+                                {
+                                    npc.Patrol.Recovery(npc);
+                                }
+                            }
+                        }
                     }
+                    t.AddVisibleObject(character);
                 }
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
                 for (var i = 0; i < doodads.Length; i += 30)

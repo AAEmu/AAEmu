@@ -67,7 +67,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if(buffTemplate != null)
             {
-                var effect = new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now);
+                var effect = new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow);
                 Buffs.AddBuff(effect);
             }
 
@@ -117,7 +117,7 @@ namespace AAEmu.Game.Models.Game.Char
                             var buffTemplate = SkillManager.Instance.GetBuffTemplate(bonus.BuffId);
 
                             var newEffect =
-                                new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now)
+                                new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow)
                                 {
                                     AbLevel = itemLevels[setCount.Key]
                                 };
@@ -201,7 +201,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
                 
                 if (templ != null)
-                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.Now));
+                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
             }
             else
             {
@@ -220,7 +220,7 @@ namespace AAEmu.Game.Models.Game.Char
                 }
                 
                 if (templ != null)
-                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.Now));
+                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
             }
 
             // Get only pieces >= arcane
@@ -244,7 +244,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(armorGradeBuff.BuffId);
 
                 var newEffect =
-                    new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
+                    new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                     {
                         AbLevel = (uint)gradeBuffAbLevel
                     };

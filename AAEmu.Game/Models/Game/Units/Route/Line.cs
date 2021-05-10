@@ -146,7 +146,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 // 广播移动状态
                 // broadcast mobile status
-                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+// TODO remove                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 LoopDelay = 500;
                 Repeat(npc);
             }
@@ -155,7 +155,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 // 停止移动
                 // stop moving
                 moveType.DeltaMovement[1] = 0;
-                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+// TODO remove                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 LoopAuto(npc);
             }
         }

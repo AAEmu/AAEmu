@@ -45,7 +45,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void PhysicsThread()
         {
-            while (Thread.CurrentThread.IsAlive)
+            while (ThreadRunning && Thread.CurrentThread.IsAlive)
             {
                 Thread.Sleep(1000 / 60);
                 _physWorld.Step(1 / 60.0f, false);
@@ -53,7 +53,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                 foreach (var slave in SlaveManager.Instance.GetActiveSlavesByKinds(new[] {SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat}))
                 {
-                    if (slave.SpawnTime.AddSeconds(8) > DateTime.Now)
+                    if (slave.SpawnTime.AddSeconds(8) > DateTime.UtcNow)
                         continue;
 
                     var slaveRigidBody = slave.RigidBody;
@@ -140,7 +140,7 @@ namespace AAEmu.Game.Core.Managers.World
             moveType.RotationX = rotX;
             moveType.RotationY = rotY;
             moveType.RotationZ = rotZ;
-            slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
+// TODO remove            slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
             // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
         }
         

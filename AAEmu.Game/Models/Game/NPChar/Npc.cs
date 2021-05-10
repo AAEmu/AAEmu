@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -8,8 +9,12 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.UnitMove;
+using AAEmu.Game.Utils;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -742,5 +747,96 @@ namespace AAEmu.Game.Models.Game.NPChar
                 TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
             }
         }
+        
+        //public void MoveTowards(Point other, float distance, byte flags = 4)
+        //{
+        //    if (ActiveSkillController != null && ActiveSkillController.State != SCState.Ended)
+        //        return;
+
+        //    var targetDist = MathUtil.CalculateDistance(Position, other);
+        //    if (targetDist <= 0.01f)
+        //        return;
+        //    var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+
+        //    var travelDist = Math.Min(targetDist, distance);
+
+        //    var distRatio = travelDist / targetDist;
+        //    Position.X = ((other.X - Position.X) * distRatio) + Position.X;
+        //    Position.Y = ((other.Y - Position.Y) * distRatio) + Position.Y;
+
+        //    if (IsInWater)
+        //    {
+        //        Position.Z = Math.Min(((other.Z - Position.Z) * distRatio) + Position.Z, 100f);
+        //        if (AppConfiguration.Instance.HeightMapsEnable)
+        //            Position.Z = Math.Max(Position.Z, WorldManager.Instance.GetHeight(Position.ZoneId, Position.X, Position.Y));
+        //    }
+        //    else
+        //    {
+        //        if (AppConfiguration.Instance.HeightMapsEnable)
+        //            Position.Z = WorldManager.Instance.GetHeight(Position.ZoneId, Position.X, Position.Y);
+        //        else
+        //            Position.Z = ((other.Z - Position.Z) * distRatio) + Position.Z;
+        //    }
+
+        //    var angle = MathUtil.CalculateAngleFrom(this.Position, other);
+        //    var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+
+        //    var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, rotZ);
+
+        //    Position.RotationZ = rotZ;
+
+        //    moveType.X = Position.X;
+        //    moveType.Y = Position.Y;
+        //    moveType.Z = Position.Z;
+        //    moveType.VelX = (short)velX;
+        //    moveType.VelY = (short)velY;
+        //    moveType.RotationX = 0;
+        //    moveType.RotationY = 0;
+        //    moveType.RotationZ = Position.RotationZ;
+        //    moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
+        //    moveType.Flags = 4;
+
+        //    moveType.DeltaMovement = new sbyte[3];
+        //    moveType.DeltaMovement[0] = 0;
+        //    moveType.DeltaMovement[1] = 127;
+        //    moveType.DeltaMovement[2] = 0;
+        //    moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
+        //    moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        //    moveType.Time = (uint)(DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
+
+        //    SetPosition(Position);
+        //    BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
+        //}
+
+        //public void LookTowards(Point other, byte flags = 4)
+        //{
+
+        //    var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+
+        //    var angle = MathUtil.CalculateAngleFrom(this.Position, other);
+        //    var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+
+        //    Position.RotationZ = rotZ;
+
+        //    moveType.X = Position.X;
+        //    moveType.Y = Position.Y;
+        //    moveType.Z = Position.Z;
+        //    moveType.RotationX = 0;
+        //    moveType.RotationY = 0;
+        //    moveType.RotationZ = Position.RotationZ;
+        //    moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
+        //    moveType.Flags = 4;
+
+        //    moveType.DeltaMovement = new sbyte[3];
+        //    moveType.DeltaMovement[0] = 0;
+        //    moveType.DeltaMovement[1] = 0;
+        //    moveType.DeltaMovement[2] = 0;
+        //    moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
+        //    moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
+        //    moveType.Time = (uint)(DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
+
+        //    SetPosition(Position);
+        //    BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
+        //}
     }
 }

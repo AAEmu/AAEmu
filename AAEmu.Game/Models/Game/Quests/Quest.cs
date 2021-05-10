@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public QuestComponentKind Step { get; set; }
         public DateTime Time { get; set; }
         public Character Owner { get; set; }
-        public int LeftTime => Time > DateTime.Now ? (int)(Time - DateTime.Now).TotalSeconds : -1;
+        public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalSeconds : -1;
         public int SupplyItem = 0;
 
         public uint GetActiveComponent()

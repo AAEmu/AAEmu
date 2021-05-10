@@ -213,7 +213,7 @@ namespace AAEmu.Game.Models.Game.Units
                 if (buffTolerance != null && _toleranceCounters.ContainsKey(buffTolerance.Id) && !CheckBuff(buffTolerance.FinalStepBuffId))
                 {
                     var counter = _toleranceCounters[buffTolerance.Id];
-                    if (DateTime.Now > counter.LastStep + TimeSpan.FromSeconds(buffTolerance.StepDuration))
+                    if (DateTime.UtcNow > counter.LastStep + TimeSpan.FromSeconds(buffTolerance.StepDuration))
                         counter.CurrentStep = buffTolerance.GetFirstStep();
                     else
                     {
@@ -231,7 +231,7 @@ namespace AAEmu.Game.Models.Game.Units
                         }
                     }
 
-                    counter.LastStep = DateTime.Now;
+                    counter.LastStep = DateTime.UtcNow;
                 } 
                 else if (buffTolerance != null)
                 {
@@ -239,7 +239,7 @@ namespace AAEmu.Game.Models.Game.Units
                     {
                         Tolerance = buffTolerance,
                         CurrentStep = buffTolerance.GetFirstStep(),
-                        LastStep = DateTime.Now
+                        LastStep = DateTime.UtcNow
                     });
                 }
 
@@ -260,7 +260,7 @@ namespace AAEmu.Game.Models.Game.Units
                 
                 if (buff.Duration > 0 && buff.StartTime == DateTime.MinValue)
                 {
-                    buff.StartTime = DateTime.Now;
+                    buff.StartTime = DateTime.UtcNow;
                     buff.EndTime = buff.StartTime.AddMilliseconds(buff.Duration);
                 }
 
@@ -320,7 +320,7 @@ namespace AAEmu.Game.Models.Game.Units
             
             if (finalToleranceBuffId > 0)
             {
-                AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, SkillManager.Instance.GetBuffTemplate(finalToleranceBuffId), buff.Skill, DateTime.Now));
+                AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, SkillManager.Instance.GetBuffTemplate(finalToleranceBuffId), buff.Skill, DateTime.UtcNow));
             }
         }
 

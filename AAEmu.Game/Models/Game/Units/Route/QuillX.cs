@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             moveType.Time = Seq;    // has to change all the time for normal motion.
 
             // Broadcasting Mobile State
-            npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+// TODO remove            npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
 
             // If the number of executions is less than the angle, continue adding tasks or stop moving
             if (Count < Degree)
@@ -91,7 +91,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
             {
                 // Stop moving
                 moveType.DeltaMovement[1] = 0;
-                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
+// TODO remove                npc.BroadcastPacket(new SCOneUnitMovementPacket(npc.ObjId, moveType), true);
                 //LoopAuto(npc);
                 // остановиться в вершине на time секунд
                 double time = (uint)Rand.Next(10, 25);
