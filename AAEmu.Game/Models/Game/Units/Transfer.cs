@@ -747,13 +747,12 @@ namespace AAEmu.Game.Models.Game.Units
             if (Template.TransferAllPaths[current].WaitTimeEnd > 0 || Template.TransferAllPaths[next].WaitTimeStart > 0)
             {
                 // за несколько (3 ?) точек до конца участка будем тормозить
-                if (TransferPath.Count - MoveStepIndex <= 3)
+                if (TransferPath.Count - MoveStepIndex <= 1 && Distance < 10)
                 {
                     if (velAccel > 0)
                     {
                         velAccel *= -1.0f;
                     }
-
                     return true;
                 }
             }
