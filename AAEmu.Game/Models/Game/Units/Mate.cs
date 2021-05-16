@@ -440,7 +440,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
             if (Att2 > 0)
             {
-                var passenger = WorldManager.Instance.GetCharacterByObjId(Att1);
+                var passenger = WorldManager.Instance.GetCharacterByObjId(Att2);
                 if (passenger != null)
                     character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, 2, Reason2, ObjId));
             }

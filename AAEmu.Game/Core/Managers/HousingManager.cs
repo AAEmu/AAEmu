@@ -630,6 +630,7 @@ namespace AAEmu.Game.Core.Managers
                 house.IsDirty = true;
 
                 // TODO: better house killing handling
+                _removedHousings.Add(house.Id);
             }
             else
             {

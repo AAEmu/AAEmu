@@ -111,7 +111,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 case BaseUnitType.Mate:
                     var mount = (Mate)_unit;
                     stream.Write(mount.TlId); // tl
-                    stream.Write(mount.TemplateId); // npc teplateId
+                    stream.Write(mount.TemplateId); // npc templateId
                     stream.Write(mount.OwnerId); // characterId (masterId)
                     break;
                 case BaseUnitType.Shipyard:

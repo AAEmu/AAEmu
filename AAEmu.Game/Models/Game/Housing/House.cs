@@ -232,6 +232,8 @@ namespace AAEmu.Game.Models.Game.Housing
         {
             if (!IsDirty)
                 return false;
+            if ((AccountId <= 0) || (OwnerId <= 0))
+                return false; // recently destroyed/expired house
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
