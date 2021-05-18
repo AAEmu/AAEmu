@@ -473,11 +473,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
                 character.FactionName = "";
                 character.LaborPower = 50;
-                character.LaborPowerModified = DateTime.UtcNow;
+                character.LaborPowerModified = DateTime.Now;
                 character.NumInventorySlots = template.NumInventorySlot;
                 character.NumBankSlots = template.NumBankSlot;
                 character.Inventory = new Inventory(character);
-                character.Updated = DateTime.UtcNow;
+                character.Updated = DateTime.Now;
                 character.Ability1 = (AbilityType) ability1;
                 character.Ability2 = AbilityType.None;
                 character.Ability3 = AbilityType.None;
@@ -604,7 +604,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             // Skip this char in the list if it's read to be deleted
                             var deleteTime = reader.GetDateTime("delete_time");
-                            if ((deleteTime > DateTime.MinValue) && (deleteTime < DateTime.UtcNow))
+                            if ((deleteTime > DateTime.MinValue) && (deleteTime < DateTime.Now))
                                 continue;
 
                             var character = new LoginCharacterInfo();

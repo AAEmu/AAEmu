@@ -130,7 +130,7 @@ namespace AAEmu.Game.Core.Network.Connections
                         continue; // TODO ...
                     
                     // Mark characters marked for deletion as deleted after their time is finished
-                    if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime < DateTime.UtcNow))
+                    if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime < DateTime.Now))
                     {
                         // Console.WriteLine("\n---\nWe need to delete: {0} - {1}\n---\n", character.Id, character.Name);
                         using (var command = connection.CreateCommand())
@@ -162,7 +162,7 @@ namespace AAEmu.Game.Core.Network.Connections
             if (Characters.ContainsKey(characterId))
             {
                 var character = Characters[characterId];
-                character.DeleteRequestTime = DateTime.UtcNow;
+                character.DeleteRequestTime = DateTime.Now;
                 // character.DeleteTime = character.DeleteRequestTime.AddDays(7); // TODO to config...
 
                 // TODO: We need a config for this, but for now I added a silly if/else group

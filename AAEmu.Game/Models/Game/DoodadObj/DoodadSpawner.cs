@@ -13,13 +13,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         public float Scale { get; set; }
-        
         public Doodad Last { get; set; }
 
         public override Doodad Spawn(uint objId, ulong itemId, uint charId) //Mostly used for player created spawns
         {
 
-            Character character = WorldManager.Instance.GetCharacterByObjId(charId);
+            var character = WorldManager.Instance.GetCharacterByObjId(charId);
             var doodad = DoodadManager.Instance.Create(objId, UnitId, character);
 
             if (doodad == null)
@@ -32,6 +31,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             doodad.Position = Position.Clone();
             doodad.QuestGlow = 0u; // TODO: make this OOP
             doodad.ItemId = itemId;
+
+            // TODO for test
+            doodad.PlantTime = DateTime.Now;
+            if (doodad.GrowthTime.Millisecond <= 0)
+            {
+                //doodad.GrowthTime = DateTime.Now.AddMilliseconds(template.MinTime);
+                doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
+            }
 
             if (Scale > 0)
                 doodad.SetScale(Scale);
@@ -58,6 +65,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             
             doodad.Spawner = this;
             doodad.Position = Position.Clone();
+            
+            // TODO for test
+            doodad.PlantTime = DateTime.Now;
+            //if (doodad.GrowthTime.Millisecond <= 0)
+            //{
+            //    doodad.GrowthTime = DateTime.Now.AddMilliseconds(doodad.Template.MinTime);
+            //doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
+            //}
+            
             if (Scale > 0)
                 doodad.SetScale(Scale);
             if (doodad.Position == null)

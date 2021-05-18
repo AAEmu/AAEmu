@@ -156,10 +156,10 @@ namespace AAEmu.Game.Models.Game.World
         {
             UpdateUnits();
             if (TickRate > 0)
-                if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
+                if ((DateTime.Now - _lastTick).TotalMilliseconds > TickRate)
                 {
                     ApplyEffects();
-                    _lastTick = DateTime.UtcNow;
+                    _lastTick = DateTime.Now;
                 }
         }
     }

@@ -2205,37 +2205,37 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (!_templates.ContainsKey(id))
                 return null;
             var template = _templates[id];
-            var doodad = new Doodad();
-            doodad.ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId();
-            doodad.TemplateId = template.Id;
-            doodad.Template = template;
-            doodad.OwnerObjId = obj?.ObjId ?? 0;
+            var doodad = new Doodad
+            {
+                ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId(),
+                TemplateId = template.Id,
+                Template = template,
+                OwnerObjId = obj?.ObjId ?? 0,
+
+                // TODO for test
+                PlantTime = DateTime.Now,
+                //GrowthTime = DateTime.Now.AddMilliseconds(template.MinTime),
+                GrowthTime = DateTime.Now.AddMilliseconds(10000),
+               
+                OwnerType = DoodadOwnerType.System
+            };
             doodad.CurrentPhaseId = doodad.GetFuncGroupId();
-            doodad.OwnerType = DoodadOwnerType.System;
 
-            if (obj is Character character)
+            switch (obj)
             {
-                doodad.OwnerId = character.Id;
-                doodad.OwnerType = DoodadOwnerType.Character;
+                case Character character:
+                    doodad.OwnerId = character.Id;
+                    doodad.OwnerType = DoodadOwnerType.Character;
+                    break;
+                case House house:
+                    doodad.OwnerObjId = 0;
+                    doodad.ParentObjId = house.ObjId;
+                    doodad.OwnerId = house.OwnerId;
+                    doodad.OwnerType = DoodadOwnerType.Housing;
+                    doodad.DbHouseId = house.Id;
+                    break;
             }
 
-            if (obj is House house)
-            {
-                doodad.OwnerObjId = 0;
-                doodad.ParentObjId = house.ObjId;
-                doodad.OwnerId = house.OwnerId;
-                doodad.OwnerType = DoodadOwnerType.Housing;
-                doodad.DbHouseId = house.Id;
-            }
-
-            // var startPhaseFuncs = GetPhaseFunc(doodad.FuncGroupId);
-            // if (startPhaseFuncs.Length > 0 && obj != null)
-            // {
-            //     foreach (var startPhaseFunc in startPhaseFuncs)
-            //     {
-            //         startPhaseFunc.Use((Unit)obj, doodad, 0);
-            //     }
-            // }
             if (obj is Unit unit)
                 doodad.DoPhase(unit, 0);
 
@@ -2307,13 +2307,20 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.Position.Z = z;
             doodad.ItemId = itemId;
             doodad.PlantTime = DateTime.Now;
-            
+            //if (doodad.GrowthTime.Millisecond <= 0)
+            //{
+            //    //doodad.GrowthTime = DateTime.Now.AddMilliseconds(doodad.Template.MinTime);
+            doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
+            //}
+
             if (scale > 0)
                 doodad.SetScale(scale);
             
             // Consume item
             var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
             var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
+
+            doodad.ItemTemplateId = preferredItem.TemplateId;
 
             foreach (var item in items)
                 character.Inventory.ConsumeItem(new [] {SlotType.Inventory}, ItemTaskType.DoodadCreate, item, 1, preferredItem);

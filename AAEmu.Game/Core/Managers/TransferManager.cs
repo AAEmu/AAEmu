@@ -231,7 +231,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Patrol = null;
             // add effect
             var buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
-            owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
+            owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
 
             // create Carriage like a normal object.
             owner.Spawn();
@@ -276,7 +276,7 @@ namespace AAEmu.Game.Core.Managers
             transfer.Patrol = null;
             // add effect
             buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
-            transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
+            transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
             //TODO  create a boardingPart and indicate that we attach to the Carriage object 
@@ -303,7 +303,7 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 doodad.OwnerId = 0;
-                doodad.PlantTime = DateTime.UtcNow;
+                doodad.PlantTime = DateTime.Now;
                 doodad.OwnerType = DoodadOwnerType.System;
                 doodad.DbHouseId = 0;
                 doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);

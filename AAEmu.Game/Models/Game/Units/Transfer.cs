@@ -60,7 +60,7 @@ namespace AAEmu.Game.Models.Game.Units
         public sbyte RequestSteering { get; set; }
         public sbyte RequestThrottle { get; set; }
         public DateTime WaitTime { get; set; }
-        public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
+        public uint TimeLeft => WaitTime > DateTime.Now ? (uint)(WaitTime - DateTime.Now).TotalMilliseconds : 0;
 
         public Transfer()
         {
@@ -529,7 +529,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (MoveStepIndex == 0 && Steering == 0 && transfer.Template.WaitTime > 0)
             {
                 var time = transfer.Template.WaitTime;
-                WaitTime = DateTime.UtcNow.AddSeconds(time);
+                WaitTime = DateTime.Now.AddSeconds(time);
                 _log.Info("TransfersPath #" + transfer.Template.Id);
                 _log.Warn("path #" + Steering);
                 _log.Warn("walk to #" + MoveStepIndex);
@@ -716,13 +716,13 @@ namespace AAEmu.Game.Models.Game.Units
             if (MoveStepIndex == 0 && Steering != 0 && transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0)
             {
                 time = transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd;
-                WaitTime = DateTime.UtcNow.AddSeconds(time);
+                WaitTime = DateTime.Now.AddSeconds(time);
             }
             // 3.начало участка
             else if (MoveStepIndex == 0 && Steering == 0 && transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0)
             {
                 time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
-                WaitTime = DateTime.UtcNow.AddSeconds(time);
+                WaitTime = DateTime.Now.AddSeconds(time);
             }
             _log.Info("TransfersPath #" + transfer.Template.Id);
             _log.Warn("path #" + Steering);
@@ -815,7 +815,7 @@ namespace AAEmu.Game.Models.Game.Units
                             time = transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd > 0
                                 ? transfer.Template.TransferAllPaths[Steering - 1].WaitTimeEnd
                                 : transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
-                            WaitTime = DateTime.UtcNow.AddSeconds(time);
+                            WaitTime = DateTime.Now.AddSeconds(time);
                         }
                     }
                 }
@@ -827,7 +827,7 @@ namespace AAEmu.Game.Models.Game.Units
                         time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0
                             ? transfer.Template.TransferAllPaths[Steering].WaitTimeStart
                             : transfer.Template.WaitTime;
-                        WaitTime = DateTime.UtcNow.AddSeconds(time);
+                        WaitTime = DateTime.Now.AddSeconds(time);
                     }
 
                     // путь еще не закончился, продолжаем движение
@@ -851,7 +851,7 @@ namespace AAEmu.Game.Models.Game.Units
                     time = transfer.Template.TransferAllPaths[Steering].WaitTimeStart > 0
                         ? transfer.Template.TransferAllPaths[Steering].WaitTimeStart
                         : transfer.Template.WaitTime;
-                    WaitTime = DateTime.UtcNow.AddSeconds(time);
+                    WaitTime = DateTime.Now.AddSeconds(time);
                 }
                 // начальная точка, двигаемся вперед
                 if (MoveStepIndex == 0)
@@ -862,7 +862,7 @@ namespace AAEmu.Game.Models.Game.Units
                     time = transfer.Template.TransferAllPaths[Steering].WaitTimeEnd > 0
                         ? transfer.Template.TransferAllPaths[Steering].WaitTimeEnd
                         : transfer.Template.TransferAllPaths[Steering].WaitTimeStart;
-                    WaitTime = DateTime.UtcNow.AddSeconds(time);
+                    WaitTime = DateTime.Now.AddSeconds(time);
                 }
 
                 if (transfer.Reverse)

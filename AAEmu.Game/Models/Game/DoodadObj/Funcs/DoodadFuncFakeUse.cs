@@ -1,7 +1,5 @@
-﻿using System.Linq.Expressions;
-
+﻿
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -37,19 +35,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             }
             if (FakeSkillId != 0)
             {
-                if (FakeSkillId == 20580 && caster is Character character)
+                var transferTelescope = 20580;
+                var range = 1000f;
+                if (FakeSkillId == transferTelescope && caster is Character character)
                 {
-                    owner.BroadcastPacket(new SCTransferTelescopeToggledPacket(true, 1000f), true);
+                    owner.BroadcastPacket(new SCTransferTelescopeToggledPacket(true, range), true);
                     TransferTelescopeManager.Instance.TransferTelescopeStart(character);
                 }
-                
-                if (FakeSkillId == skillId)
+
+                if (FakeSkillId == skillId && nextPhase > 0)
                 {
-                    owner.cancelPhasing = false;
+                    owner.ToPhaseAndUse = true;
                     return;
                 }
             }
-            owner.cancelPhasing = true;
+            owner.ToPhaseAndUse = false;
         }
     }
 }

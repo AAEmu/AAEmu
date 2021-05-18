@@ -7,11 +7,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public uint WorldInteractionId { get; set; }
         public uint QuestId { get; set; }
-        
+
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncRequireQuest QuestId: {0}, WorldIntId {1}", QuestId, WorldInteractionId);
-            owner.cancelPhasing = true;
+            owner.ToPhaseAndUse = false;
         }
     }
 }

@@ -9,11 +9,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint ItemId { get; set; }
         public uint ConsumeItemId { get; set; }
         public int ConsumeCount { get; set; }
-        
+
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncStampMaker");
-            owner.cancelPhasing = true;
+            owner.ToPhaseAndUse = false;
         }
     }
 }

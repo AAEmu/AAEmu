@@ -181,7 +181,7 @@ namespace AAEmu.Game.Core.Managers
                             tempMail.Header.Attachments = (byte)attachmentCount;
 
                             // Set internal delivered flag
-                            tempMail.IsDelivered = (tempMail.Body.RecvDate <= DateTime.UtcNow);
+                            tempMail.IsDelivered = (tempMail.Body.RecvDate <= DateTime.Now);
                             tempMail.IsDirty = false;
 
                             // Remove from delete list if it's a recycled Id
@@ -287,7 +287,7 @@ namespace AAEmu.Game.Core.Managers
 
         public Dictionary<long, BaseMail> GetCurrentMailList(Character character)
         {
-            var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
+            var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.Now && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
             character.Mails.unreadMailCount.Received = 0;
             foreach (var mail in tempMails)
             {
@@ -306,7 +306,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Trace("NotifyNewMailByNameIfOnline() - {0}", receiverName);
             // If unread and ready to deliver
-            if ((m.Header.Status != MailStatus.Read) && (m.Body.RecvDate <= DateTime.UtcNow) && (m.IsDelivered == false))
+            if ((m.Header.Status != MailStatus.Read) && (m.Body.RecvDate <= DateTime.Now) && (m.IsDelivered == false))
             {
                 var player = WorldManager.Instance.GetCharacter(receiverName);
                 if (player != null)
@@ -338,7 +338,7 @@ namespace AAEmu.Game.Core.Managers
         {
             // Deliver yet "undelivered" mails
             _log.Trace("CheckAllMailTimings");
-            var undeliveredMails = _allPlayerMails.Where(x => (x.Value.Body.RecvDate <= DateTime.UtcNow) && (x.Value.IsDelivered == false)).ToDictionary(x => x.Key, x => x.Value);
+            var undeliveredMails = _allPlayerMails.Where(x => (x.Value.Body.RecvDate <= DateTime.Now) && (x.Value.IsDelivered == false)).ToDictionary(x => x.Key, x => x.Value);
             var delivered = 0;
             foreach (var mail in undeliveredMails)
                 if (NotifyNewMailByNameIfOnline(mail.Value, mail.Value.Header.ReceiverName))

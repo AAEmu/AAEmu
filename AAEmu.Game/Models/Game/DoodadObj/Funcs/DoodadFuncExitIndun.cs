@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     _log.Warn("DoodadFuncExitIndun, Not have return point!");
                 }
             }
-            owner.cancelPhasing = true;
+            owner.ToPhaseAndUse = false;
         }
     }
 }

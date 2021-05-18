@@ -52,7 +52,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 }
             }
 
-            if (_targetRoamPosition == null && DateTime.UtcNow > _nextRoaming)
+            if (_targetRoamPosition == null && DateTime.Now > _nextRoaming)
                 UpdateRoaming();
             
             if (_targetRoamPosition == null)
@@ -64,7 +64,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             {
                 Ai.Owner.StopMovement();
                 _targetRoamPosition = null;
-                _nextRoaming = DateTime.UtcNow.AddSeconds(3); // Rand 3-6 would look nice ?
+                _nextRoaming = DateTime.Now.AddSeconds(3); // Rand 3-6 would look nice ?
             }
         }
 

@@ -55,7 +55,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(0); // suspectedNo
             stream.Write(0); // totalPlayTime
 
-            stream.Write(DateTime.UtcNow); // createdTime
+            stream.Write(DateTime.Now); // createdTime
 
             stream.Write(_character.ExpandedExpert);
 

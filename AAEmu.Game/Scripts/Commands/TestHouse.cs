@@ -68,7 +68,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                         HousingManager.Instance.CalculateBuildingTaxInfo(house.AccountId, house.Template, false, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate);
 
-                        if (house.TaxDueDate > DateTime.UtcNow)
+                        if (house.TaxDueDate > DateTime.Now)
                             character.SendMessage("[House] Tax Due: {0}{1} by {2}", totalTaxAmountDue, house.Template.HeavyTax ? "" : "(no heavy tax)", house.TaxDueDate);
                         else
                             character.SendMessage("[House] Tax Due: {0}{1}, demolition at {2}", totalTaxAmountDue, house.Template.HeavyTax ? "" : "(no heavy tax)", house.ProtectionEndDate);
@@ -80,15 +80,15 @@ namespace AAEmu.Game.Scripts.Commands
                         character.SendMessage("[House] Created tax for selected building");
                         break;
                     case "settaxdue":
-                        house.ProtectionEndDate = DateTime.UtcNow.AddDays(7);
+                        house.ProtectionEndDate = DateTime.Now.AddDays(7);
                         HousingManager.Instance.UpdateTaxInfo(house);
                         break;
                     case "settaxduesoon":
-                        house.ProtectionEndDate = DateTime.UtcNow.AddDays(7).AddSeconds(20);
+                        house.ProtectionEndDate = DateTime.Now.AddDays(7).AddSeconds(20);
                         HousingManager.Instance.UpdateTaxInfo(house);
                         break;
                     case "setdemosoon":
-                        house.ProtectionEndDate = DateTime.UtcNow.AddSeconds(20);
+                        house.ProtectionEndDate = DateTime.Now.AddSeconds(20);
                         HousingManager.Instance.UpdateTaxInfo(house);
                         break;
                     case "setforsale":

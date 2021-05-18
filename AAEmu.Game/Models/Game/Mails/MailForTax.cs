@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Mails
             _house = house;
 
             MailType = MailType.Billing;
-            Body.RecvDate = DateTime.UtcNow ;
+            Body.RecvDate = DateTime.Now ;
         }
 
         public static bool UpdateTaxInfo(BaseMail mail, House house)
@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Mails
             if (!HousingManager.Instance.CalculateBuildingTaxInfo(house.AccountId, house.Template, false, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate))
                 return false;
             
-            var weeksDelta = house.TaxDueDate - DateTime.UtcNow;
+            var weeksDelta = house.TaxDueDate - DateTime.Now;
             var weeks = 0 ;
             if (weeksDelta.TotalSeconds <= 0)
             {

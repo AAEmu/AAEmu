@@ -110,8 +110,8 @@ namespace AAEmu.Game.Scripts.Commands
                 mail.Header.Extra = 0;
 
                 mail.Body.Text = "Test Mail Body";
-                mail.Body.SendDate = DateTime.UtcNow;
-                mail.Body.RecvDate = DateTime.UtcNow;
+                mail.Body.SendDate = DateTime.Now;
+                mail.Body.RecvDate = DateTime.Now;
 
                 if (args.Length > 1)
                 {

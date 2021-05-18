@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                         if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
                             if (character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem,
                                 item,
-                                (int)AAEmu.Game.Models.Game.Items.EquipmentItemSlot.Backpack))
+                                (int)Items.EquipmentItemSlot.Backpack))
                                 addedItem = true;
                     }
                     else
@@ -35,15 +35,19 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     }
                 }
             }
+            else if (owner.ItemTemplateId > 0)
+            {
+                addedItem = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, owner.ItemTemplateId, 1);
+            }
             else
             {
                 // No itemId was provided with the doodad, need to check what needs to be done with this
-                _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item attached",owner.InstanceId);
+                _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item attached", owner.InstanceId);
             }
 
-            if (addedItem)
-                owner.Delete();
-            owner.cancelPhasing = true;
+            //if (addedItem)
+            //    owner.Delete();
+            owner.ToPhaseAndUse = addedItem;
         }
     }
 }

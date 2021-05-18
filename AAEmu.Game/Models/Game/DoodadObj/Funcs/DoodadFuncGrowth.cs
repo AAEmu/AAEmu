@@ -21,11 +21,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             //_log.Debug("NextPhase " + NextPhase);
 
             //TODO add doodad scaling transformation
-            owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, skillId, NextPhase);
-            var customDelay = Delay / 200.0f;
+            owner.Scale = StartScale / 1000f;
+            var customDelay = Delay / 100.0f; // decrease delay
+
+            owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, skillId, NextPhase, EndScale / 1000f);
             owner.GrowthTime = DateTime.Now.AddMilliseconds(customDelay);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(customDelay));
-            owner.cancelPhasing = true;
+            owner.ToPhaseAndUse = false;
         }
     }
 }

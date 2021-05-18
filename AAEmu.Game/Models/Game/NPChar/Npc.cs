@@ -868,7 +868,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint) (DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
+            moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
 
             SetPosition(Position);
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
@@ -899,7 +899,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint) (DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
+            moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
 
             SetPosition(Position);
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);

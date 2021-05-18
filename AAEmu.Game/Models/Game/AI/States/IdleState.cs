@@ -25,14 +25,14 @@ namespace AAEmu.Game.Models.Game.AI.States
             // Pick time to Idle
             if (_maxIdleTime > 0)
             {
-                _stateStart = DateTime.UtcNow;
+                _stateStart = DateTime.Now;
                 _idleTimeSpan = TimeSpan.FromSeconds(Rand.Next(0, _maxIdleTime));
             }
         }
 
         public override void Tick(TimeSpan delta)
         {
-            if (_maxIdleTime > 0 && _stateStart + _idleTimeSpan > DateTime.UtcNow)
+            if (_maxIdleTime > 0 && _stateStart + _idleTimeSpan > DateTime.Now)
             {
                 var stateId = AI.GetNextState(this);
                 var state = AI.StateMachine.GetState(stateId);

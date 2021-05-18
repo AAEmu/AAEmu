@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Auction
         public string ClientName { get; set; }
         public int StartMoney { get; set; }
         public int DirectMoney { get; set; }
-        public ulong TimeLeft { get { return (ulong)EndTime.Subtract(DateTime.UtcNow).TotalSeconds; } } //seconds
+        public ulong TimeLeft { get { return (ulong)EndTime.Subtract(DateTime.Now).TotalSeconds; } } //seconds
         public byte BidWorldID { get; set; }
         public uint BidderId { get; set; }
         public string BidderName { get; set; }

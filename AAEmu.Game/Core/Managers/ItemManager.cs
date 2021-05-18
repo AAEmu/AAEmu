@@ -470,7 +470,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (item.Template.FixedGrade >= 0)
                 item.Grade = (byte)item.Template.FixedGrade;
-            item.CreateTime = DateTime.UtcNow;
+            item.CreateTime = DateTime.Now;
             if (generateId)
                 _allItems.Add(item.Id, item);
             return item;

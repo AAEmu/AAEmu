@@ -46,7 +46,7 @@ namespace AAEmu.Game.Models.Game.Mails
             Header.SenderId = 0;
             Header.SenderName = AuctionName; // Name changes depending on type of mail
 
-            Body.RecvDate = DateTime.UtcNow; // These mails should always be instant
+            Body.RecvDate = DateTime.Now; // These mails should always be instant
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Mails
             Header.SenderId = 0;
             Header.SenderName = AuctionName; // Name changes depending on type of mail
 
-            Body.RecvDate = DateTime.UtcNow; // These mails should always be instant
+            Body.RecvDate = DateTime.Now; // These mails should always be instant
         }
 
         /// <summary>
