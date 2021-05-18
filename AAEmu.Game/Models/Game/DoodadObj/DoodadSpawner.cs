@@ -34,11 +34,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             // TODO for test
             doodad.PlantTime = DateTime.Now;
-            if (doodad.GrowthTime.Millisecond <= 0)
-            {
-                //doodad.GrowthTime = DateTime.Now.AddMilliseconds(template.MinTime);
-                doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
-            }
+            //if (doodad.GrowthTime.Millisecond <= 0)
+            //{
+            //    //doodad.GrowthTime = DateTime.Now.AddMilliseconds(template.MinTime);
+            //    doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
+            //}
 
             if (Scale > 0)
                 doodad.SetScale(Scale);

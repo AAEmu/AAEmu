@@ -2215,7 +2215,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 // TODO for test
                 PlantTime = DateTime.Now,
                 //GrowthTime = DateTime.Now.AddMilliseconds(template.MinTime),
-                GrowthTime = DateTime.Now.AddMilliseconds(10000),
+                //GrowthTime = DateTime.Now.AddMilliseconds(10000),
                
                 OwnerType = DoodadOwnerType.System
             };
@@ -2310,7 +2310,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             //if (doodad.GrowthTime.Millisecond <= 0)
             //{
             //    //doodad.GrowthTime = DateTime.Now.AddMilliseconds(doodad.Template.MinTime);
-            doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
+            //doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
             //}
 
             if (scale > 0)
