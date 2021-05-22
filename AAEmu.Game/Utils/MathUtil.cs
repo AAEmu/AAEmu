@@ -59,7 +59,6 @@ namespace AAEmu.Game.Utils
         public static double ConvertSbyteDirectionToDegree(sbyte direction)
         {
             var angle = direction * (360f / 128);
-            // var angle = direction * (360f / 128) + 90;
             if (angle < 0)
                 angle += 360;
             return angle;
@@ -69,7 +68,6 @@ namespace AAEmu.Game.Utils
         {
             if (degree < 0)
                 degree = 360 + degree;
-            // degree -= 90;
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
                 res = (sbyte)((degree - 360) / (360f / 128));
