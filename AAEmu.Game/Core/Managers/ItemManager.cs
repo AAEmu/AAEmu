@@ -224,7 +224,7 @@ namespace AAEmu.Game.Core.Managers
              * Note: Re-opening the loot window lets you loot the remaining items
             */
             var isDone = true;
-            var lootDropItems = ItemManager.Instance.GetLootDropItems(id);
+            var lootDropItems = Instance.GetLootDropItems(id);
             if (lootAll)
             {
                 for (var i = lootDropItems.Count - 1; i >= 0; --i)

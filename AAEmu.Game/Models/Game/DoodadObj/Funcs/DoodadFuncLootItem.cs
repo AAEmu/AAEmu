@@ -3,12 +3,13 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncLootItem : DoodadFuncTemplate
     {
-        public uint WorldInteractionId { get; set; }
+        public WorldInteractionType WorldInteractionId { get; set; }
         public uint ItemId { get; set; }
         public int CountMin { get; set; }
         public int CountMax { get; set; }

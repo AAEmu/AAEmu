@@ -1,7 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -30,9 +30,14 @@ namespace AAEmu.Game.Models.Game.World.Interactions
                 return;
 
             equipItem.RuneId = skillItem.ItemTemplateId;
-            
+
             character.SendPacket(new SCItemSocketingLunastoneResultPacket(true, targetItem.Id, skillItem.ItemTemplateId));
-            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical, new List<ItemTask>() { new ItemUpdate(equipItem) }, new List<ulong>()));
+            character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantMagical,
+                new List<ItemTask>
+                {
+                    new ItemUpdate(equipItem)
+                },
+                new List<ulong>()));
         }
     }
 }

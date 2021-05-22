@@ -1268,7 +1268,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncLootItem();
                             func.Id = reader.GetUInt32("id");
-                            func.WorldInteractionId = reader.GetUInt32("wi_id");
+                            func.WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id");
                             func.ItemId = reader.GetUInt32("item_id");
                             func.CountMin = reader.GetInt32("count_min");
                             func.CountMax = reader.GetInt32("count_max");
@@ -1812,7 +1812,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncRequireItem();
                             func.Id = reader.GetUInt32("id");
-                            func.WorldInteractionId = reader.GetUInt32("wi_id");
+                            func.WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id");
                             func.ItemId = reader.GetUInt32("item_id");
                             _funcTemplates["DoodadFuncRequireItem"].Add(func.Id, func);
                         }
@@ -1829,7 +1829,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncRequireQuest();
                             func.Id = reader.GetUInt32("id");
-                            func.WorldInteractionId = reader.GetUInt32("wi_id");
+                            func.WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id");
                             func.QuestId = reader.GetUInt32("quest_id");
                             _funcTemplates["DoodadFuncRequireQuest"].Add(func.Id, func);
                         }

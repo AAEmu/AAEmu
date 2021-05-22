@@ -1207,7 +1207,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new QuestActSupplyInteraction();
                             template.Id = reader.GetUInt32("id");
-                            template.WorldInteractionId = reader.GetUInt32("wi_id");
+                            template.WorldInteractionId = (WorldInteractionType)reader.GetUInt32("wi_id");
                             _actTemplates["QuestActSupplyInteraction"].Add(template.Id, template);
                         }
                     }

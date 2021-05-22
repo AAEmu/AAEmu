@@ -5,8 +5,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.World.Interactions
 {
-
-    public class Butcher : IWorldInteraction
+    public class Hang : IWorldInteraction
     {
         public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
