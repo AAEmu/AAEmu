@@ -170,16 +170,14 @@ namespace AAEmu.Game.Core.Managers
         {
             // 3891 - Portal Entrance
             // 6949 - Portal Exit
-            var portalPointDestination = new Transform(null,null,new Vector3(portalInfo.X, portalInfo.Y, portalInfo.Z),Quaternion.CreateFromAxisAngle(Vector3.UnitZ, portalInfo.ZRot))
-            {
-                ZoneId = portalInfo.ZoneId,
-                WorldId = WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id
-            };
-            var portalPointLocation = new Transform(null,null,new Vector3(portalEffectObj.X,portalEffectObj.Y,portalEffectObj.Z),owner.Transform.Local.Rotation)
-            {
-                ZoneId = owner.Transform.ZoneId,
-                WorldId = owner.Transform.WorldId
-            };
+            var portalPointDestination = new Transform(null, null,
+                WorldManager.Instance.GetWorldByZone(portalInfo.ZoneId).Id, portalInfo.ZoneId,
+                WorldManager.DefaultInstanceId, portalInfo.X, portalInfo.Y, portalInfo.Z,
+                0f, 0f, portalInfo.ZRot);
+            var portalPointLocation = new Transform(null, null,
+                owner.Transform.WorldId, owner.Transform.ZoneId, owner.Transform.InstanceId,
+                portalEffectObj.X, portalEffectObj.Y, portalEffectObj.Z,
+                owner.Transform.World.Rotation.X, owner.Transform.World.Rotation.Y, owner.Transform.World.Rotation.Z);
             var templateId = isExit ? 6949u : 3891u; // TODO - better way? maybe not hardcoded
             var template = NpcManager.Instance.GetTemplate(templateId);
             var portalUnitModel = new Models.Game.Units.Portal
@@ -220,10 +218,10 @@ namespace AAEmu.Game.Core.Managers
 
             character.DisabledSetPosition = true;
             // TODO - UnitPortalUsed
-            // TODO - Maybe need unitstate?
+            // TODO - Maybe need unitState?
             // TODO - Reason, ErrorMessage
             character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.World.Position.X,
-                portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z, portalInfo.TeleportPosition.World.ToRollPitchYaw().Z));
+                portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z, portalInfo.TeleportPosition.World.Rotation.Z));
         }
 
         public void DeletePortal(Character owner, byte type, uint id)

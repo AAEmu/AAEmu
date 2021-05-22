@@ -66,7 +66,8 @@ namespace AAEmu.Game.Core.Managers.World
                     
                     slave.Transform.Local.Translate(xDelt,yDelt,zDelt); 
                     var rot = JQuaternion.CreateFromMatrix(slaveRigidBody.Orientation);
-                    slave.Transform.Local.Rotation = new Quaternion(rot.X, rot.Y, rot.Z, rot.W);
+                    slave.Transform.Local.FromQuaternion(rot.X, rot.Y, rot.Z, rot.W);
+                    // slave.Transform.Local.Rotation = new Quaternion(rot.X, rot.Y, rot.Z, rot.W);
                     
                     if (_tickCount % 6 == 0)
                     {
@@ -177,9 +178,10 @@ namespace AAEmu.Game.Core.Managers.World
 
             slave.Transform.Local.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y);
             var jRot = JQuaternion.CreateFromMatrix(rigidBody.Orientation);
-            slave.Transform.Local.Rotation = new Quaternion(jRot.X, jRot.Y, jRot.Z, jRot.W);
-            var rpySlave = slave.Transform.Local.ToRollPitchYaw();
-            slave.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y, rpySlave.X, rpySlave.Y, rpySlave.Z);
+            slave.Transform.Local.FromQuaternion(jRot.X, jRot.Y, jRot.Z, jRot.W);
+            //slave.Transform.Local.Rotation = new Quaternion(jRot.X, jRot.Y, jRot.Z, jRot.W);
+            //var rpySlave = slave.Transform.Local.ToRollPitchYaw();
+            slave.SetPosition(rigidBody.Position.X, rigidBody.Position.Z, rigidBody.Position.Y, slave.Transform.Local.Rotation.X, slave.Transform.Local.Rotation.Y, slave.Transform.Local.Rotation.Z);
             slave.BroadcastPacket(new SCOneUnitMovementPacket(slave.ObjId, moveType), false);
             // _log.Debug("Island: {0}", slave.RigidBody.CollisionIsland.Bodies.Count);
             slave.Transform.FinalizeTransform();

@@ -104,7 +104,9 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             posUnit.ObjId = uint.MaxValue;
             posUnit.Region = PreviousTarget.Region;
             posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
-            posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle).DegToRad() * -1f, 0f, 0f));
+            var degrees = (float)(args.Angle);
+            posUnit.Transform.Local.Rotate(degrees.DegToRad() * -1f, 0f, 0f);
+            // posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle).DegToRad() * -1f, 0f, 0f));
             if (args.Distance != 0)
             {
                 posUnit.Transform.Local.AddDistanceToFront((args.Distance / 1000f) - 0.01f);

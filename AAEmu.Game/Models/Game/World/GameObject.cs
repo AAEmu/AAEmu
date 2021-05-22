@@ -41,21 +41,21 @@ namespace AAEmu.Game.Models.Game.World
             if (DisabledSetPosition)
                 return;
 
-            var rX = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationX));
-            var rY = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationY));
-            var rZ = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationZ));
+            //var rX = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationX));
+            //var rY = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationY));
+            //var rZ = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationZ));
 
             /*
             if (this is Character c)
             {
                 c.SendMessage("SetPositionRaw(x{0:0.##} y{1:0.##} z{2:0.##} rx{3:0.##} ry{4:0.##} rz{5:0.##})", x, y, z,
-                    rotationX, rotationY, rotationZ);
-                c.SendMessage("SetPosition(x{0:0.##} y{1:0.##} z{2:0.##} rx{3:0.##} ry{4:0.##} rz{5:0.##})", x, y, z,
-                    rX, rY, rZ);
+                    rotationX.RadToDeg(), rotationY.RadToDeg(), rotationZ.RadToDeg());
+                c.SendMessage("SetPosition(x{0:0.##} y{1:0.##} z{2:0.##} rx{3:0.##} ry{4:0.##} rz{5:0.##})", x, y, z, rX, rY, rZ);
             }
             */
 
-            Transform.Local.SetPosition(x, y, z, (float)rX, (float)rY , (float)rZ);
+            Transform.Local.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+            //Transform.Local.SetPosition(x, y, z, (float)rX, (float)rY , (float)rZ);
             WorldManager.Instance.AddVisibleObject(this);
         }
 

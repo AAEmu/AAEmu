@@ -259,8 +259,8 @@ namespace AAEmu.Game.Core.Managers
                             house.Name = reader.GetString("name");
                             house.Transform = new Transform(house, null,
                                 new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
-                                Quaternion.CreateFromYawPitchRoll(reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll"))
-                                );
+                                new Vector3(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"))
+                            );
                             house.Transform.ZoneId = WorldManager.Instance.GetZoneId(house.Transform.WorldId, house.Transform.World.Position.X, house.Transform.World.Position.Y);
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.NumAction = reader.GetInt32("current_action");

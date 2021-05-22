@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.Intrinsics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
+using Quartz.Listener;
 
 // INFO
 // https://www.versluis.com/2020/09/what-is-yaw-pitch-and-roll-in-3d-axis-values/
 // https://en.wikipedia.org/wiki/Euler_angles
 // https://gamemath.com/
+// https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
 
 namespace AAEmu.Game.Models.Game.World.Transform
 {
@@ -18,7 +21,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
     {
         public bool IsLocal { get; set; } = true;
         public Vector3 Position { get; set; }
-        public Quaternion Rotation { get; set; }
+        public Vector3 Rotation { get; set; }
 
         private const float ToShortDivider = (1f / 32768f); // ~0.000030518509f ;
         private const float ToSByteDivider = (1f / 127f);   // ~0.007874015748f ;
@@ -26,16 +29,16 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public PositionAndRotation()
         {
             Position = new Vector3();
-            Rotation = new Quaternion();
+            Rotation = new Vector3();
         }
 
-        public PositionAndRotation(float posX, float posY, float posZ, float rotX, float rotY, float rotZ, float rotW)
+        public PositionAndRotation(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
         {
             Position = new Vector3(posX, posY, posZ);
-            Rotation = new Quaternion(rotX, rotY, rotZ, rotW);
+            Rotation = new Vector3(rotX, rotY, rotZ);
         }
 
-        public PositionAndRotation(Vector3 position, Quaternion rotation)
+        public PositionAndRotation(Vector3 position, Vector3 rotation)
         {
             Position = position;
             Rotation = rotation;
@@ -43,57 +46,12 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public PositionAndRotation Clone()
         {
-            return new PositionAndRotation(Position.X, Position.Y, Position.Z, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W);
-        }
-
-        /// <summary>
-        /// Convert current rotation to Roll Pitch Yaw in radians
-        /// </summary>
-        /// <returns></returns>
-        public Vector3 ToRollPitchYaw()
-        {
-            // Store the Euler angles in radians
-            var rollPitchYaw = new Vector3();
-
-            double sqw = Rotation.W * Rotation.W;
-            double sqx = Rotation.X * Rotation.X;
-            double sqy = Rotation.Y * Rotation.Y;
-            double sqz = Rotation.Z * Rotation.Z;
-
-            // If quaternion is normalised the unit is one, otherwise it is the correction factor
-            double unit = sqx + sqy + sqz + sqw;
-            double test = Rotation.X * Rotation.Y + Rotation.Z * Rotation.W;
-
-            if (test > 0.4999f * unit)                              // 0.4999f OR 0.5f - EPSILON
-            {
-                // Singularity at north pole
-                rollPitchYaw.Z = 2f * (float)Math.Atan2(Rotation.X, Rotation.W);  // Yaw
-                rollPitchYaw.Y = MathF.PI * 0.5f;                   // Pitch
-                rollPitchYaw.X = 0f;                                // Roll
-                return rollPitchYaw;
-            }
-            else if (test < -0.4999f * unit)                        // -0.4999f OR -0.5f + EPSILON
-            {
-                // Singularity at south pole
-                rollPitchYaw.Z = -2f * (float)Math.Atan2(Rotation.X, Rotation.W); // Yaw
-                rollPitchYaw.Y = -MathF.PI * 0.5f;                  // Pitch
-                rollPitchYaw.X = 0f;                                // Roll
-                return rollPitchYaw;
-            }
-            else
-            {
-                rollPitchYaw.Z = (float)Math.Atan2(2f * Rotation.Y * Rotation.W - 2f * Rotation.X * Rotation.Z, sqx - sqy - sqz + sqw);       // Yaw
-                rollPitchYaw.Y = (float)Math.Asin(2f * test / unit);                                             // Pitch
-                rollPitchYaw.X = (float)Math.Atan2(2f * Rotation.X * Rotation.W - 2f * Rotation.Y * Rotation.Z, -sqx + sqy - sqz + sqw);      // Roll
-            }
-
-            return rollPitchYaw;
+            return new PositionAndRotation(Position.X, Position.Y, Position.Z, Rotation.X, Rotation.Y, Rotation.Z);
         }
 
         public Vector3 ToRollPitchYawDegrees()
         {
-            var rpy = ToRollPitchYaw();
-            return new Vector3(rpy.X.RadToDeg(), rpy.Y.RadToDeg(), rpy.Z.RadToDeg());
+            return new Vector3(Rotation.X.RadToDeg(), Rotation.Y.RadToDeg(), Rotation.Z.RadToDeg());
         }
         
         public void SetPosition(float x, float y, float z)
@@ -111,36 +69,33 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Position = new Vector3(Position.X, Position.Y, z);
         }
         
-        public void SetPosition(float x, float y, float z, float yaw, float pitch, float roll)
+        public void SetPosition(float x, float y, float z, float roll, float pitch, float yaw)
         {
             Position = new Vector3(x, y, z);
-            Rotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+            Rotation = new Vector3(roll, pitch, yaw);
         }
 
         public (short,short,short) ToRollPitchYawShorts()
         {
-            var vec3 = ToRollPitchYaw();
-            short roll = (short)(vec3.X / (MathF.PI * 2) / ToShortDivider);
-            short pitch = (short)(vec3.Y / (MathF.PI * 2) / ToShortDivider);
-            short yaw = (short)(vec3.Z / (MathF.PI * 2) / ToShortDivider);
+            short roll = (short)(Rotation.X / (MathF.PI * 2) / ToShortDivider);
+            short pitch = (short)(Rotation.Y / (MathF.PI * 2) / ToShortDivider);
+            short yaw = (short)(Rotation.Z / (MathF.PI * 2) / ToShortDivider);
             return (roll, pitch, yaw);
         }
 
         public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()
         {
-            var vec3 = ToRollPitchYaw();
-            sbyte roll = (sbyte)(vec3.X / (MathF.PI * 2) / ToSByteDivider);
-            sbyte pitch = (sbyte)(vec3.Y / (MathF.PI * 2) / ToSByteDivider);
-            sbyte yaw = (sbyte)(vec3.Z / (MathF.PI * 2) / ToSByteDivider);
+            sbyte roll = (sbyte)(Rotation.X / (MathF.PI * 2) / ToSByteDivider);
+            sbyte pitch = (sbyte)(Rotation.Y / (MathF.PI * 2) / ToSByteDivider);
+            sbyte yaw = (sbyte)(Rotation.Z / (MathF.PI * 2) / ToSByteDivider);
             return (roll, pitch, yaw);
         }
 
         public (sbyte, sbyte, sbyte) ToRollPitchYawSBytesMovement()
         {
-            var vec3 = ToRollPitchYaw();
-            sbyte roll =  MathUtil.ConvertRadianToDirection(vec3.X - (MathF.PI / 2));
-            sbyte pitch = MathUtil.ConvertRadianToDirection(vec3.Y - (MathF.PI / 2));
-            sbyte yaw =   MathUtil.ConvertRadianToDirection(vec3.Z - (MathF.PI / 2));
+            sbyte roll =  MathUtil.ConvertRadianToDirection(Rotation.X - (MathF.PI / 2));
+            sbyte pitch = MathUtil.ConvertRadianToDirection(Rotation.Y - (MathF.PI / 2));
+            sbyte yaw =   MathUtil.ConvertRadianToDirection(Rotation.Z - (MathF.PI / 2));
             /*
             sbyte roll = (sbyte)(vec3.X / (Math.PI * 2) / ToSByteDivider);
             sbyte pitch = (sbyte)(vec3.Y / (Math.PI * 2) / ToSByteDivider);
@@ -151,30 +106,31 @@ namespace AAEmu.Game.Models.Game.World.Transform
         
         public void SetRotation(float roll, float pitch, float yaw)
         {
-            Rotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+            Rotation = new Vector3(roll, pitch, yaw);
         }
         
         public void SetRotationDegree(float roll, float pitch, float yaw)
         {
-            Rotation = Quaternion.CreateFromYawPitchRoll(yaw.DegToRad(), pitch.DegToRad(), roll.DegToRad());
+            Rotation = new Vector3(yaw.DegToRad(), pitch.DegToRad(), roll.DegToRad());
         }
         
+        /// <summary>
+        /// Sets Yaw in Radian
+        /// </summary>
+        /// <param name="rotZ"></param>
         public void SetZRotation(float rotZ)
         {
-            var oldR = ToRollPitchYaw();
-            Rotation = Quaternion.CreateFromYawPitchRoll(rotZ, oldR.Y, oldR.X);
+            Rotation = new Vector3(Rotation.X, Rotation.Y, rotZ);
         }
 
         public void SetZRotation(short rotZ)
         {
-            var oldR = ToRollPitchYaw();
-            Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation(rotZ)), oldR.Y, oldR.X);
+            Rotation = new Vector3(Rotation.X, Rotation.Y, (float)MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation(rotZ)));
         }
 
         public void SetZRotation(sbyte rotZ)
         {
-            var oldR = ToRollPitchYaw();
-            Rotation = Quaternion.CreateFromYawPitchRoll((float)MathUtil.ConvertDirectionToRadian(rotZ), oldR.Y, oldR.X);
+            Rotation = new Vector3(Rotation.X, Rotation.Y, (float)MathUtil.ConvertDirectionToRadian(rotZ));
         }
 
         /// <summary>
@@ -198,12 +154,18 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Position += new Vector3(offsetX, offsetY, offsetZ);
         }
 
-        public void Rotate(Quaternion offset)
+        public void Rotate(Vector3 offset)
         {
             // Is this correct ?
-            Rotation *= offset;
+            Rotation += offset;
         }
-
+        
+        public void Rotate(float roll, float pitch, float yaw)
+        {
+            // Is this correct ?
+            Rotation += new Vector3(roll, pitch, yaw);
+        }
+        
         /// <summary>
         /// Moves Transform forward by distance units
         /// </summary>
@@ -213,8 +175,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             // TODO: Use Quaternion to do a proper InFront, currently height is ignored
             // TODO: Take into account IsLocal = false
-            var rpy = ToRollPitchYaw();
-            var off = new Vector3((distance * (float)Math.Sin(rpy.Z)), (distance * (float)Math.Cos(rpy.Z)), 0);
+            var off = new Vector3((-distance * (float)Math.Sin(Rotation.Z)), (distance * (float)Math.Cos(Rotation.Z)), 0);
             Translate(off);
         }
 
@@ -227,8 +188,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             // TODO: Use Quaternion to do a proper InFront, currently height is ignored
             // TODO: Take into account IsLocal = false
-            var rpy = ToRollPitchYaw();
-            var off = new Vector3((distance * (float)Math.Cos(rpy.Z)), (distance * (float)Math.Sin(rpy.Z)), 0);
+            var off = new Vector3((distance * (float)Math.Cos(Rotation.Z)), (distance * (float)Math.Sin(Rotation.Z)), 0);
             Translate(off);
         }
         
@@ -239,6 +199,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public void LookAt(Vector3 targetPosition)
         {
             // TODO: Fix this as it's still wrong
+            /*
             var forward = Vector3.Normalize(Position - targetPosition);
             var tmp = Vector3.Normalize(Vector3.UnitZ);
             var right = Vector3.Cross(tmp, forward);
@@ -246,6 +207,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             var m = Matrix4x4.CreateLookAt(Position, targetPosition, up);
             var qr = Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(m));
             Rotation = qr;
+            */
         }
 
         /// <summary>
@@ -259,15 +221,74 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public override string ToString()
         {
-            var rpy = ToRollPitchYawDegrees();
             return string.Format("X:{0:#,0.#} Y:{1:#,0.#} Z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°",
-                Position.X, Position.Y, Position.Z, rpy.X, rpy.Y, rpy.Z);
+                Position.X, Position.Y, Position.Z, Rotation.X.RadToDeg(), Rotation.Y.RadToDeg(), Rotation.Z.RadToDeg());
         }
 
         public bool IsOrigin()
         {
             return Position.Equals(Vector3.Zero);
         }
+        
+        /// <summary>
+        /// Exports Rotation as a Quaternion
+        /// </summary>
+        /// <returns></returns>
+        public Quaternion ToQuaternion() // yaw (Z), pitch (Y), roll (X)
+        {
+            // Abbreviations for the various angular functions
+            var cy = MathF.Cos(Rotation.Z * 0.5f);
+            var sy = MathF.Sin(Rotation.Z * 0.5f);
+            var cp = MathF.Cos(Rotation.Y * 0.5f);
+            var sp = MathF.Sin(Rotation.Y * 0.5f);
+            var cr = MathF.Cos(Rotation.X * 0.5f);
+            var sr = MathF.Sin(Rotation.X * 0.5f);
+
+            Quaternion q;
+            q.W = cr * cp * cy + sr * sp * sy;
+            q.X = sr * cp * cy - cr * sp * sy;
+            q.Y = cr * sp * cy + sr * cp * sy;
+            q.Z = cr * cp * sy - sr * sp * cy;
+
+            return q;
+        }
+
+        /// <summary>
+        /// Sets Rotation from Quaternion values
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        /// <param name="w"></param>
+        public void FromQuaternion(float x, float y, float z, float w) {
+            Vector3 angles;
+
+            // roll (x-axis rotation)
+            var sinRCosP = 2 * (w * x + y * z);
+            var cosRCosP = 1 - 2 * (x * x + y * y);
+            angles.X = MathF.Atan2(sinRCosP, cosRCosP);
+
+            // pitch (y-axis rotation)
+            var sinP = 2 * (w * y - z * x);
+            angles.Y = MathF.Abs(sinP) >= 1 ? MathF.CopySign(MathF.PI / 2f, sinP) : MathF.Asin(sinP);
+
+            // yaw (z-axis rotation)
+            var sinYCosP = 2 * (w * z + x * y);
+            var cosYCosP = 1 - 2 * (y * y + z * z);
+            angles.Z = MathF.Atan2(sinYCosP, cosYCosP);
+
+            Rotation = angles;
+        }
+
+        /// <summary>
+        /// Sets Rotation using a Quaternion
+        /// </summary>
+        /// <param name="q"></param>
+        public void FromQuaternion(Quaternion q)
+        {
+            FromQuaternion(q.X, q.Y, q.Z, q.W);
+        }
+        
     }
 
     /// <summary>
@@ -343,48 +364,38 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Local.Position = position;
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, float posX, float posY, float posZ, float rotX, float rotY, float rotZ, float rotW)
+        public Transform(GameObject owningObject, Transform parentTransform, float posX, float posY, float posZ, float roll, float pitch, float yaw)
         {
             InternalInitializeTransform(owningObject, parentTransform);
             Local.Position = new Vector3(posX, posY, posZ);
-            Local.Rotation = new Quaternion(rotX, rotY, rotZ, rotW);
+            Local.Rotation = new Vector3(roll, pitch, yaw);
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, Vector3 position, Quaternion rotation)
+        public Transform(GameObject owningObject, Transform parentTransform, Vector3 position, Vector3 rotation)
         {
             InternalInitializeTransform(owningObject, parentTransform);
             Local.Position = position;
             Local.Rotation = rotation;
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float rotX, float rotY, float rotZ, float rotW)
+        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float roll, float pitch, float yaw)
         {
             InternalInitializeTransform(owningObject, parentTransform);
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
             Local.Position = new Vector3(posX, posY, posZ);
-            Local.Rotation = new Quaternion(rotX, rotY, rotZ, rotW);
+            Local.Rotation = new Vector3(roll, pitch, yaw);
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float rotZ)
+        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw)
         {
             InternalInitializeTransform(owningObject, parentTransform);
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
             Local.Position = new Vector3(posX, posY, posZ);
-            Local.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, rotZ);
-        }
-
-        public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw, float pitch, float roll)
-        {
-            InternalInitializeTransform(owningObject, parentTransform);
-            WorldId = worldId;
-            ZoneId = zoneId;
-            InstanceId = instanceId;
-            Local.Position = new Vector3(posX, posY, posZ);
-            Local.Rotation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+            Local.Rotation = new Vector3(0f, 0f, yaw);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, PositionAndRotation posRot)
@@ -449,7 +460,6 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <returns></returns>
         public WorldSpawnPosition CloneAsSpawnPosition()
         {
-            var ypr = this.World.ToRollPitchYaw();
             return new WorldSpawnPosition()
             {
                 WorldId = this.WorldId,
@@ -457,9 +467,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 X = this.World.Position.X,
                 Y = this.World.Position.Y,
                 Z = this.World.Position.Z,
-                Yaw = ypr.X,
-                Pitch = ypr.Y,
-                Roll = ypr.Z
+                Roll = this.World.Rotation.X,
+                Pitch = this.World.Rotation.Y,
+                Yaw = this.World.Rotation.Z
             };
         }
 
@@ -575,7 +585,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             if (newInstanceId != 0)
                 InstanceId = newInstanceId;
             Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
-            Local.Rotation = Quaternion.CreateFromYawPitchRoll(wsp.Yaw, wsp.Pitch, wsp.Roll);
+            Local.Rotation = new Vector3(wsp.Roll, wsp.Pitch, wsp.Yaw);
         }
 
         /// <summary>

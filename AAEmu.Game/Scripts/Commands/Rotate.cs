@@ -69,10 +69,9 @@ namespace AAEmu.Game.Scripts.Commands
                 
                 //character.CurrentTarget.Transform.Local.LookAt(character.Transform.Local.Position);
 
-                var rpy = character.CurrentTarget.Transform.Local.ToRollPitchYaw();
-                moveType.RotationX = MathUtil.ConvertRadianToDirection(rpy.X);
-                moveType.RotationY = MathUtil.ConvertRadianToDirection(rpy.Y);
-                moveType.RotationZ = MathUtil.ConvertRadianToDirection(rpy.Z);
+                moveType.RotationX = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.X);
+                moveType.RotationY = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.Y);
+                moveType.RotationZ = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.Z);
                 //moveType.RotationZ = rotZ;
 
                 moveType.ActorFlags = 5;
@@ -85,7 +84,7 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.Time += 50; // has to change all the time for normal motion.
 
                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
-                character.SendMessage("New rotation {0}° ({1} rad, sbyte {2}) for {3}",angle, character.CurrentTarget.Transform.Local.ToRollPitchYaw().Z.ToString("0.00"),rotZ,character.CurrentTarget.ObjId);
+                character.SendMessage("New rotation {0}° ({1} rad, sbyte {2}) for {3}",angle, character.CurrentTarget.Transform.Local.Rotation.Z.ToString("0.00"),rotZ,character.CurrentTarget.ObjId);
                 character.SendMessage("New position {0}",character.CurrentTarget.Transform.Local.ToString());
                 //character.SendMessage("New position A1:{0}  A2:{1}  {2}",angle,angle2,character.CurrentTarget.Transform.Local.ToString());
             }

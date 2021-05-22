@@ -116,7 +116,7 @@ namespace AAEmu.Game.Scripts.Commands
             float startY;
 
             // Origin point for spawns
-            (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.ToRollPitchYaw().Z);
+            (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
             for (var y = 0; y < rows; y++)
             {
                 float sizeY = rows * spacing;

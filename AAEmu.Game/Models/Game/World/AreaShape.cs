@@ -38,7 +38,7 @@ namespace AAEmu.Game.Models.Game.World
             var vertices = MathUtil.GetCuboidVertices(Value1, Value2, 
                 origin.Transform.World.Position.X, origin.Transform.World.Position.Y,
                 //origin.Transform.World.ToRollPitchYawSBytes().Item3);
-                origin.Transform.World.ToRollPitchYaw().Z);
+                origin.Transform.World.Rotation.Z);
 
             toCheck = toCheck.Where(o =>
             {

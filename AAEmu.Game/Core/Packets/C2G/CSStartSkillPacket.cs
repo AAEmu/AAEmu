@@ -44,7 +44,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
             {
-                var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
+                var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else if (skillCaster is SkillItem)

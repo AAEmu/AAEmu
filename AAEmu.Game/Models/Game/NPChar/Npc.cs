@@ -847,9 +847,9 @@ namespace AAEmu.Game.Models.Game.NPChar
             var travelDist = Math.Min(targetDist, distance);
             var angle = MathUtil.CalculateAngleFrom(this.Transform.World.Position, other);
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
-            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
-            var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Transform.World.Position.X, Transform.World.Position.Y, rotZ);
-            var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, rotZ);
+            //var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
+            var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Transform.World.Position.X, Transform.World.Position.Y, (float)angle.DegToRad());
+            var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
 
             // TODO: Implement Transform.World to do proper movement
             Transform.Local.SetPosition(newX,newY, AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(Transform.ZoneId, Transform.World.Position.X, Transform.World.Position.Y) : Transform.World.Position.Z);

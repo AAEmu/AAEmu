@@ -29,17 +29,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             {
                 character.DisabledSetPosition = true;
 
-                var ypr = character.MainWorldPosition.World.ToRollPitchYaw();
                 character.SendPacket(
                     new SCLoadInstancePacket(
-                        1,
+                        character.MainWorldPosition.InstanceId,
                         character.MainWorldPosition.ZoneId,
                         character.MainWorldPosition.World.Position.X,
                         character.MainWorldPosition.World.Position.Y,
                         character.MainWorldPosition.World.Position.Z,
-                        ypr.X,
-                        ypr.Y,
-                        ypr.Z
+                        character.MainWorldPosition.World.Rotation.X,
+                        character.MainWorldPosition.World.Rotation.Y,
+                        character.MainWorldPosition.World.Rotation.Z
                     )
                 );
 

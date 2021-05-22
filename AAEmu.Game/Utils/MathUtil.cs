@@ -58,7 +58,8 @@ namespace AAEmu.Game.Utils
 
         public static double ConvertSbyteDirectionToDegree(sbyte direction)
         {
-            var angle = direction * (360f / 128) + 90;
+            var angle = direction * (360f / 128);
+            // var angle = direction * (360f / 128) + 90;
             if (angle < 0)
                 angle += 360;
             return angle;
@@ -68,7 +69,7 @@ namespace AAEmu.Game.Utils
         {
             if (degree < 0)
                 degree = 360 + degree;
-            degree -= 90;
+            // degree -= 90;
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
                 res = (sbyte)((degree - 360) / (360f / 128));
@@ -90,7 +91,7 @@ namespace AAEmu.Game.Utils
         public static bool IsFront(GameObject obj1, GameObject obj2)
         {
             var degree = CalculateAngleFrom(obj1, obj2);
-            var degree2 = obj2.Transform.World.ToRollPitchYaw().Z;
+            var degree2 = obj2.Transform.World.Rotation.Z;
             var diff = Math.Abs(degree - degree2);
 
             if (diff >= 90 && diff <= 270)
@@ -174,14 +175,6 @@ namespace AAEmu.Game.Utils
             return (newX, newY);
         }
         
-        public static (float, float) AddDistanceToFront(float distance, float x, float y, sbyte rotZ)
-        {
-            var rad = ConvertDirectionToRadian(rotZ);
-            var newX = (distance * (float)Math.Cos(rad)) + x;
-            var newY = (distance * (float)Math.Sin(rad)) + y;
-            return (newX, newY);
-        }
-
         public static (float, float) AddDistanceToFront(float distance, float x, float y, float rotZRad)
         {
             var newX = (distance * (float)Math.Cos(rotZRad)) + x;
@@ -208,8 +201,10 @@ namespace AAEmu.Game.Utils
         public static (float, float)[] GetCuboidVertices(float length, float width, float x, float y, float rotationZ)
         {
             // TODO: Probably needs more verification
-            var radFront = (rotationZ - (MathF.PI / 2f)) * -1f;
-            var radRight = rotationZ * -1f;
+            // var radFront = (rotationZ - (MathF.PI / 2f)) * -1f;
+            // var radRight = rotationZ * -1f;
+            var radFront = rotationZ - (MathF.PI / 2f);
+            var radRight = rotationZ;
 
             // Console.WriteLine("GetCuboidVertices - rotationZ = " + rotationZ.RadToDeg() + "° > F: " + radFront.RadToDeg() + "°  R: " + radRight.RadToDeg() + "°");
 

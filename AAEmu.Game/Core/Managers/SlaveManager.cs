@@ -164,10 +164,13 @@ namespace AAEmu.Game.Core.Managers
 
             var spawnPos = owner.Transform.CloneDetached();
             spawnPos.Local.Translate(slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset, 0f);
-            spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.ToRollPitchYaw().Z); // Always spawn horizontal
-            // TODO: get actual target location water body height
+            spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z); // Always spawn horizontal
             if (slaveTemplate.SlaveKind == SlaveKind.Boat)
-                spawnPos.Local.SetHeight(100.0f);
+            {
+                var worldOceanLevel  = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f ;
+                // TODO: if not at ocean level, get actual target location water body height
+                spawnPos.Local.SetHeight(worldOceanLevel);
+            }
 
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
@@ -225,7 +228,10 @@ namespace AAEmu.Game.Core.Managers
                     {
                         doodad.Transform = template.Transform.CloneAttached(doodad);
                         doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsPositionVector());
-                        doodad.Transform.Local.Rotate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsRotationQuaternion());
+                        doodad.Transform.Local.Rotate(
+                            _attachPoints[template.ModelId][doodadBinding.AttachPointId].Roll,
+                            _attachPoints[template.ModelId][doodadBinding.AttachPointId].Pitch,
+                            _attachPoints[template.ModelId][doodadBinding.AttachPointId].Yaw);
                         _log.Debug("Model id: {0} attachment {1} => pos {2} = {3}", template.ModelId,
                             doodadBinding.AttachPointId, _attachPoints[template.ModelId][doodadBinding.AttachPointId], doodad.Transform);
                     }
@@ -284,7 +290,7 @@ namespace AAEmu.Game.Core.Managers
                         childSlave.Transform = template.Transform.CloneAttached(childSlave);
                         childSlave.Transform.Parent = template.Transform;
                         childSlave.Transform.Local.Translate(attachPoint.AsPositionVector());
-                        childSlave.Transform.Local.Rotate(attachPoint.AsRotationQuaternion());
+                        childSlave.Transform.Local.Rotate(attachPoint.Roll, attachPoint.Pitch, attachPoint.Yaw);
                         /*
                         childSlave.Position = template.Position.Clone();
                         childSlave.Position.X += attachPoint.X;

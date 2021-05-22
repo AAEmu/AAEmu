@@ -90,12 +90,14 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (mateInfo == null) return;
 
                 RemoveEffects(mateInfo, _moveType);
+                /*
                 mateInfo.Transform.Local.SetPosition(_moveType.X,_moveType.Y,_moveType.Z);
                 mateInfo.Transform.Local.SetRotationDegree(
                     (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationX),
                     (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationY),
                     (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationZ));
-                // mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                */
+                mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
 
                 var movements = new List<(uint, MoveType)> {(_objId, _moveType)};
 
@@ -144,9 +146,16 @@ namespace AAEmu.Game.Core.Packets.C2G
                                 "|cFF888822Standing on Object: {0} ({4}) @ x{1} y{2} z{3} || World: {5}|r", mType.GcId, mType.X,
                                 mType.Y, mType.Z, parentObject.Name, Connection.ActiveChar.Transform.World.ToString());
                         Connection.ActiveChar.Transform.Parent = parentObject.Transform;
-                        
+
+                        /*
                         Connection.ActiveChar.Transform.Local.SetPosition(mType.X,mType.Y,mType.Z);
                         Connection.ActiveChar.Transform.Local.SetRotation(
+                            (float)MathUtil.ConvertDirectionToRadian(mType.RotationX),
+                            (float)MathUtil.ConvertDirectionToRadian(mType.RotationY),
+                            (float)MathUtil.ConvertDirectionToRadian(mType.RotationZ));
+                        */
+                        
+                        Connection.ActiveChar.SetPosition(mType.X, mType.Y, mType.Z,
                             (float)MathUtil.ConvertDirectionToRadian(mType.RotationX),
                             (float)MathUtil.ConvertDirectionToRadian(mType.RotationY),
                             (float)MathUtil.ConvertDirectionToRadian(mType.RotationZ));

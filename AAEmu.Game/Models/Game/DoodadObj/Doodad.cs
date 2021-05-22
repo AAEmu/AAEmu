@@ -341,10 +341,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@x", Transform.World.Position.X);
                     command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
                     command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
-                    var rpy = Transform.World.ToRollPitchYaw();
-                    command.Parameters.AddWithValue("@roll", rpy.X);
-                    command.Parameters.AddWithValue("@pitch", rpy.Y);
-                    command.Parameters.AddWithValue("@yaw", rpy.Z);
+                    command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
+                    command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
+                    command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }

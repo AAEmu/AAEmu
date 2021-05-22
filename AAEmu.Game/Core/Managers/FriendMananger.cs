@@ -110,7 +110,7 @@ namespace AAEmu.Game.Core.Managers
                             {
                                 Name = reader.GetString("name"),
                                 CharacterId = reader.GetUInt32("id"),
-                                Position = new Transform(null, null, 1, reader.GetUInt32("zone_id"), 1, reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"), 0, 0, 0, 0),
+                                Position = new Transform(null, null, 1, reader.GetUInt32("zone_id"), 1, reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"), 0, 0, 0),
                                 InParty = false,
                                 IsOnline = false,
                                 Race = (Race)reader.GetUInt32("race"),
