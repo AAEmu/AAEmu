@@ -120,9 +120,13 @@ namespace AAEmu.Game.Models.Game.Char
                 var obj = new SkillCasterUnit(mount.ObjId);
                 buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.Now);
             }
+            Owner.SendMessage("Spawn Mount Owner: " + Owner.Transform.ToString());
+            Owner.SendMessage("Spawn Mount Before InFront: " + mount.Transform.ToString());
             mount.Transform.Local.AddDistanceToFront(3f);
+            Owner.SendMessage("Spawn Mount After InFront: " + mount.Transform.ToString());
 
             MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
+            Owner.SendMessage("Spawn Mount Post-Spawn: " + mount.Transform.ToString());
         }
 
         public void DespawnMate(uint tlId)

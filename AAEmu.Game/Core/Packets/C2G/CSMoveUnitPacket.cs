@@ -90,7 +90,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (mateInfo == null) return;
 
                 RemoveEffects(mateInfo, _moveType);
-                mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                mateInfo.Transform.Local.SetPosition(_moveType.X,_moveType.Y,_moveType.Z);
+                mateInfo.Transform.Local.SetRotationDegree(
+                    (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationX),
+                    (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationY),
+                    (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationZ));
+                // mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
 
                 var movements = new List<(uint, MoveType)> {(_objId, _moveType)};
 

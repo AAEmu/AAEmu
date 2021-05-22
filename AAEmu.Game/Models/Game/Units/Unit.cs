@@ -213,6 +213,11 @@ namespace AAEmu.Game.Models.Game.Units
             Cooldowns = new UnitCooldowns();
         }
 
+        public void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        {
+            SetPosition(x, y, z, (float)MathUtil.ConvertDirectionToRadian(rotationX), (float)MathUtil.ConvertDirectionToRadian(rotationY), (float)MathUtil.ConvertDirectionToRadian(rotationZ));
+        }
+        
         public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
             var moved = !Transform.Local.Position.X.Equals(x) || !Transform.Local.Position.Y.Equals(y) || !Transform.Local.Position.Z.Equals(z);
