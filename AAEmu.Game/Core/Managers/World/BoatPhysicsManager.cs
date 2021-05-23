@@ -155,7 +155,7 @@ namespace AAEmu.Game.Core.Managers.World
                     slave.Speed = 0;
             }
 
-            _log.Debug("Slave Speed: {0}  Rotation Speed: {1}",slave.Speed, slave.RotSpeed);
+            _log.Trace("Slave Speed: {0}  Rotation Speed: {1}",slave.Speed, slave.RotSpeed);
 
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
             var slaveRotRad = rpy.Item1 + (90 * (Math.PI/ 180.0f));

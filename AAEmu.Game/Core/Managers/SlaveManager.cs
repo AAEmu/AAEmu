@@ -261,8 +261,9 @@ namespace AAEmu.Game.Core.Managers
                     if (_attachPoints[template.ModelId].ContainsKey(doodadBinding.AttachPointId))
                     {
                         doodad.Transform = template.Transform.CloneAttached(doodad);
+                        doodad.Transform.Parent = template.Transform;
                         doodad.Transform.Local.Translate(_attachPoints[template.ModelId][doodadBinding.AttachPointId].AsPositionVector());
-                        doodad.Transform.Local.Rotate(
+                        doodad.Transform.Local.SetRotation(
                             _attachPoints[template.ModelId][doodadBinding.AttachPointId].Roll,
                             _attachPoints[template.ModelId][doodadBinding.AttachPointId].Pitch,
                             _attachPoints[template.ModelId][doodadBinding.AttachPointId].Yaw);
@@ -294,6 +295,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     TlId = ctlId,
                     ObjId = cobjId,
+                    ParentObj = template,
                     TemplateId = childSlaveTemplate.Id,
                     Name = childSlaveTemplate.Name,
                     Level = (byte)childSlaveTemplate.Level,
@@ -310,7 +312,7 @@ namespace AAEmu.Game.Core.Managers
                     AttachedCharacters = new Dictionary<AttachPointKind, Character>(),
                     SpawnTime = DateTime.Now,
                     AttachPointId = (sbyte) slaveBinding.AttachPointId,
-                    OwnerObjId = template.ObjId
+                    OwnerObjId = template.OwnerObjId
                 };
                 childSlave.Transform = spawnPos.CloneDetached(childSlave);
                 childSlave.Transform.Parent = template.Transform;
@@ -325,12 +327,6 @@ namespace AAEmu.Game.Core.Managers
                         childSlave.Transform.Parent = template.Transform;
                         childSlave.Transform.Local.Translate(attachPoint.AsPositionVector());
                         childSlave.Transform.Local.Rotate(attachPoint.Roll, attachPoint.Pitch, attachPoint.Yaw);
-                        /*
-                        childSlave.Position = template.Position.Clone();
-                        childSlave.Position.X += attachPoint.X;
-                        childSlave.Position.Y += attachPoint.Y;
-                        childSlave.Position.Z += attachPoint.Z;
-                        */
                     }
                     else
                     {
@@ -361,12 +357,23 @@ namespace AAEmu.Game.Core.Managers
             if (string.IsNullOrWhiteSpace(contents))
                 throw new IOException(
                     $"File {FileManager.AppPath}Data/slave_attach_points.json doesn't exists or is empty.");
-
+            
             List<SlaveModelAttachPoint> attachPoints;
             if (JsonHelper.TryDeserializeObject(contents, out attachPoints, out _))
                 _log.Info("Slave model attach points loaded...");
             else
                 _log.Warn("Slave model attach points not loaded...");
+
+            // Convert degrees from json to radian
+            foreach (var vehicle in attachPoints)
+            {
+                foreach (var pos in vehicle.AttachPoints)
+                {
+                    pos.Value.Roll = pos.Value.Roll.DegToRad();
+                    pos.Value.Pitch = pos.Value.Pitch.DegToRad();
+                    pos.Value.Yaw = pos.Value.Yaw.DegToRad();
+                }
+            }
             
             _attachPoints = new Dictionary<uint, Dictionary<int, WorldSpawnPosition>>();
             foreach (var set in attachPoints)

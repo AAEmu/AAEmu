@@ -63,7 +63,9 @@ namespace AAEmu.Game.Core.Packets.C2G
                             if (slave == null)
                                 return;
 
-                            slave.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, vmt.RotationX, vmt.RotationY, vmt.RotationZ);
+                            Connection.ActiveChar.Transform.Parent = slave.Transform;
+                            slave.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, rotDegX, rotDegY, rotDegZ);
+                            // slave.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, vmt.RotationX, vmt.RotationY, vmt.RotationZ);
                             // slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
                             slave.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
                             slave.Transform.FinalizeTransform();

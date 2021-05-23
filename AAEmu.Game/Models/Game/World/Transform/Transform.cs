@@ -77,7 +77,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public (short,short,short) ToRollPitchYawShorts()
         {
-            short roll = (short)(Rotation.X / (MathF.PI * 2) / ToShortDivider);
+            short roll = (short)(Rotation.X.RadToDeg() / (MathF.PI * 2) / ToShortDivider);
             short pitch = (short)(Rotation.Y / (MathF.PI * 2) / ToShortDivider);
             short yaw = (short)(Rotation.Z / (MathF.PI * 2) / ToShortDivider);
             return (roll, pitch, yaw);
@@ -599,11 +599,19 @@ namespace AAEmu.Game.Models.Game.World.Transform
             if (!_owningObject.DisabledSetPosition)
                 WorldManager.Instance.AddVisibleObject(_owningObject);
 
+            if (_owningObject is Slave slave)
+            {
+                foreach (var dood in slave.AttachedDoodads)
+                    WorldManager.Instance.AddVisibleObject(dood);
+                foreach (var chld in slave.AttachedSlaves)
+                    WorldManager.Instance.AddVisibleObject(chld);
+            }
+
             if (includeChildren)
                 foreach (var child in _children)
                     child.FinalizeTransform();
-            //var rpy = Local.ToRollPitchYaw();
-            //_owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,rpy.X,rpy.Y,rpy.Z);
+
+            //_owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,Local.Rotation.X,Local.Rotation.Y,Local.Rotation.Z);
         }
         
         /// <summary>

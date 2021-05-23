@@ -265,7 +265,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (AttachPoint > 0)
             {
                 stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
-                var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
+                // var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
+                var (roll, pitch, yaw) = MathUtil.GetSlaveRotationFromDegrees(Transform.Local.Rotation.X,Transform.Local.Rotation.Y,Transform.Local.Rotation.Z);
                 stream.Write(roll);
                 stream.Write(pitch);
                 stream.Write(yaw);
@@ -274,6 +275,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z); //self explanatory
                 var(roll, pitch, yaw) = Transform.World.ToRollPitchYawShorts();
+                //var (roll, pitch, yaw) = MathUtil.GetSlaveRotationFromDegrees(Transform.World.Rotation.X,Transform.World.Rotation.Y,Transform.World.Rotation.Z);
                 stream.Write(roll);
                 stream.Write(pitch);
                 stream.Write(yaw);
