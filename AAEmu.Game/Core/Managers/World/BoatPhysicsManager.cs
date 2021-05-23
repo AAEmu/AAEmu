@@ -87,17 +87,14 @@ namespace AAEmu.Game.Core.Managers.World
             if (shipModel == null)
                 return;
 
-            var oriY = slave.Transform.World.ToRollPitchYawDegrees().Z;
-            //oriY -= 90.0f;
-
             var slaveBox = new BoxShape(shipModel.MassBoxSizeX, shipModel.MassBoxSizeZ, shipModel.MassBoxSizeY);
             var slaveMaterial = new Material();
 
             var rigidBody = new RigidBody(slaveBox,slaveMaterial)
             {
-                Position = new JVector(slave.Transform.World.Position.X - (shipModel.MassBoxSizeX / 2.0f), slave.Transform.World.Position.Z - (shipModel.MassBoxSizeZ / 2.0f), slave.Transform.World.Position.Y - (shipModel.MassBoxSizeY / 2.0f)),
-                //Mass = shipModel.Mass,
-                Orientation = JMatrix.CreateRotationY((float) ((float) oriY * (Math.PI / 180.0f)))
+                Position = new JVector(slave.Transform.World.Position.X, slave.Transform.World.Position.Z, slave.Transform.World.Position.Y),
+                //Mass = shipModel.Mass, // Using the actually defined mass of the DB doesn't really work
+                Orientation = JMatrix.CreateRotationY(slave.Transform.World.Rotation.Z)
             };
                
             _buoyancy.Add(rigidBody, 4);

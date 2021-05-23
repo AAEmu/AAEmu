@@ -31,5 +31,12 @@ namespace AAEmu.Game.Models.Game.Slaves
             DoodadBindings = new List<SlaveDoodadBindings>();
             SlaveBindings = new List<SlaveBindings>();
         }
+
+        public bool IsABoat()
+        {
+            return ((SlaveKind == SlaveKind.Boat) || (SlaveKind == SlaveKind.Fishboat) ||
+                    (SlaveKind == SlaveKind.Speedboat) || (SlaveKind == SlaveKind.MerchantShip) ||
+                    (SlaveKind == SlaveKind.BigSailingShip) || (SlaveKind == SlaveKind.SmallSailingShip));
+        }
     }
 }

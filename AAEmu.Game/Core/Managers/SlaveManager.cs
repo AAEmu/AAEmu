@@ -23,6 +23,7 @@ using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using System.Numerics;
+using System.Security.Claims;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
@@ -163,13 +164,25 @@ namespace AAEmu.Game.Core.Managers
             var objId = ObjectIdManager.Instance.GetNextId();
 
             var spawnPos = owner.Transform.CloneDetached();
-            spawnPos.Local.Translate(slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset, 0f);
-            spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z); // Always spawn horizontal
-            if (slaveTemplate.SlaveKind == SlaveKind.Boat)
+            // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
+            spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
+            // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
+            // spawnPos.Local.AddDistanceToRight(slaveTemplate.SpawnXOffset);
+            spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2)); // Always spawn horizontal and 90° CCW
+            if (slaveTemplate.IsABoat())
             {
+                // If we're spawning a boat, put it at the water level regardless of our own height
+                // TODO: if not at ocean level, get actual target location water body height (for example rivers)
                 var worldOceanLevel  = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f ;
-                // TODO: if not at ocean level, get actual target location water body height
                 spawnPos.Local.SetHeight(worldOceanLevel);
+            }
+            else
+            {
+                // If a land vehicle, put it a the ground level of it's target spawn location
+                // TODO: check for maximum height difference for summoning
+                var h = WorldManager.Instance.GetHeight(spawnPos);
+                if (h > 0f)
+                    spawnPos.Local.SetHeight(h);
             }
 
             // TODO
@@ -312,7 +325,7 @@ namespace AAEmu.Game.Core.Managers
             _tlSlaves.Add(template.TlId, template);
             _activeSlaves.Add(owner.ObjId, template);
             
-            if (new[] {SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat}.Contains(template.Template.SlaveKind))
+            if (slaveTemplate.IsABoat())
                 BoatPhysicsManager.Instance.AddShip(template);
             
             owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId, template.Hp, template.Mp,
