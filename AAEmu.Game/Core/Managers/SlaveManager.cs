@@ -24,6 +24,7 @@ using AAEmu.Game.Utils.DB;
 using NLog;
 using System.Numerics;
 using System.Security.Claims;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
@@ -168,13 +169,32 @@ namespace AAEmu.Game.Core.Managers
             spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
             // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
             // spawnPos.Local.AddDistanceToRight(slaveTemplate.SpawnXOffset);
-            spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2)); // Always spawn horizontal and 90° CCW
             if (slaveTemplate.IsABoat())
             {
                 // If we're spawning a boat, put it at the water level regardless of our own height
                 // TODO: if not at ocean level, get actual target location water body height (for example rivers)
-                var worldOceanLevel  = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f ;
-                spawnPos.Local.SetHeight(worldOceanLevel);
+                var worldWaterLevel  = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f ;
+                spawnPos.Local.SetHeight(worldWaterLevel);
+                
+                // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
+                var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
+                var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f ;
+                for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
+                {
+                    var depthCheckPos = spawnPos.CloneDetached();
+                    depthCheckPos.Local.AddDistanceToFront(inFront);
+                    var h = WorldManager.Instance.GetHeight(depthCheckPos);
+                    if (h > 0f)
+                    {
+                        var d = worldWaterLevel - h;
+                        if (d > minDepth)
+                        {
+                            // owner.SendMessage("Extra inFront = {0}, required Depth = {1}", inFront, minDepth);
+                            spawnPos = depthCheckPos.CloneDetached();
+                            break;
+                        }
+                    }
+                }
             }
             else
             {
@@ -184,6 +204,7 @@ namespace AAEmu.Game.Core.Managers
                 if (h > 0f)
                     spawnPos.Local.SetHeight(h);
             }
+            spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2)); // Always spawn horizontal and 90° CCW
 
             // TODO
             owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
