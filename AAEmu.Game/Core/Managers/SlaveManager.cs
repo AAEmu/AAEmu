@@ -408,7 +408,8 @@ namespace AAEmu.Game.Core.Managers
                                 SpawnValidAreaRance = reader.GetUInt32("spawn_valid_area_range", 0),
                                 SlaveInitialItemPackId = reader.GetUInt32("slave_initial_item_pack_id", 0),
                                 SlaveCustomizingId = reader.GetUInt32("slave_customizing_id", 0),
-                                Customizable = reader.GetBoolean("customizable", false)
+                                Customizable = reader.GetBoolean("customizable", false),
+                                PortalTime = reader.GetFloat("portal_time")
                             };
                             _slaveTemplates.Add(template.Id, template);
                         }

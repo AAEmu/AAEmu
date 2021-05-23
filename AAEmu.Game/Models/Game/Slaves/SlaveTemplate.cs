@@ -18,6 +18,7 @@ namespace AAEmu.Game.Models.Game.Slaves
         public uint SlaveInitialItemPackId { get; set; }
         public uint SlaveCustomizingId { get; set; }
         public bool Customizable { get; set; }
+        public float PortalTime { get; set; }
 
         public List<SlaveInitialBuffs> InitialBuffs { get; }
         public List<SlavePassiveBuffs> PassiveBuffs { get; }

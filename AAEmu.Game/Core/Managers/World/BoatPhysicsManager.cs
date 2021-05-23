@@ -53,7 +53,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                 foreach (var slave in SlaveManager.Instance.GetActiveSlavesByKinds(new[] {SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat}))
                 {
-                    if (slave.SpawnTime.AddSeconds(8) > DateTime.Now)
+                    if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.Now)
                         continue;
 
                     var slaveRigidBody = slave.RigidBody;
