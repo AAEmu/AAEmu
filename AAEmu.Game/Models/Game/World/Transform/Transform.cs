@@ -78,17 +78,17 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public (short,short,short) ToRollPitchYawShorts()
         {
-            short roll = (short)(Rotation.X.RadToDeg() / (MathF.PI * 2) / ToShortDivider);
-            short pitch = (short)(Rotation.Y / (MathF.PI * 2) / ToShortDivider);
-            short yaw = (short)(Rotation.Z / (MathF.PI * 2) / ToShortDivider);
+            short roll = (short)(Rotation.X / (MathF.PI * 2f) / ToShortDivider);
+            short pitch = (short)(Rotation.Y / (MathF.PI * 2f) / ToShortDivider);
+            short yaw = (short)(Rotation.Z / (MathF.PI * 2f) / ToShortDivider);
             return (roll, pitch, yaw);
         }
 
         public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()
         {
-            sbyte roll = (sbyte)(Rotation.X / (MathF.PI * 2) / ToSByteDivider);
-            sbyte pitch = (sbyte)(Rotation.Y / (MathF.PI * 2) / ToSByteDivider);
-            sbyte yaw = (sbyte)(Rotation.Z / (MathF.PI * 2) / ToSByteDivider);
+            sbyte roll = (sbyte)(Rotation.X / (MathF.PI * 2f) / ToSByteDivider);
+            sbyte pitch = (sbyte)(Rotation.Y / (MathF.PI * 2f) / ToSByteDivider);
+            sbyte yaw = (sbyte)(Rotation.Z / (MathF.PI * 2f) / ToSByteDivider);
             return (roll, pitch, yaw);
         }
 
@@ -234,13 +234,18 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <returns></returns>
         public Quaternion ToQuaternion() // yaw (Z), pitch (Y), roll (X)
         {
+            return ToQuaternion(Rotation);
+        }
+
+        public static Quaternion ToQuaternion(Vector3 rotationVector3) // yaw (Z), pitch (Y), roll (X)
+        {
             // Abbreviations for the various angular functions
-            var cy = MathF.Cos(Rotation.Z * 0.5f);
-            var sy = MathF.Sin(Rotation.Z * 0.5f);
-            var cp = MathF.Cos(Rotation.Y * 0.5f);
-            var sp = MathF.Sin(Rotation.Y * 0.5f);
-            var cr = MathF.Cos(Rotation.X * 0.5f);
-            var sr = MathF.Sin(Rotation.X * 0.5f);
+            var cy = MathF.Cos(rotationVector3.Z * 0.5f);
+            var sy = MathF.Sin(rotationVector3.Z * 0.5f);
+            var cp = MathF.Cos(rotationVector3.Y * 0.5f);
+            var sp = MathF.Sin(rotationVector3.Y * 0.5f);
+            var cr = MathF.Cos(rotationVector3.X * 0.5f);
+            var sr = MathF.Sin(rotationVector3.X * 0.5f);
 
             Quaternion q;
             q.W = cr * cp * cy + sr * sp * sy;
@@ -250,6 +255,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
             return q;
         }
+        
 
         /// <summary>
         /// Sets Rotation from Quaternion values
@@ -258,7 +264,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <param name="y"></param>
         /// <param name="z"></param>
         /// <param name="w"></param>
-        public void FromQuaternion(float x, float y, float z, float w) {
+        public static Vector3 FromQuaternion(float x, float y, float z, float w) 
+        {
             Vector3 angles;
 
             // roll (x-axis rotation)
@@ -275,16 +282,26 @@ namespace AAEmu.Game.Models.Game.World.Transform
             var cosYCosP = 1 - 2 * (y * y + z * z);
             angles.Z = MathF.Atan2(sinYCosP, cosYCosP);
 
-            Rotation = angles;
+            return angles;
+        }
+
+        public static Vector3 FromQuaternion(Quaternion q)
+        {
+            return FromQuaternion(q.X, q.Y, q.Z, q.W);
+        }
+
+        public void ApplyFromQuaternion(float x, float y, float z, float w)
+        {
+            Rotation = FromQuaternion(x, y, z, w);
         }
 
         /// <summary>
         /// Sets Rotation using a Quaternion
         /// </summary>
         /// <param name="q"></param>
-        public void FromQuaternion(Quaternion q)
+        public void ApplyFromQuaternion(Quaternion q)
         {
-            FromQuaternion(q.X, q.Y, q.Z, q.W);
+            Rotation = FromQuaternion(q.X, q.Y, q.Z, q.W);
         }
         
     }

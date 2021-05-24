@@ -114,8 +114,8 @@ namespace AAEmu.Game.Core.Managers.World
                                 C++;
                                 if (!DoodadManager.Instance.Exist(spawner.UnitId))
                                 {
-                                    _log.Warn("Duplicate doodad spawner Id in {0} at entry {1} using Id {2}",
-                                        jsonFileName, C, spawner.UnitId);
+                                    _log.Warn("Doodad Template {0} (file entry {1}) doesn't exist - {2}",
+                                        spawner.UnitId, C, jsonFileName);
                                     continue; // TODO ... so mb warn here?
                                 }
 

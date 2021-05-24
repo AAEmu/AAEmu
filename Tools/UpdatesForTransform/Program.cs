@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,10 +15,10 @@ namespace UpdatesForTransform
         public static float ConvertSbyteDirectionToDegree(sbyte direction)
         {
             var angle = direction * (360f / 128);
-            if (angle < 0)
-                angle += 360;
-            if (angle > 360)
-                angle -= 360;
+            if (angle < -360f)
+                angle += 360f;
+            if (angle > 360f)
+                angle -= 360f;
             return angle;
         }
 
@@ -36,7 +36,7 @@ namespace UpdatesForTransform
             float res = aAngle;
             while (res > 360f)
                 res -= 360f;
-            while (res < -180f)
+            while (res < -360f)
                 res += 360f;
             return res;
         }
@@ -75,10 +75,10 @@ namespace UpdatesForTransform
                     ns.Position.X = os.Position.X;
                     ns.Position.Y = os.Position.Y;
                     ns.Position.Z = os.Position.Z;
-                    // new system is mirrored for XY axis, so * -1
-                    ns.Position.Roll = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX)) * -1f);
-                    ns.Position.Pitch = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY)) * -1f);
-                    ns.Position.Yaw = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ)));
+
+                    ns.Position.Roll = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX), 4, MidpointRounding.ToEven));
+                    ns.Position.Pitch = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY), 4, MidpointRounding.ToEven));
+                    ns.Position.Yaw = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ), 4, MidpointRounding.ToEven));
                     newSpawners.Add(ns);
 
                     if ((os.Position.RotationX != 0f) || (os.Position.RotationY != 0f) || (os.Position.RotationZ != 0f))
@@ -122,10 +122,44 @@ namespace UpdatesForTransform
             allFiles.AddRange(npc_spawns_jsons);
             allFiles.AddRange(doodad_spawns_jsons);
             allFiles.AddRange(transfer_spawns_jsons);
+            Console.WriteLine();
             Console.WriteLine("Found {0} files found ({1} NPC, {2} Doodad and {3} transfers).", allFiles.Count, npc_spawns_jsons.Count, doodad_spawns_jsons.Count, transfer_spawns_jsons.Count);
 
+            foreach(var f in allFiles)
+            {
+                if (File.Exists(f.FullName+".old"))
+                    OldConvertedFiles.Add(f.FullName);
+            }
+            if (OldConvertedFiles.Count > 0)
+            {
+                Console.WriteLine("Also found {0} backup files from previous conversions", OldConvertedFiles.Count);
+                Console.WriteLine();
+                Console.Write("Do you want to revert the backup files first ? (Y/n): ");
+                var confirmRestore = Console.ReadLine()?.ToLower();
+                if ((confirmRestore == "y") || (confirmRestore == string.Empty))
+                {
+                    Console.WriteLine("Restoring previous backup files ...");
+                    var restored = 0;
+                    foreach (var newFName in OldConvertedFiles)
+                        try
+                        {
+                            var backupName = newFName + ".old";
+                            File.Delete(newFName);
+                            File.Move(backupName, newFName);
+                            restored++;
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Failed to restore: {0}", newFName);
+                        }
+
+                    Console.WriteLine("Restored {0} files !", restored);
+                    Console.WriteLine();
+                }
+            }
+
             Console.WriteLine();
-            Console.Write("Continue ? (y/N): ");
+            Console.Write("Continue with converting ? (y/N): ");
             var confirm = Console.ReadLine()?.ToLower();
             if (confirm != "y")
             {
