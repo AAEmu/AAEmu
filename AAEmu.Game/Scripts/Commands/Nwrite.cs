@@ -53,12 +53,11 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         if (npc.Spawner.Position.WorldId == world.Id)
                         {
-                            string path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
+                            string path = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns.json");
 
-                            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
+                            var contents = FileManager.GetFileContents(path);
                             if (string.IsNullOrWhiteSpace(contents))
-                                _log.Warn(
-                                    $"File {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json doesn't exists or is empty.");
+                                _log.Warn($"File {path} doesn't exists or is empty.");
                             else
                             {
                                 if (JsonHelper.TryDeserializeObject(contents, out List<JsonNpcSpawns> spawners, out _))
@@ -82,7 +81,7 @@ namespace AAEmu.Game.Scripts.Commands
                                     character.SendMessage("[Nwrite] ObjId: {0} has been saved!", character.CurrentTarget.ObjId);
                                 }
                                 else
-                                    throw new Exception($"SpawnManager: Parse {FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json file");
+                                    throw new Exception($"SpawnManager: Error parsing {path} file");
                             }
                         }
                     }

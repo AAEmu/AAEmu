@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Animation;
@@ -65,24 +66,29 @@ namespace AAEmu.Game.Core.Managers
             }
 
 
-            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/anim_durations.json");
-            if (string.IsNullOrWhiteSpace(contents))
-                _log.Warn(
-                    $"File {FileManager.AppPath}Data/anim_durations.json doesn't exist or is empty.");
+            var filePath = Path.Combine(FileManager.AppPath, "Data", "anim_durations.json");
+            if (!File.Exists(filePath))
+                _log.Warn($"File {filePath} doesn't exist!");
             else
             {
-                if (JsonHelper.TryDeserializeObject(contents, out Dictionary<string, AnimDuration> animDurations, out _))
-                    foreach (var key in animDurations.Keys)
-                    {
-                        if (!_animationsByName.ContainsKey(key)) continue;
-
-                        var anim = _animationsByName[key];
-                        anim.Duration = animDurations[key].total_time;
-                        anim.CombatSyncTime = animDurations[key].combat_sync_time;
-                    }
+                var contents = FileManager.GetFileContents(filePath);
+                if (string.IsNullOrWhiteSpace(contents))
+                    _log.Warn($"File {filePath} is empty.");
                 else
-                    throw new Exception(
-                        $"AnimationManager: Parse {FileManager.AppPath}Data/anim_durations.json file");
+                {
+                    if (JsonHelper.TryDeserializeObject(contents, out Dictionary<string, AnimDuration> animDurations,
+                        out _))
+                        foreach (var key in animDurations.Keys)
+                        {
+                            if (!_animationsByName.ContainsKey(key)) continue;
+
+                            var anim = _animationsByName[key];
+                            anim.Duration = animDurations[key].total_time;
+                            anim.CombatSyncTime = animDurations[key].combat_sync_time;
+                        }
+                    else
+                        throw new Exception($"AnimationManager: Error parsing {filePath} file");
+                }
             }
         }
     }

@@ -407,10 +407,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
             }
 
-            var content = FileManager.GetFileContents($"{FileManager.AppPath}Data/CharTemplates.json");
+            var filePath = Path.Combine(FileManager.AppPath, "Data", "CharTemplates.json");
+            var content = FileManager.GetFileContents(filePath);
             if (string.IsNullOrWhiteSpace(content))
-                throw new IOException(
-                    $"File {FileManager.AppPath + "Data/CharTemplates.json"} doesn't exists or is empty.");
+                throw new IOException($"File {filePath} doesn't exists or is empty.");
 
             if (JsonHelper.TryDeserializeObject(content, out List<CharacterTemplateConfig> charTemplates, out _))
             {
@@ -432,7 +432,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
             }
             else
-                throw new Exception($"CharacterManager: Parse {FileManager.AppPath + "Data/CharTemplates.json"} file");
+                throw new Exception($"CharacterManager: Error parsing {filePath} file");
 
             Log.Info("Loaded {0} character templates", _templates.Count);
         }

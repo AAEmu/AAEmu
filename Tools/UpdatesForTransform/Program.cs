@@ -24,8 +24,7 @@ namespace UpdatesForTransform
 
         public static sbyte ConvertDegreeToSByteDirection(float degree)
         {
-            if (degree < 0)
-                degree = 360 + degree;
+            degree = NormalizeAngle(degree);
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
                 res = (sbyte)((degree - 360) / (360f / 128));
@@ -76,10 +75,10 @@ namespace UpdatesForTransform
                     ns.Position.X = os.Position.X;
                     ns.Position.Y = os.Position.Y;
                     ns.Position.Z = os.Position.Z;
-                    ns.Position.Yaw = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ)));
                     // new system is mirrored for XY axis, so * -1
-                    ns.Position.Pitch = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY)) * -1f);
                     ns.Position.Roll = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX)) * -1f);
+                    ns.Position.Pitch = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY)) * -1f);
+                    ns.Position.Yaw = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ)));
                     newSpawners.Add(ns);
 
                     if ((os.Position.RotationX != 0f) || (os.Position.RotationY != 0f) || (os.Position.RotationZ != 0f))

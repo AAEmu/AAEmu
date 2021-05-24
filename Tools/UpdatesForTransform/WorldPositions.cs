@@ -23,13 +23,13 @@ namespace UpdatesForTransform
 
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0f)]
-        public float Yaw { get; set; }
+        public float Roll { get; set; }
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0f)]
         public float Pitch { get; set; }
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(0f)]
-        public float Roll { get; set; }
+        public float Yaw { get; set; }
     }
 
     public class WorldSpawnPositionOld

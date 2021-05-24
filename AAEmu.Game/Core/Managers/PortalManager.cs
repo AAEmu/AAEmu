@@ -52,11 +52,15 @@ namespace AAEmu.Game.Core.Managers
 
             #region FileManager
 
-            var filePath = $"{FileManager.AppPath}Data/Portal/SubZonePortalCoords.json";
+            var filePath = Path.Combine(FileManager.AppPath,"Data","Portal","SubZonePortalCoords.json");
+
+            if (!File.Exists(filePath))
+                throw new IOException($"File {filePath} doesn't exists !");
+
             var contents = FileManager.GetFileContents(filePath);
 
             if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException($"File {filePath} doesn't exists or is empty.");
+                throw new IOException($"File {filePath} is empty !");
 
             if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
                 foreach (var portal in portals)

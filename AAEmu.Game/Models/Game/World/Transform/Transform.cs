@@ -6,6 +6,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils;
 using Quartz.Listener;
 
@@ -139,6 +140,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <param name="offset">Amount to offset</param>
         public void Translate(Vector3 offset)
         {
+            // TODO: Take into account isLocal = false ?
             Position += offset;
         }
 
@@ -148,11 +150,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <param name="offsetX"></param>
         /// <param name="offsetY"></param>
         /// <param name="offsetZ"></param>
-        public void Translate(float offsetX, float offsetY, float offsetZ)
-        {
-            // TODO: Take into account IsLocal = false
-            Position += new Vector3(offsetX, offsetY, offsetZ);
-        }
+        public void Translate(float offsetX, float offsetY, float offsetZ) => Translate(new Vector3(offsetX, offsetY, offsetZ));
 
         public void Rotate(Vector3 offset)
         {

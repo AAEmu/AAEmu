@@ -126,10 +126,11 @@ namespace AAEmu.Game.Core.Managers
 
                 _log.Info("Loading Housing Templates...");
 
-                var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/housing_bindings.json");
+                var filePath = Path.Combine(FileManager.AppPath, "Data", "housing_bindings.json");
+                var contents = FileManager.GetFileContents(filePath);
                 if (string.IsNullOrWhiteSpace(contents))
                     throw new IOException(
-                        $"File {FileManager.AppPath}Data/housing_bindings.json doesn't exists or is empty.");
+                        $"File {filePath} doesn't exists or is empty.");
 
                 List<HousingBindingTemplate> binding;
                 if (JsonHelper.TryDeserializeObject(contents, out binding, out _))

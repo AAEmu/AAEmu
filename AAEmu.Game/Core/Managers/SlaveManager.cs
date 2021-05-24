@@ -353,10 +353,11 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Info("Loading Slave Model Attach Points...");
 
-            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/slave_attach_points.json");
+            var filePath = Path.Combine(FileManager.AppPath, "Data", "slave_attach_points.json");
+            var contents = FileManager.GetFileContents(filePath);
             if (string.IsNullOrWhiteSpace(contents))
                 throw new IOException(
-                    $"File {FileManager.AppPath}Data/slave_attach_points.json doesn't exists or is empty.");
+                    $"File {filePath} doesn't exists or is empty.");
             
             List<SlaveModelAttachPoint> attachPoints;
             if (JsonHelper.TryDeserializeObject(contents, out attachPoints, out _))

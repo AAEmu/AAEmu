@@ -114,7 +114,7 @@ namespace AAEmu.Game.Core.Managers.World
 
             #region FileManager
 
-            var pathFile = $"{FileManager.AppPath}Data/worlds.json";
+            var pathFile = Path.Combine(FileManager.AppPath, "Data", "worlds.json");
             var contents = FileManager.GetFileContents(pathFile);
             if (string.IsNullOrWhiteSpace(contents))
                 throw new IOException($"File {pathFile} doesn't exists or is empty.");
@@ -139,10 +139,14 @@ namespace AAEmu.Game.Core.Managers.World
 
             foreach (var world in _worlds.Values)
             {
-                pathFile = $"{FileManager.AppPath}Data/Worlds/{world.Name}/zones.json";
+                pathFile = Path.Combine(FileManager.AppPath,"Data","Worlds",world.Name,"zones.json");
+                
+                if (!File.Exists(pathFile))
+                    throw new IOException($"File {pathFile} doesn't exists!");
+                
                 contents = FileManager.GetFileContents(pathFile);
                 if (string.IsNullOrWhiteSpace(contents))
-                    throw new IOException($"File {pathFile} doesn't exists or is empty.");
+                    throw new IOException($"File {pathFile} is empty.");
 
                 if (JsonHelper.TryDeserializeObject(contents, out List<ZoneConfig> zones, out _))
                     foreach (var zone in zones)

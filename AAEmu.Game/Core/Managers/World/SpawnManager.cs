@@ -107,10 +107,18 @@ namespace AAEmu.Game.Core.Managers.World
                     else
                     {
                         if (JsonHelper.TryDeserializeObject(contents, out List<DoodadSpawner> spawners, out _))
+                        {
+                            var C = 0;
                             foreach (var spawner in spawners)
                             {
+                                C++;
                                 if (!DoodadManager.Instance.Exist(spawner.UnitId))
+                                {
+                                    _log.Warn("Duplicate doodad spawner Id in {0} at entry {1} using Id {2}",
+                                        jsonFileName, C, spawner.UnitId);
                                     continue; // TODO ... so mb warn here?
+                                }
+
                                 spawner.Position.WorldId = world.Id;
                                 spawner.Position.ZoneId = WorldManager
                                     .Instance
@@ -121,6 +129,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 spawner.Position.Roll = spawner.Position.Roll.DegToRad();
                                 doodadSpawners.Add(spawner.Id, spawner);
                             }
+                        }
                         else
                             throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
                     }
@@ -164,14 +173,8 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                 }
 
-                contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/gimmick_spawns.json");
-                if (string.IsNullOrWhiteSpace(contents))
-                {
-                    //_log.Warn($"File {FileManager.AppPath}Data/Worlds/{world.Name}/gimmick_spawns.json doesn't exists or is empty.");
-                }
-                
                 jsonFileName = Path.Combine(worldPath, "gimmick_spawns.json");
-
+                
                 if (!File.Exists(jsonFileName))
                 {
                     _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));

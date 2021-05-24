@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,11 +28,12 @@ namespace AAEmu.Login
         {
             Initialization();
 
-            if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
+            var filePath = Path.Combine(FileManager.AppPath, "Config.json");
+            if (FileManager.FileExists(filePath))
                 Configuration(args);
             else
             {
-                _log.Error($"{FileManager.AppPath}Config.json doesn't exist!");
+                _log.Error($"{filePath} doesn't exist!");
                 return;
             }
 
@@ -74,13 +76,14 @@ namespace AAEmu.Login
         private static void Configuration(string[] args)
         {
             var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile(FileManager.AppPath + "Config.json")
+                .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.json"))
                 .AddCommandLine(args)
                 .Build();
 
             configurationBuilder.Bind(AppConfiguration.Instance);
 
-            LogManager.Configuration = new XmlLoggingConfiguration(FileManager.AppPath + "NLog.config", false);
+            LogManager.Configuration =
+                new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"), false);
         }
     }
 }

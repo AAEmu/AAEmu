@@ -56,13 +56,14 @@ namespace AAEmu.Game.Core.Managers
         {
             _expeditions = new Dictionary<uint, Expedition>();
 
-            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/expedition.json");
+            var filePath = Path.Combine(FileManager.AppPath, "Data", "expedition.json");
+            var contents = FileManager.GetFileContents(filePath);
             if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException($"File {FileManager.AppPath}Data/expedition.json doesn't exists or is empty.");
+                throw new IOException($"File {filePath} doesn't exists or is empty.");
 
             if (!JsonHelper.TryDeserializeObject(contents, out _config, out _)) // TODO here can out Exception
                 throw new Exception(
-                    $"ExpeditionManager: Parse {FileManager.AppPath}Data/expedition.json file");
+                    $"ExpeditionManager: Parse {filePath} file");
             _nameRegex = new Regex(_config.NameRegex, RegexOptions.Compiled);
 
             using (var connection = MySQL.CreateConnection())
