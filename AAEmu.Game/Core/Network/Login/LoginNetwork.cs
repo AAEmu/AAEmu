@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
@@ -27,7 +28,7 @@ namespace AAEmu.Game.Core.Network.Login
         public void Start()
         {
             var config = AppConfiguration.Instance.LoginNetwork;
-            _client = new Client(IPAddress.Parse(config.Host), config.Port, _handler);
+            _client = new Client(Dns.GetHostAddresses(config.Host).First(), config.Port, _handler);
             _client.ConnectAsync();
 
         }
