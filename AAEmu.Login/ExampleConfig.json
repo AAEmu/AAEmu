@@ -2,7 +2,7 @@
   "SecretKey": "test",
   "AutoAccount": false,
   "InternalNetwork": {
-    "Host": "127.0.0.1",
+    "Host": "*",
     "Port": 1234
   },
   "Network": {
@@ -12,10 +12,10 @@
   },
   "Connections": {
     "MySQLProvider": {
-      "Host": "localhost",
-      "Port": "3306",
-      "User": "root",
-      "Password": "",
+      "Host": "%db_host%",
+      "Port": "%db_port%",
+      "User": "%db_user%",
+      "Password": "%db_password%",
       "Database": "aaemu_login"
     }
   }
