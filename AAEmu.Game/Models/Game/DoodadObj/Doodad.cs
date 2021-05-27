@@ -168,7 +168,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (funcGroupId == -1)
             {
                 // Delete doodad
-                // Delete();
+                Delete();
             }
             else
             {
@@ -176,6 +176,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 PhaseRatio = Rand.Next(0, 10000);
                 CumulativePhaseRatio = 0;
                 DoPhase(unit, skillId);
+
+                _log.Debug("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
             }
         }
@@ -195,7 +197,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 PhaseRatio = Rand.Next(0, 10000);
                 CumulativePhaseRatio = 0;
                 DoPhase(unit, skillId);
+
+                _log.Debug("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
+
                 Use(unit, skillId, recursionDepth);
             }
         }

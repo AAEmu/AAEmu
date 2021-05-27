@@ -16,8 +16,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (owner.PhaseRatio + owner.CumulativePhaseRatio <= Ratio)
             {
                 owner.OverridePhase = NextPhase; //Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded
+                _log.Debug("DoodadFuncRatioChange : OverridePhase {0}", NextPhase);
+                owner.ToPhaseAndUse = true;
                 return;
             }
+            _log.Debug("DoodadFuncRatioChange : NextPhase {0}", NextPhase);
             owner.CumulativePhaseRatio += Ratio;
             owner.ToPhaseAndUse = false;
         }
