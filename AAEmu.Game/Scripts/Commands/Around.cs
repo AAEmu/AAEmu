@@ -6,6 +6,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Models.Game.World.Transform;
+using System.Numerics;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -58,7 +60,11 @@ namespace AAEmu.Game.Scripts.Commands
                         character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")");
                         // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString());
                         if (verbose)
-                            character.SendMessage("#" + (i + 1).ToString() + " -> " + doodads[i].Transform.ToString()+"\n");
+                        {
+                            var shorts = doodads[i].Transform.World.ToRollPitchYawShorts();
+                            var shortString = "(short[3])(r:" + shorts.Item1.ToString() + " p:" + shorts.Item2.ToString() + " y:" + shorts.Item3.ToString()+")";
+                            character.SendMessage("#{0} -> {1} = {2}\n",(i + 1).ToString(),doodads[i].Transform.ToString(),shortString);
+                        }
                     }
                     character.SendMessage(sb.ToString());
                     character.SendMessage("[Around] Doodad count: {0}", doodads.Count);

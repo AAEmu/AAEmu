@@ -6,6 +6,10 @@ using Newtonsoft.Json;
 
 namespace UpdatesForTransform
 {
+    /// <summary>
+    /// All default values are ignored to save space.
+    /// Additionally this class has technically more fields than each individual json will require (adds all possible fields)
+    /// </summary>
     public class WorldSpawnPositionNew
     {
         //public uint WorldId { get; set; }
@@ -56,14 +60,19 @@ namespace UpdatesForTransform
     {
         public long Id;
         public long UnitId;
+
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Required = Required.DisallowNull)]
         [DefaultValue(1)]
         public long Count = 1;
         public WorldSpawnPositionOld Position;
+
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Required = Required.DisallowNull)]
         [DefaultValue(1f)]
         public float Scale = 1f;
-        
+
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Required = Required.DisallowNull)]
+        [DefaultValue(0)]
+        public long FuncGroupId = 0;
         public NpcSpawnerOld()
         {
             Position = new WorldSpawnPositionOld();
@@ -74,13 +83,19 @@ namespace UpdatesForTransform
     {
         public long Id;
         public long UnitId;
+
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Required = Required.DisallowNull)]
         [DefaultValue(1)]
         public long Count = 1;
         public WorldSpawnPositionNew Position;
+
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Required = Required.DisallowNull)]
         [DefaultValue(1f)]
         public float Scale = 1f;
+
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate, Required = Required.DisallowNull)]
+        [DefaultValue(0)]
+        public long FuncGroupId = 0;
 
         public NpcSpawnerNew()
         {

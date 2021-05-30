@@ -218,7 +218,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _log.Info("Loading heightmaps...");
                 foreach (var world in _worlds.Values)
                 {
-                    var heightMap = $"{FileManager.AppPath}Data/Worlds/{world.Name}/hmap.dat";
+                    var heightMap = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "hmap.dat");
                     if (!File.Exists(heightMap))
                     {
                         _log.Warn($"HeightMap at `{world.Name}` doesn't exists");

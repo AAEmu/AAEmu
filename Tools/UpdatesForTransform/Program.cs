@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using System.Numerics;
 
 namespace UpdatesForTransform
 {
@@ -11,36 +12,49 @@ namespace UpdatesForTransform
 
         private static List<string> OldConvertedFiles = new List<string>();
         private static int OldEntriesFound = 0;
+        private const float ToShortDivider = (1f / 32768f); // ~0.000030518509f ;
+        private const float ToSByteDivider = (1f / 127f);   // ~0.007874015748f ;
 
         public static float ConvertSbyteDirectionToDegree(sbyte direction)
         {
             var angle = direction * (360f / 128);
-            if (angle < -360f)
-                angle += 360f;
-            if (angle > 360f)
-                angle -= 360f;
-            return angle;
+            return angle % 360f;
         }
 
         public static sbyte ConvertDegreeToSByteDirection(float degree)
         {
-            degree = NormalizeAngle(degree);
+            degree %= 360f;
             var res = (sbyte)(degree / (360f / 128));
             if (res > 85)
                 res = (sbyte)((degree - 360) / (360f / 128));
             return res;
         }
 
-        public static float NormalizeAngle(float aAngle)
+        public static Vector3 FromQuaternion(float x, float y, float z, float w)
         {
-            float res = aAngle;
-            while (res > 360f)
-                res -= 360f;
-            while (res < -360f)
-                res += 360f;
-            return res;
+            Vector3 angles;
+
+            // roll (x-axis rotation)
+            var sinRCosP = 2 * (w * x + y * z);
+            var cosRCosP = 1 - 2 * (x * x + y * y);
+            angles.X = MathF.Atan2(sinRCosP, cosRCosP);
+
+            // pitch (y-axis rotation)
+            var sinP = 2 * (w * y - z * x);
+            angles.Y = MathF.Abs(sinP) >= 1 ? MathF.CopySign(MathF.PI / 2f, sinP) : MathF.Asin(sinP);
+
+            // yaw (z-axis rotation)
+            var sinYCosP = 2 * (w * z + x * y);
+            var cosYCosP = 1 - 2 * (y * y + z * z);
+            angles.Z = MathF.Atan2(sinYCosP, cosYCosP);
+
+            return angles;
         }
 
+        public static Vector3 FromQuaternion(Quaternion q)
+        {
+            return FromQuaternion(q.X, q.Y, q.Z, q.W);
+        }
 
         static void ConvertNpcSpawnsFile(string fileName)
         {
@@ -51,6 +65,8 @@ namespace UpdatesForTransform
                 Console.WriteLine("Already converted {0}", fileName);
                 return;
             }
+
+            var isQuatRotation = Path.GetFileNameWithoutExtension(fileName).ToLower().Contains("doodad");
 
             var oldJsonData = File.ReadAllText(fileName);
 
@@ -76,9 +92,30 @@ namespace UpdatesForTransform
                     ns.Position.Y = os.Position.Y;
                     ns.Position.Z = os.Position.Z;
 
-                    ns.Position.Roll = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX), 4, MidpointRounding.ToEven));
-                    ns.Position.Pitch = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY), 4, MidpointRounding.ToEven));
-                    ns.Position.Yaw = NormalizeAngle(MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ), 4, MidpointRounding.ToEven));
+                    if (!isQuatRotation)
+                    {
+                        ns.Position.Roll = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationX), 4, MidpointRounding.ToEven) % 360f;
+                        ns.Position.Pitch = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationY), 4, MidpointRounding.ToEven) % 360f;
+                        ns.Position.Yaw = MathF.Round(ConvertSbyteDirectionToDegree(os.Position.RotationZ), 4, MidpointRounding.ToEven) % 360f;
+                    }
+                    else
+                    {
+                        // Special consideration for doodads, as those where stored wrong originally
+                        var y = (ConvertSbyteDirectionToDegree(os.Position.RotationX) % 360f) / 360f;
+                        var x = (ConvertSbyteDirectionToDegree(os.Position.RotationY) % 360f) / 360f;
+                        var z = (ConvertSbyteDirectionToDegree(os.Position.RotationZ) % 360f) / 360f;
+                        var ww = 1f - ((x * x) + (y * y) + (z * z));
+                        var w = MathF.Sqrt(ww);
+                        var q = new Quaternion(x, y, z, w);
+                        // q = Quaternion.Normalize(q);
+                        var v = FromQuaternion(q);
+
+                        ns.Position.Roll = MathF.Round(v.X / MathF.PI * 180f, 4, MidpointRounding.ToEven) % 360f;
+                        ns.Position.Pitch = MathF.Round(v.Y / MathF.PI * 180f, 4, MidpointRounding.ToEven) % 360f;
+                        ns.Position.Yaw = MathF.Round(v.Z / MathF.PI * 180f, 4, MidpointRounding.ToEven) % 360f;
+                    }
+
+                    ns.FuncGroupId = os.FuncGroupId;
                     newSpawners.Add(ns);
 
                     if ((os.Position.RotationX != 0f) || (os.Position.RotationY != 0f) || (os.Position.RotationZ != 0f))
@@ -99,7 +136,7 @@ namespace UpdatesForTransform
 
         static void Main(string[] args)
         {
-            Console.WriteLine("This is a helper tool to convert spawn files from the old sbyte X/Y/Z rotation to radians in Yaw/Pitch/Roll");
+            Console.WriteLine("This is a helper tool to convert spawn files from the old sbyte X/Y/Z rotation to radians in Roll/Pitch/Yaw");
             Console.WriteLine("-----------------------------------------------------------------------------------------------------------");
             Console.WriteLine();
 

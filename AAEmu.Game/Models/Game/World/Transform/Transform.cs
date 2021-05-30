@@ -26,6 +26,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         private const float ToShortDivider = (1f / 32768f); // ~0.000030518509f ;
         private const float ToSByteDivider = (1f / 127f);   // ~0.007874015748f ;
+        private const float TwoPi = (MathF.PI * 2f);
 
         public PositionAndRotation()
         {
@@ -78,17 +79,16 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public (short,short,short) ToRollPitchYawShorts()
         {
-            short roll = (short)(Rotation.X / (MathF.PI * 2f) / ToShortDivider);
-            short pitch = (short)(Rotation.Y / (MathF.PI * 2f) / ToShortDivider);
-            short yaw = (short)(Rotation.Z / (MathF.PI * 2f) / ToShortDivider);
-            return (roll, pitch, yaw);
+            var q = Quaternion.CreateFromYawPitchRoll(Rotation.X, Rotation.Y, Rotation.Z);
+            return ((short)(q.X * short.MaxValue), (short)(q.Y * short.MaxValue),
+                (short)(q.Z * short.MaxValue));
         }
 
         public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()
         {
-            sbyte roll = (sbyte)(Rotation.X / (MathF.PI * 2f) / ToSByteDivider);
-            sbyte pitch = (sbyte)(Rotation.Y / (MathF.PI * 2f) / ToSByteDivider);
-            sbyte yaw = (sbyte)(Rotation.Z / (MathF.PI * 2f) / ToSByteDivider);
+            var roll = (sbyte)(Rotation.X / (MathF.PI * 2f) / ToSByteDivider);
+            var pitch = (sbyte)(Rotation.Y / (MathF.PI * 2f) / ToSByteDivider);
+            var yaw = (sbyte)(Rotation.Z / (MathF.PI * 2f) / ToSByteDivider);
             return (roll, pitch, yaw);
         }
 
