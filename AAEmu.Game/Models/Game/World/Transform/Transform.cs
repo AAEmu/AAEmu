@@ -269,17 +269,17 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Vector3 angles;
 
             // roll (x-axis rotation)
-            var sinRCosP = 2 * (w * x + y * z);
-            var cosRCosP = 1 - 2 * (x * x + y * y);
+            var sinRCosP = 2f * (w * x + y * z);
+            var cosRCosP = 1f - 2f * (x * x + y * y);
             angles.X = MathF.Atan2(sinRCosP, cosRCosP);
 
             // pitch (y-axis rotation)
-            var sinP = 2 * (w * y - z * x);
-            angles.Y = MathF.Abs(sinP) >= 1 ? MathF.CopySign(MathF.PI / 2f, sinP) : MathF.Asin(sinP);
+            var sinP = 2f * (w * y - z * x);
+            angles.Y = MathF.Abs(sinP) >= 1f ? MathF.CopySign(MathF.PI / 2f, sinP) : MathF.Asin(sinP);
 
             // yaw (z-axis rotation)
-            var sinYCosP = 2 * (w * z + x * y);
-            var cosYCosP = 1 - 2 * (y * y + z * z);
+            var sinYCosP = 2f * (w * z + x * y);
+            var cosYCosP = 1f - 2f * (y * y + z * z);
             angles.Z = MathF.Atan2(sinYCosP, cosYCosP);
 
             return angles;
