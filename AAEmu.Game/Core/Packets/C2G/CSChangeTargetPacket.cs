@@ -34,7 +34,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             else if (Connection.ActiveChar.CurrentTarget is House house)
                 Connection.ActiveChar.SendMessage("ObjId: {0}, HouseId: {1}, Pos: {2}", targetId, house.Id, house.Transform.ToString());
             else if (Connection.ActiveChar.CurrentTarget is Character character)
-                Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, Pos: {2}", targetId, character.Id, character.Transform.ToString());
+                Connection.ActiveChar.SendMessage("ObjId: {0}, CharacterId: {1}, \nPos: {2}", targetId, character.Id, character.Transform.ToFullString(true,true));
             else
                 Connection.ActiveChar.SendMessage("ObjId: {0}, Pos: {1}, {2}", targetId, Connection.ActiveChar.CurrentTarget.Transform.ToString(),Connection.ActiveChar.CurrentTarget.Name);
         }

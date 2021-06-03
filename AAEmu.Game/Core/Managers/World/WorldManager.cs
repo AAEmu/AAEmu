@@ -741,6 +741,8 @@ namespace AAEmu.Game.Core.Managers.World
             var stuffs = WorldManager.Instance.GetAround<Unit>(character, 1000f);
             foreach (var stuff in stuffs)
             {
+                stuff.AddVisibleObject(character);
+                /*
                 switch (stuff)
                 {
                     case Npc npc:
@@ -773,6 +775,7 @@ namespace AAEmu.Game.Core.Managers.World
                         shipyard.AddVisibleObject(character);
                         break;
                 }
+                */
             }
 
             var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();

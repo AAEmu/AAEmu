@@ -126,12 +126,17 @@ namespace AAEmu.Game.Models.Game.World
             if (_objects == null)
                 return;
 
-            // show the player all the facilities in the region
+            // Show the player all the facilities in the region
             if (obj is Character character1)
             {
                 var units = GetList(new List<Unit>(), obj.ObjId);
                 foreach (var t in units)
                 {
+                    // turn on the motion of the visible NPC
+                    if ((t is Npc npc) && (npc.Ai != null)) 
+                        npc.Ai.ShouldTick = true;
+                    t.AddVisibleObject(character1);
+                    /*
                     // turn on the motion of the visible NPC
                     if (t is Npc npc)
                     {
@@ -166,6 +171,7 @@ namespace AAEmu.Game.Models.Game.World
                             character1.SendPacket(new SCUnitStatePacket(t));
                         }
                     }
+                    */
                 }
                 
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
@@ -177,6 +183,7 @@ namespace AAEmu.Game.Models.Game.World
                     character1.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }
             }
+            
             // show the object to all players in the region
             foreach (var character in GetList(new List<Character>(), obj.ObjId))
             {

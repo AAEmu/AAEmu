@@ -1400,7 +1400,7 @@ namespace AAEmu.Game.Models.Game.Char
             
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
-            //TODO: Need way to determine when player is under any body of water.
+            // TODO: Need way to determine when player is under any body of water.
             if (!IsUnderWater && Transform.World.Position.Z < 98)
                 IsUnderWater = true;
             else if (IsUnderWater && Transform.World.Position.Z > 98)

@@ -65,36 +65,5 @@ namespace AAEmu.Game.Models.Game.Units
                 character.SendPacket(packet);
         }
 
-        /*
-        /// <summary>
-        /// Moves a slave by X, Y & Z. Also moves attached slaves, doodads & driver
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        public void Move(float newX, float newY, float newZ)
-        {
-            var xD = newX - Position.X;
-            var yD = newY - Position.Y;
-            var zD = newZ - Position.Z;
-            SetPosition(newX, newY, newZ);
-            
-            foreach (var doodad in AttachedDoodads)
-            {
-                doodad.SetPosition(doodad.Position.X + xD, doodad.Position.Y + yD, doodad.Position.Z + zD);
-            }
-            
-            foreach (var attachedSlave in AttachedSlaves)
-            {
-                attachedSlave.Move(newX, newY, newZ);
-            }
-            
-            // Driver?.SetPosition(Driver.Position.X + xD, Driver.Position.Y + yD, Driver.Position.Z + zD);
-            foreach (var character in AttachedCharacters.Values)
-            {
-                character?.SetPosition(character.Position.X + xD, character.Position.Y + yD, character.Position.Z + zD);
-            }
-        }
-        */
     }
 }

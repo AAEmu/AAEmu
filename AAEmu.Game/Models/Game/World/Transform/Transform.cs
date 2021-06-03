@@ -112,7 +112,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         
         public void SetRotationDegree(float roll, float pitch, float yaw)
         {
-            Rotation = new Vector3(yaw.DegToRad(), pitch.DegToRad(), roll.DegToRad());
+            Rotation = new Vector3(roll.DegToRad(), pitch.DegToRad(), yaw.DegToRad());
         }
         
         /// <summary>
@@ -555,6 +555,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 _children.Add(child);
                 // TODO: This needs better handling and take into account rotations
                 child.Local.Position -= Local.Position;
+                child.GameObject.ParentObj = this.GameObject;
             }
         }
 
@@ -565,6 +566,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 _children.Remove(child);
                 // TODO: This needs better handling and take into account rotations
                 child.Local.Position += Local.Position;
+                child.GameObject.ParentObj = null;
             }
         }
 
@@ -620,6 +622,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     WorldManager.Instance.AddVisibleObject(dood);
                 foreach (var chld in slave.AttachedSlaves)
                     WorldManager.Instance.AddVisibleObject(chld);
+                /*
+                foreach (var objs in slave.AttachedCharacters)
+                    WorldManager.Instance.AddVisibleObject(objs.Value);
+                */
             }
 
             if (includeChildren)
@@ -628,25 +634,37 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
             //_owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,Local.Rotation.X,Local.Rotation.Y,Local.Rotation.Z);
         }
-        
+
         /// <summary>
         /// Returns a summary of the current local location and parent objects if this is a child
         /// </summary>
         /// <returns></returns>
         public override string ToString()
         {
-            var res = Local.ToString();
+            return ToFullString(true, false);
+        }
+        public string ToFullString(bool isFirstInList = true,bool chatFormatted = false)
+        {
+            var chatColorWhite = chatFormatted ? "|cFFFFFFFF" : "";
+            var chatColorGreen = chatFormatted ? "|cFF00FF00" : "";
+            var chatColorRestore = chatFormatted ? "|r" : "";
+            var chatLineFeed = chatFormatted ? "\n" : "";
+            var res = string.Empty;
+            if (isFirstInList && (_parentTransform != null))
+                res += "[" + chatColorWhite + World.ToString() + chatColorRestore + "] " + chatLineFeed + "=> "; 
+            res += Local.ToString();
             if (_parentTransform != null)
             {
-                res += " on ( ";
+                res += "\n on ( ";
                 if (_parentTransform._owningObject is BaseUnit bu)
                 {
                     if (bu.Name != string.Empty)
-                        res += bu.Name + " ";
-                    res += "#" + bu.ObjId + " ";
+                        res += chatColorGreen + bu.Name + chatColorRestore + " ";
+                    res += "#" + chatColorWhite + bu.ObjId + chatColorRestore + " ";
                 }
-                res += _parentTransform.ToString();
-                res += " )";
+
+                res += _parentTransform.ToFullString(false, chatFormatted);
+                res += " )" + chatLineFeed;
             }
             return res;
         }

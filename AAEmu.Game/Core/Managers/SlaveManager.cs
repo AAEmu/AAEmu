@@ -106,8 +106,13 @@ namespace AAEmu.Game.Core.Managers
             var slave = _tlSlaves[tlId];
             if (slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver))
                 return;
-                
-            unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, slave.ObjId), true);
+
+            // Make sure we are attached to the slave
+            unit.Transform.Parent = slave.Transform; 
+            // TODO: Reset local position and rotation to Driver's Seat
+            unit.Transform.Local.SetPosition(0, 0, 0, 0, 0, 0);
+           
+            unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, (byte)AttachPointKind.Driver, 6, slave.ObjId), true);
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, slave.ObjId), true);
             unit.CurrentTarget = slave;
             unit.BroadcastPacket(new SCSlaveBoundPacket(unit.Id, slave.ObjId), true);
