@@ -53,7 +53,8 @@ namespace AAEmu.Game.Scripts.Commands
                     // sb.AppendLine("[Around] Doodads:");
                     for (var i = 0; i < doodads.Count; i++)
                     {
-                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")");
+                        character.SendMessage("#" + (i + 1).ToString() + " -> ObjId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")" + " JsonId: " + doodads[i].Spawner.Id
+                        + " X: |cFFFFFFFF{0}|r  Y: |cFFFFFFFF{1}|r  Z: |cFFFFFFFF{2}|r", doodads[i].Position.X, doodads[i].Position.Y, doodads[i].Position.Z);
                         // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString());
                     }
                     character.SendMessage(sb.ToString());
@@ -70,7 +71,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         // TODO: Maybe calculate the localized name here ?
                         // string OriginalNPCName = NpcManager.Instance.GetTemplate(npcs[i].TemplateId).Name;
-                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + npcs[i].ObjId.ToString() + " NpcTemplateId: " + npcs[i].TemplateId.ToString() + " - @NPC_NAME(" + npcs[i].TemplateId.ToString() + ")");
+                        character.SendMessage("#" + (i + 1).ToString() + " -> ObjId: " + npcs[i].ObjId.ToString() + " NpcTemplateId: " + npcs[i].TemplateId.ToString() + " - @NPC_NAME(" + npcs[i].TemplateId.ToString() + ")");
                         // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + npcs[i].ObjId.ToString() + " NpcTemplateId: " + npcs[i].TemplateId.ToString());
                     }
 
@@ -87,7 +88,7 @@ namespace AAEmu.Game.Scripts.Commands
                     //sb.AppendLine("[Around] Characters");
                     for (var i = 0; i < characters.Count; i++)
                     {
-                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + characters[i].ObjId.ToString() + " CharacterId: " + characters[i].Id.ToString() + " - " + characters[i].Name);
+                        character.SendMessage("#" + (i + 1).ToString() + " -> ObjId: " + characters[i].ObjId.ToString() + " CharacterId: " + characters[i].Id.ToString() + " - " + characters[i].Name);
                         // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + characters[i].ObjId.ToString() + " CharacterId: " + characters[i].Id.ToString() + " - " + characters[i].Name);
                         //    sb.AppendLine($"#.{i + 1} -> BcId: {characters[i].ObjId} CharacterId: {characters[i].Id}");
                     }
