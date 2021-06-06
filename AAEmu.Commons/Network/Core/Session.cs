@@ -11,7 +11,7 @@ namespace AAEmu.Commons.Network.Core
         public BaseProtocolHandler ProtocolHandler { get; private set; }
         public IPEndPoint RemoteEndPoint { get; set; }
         private readonly Dictionary<string, object> _attributes = new Dictionary<string, object>();
-        public uint Id { get; set; }
+        public uint SessionId { get; set; }
         public IPAddress Ip { get; private set; }
         
         public Client Client { get; set; }
@@ -26,13 +26,13 @@ namespace AAEmu.Commons.Network.Core
             Client = client;
             ProtocolHandler = client.GetHandler();
             Ip = client.Endpoint.Address;
-            Id = (uint) client.Endpoint.GetHashCode();
+            SessionId = (uint) client.Endpoint.GetHashCode();
         }
 
         protected override void OnConnected()
         {
             RemoteEndPoint = (IPEndPoint)Socket.RemoteEndPoint;
-            Id = (uint)RemoteEndPoint.GetHashCode();
+            SessionId = (uint)RemoteEndPoint.GetHashCode();
             Ip = RemoteEndPoint.Address;
             ProtocolHandler?.OnConnect(this);
         }

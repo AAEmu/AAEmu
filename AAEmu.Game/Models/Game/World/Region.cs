@@ -145,10 +145,10 @@ namespace AAEmu.Game.Models.Game.World
                     }
                 }
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
-                for (var i = 0; i < doodads.Length; i += 30)
+                for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
                 {
                     var count = doodads.Length - i;
-                    var temp = new Doodad[count <= 30 ? count : 30];
+                    var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
                     Array.Copy(doodads, i, temp, 0, temp.Length);
                     character.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }
@@ -179,19 +179,19 @@ namespace AAEmu.Game.Models.Game.World
                     }
                 }
 
-                for (var offset = 0; offset < unitIds.Length; offset += 500)
+                for (var offset = 0; offset < unitIds.Length; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
                 {
                     var length = unitIds.Length - offset;
-                    var temp = new uint[length > 500 ? 500 : length];
+                    var temp = new uint[length > SCUnitsRemovedPacket.MaxCountPerPacket ? SCUnitsRemovedPacket.MaxCountPerPacket : length];
                     Array.Copy(unitIds, offset, temp, 0, temp.Length);
                     character1.SendPacket(new SCUnitsRemovedPacket(temp));
                 }
                 var doodadIds = GetListId<Doodad>(new List<uint>(), character1.ObjId).ToArray();
-                for (var offset = 0; offset < doodadIds.Length; offset += 400)
+                for (var offset = 0; offset < doodadIds.Length; offset += SCDoodadsRemovedPacket.MaxCountPerPacket)
                 {
                     var length = doodadIds.Length - offset;
-                    var last = length <= 400;
-                    var temp = new uint[last ? length : 400];
+                    var last = length <= SCDoodadsRemovedPacket.MaxCountPerPacket;
+                    var temp = new uint[last ? length : SCDoodadsRemovedPacket.MaxCountPerPacket];
                     Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                     character1.SendPacket(new SCDoodadsRemovedPacket(last, temp));
                 }

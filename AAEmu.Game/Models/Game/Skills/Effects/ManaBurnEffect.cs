@@ -29,8 +29,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             min += BaseMin;
             max += BaseMax;
 
-            var levelMin = 0.0f;
-            var levelMax = 0.0f;
+            //var levelMin = 0.0f;
+            //var levelMax = 0.0f;
             
             var lvlMd = caster.LevelDps * LevelMd;
             // Hack null-check on skill

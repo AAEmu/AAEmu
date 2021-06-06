@@ -10,7 +10,7 @@ namespace AAEmu.Login.Core.Network.Connections
     {
         private Session _session;
 
-        public uint Id => _session.Id;
+        public uint Id => _session.SessionId;
         public IPAddress Ip => _session.Ip;
         public GameServer GameServer { get; set; }
         public bool Block { get; set; }

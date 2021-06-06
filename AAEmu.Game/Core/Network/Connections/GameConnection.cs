@@ -27,7 +27,7 @@ namespace AAEmu.Game.Core.Network.Connections
     {
         private Session _session;
 
-        public uint Id => _session.Id;
+        public uint Id => _session.SessionId;
         public uint AccountId { get; set; }
         public IPAddress Ip => _session.Ip;
         public PacketStream LastPacket { get; set; }

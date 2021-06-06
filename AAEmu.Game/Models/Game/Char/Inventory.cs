@@ -336,7 +336,7 @@ namespace AAEmu.Game.Models.Game.Char
                 mainHandWeapon = Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
                 offHandWeapon = Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
                 // Check for equipping weapons by swapping (and if it's a 2-handed one)
-                var isFromNon2HWeapon = false;
+                //var isFromNon2HWeapon = false;
                 var isFrom2H = false;
                 if ((fromItem != null) && (fromItem.Template is WeaponTemplate weaponFrom))
                 {
@@ -349,14 +349,14 @@ namespace AAEmu.Game.Models.Game.Char
                         case EquipmentItemSlotType.Offhand:
                         case EquipmentItemSlotType.Shield:
                         case EquipmentItemSlotType.OneHanded:
-                            isFromNon2HWeapon = true;
+                            //isFromNon2HWeapon = true;
                             break;
                         default:
                             break;
                     }
                 }
 
-                var isToNon2HWeapon = false;
+                //var isToNon2HWeapon = false;
                 var isTo2H = false;
                 if ((itemInTargetSlot != null) && (itemInTargetSlot.Template is WeaponTemplate weaponTo))
                 {
@@ -369,7 +369,7 @@ namespace AAEmu.Game.Models.Game.Char
                         case EquipmentItemSlotType.Offhand:
                         case EquipmentItemSlotType.Shield:
                         case EquipmentItemSlotType.OneHanded:
-                            isToNon2HWeapon = true;
+                            //isToNon2HWeapon = true;
                             break;
                         default:
                             break;

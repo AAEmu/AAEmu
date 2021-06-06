@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Network.Connections
         private int _requestId;
         private readonly Dictionary<int, Doodad[]> _requests;
 
-        public uint Id => _session.Id;
+        public uint Id => _session.SessionId;
         public IPAddress Ip => _session.Ip;
         public GameConnection GameConnection { get; set; }
         public PacketStream LastPacket { get; set; }

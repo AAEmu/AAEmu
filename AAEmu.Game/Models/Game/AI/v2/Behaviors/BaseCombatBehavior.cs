@@ -132,7 +132,10 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             {
                 _delayEnd = DateTime.Now.AddSeconds(_nextTimeToDelay);
             }
-            catch (Exception e){}
+            catch
+            {
+                
+            }
         }
         
         // Check if can pick a new skill (delay, already casting)

@@ -440,12 +440,12 @@ namespace AAEmu.Game.Models.Game.Units
                 doodadIds[i] = AttachedDoodads[i].ObjId;
             }
 
-            for (var i = 0; i < doodadIds.Length; i += 400)
+            for (var i = 0; i < doodadIds.Length; i += SCDoodadsRemovedPacket.MaxCountPerPacket)
             {
-                var offset = i * 400;
+                var offset = i * SCDoodadsRemovedPacket.MaxCountPerPacket;
                 var length = doodadIds.Length - offset;
-                var last = length <= 400;
-                var temp = new uint[last ? length : 400];
+                var last = length <= SCDoodadsRemovedPacket.MaxCountPerPacket;
+                var temp = new uint[last ? length : SCDoodadsRemovedPacket.MaxCountPerPacket];
                 Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsRemovedPacket(last, temp));
             }

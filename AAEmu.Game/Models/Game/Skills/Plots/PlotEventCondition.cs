@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                 return true;
 
             if (NotifyFailure)
-                ;//Maybe do something here?
+                return false;//Maybe do something here?
             
             return false;
 
