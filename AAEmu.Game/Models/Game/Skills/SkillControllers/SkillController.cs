@@ -40,17 +40,13 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             switch ((SkillControllerKind)template.KindId)
             {
                 case SkillControllerKind.Floating:
-                    return null;//Todo
-                    break;
+                    return null; // TODO: Add Floating (telekinesis, bubble ?)
                 case SkillControllerKind.Wandering:
-                    return null;//Todo
-                    break;
+                    return null;// TODO: Add Wandering (Fear ?)
                 case SkillControllerKind.Leap:
                     return new LeapSkillController(template, owner, target);
-                    break;
                 default:
                     return null;
-                    break;
             }
         }
     }

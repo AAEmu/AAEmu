@@ -24,7 +24,7 @@ namespace AAEmu.Login.Core.Network.Internal
         public override void OnConnect(Session session)
         {
             _log.Info("GameServer from {0} connected, session id: {1}", session.Ip.ToString(),
-                session.Id.ToString(CultureInfo.InvariantCulture));
+                session.SessionId.ToString(CultureInfo.InvariantCulture));
             var con = new InternalConnection(session);
             con.OnConnect();
             InternalConnectionTable.Instance.AddConnection(con);
@@ -36,12 +36,12 @@ namespace AAEmu.Login.Core.Network.Internal
             var gsId = session.GetAttribute("gsId");
             if (gsId != null)
                 GameController.Instance.Remove((byte) gsId);
-            InternalConnectionTable.Instance.RemoveConnection(session.Id);
+            InternalConnectionTable.Instance.RemoveConnection(session.SessionId);
         }
 
         public override void OnReceive(Session session, byte[] buf, int bytes)
         {
-            var connection = InternalConnectionTable.Instance.GetConnection(session.Id);
+            var connection = InternalConnectionTable.Instance.GetConnection(session.SessionId);
             var stream = new PacketStream();
             if (connection.LastPacket != null)
             {

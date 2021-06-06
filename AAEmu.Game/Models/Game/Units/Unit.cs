@@ -212,7 +212,7 @@ namespace AAEmu.Game.Models.Game.Units
             Cooldowns = new UnitCooldowns();
         }
 
-        public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {
             var moved = !Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z);
             if (moved)

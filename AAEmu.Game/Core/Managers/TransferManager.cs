@@ -158,10 +158,10 @@ namespace AAEmu.Game.Core.Managers
                 {
 
                     var doodads = tr.Bounded.AttachedDoodads.ToArray();
-                    for (var i = 0; i < doodads.Length; i += 30)
+                    for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
                     {
                         var count = doodads.Length - i;
-                        var temp = new Doodad[count <= 30 ? count : 30];
+                        var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
                         Array.Copy(doodads, i, temp, 0, temp.Length);
                         character.SendPacket(new SCDoodadsCreatedPacket(temp));
                     }
@@ -172,10 +172,10 @@ namespace AAEmu.Game.Core.Managers
             if (tr.AttachedDoodads.Count > 0)
             {
                 var doodads = tr.AttachedDoodads.ToArray();
-                for (var i = 0; i < doodads.Length; i += 30)
+                for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
                 {
                     var count = doodads.Length - i;
-                    var temp = new Doodad[count <= 30 ? count : 30];
+                    var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
                     Array.Copy(doodads, i, temp, 0, temp.Length);
                     character.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }

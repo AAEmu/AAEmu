@@ -707,10 +707,10 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();
-            for (var i = 0; i < doodads.Length; i += 30)
+            for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
             {
                 var count = doodads.Length - i;
-                var temp = new Doodad[count <= 30 ? count : 30];
+                var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
                 Array.Copy(doodads, i, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
@@ -721,6 +721,11 @@ namespace AAEmu.Game.Core.Managers.World
             return _characters.Values.ToList();
         }
 
+        public List<Npc> GetAllNpcs()
+        {
+            return _npcs.Values.ToList();
+        }
+        
         public AreaShape GetAreaShapeById(uint id)
         {
             if (_areaShapes.TryGetValue(id, out AreaShape res))

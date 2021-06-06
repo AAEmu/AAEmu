@@ -10,7 +10,6 @@ namespace AAEmu.Game.Models.Tasks.Doodads
     public class DoodadFuncFinalTask : DoodadFuncTask
     {
         private bool _respawn;
-        private Doodad _owner;
         private int _delay;
         private DateTime? _respawnTime;
 
