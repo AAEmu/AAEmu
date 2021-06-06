@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCCooldownsPacket : GamePacket
     {
         private Character _chr;
-        private uint _skillId;
+        //private uint _skillId;
         private int _skillCount;
         private int _tagCount;
 

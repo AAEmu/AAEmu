@@ -771,7 +771,7 @@ namespace AAEmu.Commons.Network
                 temp.Write(Convert.ToInt16(values.Y * 32767f));
                 temp.Write(Convert.ToInt16(values.Z * 32767f));
             }
-            catch (Exception e)
+            catch
             {
                 var res = new byte[6];
                 temp.Write(res);

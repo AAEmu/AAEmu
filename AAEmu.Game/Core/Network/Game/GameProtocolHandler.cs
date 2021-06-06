@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Network.Game
 
         public override void OnConnect(Session session)
         {
-            _log.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.Id.ToString());
+            _log.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
             try
             {
                 var con = new GameConnection(session);
@@ -42,7 +42,7 @@ namespace AAEmu.Game.Core.Network.Game
         {
             try
             {
-                var con = GameConnectionTable.Instance.GetConnection(session.Id);
+                var con = GameConnectionTable.Instance.GetConnection(session.SessionId);
                 if (con != null)
                 {
                     if (con.ActiveChar != null)
@@ -53,7 +53,7 @@ namespace AAEmu.Game.Core.Network.Game
                     }
                     con.OnDisconnect();
                     StreamManager.Instance.RemoveToken(con.Id);
-                    GameConnectionTable.Instance.RemoveConnection(session.Id);
+                    GameConnectionTable.Instance.RemoveConnection(session.SessionId);
                 }
             }
             catch (Exception e)
@@ -69,7 +69,7 @@ namespace AAEmu.Game.Core.Network.Game
         {
             try
             {
-                var connection = GameConnectionTable.Instance.GetConnection(session.Id);
+                var connection = GameConnectionTable.Instance.GetConnection(session.SessionId);
                 if(connection == null)
                     return;
                 OnReceive(connection, buf, bytes);

@@ -21,7 +21,7 @@ namespace AAEmu.Login.Core.Network.Login
 
         public override void OnConnect(Session session)
         {
-            _log.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.Id.ToString());
+            _log.Info("Connect from {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString());
             try
             {
                 var con = new LoginConnection(session);
@@ -39,9 +39,9 @@ namespace AAEmu.Login.Core.Network.Login
         {
             try
             {
-                var con = LoginConnectionTable.Instance.GetConnection(session.Id);
+                var con = LoginConnectionTable.Instance.GetConnection(session.SessionId);
                 if (con != null)
-                    LoginConnectionTable.Instance.RemoveConnection(session.Id);
+                    LoginConnectionTable.Instance.RemoveConnection(session.SessionId);
             }
             catch (Exception e)
             {
@@ -56,7 +56,7 @@ namespace AAEmu.Login.Core.Network.Login
         {
             try
             {
-                var connection = LoginConnectionTable.Instance.GetConnection(session.Id);
+                var connection = LoginConnectionTable.Instance.GetConnection(session.SessionId);
                 if (connection == null)
                     return;
                 OnReceive(connection, buf, bytes);
