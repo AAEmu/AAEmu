@@ -4,8 +4,10 @@ using System.Numerics;
 using System.Runtime.Intrinsics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils;
 using Quartz.Listener;
@@ -18,293 +20,6 @@ using Quartz.Listener;
 
 namespace AAEmu.Game.Models.Game.World.Transform
 {
-    public class PositionAndRotation
-    {
-        public bool IsLocal { get; set; } = true;
-        public Vector3 Position { get; set; }
-        public Vector3 Rotation { get; set; }
-
-        private const float ToShortDivider = (1f / 32768f); // ~0.000030518509f ;
-        private const float ToSByteDivider = (1f / 127f);   // ~0.007874015748f ;
-        private const float TwoPi = (MathF.PI * 2f);
-
-        public PositionAndRotation()
-        {
-            Position = new Vector3();
-            Rotation = new Vector3();
-        }
-
-        public PositionAndRotation(float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
-        {
-            Position = new Vector3(posX, posY, posZ);
-            Rotation = new Vector3(rotX, rotY, rotZ);
-        }
-
-        public PositionAndRotation(Vector3 position, Vector3 rotation)
-        {
-            Position = position;
-            Rotation = rotation;
-        }
-
-        public PositionAndRotation Clone()
-        {
-            return new PositionAndRotation(Position.X, Position.Y, Position.Z, Rotation.X, Rotation.Y, Rotation.Z);
-        }
-
-        public Vector3 ToRollPitchYawDegrees()
-        {
-            return new Vector3(Rotation.X.RadToDeg(), Rotation.Y.RadToDeg(), Rotation.Z.RadToDeg());
-        }
-        
-        public void SetPosition(float x, float y, float z)
-        {
-            Position = new Vector3(x, y, z);
-        }
-        
-        public void SetPosition(Vector3 pos)
-        {
-            Position = pos;
-        }
-
-        public void SetHeight(float z)
-        {
-            Position = new Vector3(Position.X, Position.Y, z);
-        }
-        
-        public void SetPosition(float x, float y, float z, float roll, float pitch, float yaw)
-        {
-            Position = new Vector3(x, y, z);
-            Rotation = new Vector3(roll, pitch, yaw);
-        }
-
-        public (short,short,short) ToRollPitchYawShorts()
-        {
-            var q = Quaternion.CreateFromYawPitchRoll(Rotation.X, Rotation.Y, Rotation.Z);
-            return ((short)(q.X * short.MaxValue), (short)(q.Y * short.MaxValue),
-                (short)(q.Z * short.MaxValue));
-        }
-
-        public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()
-        {
-            var roll = (sbyte)(Rotation.X / (MathF.PI * 2f) / ToSByteDivider);
-            var pitch = (sbyte)(Rotation.Y / (MathF.PI * 2f) / ToSByteDivider);
-            var yaw = (sbyte)(Rotation.Z / (MathF.PI * 2f) / ToSByteDivider);
-            return (roll, pitch, yaw);
-        }
-
-        public (sbyte, sbyte, sbyte) ToRollPitchYawSBytesMovement()
-        {
-            sbyte roll =  MathUtil.ConvertRadianToDirection(Rotation.X - (MathF.PI / 2));
-            sbyte pitch = MathUtil.ConvertRadianToDirection(Rotation.Y - (MathF.PI / 2));
-            sbyte yaw =   MathUtil.ConvertRadianToDirection(Rotation.Z - (MathF.PI / 2));
-            /*
-            sbyte roll = (sbyte)(vec3.X / (Math.PI * 2) / ToSByteDivider);
-            sbyte pitch = (sbyte)(vec3.Y / (Math.PI * 2) / ToSByteDivider);
-            sbyte yaw = (sbyte)(vec3.Z / (Math.PI * 2) / ToSByteDivider);
-            */
-            return (roll, pitch, yaw);
-        }
-        
-        public void SetRotation(float roll, float pitch, float yaw)
-        {
-            Rotation = new Vector3(roll, pitch, yaw);
-        }
-        
-        public void SetRotationDegree(float roll, float pitch, float yaw)
-        {
-            Rotation = new Vector3(roll.DegToRad(), pitch.DegToRad(), yaw.DegToRad());
-        }
-        
-        /// <summary>
-        /// Sets Yaw in Radian
-        /// </summary>
-        /// <param name="rotZ"></param>
-        public void SetZRotation(float rotZ)
-        {
-            Rotation = new Vector3(Rotation.X, Rotation.Y, rotZ);
-        }
-
-        public void SetZRotation(short rotZ)
-        {
-            Rotation = new Vector3(Rotation.X, Rotation.Y, (float)MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation(rotZ)));
-        }
-
-        public void SetZRotation(sbyte rotZ)
-        {
-            Rotation = new Vector3(Rotation.X, Rotation.Y, (float)MathUtil.ConvertDirectionToRadian(rotZ));
-        }
-
-        /// <summary>
-        /// Move position by a given offset
-        /// </summary>
-        /// <param name="offset">Amount to offset</param>
-        public void Translate(Vector3 offset)
-        {
-            // TODO: Take into account isLocal = false ?
-            Position += offset;
-        }
-
-        /// <summary>
-        /// Move position by a given offset
-        /// </summary>
-        /// <param name="offsetX"></param>
-        /// <param name="offsetY"></param>
-        /// <param name="offsetZ"></param>
-        public void Translate(float offsetX, float offsetY, float offsetZ) => Translate(new Vector3(offsetX, offsetY, offsetZ));
-
-        public void Rotate(Vector3 offset)
-        {
-            // Is this correct ?
-            Rotation += offset;
-        }
-        
-        public void Rotate(float roll, float pitch, float yaw)
-        {
-            // Is this correct ?
-            Rotation += new Vector3(roll, pitch, yaw);
-        }
-        
-        /// <summary>
-        /// Moves Transform forward by distance units
-        /// </summary>
-        /// <param name="distance"></param>
-        /// <param name="useFullRotation">When true, takes into account the full rotation instead of just on the horizontal pane. (not implemented yet)</param>
-        public void AddDistanceToFront(float distance, bool useFullRotation = false)
-        {
-            // TODO: Use Quaternion to do a proper InFront, currently height is ignored
-            // TODO: Take into account IsLocal = false
-            var off = new Vector3((-distance * (float)Math.Sin(Rotation.Z)), (distance * (float)Math.Cos(Rotation.Z)), 0);
-            Translate(off);
-        }
-
-        /// <summary>
-        /// Moves Transform to it's right by distance units
-        /// </summary>
-        /// <param name="distance"></param>
-        /// <param name="useFullRotation">When true, takes into account the full rotation instead of just on the horizontal pane. (not implemented yet)</param>
-        public void AddDistanceToRight(float distance, bool useFullRotation = false)
-        {
-            // TODO: Use Quaternion to do a proper InFront, currently height is ignored
-            // TODO: Take into account IsLocal = false
-            var off = new Vector3((distance * (float)Math.Cos(Rotation.Z)), (distance * (float)Math.Sin(Rotation.Z)), 0);
-            Translate(off);
-        }
-        
-        /// <summary>
-        /// Rotates Transform to make it face towards targetPosition's direction
-        /// </summary>
-        /// <param name="targetPosition"></param>
-        public void LookAt(Vector3 targetPosition)
-        {
-            // TODO: Fix this as it's still wrong
-            /*
-            var forward = Vector3.Normalize(Position - targetPosition);
-            var tmp = Vector3.Normalize(Vector3.UnitZ);
-            var right = Vector3.Cross(tmp, forward);
-            var up = Vector3.Cross(forward, right);
-            var m = Matrix4x4.CreateLookAt(Position, targetPosition, up);
-            var qr = Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(m));
-            Rotation = qr;
-            */
-        }
-
-        /// <summary>
-        /// Clones current Position into a new Vector3
-        /// </summary>
-        /// <returns></returns>
-        public Vector3 ClonePosition()
-        {
-            return new Vector3(Position.X,Position.Y,Position.Z);
-        }
-
-        public override string ToString()
-        {
-            return string.Format("X:{0:#,0.#} Y:{1:#,0.#} Z:{2:#,0.#}  r:{3:#,0.#}° p:{4:#,0.#}° y:{5:#,0.#}°",
-                Position.X, Position.Y, Position.Z, Rotation.X.RadToDeg(), Rotation.Y.RadToDeg(), Rotation.Z.RadToDeg());
-        }
-
-        public bool IsOrigin()
-        {
-            return Position.Equals(Vector3.Zero);
-        }
-        
-        /// <summary>
-        /// Exports Rotation as a Quaternion
-        /// </summary>
-        /// <returns></returns>
-        public Quaternion ToQuaternion() // yaw (Z), pitch (Y), roll (X)
-        {
-            return ToQuaternion(Rotation);
-        }
-
-        public static Quaternion ToQuaternion(Vector3 rotationVector3) // yaw (Z), pitch (Y), roll (X)
-        {
-            // Abbreviations for the various angular functions
-            var cy = MathF.Cos(rotationVector3.Z * 0.5f);
-            var sy = MathF.Sin(rotationVector3.Z * 0.5f);
-            var cp = MathF.Cos(rotationVector3.Y * 0.5f);
-            var sp = MathF.Sin(rotationVector3.Y * 0.5f);
-            var cr = MathF.Cos(rotationVector3.X * 0.5f);
-            var sr = MathF.Sin(rotationVector3.X * 0.5f);
-
-            Quaternion q;
-            q.W = cr * cp * cy + sr * sp * sy;
-            q.X = sr * cp * cy - cr * sp * sy;
-            q.Y = cr * sp * cy + sr * cp * sy;
-            q.Z = cr * cp * sy - sr * sp * cy;
-
-            return q;
-        }
-        
-
-        /// <summary>
-        /// Sets Rotation from Quaternion values
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        /// <param name="w"></param>
-        public static Vector3 FromQuaternion(float x, float y, float z, float w) 
-        {
-            Vector3 angles;
-
-            // roll (x-axis rotation)
-            var sinRCosP = 2f * (w * x + y * z);
-            var cosRCosP = 1f - 2f * (x * x + y * y);
-            angles.X = MathF.Atan2(sinRCosP, cosRCosP);
-
-            // pitch (y-axis rotation)
-            var sinP = 2f * (w * y - z * x);
-            angles.Y = MathF.Abs(sinP) >= 1f ? MathF.CopySign(MathF.PI / 2f, sinP) : MathF.Asin(sinP);
-
-            // yaw (z-axis rotation)
-            var sinYCosP = 2f * (w * z + x * y);
-            var cosYCosP = 1f - 2f * (y * y + z * z);
-            angles.Z = MathF.Atan2(sinYCosP, cosYCosP);
-
-            return angles;
-        }
-
-        public static Vector3 FromQuaternion(Quaternion q)
-        {
-            return FromQuaternion(q.X, q.Y, q.Z, q.W);
-        }
-
-        public void ApplyFromQuaternion(float x, float y, float z, float w)
-        {
-            Rotation = FromQuaternion(x, y, z, w);
-        }
-
-        /// <summary>
-        /// Sets Rotation using a Quaternion
-        /// </summary>
-        /// <param name="q"></param>
-        public void ApplyFromQuaternion(Quaternion q)
-        {
-            Rotation = FromQuaternion(q.X, q.Y, q.Z, q.W);
-        }
-        
-    }
 
     /// <summary>
     /// Helper Class to help manipulating GameObjects positions in 3D space
@@ -318,6 +33,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
         private PositionAndRotation _localPosRot;
         private Transform _parentTransform;
         private List<Transform> _children;
+        private Transform _parentlessParentTransform;
+        private List<Transform> _parentlessChildTransforms;
         private Vector3 _lastFinalizePos = Vector3.Zero; // Might use this later for cheat detection or delta movement
 
         /// <summary>
@@ -328,6 +45,13 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// List of Child Transforms of this Transform
         /// </summary>
         public List<Transform> Children { get => _children; }
+        public Transform ParentlessParent { get => _parentlessParentTransform; set => _parentlessParentTransform = value; }
+        /// <summary>
+        /// List of Transforms that are linked to this object, but aren't direct children.
+        /// Objects in this list need their positions updated when this object's local transform changes.
+        /// Used for ladders on ships for example, only update if FinalizeTransform() is called
+        /// </summary>
+        public List<Transform> ParentlessChildTransforms { get => _parentlessChildTransforms; }
         /// <summary>
         /// The GameObject this Transform is attached to
         /// </summary>
@@ -360,6 +84,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
             _parentTransform = parentTransform;
             _children = new List<Transform>();
             _localPosRot = new PositionAndRotation();
+            _parentlessParentTransform = null;
+            _parentlessChildTransforms = new List<Transform>();
         }
 
         public Transform(GameObject owningObject, Transform parentTransform)
@@ -516,6 +242,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             if ((parent == null) || (!parent.Equals(_parentTransform)))
             {
+                // Detach sticky
+                //if (_parentlessParentTransform != null)
+                //    this._parentlessParentTransform.DetachParentlessTransform(this);
+                
                 if (_parentTransform != null)
                     _parentTransform.InternalDetachChild(this);
 
@@ -610,9 +340,38 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// </summary>
         public void FinalizeTransform(bool includeChildren = true)
         {
+            var worldPosDelta = World.ClonePosition() - _lastFinalizePos;
+            // TODO: Check if/make sure rotations are taken into account
+            foreach (var parentlessChild in ParentlessChildTransforms)
+            {
+                parentlessChild.Local.Translate(worldPosDelta);
+                WorldManager.Instance.AddVisibleObject(parentlessChild.GameObject);
+                
+                if (!(parentlessChild.GameObject is Unit))
+                    continue;
+                
+                // Create a moveType
+                var mt = new UnitMoveType();
+                var wPos = parentlessChild.World.Clone();
+                mt.X = wPos.Position.X;
+                mt.Y = wPos.Position.Y;
+                mt.Z = wPos.Position.Z;
+                var (r, p, y) = wPos.ToRollPitchYawSBytesMovement();
+                mt.RotationX = r;
+                mt.RotationY = p;
+                mt.RotationZ = y;
+                mt.ActorFlags |= 0x40; // sticky
+                mt.ClimbData = 1; // ladder is sticky ?
+                mt.GcId = this.GameObject.ObjId;
+                parentlessChild.GameObject.BroadcastPacket(
+                    new SCOneUnitMovementPacket(parentlessChild.GameObject.ObjId, mt), 
+                    true);
+            }
+            
             _lastFinalizePos = World.ClonePosition();
             if (_owningObject == null)
                 return;
+            
             if (!_owningObject.DisabledSetPosition)
                 WorldManager.Instance.AddVisibleObject(_owningObject);
 
@@ -647,10 +406,11 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             var chatColorWhite = chatFormatted ? "|cFFFFFFFF" : "";
             var chatColorGreen = chatFormatted ? "|cFF00FF00" : "";
+            var chatColorYellow = chatFormatted ? "|cFFFFFF00" : "";
             var chatColorRestore = chatFormatted ? "|r" : "";
             var chatLineFeed = chatFormatted ? "\n" : "";
             var res = string.Empty;
-            if (isFirstInList && (_parentTransform != null))
+            if (isFirstInList && ((_parentTransform != null) || (_parentlessParentTransform != null)))
                 res += "[" + chatColorWhite + World.ToString() + chatColorRestore + "] " + chatLineFeed + "=> "; 
             res += Local.ToString();
             if (_parentTransform != null)
@@ -666,7 +426,49 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 res += _parentTransform.ToFullString(false, chatFormatted);
                 res += " )" + chatLineFeed;
             }
+
+            if (_parentlessParentTransform != null)
+            {
+                res += "\n sticking to ( ";
+                if (_parentlessParentTransform._owningObject is BaseUnit bu)
+                {
+                    if (bu.Name != string.Empty)
+                        res += chatColorYellow + bu.Name + chatColorRestore + " ";
+                    res += "#" + chatColorWhite + bu.ObjId + chatColorRestore + " ";
+                }
+
+                res += _parentlessParentTransform.ToFullString(false, chatFormatted);
+                res += " )" + chatLineFeed;
+            }
             return res;
+        }
+
+        /// <summary>
+        /// Add child to AttachedTransforms, these children are not included in parent/child relations, but are updated with delta movements
+        /// </summary>
+        /// <param name="parentlessChild"></param>
+        /// <returns>Returns true if successfully attached, or false if already attached or other errors</returns>
+        public bool AttachParentlessTransform(Transform parentlessChild)
+        {
+            // NUll-check
+            if ((parentlessChild == null) || (parentlessChild.GameObject == null))
+                return false;
+            // Check if already there
+            if (ParentlessChildTransforms.Contains(parentlessChild))
+                return false;
+            // Check if in the same world
+            if ((parentlessChild.WorldId != this.WorldId) || (parentlessChild.InstanceId != this.InstanceId))
+                return false;
+            ParentlessChildTransforms.Add(parentlessChild);
+            parentlessChild.ParentlessParent = this;
+            return true;
+        }
+
+        public void DetachParentlessTransform(Transform parentlessChild)
+        {
+            if (ParentlessChildTransforms.Contains(parentlessChild))
+                _parentlessChildTransforms.Remove(parentlessChild);
+            parentlessChild._parentlessParentTransform = null;
         }
 
     }

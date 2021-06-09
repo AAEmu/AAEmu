@@ -83,40 +83,55 @@ namespace AAEmu.Game.Core.Managers
             character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, 15), true);
             var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
             if (attachPoint != default)
+            {
                 slave.AttachedCharacters.Remove(attachPoint);
+                character.Transform.Parent = null;
+            }
         }
         
         public void BindSlave(Character character, uint objId, byte attachPointId, byte bondKind)
         {
+            // Check if the target spot is already taken
+            var attachPoint = (AttachPointKind)attachPointId;
             var slave = GetActiveSlaveByObjId(objId);
-
-            if (slave.AttachedCharacters.ContainsKey((AttachPointKind)attachPointId))
+            if (slave.AttachedCharacters.ContainsKey(attachPoint))
                 return;
-
+            
             character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPointId, bondKind, objId), true);
-            if (attachPointId == (int) AttachPointKind.Driver)
-                character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
-            // slave.Driver = character;
-            slave.AttachedCharacters.Add((AttachPointKind)attachPointId, character);
+            switch (attachPoint)
+            {
+                case AttachPointKind.Driver:
+                    character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
+                    break;
+            }
+            slave.AttachedCharacters.Add(attachPoint, character);
+            character.Transform.Parent = slave.Transform;
+            // TODO: move to attach point's position
+            character.Transform.Local.SetPosition(0,0,0,0,0,0);
         }
 
         public void BindSlave(GameConnection connection, uint tlId)
         {
             var unit = connection.ActiveChar;
             var slave = _tlSlaves[tlId];
-            if (slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver))
+            if (slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver)) // Already has a driver
                 return;
+            
+            BindSlave(unit,slave.ObjId,(byte)AttachPointKind.Driver,6);
 
+            /*
             // Make sure we are attached to the slave
             unit.Transform.Parent = slave.Transform; 
             // TODO: Reset local position and rotation to Driver's Seat
             unit.Transform.Local.SetPosition(0, 0, 0, 0, 0, 0);
-           
             unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, (byte)AttachPointKind.Driver, 6, slave.ObjId), true);
+           */
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, slave.ObjId), true);
             unit.CurrentTarget = slave;
+            /*
             unit.BroadcastPacket(new SCSlaveBoundPacket(unit.Id, slave.ObjId), true);
             slave.AttachedCharacters.Add(AttachPointKind.Driver, unit);
+            */
         }
 
         // TODO - GameConnection connection

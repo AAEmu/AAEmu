@@ -33,6 +33,19 @@ namespace AAEmu.Game.Core.Packets.C2G
 
         public override void Execute()
         {
+            // _moveType.Flags
+            // 0x02 : Moving
+            // 0x04 : Stopping (released movement keys)
+            // 0x06 : Jumping
+            // 0x40 : Standing on something
+            _log.Debug("CSMoveUnitPacket(" + _moveType.Type + ") \nScType: " + _moveType.ScType + " - Flags: " + _moveType.Flags.ToString("X") + " - " +
+                       "Phase: " + _moveType.Phase + " - Time: " + _moveType.Time + " - " +
+                       "Sender: " + Connection.ActiveChar.Name + " (" + Connection.ActiveChar.ObjId + ") - " +
+                       "Obj: " + (WorldManager.Instance.GetBaseUnit(_objId)?.Name ?? "<null>") + " (" + _objId + ") \n" +
+                       "XYZ: " + _moveType.X.ToString("F1") + " , " + _moveType.Y.ToString("F1") + " , " + _moveType.Z.ToString("F1") + " - " +
+                       "Rot: " + _moveType.RotationX.ToString() + " , " + _moveType.RotationY.ToString() + " , " + _moveType.RotationZ.ToString() + " - " +
+                       "VelXYZ: " + _moveType.VelX.ToString("F1") + " , " + _moveType.VelY.ToString("F1") + " , " + _moveType.VelZ.ToString("F1"));
+            
             // TODO: We can probably rewrite this
             if (_objId != Connection.ActiveChar.ObjId) // Can be mate
             {
@@ -41,10 +54,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                 {
                     case ShipRequestMoveType srmt:
                         {
-                            // TODO : Get by ObjId
-                            var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
-                            if (slave == null)
+                            _log.Debug("ShipRequestMoveType - Throttle: " + srmt.Throttle + " - Steering: " + srmt.Steering);
+                            var bu = WorldManager.Instance.GetBaseUnit(_objId);
+                            if (!(bu is Slave slave))
                                 return;
+                            //var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+                            //if (slave == null) return;
 
                             slave.ThrottleRequest = srmt.Throttle;
                             slave.SteeringRequest = srmt.Steering;
@@ -56,16 +71,19 @@ namespace AAEmu.Game.Core.Packets.C2G
                         }
                     case VehicleMoveType vmt:
                         {
-                            var (rotDegX, rotDegY, rotDegZ) = MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
-                            var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rotDegX, rotDegY, rotDegZ);
+                            // Steering: Value between -1.0 and +1.0
+                            // WheelAngVel: Velocity on individual wheels? (note: cart/wagon has "no wheels")
+                            _log.Debug("VehicleMoveType AngleVelocity XYZ: " + vmt.AngVelX.ToString("F1") + " , " +vmt.AngVelY.ToString("F1") + " , " + vmt.AngVelZ.ToString("F1") + "\n"+
+                                       "Steering: " + vmt.Steering+" - WheelAngleVelocity: (" + string.Join(" , ",vmt.WheelAngVel.ToArray())+" )");
+                                var (rotDegX, rotDegY, rotDegZ) = MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
+                            //var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationFromDegrees(rotDegX, rotDegY, rotDegZ);
 
-                            var slave = SlaveManager.Instance.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
-                            if (slave == null)
+                            var bu = WorldManager.Instance.GetBaseUnit(_objId);
+                            if (!(bu is Slave slave))
                                 return;
-
+                            
                             Connection.ActiveChar.Transform.Parent = slave.Transform;
                             slave.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, rotDegX, rotDegY, rotDegZ);
-                            // slave.Transform.Local.SetPosition(vmt.X, vmt.Y, vmt.Z, vmt.RotationX, vmt.RotationY, vmt.RotationZ);
                             // slave.SetPosition(vmt.X, vmt.Y, vmt.Z, MathUtil.ConvertRadianToDirection(rotDegX), MathUtil.ConvertRadianToDirection(rotDegY), MathUtil.ConvertRadianToDirection(rotDegZ));
                             slave.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vmt), true);
                             slave.Transform.FinalizeTransform();
@@ -136,6 +154,13 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (!(_moveType is UnitMoveType mType))
                     return;
                 
+                _log.Debug("ActorFlags: 0x{0}", mType.ActorFlags.ToString("X"));
+                // 0x04 : Standing on solid
+                // 0x10 : Jumping
+                // 0x20 : Standing on solid object
+                // 0x40 : Hanging onto object ?
+                
+                
                 if ((mType.ActorFlags & 0x20) != 0)
                 {
                     // ActorFlag 0x20 means we're standing on another object ?
@@ -182,8 +207,9 @@ namespace AAEmu.Game.Core.Packets.C2G
                             "|cFF888844No longer standing on Object: x{0} y{1} z{2} || World: {3}|r", mType.X,
                             mType.Y, mType.Z, Connection.ActiveChar.Transform.World.ToString());
 
-                    // We're "standing" on the main world 
-                    Connection.ActiveChar.Transform.Parent = null;
+                    // We're "standing" on the main world/nothing, if not hanging on something, reset the parent
+                    //if ((mType.ActorFlags & 0x40) == 0)
+                        Connection.ActiveChar.Transform.Parent = null;
                     Connection
                         .ActiveChar
                         .SetPosition(mType.X, mType.Y, mType.Z, mType.RotationX, mType.RotationY, mType.RotationZ);

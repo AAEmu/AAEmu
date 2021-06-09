@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -15,6 +16,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             var obj2Id = stream.ReadBc();
             
             _log.Warn("Hang, ObjId: {0}, Obj2Id: {1}", objId, obj2Id);
+            var character = WorldManager.Instance.GetBaseUnit(objId);
+            var target = WorldManager.Instance.GetGameObject(obj2Id);
+            if ((character != null) && (target != null))
+                target.Transform.AttachParentlessTransform(character.Transform);
         }
     }
 }

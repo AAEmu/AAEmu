@@ -1,6 +1,6 @@
 namespace AAEmu.Game.Models.Game.Units.Static
 {
-    public enum AttachPointKind
+    public enum AttachPointKind : byte
     {
         None = 0x0,
         Driver = 0x1,

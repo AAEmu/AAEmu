@@ -374,6 +374,12 @@ namespace AAEmu.Game.Core.Managers.World
             return result.ToArray();
         }
 
+        public GameObject GetGameObject(uint objId)
+        {
+            _objects.TryGetValue(objId, out var ret);
+            return ret;
+        }
+
         public BaseUnit GetBaseUnit(uint objId)
         {
             _baseUnits.TryGetValue(objId, out var ret);
