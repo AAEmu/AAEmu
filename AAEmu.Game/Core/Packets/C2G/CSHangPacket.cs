@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var character = WorldManager.Instance.GetBaseUnit(objId);
             var target = WorldManager.Instance.GetGameObject(obj2Id);
             if ((character != null) && (target != null))
-                target.Transform.AttachParentlessTransform(character.Transform);
+                character.Transform.StickyParent = target.Transform;
         }
     }
 }

@@ -18,7 +18,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             _log.Warn("Unhang, ObjId: {0}, Reason: {1}", objId, reason);
             var character = WorldManager.Instance.GetBaseUnit(objId);
             if (character != null)
-                character.Transform.ParentlessParent?.DetachParentlessTransform(character.Transform);
+                character.Transform.StickyParent = null ;
         }
     }
 }

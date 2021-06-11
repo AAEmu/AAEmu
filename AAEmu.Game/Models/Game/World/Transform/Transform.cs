@@ -33,25 +33,26 @@ namespace AAEmu.Game.Models.Game.World.Transform
         private PositionAndRotation _localPosRot;
         private Transform _parentTransform;
         private List<Transform> _children;
-        private Transform _parentlessParentTransform;
-        private List<Transform> _parentlessChildTransforms;
+        private Transform _stickyParentTransform;
+        private List<Transform> _stickyChildren;
         private Vector3 _lastFinalizePos = Vector3.Zero; // Might use this later for cheat detection or delta movement
 
         /// <summary>
         /// Parent Transform this Transform is attached to, leave null for World
         /// </summary>
-        public Transform Parent { get => _parentTransform; set { SetParent(value); } }
+        public Transform Parent { get => _parentTransform; set => SetParent(value); }
         /// <summary>
         /// List of Child Transforms of this Transform
         /// </summary>
         public List<Transform> Children { get => _children; }
-        public Transform ParentlessParent { get => _parentlessParentTransform; set => _parentlessParentTransform = value; }
+        public Transform StickyParent { get => _stickyParentTransform; set => SetStickyParent(value); }
         /// <summary>
         /// List of Transforms that are linked to this object, but aren't direct children.
         /// Objects in this list need their positions updated when this object's local transform changes.
-        /// Used for ladders on ships for example, only update if FinalizeTransform() is called
+        /// Used for ladders on ships for example, only updates children if FinalizeTransform() is called
+        /// FinalizeTransform takes the delta from previous call to calculate the delta movement
         /// </summary>
-        public List<Transform> ParentlessChildTransforms { get => _parentlessChildTransforms; }
+        public List<Transform> StickyChildren { get => _stickyChildren; }
         /// <summary>
         /// The GameObject this Transform is attached to
         /// </summary>
@@ -84,8 +85,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
             _parentTransform = parentTransform;
             _children = new List<Transform>();
             _localPosRot = new PositionAndRotation();
-            _parentlessParentTransform = null;
-            _parentlessChildTransforms = new List<Transform>();
+            _stickyParentTransform = null;
+            _stickyChildren = new List<Transform>();
         }
 
         public Transform(GameObject owningObject, Transform parentTransform)
@@ -269,7 +270,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     }
 
                     if (_parentTransform?._owningObject != parent?._owningObject)
-                        player.SendMessage("|cFF88FF88Changing parent {0} => {1}|r", oldS, newS);
+                        player.SendMessage("|cFF88FF88Changing parent - {0} => {1}|r", oldS, newS);
                 }
                 _parentTransform = parent;
 
@@ -342,32 +343,47 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             var worldPosDelta = World.ClonePosition() - _lastFinalizePos;
             // TODO: Check if/make sure rotations are taken into account
-            foreach (var parentlessChild in ParentlessChildTransforms)
+            if (StickyChildren.Count > 0)
             {
-                parentlessChild.Local.Translate(worldPosDelta);
-                WorldManager.Instance.AddVisibleObject(parentlessChild.GameObject);
-                
-                if (!(parentlessChild.GameObject is Unit))
-                    continue;
-                
-                // Create a moveType
-                var mt = new UnitMoveType();
-                var wPos = parentlessChild.World.Clone();
-                mt.X = wPos.Position.X;
-                mt.Y = wPos.Position.Y;
-                mt.Z = wPos.Position.Z;
-                var (r, p, y) = wPos.ToRollPitchYawSBytesMovement();
-                mt.RotationX = r;
-                mt.RotationY = p;
-                mt.RotationZ = y;
-                mt.ActorFlags |= 0x40; // sticky
-                mt.ClimbData = 1; // ladder is sticky ?
-                mt.GcId = this.GameObject.ObjId;
-                parentlessChild.GameObject.BroadcastPacket(
-                    new SCOneUnitMovementPacket(parentlessChild.GameObject.ObjId, mt), 
-                    true);
+                foreach (var stickyChild in StickyChildren)
+                {
+                    stickyChild.Local.Translate(worldPosDelta);
+                    WorldManager.Instance.AddVisibleObject(stickyChild.GameObject);
+
+                    if (!(stickyChild.GameObject is Unit))
+                        continue;
+
+                    
+                    // Create a moveType
+                    /*
+                    var mt = new UnitMoveType();
+                    var wPos = stickyChild.World.Clone();
+                    //mt.Flags = 0x00;
+                    mt.Flags = 0x40; // sticky/attached
+                    mt.X = wPos.Position.X;
+                    mt.Y = wPos.Position.Y;
+                    mt.Z = wPos.Position.Z;
+                    var (r, p, y) = wPos.ToRollPitchYawSBytesMovement();
+                    mt.DeltaMovement[1] = 127;
+                    mt.RotationX = r;
+                    mt.RotationY = p;
+                    mt.RotationZ = y;
+                    mt.ActorFlags = 0x40; // sticky/climbing
+                    mt.ClimbData = 1; // ladder is sticky ?
+                    mt.Stance = 6;
+                    
+                    // Related to object we're sticking to
+                    // First 13 bits is for vertical offset (Z)
+                    // Next 8 bits is for horizontal offset (Y?)
+                    // upper 8 bits is 0x7F when sticking to a vine or ladder, this might possibly be the depth (X?)
+                    mt.GcId = 0; 
+                    stickyChild.GameObject.BroadcastPacket(
+                        new SCOneUnitMovementPacket(stickyChild.GameObject.ObjId, mt),
+                        false);
+                    */
+                }
             }
-            
+
             _lastFinalizePos = World.ClonePosition();
             if (_owningObject == null)
                 return;
@@ -410,7 +426,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             var chatColorRestore = chatFormatted ? "|r" : "";
             var chatLineFeed = chatFormatted ? "\n" : "";
             var res = string.Empty;
-            if (isFirstInList && ((_parentTransform != null) || (_parentlessParentTransform != null)))
+            if (isFirstInList && ((_parentTransform != null) || (_stickyParentTransform != null)))
                 res += "[" + chatColorWhite + World.ToString() + chatColorRestore + "] " + chatLineFeed + "=> "; 
             res += Local.ToString();
             if (_parentTransform != null)
@@ -427,48 +443,88 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 res += " )" + chatLineFeed;
             }
 
-            if (_parentlessParentTransform != null)
+            if (_stickyParentTransform != null)
             {
                 res += "\n sticking to ( ";
-                if (_parentlessParentTransform._owningObject is BaseUnit bu)
+                if (_stickyParentTransform._owningObject is BaseUnit bu)
                 {
                     if (bu.Name != string.Empty)
                         res += chatColorYellow + bu.Name + chatColorRestore + " ";
                     res += "#" + chatColorWhite + bu.ObjId + chatColorRestore + " ";
                 }
 
-                res += _parentlessParentTransform.ToFullString(false, chatFormatted);
+                res += _stickyParentTransform.ToFullString(false, chatFormatted);
                 res += " )" + chatLineFeed;
             }
             return res;
         }
 
         /// <summary>
-        /// Add child to AttachedTransforms, these children are not included in parent/child relations, but are updated with delta movements
+        /// Add child to StickyChildren list, these children are not included in parent/child relations, but are updated with delta movements
         /// </summary>
-        /// <param name="parentlessChild"></param>
+        /// <param name="stickyChild"></param>
         /// <returns>Returns true if successfully attached, or false if already attached or other errors</returns>
-        public bool AttachParentlessTransform(Transform parentlessChild)
+        public bool AttachStickyTransform(Transform stickyChild)
         {
             // NUll-check
-            if ((parentlessChild == null) || (parentlessChild.GameObject == null))
+            if ((stickyChild == null) || (stickyChild.GameObject == null))
                 return false;
             // Check if already there
-            if (ParentlessChildTransforms.Contains(parentlessChild))
+            if (StickyChildren.Contains(stickyChild))
                 return false;
             // Check if in the same world
-            if ((parentlessChild.WorldId != this.WorldId) || (parentlessChild.InstanceId != this.InstanceId))
+            if ((stickyChild.WorldId != this.WorldId) || (stickyChild.InstanceId != this.InstanceId))
                 return false;
-            ParentlessChildTransforms.Add(parentlessChild);
-            parentlessChild.ParentlessParent = this;
+            StickyChildren.Add(stickyChild);
+            stickyChild._stickyParentTransform = this;
             return true;
         }
 
-        public void DetachParentlessTransform(Transform parentlessChild)
+        /// <summary>
+        /// Detaches child from StickyChildren list, and sets the child's stickyParent to null
+        /// </summary>
+        /// <param name="stickyChild"></param>
+        public void DetachStickyTransform(Transform stickyChild)
         {
-            if (ParentlessChildTransforms.Contains(parentlessChild))
-                _parentlessChildTransforms.Remove(parentlessChild);
-            parentlessChild._parentlessParentTransform = null;
+            if (StickyChildren.Contains(stickyChild))
+                _stickyChildren.Remove(stickyChild);
+            stickyChild._stickyParentTransform = null;
+        }
+
+        protected void SetStickyParent(Transform stickyParent)
+        {
+            var oldParent = _stickyParentTransform;
+            // Detach from previous sticky parent if needed 
+            if ((_stickyParentTransform != null) && (_stickyParentTransform != stickyParent))
+                _stickyParentTransform.DetachStickyTransform(this);
+            
+            if (GameObject is Character player)
+                if (oldParent != stickyParent)
+                {
+                    var oldS = "<null>";
+                    var newS = "<null>";
+                    if ((oldParent != null) && (oldParent._owningObject is BaseUnit oldParentUnit))
+                    {
+                        oldS = oldParentUnit.Name;
+                        if (oldS == string.Empty)
+                            oldS = oldParentUnit.ToString();
+                        oldS += " (" + oldParentUnit.ObjId +")";
+                    }
+                    if ((stickyParent != null) && (stickyParent._owningObject is BaseUnit newParentUnit))
+                    {
+                        newS = newParentUnit.Name;
+                        if (newS == string.Empty)
+                            newS = newParentUnit.ToString();
+                        newS += " (" + newParentUnit.ObjId +")";
+                    }
+
+                    player.SendMessage("|cFFFF88FFChanging Sticky - {0} => {1}|r", oldS, newS);                    
+                }
+
+            
+            // Attach to new parent if needed
+            if (stickyParent != null)
+                stickyParent.AttachStickyTransform(this);
         }
 
     }

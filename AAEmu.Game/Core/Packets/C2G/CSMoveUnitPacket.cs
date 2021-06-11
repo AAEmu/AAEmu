@@ -154,10 +154,13 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (!(_moveType is UnitMoveType mType))
                     return;
                 
-                _log.Debug("ActorFlags: 0x{0}", mType.ActorFlags.ToString("X"));
+                _log.Debug("ActorFlags: 0x{0} - ClimbData: {1} - GcId: {2}", 
+                    mType.ActorFlags.ToString("X"),
+                    mType.ClimbData.ToString("X"), 
+                    mType.GcId.ToString(("X")));
                 // 0x04 : Standing on solid
                 // 0x10 : Jumping
-                // 0x20 : Standing on solid object
+                // 0x20 : Standing on top of object
                 // 0x40 : Hanging onto object ?
                 
                 
@@ -168,10 +171,12 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var parentObject = WorldManager.Instance.GetBaseUnit(mType.GcId);
                     if ((parentObject != null) && (parentObject.Transform != null))
                     {
+                        /*
                         if (Connection.ActiveChar.Transform.Parent != parentObject.Transform)
                             Connection.ActiveChar.SendMessage(
                                 "|cFF888822Standing on Object: {0} ({4}) @ x{1} y{2} z{3} || World: {5}|r", mType.GcId, mType.X,
                                 mType.Y, mType.Z, parentObject.Name, Connection.ActiveChar.Transform.World.ToString());
+                        */
                         Connection.ActiveChar.Transform.Parent = parentObject.Transform;
 
                         /*
@@ -202,14 +207,28 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
                 else
                 {
+                    /*
                     if (Connection.ActiveChar.Transform.Parent != null)
                         Connection.ActiveChar.SendMessage(
                             "|cFF888844No longer standing on Object: x{0} y{1} z{2} || World: {3}|r", mType.X,
                             mType.Y, mType.Z, Connection.ActiveChar.Transform.World.ToString());
+                    */
 
                     // We're "standing" on the main world/nothing, if not hanging on something, reset the parent
-                    //if ((mType.ActorFlags & 0x40) == 0)
-                        Connection.ActiveChar.Transform.Parent = null;
+                    if ((mType.ActorFlags & 0x40) != 0)
+                    {
+                        var stickyVerticalOffset = (float)(mType.ClimbData & 0x1FFF) / 8192f * 100f;
+                        var stickyHorizontalOffset = (float)((mType.ClimbData & 0x001FE000) >> 13) / 256f * 100f;
+                        _log.Debug("StickyPos - Vertical: {0}% , Horizontal: {1}%", stickyVerticalOffset,
+                            stickyHorizontalOffset);
+                    }
+                    else
+                    {
+                        // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding onto something
+                        Connection.ActiveChar.Transform.StickyParent = null;
+                    }
+
+                    Connection.ActiveChar.Transform.Parent = null;
                     Connection
                         .ActiveChar
                         .SetPosition(mType.X, mType.Y, mType.Z, mType.RotationX, mType.RotationY, mType.RotationZ);
