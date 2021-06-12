@@ -1884,18 +1884,18 @@ namespace AAEmu.Game.Models.Game.Char
                         saved = Save(sqlConnection, transaction);
                         transaction.Commit();
                     }
-                    catch
+                    catch (Exception e)
                     {
                         saved = false;
-                        _log.Error(string.Format("Character save failed for {0} - {1}",Id, Name));
+                        _log.Error(e,"Character save failed for {0} - {1}\n",Id, Name);
                         try
                         {
                             transaction.Rollback();
                         }
-                        catch
+                        catch (Exception eRollback)
                         {
                             // Really failed here
-                            _log.Fatal(string.Format("Character save rollback failed for {0} - {1}", Id, Name));
+                            _log.Fatal(eRollback,"Character save rollback failed for {0} - {1}\n", Id, Name);
                         }
                     }
                 }

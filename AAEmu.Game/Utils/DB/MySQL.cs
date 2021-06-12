@@ -26,7 +26,7 @@ namespace AAEmu.Game.Utils.DB
             }
             catch (Exception e)
             {
-                Log.Error("Error on DB connect: {0}", e.Message);
+                Log.Fatal(e, "Error on DB connect\n");
                 return null;
             }
 

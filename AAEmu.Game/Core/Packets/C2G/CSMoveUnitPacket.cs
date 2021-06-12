@@ -217,10 +217,11 @@ namespace AAEmu.Game.Core.Packets.C2G
                     // We're "standing" on the main world/nothing, if not hanging on something, reset the parent
                     if ((mType.ActorFlags & 0x40) != 0)
                     {
-                        var stickyVerticalOffset = (float)(mType.ClimbData & 0x1FFF) / 8192f * 100f;
-                        var stickyHorizontalOffset = (float)((mType.ClimbData & 0x001FE000) >> 13) / 256f * 100f;
-                        _log.Debug("StickyPos - Vertical: {0}% , Horizontal: {1}%", stickyVerticalOffset,
-                            stickyHorizontalOffset);
+                        var stickyVerticalOffset = (float)(mType.ClimbData & 0x1FFF);// / 8192f * 100f; // 13 bits
+                        var stickyHorizontalOffset = (float)((mType.ClimbData & 0x00FFE000) >> 13);// / 256f * 100f; // 11 bits
+                        var stickyRotationOffset = (float)((sbyte)((mType.ClimbData & 0xFF000000) >> 24)) / 254f * 360f; // 8 bits
+                        _log.Debug("StickyPos - Vertical: {0}/8192 , Horizontal: {1}/2048, Rotation: {2}°", 
+                            stickyVerticalOffset, stickyHorizontalOffset, stickyRotationOffset.ToString("F1"));
                     }
                     else
                     {
@@ -238,7 +239,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (mType.FallVel > 0)
                     Connection.ActiveChar.DoFallDamage(mType.FallVel);
                 
-                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, mType), false);
+                Connection.ActiveChar.BroadcastPacket(new SCOneUnitMovementPacket(_objId, mType), true);
                 //Connection.ActiveChar.SendMessage("Pos: {0}",Connection.ActiveChar.Transform.ToString());
             }
         }

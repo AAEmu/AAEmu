@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Managers
     {
         protected static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private double Delay = 1; // TODO: 1 minute for debugging, should likely be more like 5 or 10 on production, maybe add to configuration ?
+        private double Delay = 1;
         private bool _enabled;
         private bool _isSaving;
         private object _lock = new object();
@@ -154,7 +154,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 catch (Exception e)
                 {
-                    _log.Error(string.Format("DoSave Exception: {0}", e.Message));
+                    _log.Error(e,"DoSave Exception\n");
                 }
                 stopWatch.Stop();
                 _log.Debug("Saving data took {0}", stopWatch.Elapsed);
