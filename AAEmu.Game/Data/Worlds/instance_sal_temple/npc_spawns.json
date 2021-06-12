@@ -72,53 +72,11 @@
   {
     "Count": 1,
     "Id": 6,
-    "UnitId": 0,
+    "UnitId": 9840,
     "Position": {
-      "X": 348.5,
-      "Y": 508.95,
-      "Z": 288.42,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": -39
-    },
-    "Scale": 0.0
-  },
-  {
-    "Count": 1,
-    "Id": 7,
-    "UnitId": 0,
-    "Position": {
-      "X": 331.217,
-      "Y": 982.5,
-      "Z": 221.44,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 52
-    },
-    "Scale": 0.0
-  },
-  {
-    "Count": 1,
-    "Id": 8,
-    "UnitId": 0,
-    "Position": {
-      "X": 334.404,
-      "Y": 981.75,
-      "Z": 221.440,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 52
-    },
-    "Scale": 0.0
-  },
-  {
-    "Count": 1,
-    "Id": 9,
-    "UnitId": 0,
-    "Position": {
-      "X": 22520.7,
-      "Y": 12334.25,
-      "Z": 250.50383,
+      "X": 522.6,
+      "Y": 301.0,
+      "Z": 147.4,
       "RotationX": 0,
       "RotationY": 0,
       "RotationZ": 0
@@ -127,7 +85,7 @@
   },
   {
     "Count": 1,
-    "Id": 10,
+    "Id": 7,
     "UnitId": 9809,
     "Position": {
       "X": 579.25,
@@ -141,7 +99,7 @@
   },
   {
     "Count": 1,
-    "Id": 11,
+    "Id": 8,
     "UnitId": 9796,
     "Position": {
       "X": 590.0,
@@ -155,7 +113,7 @@
   },
   {
     "Count": 1,
-    "Id": 12,
+    "Id": 9,
     "UnitId": 12189,
     "Position": {
       "X": 609.7,
