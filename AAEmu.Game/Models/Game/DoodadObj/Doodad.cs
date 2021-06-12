@@ -245,6 +245,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCDoodadCreatedPacket(this));
+            /*
+            // If we have sticky things attached, send the packet. This should work in theory, but doesn't seem to
+            if (this.Transform.StickyChildren.Count > 0)
+                foreach (var child in this.Transform.StickyChildren)
+                    character.SendPacket(new SCHungPacket(child.GameObject.ObjId, this.ObjId));
+            */
         }
 
         public override void RemoveVisibleObject(Character character)

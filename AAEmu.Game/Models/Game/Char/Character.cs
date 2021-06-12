@@ -2046,6 +2046,11 @@ namespace AAEmu.Game.Models.Game.Char
         {
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            /*
+            // If player is hanging on something, also send a hung packet, this should work in theory, but doesn't
+            if (this.Transform.StickyParent != null)
+                character.SendPacket(new SCHungPacket(this.ObjId,this.Transform.StickyParent.GameObject.ObjId));
+            */
         }
 
         public override void RemoveVisibleObject(Character character)
