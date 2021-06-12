@@ -148,6 +148,7 @@ namespace AAEmu.Game.Models.Game.Char
             get { return _isUnderWater; }
             set
             {
+                if (_isUnderWater == value) return;
                 _isUnderWater = value;
                 if (!_isUnderWater)
                     Breath = LungCapacity;
@@ -1400,10 +1401,10 @@ namespace AAEmu.Game.Models.Game.Char
             
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
-            // TODO: Need way to determine when player is under any body of water.
-            if (!IsUnderWater && Transform.World.Position.Z < 98)
+            var worldDrownThreshold  = WorldManager.Instance.GetWorld(this.Transform.WorldId)?.OceanLevel -2f ?? 98f ;
+            if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold) 
                 IsUnderWater = true;
-            else if (IsUnderWater && Transform.World.Position.Z > 98)
+            else if (IsUnderWater && Transform.World.Position.Z > worldDrownThreshold)
                 IsUnderWater = false;
             
             // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.ToString());
