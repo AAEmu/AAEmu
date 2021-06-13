@@ -36,7 +36,8 @@ namespace AAEmu.Game.Core.Managers
 
         public void Initialize()
         {
-            new Thread(() => TickLoop()).Start();
+            TickThread = new Thread(() => TickLoop());
+            TickThread.Start();
         }
 
         public void Stop()

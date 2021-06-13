@@ -46,7 +46,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
         public bool MoveToForward { get; set; }           // направление движения да - вперед, нет - назад
         public bool runningMode { get; set; } = false;    // режим движения да - бежать, нет - идти
         public int MoveStepIndex { get; set; }            // текущ. чекпоинт (куда бежим сейчас)
-        int oldTime, chkTime;
+        //int oldTime, chkTime;
         float oldX, oldY, oldZ;
         //*******************************************************
         public string RecordFilesPath = @"./bin/debug/netcoreapp2.2/Data/Path/";       // путь где хранятся наши файлы
@@ -291,10 +291,10 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 oldX = TargetPosition.Local.Position.X;
                 oldY = TargetPosition.Local.Position.Y;
                 oldZ = TargetPosition.Local.Position.Z;
-                oldTime = 0;
+                //oldTime = 0;
             }
             RepeatMove(this, npc, TargetPosition.Local.Position.X, TargetPosition.Local.Position.Y, TargetPosition.Local.Position.Z);
-            chkTime = 0;
+            //chkTime = 0;
         }
 
         public void MoveTo(Simulation sim, Npc npc, float TargetX, float TargetY, float TargetZ)

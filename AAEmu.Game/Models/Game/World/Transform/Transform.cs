@@ -81,50 +81,51 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public PositionAndRotation World { get => GetWorldPosition(); }
         // TODO: It MIGHT be interesting to cache the world Transform, but would generate more overhead when moving parents (vehicles/mounts)
 
-        private void InternalInitializeTransform(GameObject owningObject, Transform parentTransform = null)
+        private void InternalInitializeTransform(GameObject owningObject, Transform parentTransform, Transform stickyParentTransform)
         {
             _owningObject = owningObject;
             _parentTransform = parentTransform;
+            _stickyParentTransform = stickyParentTransform;
             _children = new List<Transform>();
             _localPosRot = new PositionAndRotation();
             _stickyParentTransform = null;
             _stickyChildren = new List<Transform>();
         }
 
-        public Transform(GameObject owningObject, Transform parentTransform)
+        public Transform(GameObject owningObject, Transform parentTransform = null, Transform stickyParentTransform = null)
         {
-            InternalInitializeTransform(owningObject, parentTransform);
+            InternalInitializeTransform(owningObject, parentTransform, stickyParentTransform);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, float x, float y, float z)
         {
-            InternalInitializeTransform(owningObject, parentTransform);
+            InternalInitializeTransform(owningObject, parentTransform, null);
             Local.Position = new Vector3(x, y, z);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, Vector3 position)
         {
-            InternalInitializeTransform(owningObject, parentTransform);
+            InternalInitializeTransform(owningObject, parentTransform, null);
             Local.Position = position;
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, float posX, float posY, float posZ, float roll, float pitch, float yaw)
         {
-            InternalInitializeTransform(owningObject, parentTransform);
+            InternalInitializeTransform(owningObject, parentTransform, null);
             Local.Position = new Vector3(posX, posY, posZ);
             Local.Rotation = new Vector3(roll, pitch, yaw);
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, Vector3 position, Vector3 rotation)
         {
-            InternalInitializeTransform(owningObject, parentTransform);
+            InternalInitializeTransform(owningObject, parentTransform, null);
             Local.Position = position;
             Local.Rotation = rotation;
         }
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float roll, float pitch, float yaw)
         {
-            InternalInitializeTransform(owningObject, parentTransform);
+            InternalInitializeTransform(owningObject, parentTransform,null);
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
@@ -134,7 +135,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, float posX, float posY, float posZ, float yaw)
         {
-            InternalInitializeTransform(owningObject, parentTransform);
+            InternalInitializeTransform(owningObject, parentTransform,null);
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
@@ -144,7 +145,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public Transform(GameObject owningObject, Transform parentTransform, uint worldId, uint zoneId, uint instanceId, PositionAndRotation posRot)
         {
-            InternalInitializeTransform(owningObject, parentTransform);
+            InternalInitializeTransform(owningObject, parentTransform,null);
             WorldId = worldId;
             ZoneId = zoneId;
             InstanceId = instanceId;
@@ -152,7 +153,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         }
 
         /// <summary>
-        /// Clones a Transform including GameObject and Parent Transform information
+        /// Clones a Transform including GameObject and Parent Transform information, does not include stickyParent
         /// </summary>
         /// <returns></returns>
         public Transform Clone()
@@ -161,7 +162,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         }
         
         /// <summary>
-        /// Clones a Transform, keeps the parent Transform set, but replaces owning object with newOwner
+        /// Clones a Transform, keeps the parent Transform set, but replaces owning object with newOwner, does not include stickyParent
         /// </summary>
         /// <param name="newOwner"></param>
         /// <returns></returns>
@@ -171,7 +172,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         }
 
         /// <summary>
-        /// Clones a Transform without GameObject or Parent Transform, using the current World relative position
+        /// Clones a Transform without GameObject or Parent Transform, using the current World relative position, does not include stickyParent
         /// </summary>
         /// <returns></returns>
         public Transform CloneDetached()
@@ -190,7 +191,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
         }
 
         /// <summary>
-        /// Clones a Transform using childObject as new owner and setting Parent Transform to the current transform, the new clone has a local position initialized as 0,0,0
+        /// Clones a Transform using childObject as new owner and setting Parent Transform to the current transform,
+        /// the new clone has a local position initialized as 0,0,0
+        /// does not include stickyParent
         /// </summary>
         /// <returns></returns>
         public Transform CloneAttached(GameObject childObject)
@@ -228,13 +231,16 @@ namespace AAEmu.Game.Models.Game.World.Transform
         }
 
         /// <summary>
-        /// Detaches this Transform from it's Parent, and detaches all it's children. Children get their World Transform as Local
+        /// Detaches this Transform from it's Parent, and detaches all it's children.
+        /// Children get their World Transform as Local
         /// </summary>
         public void DetachAll()
         {
             Parent = null;
             for (var i = Children.Count - 1; i >= 0; i--)
                 Children[i].Parent = null;
+            for (var i = _stickyChildren.Count - 1; i >= 0; i--)
+                _stickyChildren[i].StickyParent = null;
         }
 
         /// <summary>
@@ -247,10 +253,6 @@ namespace AAEmu.Game.Models.Game.World.Transform
             
             if ((parent == null) || (!parent.Equals(_parentTransform)))
             {
-                // Detach sticky
-                //if (_parentlessParentTransform != null)
-                //    this._parentlessParentTransform.DetachParentlessTransform(this);
-                
                 if (_parentTransform != null)
                     _parentTransform.InternalDetachChild(this);
 

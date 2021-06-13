@@ -19,7 +19,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public int Count { get; set; }
 
         //This acts as an interface/relay for doodad function chain
-        public async void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        //public async void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {            
             var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
             if (template == null)

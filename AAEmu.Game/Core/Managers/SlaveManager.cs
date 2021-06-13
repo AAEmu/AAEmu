@@ -299,7 +299,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 else
                 {
-                    doodad.Transform = new Transform(doodad, null);
+                    doodad.Transform = new Transform(doodad);
                     _log.Warn("Model id: {0} has no attach point information", template.ModelId);
                 }
 

@@ -41,16 +41,12 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             {
                 case SkillControllerKind.Floating:
                     return null;//Todo
-                    break;
                 case SkillControllerKind.Wandering:
                     return null;//Todo
-                    break;
                 case SkillControllerKind.Leap:
                     return new LeapSkillController(template, owner, target);
-                    break;
                 default:
                     return null;
-                    break;
             }
         }
     }
