@@ -64,9 +64,11 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void SpawnMount(SkillItem skillData)
         {
-            if (MateManager.Instance.GetActiveMate(Owner.ObjId) != null)
+            // Check if we had already spawned something
+            var oldMate = MateManager.Instance.GetActiveMate(Owner.ObjId);
+            if (oldMate != null)
             {
-                DespawnMate(0);
+                DespawnMate(oldMate.TlId);
                 return;
             }
 
@@ -78,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Char
             var template = NpcManager.Instance.GetTemplate(npcId);
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
-            var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template); // TODO - new name
+            var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template);
 
             var mount = new Units.Mate
             {
@@ -105,28 +107,21 @@ namespace AAEmu.Game.Models.Game.Char
             mount.Transform = Owner.Transform.CloneDetached(mount);
 
             foreach (var skill in MateManager.Instance.GetMateSkills(npcId))
-            {
                 mount.Skills.Add(skill);
-            }
             
             foreach (var buffId in template.Buffs)
             {
                 var buff = SkillManager.Instance.GetBuffTemplate(buffId);
                 if (buff == null)
-                {
                     continue;
-                }
 
                 var obj = new SkillCasterUnit(mount.ObjId);
                 buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.Now);
             }
-            Owner.SendMessage("Spawn Mount Owner: " + Owner.Transform.ToString());
-            Owner.SendMessage("Spawn Mount Before InFront: " + mount.Transform.ToString());
+            
             mount.Transform.Local.AddDistanceToFront(3f);
-            Owner.SendMessage("Spawn Mount After InFront: " + mount.Transform.ToString());
-
+            
             MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
-            Owner.SendMessage("Spawn Mount Post-Spawn: " + mount.Transform.ToString());
         }
 
         public void DespawnMate(uint tlId)

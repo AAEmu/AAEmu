@@ -38,14 +38,16 @@ namespace AAEmu.Game.Core.Packets.C2G
             // 0x04 : Stopping (released movement keys)
             // 0x06 : Jumping
             // 0x40 : Standing on something
+            /*
             _log.Debug("CSMoveUnitPacket(" + _moveType.Type + ") \nScType: " + _moveType.ScType + " - Flags: " + _moveType.Flags.ToString("X") + " - " +
                        "Phase: " + _moveType.Phase + " - Time: " + _moveType.Time + " - " +
                        "Sender: " + Connection.ActiveChar.Name + " (" + Connection.ActiveChar.ObjId + ") - " +
                        "Obj: " + (WorldManager.Instance.GetBaseUnit(_objId)?.Name ?? "<null>") + " (" + _objId + ") \n" +
                        "XYZ: " + _moveType.X.ToString("F1") + " , " + _moveType.Y.ToString("F1") + " , " + _moveType.Z.ToString("F1") + " - " +
                        "Rot: " + _moveType.RotationX.ToString() + " , " + _moveType.RotationY.ToString() + " , " + _moveType.RotationZ.ToString() + " - " +
-                       "VelXYZ: " + _moveType.VelX.ToString("F1") + " , " + _moveType.VelY.ToString("F1") + " , " + _moveType.VelZ.ToString("F1"));
-            
+                       "VelXYZ: " + _moveType.VelX.ToString("F1") + " , " + _moveType.VelY.ToString("F1") + " , " + _moveType.VelZ.ToString("F1")
+                       );
+            */
             // TODO: We can probably rewrite this
             if (_objId != Connection.ActiveChar.ObjId) // Can be mate
             {
@@ -118,33 +120,28 @@ namespace AAEmu.Game.Core.Packets.C2G
                     (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationZ));
                 */
                 mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                mateInfo.Transform.FinalizeTransform();
 
+                /*
                 var movements = new List<(uint, MoveType)> {(_objId, _moveType)};
 
-                // Att1 & Att2 should be handled by mate.SetPosition, no need for them to be here
-                if (mateInfo.Att1 > 0)
+                // Mount seats should be handled by mate.SetPosition, no need for them to be here
+                foreach (var ati in mateInfo.AttachInfos)
                 {
-                    var owner = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att1);
-                    if (owner != null)
+                    if (ati.Value._objId != 0)
                     {
-                        RemoveEffects(owner, _moveType);
-                        owner.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
-                        movements.Add((owner.ObjId, _moveType));
-                    }
-                }
-
-                if (mateInfo.Att2 > 0)
-                {
-                    var passenger = WorldManager.Instance.GetCharacterByObjId(mateInfo.Att2);
-                    if (passenger != null)
-                    {
-                        RemoveEffects(passenger, _moveType);
-                        passenger.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
-                        movements.Add((passenger.ObjId, _moveType));
+                        var player = WorldManager.Instance.GetCharacterByObjId(ati.Value._objId);
+                        if (player != null)
+                        {
+                            RemoveEffects(player, _moveType);
+                            player.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                            movements.Add((player.ObjId, _moveType));
+                        }
                     }
                 }
                 
                 mateInfo.BroadcastPacket(new SCUnitMovementsPacket(movements.ToArray()), false);
+                */
             }
             else
             {
@@ -153,11 +150,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 if (!(_moveType is UnitMoveType mType))
                     return;
-                
+                /*
                 _log.Debug("ActorFlags: 0x{0} - ClimbData: {1} - GcId: {2}", 
                     mType.ActorFlags.ToString("X"),
                     mType.ClimbData.ToString("X"), 
                     mType.GcId.ToString(("X")));
+                */
                 // 0x04 : Standing on solid
                 // 0x10 : Jumping
                 // 0x20 : Standing on top of object

@@ -26,30 +26,21 @@ namespace AAEmu.Game.Models.Tasks
                 _connection.ActiveChar.IsOnline = false;
                 _connection.ActiveChar.LeaveTime = DateTime.Now;
 
-                // Handle mount stuff
-                var activeMate = MateManager.Instance.GetActiveMate(_connection.ActiveChar.ObjId);
-                if (activeMate != null)
+                // Despawn and unmount everybody from owned Mates
+                MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(_connection.ActiveChar);
+                
+                // Check if still mounted on somebody else's mount and dismount that if needed
+                var isOnMount = MateManager.Instance.GetIsMounted(_connection.ActiveChar.ObjId);
+                if (isOnMount != null)
                 {
-                    _connection.ActiveChar.Mates.DespawnMate(activeMate.TlId);
-                }
-                else
-                {
-                    var isMounted = MateManager.Instance.GetIsMounted(_connection.ActiveChar.ObjId);
-                    if (isMounted != null)
-                    {
-                        if (isMounted.Att2 == _connection.ActiveChar.ObjId)
-                        {
-                            MateManager.Instance.UnMountMate(_connection.ActiveChar, isMounted.TlId, 2, 5); // TODO - REASON leave world
-                        }
-                        else
-                        {
-                            _connection.ActiveChar.Mates.DespawnMate(isMounted.TlId);
-                        }
-                    }
-                }
+                    foreach (var ati in isOnMount.Passengers)
+                        if (ati.Value._objId == _connection.ActiveChar.ObjId)
+                            MateManager.Instance.UnMountMate(_connection.ActiveChar, isOnMount.TlId, ati.Key, 5); // TODO - REASON leave world
+                }                
 
                 // Remove from Team (raid/party)
                 TeamManager.Instance.MemberRemoveFromTeam(_connection.ActiveChar, _connection.ActiveChar, Game.Team.RiskyAction.Leave);
+
                 // Remove from all Chat
                 ChatManager.Instance.LeaveAllChannels(_connection.ActiveChar);
 

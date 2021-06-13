@@ -220,7 +220,7 @@ namespace AAEmu.Game.Models.Game.Units
         
         public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
-            var moved = !Transform.Local.Position.X.Equals(x) || !Transform.Local.Position.Y.Equals(y) || !Transform.Local.Position.Z.Equals(z);
+            var moved = !Transform.World.Position.X.Equals(x) || !Transform.World.Position.Y.Equals(y) || !Transform.World.Position.Z.Equals(z);
             if (moved)
             {
                 Events.OnMovement(this, new OnMovementArgs());

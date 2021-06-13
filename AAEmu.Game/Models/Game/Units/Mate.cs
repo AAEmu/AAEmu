@@ -12,6 +12,12 @@ using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Models.Game.Units
 {
+    public class MatePassengerInfo
+    {
+        public uint _objId;
+        public byte _reason;
+    }
+    
     public sealed class Mate : Unit
     {
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
@@ -20,10 +26,7 @@ namespace AAEmu.Game.Models.Game.Units
         public NpcTemplate Template { get; set; }
 
         public uint OwnerObjId { get; set; }
-        public uint Att1 { get; set; }
-        public byte Reason1 { get; set; }
-        public uint Att2 { get; set; }
-        public byte Reason2 { get; set; }
+        public Dictionary<byte,MatePassengerInfo> Passengers { get; }
 
         public override float Scale => Template.Scale;
 
@@ -386,10 +389,12 @@ namespace AAEmu.Game.Models.Game.Units
         {
             ModelParams = new UnitCustomModelParams();
             Skills = new List<uint>();
-            Att1 = 0u;
-            Reason1 = 0;
-            Att2 = 0u;
-            Reason2 = 0;
+            Passengers = new Dictionary<byte, MatePassengerInfo>();
+
+            // TODO: Spawn this with the correct amount of seats depending on the template
+            // 2 seats by default
+            Passengers.Add(1,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
+            Passengers.Add(2,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
         }
         
         public void AddExp(int exp)
@@ -432,17 +437,14 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCMateStatePacket(ObjId));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
-            if (Att1 > 0)
+            foreach (var ati in Passengers)
             {
-                var owner = WorldManager.Instance.GetCharacterByObjId(Att1);
-                if (owner != null)
-                    character.SendPacket(new SCUnitAttachedPacket(owner.ObjId, 1, Reason1, ObjId));
-            }
-            if (Att2 > 0)
-            {
-                var passenger = WorldManager.Instance.GetCharacterByObjId(Att2);
-                if (passenger != null)
-                    character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, 2, Reason2, ObjId));
+                if (ati.Value._objId > 0)
+                {
+                    var player = WorldManager.Instance.GetCharacterByObjId(ati.Value._objId);
+                    if (player != null)
+                        character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, ati.Value._reason, ObjId));
+                }
             }
         }
 
