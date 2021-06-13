@@ -143,17 +143,19 @@ namespace AAEmu.Game.Core.Managers
             foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
                 UnbindSlave(character, activeSlaveInfo.TlId);
 
+            activeSlaveInfo.Transform.DetachAll();
+            
             foreach (var doodad in activeSlaveInfo.AttachedDoodads)
             {
                 doodad.Delete();
             }
-
+            
             foreach (var attachedSlave in activeSlaveInfo.AttachedSlaves)
             {
                 _tlSlaves.Remove(attachedSlave.TlId);
                 attachedSlave.Delete();
             }
-
+            
             BoatPhysicsManager.Instance.RemoveShip(activeSlaveInfo);
             owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);

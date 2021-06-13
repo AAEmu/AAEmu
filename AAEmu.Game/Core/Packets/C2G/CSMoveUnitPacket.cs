@@ -38,7 +38,6 @@ namespace AAEmu.Game.Core.Packets.C2G
             // 0x04 : Stopping (released movement keys)
             // 0x06 : Jumping
             // 0x40 : Standing on something
-            /*
             _log.Debug("CSMoveUnitPacket(" + _moveType.Type + ") \nScType: " + _moveType.ScType + " - Flags: " + _moveType.Flags.ToString("X") + " - " +
                        "Phase: " + _moveType.Phase + " - Time: " + _moveType.Time + " - " +
                        "Sender: " + Connection.ActiveChar.Name + " (" + Connection.ActiveChar.ObjId + ") - " +
@@ -47,7 +46,6 @@ namespace AAEmu.Game.Core.Packets.C2G
                        "Rot: " + _moveType.RotationX.ToString() + " , " + _moveType.RotationY.ToString() + " , " + _moveType.RotationZ.ToString() + " - " +
                        "VelXYZ: " + _moveType.VelX.ToString("F1") + " , " + _moveType.VelY.ToString("F1") + " , " + _moveType.VelZ.ToString("F1")
                        );
-            */
             // TODO: We can probably rewrite this
             if (_objId != Connection.ActiveChar.ObjId) // Can be mate
             {
@@ -111,37 +109,56 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var mateInfo = MateManager.Instance.GetActiveMateByMateObjId(_objId);
                 if (mateInfo == null) return;
 
-                RemoveEffects(mateInfo, _moveType);
-                /*
-                mateInfo.Transform.Local.SetPosition(_moveType.X,_moveType.Y,_moveType.Z);
-                mateInfo.Transform.Local.SetRotationDegree(
-                    (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationX),
-                    (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationY),
-                    (float)MathUtil.ConvertSbyteDirectionToDegree(_moveType.RotationZ));
-                */
-                mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
-                mateInfo.Transform.FinalizeTransform();
-
-                /*
-                var movements = new List<(uint, MoveType)> {(_objId, _moveType)};
-
-                // Mount seats should be handled by mate.SetPosition, no need for them to be here
-                foreach (var ati in mateInfo.AttachInfos)
+                if (_moveType is UnitMoveType mType)
                 {
-                    if (ati.Value._objId != 0)
+                    if ((mType.Flags & 0x40) != 0)
                     {
-                        var player = WorldManager.Instance.GetCharacterByObjId(ati.Value._objId);
-                        if (player != null)
+                        var parentObject = WorldManager.Instance.GetBaseUnit(mType.GcId);
+                        if ((parentObject != null) && (parentObject.Transform != null))
                         {
-                            RemoveEffects(player, _moveType);
-                            player.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
-                            movements.Add((player.ObjId, _moveType));
+                            if (mateInfo.Transform.Parent != parentObject.Transform)
+                                Connection.ActiveChar.SendMessage(
+                                    "|cFF888822Mate Standing on Object: {0} ({4}) @ x{1} y{2} z{3} || World: {5}|r", 
+                                    mType.GcId, 
+                                    mType.X.ToString("F1"), mType.Y.ToString("F1"), mType.Z.ToString("F1"), 
+                                    parentObject.Name, mateInfo.Transform.World.ToString());
+                            mateInfo.Transform.Parent = parentObject.Transform;
+
+                            mateInfo.SetPosition(mType.X, mType.Y, mType.Z,
+                                (float)MathUtil.ConvertDirectionToRadian(mType.RotationX),
+                                (float)MathUtil.ConvertDirectionToRadian(mType.RotationY),
+                                (float)MathUtil.ConvertDirectionToRadian(mType.RotationZ));
+                        }
+                        else
+                        {
+                            Connection.ActiveChar.SendMessage(
+                                "|cFFFF0000Mate Standing on Unknown Object: {0}|r @ x{1} y{2} z{3}", mType.GcId,
+                                mType.X.ToString("F1"), mType.Y.ToString("F1"), mType.Z.ToString("F1"));
+                            // Somehow didn't send correct parent object maybe ?
+                            // Just use the proposed position instead
+                            // TODO: Make this exploit-proof
+                            mateInfo.Transform.Parent = null;
+                            mateInfo.SetPosition(mType.X2, mType.Y2, mType.Z2, mType.RotationX, mType.RotationY,
+                                mType.RotationZ);
+                        }
+                    }
+                    else
+                    {
+                        if (mateInfo.Transform.Parent != null)
+                        {
+                            mateInfo.Transform.Parent = null;
+                            Connection.ActiveChar.SendMessage(
+                                "|cFF888844Mate No longer standing on Object: x{0} y{1} z{2} || World: {3}|r", 
+                                mType.X.ToString("F1"), mType.Y.ToString("F1"), mType.Z.ToString("F1"), 
+                                mateInfo.Transform.World.ToString());
                         }
                     }
                 }
-                
-                mateInfo.BroadcastPacket(new SCUnitMovementsPacket(movements.ToArray()), false);
-                */
+
+                RemoveEffects(mateInfo, _moveType);
+                mateInfo.SetPosition(_moveType.X, _moveType.Y, _moveType.Z, _moveType.RotationX, _moveType.RotationY, _moveType.RotationZ);
+                mateInfo.Transform.FinalizeTransform();
+               
             }
             else
             {

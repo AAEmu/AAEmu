@@ -10,7 +10,9 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils;
+using NLog.Fluent;
 using Quartz.Listener;
+using SQLitePCL;
 
 // INFO
 // https://www.versluis.com/2020/09/what-is-yaw-pitch-and-roll-in-3d-axis-values/
@@ -231,8 +233,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public void DetachAll()
         {
             Parent = null;
-            foreach (var child in Children)
-                child.Parent = null;
+            for (var i = Children.Count - 1; i >= 0; i--)
+                Children[i].Parent = null;
         }
 
         /// <summary>
@@ -241,6 +243,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
         /// <param name="parent"></param>
         protected void SetParent(Transform parent)
         {
+            if (_parentTransform == parent) return;
+            
             if ((parent == null) || (!parent.Equals(_parentTransform)))
             {
                 // Detach sticky
@@ -250,7 +254,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 if (_parentTransform != null)
                     _parentTransform.InternalDetachChild(this);
 
-                if ((_owningObject != null) && (_owningObject is Character player))
+                if (_owningObject != null)
                 {
                     var oldS = "<null>";
                     var newS = "<null>";
@@ -269,8 +273,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
                         newS += " (" + newParentUnit.ObjId +")";
                     }
 
-                    if (_parentTransform?._owningObject != parent?._owningObject)
+                    if ((_owningObject is Character player) && (_parentTransform?._owningObject != parent?._owningObject))
                         player.SendMessage("|cFF88FF88Changing parent - {0} => {1}|r", oldS, newS);
+                    
+                    Console.WriteLine("Transform {0} - Changing parent - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
                 }
                 _parentTransform = parent;
 
@@ -493,35 +499,39 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         protected void SetStickyParent(Transform stickyParent)
         {
+            if (_stickyParentTransform == stickyParent) return;
+            
             var oldParent = _stickyParentTransform;
             // Detach from previous sticky parent if needed 
-            if ((_stickyParentTransform != null) && (_stickyParentTransform != stickyParent))
+            if ((_stickyParentTransform != null) && (!_stickyParentTransform.Equals(stickyParent)))
                 _stickyParentTransform.DetachStickyTransform(this);
-            
-            if (GameObject is Character player)
-                if (oldParent != stickyParent)
-                {
-                    var oldS = "<null>";
-                    var newS = "<null>";
-                    if ((oldParent != null) && (oldParent._owningObject is BaseUnit oldParentUnit))
-                    {
-                        oldS = oldParentUnit.Name;
-                        if (oldS == string.Empty)
-                            oldS = oldParentUnit.ToString();
-                        oldS += " (" + oldParentUnit.ObjId +")";
-                    }
-                    if ((stickyParent != null) && (stickyParent._owningObject is BaseUnit newParentUnit))
-                    {
-                        newS = newParentUnit.Name;
-                        if (newS == string.Empty)
-                            newS = newParentUnit.ToString();
-                        newS += " (" + newParentUnit.ObjId +")";
-                    }
 
-                    player.SendMessage("|cFFFF88FFChanging Sticky - {0} => {1}|r", oldS, newS);                    
+            if (oldParent != stickyParent)
+            {
+                var oldS = "<null>";
+                var newS = "<null>";
+                if ((oldParent != null) && (oldParent._owningObject is BaseUnit oldParentUnit))
+                {
+                    oldS = oldParentUnit.Name;
+                    if (oldS == string.Empty)
+                        oldS = oldParentUnit.ToString();
+                    oldS += " (" + oldParentUnit.ObjId + ")";
                 }
 
-            
+                if ((stickyParent != null) && (stickyParent._owningObject is BaseUnit newParentUnit))
+                {
+                    newS = newParentUnit.Name;
+                    if (newS == string.Empty)
+                        newS = newParentUnit.ToString();
+                    newS += " (" + newParentUnit.ObjId + ")";
+                }
+
+                if (GameObject is Character player)
+                    player.SendMessage("|cFFFF88FFChanging Sticky - {0} => {1}|r", oldS, newS);
+                Console.WriteLine("Transform {0} - Changing Sticky - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
+            }
+
+
             // Attach to new parent if needed
             if (stickyParent != null)
                 stickyParent.AttachStickyTransform(this);
