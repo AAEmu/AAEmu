@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "Id": 1,
+    "UnitId": 6734,
+    "Position": {
+      "X": 334.6,
+      "Y": 381.6,
+      "Z": 151.7,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 90
+    },
+	"Scale": 1.0
+  }
+]
