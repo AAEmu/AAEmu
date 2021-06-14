@@ -73,7 +73,7 @@
     "Name": "instance_hadir_farm",
     "MaxHeight": 4096.0,
     "HeightMaxCoeff": 63.9990234375,
-    "OceanLevel": 1.0,
+    "OceanLevel": 100.0,
     "CellX": 2,
     "CellY": 2,
 	"SpawnPosition": {
@@ -88,7 +88,7 @@
     "Name": "instance_howling_abyss",
     "MaxHeight": 4096.0,
     "HeightMaxCoeff": 63.9990234375,
-    "OceanLevel": 1.0,
+    "OceanLevel": 100.0,
     "CellX": 2,
     "CellY": 2,
 	"SpawnPosition": {
@@ -202,7 +202,7 @@
     "Name": "instance_sal_temple",
     "MaxHeight": 4096.0,
     "HeightMaxCoeff": 63.9990234375,
-    "OceanLevel": 0.0,
+    "OceanLevel": 100.0,
     "CellX": 2,
     "CellY": 2,
 	"SpawnPosition": {
