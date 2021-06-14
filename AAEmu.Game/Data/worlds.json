@@ -73,7 +73,7 @@
     "Name": "instance_hadir_farm",
     "MaxHeight": 4096.0,
     "HeightMaxCoeff": 63.9990234375,
-    "OceanLevel": 100.0,
+    "OceanLevel": 1.0,
     "CellX": 2,
     "CellY": 2,
 	"SpawnPosition": {
@@ -88,7 +88,7 @@
     "Name": "instance_howling_abyss",
     "MaxHeight": 4096.0,
     "HeightMaxCoeff": 63.9990234375,
-    "OceanLevel": 100.0,
+    "OceanLevel": 1.0,
     "CellX": 2,
     "CellY": 2,
 	"SpawnPosition": {
@@ -168,9 +168,9 @@
     "CellY": 4,
 	"SpawnPosition": {
 		"ZoneId": 278,
-		"X": 0,
-		"Y": 0,
-		"Z": 0
+		"X": 341.8,
+		"Y": 381.1,
+		"Z": 152
 	}
   },
   {
@@ -183,9 +183,9 @@
     "CellY": 4,
 	"SpawnPosition": {
 		"ZoneId": 292,
-		"X": 0,
-		"Y": 0,
-		"Z": 0
+		"X": 341.8,
+		"Y": 381.1,
+		"Z": 152
 	}
   },
   {
@@ -202,7 +202,7 @@
     "Name": "instance_sal_temple",
     "MaxHeight": 4096.0,
     "HeightMaxCoeff": 63.9990234375,
-    "OceanLevel": 100.0,
+    "OceanLevel": 0.0,
     "CellX": 2,
     "CellY": 2,
 	"SpawnPosition": {
