@@ -353,14 +353,16 @@ namespace AAEmu.Game.Models.Game.World.Transform
             // TODO: Check if/make sure rotations are taken into account
             if (StickyChildren.Count > 0)
             {
-                foreach (var stickyChild in StickyChildren)
+                for(var i = _stickyChildren.Count-1; i >= 0; i--)
                 {
+                    var stickyChild = _stickyChildren[i];
+                    if (stickyChild == null)
+                        continue;
                     stickyChild.Local.Translate(worldPosDelta);
                     WorldManager.Instance.AddVisibleObject(stickyChild.GameObject);
 
                     if (!(stickyChild.GameObject is Unit))
                         continue;
-
                     
                     // Create a moveType
                     /*
@@ -412,8 +414,13 @@ namespace AAEmu.Game.Models.Game.World.Transform
             }
 
             if (includeChildren)
-                foreach (var child in _children)
-                    child.FinalizeTransform();
+            {
+                for (int i = _children.Count - 1; i >= 0; i--)
+                {
+                    var child = _children[i];
+                    child?.FinalizeTransform();
+                }
+            }
 
             //_owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,Local.Rotation.X,Local.Rotation.Y,Local.Rotation.Z);
         }
