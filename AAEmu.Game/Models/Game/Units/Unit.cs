@@ -16,8 +16,10 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -547,5 +549,47 @@ namespace AAEmu.Game.Models.Game.Units
         {
             
         }
+        
+        /// <summary>
+        /// Does fall damage based on velocity 
+        /// </summary>
+        /// <param name="fallVel">Velocity value from MoveType</param>
+        /// <returns>The damage that was dealt</returns>
+        public virtual int DoFallDamage(ushort fallVel)
+        {
+            var fallDmg = Math.Min(MaxHp, (int)(MaxHp * ((fallVel - 8600) / 15000f)));
+            var minHpLeft = MaxHp / 20; //5% of hp 
+            var maxDmgLeft = Hp - minHpLeft; // Max damage one can take 
+
+            if (fallVel >= 32000)
+            {
+                ReduceCurrentHp(this, Hp); // This is instant death so should be first
+                // This will also kill anybody riding this if this is a mount
+            }
+            else
+            {
+                if (fallDmg < maxDmgLeft)
+                {
+                    ReduceCurrentHp(this, fallDmg); //If you can take the hit without reaching 5% hp left take it
+                }
+                else
+                {
+                    var duration = 500 * (fallDmg / minHpLeft);
+
+                    var buff = SkillManager.Instance.GetBuffTemplate(BuffsEnum.FallStun);
+                    var casterObj = new SkillCasterUnit(ObjId);
+                    Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now), 0, duration);
+
+                    if (Hp > minHpLeft)
+                        ReduceCurrentHp(this, maxDmgLeft); // Leaves you at 5% hp no matter what
+                }
+            }
+
+            BroadcastPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)fallDmg), true);
+            //SendPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)fallDmg));
+            // TODO: Maybe adjust formula & need to detect water landing?
+            return fallDmg;
+        }
+        
     }
 }

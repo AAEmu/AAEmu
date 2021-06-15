@@ -204,13 +204,15 @@ namespace AAEmu.Game.Core.Packets.C2G
                             (float)MathUtil.ConvertDirectionToRadian(dmt.RotationX),
                             (float)MathUtil.ConvertDirectionToRadian(dmt.RotationY),
                             (float)MathUtil.ConvertDirectionToRadian(dmt.RotationZ));
-
-                        // Handle Fall Velocity
-                        if (dmt.FallVel > 0)
-                            Connection.ActiveChar.DoFallDamage(dmt.FallVel);
-
                         targetUnit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
                         targetUnit.Transform.FinalizeTransform();
+                        
+                        // Handle Fall Velocity
+                        if ((dmt.FallVel > 0) && (targetUnit is Unit unit))
+                        {
+                            var fallDmg = unit.DoFallDamage(dmt.FallVel);
+                            character.SendMessage("{0} took {1} fall damage {2}/{3} HP left", unit.Name, fallDmg, unit.Hp, unit.MaxHp);
+                        }
 
                         break;
                     }

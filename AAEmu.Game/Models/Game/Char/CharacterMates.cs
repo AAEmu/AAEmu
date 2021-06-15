@@ -119,8 +119,13 @@ namespace AAEmu.Game.Models.Game.Char
                 buff.Apply(mount, obj, mount, null, null, new EffectSource(), null, DateTime.Now);
             }
             
-            mount.Transform.Local.AddDistanceToFront(3f);
+            // TODO: Load Pet Gear
             
+            // Cap stats to their max
+            mount.Hp = Math.Min(mount.Hp, mount.MaxHp);
+            mount.Mp = Math.Min(mount.Mp, mount.MaxMp);
+            
+            mount.Transform.Local.AddDistanceToFront(3f);
             MateManager.Instance.AddActiveMateAndSpawn(Owner, mount, item);
         }
 

@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint Id { get; set; }
         public uint TemplateId { get; set; }
         public uint BondingObjId { get; set; } = 0;
-
+        
         public SlaveTemplate Template { get; set; }
         // public Character Driver { get; set; }
         public Character Summoner { get; set; }
@@ -39,7 +39,10 @@ namespace AAEmu.Game.Models.Game.Units
         public sbyte AttachPointId { get; set; } = -1;
         public uint OwnerObjId { get; set; }
         public RigidBody RigidBody { get; set; }
-        
+
+        // TODO: Get actual correct values from somewhere
+        public override int MaxHp { get { return (int)Template.Level * 200; } }
+        public override int MaxMp { get { return (int)Template.Level * 200; } }
 
         public override void AddVisibleObject(Character character)
         {

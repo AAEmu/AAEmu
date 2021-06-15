@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -468,6 +469,29 @@ namespace AAEmu.Game.Models.Game.Units
                 else if (OwnerObjId != character.ObjId)
                     character.SendPacket(packet);
             }
+        }
+
+        public override int DoFallDamage(ushort fallVel)
+        {
+            var fallDmg = base.DoFallDamage(fallVel);
+            if (Hp <= 0)
+            {
+                var riders = Passengers.ToList();
+                // When fall damage kills a mount, also kill all of it's riders
+                for (var i = riders.Count - 1; i >= 0; i--)
+                {
+                    var pos = (byte)riders[i].Key;
+                    var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value._objId);
+                    if (rider != null)
+                    {
+                        rider.DoFallDamage(fallVel);
+                        if (rider.Hp <= 0)
+                            MateManager.Instance.UnMountMate(rider, TlId, pos, 5); // Do we have a reason for death ?
+                    }
+                }
+            }
+
+            return fallDmg;
         }
     }
 }
