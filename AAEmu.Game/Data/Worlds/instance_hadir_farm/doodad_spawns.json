@@ -14,15 +14,16 @@
   },
   {
     "Id": 2,
-    "UnitId": 4289,
+    "UnitId": 4927,
     "Position": {
       "X": 763.3,
       "Y": 709.5,
       "Z": 141.5,
       "RotationX": 0,
       "RotationY": 0,
-      "RotationZ": -43
+      "RotationZ": -40
     },
-    "Scale": 1.0
+    "Scale": 1.0,
+	"FuncGroupId":12276
   }
 ]
