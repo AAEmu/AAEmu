@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Slaves
 {

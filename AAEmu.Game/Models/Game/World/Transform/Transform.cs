@@ -275,10 +275,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
                         newS += " (" + newParentUnit.ObjId +")";
                     }
 
-                    if ((_owningObject is Character player) && (_parentTransform?._owningObject != parent?._owningObject))
-                        player.SendMessage("|cFF88FF88Changing parent - {0} => {1}|r", oldS, newS);
-                    
-                    Console.WriteLine("Transform {0} - Changing parent - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
+                    // if ((_owningObject is Character player) && (_parentTransform?._owningObject != parent?._owningObject))
+                    //     player.SendMessage("|cFF88FF88Changing parent - {0} => {1}|r", oldS, newS);
+                    // Console.WriteLine("Transform {0} - Changing parent - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
                 }
                 _parentTransform = parent;
 
@@ -535,9 +534,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     newS += " (" + newParentUnit.ObjId + ")";
                 }
 
-                if (GameObject is Character player)
-                    player.SendMessage("|cFFFF88FFChanging Sticky - {0} => {1}|r", oldS, newS);
-                Console.WriteLine("Transform {0} - Changing Sticky - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
+                // if (GameObject is Character player)
+                //    player.SendMessage("|cFFFF88FFChanging Sticky - {0} => {1}|r", oldS, newS);
+                // Console.WriteLine("Transform {0} - Changing Sticky - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
             }
 
 
