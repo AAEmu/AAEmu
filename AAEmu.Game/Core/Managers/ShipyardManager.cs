@@ -29,37 +29,33 @@ namespace AAEmu.Game.Core.Managers
             var template = _shipyards[shipyardData.TemplateId];
             //var shipId = 3039u;
 
-            var shipyard = new Shipyard
-            {
-                ObjId = objId,
-                Position = pos,
-                Faction = owner.Faction,
-                Level = 30,
-                Hp = 10000,
-                MaxHp = 10000,
-                Name = owner.Name,
-                ModelId = template.ShipyardSteps[step].ModelId
-            };
+            var shipyard = new Shipyard();
+            shipyard.ObjId = objId;
+            shipyard.Position = pos;
+            shipyard.Faction = owner.Faction;
+            shipyard.Level = 30;
+            shipyard.Hp = shipyard.MaxHp;
+            //shipyard.MaxHp = 10000;
+            shipyard.Name = owner.Name;
+            shipyard.ModelId = template.ShipyardSteps[step].ModelId;
 
-            shipyard.Template = new ShipyardData
-            {
-                Id = shipyardData.Id,
-                TemplateId = template.Id,
-                X = pos.X,
-                Y = pos.Y,
-                Z = pos.Z,
-                zRot = pos.RotationZ,
-                MoneyAmount = 0,
-                Actions = step,
-                Type = template.OriginItemId, // type1
-                OwnerName = owner.Name,
-                Type2 = owner.Id, // type2
-                Type3 = owner.Faction.Id, // type3
-                Spawned = DateTime.MinValue,
-                ObjId = objId,
-                Hp = template.ShipyardSteps[step].MaxHp * 100,
-                Step = step
-            };
+            shipyard.Template = new ShipyardData();
+            shipyard.Template.Id = shipyardData.Id;
+            shipyard.Template.TemplateId = template.Id;
+            shipyard.Template.X = pos.X;
+            shipyard.Template.Y = pos.Y;
+            shipyard.Template.Z = pos.Z;
+            shipyard.Template.zRot = pos.RotationZ;
+            shipyard.Template.MoneyAmount = 0;
+            shipyard.Template.Actions = step;
+            shipyard.Template.Type = template.OriginItemId;
+            shipyard.Template.OwnerName = owner.Name;
+            shipyard.Template.Type2 = owner.Id;
+            shipyard.Template.Type3 = owner.Faction.Id;
+            shipyard.Template.Spawned = DateTime.Now;
+            shipyard.Template.ObjId = objId;
+            shipyard.Template.Hp = template.ShipyardSteps[step].MaxHp * 100;
+            shipyard.Template.Step = step;
             shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(3554), null, System.DateTime.Now));
             shipyard.Spawn();
         }
