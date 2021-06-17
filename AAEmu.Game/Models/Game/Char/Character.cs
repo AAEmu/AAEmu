@@ -1586,6 +1586,33 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        /// <summary>
+        /// Forcibly remove character from any mount of vehicle they might be riding,
+        /// useful for calling before any kind of teleport function 
+        /// </summary>
+        /// <returns>Returns True is any dismounting happened by this function</returns>
+        public bool ForceDismount()
+        {
+            var res = false;
+            // Force dismount Mates (mounts)
+            var isOnMount = MateManager.Instance.GetIsMounted(ObjId, out var attachedRiderPoint);
+            if (isOnMount != null)
+            {
+                MateManager.Instance.UnMountMate(this, isOnMount.TlId, attachedRiderPoint, 5); // TODO - REASON leave world
+                res = true;
+            }
+            // Force remove from slaves
+            var isOnSlave = SlaveManager.Instance.GetIsMounted(ObjId, out var attachedDriverPoint);
+            if (isOnSlave != null)
+            {
+                SlaveManager.Instance.UnbindSlave(this, isOnSlave.TlId);
+                res = true;
+            }
+            // Unbind from any parent
+            Transform.DetachAll();
+            return res;
+        }
+
         #region Database
 
         public static Character Load(MySqlConnection connection, uint characterId, uint accountId)

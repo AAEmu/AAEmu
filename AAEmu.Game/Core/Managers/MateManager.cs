@@ -51,12 +51,16 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public Mate GetIsMounted(uint objId)
+        public Mate GetIsMounted(uint objId, out byte attachPoint)
         {
+            attachPoint = 0xFF;
             foreach (var mate in _activeMates.Values)
             foreach (var ati in mate.Passengers)
                 if (ati.Value._objId == objId)
+                {
+                    attachPoint = ati.Key;
                     return mate;
+                }
 
             return null;
         }

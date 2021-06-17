@@ -30,13 +30,7 @@ namespace AAEmu.Game.Models.Tasks
                 MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(_connection.ActiveChar);
                 
                 // Check if still mounted on somebody else's mount and dismount that if needed
-                var isOnMount = MateManager.Instance.GetIsMounted(_connection.ActiveChar.ObjId);
-                if (isOnMount != null)
-                {
-                    foreach (var ati in isOnMount.Passengers)
-                        if (ati.Value._objId == _connection.ActiveChar.ObjId)
-                            MateManager.Instance.UnMountMate(_connection.ActiveChar, isOnMount.TlId, ati.Key, 5); // TODO - REASON leave world
-                }                
+                _connection.ActiveChar.ForceDismount();
 
                 // Remove from Team (raid/party)
                 TeamManager.Instance.MemberRemoveFromTeam(_connection.ActiveChar, _connection.ActiveChar, Game.Team.RiskyAction.Leave);

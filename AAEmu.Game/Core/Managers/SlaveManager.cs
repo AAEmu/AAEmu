@@ -634,6 +634,21 @@ namespace AAEmu.Game.Core.Managers
                     slave.Transform.World.Position.Z));
             }
         }
+
+        public Slave GetIsMounted(uint objId, out AttachPointKind attachPoint)
+        {
+            attachPoint = AttachPointKind.None;
+            foreach (var slave in _activeSlaves)
+            foreach (var unit in slave.Value.AttachedCharacters)
+            {
+                if (unit.Value.ObjId == objId)
+                {
+                    attachPoint = unit.Key;
+                    return slave.Value;
+                }
+            }
+            return null;
+        }
     }
 
     public class SlaveModelAttachPoint
