@@ -157,7 +157,7 @@ namespace AAEmu.Game.Models.Game.World
                     var count = doodads.Length - i;
                     var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
                     Array.Copy(doodads, i, temp, 0, temp.Length);
-                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
+                    character1.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }
             }
             

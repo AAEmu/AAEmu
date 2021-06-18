@@ -23,6 +23,7 @@ using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Transfers;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -211,24 +212,18 @@ namespace AAEmu.Game.Core.Managers
             owner.ModelId = Carriage.ModelId;
             owner.Template = Carriage;
             owner.BondingObjId = 0;
-            owner.AttachPointId = 255;
+            owner.AttachPointId = -1;
             owner.Level = 50;
             owner.Hp = owner.MaxHp;
             owner.Mp = owner.MaxMp;
             owner.ModelParams = new UnitCustomModelParams();
-            owner.Transform = new Transform(owner, null);
-            owner.Position = spawner.Position.Clone();
+            owner.Transform.ApplyWorldSpawnPosition(spawner.Position);
+            owner.Transform.FinalizeTransform();
             //owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
             //var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
 
-            owner.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
-            var quat = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
-            owner.SetPosition(owner.Position.X, owner.Position.Y, owner.Position.Z, 0, 0, owner.Position.RotationZ);
-
-            owner.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
-
             owner.Faction = new SystemFaction();
-            owner.Faction = FactionManager.Instance.GetFaction(164);
+            owner.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // formarly set to 164
             
             owner.Patrol = null;
             // add effect
@@ -259,29 +254,21 @@ namespace AAEmu.Game.Core.Managers
             transfer.Hp = transfer.MaxHp;
             transfer.Mp = transfer.MaxMp;
             transfer.ModelParams = new UnitCustomModelParams();
-            transfer.Position = spawner.Position.Clone();
+            transfer.Transform.ApplyWorldSpawnPosition(spawner.Position);
             //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
             //var quat2 = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
+            transfer.Transform.Local.AddDistanceToFront(-9.24417f);
+            transfer.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(transfer.Transform));
 
-            transfer.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
-            var quat2 = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
-            transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, 0, 0, transfer.Position.RotationZ);
-
-            transfer.Rot = new Quaternion(quat2.X, quat2.Z, quat2.Y, quat2.W);
-
-            (transfer.Position.X, transfer.Position.Y) = MathUtil.AddDistanceToFront(-9.24417f, transfer.Position.X, transfer.Position.Y, transfer.Position.RotationZ);
-            transfer.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, transfer.Position.X, transfer.Position.Y) : transfer.Position.Z;
-
-            transfer.Faction = new SystemFaction();
-            owner.Faction = FactionManager.Instance.GetFaction(164);
+            transfer.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // used to be 164
             
             transfer.Patrol = null;
             // add effect
-            buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
+            buffId = BuffsEnum.Untouchable; // Buff: Unable to attack this target
             transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
-            //TODO  create a boardingPart and indicate that we attach to the Carriage object 
+            // TODO: Create a boardingPart and indicate that we attach to the Carriage object 
             transfer.Spawn();
             _activeTransfers.Add(transfer.ObjId, transfer);
 
@@ -293,14 +280,15 @@ namespace AAEmu.Game.Core.Managers
                 doodad.OwnerObjId = 0;
                 doodad.ParentObjId = transfer.ObjId;
                 doodad.Spawner = new DoodadSpawner();
-                doodad.AttachPoint = (byte)doodadBinding.AttachPointId;
+                doodad.AttachPoint = doodadBinding.AttachPointId;
+                doodad.Transform.Parent = transfer.Transform;
                 switch (doodadBinding.AttachPointId)
                 {
                     case 2:
-                        doodad.Position = new Point(owner.Position.WorldId, owner.Position.ZoneId, 0.00537476f, 5.7852f, 1.36648f, 0, 0, 0);
+                        doodad.Transform.Local.SetPosition(0.00537476f, 5.7852f, 1.36648f, 0, 0, 0);
                         break;
                     case 3:
-                        doodad.Position = new Point(owner.Position.WorldId, owner.Position.ZoneId, 0.00537476f, 1.63614f, 1.36648f, 0, 0, -1);
+                        doodad.Transform.Local.SetPosition(0.00537476f, 1.63614f, 1.36648f, 0, 0, 0);
                         break;
                 }
 
@@ -480,8 +468,11 @@ namespace AAEmu.Game.Core.Managers
                                         // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
                                         var xyz = new Vector3(x, y, z);
                                         var (xx, yy, zz) = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
-                                        var pos = new Point(xx, yy, zz)
+                                        var pos = new WorldSpawnPosition()
                                         {
+                                            X = xx,
+                                            Y = yy,
+                                            Z = zz,
                                             WorldId = world.Id,
                                             ZoneId = zoneId
                                         };

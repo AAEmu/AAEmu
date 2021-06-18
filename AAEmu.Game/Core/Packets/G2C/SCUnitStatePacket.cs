@@ -273,7 +273,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case Transfer unit:
                     stream.Write(unit.AttachPointId);  // point
-                    if (unit.AttachPointId < 255)
+                    if (unit.AttachPointId != -1)
                         stream.WriteBc(unit.BondingObjId); // point to the owner where to attach
                     break;
             }

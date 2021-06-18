@@ -22,7 +22,6 @@ namespace AAEmu.Game.Models.Game.Transfers
         private Transfer _lastSpawn;
         private int _scheduledCount;
         private int _spawnCount;
-        public float RotationZ;
 
         public uint Count { get; set; }
 
@@ -97,24 +96,11 @@ namespace AAEmu.Game.Models.Game.Transfers
                         //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(transfer.Angle));
                         //var quat = Quaternion.CreateFromYawPitchRoll((float)transfer.Angle, 0.0f, 0.0f);
                         
-                        transfer.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection((float)transfer.Angle);
-                        var quat = MathUtil.ConvertRadianToDirectionShort(transfer.Angle);
+                        transfer.Transform.ApplyWorldSpawnPosition(point);
 
-                        transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
-
-                        transfer.Position.WorldId = 0;
-                        transfer.Position.ZoneId = transfer.Template.TransferRoads[0].ZoneId;
-                        transfer.Position.ZoneId = WorldManager.Instance.GetZoneId(transfer.Position.WorldId, point.X, point.Y);
-                        transfer.Position.X = point.X;
-                        transfer.Position.Y = point.Y;
-                        transfer.Position.Z = point.Z;
-
-                        transfer.WorldPos = new WorldPos(Helpers.ConvertLongX(point.X), Helpers.ConvertLongY(point.Y), point.Z);
                         _log.Warn("TransfersPath #" + transfer.TemplateId);
-                        _log.Warn("New spawn X={0}", transfer.Position.X);
-                        _log.Warn("New spawn Y={0}", transfer.Position.Y);
-                        _log.Warn("New spawn Z={0}", transfer.Position.Z);
-                        _log.Warn("transfer.Rot={0}, rotZ={1}, zoneId={2}", transfer.Rot, transfer.Position.RotationZ, transfer.Position.ZoneId);
+                        _log.Warn("New spawn Pos={0}", transfer.Transform.ToString());
+                        _log.Warn("zoneId={0}", transfer.Transform.ZoneId);
 
                         transfer.GoToPath(transfer);
                         //TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);

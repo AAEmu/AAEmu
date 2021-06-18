@@ -46,7 +46,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             else
             {
                 character.SendErrorMessage(ErrorMessageType.BagFull);
-                owner.cancelPhasing = true;
             }
         }
     }

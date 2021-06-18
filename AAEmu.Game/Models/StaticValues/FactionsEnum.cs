@@ -10,6 +10,7 @@
         public const uint RedTeam = 159;
         public const uint BlueTeam = 160;
         public const uint Pirate = 161;
+        public const uint PcFriendly = 165;
         public const uint Fish = 172;
     }
  

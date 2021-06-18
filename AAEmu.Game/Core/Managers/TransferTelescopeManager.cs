@@ -41,7 +41,7 @@ namespace AAEmu.Game.Core.Managers
                 var transfers2 = new List<Transfer>();
                 foreach (var t in transfers)
                 {
-                    if (!(MathF.Abs(MathUtil.CalculateDistance(owner.Position, t.Position)) < 1000f)) { continue; }
+                    if (!(MathF.Abs(MathUtil.CalculateDistance(owner, t)) < 1000f)) { continue; }
 
                     transfers2.Add(t);
                 }

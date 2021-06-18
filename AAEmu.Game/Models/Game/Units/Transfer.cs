@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -29,8 +30,8 @@ namespace AAEmu.Game.Models.Game.Units
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer;
         public uint Id { get; set; }
         public uint TemplateId { get; set; }
-        public uint BondingObjId { get; set; } = 0;
-        public sbyte AttachPointId { get; set; } = 0;
+        public uint BondingObjId { get; set; }
+        public sbyte AttachPointId { get; set; }
         public TransferTemplate Template { get; set; }
         public Transfer Bounded { get; set; }
         public TransferSpawner Spawner { get; set; }
@@ -39,18 +40,8 @@ namespace AAEmu.Game.Models.Game.Units
         public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
         public DateTime SpawnTime { get; set; }
         public float RotationDegrees { get; set; }
-        public Quaternion Rot { get; set; } // значение поворота по оси Z должно быть в радианах
-        public short RotationX { get; set; }
-        public short RotationY { get; set; }
-        public short RotationZ { get; set; }
         public Vector3 Velocity { get; set; }
-        public short VelX { get; set; }
-        public short VelY { get; set; }
-        public short VelZ { get; set; }
         public Vector3 AngVel { get; set; }
-        public float AngVelX { get; set; }
-        public float AngVelY { get; set; }
-        public float AngVelZ { get; set; }
         public int Steering { get; set; } = 1;
         public sbyte Throttle { get; set; } // ?
         public int PathPointIndex { get; set; }
@@ -65,10 +56,8 @@ namespace AAEmu.Game.Models.Game.Units
         public Transfer()
         {
             AttachedDoodads = new List<Doodad>();
-            WorldPos = new WorldPos();
-            Position = new Point();
-            Routes = new Dictionary<int, List<Point>>();
-            TransferPath = new List<Point>();
+            Routes = new Dictionary<int, List<WorldSpawnPosition>>();
+            TransferPath = new List<WorldSpawnPosition>();
         }
 
         #region Attributes
@@ -463,7 +452,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             stream.WriteBc(ObjId);
             stream.Write(Template.Id);
-            stream.WritePosition(Position.X, Position.Y, Position.Z);
+            stream.WritePosition(Transform.World.Position);
             stream.Write(Template.Name);
 
             return stream;
@@ -473,8 +462,8 @@ namespace AAEmu.Game.Models.Game.Units
         // Организуем движение транспорта
         // ******************************************************************************************************************
 
-        public Dictionary<int, List<Point>> Routes { get; set; } // Steering, TransferPath - список всех участков дороги
-        public List<Point> TransferPath { get; set; }  // текущий участок дороги
+        public Dictionary<int, List<WorldSpawnPosition>> Routes { get; set; } // Steering, TransferPath - список всех участков дороги
+        public List<WorldSpawnPosition> TransferPath { get; set; }  // текущий участок дороги
         public bool MoveToPathEnabled { get; set; }    // разрешено движение транспорта
         public bool MoveToForward { get; set; }        // movement direction true -> forward, true -> back
         public int MoveStepIndex { get; set; }         // current checkpoint (where are we running now)
@@ -497,9 +486,11 @@ namespace AAEmu.Game.Models.Game.Units
 
             transfer.MoveToPathEnabled = true;
             transfer.MoveToForward = true;
-            transfer.MaxVelocityForward = transfer.Template.PathSmoothing + 1.6f; // попробуем взять эти значения как скорость движения транспорта
+            // попробуем взять эти значения как скорость движения транспорта
+            // let's try to take these values as vehicle speed
+            transfer.MaxVelocityForward = transfer.Template.PathSmoothing + 1.6f; 
 
-            if (!MoveToPathEnabled || transfer.Position == null || !transfer.IsInPatrol)
+            if (!MoveToPathEnabled || !transfer.IsInPatrol)
             {
                 //_log.Warn("the route is stopped.");
                 StopMove();
@@ -534,11 +525,11 @@ namespace AAEmu.Game.Models.Game.Units
                 _log.Warn("path #" + Steering);
                 _log.Warn("walk to #" + MoveStepIndex);
                 _log.Info("pause to #" + time);
-                _log.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
+                _log.Warn("pos:=" + transfer.Transform.ToString());
             }
         }
 
-        private int GetMinCheckPoint(Transfer transfer, List<Point> pointsList)
+        private int GetMinCheckPoint(Transfer transfer, List<WorldSpawnPosition> pointsList)
         {
             var index = -1;
             // check for a route
@@ -549,7 +540,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
             float delta;
             var minDist = 0f;
-            transfer.vTarget = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
+            transfer.vTarget = transfer.Transform.World.ClonePosition();
             for (var i = 0; i < pointsList.Count; i++)
             {
                 transfer.vPosition = new Vector3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
@@ -557,7 +548,7 @@ namespace AAEmu.Game.Models.Game.Units
                 //_log.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
 
                 delta = MathUtil.GetDistance(transfer.vTarget, transfer.vPosition);
-                if (delta > 200) { continue; } // ищем точку не очень далеко от повозки
+                if (delta > 200) { continue; } // ищем точку не очень далеко от повозки // looking for a point not very far from the carriage 
 
                 if (index == -1) // first assignment
                 {
@@ -583,8 +574,7 @@ namespace AAEmu.Game.Models.Game.Units
             vVelocity = Vector3.Zero;
 
             Angle = MathUtil.CalculateDirection(vPosition, vTarget);
-            var quat = Quaternion.CreateFromYawPitchRoll((float)Angle, 0.0f, 0.0f);
-            Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
+            this.Transform.Local.SetZRotation((float)Angle);
 
             var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
             moveTypeTr.UseTransferBase(this);
@@ -600,16 +590,17 @@ namespace AAEmu.Game.Models.Game.Units
                 return;
             } // Пауза в начале/конце пути и на остановках
 
-            if (!MoveToPathEnabled || Position == null || !IsInPatrol)
+            if (!MoveToPathEnabled || !IsInPatrol)
             {
                 Throttle = 0;
                 StopMove();
                 return;
             }
 
-            vPosition = new Vector3(Position.X, Position.Y, Position.Z);
+            vPosition = Transform.World.ClonePosition();
 
             // вектор направление на таргет (последовательность аргументов важно, чтобы смотреть на таргет)
+            // vector direction to the target (the sequence of arguments is important to look at the target) 
             vDistance = vTarget - vPosition; // dx, dy, dz
 
             // distance to the point where we are moving
@@ -637,9 +628,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             // вектор скорости (т.е. координаты, куда попадём двигаясь со скоростью velociti по направдению direction)
             var diff = direction * velocity;
-            Position.X += diff.X;
-            Position.Y += diff.Y;
-            Position.Z += diff.Z;
+            Transform.Local.Translate(diff.X,diff.Y,diff.Z);
 
             var nextPoint = Math.Abs(vDistance.X) < RangeToCheckPoint
                             && Math.Abs(vDistance.Y) < RangeToCheckPoint
@@ -650,8 +639,8 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 Angle += MathF.PI;
             }
-            var quat = MathUtil.ConvertRadianToDirectionShort(Angle);
-            Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
+            
+            Transform.Local.SetZRotation((float)Angle);
 
             Velocity = new Vector3(direction.X * 30, direction.Y * 30, direction.Z * 30);
             AngVel = new Vector3(0f, 0f, (float)Angle); // сюда записывать дельту, в радианах, угла поворота между начальным вектором и конечным
@@ -671,7 +660,7 @@ namespace AAEmu.Game.Models.Game.Units
 
                 _log.Warn("Reverse=" + Reverse + " Cyclic=" + Template.Cyclic);
                 _log.Warn("MoveStepIndex=" + MoveStepIndex + " Steering=" + Steering);
-                _log.Warn("x=" + Position.X + " y=" + Position.Y + " z=" + Position.Z + " Angle=" + Angle + " Rot=" + Rot);
+                _log.Warn("pos=" + Transform.World.ToString() + " - Angle=" + Angle);
                 //_log.Warn("velx=" + Velocity.X + " vely=" + Velocity.Y + " velz=" + Velocity.Z);
             }
 
@@ -728,7 +717,7 @@ namespace AAEmu.Game.Models.Game.Units
             _log.Warn("path #" + Steering);
             _log.Warn("walk to #" + MoveStepIndex);
             _log.Info("pause to #" + time);
-            _log.Warn("x:=" + transfer.Position.X + " y:=" + transfer.Position.Y + " z:=" + transfer.Position.Z);
+            _log.Warn("pos:=" + transfer.Transform.ToString());
         }
 
         public bool DoSpeedReduction()

@@ -294,6 +294,11 @@ namespace AAEmu.Game.Models.Game.World.Transform
             Rotation = FromQuaternion(q.X, q.Y, q.Z, q.W);
         }
 
+        public WorldPos ToWorldPos()
+        {
+            return new WorldPos((long)(Position.X * 4096) << 32,(long)(Position.Y * 4096) << 32,Position.Z);
+        }
+
     }
     
 }
