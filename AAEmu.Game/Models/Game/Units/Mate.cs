@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -486,7 +487,7 @@ namespace AAEmu.Game.Models.Game.Units
                     {
                         rider.DoFallDamage(fallVel);
                         if (rider.Hp <= 0)
-                            MateManager.Instance.UnMountMate(rider, TlId, pos, 5); // Do we have a reason for death ?
+                            MateManager.Instance.UnMountMate(rider, TlId, pos, UnitDetachReason.Death);
                     }
                 }
             }

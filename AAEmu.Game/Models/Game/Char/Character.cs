@@ -24,6 +24,7 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -1591,21 +1592,21 @@ namespace AAEmu.Game.Models.Game.Char
         /// useful for calling before any kind of teleport function 
         /// </summary>
         /// <returns>Returns True is any dismounting happened by this function</returns>
-        public bool ForceDismount()
+        public bool ForceDismount(UnitDetachReason reason = UnitDetachReason.Unsummon)
         {
             var res = false;
             // Force dismount Mates (mounts)
             var isOnMount = MateManager.Instance.GetIsMounted(ObjId, out var attachedRiderPoint);
             if (isOnMount != null)
             {
-                MateManager.Instance.UnMountMate(this, isOnMount.TlId, attachedRiderPoint, 5); // TODO - REASON leave world
+                MateManager.Instance.UnMountMate(this, isOnMount.TlId, attachedRiderPoint, reason);
                 res = true;
             }
             // Force remove from slaves
             var isOnSlave = SlaveManager.Instance.GetIsMounted(ObjId, out var attachedDriverPoint);
             if (isOnSlave != null)
             {
-                SlaveManager.Instance.UnbindSlave(this, isOnSlave.TlId);
+                SlaveManager.Instance.UnbindSlave(this, isOnSlave.TlId, reason);
                 res = true;
             }
             // Unbind from any parent

@@ -80,10 +80,10 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void UnbindSlave(Character character, uint tlId)
+        public void UnbindSlave(Character character, uint tlId, UnitDetachReason reason = UnitDetachReason.LeaveWorld)
         {
             var slave = _tlSlaves[tlId];
-            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, 15), true);
+            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
             var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
             if (attachPoint != default)
             {

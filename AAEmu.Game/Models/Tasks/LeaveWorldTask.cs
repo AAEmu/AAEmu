@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Packets.Proxy;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Tasks
 {
@@ -30,7 +31,7 @@ namespace AAEmu.Game.Models.Tasks
                 MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(_connection.ActiveChar);
                 
                 // Check if still mounted on somebody else's mount and dismount that if needed
-                _connection.ActiveChar.ForceDismount();
+                _connection.ActiveChar.ForceDismount(UnitDetachReason.LeaveWorld);
 
                 // Remove from Team (raid/party)
                 TeamManager.Instance.MemberRemoveFromTeam(_connection.ActiveChar, _connection.ActiveChar, Game.Team.RiskyAction.Leave);

@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -14,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var tlId = stream.ReadUInt16();
             var ap = stream.ReadByte();
-            var reason = stream.ReadByte();
+            var reason = (UnitDetachReason)stream.ReadByte();
             
             //_log.Warn("UnMountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
             MateManager.Instance.UnMountMate(Connection.ActiveChar, tlId, ap, reason);

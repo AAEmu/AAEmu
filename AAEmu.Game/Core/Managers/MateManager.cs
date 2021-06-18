@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils.DB;
 using NLog;
 
@@ -135,7 +136,7 @@ namespace AAEmu.Game.Core.Managers
                 mateInfo.TlId, attachPoint, reason, string.Join(", ",mateInfo.Passengers.Values.ToList()));
         }
 
-        public void UnMountMate(Character character, uint tlId, byte attachPoint, byte reason)
+        public void UnMountMate(Character character, uint tlId, byte attachPoint, UnitDetachReason reason)
         {
             var mateInfo = GetActiveMateByTlId(tlId);
             if (mateInfo == null) return;
@@ -197,7 +198,7 @@ namespace AAEmu.Game.Core.Managers
             if (mateInfo.TlId != tlId) return; // skip if invalid tlId
 
             foreach (var ati in mateInfo.Passengers)
-                UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mateInfo.TlId, ati.Key, 1); // TODO reason unmount
+                UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mateInfo.TlId, ati.Key, UnitDetachReason.Unmount); // TODO reason unmount
             
             _activeMates[owner.ObjId].Delete();
             _activeMates.Remove(owner.ObjId);
