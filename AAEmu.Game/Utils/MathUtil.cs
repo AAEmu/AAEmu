@@ -28,6 +28,12 @@ namespace AAEmu.Game.Utils
         {
             return CalculateAngleFrom(p1.X, p1.Y, p2.X, p2.Y);
         }
+        public static double CalculateDirection(Vector3 obj1, Vector3 obj2)
+        {
+            var rad = Math.Atan2(obj2.Y - obj1.Y, obj2.X - obj1.X);
+
+            return rad;
+        }
 
         /// <summary>
         /// Return degree value of object 2 to the horizontal line with object 1 being the origin (using Transform.World) 
@@ -321,6 +327,16 @@ namespace AAEmu.Game.Utils
             return (float)Math.Sqrt(dx * dx + dy * dy);
         }
 
+        public static float GetDistance(Vector3 v1, Vector3 v2, bool point3d = false)
+        {
+            return point3d
+                ?
+                MathF.Sqrt(MathF.Pow(v1.X - v2.X, 2) + MathF.Pow(v1.Y - v2.Y, 2) + MathF.Pow(v1.Y - v2.Y, 2))
+                :
+                MathF.Sqrt(MathF.Pow(v1.X - v2.X, 2) + MathF.Pow(v1.Y - v2.Y, 2));
+        }
+
+
         public static Vector3 GetVectorFromQuat(Quaternion quat)
         {
                 double sqw = quat.W*quat.W;
@@ -333,6 +349,25 @@ namespace AAEmu.Game.Utils
                 var rotZ = (float)Math.Asin(-2.0 * (quat.X*quat.Z - quat.Y*quat.W)/(sqx + sqy + sqz + sqw));
 
                 return new Vector3(rotX, rotY, rotZ);
+        }
+
+        private const double Pi = 3.14159;
+        private const double Pi2 = 3.14159 * 2;
+        private const double Pi05 = 3.14159 * 0.5;
+        public static Quaternion ConvertRadianToDirectionShort(double radian)
+        {
+            if (radian < 0)
+            {
+                radian = Pi2 + radian;
+            }
+            radian -= Pi05;
+            if (radian > Pi)
+            {
+                radian -= Pi2;
+            }
+            var quat = Quaternion.CreateFromYawPitchRoll((float)radian, 0.0f, 0.0f);
+
+            return quat;
         }
     }
 }

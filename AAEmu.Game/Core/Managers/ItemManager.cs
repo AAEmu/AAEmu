@@ -224,7 +224,7 @@ namespace AAEmu.Game.Core.Managers
              * Note: Re-opening the loot window lets you loot the remaining items
             */
             var isDone = true;
-            var lootDropItems = ItemManager.Instance.GetLootDropItems(id);
+            var lootDropItems = Instance.GetLootDropItems(id);
             if (lootAll)
             {
                 for (var i = lootDropItems.Count - 1; i >= 0; --i)
@@ -470,7 +470,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (item.Template.FixedGrade >= 0)
                 item.Grade = (byte)item.Template.FixedGrade;
-            item.CreateTime = DateTime.UtcNow;
+            item.CreateTime = DateTime.Now;
             if (generateId)
                 _allItems.Add(item.Id, item);
             return item;

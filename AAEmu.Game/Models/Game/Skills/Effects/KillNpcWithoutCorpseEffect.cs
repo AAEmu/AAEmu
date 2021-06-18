@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Linq;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.NPChar;
@@ -21,13 +22,21 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Debug("KillNpcWithoutCorpseEffect");
-            var npcs = WorldManager.Instance.GetAround<Npc>(target, Radius);
-            foreach (var npc in npcs)
+
+            if (Vanish && Radius == 0)
             {
-                if (npc.TemplateId != NpcId)
-                    continue;
-                npc.Buffs.RemoveAllEffects();
-                npc.Delete();
+                // Fixed: "Trainer Daru" disappears after selling a bear
+                caster.Buffs.RemoveAllEffects();
+                caster.Delete();
+            }
+            else
+            {
+                var npcs = WorldManager.Instance.GetAround<Npc>(target, Radius);
+                foreach (var npc in npcs.Where(npc => npc.TemplateId == NpcId))
+                {
+                    npc.Buffs.RemoveAllEffects();
+                    npc.Delete();
+                }
             }
         }
     }

@@ -22,9 +22,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 {
     public class Doodad : BaseUnit
     {
-        private float _scale;
-
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        private float _scale;
         public uint TemplateId { get; set; }
         public uint DbId { get; set; }
         public bool IsPersistent { get; set; } = false;
@@ -33,6 +32,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint FuncGroupId { get; set; }
         public string FuncType { get; set; }
         public ulong ItemId { get; set; }
+        public ulong UccId { get; set; }
+        public uint ItemTemplateId { get; set; }
         public DateTime GrowthTime { get; set; }
         public DateTime PlantTime { get; set; }
         public uint OwnerId { get; set; }
@@ -43,13 +44,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
         public uint QuestGlow { get; set; } //0 off // 1 on
-
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
-
         public uint TimeLeft => GrowthTime > DateTime.Now ? (uint)(GrowthTime - DateTime.Now).TotalMilliseconds : 0; // TODO formula time of phase
-        public bool cancelPhasing { get; set; }
-        
+        public bool ToPhaseAndUse { get; set; }
+        public int PhaseRatio { get; set; }
+        public int CumulativePhaseRatio { get; set; }
         public uint CurrentPhaseId { get; set; }
         public uint OverridePhase { get; set; }
         private bool _deleted = false;
@@ -86,30 +86,24 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             // Apply them
             var nextFunc = 0;
             var isUse = false;
-            cancelPhasing = true;
+            ToPhaseAndUse = false;
 
             try
             {
                 foreach (var func in funcs)
                 {
-                    if (func.SkillId > 0 && func.SkillId == skillId)
+                    if ((func.SkillId <= 0 || func.SkillId != skillId) && func.SkillId != 0)
+                        continue;
+
+                    func.Use(unit, this, skillId, func.NextPhase);
+
+                    if (ToPhaseAndUse)
                     {
-                        func.Use(unit, this, skillId, func.NextPhase);
-                        if (!cancelPhasing)
-                        {
-                            isUse = true;
-                            nextFunc = func.NextPhase;
-                        }
+                        isUse = true;
+                        nextFunc = func.NextPhase;
                     }
-                    else if (func.SkillId == 0)
-                    {
-                        func.Use(unit, this, skillId);
-                        if (!cancelPhasing)
-                        {
-                            isUse = true;
-                            nextFunc = func.NextPhase;
-                        }
-                    }
+
+                    break;
                 }
             }
             catch (Exception e)
@@ -134,7 +128,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             recursionDepth++;
             if (recursionDepth % 10 == 0)
                 _log.Warn("Doodad {0} (TemplateId {1}) might be phasing indefinitely. {2} recursionDepth.", ObjId, TemplateId, recursionDepth);
-            
+
             _log.Trace("Doing phase {0}", CurrentPhaseId);
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
 
@@ -159,7 +153,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 DoPhase(unit, skillId, recursionDepth);
             }
 
-            if (!_deleted) 
+            if (!_deleted)
                 Save();
         }
 
@@ -174,12 +168,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (funcGroupId == -1)
             {
                 // Delete doodad
-                // Delete();
+                Delete();
             }
             else
             {
                 CurrentPhaseId = (uint)funcGroupId;
+                PhaseRatio = Rand.Next(0, 10000);
+                CumulativePhaseRatio = 0;
                 DoPhase(unit, skillId);
+
+                _log.Debug("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
             }
         }
@@ -191,13 +189,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (funcGroupId == -1)
             {
                 // Delete doodad
-                //Delete();
+                Delete();
             }
             else
             {
                 CurrentPhaseId = (uint)funcGroupId;
+                PhaseRatio = Rand.Next(0, 10000);
+                CumulativePhaseRatio = 0;
                 DoPhase(unit, skillId);
+
+                _log.Debug("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
+
                 Use(unit, skillId, recursionDepth);
             }
         }
@@ -213,9 +216,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
             return startGroupIds;
         }
-        
+
         public uint GetFuncGroupId()
-        {   
+        {
             foreach (var funcGroup in Template.FuncGroups)
             {
                 if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
@@ -260,7 +263,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 character.CurrentTarget = null;
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
-            character.SendPacket(new SCDoodadRemovedPacket( ObjId ));
+            character.SendPacket(new SCDoodadRemovedPacket(ObjId));
         }
 
         public PacketStream Write(PacketStream stream)
@@ -291,8 +294,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(false); // hasLootItem
             stream.Write(CurrentPhaseId); // doodad_func_group_id
             stream.Write(OwnerId); // characterId (Database relative)
-            stream.Write(ItemId); // ?? must be ulong though (ItemId seems to be the only ulong)
-            stream.Write(0u); //??type1
+            stream.Write(UccId);
+            stream.Write(ItemTemplateId);
             stream.Write(0u); //??type2
             stream.Write(TimeLeft); // growing
             stream.Write(PlantTime); //Time stamp of when it was planted

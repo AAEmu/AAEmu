@@ -246,5 +246,14 @@ namespace AAEmu.Commons.Utils
             var size = data.Length;
             return Crc8(data, size);
         }
+
+        public static sbyte ConvertRadianToSbyteDirection(float radian)
+        {
+            var z = radian * 0.15915494309189533576888376337251; // values.X / (float)Math.PI * 2; // переводим из радиан в направление
+
+            var dir = Convert.ToSByte(z * 127f);
+
+            return dir;
+        }
     }
 }

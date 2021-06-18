@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 OnCompletedReturnNoTeleport();
             }
             
-            _timeoutTime = DateTime.UtcNow.AddSeconds(20); 
+            _timeoutTime = DateTime.Now.AddSeconds(20); 
         }
 
         public override void Tick(TimeSpan delta)
@@ -50,7 +50,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (distanceToIdle < 1.0f)
                 OnCompletedReturnNoTeleport();
             
-            if (DateTime.UtcNow > _timeoutTime)
+            if (DateTime.Now > _timeoutTime)
                 OnCompletedReturn();
         }
 

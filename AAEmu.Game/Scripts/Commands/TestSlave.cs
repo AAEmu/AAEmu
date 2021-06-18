@@ -28,6 +28,7 @@ namespace AAEmu.Game.Scripts.Commands
         public void Execute(Character character, string[] args)
         {
             var slave = new Slave();
+            slave.Summoner = character;
             slave.TemplateId = 6;
             slave.ModelId = 654;
             slave.ObjId = ObjectIdManager.Instance.GetNextId();
@@ -36,9 +37,11 @@ namespace AAEmu.Game.Scripts.Commands
             slave.Level = 50;
             slave.Transform = character.Transform.CloneDetached(slave);
             slave.Transform.Local.AddDistanceToFront(5f);
-            slave.MaxHp = slave.Hp = 5000;
+            slave.Hp = slave.MaxHp = 190000;
+            slave.Faction = character.Faction;
             slave.ModelParams = new UnitCustomModelParams();
-            
+            slave.Template = SlaveManager.Instance.GetSlaveTemplate(slave.TemplateId);
+
             slave.Spawn();
         }
     }

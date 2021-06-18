@@ -748,47 +748,13 @@ namespace AAEmu.Game.Core.Managers.World
             foreach (var stuff in stuffs)
             {
                 stuff.AddVisibleObject(character);
-                /*
-                switch (stuff)
-                {
-                    case Npc npc:
-                        //character.SendPacket(new SCUnitStatePacket(npc));
-                        npc.AddVisibleObject(character);
-                        break;
-                    case Character chr:
-                        //character.SendPacket(new SCUnitStatePacket(chr));
-                        chr.AddVisibleObject(character);
-                        break;
-                    case Slave slave:
-                        //character.SendPacket(new SCUnitStatePacket(slave));
-                        slave.AddVisibleObject(character);
-                        break;
-                    case House house:
-                        //character.SendPacket(new SCHouseStatePacket(house));
-                        house.AddVisibleObject(character);
-                        break;
-                    case Transfer transfer:
-                        //character.SendPacket(new SCUnitStatePacket(transfer));
-                        //character.SendPacket(new SCUnitPointsPacket(transfer.ObjId, transfer.Hp, transfer.Mp, transfer.HighAbilityRsc));
-                        transfer.AddVisibleObject(character);
-                        break;
-                    case Mate mount:
-                        //character.SendPacket(new SCUnitStatePacket(mount));
-                        mount.AddVisibleObject(character);
-                        break;
-                    case Shipyard shipyard:
-                        //character.SendPacket(new SCUnitStatePacket(shipyard));
-                        shipyard.AddVisibleObject(character);
-                        break;
-                }
-                */
             }
 
             var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();
-            for (var i = 0; i < doodads.Length; i += 30)
+            for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
             {
                 var count = doodads.Length - i;
-                var temp = new Doodad[count <= 30 ? count : 30];
+                var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
                 Array.Copy(doodads, i, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
@@ -799,6 +765,11 @@ namespace AAEmu.Game.Core.Managers.World
             return _characters.Values.ToList();
         }
 
+        public List<Npc> GetAllNpcs()
+        {
+            return _npcs.Values.ToList();
+        }
+        
         public AreaShape GetAreaShapeById(uint id)
         {
             if (_areaShapes.TryGetValue(id, out AreaShape res))

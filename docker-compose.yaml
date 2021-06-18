@@ -7,9 +7,12 @@ services:
         command: --default_authentication_plugin=mysql_native_password
         volumes:
             - db-data:/var/lib/mysql
-            - ./SQL:/docker-entrypoint-initdb.d
+            - ./SQL/aaemu_login.sql:/docker-entrypoint-initdb.d/aaemu_login.sql
+            - ./SQL/aaemu_game.sql:/docker-entrypoint-initdb.d/aaemu_game.sql
+            - ./SQL/examples/example-server.sql:/docker-entrypoint-initdb.d/example-server.sql
+            - ./SQL/examples/test-user.sql:/docker-entrypoint-initdb.d/test-user.sql
         environment:
-            MYSQL_ROOT_PASSWORD: password
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
         ports:
             - 3306:3306
 
@@ -24,6 +27,52 @@ services:
             - 8080:8080
         depends_on:
             - db
+
+    login:
+        build:
+            context: .
+            dockerfile: ./AAEmu.Login/Dockerfile
+            args:
+                - CONFIGURATION=${BUILD_CONFIGURATION}
+                - FRAMEWORK=${BUILD_FRAMEWORK}
+                - RUNTIME=${BUILD_RUNTIME}
+                - DB_HOST=db
+                - DB_PORT=3306
+                - DB_USER=${DB_USER}
+                - DB_PASSWORD=${DB_PASSWORD}
+        image: aaemu-login:${PROJECT_VERSION_PREFIX}-${PROJECT_VERSION_SUFFIX}
+        restart: unless-stopped
+        environment:
+            DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
+        ports:
+            - 1237:1237
+        depends_on:
+            - db
+
+    game:
+        build:
+            context: .
+            dockerfile: ./AAEmu.Game/Dockerfile
+            args:
+                - CONFIGURATION=${BUILD_CONFIGURATION}
+                - FRAMEWORK=${BUILD_FRAMEWORK}
+                - RUNTIME=${BUILD_RUNTIME}
+                - DB_HOST=db
+                - DB_PORT=3306
+                - DB_USER=${DB_USER}
+                - DB_PASSWORD=${DB_PASSWORD}
+                - LOGIN_HOST=login
+                - LOGIN_PORT=1234
+                - GAME_DB_URL=${GAME_DB_URL}
+        image: aaemu-game:${PROJECT_VERSION_PREFIX}-${PROJECT_VERSION_SUFFIX}
+        restart: unless-stopped
+        environment:
+            DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
+        ports:
+            - 1239:1239
+            - 1250:1250
+        depends_on:
+            - login
 
 volumes:
     db-data:

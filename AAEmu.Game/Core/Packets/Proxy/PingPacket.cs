@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.Proxy
             var when = stream.ReadInt64(); // ping
             var local = stream.ReadUInt32();
 
-            Connection.LastPing = DateTime.UtcNow;
+            Connection.LastPing = DateTime.Now;
             Connection.SendPacket(new PongPacket(tm, when, local));
         }
     }

@@ -1494,6 +1494,11 @@ namespace AAEmu.Game.Models.Game.Char
 
         public override int DoFallDamage(ushort fallVel)
         {
+            if (AccessLevel > 0)
+            {
+                _log.Warn("FallDamage disabled for GMs & Admins");
+                return; // GM & Admin не разбиваются
+            }
             var fallDamage = base.DoFallDamage(fallVel);
             _log.Warn("FallDamage: {0} - Vel {1} DmgPerc: {2}, Damage {3}", Name, fallVel, (int)((fallVel - 8600) / 150f), fallDamage);
             return fallDamage;

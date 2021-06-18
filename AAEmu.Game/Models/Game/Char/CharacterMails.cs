@@ -63,7 +63,7 @@ namespace AAEmu.Game.Models.Game.Char
                 if ((mail.Header.Status == MailStatus.Unread) && !isSent)
                 {
                     unreadMailCount.Received -= 1;
-                    mail.OpenDate = DateTime.UtcNow;
+                    mail.OpenDate = DateTime.Now;
                     mail.Header.Status = MailStatus.Read;
                     mail.IsDelivered = true;
                 }
@@ -89,8 +89,8 @@ namespace AAEmu.Game.Models.Game.Char
             mail.Header.Extra = extra;
 
             mail.Body.Text = text;
-            mail.Body.SendDate = DateTime.UtcNow;
-            mail.Body.RecvDate = DateTime.UtcNow;
+            mail.Body.SendDate = DateTime.Now;
+            mail.Body.RecvDate = DateTime.Now;
 
             mail.AttachMoney(money0, money1, money2);
 
@@ -114,7 +114,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             // Add delay if not a normal snail mail
             if (mailType == MailType.Normal)
-                mail.Body.RecvDate = DateTime.UtcNow + MailManager.NormalMailDelay;
+                mail.Body.RecvDate = DateTime.Now + MailManager.NormalMailDelay;
 
             // Send it
             if (mail.Send())

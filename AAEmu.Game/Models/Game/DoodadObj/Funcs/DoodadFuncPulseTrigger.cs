@@ -7,11 +7,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public bool Flag { get; set; }
         public uint NextPhase { get; set; }
-        
+
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncPulseTrigger");
-            owner.cancelPhasing = true;
+            if (Flag && nextPhase == 1)
+                owner.GoToPhase(null, (int)NextPhase);
+            owner.ToPhaseAndUse = false;
         }
     }
 }

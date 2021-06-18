@@ -548,7 +548,12 @@ namespace AAEmu.Game.Models.Game.Units
                 else if (template.RemoveOnMount && on == BuffRemoveOn.Mount)
                     effect.Exit();
                 else if (template.RemoveOnMove && on == BuffRemoveOn.Move)
+                {
+                    // stopping the TransferTelescopeTickStartTask if character moved
+                    TransferTelescopeManager.Instance.StopTransferTelescopeTick();
+                    
                     effect.Exit();
+                }                
                 else if (template.RemoveOnSourceDead && on == BuffRemoveOn.SourceDead && value == effect.Caster.ObjId)
                     effect.Exit();//Need to investigate this one
                 else if (template.RemoveOnStartSkill && on == BuffRemoveOn.StartSkill)

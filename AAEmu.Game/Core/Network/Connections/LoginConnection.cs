@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Network.Connections
         private Session _session; 
         private Client _client;
 
-        public uint Id => _session.Id;
+        public uint Id => _session.SessionId;
         public IPAddress Ip => _session.Ip;
 
         public bool Block { get; set; }

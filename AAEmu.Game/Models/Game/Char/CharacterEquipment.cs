@@ -277,7 +277,7 @@ namespace AAEmu.Game.Models.Game.Char
                 if (itemAddedBuff != null) // add buff from equipped item
                 {
                     var newEffect =
-                        new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.UtcNow)
+                        new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.Now)
                         {
                             AbLevel = (uint)itemAdded.Template.Level
                         };
@@ -297,7 +297,7 @@ namespace AAEmu.Game.Models.Game.Char
                         if (buffTemplate == null)
                             buffTemplate = SkillManager.Instance.GetBuffTemplate(item?.Template.BuffId ?? 0);
                         var newEffect =
-                            new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
+                            new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
                             {
                                 AbLevel = (uint)item.Template.Level
                             };

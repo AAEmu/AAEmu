@@ -2,6 +2,7 @@
 using SBuffer = System.Buffer;
 using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 using AAEmu.Commons.Conversion;
 using AAEmu.Commons.Utils;
@@ -549,6 +550,43 @@ namespace AAEmu.Commons.Network
             return Helpers.ConvertPosition(position);
         }
 
+        public Quaternion ReadQuaternionShort()
+        {
+            var quatX = Convert.ToSingle(ReadInt16() * 0.000030518509f);
+            var quatY = Convert.ToSingle(ReadInt16() * 0.000030518509f);
+            var quatZ = Convert.ToSingle(ReadInt16() * 0.000030518509f);
+            var quatNorm = quatX * quatX + quatY * quatY + quatZ * quatZ;
+
+            var quatW = 0.0f;
+            if (quatNorm < 0.99750)
+            {
+                quatW = (float)Math.Sqrt(1.0 - quatNorm);
+            }
+
+            var quat = new Quaternion(quatX, quatY, quatZ, quatW);
+
+            return quat;
+        }
+
+        public Vector3 ReadVector3Single()
+        {
+            var x = ReadSingle();
+            var y = ReadSingle();
+            var z = ReadSingle();
+            var temp = new Vector3(x, y, z);
+            return temp;
+        }
+        
+        public Vector3 ReadVector3Short()
+        {
+            var x = Convert.ToSingle(ReadInt16()) * 0.000030518509f;
+            var y = Convert.ToSingle(ReadInt16()) * 0.000030518509f;
+            var z = Convert.ToSingle(ReadInt16()) * 0.000030518509f;
+            var temp = new Vector3(x, y, z);
+
+            return temp;
+        }
+
         #endregion // Read Complex Types
 
         #region Read Strings
@@ -730,6 +768,45 @@ namespace AAEmu.Commons.Network
             var res = Helpers.ConvertPosition(pos.X, pos.Y, pos.Z);
             Write(res);
             return this;
+        }
+
+        
+        public PacketStream WriteQuaternionShort(Quaternion values, bool scalar = false)
+        {
+            var temp = new PacketStream();
+            try
+            {
+                temp.Write(Convert.ToInt16(values.X * 32767f));
+                temp.Write(Convert.ToInt16(values.Y * 32767f));
+                temp.Write(Convert.ToInt16(values.Z * 32767f));
+            }
+            catch
+            {
+                var res = new byte[6];
+                temp.Write(res);
+            }
+            if (scalar)
+            {
+                temp.Write(Convert.ToInt16(values.W));
+            }
+            return Write(temp, false);
+        }
+
+        public PacketStream WriteVector3Single(Vector3 values)
+        {
+            var temp = new PacketStream();
+            temp.Write(values.X);
+            temp.Write(values.Y);
+            temp.Write(values.Z);
+            return Write(temp, false);
+        }
+        public PacketStream WriteVector3Short(Vector3 values)
+        {
+            var temp = new PacketStream();
+            temp.Write(Convert.ToInt16(values.X * 32767f));
+            temp.Write(Convert.ToInt16(values.Y * 32767f));
+            temp.Write(Convert.ToInt16(values.Z * 32767f));
+            return Write(temp, false);
         }
 
         #endregion // Write Complex Types

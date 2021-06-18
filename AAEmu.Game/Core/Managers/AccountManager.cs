@@ -28,7 +28,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void RemoveDeadConnections(TimeSpan delta)
         {
-            foreach (var gameConnection in _accounts.Values.ToList().Where(gameConnection => gameConnection.LastPing + TimeSpan.FromSeconds(30) < DateTime.UtcNow))
+            foreach (var gameConnection in _accounts.Values.ToList().Where(gameConnection => gameConnection.LastPing + TimeSpan.FromSeconds(30) < DateTime.Now))
             {
                 if (gameConnection.ActiveChar != null)
                     _log.Trace("Disconnecting {0} due to no network activity", gameConnection.ActiveChar.Name);

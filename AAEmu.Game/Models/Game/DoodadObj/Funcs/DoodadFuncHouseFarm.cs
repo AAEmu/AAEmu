@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Debug("DoodadFuncHouseFarm");
             // owner.Use(caster);
-            owner.cancelPhasing = true;
+            owner.ToPhaseAndUse = false;
         }
     }
 }

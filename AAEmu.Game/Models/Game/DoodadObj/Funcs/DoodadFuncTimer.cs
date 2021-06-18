@@ -1,6 +1,6 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
@@ -35,10 +35,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             else
             {
                 //Wondering if more needs done here if depending on next phase func
-                // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, skillId);
                 owner.Use(caster, skillId);
             }
-            owner.cancelPhasing = true;
+            owner.ToPhaseAndUse = false;
         }
     }
 }

@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "Id": 1,
+    "UnitId": 4289,
+    "Position": {
+      "X": 552.2,
+      "Y": 499.8,
+      "Z": 133.5,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 90
+    },
+    "Scale": 1.0
+  },
+  {
+    "Id": 2,
+    "UnitId": 4927,
+    "Position": {
+      "X": 763.3,
+      "Y": 709.5,
+      "Z": 141.5,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -40
+    },
+    "Scale": 1.0,
+	"FuncGroupId":12276
+  }
+]

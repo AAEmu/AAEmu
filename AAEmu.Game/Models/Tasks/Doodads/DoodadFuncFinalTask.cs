@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -21,11 +22,11 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 
         public override void Execute()
         {
-            if (_respawn == true && _owner.Spawner != null)
+            if (_respawn && _owner.Spawner != null)
             {
                 if (_respawnTime is null)
                 {
-                    _respawnTime = DateTime.UtcNow;
+                    _respawnTime = DateTime.Now;
                     TaskManager.Instance.Schedule(_owner.FuncTask, TimeSpan.FromMilliseconds(_delay));
                     return;
                 }

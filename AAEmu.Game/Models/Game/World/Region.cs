@@ -142,52 +142,29 @@ namespace AAEmu.Game.Models.Game.World
                     {
                         if (npc.Ai != null)
                             npc.Ai.ShouldTick = true;
-                        npc.AddVisibleObject(character1);
+                        npc.AddVisibleObject(character);
                     }
                     else
                     {
-                        if (t is House house)
-                        {
-                            house.AddVisibleObject(character1);
-                        }
-                        else if (t is Transfer transfer)
-                        {
-                            transfer.AddVisibleObject(character1);
-                        }
-                        else if (t is Gimmick gimmick)
-                        {
-                            gimmick.AddVisibleObject(character1);
-                        }
-                        else if (t is Slave slave)
-                        {
-                            slave.AddVisibleObject(character1);
-                        }
-                        else if (t is Shipyard.Shipyard shipyard)
-                        {
-                            shipyard.AddVisibleObject(character1);
-                        }
-                        else
-                        {
-                            character1.SendPacket(new SCUnitStatePacket(t));
-                        }
+                        t.AddVisibleObject(character);
                     }
                     */
                 }
                 
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
-                for (var i = 0; i < doodads.Length; i += 30)
+                for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
                 {
                     var count = doodads.Length - i;
-                    var temp = new Doodad[count <= 30 ? count : 30];
+                    var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
                     Array.Copy(doodads, i, temp, 0, temp.Length);
-                    character1.SendPacket(new SCDoodadsCreatedPacket(temp));
+                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }
             }
             
             // show the object to all players in the region
-            foreach (var character in GetList(new List<Character>(), obj.ObjId))
+            foreach (var character2 in GetList(new List<Character>(), obj.ObjId))
             {
-                obj.AddVisibleObject(character);
+                obj.AddVisibleObject(character2);
             }
         }
 
@@ -210,19 +187,19 @@ namespace AAEmu.Game.Models.Game.World
                     }
                 }
 
-                for (var offset = 0; offset < unitIds.Length; offset += 500)
+                for (var offset = 0; offset < unitIds.Length; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
                 {
                     var length = unitIds.Length - offset;
-                    var temp = new uint[length > 500 ? 500 : length];
+                    var temp = new uint[length > SCUnitsRemovedPacket.MaxCountPerPacket ? SCUnitsRemovedPacket.MaxCountPerPacket : length];
                     Array.Copy(unitIds, offset, temp, 0, temp.Length);
                     character1.SendPacket(new SCUnitsRemovedPacket(temp));
                 }
                 var doodadIds = GetListId<Doodad>(new List<uint>(), character1.ObjId).ToArray();
-                for (var offset = 0; offset < doodadIds.Length; offset += 400)
+                for (var offset = 0; offset < doodadIds.Length; offset += SCDoodadsRemovedPacket.MaxCountPerPacket)
                 {
                     var length = doodadIds.Length - offset;
-                    var last = length <= 400;
-                    var temp = new uint[last ? length : 400];
+                    var last = length <= SCDoodadsRemovedPacket.MaxCountPerPacket;
+                    var temp = new uint[last ? length : SCDoodadsRemovedPacket.MaxCountPerPacket];
                     Array.Copy(doodadIds, offset, temp, 0, temp.Length);
                     character1.SendPacket(new SCDoodadsRemovedPacket(last, temp));
                 }

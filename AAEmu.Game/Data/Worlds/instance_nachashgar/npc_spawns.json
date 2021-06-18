@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "Count": 1,
+    "Id": 1,
+    "UnitId": 502,
+    "Position": {
+      "X": 336.5,
+      "Y": 390.5,
+      "Z": 151.7,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": 90
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 2,
+    "UnitId": 12506,
+    "Position": {
+      "X": 399.4,
+      "Y": 398.4,
+      "Z": 151.7,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -90
+    },
+    "Scale": 0.0
+  },
+  {
+    "Count": 1,
+    "Id": 3,
+    "UnitId": 12506,
+    "Position": {
+      "X": 399.4,
+      "Y": 359.4,
+      "Z": 151.7,
+      "RotationX": 0,
+      "RotationY": 0,
+      "RotationZ": -90
+    },
+    "Scale": 0.0
+  }
+]

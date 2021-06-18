@@ -175,7 +175,7 @@ namespace AAEmu.Game.Models.Game.Units
         public SkillTask SkillTask { get; set; }
         public SkillTask AutoAttackTask { get; set; }
         public DateTime GlobalCooldown { get; set; }
-        public bool IsGlobalCooldowned => GlobalCooldown > DateTime.UtcNow;
+        public bool IsGlobalCooldowned => GlobalCooldown > DateTime.Now;
         public object GCDLock { get; set; }
         public DateTime SkillLastUsed { get; set; }
         public PlotState ActivePlotState { get; set; }

@@ -22,6 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             _tagId = tagId;
             _gcd = gcd;
             _chr = chr;
+            _gcd = gcd;
         }
 
         public override PacketStream Write(PacketStream stream)

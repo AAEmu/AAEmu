@@ -15,7 +15,6 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
-using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -214,7 +213,6 @@ namespace AAEmu.Game.Core.Managers.World
                 _gimmickSpawners.Add((byte)world.Id, gimmickSpawners);
             }
 
-            
             _log.Info("Loading character doodads...");
             using (var connection = MySQL.CreateConnection())
             {
@@ -259,8 +257,7 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                 }
             }
-            
-            
+
             var respawnThread = new Thread(CheckRespawns) { Name = "RespawnThread" };
             respawnThread.Start();
         }

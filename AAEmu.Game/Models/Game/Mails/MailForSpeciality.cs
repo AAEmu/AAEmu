@@ -99,7 +99,7 @@ namespace AAEmu.Game.Models.Game.Mails
 
             MailType = MailType.SysSellBackpack;
 
-            Body.RecvDate = DateTime.UtcNow + TradePackMailDelay;
+            Body.RecvDate = DateTime.Now + TradePackMailDelay;
         }
 
         /// <summary>

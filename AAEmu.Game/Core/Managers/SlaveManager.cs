@@ -40,7 +40,7 @@ namespace AAEmu.Game.Core.Managers
         public Dictionary<uint, Dictionary<int, WorldSpawnPosition>> _attachPoints;
         public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
 
-        private SlaveTemplate GetSlaveTemplate(uint id)
+        public SlaveTemplate GetSlaveTemplate(uint id)
         {
             return _slaveTemplates.ContainsKey(id) ? _slaveTemplates[id] : null;
         }
