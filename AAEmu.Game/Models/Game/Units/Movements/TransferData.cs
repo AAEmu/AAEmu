@@ -4,6 +4,7 @@ using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
@@ -28,10 +29,14 @@ namespace AAEmu.Game.Models.Game.Units.Movements
             X = transfer.Transform.World.Position.X;
             Y = transfer.Transform.World.Position.Y;
             Z = transfer.Transform.World.Position.Z;
+            //var (rx, ry, rz) = transfer.Transform.World.ToRollPitchYawSBytes();
+            //RotationX = rx;
+            //RotationY = ry;
+            //RotationZ = rz;
             WorldPos = transfer.Transform.World.ToWorldPos();
-            Rot = transfer.Transform.World.ToQuaternion();
+            Rot = transfer.Rot;
             RotSpeed = transfer.RotSpeed;
-            RotationDegrees = transfer.RotationDegrees;
+            RotationDegrees = transfer.RotationDegrees = transfer.Transform.Local.Rotation.Z.RadToDeg();
             Velocity = transfer.Velocity;
             AngVel = transfer.AngVel;
             Steering = transfer.Steering;

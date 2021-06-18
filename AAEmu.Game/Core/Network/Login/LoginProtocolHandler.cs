@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Network.Login
 
         public override void OnDisconnect(Session session)
         {
-            _log.Info("Connect to LoginServer losted");
+            _log.Info("Connect to LoginServer has been lost");
             LoginNetwork.Instance.SetConnection(null);
             session.Close();
 

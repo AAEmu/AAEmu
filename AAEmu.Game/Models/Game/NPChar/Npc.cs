@@ -847,22 +847,22 @@ namespace AAEmu.Game.Models.Game.NPChar
             var travelDist = Math.Min(targetDist, distance);
             var angle = MathUtil.CalculateAngleFrom(this.Transform.World.Position, other);
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
-            //var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Transform.World.Position.X, Transform.World.Position.Y, (float)angle.DegToRad());
             var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
 
             // TODO: Implement Transform.World to do proper movement
-            Transform.Local.SetPosition(newX,newY, AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(Transform.ZoneId, Transform.World.Position.X, Transform.World.Position.Y) : Transform.World.Position.Z);
-            Transform.Local.SetRotationDegree(0f, 0f, (float)angle);
+            Transform.Local.SetPosition(newX,newY,WorldManager.Instance.GetHeight(Transform));
+            Transform.Local.SetRotationDegree(0f, 0f, (float)angle-90);
+            var (rx,ry,rz) = Transform.Local.ToRollPitchYawSBytesMovement();
             
             moveType.X = Transform.Local.Position.X;
             moveType.Y = Transform.Local.Position.Y;
             moveType.Z = Transform.Local.Position.Z;
             moveType.VelX = (short) velX;
             moveType.VelY = (short) velY;
-            moveType.RotationX = 0;
-            moveType.RotationY = 0;
-            moveType.RotationZ = Transform.World.ToRollPitchYawSBytesMovement().Item3;
+            moveType.RotationX = rx;
+            moveType.RotationY = ry;
+            moveType.RotationZ = rz;
             moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
             moveType.Flags = 4;
             
@@ -889,14 +889,15 @@ namespace AAEmu.Game.Models.Game.NPChar
             var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
 
             // TODO: Implement Transform.World to do proper movement
-            Transform.Local.SetRotationDegree(0f, 0f, (float)angle);
+            Transform.Local.SetRotationDegree(0f, 0f, (float)angle-90);
+            var (rx, ry, rz) = Transform.Local.ToRollPitchYawSBytesMovement();
 
             moveType.X = Transform.Local.Position.X;
             moveType.Y = Transform.Local.Position.Y;
             moveType.Z = Transform.Local.Position.Z;
-            moveType.RotationX = 0;
-            moveType.RotationY = 0;
-            moveType.RotationZ = Transform.World.ToRollPitchYawSBytesMovement().Item3;
+            moveType.RotationX = rx;
+            moveType.RotationY = ry;
+            moveType.RotationZ = rz;
             moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
             moveType.Flags = 4;
             

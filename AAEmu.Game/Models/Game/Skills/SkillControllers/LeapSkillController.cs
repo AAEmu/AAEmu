@@ -96,7 +96,7 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
 
             // TODO: Implement Transform.World
             Owner.Transform.World.SetPosition(newX,newY, AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y) : Owner.Transform.World.Position.Z);
-            Owner.Transform.World.SetRotationDegree(0f, 0f, angle);
+            Owner.Transform.World.SetRotationDegree(0f, 0f, angle-90);
 
 
 

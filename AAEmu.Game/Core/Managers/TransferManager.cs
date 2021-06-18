@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
@@ -428,67 +429,93 @@ namespace AAEmu.Game.Core.Managers
             foreach (var world in worlds)
             {
                 var transferPaths = new Dictionary<uint, List<TransferRoads>>();
-                for (uint zoneId = 129; zoneId < 346; zoneId++)
+                var worldLevelDesignDir = Path.Combine(FileManager.AppPath, "data", "worlds", world.Name, "level_design");
+                if (!Directory.Exists(worldLevelDesignDir))
                 {
-                    var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/Worlds/{world.Name}/level_design/zone/{zoneId}/client/transfer_path.xml");
-                    if (string.IsNullOrWhiteSpace(contents))
+                    _log.Warn($"{world.Name} doesn't seem to have Transfers data.");
+                    continue;
+                }
+
+                var pathFiles = Directory.GetFiles(worldLevelDesignDir,"transfer_path.xml", SearchOption.AllDirectories);
+                foreach(var pathFileName in pathFiles)
+                //for (uint zoneId = 129; zoneId < 346; zoneId++)
+                {
+                    if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))),
+                        out var zoneId))
                     {
-                        //_log.Warn($"{FileManager.AppPath}Data/Worlds/{world.Name}/level_design/zone/{zoneId}/client/transfer_path.xml doesn't exists or is empty.");
+                        _log.Warn("Unable to parse zoneId from {0}", pathFileName);
                         continue;
                     }
 
+                    var contents = FileManager.GetFileContents(pathFileName);
+                    if (string.IsNullOrWhiteSpace(contents))
+                    {
+                        _log.Warn($"{pathFileName} doesn't exists or is empty.");
+                        continue;
+                    }
+
+                    _log.Warn($"Loading {pathFileName}");
+                    
                     var transferPath = new List<TransferRoads>();
                     var xDoc = new XmlDocument();
-                    xDoc.Load($"{FileManager.AppPath}Data/Worlds/{world.Name}/level_design/zone/{zoneId}/client/transfer_path.xml");
+                    xDoc.Load(pathFileName);
                     var xRoot = xDoc.DocumentElement;
-                    foreach (XmlElement xnode in xRoot)
+                    if (xRoot != null)
                     {
-                        var transferRoad = new TransferRoads();
-                        if (xnode.Attributes.Count > 0)
+                        foreach (XmlElement xnode in xRoot)
                         {
-                            transferRoad.Name = xnode.Attributes.GetNamedItem("Name").Value;
-                            transferRoad.ZoneId = zoneId;
-                            transferRoad.Type = int.Parse(xnode.Attributes.GetNamedItem("Type").Value);
-                            transferRoad.CellX = int.Parse(xnode.Attributes.GetNamedItem("cellX").Value);
-                            transferRoad.CellY = int.Parse(xnode.Attributes.GetNamedItem("cellY").Value);
-                        }
-                        foreach (XmlNode childnode in xnode.ChildNodes)
-                        {
-                            foreach (XmlNode node in childnode.ChildNodes)
+                            var transferRoad = new TransferRoads();
+                            if (xnode.Attributes.Count > 0)
                             {
-                                if (node.Attributes.Count > 0)
+                                transferRoad.Name = xnode.Attributes.GetNamedItem("Name").Value;
+                                transferRoad.ZoneId = zoneId;
+                                transferRoad.Type = int.Parse(xnode.Attributes.GetNamedItem("Type").Value);
+                                transferRoad.CellX = int.Parse(xnode.Attributes.GetNamedItem("cellX").Value);
+                                transferRoad.CellY = int.Parse(xnode.Attributes.GetNamedItem("cellY").Value);
+                            }
+
+                            foreach (XmlNode childnode in xnode.ChildNodes)
+                            {
+                                foreach (XmlNode node in childnode.ChildNodes)
                                 {
-                                    var attributeValue = node.Attributes.GetNamedItem("Pos").Value;
-                                    var splitVals = attributeValue.Split(',');
-                                    if (splitVals.Length == 3)
+                                    if ((node.Attributes != null) && (node.Attributes.Count > 0))
                                     {
-                                        var x = float.Parse(splitVals[0]);
-                                        var y = float.Parse(splitVals[1]);
-                                        var z = float.Parse(splitVals[2]);
-                                        // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
-                                        var xyz = new Vector3(x, y, z);
-                                        var (xx, yy, zz) = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
-                                        var pos = new WorldSpawnPosition()
+                                        var attributeValue = node.Attributes.GetNamedItem("Pos").Value;
+                                        var splitVals = attributeValue.Split(',');
+                                        if (splitVals.Length == 3)
                                         {
-                                            X = xx,
-                                            Y = yy,
-                                            Z = zz,
-                                            WorldId = world.Id,
-                                            ZoneId = zoneId
-                                        };
-                                        transferRoad.Pos.Add(pos);
+                                            var x = float.Parse(splitVals[0]);
+                                            var y = float.Parse(splitVals[1]);
+                                            var z = float.Parse(splitVals[2]);
+                                            // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
+                                            var xyz = new Vector3(x, y, z);
+                                            var (xx, yy, zz) =
+                                                ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
+                                            var pos = new WorldSpawnPosition()
+                                            {
+                                                X = xx,
+                                                Y = yy,
+                                                Z = zz,
+                                                WorldId = world.Id,
+                                                ZoneId = zoneId
+                                            };
+                                            transferRoad.Pos.Add(pos);
+                                        }
                                     }
                                 }
                             }
+
+                            transferPath.Add(transferRoad);
                         }
-                        transferPath.Add(transferRoad);
                     }
+
                     transferPaths.Add(zoneId, transferPath);
                 }
                 _transferRoads.Add((byte)world.Id, transferPaths);
+                GetOwnerPaths(world.Id);
             }
             #endregion
-            GetOwnerPaths();
+            //GetOwnerPaths();
         }
 
         /// <summary>
@@ -496,7 +523,7 @@ namespace AAEmu.Game.Core.Managers
         /// </summary>
         /// <param name="worldId"></param>
         /// <returns></returns>
-        private void GetOwnerPaths(byte worldId = 0)
+        private void GetOwnerPaths(uint worldId = 0)
         {
             foreach (var (id, transferTemplate) in _templates)
             {

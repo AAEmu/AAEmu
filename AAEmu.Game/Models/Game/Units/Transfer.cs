@@ -47,6 +47,7 @@ namespace AAEmu.Game.Models.Game.Units
         public int PathPointIndex { get; set; }
         public float Speed { get; set; }
         public float RotSpeed { get; set; }  // ?
+        public Quaternion Rot { get; set; }
         public bool Reverse { get; set; }
         public sbyte RequestSteering { get; set; }
         public sbyte RequestThrottle { get; set; }
@@ -459,7 +460,7 @@ namespace AAEmu.Game.Models.Game.Units
         }
 
         // ******************************************************************************************************************
-        // Организуем движение транспорта
+        // Организуем движение транспорта / Transport movement information
         // ******************************************************************************************************************
 
         public Dictionary<int, List<WorldSpawnPosition>> Routes { get; set; } // Steering, TransferPath - список всех участков дороги
@@ -574,7 +575,9 @@ namespace AAEmu.Game.Models.Game.Units
             vVelocity = Vector3.Zero;
 
             Angle = MathUtil.CalculateDirection(vPosition, vTarget);
-            this.Transform.Local.SetZRotation((float)Angle);
+            var quat = Quaternion.CreateFromYawPitchRoll((float)Angle, 0.0f, 0.0f);
+            Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
+            Transform.Local.SetZRotation((float)Angle);
 
             var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
             moveTypeTr.UseTransferBase(this);
@@ -641,7 +644,9 @@ namespace AAEmu.Game.Models.Game.Units
             }
             
             Transform.Local.SetZRotation((float)Angle);
-
+            var quat = MathUtil.ConvertRadianToDirectionShort(Angle);
+            Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
+            
             Velocity = new Vector3(direction.X * 30, direction.Y * 30, direction.Z * 30);
             AngVel = new Vector3(0f, 0f, (float)Angle); // сюда записывать дельту, в радианах, угла поворота между начальным вектором и конечным
 
@@ -678,7 +683,7 @@ namespace AAEmu.Game.Models.Game.Units
                 // moving to the point #
                 var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
                 moveTypeTr.UseTransferBase(this);
-                SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, Helpers.ConvertRadianToSbyteDirection((float)Angle));
+                SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, (float)Angle);
                 BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), true);
 
                 //if (Bounded == null) { return; }

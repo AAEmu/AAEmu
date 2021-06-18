@@ -74,9 +74,10 @@ namespace AAEmu.Game.Models.Game.Transfers
                     {
                         transfer.Routes.TryAdd(i, transfer.Template.TransferRoads[i].Pos);
                     }
-                    transfer.TransferPath = transfer.Routes[0]; // начнем с самого начала
 
-                    if (transfer.Routes[0] != null)
+                    transfer.TransferPath = transfer.Routes.Count > 0 ? transfer.Routes[0] : null;// начнем с самого начала
+
+                    if ((transfer.TransferPath != null) && (transfer.TransferPath.Count >= 2))
                     {
                         //_log.Warn("TransfersPath #" + transfer.TemplateId);
                         //_log.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
@@ -86,8 +87,8 @@ namespace AAEmu.Game.Models.Game.Transfers
                         transfer.PathPointIndex = 0;
 
                         // попробуем заспавнить в первой точке пути и попробуем смотреть на следующую точку
-                        var point = transfer.Routes[0][0];
-                        var point2 = transfer.Routes[0][1];
+                        var point = transfer.TransferPath[0];
+                        var point2 = transfer.TransferPath[1];
 
                         var vPosition = new Vector3(point.X, point.Y, point.Z);
                         var vTarget = new Vector3(point2.X, point2.Y, point2.Z);
