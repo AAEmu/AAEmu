@@ -1,9 +1,10 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Packets.Proxy;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Models.Tasks
 {
@@ -39,7 +40,7 @@ namespace AAEmu.Game.Models.Tasks
                     {
                         if (isMounted.Att2 == _connection.ActiveChar.ObjId)
                         {
-                            MateManager.Instance.UnMountMate(_connection.ActiveChar, isMounted.TlId, 2, 5); // TODO - REASON leave world
+                            MateManager.Instance.UnMountMate(_connection.ActiveChar, isMounted.TlId, AttachPointKind.Passenger0, AttachUnitReason.SlaveBinding); // TODO - REASON leave world
                         }
                         else
                         {
@@ -56,7 +57,7 @@ namespace AAEmu.Game.Models.Tasks
                 // Handle Family
                 if (_connection.ActiveChar.Family > 0)
                     FamilyManager.Instance.OnCharacterLogout(_connection.ActiveChar);
-                
+
                 // Handle Guild
                 _connection.ActiveChar.Expedition?.OnCharacterLogout(_connection.ActiveChar);
 

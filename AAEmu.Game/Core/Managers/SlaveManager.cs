@@ -2,25 +2,26 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -42,7 +43,7 @@ namespace AAEmu.Game.Core.Managers
         {
             return _activeSlaves.ContainsKey(objId) ? _activeSlaves[objId] : null;
         }
-        
+
         public IEnumerable<Slave> GetActiveSlavesByKind(SlaveKind kind)
         {
             return _activeSlaves.Select(i => i.Value).Where(s => s.Template.SlaveKind == kind);
@@ -76,25 +77,25 @@ namespace AAEmu.Game.Core.Managers
         public void UnbindSlave(Character character, uint tlId)
         {
             var slave = _tlSlaves[tlId];
-            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, 5), true);
+            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, AttachUnitReason.SlaveBinding), true);
             // slave.Driver = null;
             var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
             if (attachPoint != default)
                 slave.AttachedCharacters.Remove(attachPoint);
         }
-        
-        public void BindSlave(Character character, uint objId, byte attachPointId, byte bondKind)
+
+        public void BindSlave(Character character, uint objId, AttachPointKind attachPointId, AttachUnitReason bondKind)
         {
             var slave = GetActiveSlaveByObjId(objId);
 
-            if (slave.AttachedCharacters.ContainsKey((AttachPointKind)attachPointId))
+            if (slave.AttachedCharacters.ContainsKey(attachPointId))
                 return;
-            
+
             character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPointId, bondKind, objId), true);
-            if (attachPointId == (int) AttachPointKind.Driver)
+            if (attachPointId == AttachPointKind.Driver)
                 character.BroadcastPacket(new SCSlaveBoundPacket(character.Id, objId), true);
             // slave.Driver = character;
-            slave.AttachedCharacters.Add((AttachPointKind)attachPointId, character);
+            slave.AttachedCharacters.Add(attachPointId, character);
         }
 
         public void BindSlave(GameConnection connection, uint tlId)
@@ -103,8 +104,8 @@ namespace AAEmu.Game.Core.Managers
             var slave = _tlSlaves[tlId];
             if (slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver))
                 return;
-                
-            unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, 1, 6, slave.ObjId), true);
+
+            unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster, slave.ObjId), true);
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, slave.ObjId), true);
             unit.CurrentTarget = slave;
             unit.BroadcastPacket(new SCSlaveBoundPacket(unit.Id, slave.ObjId), true);
@@ -116,7 +117,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var activeSlaveInfo = GetActiveSlaveByObjId(objId);
             if (activeSlaveInfo == null) return;
-            
+
             foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
                 UnbindSlave(character, activeSlaveInfo.TlId);
 
@@ -135,7 +136,7 @@ namespace AAEmu.Game.Core.Managers
             owner.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
-            
+
             activeSlaveInfo.Delete();
         }
 
@@ -196,7 +197,7 @@ namespace AAEmu.Game.Core.Managers
                 SpawnTime = DateTime.Now
             };
             template.Spawn();
-            
+
             // TODO - DOODAD SERVER SIDE
             foreach (var doodadBinding in template.Template.DoodadBindings)
             {
@@ -230,7 +231,7 @@ namespace AAEmu.Game.Core.Managers
                     else
                     {
                         _log.Warn("Model id: {0} incomplete attach point information");
-                    }                    
+                    }
                 }
                 else
                 {
@@ -242,7 +243,7 @@ namespace AAEmu.Game.Core.Managers
 
                 doodad.Spawn();
             }
-            
+
             foreach (var slaveBinding in template.Template.SlaveBindings)
             {
                 var childSlaveTemplate = GetSlaveTemplate(slaveBinding.SlaveId);
@@ -268,15 +269,15 @@ namespace AAEmu.Game.Core.Managers
                     AttachedSlaves = new List<Slave>(),
                     AttachedCharacters = new Dictionary<AttachPointKind, Character>(),
                     SpawnTime = DateTime.Now,
-                    AttachPointId = (sbyte) slaveBinding.AttachPointId,
+                    AttachPointId = (sbyte)slaveBinding.AttachPointId,
                     OwnerObjId = template.ObjId
                 };
-                
+
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {
-                    if (_attachPoints[template.ModelId].ContainsKey((int) slaveBinding.AttachPointId))
+                    if (_attachPoints[template.ModelId].ContainsKey((int)slaveBinding.AttachPointId))
                     {
-                        var attachPoint = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
+                        var attachPoint = _attachPoints[template.ModelId][(int)slaveBinding.AttachPointId];
                         // childSlave.AttachPosition = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
                         childSlave.Position = template.Position.Clone();
                         childSlave.Position.X += attachPoint.X;
@@ -287,9 +288,9 @@ namespace AAEmu.Game.Core.Managers
                     {
                         childSlave.Position = template.Position.Clone();
                         _log.Warn("Model id: {0} incomplete attach point information");
-                    }                    
+                    }
                 }
-                
+
                 template.AttachedSlaves.Add(childSlave);
                 _tlSlaves.Add(childSlave.TlId, childSlave);
                 childSlave.Spawn();
@@ -297,10 +298,10 @@ namespace AAEmu.Game.Core.Managers
 
             _tlSlaves.Add(template.TlId, template);
             _activeSlaves.Add(owner.ObjId, template);
-            
-            if (new[] {SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat}.Contains(template.Template.SlaveKind))
+
+            if (new[] { SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat }.Contains(template.Template.SlaveKind))
                 BoatPhysicsManager.Instance.AddShip(template);
-            
+
             owner.SendPacket(new SCMySlavePacket(template.ObjId, template.TlId, template.Name, template.TemplateId, template.Hp, template.Mp,
                 template.Position.X, template.Position.Y, template.Position.Z));
         }
@@ -418,7 +419,7 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM slave_bindings";
@@ -436,7 +437,7 @@ namespace AAEmu.Game.Core.Managers
                                 AttachPointId = reader.GetUInt32("attach_point_id"),
                                 SlaveId = reader.GetUInt32("slave_id")
                             };
-                            
+
                             if (_slaveTemplates.ContainsKey(template.OwnerId))
                             {
                                 _slaveTemplates[template.OwnerId].SlaveBindings.Add(template);
@@ -461,21 +462,22 @@ namespace AAEmu.Game.Core.Managers
                 _log.Info("Slave model attach points loaded...");
             else
                 _log.Warn("Slave model attach points not loaded...");
-            
+
             _attachPoints = new Dictionary<uint, Dictionary<int, Point>>();
             foreach (var set in attachPoints)
             {
                 _attachPoints[set.ModelId] = set.AttachPoints;
             }
         }
-        
+
         public void Initialize()
         {
             var sendMySlaveTask = new SendMySlaveTask();
             TaskManager.Instance.Schedule(sendMySlaveTask, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
 
-        public void SendMySlavePacketToAllOwners() {
+        public void SendMySlavePacketToAllOwners()
+        {
             foreach (var (ownerObjId, slave) in _activeSlaves)
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(ownerObjId);

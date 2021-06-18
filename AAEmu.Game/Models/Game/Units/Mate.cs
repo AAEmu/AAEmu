@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -21,9 +21,9 @@ namespace AAEmu.Game.Models.Game.Units
 
         public uint OwnerObjId { get; set; }
         public uint Att1 { get; set; }
-        public byte Reason1 { get; set; }
+        public AttachUnitReason Reason1 { get; set; }
         public uint Att2 { get; set; }
-        public byte Reason2 { get; set; }
+        public AttachUnitReason Reason2 { get; set; }
 
         public override float Scale => Template.Scale;
 
@@ -374,7 +374,7 @@ namespace AAEmu.Game.Models.Game.Units
                     ["fai"] = Fai,
                     ["mate_kind"] = Template.MateKindId
                 };
-                
+
                 var res = formula.Evaluate(parameters);
                 return (float)res;
             }
@@ -391,7 +391,7 @@ namespace AAEmu.Game.Models.Game.Units
             Att2 = 0u;
             Reason2 = 0;
         }
-        
+
         public void AddExp(int exp)
         {
             var expMultiplier = 1d;
@@ -405,7 +405,7 @@ namespace AAEmu.Game.Models.Game.Units
             SendPacket(new SCExpChangedPacket(ObjId, exp, false));
             CheckLevelUp();
         }
-        
+
         public void CheckLevelUp()
         {
             var needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
@@ -436,13 +436,13 @@ namespace AAEmu.Game.Models.Game.Units
             {
                 var owner = WorldManager.Instance.GetCharacterByObjId(Att1);
                 if (owner != null)
-                    character.SendPacket(new SCUnitAttachedPacket(owner.ObjId, 1, Reason1, ObjId));
+                    character.SendPacket(new SCUnitAttachedPacket(owner.ObjId, AttachPointKind.Driver, AttachUnitReason.MountMateForward, ObjId));
             }
             if (Att2 > 0)
             {
                 var passenger = WorldManager.Instance.GetCharacterByObjId(Att1);
                 if (passenger != null)
-                    character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, 2, Reason2, ObjId));
+                    character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, AttachPointKind.Passenger0, AttachUnitReason.MountMateBack, ObjId));
             }
         }
 

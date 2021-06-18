@@ -1,4 +1,5 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
 {
@@ -12,19 +13,19 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public uint ObjId => _owner?.ObjId ?? 0;
 
-        public BondDoodad(byte attachPoint, byte kind, int space, int spot)
+        public BondDoodad(AttachPointKind attachPoint, BondKind kind, int space, int spot)
         {
-            _attachPoint = attachPoint;
-            _kind = kind;
+            _attachPoint = (byte)attachPoint;
+            _kind = (byte)kind;
             _space = space;
             _spot = spot;
         }
 
-        public BondDoodad(Doodad owner, byte attachPoint, byte kind, int space, int spot)
+        public BondDoodad(Doodad owner, AttachPointKind attachPoint, BondKind kind, int space, int spot)
         {
             SetOwner(owner);
-            _attachPoint = attachPoint;
-            _kind = kind;
+            _attachPoint = (byte)attachPoint;
+            _kind = (byte)kind;
             _space = space;
             _spot = spot;
         }
@@ -32,6 +33,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public void SetOwner(Doodad owner)
         {
             _owner = owner;
+        }
+
+        public Doodad GetOwner()
+        {
+            return _owner;
         }
 
         public override PacketStream Write(PacketStream stream)

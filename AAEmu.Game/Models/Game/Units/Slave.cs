@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Slaves;
+
 using Jitter.Dynamics;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -39,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Units
         public sbyte AttachPointId { get; set; } = -1;
         public uint OwnerObjId { get; set; }
         public RigidBody RigidBody { get; set; }
-        
+
 
         public override void AddVisibleObject(Character character)
         {
@@ -56,9 +59,9 @@ namespace AAEmu.Game.Models.Game.Units
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
-        
+
         public override void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
@@ -77,17 +80,17 @@ namespace AAEmu.Game.Models.Game.Units
             var yD = newY - Position.Y;
             var zD = newZ - Position.Z;
             SetPosition(newX, newY, newZ);
-            
+
             foreach (var doodad in AttachedDoodads)
             {
                 doodad.SetPosition(doodad.Position.X + xD, doodad.Position.Y + yD, doodad.Position.Z + zD);
             }
-            
+
             foreach (var attachedSlave in AttachedSlaves)
             {
                 attachedSlave.Move(newX, newY, newZ);
             }
-            
+
             // Driver?.SetPosition(Driver.Position.X + xD, Driver.Position.Y + yD, Driver.Position.Z + zD);
             foreach (var character in AttachedCharacters.Values)
             {
