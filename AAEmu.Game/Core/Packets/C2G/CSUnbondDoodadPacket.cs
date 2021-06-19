@@ -15,14 +15,15 @@ namespace AAEmu.Game.Core.Packets.C2G
             var characterObjId = stream.ReadBc();
             var doodadObjId = stream.ReadBc();
 
-            if (Connection.ActiveChar.ObjId != characterObjId ||
-                Connection.ActiveChar.Bonding == null || Connection.ActiveChar.Bonding.ObjId != doodadObjId)
+            if (Connection.ActiveChar.ObjId != characterObjId || Connection.ActiveChar.Bonding == null || Connection.ActiveChar.Bonding.ObjId != doodadObjId)
                 return;
+
+            var doodad = Connection.ActiveChar.Bonding.GetOwner();
+            doodad.Seat.UnLoadPassenger(Connection.ActiveChar.Id, doodad.ObjId); // we free up the place where we were sitting
 
             Connection.ActiveChar.Bonding.SetOwner(null);
             Connection.ActiveChar.Bonding = null;
-            Connection.ActiveChar.BroadcastPacket(
-                new SCUnbondDoodadPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Id, doodadObjId), true);
+            Connection.ActiveChar.BroadcastPacket(new SCUnbondDoodadPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Id, doodadObjId), true);
         }
     }
 }

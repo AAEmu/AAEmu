@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -32,7 +33,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
 
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
-            action.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
+            if (source != null && source.Skill != null && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
+            {
+                action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
+            }
 
             // TODO do we need this call?
             if (caster is Character character)

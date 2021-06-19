@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -227,9 +228,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncAttachment();
                             func.Id = reader.GetUInt32("id");
-                            func.AttachPointId = reader.GetByte("attach_point_id");
+                            func.AttachPointId = (AttachPointKind)reader.GetByte("attach_point_id");
                             func.Space = reader.GetInt32("space");
-                            func.BondKindId = reader.GetByte("bond_kind_id");
+                            func.BondKindId = (BondKind)reader.GetByte("bond_kind_id");
                             _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);
                         }
                     }

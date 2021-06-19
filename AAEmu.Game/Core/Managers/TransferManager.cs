@@ -34,7 +34,6 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<uint, TransferTemplate> _templates;
         private Dictionary<uint, Transfer> _activeTransfers;
-        private Dictionary<uint, Transfer> _moveTransfers;
         private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
         private const double Delay = 100;
         private const double DelayInit = 1;
@@ -50,19 +49,19 @@ namespace AAEmu.Game.Core.Managers
 
         internal void TransferTick()
         {
-            var activeTransfers = GetMoveTransfers();
+            var activeTransfers = GetTransfers();
             foreach (var transfer in activeTransfers)
             {
-                transfer.MoveTo();
+                transfer.MoveTo(transfer);
             }
 
             //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
         }
 
-        public void AddMoveTransfers(uint ObjId, Transfer transfer)
-        {
-            _moveTransfers.Add(ObjId, transfer);
-        }
+        //public void AddMoveTransfers(uint ObjId, Transfer transfer)
+        //{
+        //    _moveTransfers.Add(ObjId, transfer);
+        //}
 
         public bool Exist(uint templateId)
         {
@@ -76,22 +75,10 @@ namespace AAEmu.Game.Core.Managers
                 tr.Spawn();
             }
         }
-        /// <summary>
-        /// Взять список всех движущихся транспортов, включая прицепы
-        /// </summary>
-        /// <returns></returns>
+
         public Transfer[] GetTransfers()
         {
             return _activeTransfers.Values.ToArray();
-        }
-
-        /// <summary>
-        /// Взять список всех движущихся транспортов, исключая прицепы
-        /// </summary>
-        /// <returns></returns>
-        public Transfer[] GetMoveTransfers()
-        {
-            return _moveTransfers.Values.ToArray();
         }
 
         public TransferTemplate GetTemplate(uint templateId)
@@ -145,18 +132,15 @@ namespace AAEmu.Game.Core.Managers
             // спавним кабину
             character.SendPacket(new SCUnitStatePacket(tr));
             character.SendPacket(new SCUnitPointsPacket(tr.ObjId, tr.Hp, tr.Mp));
-            character.SendPacket(new SCSlaveStatePacket(tr.ObjId, tr.TlId, "", tr.Spawner.Id, tr.Template.Id));
 
             // пробуем спавнить прицеп
             if (tr.Bounded != null)
             {
                 character.SendPacket(new SCUnitStatePacket(tr.Bounded));
                 character.SendPacket(new SCUnitPointsPacket(tr.Bounded.ObjId, tr.Bounded.Hp, tr.Bounded.Mp));
-                character.SendPacket(new SCSlaveStatePacket(tr.Bounded.ObjId, tr.Bounded.TlId, "", tr.Spawner.Id, tr.Bounded.Template.Id));
 
                 if (tr.Bounded.AttachedDoodads.Count > 0)
                 {
-
                     var doodads = tr.Bounded.AttachedDoodads.ToArray();
                     for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
                     {
@@ -197,7 +181,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (!Exist(templateId)) { return null; }
 
-            // создаем кабину повозки
+            // create a wagon cabin
             var owner = new Transfer();
             var Carriage = GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
             owner.Name = Carriage.Name;
@@ -222,12 +206,8 @@ namespace AAEmu.Game.Core.Managers
             owner.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
             var quat = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
             owner.SetPosition(owner.Position.X, owner.Position.Y, owner.Position.Z, 0, 0, owner.Position.RotationZ);
-
             owner.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
 
-            owner.Faction = new SystemFaction();
-            owner.Faction = FactionManager.Instance.GetFaction(164);
-            
             owner.Patrol = null;
             // add effect
             var buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
@@ -236,7 +216,6 @@ namespace AAEmu.Game.Core.Managers
             // create Carriage like a normal object.
             owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
-            _moveTransfers.Add(owner.ObjId, owner);
 
             if (Carriage.TransferBindings.Count <= 0) { return owner; }
 
@@ -264,14 +243,9 @@ namespace AAEmu.Game.Core.Managers
             transfer.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection(spawner.RotationZ);
             var quat2 = MathUtil.ConvertRadianToDirectionShort(spawner.RotationZ);
             transfer.SetPosition(transfer.Position.X, transfer.Position.Y, transfer.Position.Z, 0, 0, transfer.Position.RotationZ);
-
             transfer.Rot = new Quaternion(quat2.X, quat2.Z, quat2.Y, quat2.W);
-
             (transfer.Position.X, transfer.Position.Y) = MathUtil.AddDistanceToFront(-9.24417f, transfer.Position.X, transfer.Position.Y, transfer.Position.RotationZ);
             transfer.Position.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(transfer.Position.ZoneId, transfer.Position.X, transfer.Position.Y) : transfer.Position.Z;
-
-            transfer.Faction = new SystemFaction();
-            owner.Faction = FactionManager.Instance.GetFaction(164);
             
             transfer.Patrol = null;
             // add effect
@@ -280,8 +254,8 @@ namespace AAEmu.Game.Core.Managers
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
             //TODO  create a boardingPart and indicate that we attach to the Carriage object 
-            transfer.Spawn();
-            _activeTransfers.Add(transfer.ObjId, transfer);
+            //transfer.Spawn();
+            //_activeTransfers.Add(transfer.ObjId, transfer);
 
             foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
             {
@@ -322,7 +296,6 @@ namespace AAEmu.Game.Core.Managers
         {
             _templates = new Dictionary<uint, TransferTemplate>();
             _activeTransfers = new Dictionary<uint, Transfer>();
-            _moveTransfers = new Dictionary<uint, Transfer>();
             
             #region SQLLite
 
