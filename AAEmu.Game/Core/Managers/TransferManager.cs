@@ -52,7 +52,7 @@ namespace AAEmu.Game.Core.Managers
             var activeTransfers = GetTransfers();
             foreach (var transfer in activeTransfers)
             {
-                transfer.MoveTo();
+                transfer.MoveTo(transfer);
             }
 
             //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
