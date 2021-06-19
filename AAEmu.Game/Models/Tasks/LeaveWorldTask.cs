@@ -1,9 +1,10 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Packets.Proxy;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Tasks
@@ -42,7 +43,7 @@ namespace AAEmu.Game.Models.Tasks
                 // Handle Family
                 if (_connection.ActiveChar.Family > 0)
                     FamilyManager.Instance.OnCharacterLogout(_connection.ActiveChar);
-                
+
                 // Handle Guild
                 _connection.ActiveChar.Expedition?.OnCharacterLogout(_connection.ActiveChar);
 

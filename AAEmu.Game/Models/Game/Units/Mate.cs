@@ -6,9 +6,8 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Static;
 
@@ -379,7 +378,7 @@ namespace AAEmu.Game.Models.Game.Units
                     ["fai"] = Fai,
                     ["mate_kind"] = Template.MateKindId
                 };
-                
+
                 var res = formula.Evaluate(parameters);
                 return (float)res;
             }
@@ -398,7 +397,7 @@ namespace AAEmu.Game.Models.Game.Units
             Passengers.Add(1,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
             Passengers.Add(2,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
         }
-        
+
         public void AddExp(int exp)
         {
             var expMultiplier = 1d;
@@ -412,7 +411,7 @@ namespace AAEmu.Game.Models.Game.Units
             SendPacket(new SCExpChangedPacket(ObjId, exp, false));
             CheckLevelUp();
         }
-        
+
         public void CheckLevelUp()
         {
             var needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));

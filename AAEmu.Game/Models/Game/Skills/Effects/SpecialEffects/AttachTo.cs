@@ -1,6 +1,8 @@
-using System;
+﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
@@ -15,8 +17,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             if (!(caster is Character character))
                 return;
-            
-            SlaveManager.Instance.BindSlave(character, slave.ObjId, (byte) value1, 6);
+
+            SlaveManager.Instance.BindSlave(character, slave.ObjId, (AttachPointKind)value1, AttachUnitReason.NewMaster);
         }
     }
 }

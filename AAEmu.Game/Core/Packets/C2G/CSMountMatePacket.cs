@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -13,8 +14,8 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             var tlId = stream.ReadUInt16();
-            var ap = stream.ReadByte();
-            var reason = stream.ReadByte();
+            var ap = (AttachPointKind)stream.ReadByte();
+            var reason = (AttachUnitReason)stream.ReadByte();
 
             // _log.Warn("MountMate, TlId: {0}, Ap: {1}, Reason: {2}", tlId, ap, reason);
             MateManager.Instance.MountMate(Connection, tlId, ap, reason);

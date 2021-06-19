@@ -5,12 +5,15 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units.Static;
 using Jitter.Dynamics;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
@@ -581,14 +584,43 @@ namespace AAEmu.Game.Models.Game.Units
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
-        
+
         public override void BroadcastPacket(GamePacket packet, bool self)
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
                 character.SendPacket(packet);
         }
 
+        /// <summary>
+        /// Moves a slave by X, Y & Z. Also moves attached slaves, doodads & driver
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        public void Move(float newX, float newY, float newZ)
+        {
+            var xD = newX - Position.X;
+            var yD = newY - Position.Y;
+            var zD = newZ - Position.Z;
+            SetPosition(newX, newY, newZ);
+
+            foreach (var doodad in AttachedDoodads)
+            {
+                doodad.SetPosition(doodad.Position.X + xD, doodad.Position.Y + yD, doodad.Position.Z + zD);
+            }
+
+            foreach (var attachedSlave in AttachedSlaves)
+            {
+                attachedSlave.Move(newX, newY, newZ);
+            }
+
+            // Driver?.SetPosition(Driver.Position.X + xD, Driver.Position.Y + yD, Driver.Position.Z + zD);
+            foreach (var character in AttachedCharacters.Values)
+            {
+                character?.SetPosition(character.Position.X + xD, character.Position.Y + yD, character.Position.Z + zD);
+            }
+        }
     }
 }

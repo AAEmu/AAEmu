@@ -37,7 +37,6 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<uint, TransferTemplate> _templates;
         private Dictionary<uint, Transfer> _activeTransfers;
-        private Dictionary<uint, Transfer> _moveTransfers;
         private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads;
         private const double Delay = 100;
         private const double DelayInit = 1;
@@ -53,19 +52,19 @@ namespace AAEmu.Game.Core.Managers
 
         internal void TransferTick()
         {
-            var activeTransfers = GetMoveTransfers();
+            var activeTransfers = GetTransfers();
             foreach (var transfer in activeTransfers)
             {
-                transfer.MoveTo();
+                transfer.MoveTo(transfer);
             }
 
             //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
         }
 
-        public void AddMoveTransfers(uint ObjId, Transfer transfer)
-        {
-            _moveTransfers.Add(ObjId, transfer);
-        }
+        //public void AddMoveTransfers(uint ObjId, Transfer transfer)
+        //{
+        //    _moveTransfers.Add(ObjId, transfer);
+        //}
 
         public bool Exist(uint templateId)
         {
@@ -79,22 +78,10 @@ namespace AAEmu.Game.Core.Managers
                 tr.Spawn();
             }
         }
-        /// <summary>
-        /// Взять список всех движущихся транспортов, включая прицепы
-        /// </summary>
-        /// <returns></returns>
+
         public Transfer[] GetTransfers()
         {
             return _activeTransfers.Values.ToArray();
-        }
-
-        /// <summary>
-        /// Взять список всех движущихся транспортов, исключая прицепы
-        /// </summary>
-        /// <returns></returns>
-        public Transfer[] GetMoveTransfers()
-        {
-            return _moveTransfers.Values.ToArray();
         }
 
         public TransferTemplate GetTemplate(uint templateId)
@@ -148,18 +135,15 @@ namespace AAEmu.Game.Core.Managers
             // спавним кабину
             character.SendPacket(new SCUnitStatePacket(tr));
             character.SendPacket(new SCUnitPointsPacket(tr.ObjId, tr.Hp, tr.Mp));
-            character.SendPacket(new SCSlaveStatePacket(tr.ObjId, tr.TlId, "", tr.Spawner.Id, tr.Template.Id));
 
             // пробуем спавнить прицеп
             if (tr.Bounded != null)
             {
                 character.SendPacket(new SCUnitStatePacket(tr.Bounded));
                 character.SendPacket(new SCUnitPointsPacket(tr.Bounded.ObjId, tr.Bounded.Hp, tr.Bounded.Mp));
-                character.SendPacket(new SCSlaveStatePacket(tr.Bounded.ObjId, tr.Bounded.TlId, "", tr.Spawner.Id, tr.Bounded.Template.Id));
 
                 if (tr.Bounded.AttachedDoodads.Count > 0)
                 {
-
                     var doodads = tr.Bounded.AttachedDoodads.ToArray();
                     for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
                     {
@@ -200,7 +184,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (!Exist(templateId)) { return null; }
 
-            // создаем кабину повозки
+            // create a wagon cabin
             var owner = new Transfer();
             var Carriage = GetTransferTemplate(templateId); // 6 - Salislead Peninsula ~ Liriot Hillside Loop Carriage
             owner.Name = Carriage.Name;
@@ -228,13 +212,12 @@ namespace AAEmu.Game.Core.Managers
             
             owner.Patrol = null;
             // add effect
-            var buffId = 545u; //BUFF: Untouchable (Unable to attack this target)
+            var buffId = BuffsEnum.Untouchable; //BUFF: Untouchable (Unable to attack this target)
             owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
 
             // create Carriage like a normal object.
             owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
-            _moveTransfers.Add(owner.ObjId, owner);
 
             if (Carriage.TransferBindings.Count <= 0) { return owner; }
 
@@ -269,9 +252,9 @@ namespace AAEmu.Game.Core.Managers
             transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
-            // TODO: Create a boardingPart and indicate that we attach to the Carriage object 
-            transfer.Spawn();
-            _activeTransfers.Add(transfer.ObjId, transfer);
+            //TODO  create a boardingPart and indicate that we attach to the Carriage object 
+            //transfer.Spawn();
+            //_activeTransfers.Add(transfer.ObjId, transfer);
 
             foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
             {
@@ -313,7 +296,6 @@ namespace AAEmu.Game.Core.Managers
         {
             _templates = new Dictionary<uint, TransferTemplate>();
             _activeTransfers = new Dictionary<uint, Transfer>();
-            _moveTransfers = new Dictionary<uint, Transfer>();
             
             #region SQLLite
 

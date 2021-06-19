@@ -97,11 +97,13 @@ namespace AAEmu.Game.Models.Game.Transfers
                         //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(transfer.Angle));
                         //var quat = Quaternion.CreateFromYawPitchRoll((float)transfer.Angle, 0.0f, 0.0f);
                         
+                        transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
                         transfer.Transform.ApplyWorldSpawnPosition(point);
 
-                        _log.Warn("TransfersPath #" + transfer.TemplateId);
-                        _log.Warn("New spawn Pos={0}", transfer.Transform.ToString());
-                        _log.Warn("zoneId={0}", transfer.Transform.ZoneId);
+                        //_log.Warn("TransfersPath #" + transfer.TemplateId);
+                        //_log.Warn("New spawn Pos={0}", transfer.Transform.ToString());
+                        //_log.Warn("zoneId={0}", transfer.Transform.ZoneId);
+                        
 
                         transfer.GoToPath(transfer);
                         //TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);

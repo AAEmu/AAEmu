@@ -1,21 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
 using System.Threading;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Physics.Forces;
 using AAEmu.Game.Physics.Util;
 using AAEmu.Game.Utils;
+
 using Jitter.Collision;
 using Jitter.Collision.Shapes;
 using Jitter.Dynamics;
 using Jitter.LinearMath;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers.World
@@ -24,7 +25,7 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private Thread thread;
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        
+
         private CollisionSystem _collisionSystem;
         private Jitter.World _physWorld;
         private Buoyancy _buoyancy;
@@ -38,7 +39,7 @@ namespace AAEmu.Game.Core.Managers.World
             _buoyancy = new Buoyancy(_physWorld);
             // _buoyancy.UseOwnFluidArea(DefineFluidArea());
             _buoyancy.FluidBox = new JBBox(new JVector(0, 0, 0), new JVector(100000, 100, 100000));
-            
+
             thread = new Thread(PhysicsThread);
             thread.Start();
         }
@@ -51,7 +52,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _physWorld.Step(1 / 60.0f, false);
                 _tickCount++;
 
-                foreach (var slave in SlaveManager.Instance.GetActiveSlavesByKinds(new[] {SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat}))
+                foreach (var slave in SlaveManager.Instance.GetActiveSlavesByKinds(new[] { SlaveKind.BigSailingShip, SlaveKind.Boat, SlaveKind.Fishboat, SlaveKind.SmallSailingShip, SlaveKind.MerchantShip, SlaveKind.Speedboat }))
                 {
                     if (slave.SpawnTime.AddSeconds(slave.Template.PortalTime) > DateTime.Now)
                         continue;
@@ -98,7 +99,6 @@ namespace AAEmu.Game.Core.Managers.World
                 Orientation = JMatrix.CreateRotationY(slave.Transform.World.Rotation.Z)
             };
 
-            // _buoyancy.Density = 25f;
             _buoyancy.Add(rigidBody, 3);
             _physWorld.AddBody(rigidBody);
             slave.RigidBody = rigidBody;
@@ -133,7 +133,7 @@ namespace AAEmu.Game.Core.Managers.World
                 slave.ThrottleRequest = 0;
                 slave.SteeringRequest = 0;
             }
-            
+
             ComputeThrottle(slave);
             ComputeSteering(slave);
             slave.RigidBody.IsActive = true;
@@ -211,47 +211,47 @@ namespace AAEmu.Game.Core.Managers.World
             int throttleAccel = 6;
             if (slave.ThrottleRequest > slave.Throttle)
             {
-                slave.Throttle = (sbyte) Math.Min(sbyte.MaxValue, slave.Throttle + throttleAccel);
+                slave.Throttle = (sbyte)Math.Min(sbyte.MaxValue, slave.Throttle + throttleAccel);
 
             }
             else if (slave.ThrottleRequest < slave.Throttle && slave.ThrottleRequest != 0)
             {
-                slave.Throttle = (sbyte) Math.Max(sbyte.MinValue, slave.Throttle - throttleAccel);
+                slave.Throttle = (sbyte)Math.Max(sbyte.MinValue, slave.Throttle - throttleAccel);
             }
             else
             {
                 if (slave.Throttle > 0)
                 {
-                    slave.Throttle = (sbyte) Math.Max(slave.Throttle - throttleAccel, 0);
+                    slave.Throttle = (sbyte)Math.Max(slave.Throttle - throttleAccel, 0);
                 }
                 else if (slave.Throttle < 0)
                 {
-                    slave.Throttle = (sbyte) Math.Min(slave.Throttle + throttleAccel, 0);
+                    slave.Throttle = (sbyte)Math.Min(slave.Throttle + throttleAccel, 0);
                 }
             }
         }
-        
+
         public void ComputeSteering(Slave slave)
         {
             int steeringAccel = 6;
             if (slave.SteeringRequest > slave.Steering)
             {
-                slave.Steering = (sbyte) Math.Min(sbyte.MaxValue, slave.Steering + steeringAccel);
+                slave.Steering = (sbyte)Math.Min(sbyte.MaxValue, slave.Steering + steeringAccel);
 
             }
             else if (slave.SteeringRequest < slave.Steering && slave.SteeringRequest != 0)
             {
-                slave.Steering = (sbyte) Math.Max(sbyte.MinValue, slave.Steering - steeringAccel);
+                slave.Steering = (sbyte)Math.Max(sbyte.MinValue, slave.Steering - steeringAccel);
             }
             else
             {
                 if (slave.Steering > 0)
                 {
-                    slave.Steering = (sbyte) Math.Max(slave.Steering - steeringAccel, 0);
+                    slave.Steering = (sbyte)Math.Max(slave.Steering - steeringAccel, 0);
                 }
                 else if (slave.Steering < 0)
                 {
-                    slave.Steering = (sbyte) Math.Min(slave.Steering + steeringAccel, 0);
+                    slave.Steering = (sbyte)Math.Min(slave.Steering + steeringAccel, 0);
                 }
             }
         }

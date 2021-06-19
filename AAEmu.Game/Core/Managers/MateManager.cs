@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -8,6 +9,7 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mate;
@@ -15,6 +17,7 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -98,7 +101,7 @@ namespace AAEmu.Game.Core.Managers
             return mateInfo;
         }
 
-        public void MountMate(GameConnection connection, uint tlId, byte attachPoint, byte reason)
+        public void MountMate(GameConnection connection, uint tlId, AttachPointKind ap, AttachUnitReason reason)
         {
             var character = connection.ActiveChar;
             var mateInfo = GetActiveMateByTlId(tlId);
@@ -136,7 +139,7 @@ namespace AAEmu.Game.Core.Managers
                 mateInfo.TlId, attachPoint, reason, string.Join(", ",mateInfo.Passengers.Values.ToList()));
         }
 
-        public void UnMountMate(Character character, uint tlId, byte attachPoint, UnitDetachReason reason)
+        public void UnMountMate(Character character, uint tlId, AttachPointKind ap, AttachUnitReason reason)
         {
             var mateInfo = GetActiveMateByTlId(tlId);
             if (mateInfo == null) return;
@@ -184,7 +187,7 @@ namespace AAEmu.Game.Core.Managers
 
             _activeMates.Add(owner.ObjId, mate);
 
-            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new List<ItemTask> {new ItemUpdate(item)},
+            owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.UpdateSummonMateItem, new List<ItemTask> { new ItemUpdate(item) },
                 new List<ulong>())); // TODO - maybe update details
             owner.SendPacket(new SCMateSpawnedPacket(mate));
             mate.Spawn();

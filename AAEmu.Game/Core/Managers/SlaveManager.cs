@@ -2,25 +2,26 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 using System.Numerics;
 using System.Security.Claims;
@@ -92,12 +93,15 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void BindSlave(Character character, uint objId, byte attachPointId, byte bondKind)
+        public void BindSlave(Character character, uint objId, AttachPointKind attachPointId, AttachUnitReason bondKind)
         {
             // Check if the target spot is already taken
             var attachPoint = (AttachPointKind)attachPointId;
             var slave = GetActiveSlaveByObjId(objId);
             if (slave.AttachedCharacters.ContainsKey(attachPoint))
+                return;
+
+            if (slave.AttachedCharacters.ContainsKey(attachPointId))
                 return;
 
             character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPointId, bondKind, objId), true);
@@ -121,15 +125,7 @@ namespace AAEmu.Game.Core.Managers
             if (slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver)) // Already has a driver
                 return;
 
-            BindSlave(unit, slave.ObjId, (byte)AttachPointKind.Driver, 6);
-
-            /*
-            // Make sure we are attached to the slave
-            unit.Transform.Parent = slave.Transform; 
-            // TODO: Reset local position and rotation to Driver's Seat
-            unit.Transform.Local.SetPosition(0, 0, 0, 0, 0, 0);
-            unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, (byte)AttachPointKind.Driver, 6, slave.ObjId), true);
-           */
+            unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster, slave.ObjId), true);
             unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, slave.ObjId), true);
             unit.CurrentTarget = slave;
             /*
@@ -358,7 +354,7 @@ namespace AAEmu.Game.Core.Managers
                     AttachedCharacters = new Dictionary<AttachPointKind, Character>(),
                     SpawnTime = DateTime.Now,
                     AttachPointId = (sbyte)slaveBinding.AttachPointId,
-                    OwnerObjId = template.OwnerObjId
+                    OwnerObjId = template.ObjId
                 };
                 childSlave.Hp = childSlave.MaxHp;
                 childSlave.Mp = childSlave.MaxMp;

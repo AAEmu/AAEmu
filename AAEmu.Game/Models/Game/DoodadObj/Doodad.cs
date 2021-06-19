@@ -53,12 +53,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint CurrentPhaseId { get; set; }
         public uint OverridePhase { get; set; }
         private bool _deleted = false;
+        public VehicleSeat Seat { get; set; }
 
         public Doodad()
         {
             _scale = 1f;
             PlantTime = DateTime.MinValue;
             AttachPoint = -1;
+            Seat = new VehicleSeat();
         }
 
         public void SetScale(float scale)

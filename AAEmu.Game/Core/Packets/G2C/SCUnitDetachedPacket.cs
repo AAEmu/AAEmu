@@ -1,6 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
@@ -9,10 +9,10 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _childUnitId;
         private readonly UnitDetachReason _reason;
 
-        public SCUnitDetachedPacket(uint objId, UnitDetachReason reason) : base(SCOffsets.SCUnitDetachedPacket, 1)
+        public SCUnitDetachedPacket(uint objId, AttachUnitReason reason) : base(SCOffsets.SCUnitDetachedPacket, 1)
         {
             _childUnitId = objId;
-            _reason = reason;
+            _reason = (byte)reason;
         }
 
         public override PacketStream Write(PacketStream stream)

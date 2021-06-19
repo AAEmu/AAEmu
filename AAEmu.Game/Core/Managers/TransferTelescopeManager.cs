@@ -34,9 +34,9 @@ namespace AAEmu.Game.Core.Managers
         internal void TransferTelescopeTick()
         {
             const int MaxCount = 10;
-            var transfers = TransferManager.Instance.GetMoveTransfers();
+            var transfers = TransferManager.Instance.GetTransfers();
             // не ограничивать дальность видимости для GM & Admins
-            if (owner.AccessLevel == 0)
+            if (owner?.AccessLevel == 0)
             {
                 var transfers2 = new List<Transfer>();
                 foreach (var t in transfers)
