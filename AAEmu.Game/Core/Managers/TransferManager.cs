@@ -15,6 +15,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Transfers;
@@ -203,7 +204,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Mp = owner.MaxMp;
             owner.ModelParams = new UnitCustomModelParams();
             owner.Transform.ApplyWorldSpawnPosition(spawner.Position);
-            owner.Transform.FinalizeTransform();
+            owner.Transform.ResetFinalizeTransform();
             //owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
             //var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
 
@@ -214,11 +215,10 @@ namespace AAEmu.Game.Core.Managers
             // add effect
             var buffId = BuffsEnum.Untouchable; //BUFF: Untouchable (Unable to attack this target)
             owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
-
-            // create Carriage like a normal object.
             owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
 
+            // create Carriage like a normal object.
             if (Carriage.TransferBindings.Count <= 0) { return owner; }
 
             var boardingPart = GetTransferTemplate(Carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
@@ -243,6 +243,8 @@ namespace AAEmu.Game.Core.Managers
             //var quat2 = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
             transfer.Transform.Local.AddDistanceToFront(-9.24417f);
             transfer.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(transfer.Transform));
+            transfer.Transform.StickyParent = owner.Transform; // stick it to the driver
+            transfer.Transform.ResetFinalizeTransform();
 
             transfer.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // used to be 164
             
@@ -253,38 +255,36 @@ namespace AAEmu.Game.Core.Managers
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
             //TODO  create a boardingPart and indicate that we attach to the Carriage object 
-            //transfer.Spawn();
-            //_activeTransfers.Add(transfer.ObjId, transfer);
+            transfer.Spawn();
+            _activeTransfers.Add(transfer.ObjId, transfer);
 
             foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
             {
                 var doodad = DoodadManager.Instance.Create(0, doodadBinding.DoodadId, transfer);
+                doodad.Transform.StickyParent = null;
+                doodad.Transform.Parent = transfer.Transform;
                 doodad.ObjId = ObjectIdManager.Instance.GetNextId();
                 doodad.TemplateId = doodadBinding.DoodadId;
                 doodad.OwnerObjId = 0;
                 doodad.ParentObjId = transfer.ObjId;
-                doodad.Spawner = new DoodadSpawner();
+                //doodad.Spawner = new DoodadSpawner();
                 doodad.AttachPoint = doodadBinding.AttachPointId;
-                doodad.Transform.Parent = transfer.Transform;
                 switch (doodadBinding.AttachPointId)
                 {
-                    case 2:
+                    case AttachPointKind.Passenger0:
                         doodad.Transform.Local.SetPosition(0.00537476f, 5.7852f, 1.36648f, 0, 0, 0);
                         break;
-                    case 3:
+                    case AttachPointKind.Passenger1:
                         doodad.Transform.Local.SetPosition(0.00537476f, 1.63614f, 1.36648f, 0, 0, 0);
                         break;
                 }
 
-                doodad.OwnerId = 0;
                 doodad.PlantTime = DateTime.Now;
-                doodad.OwnerType = DoodadOwnerType.System;
-                doodad.DbHouseId = 0;
                 doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
                 doodad.Data = (byte)doodadBinding.AttachPointId;
                 doodad.SetScale(1f);
                 doodad.FuncGroupId = doodad.GetFuncGroupId();
-
+                doodad.Transform.ResetFinalizeTransform();
                 doodad.Spawn();
                 transfer.AttachedDoodads.Add(doodad);
             }
@@ -362,7 +362,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = (sbyte)reader.GetInt32("attach_point_id"),
+                                AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
                                 DoodadId = reader.GetUInt32("doodad_id"),
                             };
                             if (_templates.ContainsKey(template.OwnerId))

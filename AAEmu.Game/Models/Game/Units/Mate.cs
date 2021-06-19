@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Units
     public class MatePassengerInfo
     {
         public uint _objId;
-        public byte _reason;
+        public AttachUnitReason _reason;
     }
     
     public sealed class Mate : Unit
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.Units
         public NpcTemplate Template { get; set; }
 
         public uint OwnerObjId { get; set; }
-        public Dictionary<byte,MatePassengerInfo> Passengers { get; }
+        public Dictionary<AttachPointKind,MatePassengerInfo> Passengers { get; }
 
         public override float Scale => Template.Scale;
 
@@ -390,12 +390,12 @@ namespace AAEmu.Game.Models.Game.Units
         {
             ModelParams = new UnitCustomModelParams();
             Skills = new List<uint>();
-            Passengers = new Dictionary<byte, MatePassengerInfo>();
+            Passengers = new Dictionary<AttachPointKind, MatePassengerInfo>();
 
             // TODO: Spawn this with the correct amount of seats depending on the template
             // 2 seats by default
-            Passengers.Add(1,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
-            Passengers.Add(2,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
+            Passengers.Add(AttachPointKind.Driver,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
+            Passengers.Add(AttachPointKind.Passenger0,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
         }
 
         public void AddExp(int exp)
@@ -480,13 +480,13 @@ namespace AAEmu.Game.Models.Game.Units
                 // When fall damage kills a mount, also kill all of it's riders
                 for (var i = riders.Count - 1; i >= 0; i--)
                 {
-                    var pos = (byte)riders[i].Key;
+                    var pos = riders[i].Key;
                     var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value._objId);
                     if (rider != null)
                     {
                         rider.DoFallDamage(fallVel);
                         if (rider.Hp <= 0)
-                            MateManager.Instance.UnMountMate(rider, TlId, pos, UnitDetachReason.Death);
+                            MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.SlaveBinding);
                     }
                 }
             }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.Units
         public TransferSpawner Spawner { get; set; }
         public override UnitCustomModelParams ModelParams { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
-        public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
+        public List<Character> AttachedCharacters { get; set; }
         public DateTime SpawnTime { get; set; }
         public float RotationDegrees { get; set; }
         public Vector3 Velocity { get; set; }
@@ -58,6 +58,7 @@ namespace AAEmu.Game.Models.Game.Units
             AttachedDoodads = new List<Doodad>();
             Routes = new Dictionary<int, List<WorldSpawnPosition>>();
             TransferPath = new List<WorldSpawnPosition>();
+            AttachedCharacters = new List<Character>();
         }
 
         #region Attributes
@@ -590,13 +591,13 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (transfer.TimeLeft > 0) { return; } // Пауза в начале/конце пути и на остановках
 
-            if (!transfer.MoveToPathEnabled || transfer.Position == null || !transfer.IsInPatrol)
+            if (!transfer.MoveToPathEnabled || !transfer.IsInPatrol)
             {
                 transfer.StopMove(transfer);
                 return;
             }
 
-            transfer.vPosition = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
+            transfer.vPosition = transfer.Transform.World.ClonePosition();
 
             // вектор направление на таргет (последовательность аргументов важно, чтобы смотреть на таргет)
             transfer.vDistance = transfer.vTarget - transfer.vPosition; // dx, dy, dz
@@ -687,6 +688,7 @@ namespace AAEmu.Game.Models.Game.Units
                 //SetPosition(moveTypeB.X, moveTypeB.Y, moveTypeB.Z, 0, 0, Helpers.ConvertRadianToSbyteDirection((float)Angle));
                 //BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeB), true);
             }
+            transfer.Transform.FinalizeTransform(); // Added so whatever riding this, doesn't clip out of existence when moving
         }
 
         public void CheckWaitTime(Transfer transfer)

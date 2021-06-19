@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Tasks
                 MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(_connection.ActiveChar);
                 
                 // Check if still mounted on somebody else's mount and dismount that if needed
-                _connection.ActiveChar.ForceDismount(UnitDetachReason.LeaveWorld);
+                _connection.ActiveChar.ForceDismount(AttachUnitReason.PrefabChanged); // Dismounting a mount because of unsummoning sends "10" for this
 
                 // Remove from Team (raid/party)
                 TeamManager.Instance.MemberRemoveFromTeam(_connection.ActiveChar, _connection.ActiveChar, Game.Team.RiskyAction.Leave);

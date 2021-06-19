@@ -2235,6 +2235,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     doodad.OwnerType = DoodadOwnerType.Housing;
                     doodad.DbHouseId = house.Id;
                     break;
+                case Transfer transfer:
+                    doodad.OwnerId = 0;
+                    doodad.ParentObjId = transfer.ObjId;
+                    doodad.OwnerType = DoodadOwnerType.System;
+                    break;
             }
 
             if (obj is Unit unit)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -34,7 +35,7 @@ namespace AAEmu.Game.Core.Managers
         internal void TransferTelescopeTick()
         {
             const int MaxCount = 10;
-            var transfers = TransferManager.Instance.GetTransfers();
+            var transfers = TransferManager.Instance.GetTransfers().Where(x => x.Bounded != null).ToArray();
             // не ограничивать дальность видимости для GM & Admins
             if (owner?.AccessLevel == 0)
             {

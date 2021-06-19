@@ -28,6 +28,7 @@ using System.Security.Claims;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
@@ -38,7 +39,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, SlaveTemplate> _slaveTemplates;
         private Dictionary<uint, Slave> _activeSlaves;
         private Dictionary<uint, Slave> _tlSlaves;
-        public Dictionary<uint, Dictionary<int, WorldSpawnPosition>> _attachPoints;
+        public Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints;
         public Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems; // PackId and List<Slot/ItemData>
 
         public SlaveTemplate GetSlaveTemplate(uint id)
@@ -81,7 +82,7 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void UnbindSlave(Character character, uint tlId, UnitDetachReason reason = UnitDetachReason.LeaveWorld)
+        public void UnbindSlave(Character character, uint tlId, AttachUnitReason reason)
         {
             var slave = _tlSlaves[tlId];
             character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
@@ -141,7 +142,7 @@ namespace AAEmu.Game.Core.Managers
             if (activeSlaveInfo == null) return;
 
             foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
-                UnbindSlave(character, activeSlaveInfo.TlId);
+                UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
 
             activeSlaveInfo.Transform.DetachAll();
 
@@ -363,9 +364,9 @@ namespace AAEmu.Game.Core.Managers
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {
-                    if (_attachPoints[template.ModelId].ContainsKey((int)slaveBinding.AttachPointId))
+                    if (_attachPoints[template.ModelId].ContainsKey(slaveBinding.AttachPointId))
                     {
-                        var attachPoint = _attachPoints[template.ModelId][(int)slaveBinding.AttachPointId];
+                        var attachPoint = _attachPoints[template.ModelId][slaveBinding.AttachPointId];
                         // childSlave.AttachPosition = _attachPoints[template.ModelId][(int) slaveBinding.AttachPointId];
                         childSlave.Transform = template.Transform.CloneAttached(childSlave);
                         childSlave.Transform.Parent = template.Transform;
@@ -422,7 +423,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
-            _attachPoints = new Dictionary<uint, Dictionary<int, WorldSpawnPosition>>();
+            _attachPoints = new Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>>();
             foreach (var set in attachPoints)
             {
                 _attachPoints[set.ModelId] = set.AttachPoints;
@@ -567,7 +568,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = (sbyte)reader.GetInt32("attach_point_id"),
+                                AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
                                 DoodadId = reader.GetUInt32("doodad_id"),
                                 Persist = reader.GetBoolean("persist"),
                                 Scale = reader.GetFloat("scale")
@@ -594,7 +595,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = reader.GetUInt32("attach_point_id"),
+                                AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id"),
                                 SlaveId = reader.GetUInt32("slave_id")
                             };
 
@@ -650,6 +651,6 @@ namespace AAEmu.Game.Core.Managers
     public class SlaveModelAttachPoint
     {
         public uint ModelId;
-        public Dictionary<int, WorldSpawnPosition> AttachPoints;
+        public Dictionary<AttachPointKind, WorldSpawnPosition> AttachPoints;
     }
 }

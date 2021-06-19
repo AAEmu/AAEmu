@@ -23,6 +23,7 @@ using AAEmu.Game.Models.Tasks.Housing;
 using Microsoft.CodeAnalysis.Text;
 using System.Numerics;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
@@ -190,7 +191,7 @@ namespace AAEmu.Game.Core.Managers
                                     while (reader2.Read())
                                     {
                                         var bindingDoodad = new HousingBindingDoodad();
-                                        bindingDoodad.AttachPointId = (sbyte)reader2.GetInt16("attach_point_id");
+                                        bindingDoodad.AttachPointId = (AttachPointKind)reader2.GetInt16("attach_point_id");
                                         bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
 
                                         if (templateBindings != null &&

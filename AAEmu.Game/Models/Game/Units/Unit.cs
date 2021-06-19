@@ -245,7 +245,13 @@ namespace AAEmu.Game.Models.Game.Units
             return moved;
         }
 
-        public virtual void ReduceCurrentHp(Unit attacker, int value)
+        /// <summary>
+        /// Make unit take value amount of damage, if the unit dies, killReason is used as a reason
+        /// </summary>
+        /// <param name="attacker"></param>
+        /// <param name="value"></param>
+        /// <param name="killReason"></param>
+        public virtual void ReduceCurrentHp(Unit attacker, int value, KillReason killReason = KillReason.Damage)
         {
             if (Hp <= 0)
                 return;
@@ -264,7 +270,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (Hp <= 0)
             {
                 attacker.Events.OnKill(attacker, new OnKillArgs { target = attacker });
-                DoDie(attacker);
+                DoDie(attacker,killReason);
                 //StopRegen();
             }
             else
@@ -287,13 +293,13 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
-        public virtual void DoDie(Unit killer)
+        public virtual void DoDie(Unit killer, KillReason killReason)
         {
             InterruptSkills();
 
             Events.OnDeath(this, new OnDeathArgs { Killer = killer, Victim =  this});
             Buffs.RemoveEffectsOnDeath();
-            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.Damage, killer), true);
+            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, killer), true);
             if (killer == this)
                 return;
 

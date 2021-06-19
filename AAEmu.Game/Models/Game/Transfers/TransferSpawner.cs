@@ -56,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Transfers
             }
 
             transfer.Spawner = this;
-            transfer.Transform.ApplyWorldSpawnPosition(Position);
+            transfer.Transform.ApplyWorldSpawnPosition(Position, transfer.Transform.InstanceId, true);
             if (transfer.Transform == null)
             {
                 _log.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
@@ -96,9 +96,9 @@ namespace AAEmu.Game.Models.Game.Transfers
 
                         //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(transfer.Angle));
                         //var quat = Quaternion.CreateFromYawPitchRoll((float)transfer.Angle, 0.0f, 0.0f);
-                        
+                        var quat = MathUtil.ConvertRadianToDirectionShort(transfer.Angle);
                         transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
-                        transfer.Transform.ApplyWorldSpawnPosition(point);
+                        transfer.Transform.ApplyWorldSpawnPosition(point, transfer.Transform.InstanceId, true);
 
                         //_log.Warn("TransfersPath #" + transfer.TemplateId);
                         //_log.Warn("New spawn Pos={0}", transfer.Transform.ToString());

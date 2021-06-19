@@ -55,9 +55,9 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public Mate GetIsMounted(uint objId, out byte attachPoint)
+        public Mate GetIsMounted(uint objId, out AttachPointKind attachPoint)
         {
-            attachPoint = 0xFF;
+            attachPoint = AttachPointKind.System;
             foreach (var mate in _activeMates.Values)
             foreach (var ati in mate.Passengers)
                 if (ati.Value._objId == objId)
@@ -101,7 +101,7 @@ namespace AAEmu.Game.Core.Managers
             return mateInfo;
         }
 
-        public void MountMate(GameConnection connection, uint tlId, AttachPointKind ap, AttachUnitReason reason)
+        public void MountMate(GameConnection connection, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
         {
             var character = connection.ActiveChar;
             var mateInfo = GetActiveMateByTlId(tlId);
@@ -111,7 +111,7 @@ namespace AAEmu.Game.Core.Managers
             if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
             {
                 // If first seat, check if it's the owner
-                if ((attachPoint == 1) && (mateInfo.OwnerObjId != character.ObjId))
+                if ((attachPoint == AttachPointKind.Driver) && (mateInfo.OwnerObjId != character.ObjId))
                 {
                     _log.Warn("MountMate. Non-owner {0} ({1}) tried to take the first seat on mount {2} ({3})",
                         character.Name, character.ObjId, mateInfo.Name, mateInfo.ObjId);
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Core.Managers
                 mateInfo.TlId, attachPoint, reason, string.Join(", ",mateInfo.Passengers.Values.ToList()));
         }
 
-        public void UnMountMate(Character character, uint tlId, AttachPointKind ap, AttachUnitReason reason)
+        public void UnMountMate(Character character, uint tlId, AttachPointKind attachPoint, AttachUnitReason reason)
         {
             var mateInfo = GetActiveMateByTlId(tlId);
             if (mateInfo == null) return;
@@ -201,7 +201,7 @@ namespace AAEmu.Game.Core.Managers
             if (mateInfo.TlId != tlId) return; // skip if invalid tlId
 
             foreach (var ati in mateInfo.Passengers)
-                UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mateInfo.TlId, ati.Key, UnitDetachReason.Unmount); // TODO reason unmount
+                UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mateInfo.TlId, ati.Key, AttachUnitReason.SlaveBinding);
             
             _activeMates[owner.ObjId].Delete();
             _activeMates.Remove(owner.ObjId);

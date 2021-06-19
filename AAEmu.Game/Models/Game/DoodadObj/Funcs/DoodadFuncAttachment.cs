@@ -20,7 +20,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 if (BondKindId > BondKind.BondInvalid)
                 {
-                    var spot = owner.Seat.LoadPassenger(character.Id, owner.ObjId, Space); // ask for a free meta number for landing
+                    var spot = owner.Seat.LoadPassenger(character, owner.ObjId, Space); // ask for a free meta number for landing
                     if (spot == -1)
                     {
                         return; // we leave if there is no place

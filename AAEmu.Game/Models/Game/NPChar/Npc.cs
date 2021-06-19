@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Json;
@@ -709,9 +710,9 @@ namespace AAEmu.Game.Models.Game.NPChar
             //Equip = new Item[28];
         }
 
-        public override void DoDie(Unit killer)
+        public override void DoDie(Unit killer, KillReason killReason)
         {
-            base.DoDie(killer);
+            base.DoDie(killer, killReason);
             AggroTable.Clear();
             if (killer is Character character)
             {

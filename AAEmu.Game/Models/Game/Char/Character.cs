@@ -13,6 +13,7 @@ using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
@@ -1598,7 +1599,7 @@ namespace AAEmu.Game.Models.Game.Char
         /// useful for calling before any kind of teleport function 
         /// </summary>
         /// <returns>Returns True is any dismounting happened by this function</returns>
-        public bool ForceDismount(UnitDetachReason reason = UnitDetachReason.Unsummon)
+        public bool ForceDismount(AttachUnitReason reason = AttachUnitReason.PrefabChanged)
         {
             var res = false;
             // Force dismount Mates (mounts)

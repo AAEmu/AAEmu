@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -40,7 +41,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint OwnerObjId { get; set; }
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
-        public sbyte AttachPoint { get; set; }
+        public AttachPointKind AttachPoint { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
         public uint QuestGlow { get; set; } //0 off // 1 on
@@ -59,8 +60,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             _scale = 1f;
             PlantTime = DateTime.MinValue;
-            AttachPoint = -1;
-            Seat = new VehicleSeat();
+            AttachPoint = AttachPointKind.System;
+            Seat = new VehicleSeat(this);
         }
 
         public void SetScale(float scale)
@@ -274,7 +275,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
-            stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
+            stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
             if (AttachPoint > 0)
             {
                 stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);

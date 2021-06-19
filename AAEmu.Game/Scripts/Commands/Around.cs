@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
@@ -8,6 +9,8 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.World.Transform;
 using System.Numerics;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -28,6 +31,39 @@ namespace AAEmu.Game.Scripts.Commands
         {
             return "Creates a list of specified <objectType> in a [radius] radius around you. Default radius is 30.\n" +
                 "Note: Only lists objects in viewing range of you (recommended maximum radius of 100).";
+        }
+        
+        public int ShowObjectData(Character character, GameObject go, int index, string indexPrefix, bool verbose)
+        {
+            var indexStr = indexPrefix;
+            if (indexStr != String.Empty)
+                indexStr += " . ";
+            indexStr += (index + 1).ToString();
+
+            if (go is Doodad gDoodad)
+                character.SendMessage("#{0} -> BcId: {1} DoodadTemplateId: {2} - @DOODAD_NAME({2})", 
+                    indexStr, gDoodad.ObjId, gDoodad.TemplateId);
+            else
+            if (go is Character gChar)
+                character.SendMessage("#{0} -> BcId: {1} CharacterId: {2} - {3}", 
+                    indexStr, gChar.ObjId, gChar.Id, gChar.Name);
+            else
+            if (go is BaseUnit gBase)
+                character.SendMessage("#{0} -> BcId: {1} - {2}", 
+                    indexStr, gBase.ObjId, gBase.Name);
+            else
+                character.SendMessage("#{0} -> BcId: {1}", indexStr, go.ObjId.ToString());
+            if (verbose)
+            {
+                // var shorts = go.Transform.World.ToRollPitchYawShorts();
+                // var shortString = "(short[3])(r:" + shorts.Item1.ToString() + " p:" + shorts.Item2.ToString() + " y:" + shorts.Item3.ToString()+")";
+                character.SendMessage("#{0} -> {1}",indexStr,go.Transform.ToFullString(true,true));
+            }
+
+            // Cycle Children
+            for (var i = 0; i < go.Transform.Children.Count; i++)
+                ShowObjectData(character, go.Transform.Children[i]?.GameObject, i, indexStr, verbose);
+            return 1 + go.Transform.Children.Count;
         }
 
         public void Execute(Character character, string[] args)
@@ -110,10 +146,28 @@ namespace AAEmu.Game.Scripts.Commands
                     break;
 
                 default:
-                    character.SendMessage("|cFFFF0000[Around] Unknown object type {0} !|r",args[0]);
+                    var go = WorldManager.Instance.GetAround<GameObject>(character, radius);
+
+                    var c = 0;
+                    character.SendMessage("[Around] GameObjects:");
+                    for (var i = 0; i < go.Count; i++)
+                    {
+                        c += ShowObjectData(character, go[i], i, "", verbose);
+                        /*
+                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + go[i].ObjId.ToString());
+                        if (verbose)
+                        {
+                            var shorts = go[i].Transform.World.ToRollPitchYawShorts();
+                            var shortString = "(short[3])(r:" + shorts.Item1.ToString() + " p:" + shorts.Item2.ToString() + " y:" + shorts.Item3.ToString()+")";
+                            character.SendMessage("#{0} -> {1} = {2}\n",(i + 1).ToString(),go[i].Transform.ToString(),shortString);
+                        }
+                        */
+                    }
+                    character.SendMessage("[Around] Object Count: {0}", c);
                     break;
             }
             
         }
+
     }
 }
