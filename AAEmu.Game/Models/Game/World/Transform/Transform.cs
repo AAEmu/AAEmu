@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.Intrinsics;
 using AAEmu.Commons.Utils;
@@ -37,7 +38,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
         private List<Transform> _children;
         private Transform _stickyParentTransform;
         private List<Transform> _stickyChildren;
-        private Vector3 _lastFinalizePos = Vector3.Zero; // Might use this later for cheat detection or delta movement
+        private Vector3 _lastFinalizePos; // Might use this later for cheat detection or delta movement
+        public List<Character> _debugTrackers;
 
         /// <summary>
         /// Parent Transform this Transform is attached to, leave null for World
@@ -90,6 +92,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
             _localPosRot = new PositionAndRotation();
             _stickyParentTransform = null;
             _stickyChildren = new List<Transform>();
+            _lastFinalizePos = Vector3.Zero;
+            _debugTrackers = new List<Character>();
         }
 
         public Transform(GameObject owningObject, Transform parentTransform = null, Transform stickyParentTransform = null)
@@ -355,8 +359,31 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public void FinalizeTransform(bool includeChildren = true)
         {
             var worldPosDelta = World.ClonePosition() - _lastFinalizePos;
+            if (worldPosDelta == Vector3.Zero)
+            {
+                return;
+            }
+            else
+            {
+                foreach (var character in _debugTrackers)
+                {
+                    /*
+                    character.SendMessage("{0} - Delta: ({2}  {3}  {4}) - {1}",
+                        _owningObject.ObjId,
+                        (_owningObject is BaseUnit bu) ? bu.Name : "<gameobject>",
+                        worldPosDelta.X.ToString("F1"),worldPosDelta.Y.ToString("F1"),worldPosDelta.Z.ToString("F1"));
+                    */
+                    /*
+                    character.SendMessage("["+DateTime.Now.ToString("HH:mm:ss") + "] {0} - ZoneKey: {2} Region: ({3} {4}) - {1}",
+                        _owningObject.ObjId,
+                        (_owningObject is BaseUnit bu) ? bu.Name : "<gameobject>",
+                        ZoneId, _owningObject?.Region?.X.ToString() ?? "??", _owningObject?.Region?.Y.ToString() ?? "??");
+                    */
+                }
+            }
+            
             // TODO: Check if/make sure rotations are taken into account
-            if (StickyChildren.Count > 0)
+            if (_stickyChildren.Count > 0)
             {
                 for(var i = _stickyChildren.Count-1; i >= 0; i--)
                 {
@@ -364,12 +391,13 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     if (stickyChild == null)
                         continue;
                     stickyChild.Local.Translate(worldPosDelta);
-                    WorldManager.Instance.AddVisibleObject(stickyChild.GameObject);
+                    WorldManager.Instance.AddVisibleObject(stickyChild._owningObject);
+
+                    stickyChild.FinalizeTransform(includeChildren);
 
                     if (!(stickyChild.GameObject is Unit))
                         continue;
                     
-                    stickyChild.FinalizeTransform(includeChildren);
                     
                     // Create a moveType
                     /*
@@ -400,9 +428,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     */
                 }
             }
-
-            ResetFinalizeTransform();
-            
+            ResetFinalizeTransform();            
+           
             if (_owningObject == null)
                 return;
             
@@ -422,7 +449,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     WorldManager.Instance.AddVisibleObject(dood);
                 foreach (var chr in transfer?.AttachedCharacters)
                     if (chr != null)
+                    {
+                        chr.Transform.StickyParent = transfer.Transform;
                         WorldManager.Instance.AddVisibleObject(chr);
+                    }
             }
 
             if (includeChildren)
@@ -433,6 +463,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     child?.FinalizeTransform(includeChildren);
                 }
             }
+            
 
             //_owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,Local.Rotation.X,Local.Rotation.Y,Local.Rotation.Z);
         }
@@ -561,6 +592,20 @@ namespace AAEmu.Game.Models.Game.World.Transform
             // Attach to new parent if needed
             if (stickyParent != null)
                 stickyParent.AttachStickyTransform(this);
+        }
+
+        public bool ToggleDebugTracker(Character player)
+        {
+            if (_debugTrackers.Contains(player))
+            {
+                _debugTrackers.Remove(player);
+                return false;
+            }
+            else
+            {
+                _debugTrackers.Add(player);
+                return true;
+            }
         }
 
     }

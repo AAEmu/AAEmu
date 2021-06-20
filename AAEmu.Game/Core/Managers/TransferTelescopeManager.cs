@@ -35,7 +35,8 @@ namespace AAEmu.Game.Core.Managers
         internal void TransferTelescopeTick()
         {
             const int MaxCount = 10;
-            var transfers = TransferManager.Instance.GetTransfers().Where(x => x.Bounded != null).ToArray();
+            // Copy a list of all transfers that have something attached. Ignore Carriage Boardings (46)
+            var transfers = TransferManager.Instance.GetTransfers().Where(x => x.TemplateId != 46).ToArray();
             // не ограничивать дальность видимости для GM & Admins
             if (owner?.AccessLevel == 0)
             {

@@ -502,14 +502,16 @@ namespace AAEmu.Game.Core.Managers.World
             if (obj == null || !obj.IsVisible)
                 return;
 
-            var region = GetRegion(obj);
-            var currentRegion = obj.Region;
+            var region = GetRegion(obj); // Get region of Object or it's Root object if it has one
+            var currentRegion = obj.Region; // Current Region this object is in
 
+            // If region didn't change, ignore
             if (region == null || currentRegion != null && currentRegion.Equals(region))
                 return;
 
             if (currentRegion == null)
             {
+                // If no currentRegion, add it (happens on new spawns)
                 foreach (var neighbor in region.GetNeighbors())
                     neighbor.AddToCharacters(obj);
 
@@ -518,9 +520,11 @@ namespace AAEmu.Game.Core.Managers.World
             }
             else
             {
+                // No longer in the same region, update things
                 var oldNeighbors = currentRegion.GetNeighbors();
                 var newNeighbors = region.GetNeighbors();
 
+                // Remove visibility from oldNeighbors
                 foreach (var neighbor in oldNeighbors)
                 {
                     var remove = true;
@@ -535,6 +539,7 @@ namespace AAEmu.Game.Core.Managers.World
                         neighbor.RemoveFromCharacters(obj);
                 }
 
+                // Add visibility to newNeighbours
                 foreach (var neighbor in newNeighbors)
                 {
                     var add = true;
@@ -549,11 +554,19 @@ namespace AAEmu.Game.Core.Managers.World
                         neighbor.AddToCharacters(obj);
                 }
 
+                // Add this obj to the new region
                 region.AddObject(obj);
+                // Update it's region
                 obj.Region = region;
 
+                // remove the obj from the old region
                 currentRegion.RemoveObject(obj);
             }
+            
+            // Also show children
+            if (obj?.Transform?.Children.Count > 0)
+                foreach (var child in obj.Transform.Children)
+                    AddVisibleObject(child.GameObject);
         }
 
         public void RemoveVisibleObject(GameObject obj)
@@ -567,6 +580,11 @@ namespace AAEmu.Game.Core.Managers.World
                 neighbor.RemoveFromCharacters(obj);
 
             obj.Region = null;
+            
+            // Also remove children
+            if (obj?.Transform?.Children.Count > 0)
+                foreach (var child in obj.Transform.Children)
+                    RemoveVisibleObject(child.GameObject);
         }
 
         public List<T> GetAround<T>(GameObject obj) where T : class

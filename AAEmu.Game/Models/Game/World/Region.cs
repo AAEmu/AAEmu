@@ -74,6 +74,12 @@ namespace AAEmu.Game.Models.Game.World
                         Interlocked.Increment(ref region._playerCount);
                     }
                 }
+
+                if (obj.Transform._debugTrackers.Count > 0)
+                    foreach (var chr in obj.Transform._debugTrackers)
+                        chr?.SendMessage("[{0}] {1} entered region ({2} {3})){4}",
+                            DateTime.Now.ToString("HH:mm:ss"), obj.ObjId, X, Y,
+                            obj is BaseUnit bu ? " - " + bu.Name : "");
             }
         }
 
@@ -118,6 +124,13 @@ namespace AAEmu.Game.Models.Game.World
                         Interlocked.Decrement(ref region._playerCount);
                     }
                 }
+                
+                if (obj.Transform._debugTrackers.Count > 0)
+                    foreach (var chr in obj.Transform._debugTrackers)
+                        chr?.SendMessage("[{0}] {1} left the region ({2} {3})){4}",
+                            DateTime.Now.ToString("HH:mm:ss"), obj.ObjId, X, Y,
+                            obj is BaseUnit bu ? " - " + bu.Name : "");
+
             }
         }
 
@@ -126,45 +139,38 @@ namespace AAEmu.Game.Models.Game.World
             if (_objects == null)
                 return;
 
-            // Show the player all the facilities in the region
-            if (obj is Character character1)
+            // Show the player all the facilities in the region when he/she is added
+            if (obj is Character objectAsCharacter)
             {
-                var units = GetList(new List<Unit>(), obj.ObjId);
-                foreach (var t in units)
+                var objectsInRegion = GetList(new List<GameObject>(), obj.ObjId);
+                foreach (var go in objectsInRegion)
                 {
+                    // Ignore doodads here, as we have a special packet for those
+                    if (go is Doodad)
+                        continue;
+                    
                     // turn on the motion of the visible NPC
-                    if ((t is Npc npc) && (npc.Ai != null)) 
+                    if ((go is Npc npc) && (npc.Ai != null)) 
                         npc.Ai.ShouldTick = true;
-                    t.AddVisibleObject(character1);
-                    /*
-                    // turn on the motion of the visible NPC
-                    if (t is Npc npc)
-                    {
-                        if (npc.Ai != null)
-                            npc.Ai.ShouldTick = true;
-                        npc.AddVisibleObject(character);
-                    }
-                    else
-                    {
-                        t.AddVisibleObject(character);
-                    }
-                    */
+                    
+                    go.AddVisibleObject(objectAsCharacter);
                 }
                 
+                // Handle Doodads separately with sets of SCDoodadsCreatedPacket
                 var doodads = GetList(new List<Doodad>(), obj.ObjId).ToArray();
                 for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
                 {
                     var count = doodads.Length - i;
                     var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
                     Array.Copy(doodads, i, temp, 0, temp.Length);
-                    character1.SendPacket(new SCDoodadsCreatedPacket(temp));
+                    objectAsCharacter.SendPacket(new SCDoodadsCreatedPacket(temp));
                 }
             }
             
             // show the object to all players in the region
-            foreach (var character2 in GetList(new List<Character>(), obj.ObjId))
+            foreach (var characterInRegion in GetList(new List<Character>(), obj.ObjId))
             {
-                obj.AddVisibleObject(character2);
+                obj.AddVisibleObject(characterInRegion);
             }
         }
 

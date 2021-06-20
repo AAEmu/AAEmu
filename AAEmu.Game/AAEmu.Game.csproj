@@ -33,6 +33,10 @@
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <LinkBase>Data\</LinkBase>
         </None>
+        <None Include="Scripts\Commands\TestTracker.cs">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+          <LinkBase>Scripts\</LinkBase>
+        </None>
     </ItemGroup>
     
     <ItemGroup>

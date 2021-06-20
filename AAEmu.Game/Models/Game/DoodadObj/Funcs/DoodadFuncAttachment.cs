@@ -25,8 +25,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     {
                         return; // we leave if there is no place
                     }
+
                     character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot);
                     character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
+                    character.Transform.StickyParent = owner.Transform;
                 }
                 // Ships // TODO Check how sit on the ship
                 else
