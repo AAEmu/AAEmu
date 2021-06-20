@@ -85,27 +85,24 @@ namespace AAEmu.Game.Core.Managers
         public void UnbindSlave(Character character, uint tlId, AttachUnitReason reason)
         {
             var slave = _tlSlaves[tlId];
-            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
             var attachPoint = slave.AttachedCharacters.FirstOrDefault(x => x.Value == character).Key;
             if (attachPoint != default)
             {
                 slave.AttachedCharacters.Remove(attachPoint);
                 character.Transform.Parent = null;
+                character.Transform.StickyParent = null;
             }
+            character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
         }
 
-        public void BindSlave(Character character, uint objId, AttachPointKind attachPointId, AttachUnitReason bondKind)
+        public void BindSlave(Character character, uint objId, AttachPointKind attachPoint, AttachUnitReason bondKind)
         {
             // Check if the target spot is already taken
-            var attachPoint = (AttachPointKind)attachPointId;
             var slave = GetActiveSlaveByObjId(objId);
             if (slave.AttachedCharacters.ContainsKey(attachPoint))
                 return;
 
-            if (slave.AttachedCharacters.ContainsKey(attachPointId))
-                return;
-
-            character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPointId, bondKind, objId), true);
+            character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, bondKind, objId), true);
             switch (attachPoint)
             {
                 case AttachPointKind.Driver:
@@ -123,16 +120,8 @@ namespace AAEmu.Game.Core.Managers
         {
             var unit = connection.ActiveChar;
             var slave = _tlSlaves[tlId];
-            if (slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver)) // Already has a driver
-                return;
-
-            unit.BroadcastPacket(new SCUnitAttachedPacket(unit.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster, slave.ObjId), true);
-            unit.BroadcastPacket(new SCTargetChangedPacket(unit.ObjId, slave.ObjId), true);
-            unit.CurrentTarget = slave;
-            /*
-            unit.BroadcastPacket(new SCSlaveBoundPacket(unit.Id, slave.ObjId), true);
-            slave.AttachedCharacters.Add(AttachPointKind.Driver, unit);
-            */
+            
+            BindSlave(unit,slave.ObjId,AttachPointKind.Driver,AttachUnitReason.NewMaster);
         }
 
         // TODO - GameConnection connection
