@@ -30,27 +30,25 @@ namespace AAEmu.Game.Models.Game.Shipyard
             character.SendPacket(new SCShipyardStatePacket(Template));
             // TODO This packet is not available on the 3.5 server, but on the 1.2 server the shipyard is required to revive
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
-
+            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
         }
-            #region Attributes
+
+        #region Attributes
 
         public int Str
         {
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Str);
-                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var parameters = new Dictionary<string, double> {["level"] = Level};
                 var result = formula.Evaluate(parameters);
                 var res = (int)result;
                 foreach (var bonus in GetBonuses(UnitAttribute.Str))
@@ -74,7 +72,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Dex);
-                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Dex))
                 {
@@ -97,7 +95,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Sta);
-                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Sta))
                 {
@@ -120,7 +118,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Int);
-                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Int))
                 {
@@ -143,7 +141,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Spi);
-                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Spi))
                 {
@@ -166,7 +164,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
             get
             {
                 var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.Fai);
-                var parameters = new Dictionary<string, double> { ["level"] = Level };
+                var parameters = new Dictionary<string, double> {["level"] = Level};
                 var res = (int)formula.Evaluate(parameters);
                 foreach (var bonus in GetBonuses(UnitAttribute.Fai))
                 {
@@ -188,7 +186,8 @@ namespace AAEmu.Game.Models.Game.Shipyard
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.MaxHealth);
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.MaxHealth);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -220,7 +219,8 @@ namespace AAEmu.Game.Models.Game.Shipyard
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.HealthRegen);
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.HealthRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -253,7 +253,8 @@ namespace AAEmu.Game.Models.Game.Shipyard
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.PersistentHealthRegen);
+                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard,
+                    UnitFormulaKind.PersistentHealthRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -286,7 +287,8 @@ namespace AAEmu.Game.Models.Game.Shipyard
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.MaxMana);
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.MaxMana);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -318,7 +320,8 @@ namespace AAEmu.Game.Models.Game.Shipyard
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.ManaRegen);
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.ManaRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -351,7 +354,9 @@ namespace AAEmu.Game.Models.Game.Shipyard
         {
             get
             {
-                var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard, UnitFormulaKind.PersistentManaRegen);
+                var formula =
+                    FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Shipyard,
+                        UnitFormulaKind.PersistentManaRegen);
                 var parameters = new Dictionary<string, double>
                 {
                     ["level"] = Level,
@@ -381,5 +386,5 @@ namespace AAEmu.Game.Models.Game.Shipyard
         }
 
         #endregion
-}
+    }
 }

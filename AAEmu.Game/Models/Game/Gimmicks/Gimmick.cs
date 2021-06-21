@@ -61,10 +61,12 @@ namespace AAEmu.Game.Models.Game.Gimmicks
             character.SendPacket(new SCGimmicksCreatedPacket(new[] { this }));
             var temp = new Gimmick[0];
             character.SendPacket(new SCGimmickJointsBrokenPacket(temp));
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
+            base.RemoveVisibleObject(character);
             character.SendPacket(new SCGimmicksRemovedPacket(new[] { GimmickId }));
         }
 

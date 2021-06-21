@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Utils;
@@ -87,10 +88,21 @@ namespace AAEmu.Game.Models.Game.World
 
         public virtual void AddVisibleObject(Character character)
         {
+            if ((Transform != null) && (Transform.Children.Count > 0))
+                foreach (var child in Transform.Children.ToArray())
+                    child?.GameObject?.AddVisibleObject(character);
         }
 
         public virtual void RemoveVisibleObject(Character character)
         {
+            if ((character.CurrentTarget != null) && (character.CurrentTarget == this))
+            {
+                character.CurrentTarget = null;
+                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
+            }
+            if ((Transform != null) && (Transform.Children.Count > 0))
+                foreach (var child in Transform.Children.ToArray())
+                    child?.GameObject?.RemoveVisibleObject(character);
         }
     }
 }

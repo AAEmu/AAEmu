@@ -131,45 +131,6 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
-        public void Spawn(Character character, Transfer tr)
-        {
-            // спавним кабину
-            character.SendPacket(new SCUnitStatePacket(tr));
-            character.SendPacket(new SCUnitPointsPacket(tr.ObjId, tr.Hp, tr.Mp));
-
-            // пробуем спавнить прицеп
-            if (tr.Bounded != null)
-            {
-                character.SendPacket(new SCUnitStatePacket(tr.Bounded));
-                character.SendPacket(new SCUnitPointsPacket(tr.Bounded.ObjId, tr.Bounded.Hp, tr.Bounded.Mp));
-
-                if (tr.Bounded.AttachedDoodads.Count > 0)
-                {
-                    var doodads = tr.Bounded.AttachedDoodads.ToArray();
-                    for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
-                    {
-                        var count = doodads.Length - i;
-                        var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
-                        Array.Copy(doodads, i, temp, 0, temp.Length);
-                        character.SendPacket(new SCDoodadsCreatedPacket(temp));
-                    }
-                }
-            }
-
-            // если есть Doodad в кабине
-            if (tr.AttachedDoodads.Count > 0)
-            {
-                var doodads = tr.AttachedDoodads.ToArray();
-                for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
-                {
-                    var count = doodads.Length - i;
-                    var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
-                    Array.Copy(doodads, i, temp, 0, temp.Length);
-                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
-                }
-            }
-        }
-
         public Transfer Create(uint objectId, uint templateId, TransferSpawner spawner)
         {
             /*
@@ -198,7 +159,7 @@ namespace AAEmu.Game.Core.Managers
             owner.ModelId = Carriage.ModelId;
             owner.Template = Carriage;
             owner.BondingObjId = 0;
-            owner.AttachPointId = -1;
+            owner.AttachPointId = AttachPointKind.System ;
             owner.Level = 50;
             owner.Hp = owner.MaxHp;
             owner.Mp = owner.MaxMp;
@@ -212,8 +173,8 @@ namespace AAEmu.Game.Core.Managers
             owner.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // formarly set to 164
             
             owner.Patrol = null;
-            // add effect
-            var buffId = BuffsEnum.Untouchable; //BUFF: Untouchable (Unable to attack this target)
+            // BUFF: Untouchable (Unable to attack this target)
+            var buffId = BuffsEnum.Untouchable; 
             owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
             owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
@@ -226,7 +187,8 @@ namespace AAEmu.Game.Core.Managers
             transfer.Name = boardingPart.Name;
             transfer.TlId = (ushort)TlIdManager.Instance.GetNextId();
             transfer.ObjId = ObjectIdManager.Instance.GetNextId();
-            transfer.OwnerId = 255;
+            //transfer.OwnerId = 255;
+            transfer.OwnerId = owner.ObjId;
             transfer.Spawner = owner.Spawner;
             transfer.TemplateId = boardingPart.Id;
             transfer.Id = boardingPart.Id;
@@ -254,7 +216,6 @@ namespace AAEmu.Game.Core.Managers
             transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
-            //TODO  create a boardingPart and indicate that we attach to the Carriage object 
             transfer.Spawn();
             _activeTransfers.Add(transfer.ObjId, transfer);
 
@@ -263,9 +224,7 @@ namespace AAEmu.Game.Core.Managers
                 var doodad = DoodadManager.Instance.Create(0, doodadBinding.DoodadId, transfer);
                 doodad.Transform.StickyParent = null;
                 doodad.Transform.Parent = transfer.Transform;
-                doodad.ObjId = ObjectIdManager.Instance.GetNextId();
-                doodad.TemplateId = doodadBinding.DoodadId;
-                doodad.OwnerObjId = 0;
+                //doodad.OwnerObjId = 0;
                 doodad.ParentObjId = transfer.ObjId;
                 //doodad.Spawner = new DoodadSpawner();
                 doodad.AttachPoint = doodadBinding.AttachPointId;
@@ -278,13 +237,11 @@ namespace AAEmu.Game.Core.Managers
                         doodad.Transform.Local.SetPosition(0.00537476f, 1.63614f, 1.36648f, 0, 0, 0);
                         break;
                 }
-
+                doodad.Transform.ResetFinalizeTransform();
                 doodad.PlantTime = DateTime.Now;
-                doodad.Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId);
                 doodad.Data = (byte)doodadBinding.AttachPointId;
                 doodad.SetScale(1f);
                 doodad.FuncGroupId = doodad.GetFuncGroupId();
-                doodad.Transform.ResetFinalizeTransform();
                 doodad.Spawn();
                 transfer.AttachedDoodads.Add(doodad);
             }
@@ -337,7 +294,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
-                                AttachPointId = (sbyte)reader.GetInt16("attach_point_id"),
+                                AttachPointId = (AttachPointKind)reader.GetInt16("attach_point_id"),
                                 TransferId = reader.GetUInt32("transfer_id")
                             };
                             if (_templates.ContainsKey(template.OwnerId))

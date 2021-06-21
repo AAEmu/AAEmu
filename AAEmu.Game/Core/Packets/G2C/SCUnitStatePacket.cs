@@ -7,6 +7,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
@@ -167,8 +168,8 @@ namespace AAEmu.Game.Core.Packets.G2C
                     stream.Write((sbyte)-1);   // point
                     break;
                 case Transfer unit:
-                    stream.Write(unit.AttachPointId);  // point
-                    if (unit.AttachPointId != -1)
+                    stream.Write((byte)unit.AttachPointId);  // point
+                    if (unit.AttachPointId != AttachPointKind.System)
                         stream.WriteBc(unit.BondingObjId); // point to the owner where to attach
                     break;
             }

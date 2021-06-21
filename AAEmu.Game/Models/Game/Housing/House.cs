@@ -185,6 +185,7 @@ namespace AAEmu.Game.Models.Game.Housing
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCHouseStatePacket(this));
 
+            // TODO: This should be handled in the base.AddVisibleObject
             var doodads = AttachedDoodads.ToArray();
             for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
             {
@@ -193,18 +194,17 @@ namespace AAEmu.Game.Models.Game.Housing
                 Array.Copy(doodads, i, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
+            
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
 
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
 
+            // TODO: This should be handled in base.RemoveVisibleObject
             var doodadIds = new uint[AttachedDoodads.Count];
             for (var i = 0; i < AttachedDoodads.Count; i++)
                 doodadIds[i] = AttachedDoodads[i].ObjId;

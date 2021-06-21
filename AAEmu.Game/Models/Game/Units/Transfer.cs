@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint Id { get; set; }
         public uint TemplateId { get; set; }
         public uint BondingObjId { get; set; }
-        public sbyte AttachPointId { get; set; }
+        public AttachPointKind AttachPointId { get; set; }
         public TransferTemplate Template { get; set; }
         public Transfer Bounded { get; set; }
         public TransferSpawner Spawner { get; set; }
@@ -409,17 +409,54 @@ namespace AAEmu.Game.Models.Game.Units
         public override void AddVisibleObject(Character character)
         {
             IsVisible = true;
-            TransferManager.Instance.Spawn(character, this);
+            // спавним кабину
+            character.SendPacket(new SCUnitStatePacket(this));
+            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+
+            base.AddVisibleObject(character);
+            return;
+
+            // пробуем спавнить прицеп
+            if (Bounded != null)
+            {
+                character.SendPacket(new SCUnitStatePacket(Bounded));
+                character.SendPacket(new SCUnitPointsPacket(Bounded.ObjId, Bounded.Hp, Bounded.Mp));
+        
+                if (Bounded.AttachedDoodads.Count > 0)
+                {
+                    var doodads = Bounded.AttachedDoodads.ToArray();
+                    for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
+                    {
+                        var count = doodads.Length - i;
+                        var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
+                        Array.Copy(doodads, i, temp, 0, temp.Length);
+                        character.SendPacket(new SCDoodadsCreatedPacket(temp));
+                    }
+                }
+            }
+        
+            // если есть Doodad в кабине
+            if (AttachedDoodads.Count > 0)
+            {
+                var doodads = AttachedDoodads.ToArray();
+                for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
+                {
+                    var count = doodads.Length - i;
+                    var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
+                    Array.Copy(doodads, i, temp, 0, temp.Length);
+                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
+                }
+            }
+            
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
+            
+            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
 
+            return;
             character.SendPacket(Bounded != null
                 ? new SCUnitsRemovedPacket(new[] { ObjId, Bounded.ObjId })
                 : new SCUnitsRemovedPacket(new[] { ObjId }));
@@ -678,17 +715,26 @@ namespace AAEmu.Game.Models.Game.Units
                 // moving to the point #
                 var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
                 moveTypeTr.UseTransferBase(this);
-                SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, (float)transfer.Angle);
-                BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), true);
+                transfer.SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, (float)transfer.Angle);
+                // Only send movement of the main vehicle motor, client will drag carriage on it's own
+                if (Bounded != null) 
+                {
+                    transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
+                    // Added so whatever riding this, doesn't clip out of existence when moving
+                    transfer.Transform.FinalizeTransform(true);
+                }
 
-                //if (Bounded == null) { return; }
-
-                //var moveTypeB = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
-                //moveTypeB.UseTransferBase(Bounded);
-                //SetPosition(moveTypeB.X, moveTypeB.Y, moveTypeB.Z, 0, 0, Helpers.ConvertRadianToSbyteDirection((float)Angle));
-                //BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeB), true);
+                /*
+                if (Bounded != null)
+                {
+                    var moveTypeB = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
+                    moveTypeB.UseTransferBase(Bounded);
+                    SetPosition(moveTypeB.X, moveTypeB.Y, moveTypeB.Z, 0, 0, (float)Angle);
+                    BroadcastPacket(new SCOneUnitMovementPacket(Bounded.ObjId, moveTypeB), false);
+                }
+                */
             }
-            transfer.Transform.FinalizeTransform(); // Added so whatever riding this, doesn't clip out of existence when moving
+            
         }
 
         public void CheckWaitTime(Transfer transfer)

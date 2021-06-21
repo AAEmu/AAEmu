@@ -438,6 +438,7 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCMateStatePacket(ObjId));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            // TODO: Maybe let base handle this ?
             foreach (var ati in Passengers)
             {
                 if (ati.Value._objId > 0)
@@ -447,15 +448,12 @@ namespace AAEmu.Game.Models.Game.Units
                         character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, ati.Value._reason, ObjId));
                 }
             }
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
 
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }

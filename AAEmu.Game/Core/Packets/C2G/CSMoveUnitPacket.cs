@@ -141,42 +141,42 @@ namespace AAEmu.Game.Core.Packets.C2G
                             // No longer standing on object ?
                             var oldParentObj = targetUnit.Transform.Parent.GameObject.ObjId;
                             targetUnit.Transform.Parent = null;
-                            /*
+                            
                             character.SendMessage(
                                 "|cFF884444{0} ({1}) no longer standing on Object {2} @ x{3} y{4} z{5} || World: {6}|r",
                                 targetUnit.Name, targetUnit.ObjId,
                                 oldParentObj,
                                 dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"), 
                                 targetUnit.Transform.World.ToString());
-                            */
+                            
                         }
                         else
                         if ((targetUnit.Transform.Parent == null) && (parentObject != null))
                         {
                             // Standing on a object ?
                             targetUnit.Transform.Parent = parentObject.Transform;
-                            /*
+                            
                             character.SendMessage(
                                 "|cFF448844{0} ({1}) standing on Object {2} ({3}) @ x{4} y{5} z{6} || World: {7}|r",
                                 targetUnit.Name, targetUnit.ObjId,
                                 parentObject.Name, parentObject.ObjId,
                                 dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"), 
                                 targetUnit.Transform.World.ToString());
-                            */
+                            
                         }
                         else 
                         if ((targetUnit.Transform.Parent != null) && (parentObject != null) && (targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId))
                         {
                             // Changed to standing on different object ? 
                             targetUnit.Transform.Parent = parentObject.Transform;
-                            /*
+                            
                             character.SendMessage(
                                 "|cFF448888{0} ({1}) moved to standing on new Object {2} ({3}) @ x{4} y{5} z{6} || World: {7}|r",
                                 targetUnit.Name, targetUnit.ObjId,
                                 parentObject.Name, parentObject.ObjId,
                                 dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"), 
                                 targetUnit.Transform.World.ToString());
-                            */
+                            
                         }
 
                         // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding onto something
@@ -216,7 +216,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                             (float)MathUtil.ConvertDirectionToRadian(dmt.RotationY),
                             (float)MathUtil.ConvertDirectionToRadian(dmt.RotationZ));
                         targetUnit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
-                        targetUnit.Transform.FinalizeTransform();
+                        targetUnit.Transform.FinalizeTransform(true);
                         
                         // Handle Fall Velocity
                         if ((dmt.FallVel > 0) && (targetUnit is Unit unit))

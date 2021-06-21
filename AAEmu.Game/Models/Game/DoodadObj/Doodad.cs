@@ -257,15 +257,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 foreach (var child in this.Transform.StickyChildren)
                     character.SendPacket(new SCHungPacket(child.GameObject.ObjId, this.ObjId));
             */
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
             character.SendPacket(new SCDoodadRemovedPacket(ObjId));
         }
 
