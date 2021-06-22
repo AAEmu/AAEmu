@@ -583,11 +583,5 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-                character.SendPacket(packet);
-        }
-
     }
 }

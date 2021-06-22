@@ -220,12 +220,6 @@ namespace AAEmu.Game.Models.Game.Housing
             }
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-                character.SendPacket(packet);
-        }
-
         #endregion
 
         public bool Save(MySqlConnection connection, MySqlTransaction transaction = null)

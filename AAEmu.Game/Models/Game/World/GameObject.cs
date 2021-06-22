@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World
 {
@@ -82,8 +83,17 @@ namespace AAEmu.Game.Models.Game.World
             WorldManager.Instance.RemoveVisibleObject(this);
         }
 
+        /// <summary>
+        /// Broadcasts packet to all players near this GameObject
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="self">Include sending to self (only for if called from Character)</param>
         public virtual void BroadcastPacket(GamePacket packet, bool self)
         {
+            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
+                character.SendPacket(packet);
+            if ((self) && (this is Character chr))
+                chr.SendPacket(packet);
         }
 
         public virtual void AddVisibleObject(Character character)

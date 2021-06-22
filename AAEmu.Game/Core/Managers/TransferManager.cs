@@ -170,7 +170,7 @@ namespace AAEmu.Game.Core.Managers
             //var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
 
             owner.Faction = new SystemFaction();
-            owner.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // formarly set to 164
+            owner.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // formerly set to 164
             
             owner.Patrol = null;
             // BUFF: Untouchable (Unable to attack this target)
@@ -185,7 +185,7 @@ namespace AAEmu.Game.Core.Managers
             var boardingPart = GetTransferTemplate(Carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
             var transfer = new Transfer();
             transfer.Name = boardingPart.Name;
-            transfer.TlId = (ushort)TlIdManager.Instance.GetNextId();
+            transfer.TlId = owner.TlId; // (ushort)TlIdManager.Instance.GetNextId();
             transfer.ObjId = ObjectIdManager.Instance.GetNextId();
             //transfer.OwnerId = 255;
             transfer.OwnerId = owner.ObjId;
@@ -205,7 +205,7 @@ namespace AAEmu.Game.Core.Managers
             //var quat2 = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
             transfer.Transform.Local.AddDistanceToFront(-9.24417f);
             transfer.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(transfer.Transform));
-            transfer.Transform.StickyParent = owner.Transform; // stick it to the driver
+            transfer.Transform.StickyParent = owner.Transform; // stick it to the driver/motor
             transfer.Transform.ResetFinalizeTransform();
 
             transfer.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // used to be 164

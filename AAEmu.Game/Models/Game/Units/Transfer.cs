@@ -478,14 +478,6 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-            {
-                character.SendPacket(packet);
-            }
-        }
-
         public PacketStream WriteTelescopeUnit(PacketStream stream)
         {
             stream.WriteBc(ObjId);

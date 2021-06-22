@@ -1552,14 +1552,6 @@ namespace AAEmu.Game.Models.Game.Char
             SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-                character.SendPacket(packet);
-            if (self)
-                SendPacket(packet);
-        }
-
         public static Character Load(uint characterId, uint accountId)
         {
             using (var connection = MySQL.CreateConnection())

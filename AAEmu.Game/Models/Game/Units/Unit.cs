@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                return ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
+                return (ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0) * Scale;
             }
         }
 

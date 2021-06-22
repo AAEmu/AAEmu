@@ -44,16 +44,9 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         public bool moveDown  { get; set; } = false;
         public DateTime WaitTime { get; set; }
         public uint TimeLeft => WaitTime > DateTime.Now ? (uint)(WaitTime - DateTime.Now).TotalMilliseconds : 0;
+        
         public Gimmick()
         {
-        }
-
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-            {
-                character.SendPacket(packet);
-            }
         }
 
         public override void AddVisibleObject(Character character)

@@ -242,12 +242,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-                character.SendPacket(packet);
-        }
-
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCDoodadCreatedPacket(this));

@@ -458,17 +458,6 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-            {
-                if (OwnerObjId == character.ObjId && self)
-                    character.SendPacket(packet);
-                else if (OwnerObjId != character.ObjId)
-                    character.SendPacket(packet);
-            }
-        }
-
         public override int DoFallDamage(ushort fallVel)
         {
             var fallDmg = base.DoFallDamage(fallVel);

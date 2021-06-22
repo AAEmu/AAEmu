@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -31,7 +31,7 @@ namespace AAEmu.Game.Models.Game.World
 
         public int X { get; }
         public int Y { get; }
-        public int Id => Y + 1024 * X;
+        public int Id => Y + (1024 * X);
 
         public Region(uint worldId, int x, int y)
         {
@@ -75,12 +75,13 @@ namespace AAEmu.Game.Models.Game.World
                     }
                 }
 
-                if (obj.Transform._debugTrackers.Count > 0)
-                    foreach (var chr in obj.Transform._debugTrackers)
-                        chr?.SendMessage("[{0}] {1} entered region ({2} {3})){4}",
-                            DateTime.Now.ToString("HH:mm:ss"), obj.ObjId, X, Y,
-                            obj is BaseUnit bu ? " - " + bu.Name : "");
             }
+            // Show debug info to subscribed players
+            if (obj.Transform._debugTrackers.Count > 0)
+                foreach (var chr in obj.Transform._debugTrackers)
+                    chr?.SendMessage("[{0}] {1} entered region ({2} {3})){4}",
+                        DateTime.Now.ToString("HH:mm:ss"), obj.ObjId, X, Y,
+                        obj is BaseUnit bu ? " - " + bu.Name : "");
         }
 
         public void RemoveObject(GameObject obj) // TODO Нужно доделать =_+
@@ -125,13 +126,13 @@ namespace AAEmu.Game.Models.Game.World
                     }
                 }
                 
-                if (obj.Transform._debugTrackers.Count > 0)
-                    foreach (var chr in obj.Transform._debugTrackers)
-                        chr?.SendMessage("[{0}] {1} left the region ({2} {3})){4}",
-                            DateTime.Now.ToString("HH:mm:ss"), obj.ObjId, X, Y,
-                            obj is BaseUnit bu ? " - " + bu.Name : "");
-
             }
+            // Show debug info to subscribed players
+            if (obj.Transform._debugTrackers.Count > 0)
+                foreach (var chr in obj.Transform._debugTrackers)
+                    chr?.SendMessage("[{0}] {1} left the region ({2} {3})){4}",
+                        DateTime.Now.ToString("HH:mm:ss"), obj.ObjId, X, Y,
+                        obj is BaseUnit bu ? " - " + bu.Name : "");
         }
 
         public void AddToCharacters(GameObject obj)
