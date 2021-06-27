@@ -158,18 +158,18 @@ namespace AAEmu.Game.Core.Managers
             owner.Id = Carriage.Id;
             owner.ModelId = Carriage.ModelId;
             owner.Template = Carriage;
-            owner.BondingObjId = 0;
             owner.AttachPointId = AttachPointKind.System ;
-            owner.Level = 50;
+            owner.BondingObjId = 0;
+            owner.Level = 1;
             owner.Hp = owner.MaxHp;
             owner.Mp = owner.MaxMp;
             owner.ModelParams = new UnitCustomModelParams();
+            owner.Bounded = null;
             owner.Transform.ApplyWorldSpawnPosition(spawner.Position);
             owner.Transform.ResetFinalizeTransform();
             //owner.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(spawner.RotationZ));
             //var quat = Quaternion.CreateFromYawPitchRoll(spawner.RotationZ, 0.0f, 0.0f);
 
-            owner.Faction = new SystemFaction();
             owner.Faction = FactionManager.Instance.GetFaction(FactionsEnum.PcFriendly); // formerly set to 164
             
             owner.Patrol = null;
@@ -179,7 +179,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
 
-            // create Carriage like a normal object.
+            // Add additional transfer units if defined (like a Carriage/Boarding Part for example)
             if (Carriage.TransferBindings.Count <= 0) { return owner; }
 
             var boardingPart = GetTransferTemplate(Carriage.TransferBindings[0].TransferId); // 46 - The wagon boarding part
@@ -187,16 +187,16 @@ namespace AAEmu.Game.Core.Managers
             transfer.Name = boardingPart.Name;
             transfer.TlId = owner.TlId; // (ushort)TlIdManager.Instance.GetNextId();
             transfer.ObjId = ObjectIdManager.Instance.GetNextId();
-            //transfer.OwnerId = 255;
             transfer.OwnerId = owner.ObjId;
             transfer.Spawner = owner.Spawner;
             transfer.TemplateId = boardingPart.Id;
             transfer.Id = boardingPart.Id;
             transfer.ModelId = boardingPart.ModelId;
             transfer.Template = boardingPart;
-            transfer.Level = 50;
-            transfer.BondingObjId = owner.ObjId;
+            transfer.Level = 1;
+            // Attach it to master
             transfer.AttachPointId = owner.Template.TransferBindings[0].AttachPointId;
+            transfer.BondingObjId = owner.ObjId;
             transfer.Hp = transfer.MaxHp;
             transfer.Mp = transfer.MaxMp;
             transfer.ModelParams = new UnitCustomModelParams();
@@ -214,24 +214,24 @@ namespace AAEmu.Game.Core.Managers
             // add effect
             buffId = BuffsEnum.Untouchable; // Buff: Unable to attack this target
             transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
+
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
             transfer.Spawn();
             _activeTransfers.Add(transfer.ObjId, transfer);
-
+            
             foreach (var doodadBinding in transfer.Template.TransferBindingDoodads)
             {
                 var doodad = DoodadManager.Instance.Create(0, doodadBinding.DoodadId, transfer);
                 doodad.Transform.StickyParent = null;
                 doodad.Transform.Parent = transfer.Transform;
-                //doodad.OwnerObjId = 0;
                 doodad.ParentObjId = transfer.ObjId;
                 //doodad.Spawner = new DoodadSpawner();
                 doodad.AttachPoint = doodadBinding.AttachPointId;
                 switch (doodadBinding.AttachPointId)
                 {
                     case AttachPointKind.Passenger0:
-                        doodad.Transform.Local.SetPosition(0.00537476f, 5.7852f, 1.36648f, 0, 0, 0);
+                        doodad.Transform.Local.SetPosition(0.00537476f, 5.7852f, 1.36648f, 0, 0, MathF.PI * 2f);
                         break;
                     case AttachPointKind.Passenger1:
                         doodad.Transform.Local.SetPosition(0.00537476f, 1.63614f, 1.36648f, 0, 0, 0);
@@ -242,6 +242,7 @@ namespace AAEmu.Game.Core.Managers
                 doodad.Data = (byte)doodadBinding.AttachPointId;
                 doodad.SetScale(1f);
                 doodad.FuncGroupId = doodad.GetFuncGroupId();
+                doodad.OwnerType = DoodadOwnerType.System;
                 doodad.Spawn();
                 transfer.AttachedDoodads.Add(doodad);
             }

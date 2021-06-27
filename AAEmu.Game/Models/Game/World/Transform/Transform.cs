@@ -398,8 +398,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     if (stickyChild == null)
                         continue;
                     stickyChild.Local.Translate(worldPosDelta);
-                    WorldManager.Instance.AddVisibleObject(stickyChild._owningObject);                        
                     stickyChild.FinalizeTransform(includeChildren);
+                    WorldManager.Instance.AddVisibleObject(stickyChild._owningObject);                        
 
                     if (!(stickyChild.GameObject is Unit))
                         continue;
@@ -434,7 +434,6 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     */
                 }
             }
-            ResetFinalizeTransform();            
            
             if (_owningObject == null)
                 return;
@@ -449,6 +448,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 foreach (var chld in slave.AttachedSlaves)
                     WorldManager.Instance.AddVisibleObject(chld);
             }
+            /*
             if (_owningObject is Transfer transfer)
             {
                 foreach (var dood in transfer.AttachedDoodads)
@@ -460,6 +460,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                         WorldManager.Instance.AddVisibleObject(chr);
                     }
             }
+            */
 
             if (includeChildren)
             {
@@ -470,7 +471,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 }
             }
             
-
+            ResetFinalizeTransform();            
             //_owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,Local.Rotation.X,Local.Rotation.Y,Local.Rotation.Z);
         }
 

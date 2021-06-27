@@ -706,15 +706,16 @@ namespace AAEmu.Game.Models.Game.Units
 
                 // moving to the point #
                 var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
-                moveTypeTr.UseTransferBase(this);
+                moveTypeTr.UseTransferBase(transfer);
                 transfer.SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, (float)transfer.Angle);
+                // Added so whatever riding this, doesn't clip out of existence when moving
+                transfer.Transform.FinalizeTransform(true);
                 // Only send movement of the main vehicle motor, client will drag carriage on it's own
                 if (Bounded != null) 
                 {
                     transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
-                    // Added so whatever riding this, doesn't clip out of existence when moving
-                    transfer.Transform.FinalizeTransform(true);
                 }
+                
 
                 /*
                 if (Bounded != null)
@@ -775,7 +776,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (transfer.Template.TransferAllPaths[current].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[next].WaitTimeStart > 0)
             {
                 // за несколько (3 ?) точек до конца участка будем тормозить
-                if (transfer.TransferPath.Count - transfer.MoveStepIndex <= 5)
+                if (transfer.TransferPath.Count - transfer.MoveStepIndex <= 1)
                 {
                     if (transfer.velAccel > 0)
                     {

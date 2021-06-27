@@ -155,7 +155,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 case Character _:
                 case Npc _:
-                    stream.Write((sbyte)-1); // point
+                    stream.Write((byte)AttachPointKind.System); // point
                     break;
                 case Slave unit:
                     stream.Write(unit.AttachPointId);
@@ -165,7 +165,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 case House _:
                 case Mate _:
                 case Shipyard _:
-                    stream.Write((sbyte)-1);   // point
+                    stream.Write((byte)AttachPointKind.System);   // point
                     break;
                 case Transfer unit:
                     stream.Write((byte)unit.AttachPointId);  // point
