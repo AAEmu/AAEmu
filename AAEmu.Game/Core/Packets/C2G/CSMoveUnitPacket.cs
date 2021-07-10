@@ -239,5 +239,11 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
                 unit.Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
         }
+        
+        public override string Verbose()
+        {
+            return " - " + (_moveType?.Type.ToString() ?? "none") + " " + (WorldManager.Instance.GetGameObject(_objId)?.DebugName() ?? "("+_objId.ToString()+")");
+        }
+
     }
 }

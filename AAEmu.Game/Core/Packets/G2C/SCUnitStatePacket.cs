@@ -5,6 +5,7 @@ using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -427,6 +428,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             return stream;
         }
+        
         #region Inventory_Equip
         private void Inventory_Equip(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
         {
@@ -671,5 +673,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(0u);                      // type(id) -> cooldownSkill
         }
         #endregion NetBuff
+
+        public override string Verbose()
+        {
+            return " - " + _baseUnitType.ToString() + " - " + _unit?.DebugName();
+        }
     }
 }

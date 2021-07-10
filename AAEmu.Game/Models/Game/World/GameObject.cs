@@ -100,7 +100,8 @@ namespace AAEmu.Game.Models.Game.World
         {
             if ((Transform != null) && (Transform.Children.Count > 0))
                 foreach (var child in Transform.Children.ToArray())
-                    child?.GameObject?.AddVisibleObject(character);
+                    //if (child?.GameObject != character) // Never send to self, or the client crashes
+                        child?.GameObject?.AddVisibleObject(character);
         }
 
         public virtual void RemoveVisibleObject(Character character)
@@ -112,7 +113,13 @@ namespace AAEmu.Game.Models.Game.World
             }
             if ((Transform != null) && (Transform.Children.Count > 0))
                 foreach (var child in Transform.Children.ToArray())
-                    child?.GameObject?.RemoveVisibleObject(character);
+                    //if (child?.GameObject != character) // Never send to self, or the client crashes
+                        child?.GameObject?.RemoveVisibleObject(character);
+        }
+
+        public virtual string DebugName()
+        {
+            return "("+ ObjId.ToString() +") - " + ToString();
         }
     }
 }

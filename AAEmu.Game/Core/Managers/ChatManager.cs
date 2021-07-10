@@ -35,15 +35,11 @@ namespace AAEmu.Game.Core.Managers
         {
             if (character == null)
                 return false;
+
+            if (members.Contains(character))
+                return false;
+            
             // character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
-            for (var i = members.Count-1; i >= 0; i--)
-            {
-                if (members[i].Id == character.Id)
-                {
-                    members[i] = character; // override it just to be sure
-                    return false;
-                }
-            }
             members.Add(character);
             character.SendPacket(new SCJoinedChatChannelPacket(chatType, subType, faction));
 
@@ -55,18 +51,12 @@ namespace AAEmu.Game.Core.Managers
             if (character == null)
                 return false;
             // character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
-            var res = 0;
-            for (var i = members.Count - 1; i >= 0; i--)
+            if (members.Remove(character))
             {
-                if (members[i].Id == character.Id)
-                {
-                    character.SendPacket(new SCLeavedChatChannelPacket(chatType, subType, faction));
-                    members.RemoveAt(i);
-                    res++;
-                }
+                character.SendPacket(new SCLeavedChatChannelPacket(chatType, subType, faction));
+                return true;
             }
-
-            return (res > 0);
+            return false;
         }
 
         /// <summary>
@@ -172,19 +162,19 @@ namespace AAEmu.Game.Core.Managers
         public void LeaveAllChannels(Character character)
         {
             foreach (var c in _factionChannels)
-                c.Value.LeaveChannel(character);
+                c.Value?.LeaveChannel(character);
             foreach (var c in _nationChannels)
-                c.Value.LeaveChannel(character);
+                c.Value?.LeaveChannel(character);
             foreach (var c in _zoneChannels)
-                c.Value.LeaveChannel(character);
+                c.Value?.LeaveChannel(character);
             foreach (var c in _partyChannels)
-                c.Value.LeaveChannel(character);
+                c.Value?.LeaveChannel(character);
             foreach (var c in _raidChannels)
-                c.Value.LeaveChannel(character);
+                c.Value?.LeaveChannel(character);
             foreach (var c in _guildChannels)
-                c.Value.LeaveChannel(character);
+                c.Value?.LeaveChannel(character);
             foreach (var c in _familyChannels)
-                c.Value.LeaveChannel(character);
+                c.Value?.LeaveChannel(character);
         }
 
         /// <summary>

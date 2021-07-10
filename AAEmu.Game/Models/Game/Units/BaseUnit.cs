@@ -125,5 +125,12 @@ namespace AAEmu.Game.Models.Game.Units
             //Some weird stuff happens here when in an invalid region..
             return Region?.GetNeighbors()?.Any(o => (o?.Id ?? 0) == (unit.Region?.Id ?? 0)) ?? false;
         }
+
+        public override string DebugName()
+        {
+            if (string.IsNullOrWhiteSpace(Name))
+                return base.DebugName();
+            return "(" + ObjId.ToString() + ") - " + Name;
+        }
     }
 }

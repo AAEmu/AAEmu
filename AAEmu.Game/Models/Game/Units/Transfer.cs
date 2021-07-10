@@ -711,9 +711,17 @@ namespace AAEmu.Game.Models.Game.Units
                 // Added so whatever riding this, doesn't clip out of existence when moving
                 transfer.Transform.FinalizeTransform(true);
                 // Only send movement of the main vehicle motor, client will drag carriage on it's own
-                if (Bounded != null) 
+                if ((transfer.Bounded != null) || (transfer.ParentObj == null)) 
                 {
                     transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
+                    /*
+                    // Debug stuff
+                    if (transfer.Transform._debugTrackers.Count > 0)
+                    {
+                        var neighbouringPlayers = WorldManager.Instance.GetAround<Character>(transfer);
+                        _log.Debug("TransferMovement {0} visible to {1} player(s)", DebugName(), neighbouringPlayers.Count);
+                    }
+                    */
                 }
                 
 

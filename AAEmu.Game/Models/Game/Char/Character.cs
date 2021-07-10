@@ -2045,7 +2045,8 @@ namespace AAEmu.Game.Models.Game.Char
 
         public override void AddVisibleObject(Character character)
         {
-            character.SendPacket(new SCUnitStatePacket(this));
+            if (this != character) // Never send to self, or the client crashes
+                character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
             /*
             // If player is hanging on something, also send a hung packet, this should work in theory, but doesn't
@@ -2059,7 +2060,8 @@ namespace AAEmu.Game.Models.Game.Char
         {
             base.RemoveVisibleObject(character);
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+            if (this != character) // Never send to self, or the client crashes
+                character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
         }
 
         public PacketStream Write(PacketStream stream)
@@ -2122,6 +2124,11 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Updated);
             stream.Write((byte)0); // forceNameChange
             return stream;
+        }
+
+        public override string DebugName()
+        {
+            return base.DebugName() + " ("+Id+")";
         }
     }
 }
