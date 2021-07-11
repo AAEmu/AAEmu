@@ -1,0 +1,12 @@
+Support for docker was added with PR 267 on 2021-05-27 by alex-marchenko
+https://github.com/AAEmu/AAEmu/pull/267
+
+Shellscripts you can use:
+--------------------------
+start.sh builds docker images for AAEmu.Login and AAEmu.Game and starts them along with db container. Building machine requires only docker and docker-compose
+
+stop.sh shuts down and removes all containers leaving only docker volume with db
+
+stop-reset-db.sh shuts down and removes all containers WITH db volume
+
+clear-caches.sh convenience script, removes all cached intermediate docker images, might be useful if you're building a lot
