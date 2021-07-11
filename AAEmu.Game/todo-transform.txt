@@ -1,12 +1,8 @@
 ﻿ToDo list for Transforms
 -------------------------
 
-- Make carriages not half despawn on region borders
-
 - Check if rotations work as intended
 - Check if parenting works as intended
 - Check if rotation on multiple parent objects works as intended
 - Double-check skill that use rotations
 - Check units, doodad, gimmicks, transfers default rotation
-- Re-import/convert object jsons
-
