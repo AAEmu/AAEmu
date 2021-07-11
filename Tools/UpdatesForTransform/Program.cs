@@ -219,7 +219,7 @@ namespace UpdatesForTransform
                 Console.WriteLine("+----------------------------------------------------------------+");
                 Console.WriteLine("| It looks like the json files were already converted previously |");
                 Console.WriteLine("| as no old rotation data was found.                             |");
-                Console.WriteLine("| It is HIGHLY ADVICED to RESTORE the created .json.old files !  |");
+                Console.WriteLine("| It is HIGHLY ADVISED to RESTORE the created .json.old files !  |");
                 Console.WriteLine("| You will need to do this manually.                             |");
                 Console.WriteLine("+----------------------------------------------------------------+");
                 Console.WriteLine("");

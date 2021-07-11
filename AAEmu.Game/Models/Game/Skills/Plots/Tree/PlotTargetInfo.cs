@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.Utils;
@@ -111,7 +112,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             {
                 posUnit.Transform.Local.AddDistanceToFront((args.Distance / 1000f) - 0.01f);
             }
-            posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
+            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f),WorldManager.Instance.GetHeight(posUnit.Transform)));
+            // posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)
             {
@@ -180,7 +182,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             posUnit.Transform.WorldId = PreviousTarget.Transform.WorldId;
             posUnit.Transform.Local.SetZRotation(((float)Rand.Next(-180, 180)).DegToRad());
             posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
-            posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
+            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f),WorldManager.Instance.GetHeight(posUnit.Transform)));
+            //posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)
             {

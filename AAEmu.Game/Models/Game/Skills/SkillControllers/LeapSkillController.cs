@@ -93,9 +93,12 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             //var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y, angle);
             var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, angle);
+            var newZ = AppConfiguration.Instance.HeightMapsEnable ? 
+                WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y) : 
+                Owner.Transform.World.Position.Z;
 
             // TODO: Implement Transform.World
-            Owner.Transform.World.SetPosition(newX,newY, AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(Owner.Transform.ZoneId, Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y) : Owner.Transform.World.Position.Z);
+            Owner.Transform.World.SetPosition(newX,newY, newZ);
             Owner.Transform.World.SetRotationDegree(0f, 0f, angle-90);
 
 
@@ -106,8 +109,8 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
             moveType.VelX = (short)velX;
             moveType.VelY = (short)velY;
             var rpy = Owner.Transform.Local.ToRollPitchYawSBytesMovement();
-            moveType.RotationX = rpy.Item1;
-            moveType.RotationY = rpy.Item2;
+            moveType.RotationX = 0; //rpy.Item1;
+            moveType.RotationY = 0; //rpy.Item2;
             moveType.RotationZ = rpy.Item3;
             moveType.ActorFlags = flags;     // 5-walk, 4-run, 3-stand still
             moveType.Flags = 0x14;//SC move flag

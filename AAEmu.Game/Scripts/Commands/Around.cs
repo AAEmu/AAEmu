@@ -152,7 +152,8 @@ namespace AAEmu.Game.Scripts.Commands
                     character.SendMessage("[Around] GameObjects:");
                     for (var i = 0; i < go.Count; i++)
                     {
-                        c += ShowObjectData(character, go[i], i, "", verbose);
+                        if (go[i].Transform.Parent == null)
+                            c += ShowObjectData(character, go[i], i, "", verbose);
                         /*
                         character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + go[i].ObjId.ToString());
                         if (verbose)
