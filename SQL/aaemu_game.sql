@@ -114,7 +114,7 @@ CREATE TABLE `cash_shop_item` (
   `event_date` datetime DEFAULT '0001-01-01 00:00:00' COMMENT 'Event time',
   `dis_price` int unsigned DEFAULT '0' COMMENT 'Current selling price',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT AUTO_INCREMENT=20100054 CHARSET=utf8 COMMENT='In-game cashshop listings';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='In-game cashshop listings';
 
 
 DROP TABLE IF EXISTS `characters`;
