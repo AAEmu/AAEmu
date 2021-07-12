@@ -60,7 +60,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (this.ObjId == target.ObjId)
                 return false;
             var relation = GetRelationStateTo(target);
-            var zone = ZoneManager.Instance.GetZoneByKey(target.Position.ZoneId);
+            var zone = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId);
             if (this is Character me && target is Character other)
             {
                 var trgIsFlagged = other.Buffs.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF);
@@ -124,6 +124,13 @@ namespace AAEmu.Game.Models.Game.Units
 
             //Some weird stuff happens here when in an invalid region..
             return Region?.GetNeighbors()?.Any(o => (o?.Id ?? 0) == (unit.Region?.Id ?? 0)) ?? false;
+        }
+
+        public override string DebugName()
+        {
+            if (string.IsNullOrWhiteSpace(Name))
+                return base.DebugName();
+            return "(" + ObjId.ToString() + ") - " + Name;
         }
     }
 }

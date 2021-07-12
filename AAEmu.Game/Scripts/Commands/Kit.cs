@@ -166,18 +166,12 @@ namespace AAEmu.Game.Scripts.Commands
             GMItemKitConfig jsonkit = new GMItemKitConfig();
             try
             {
-                // string data = File.ReadAllText("Scripts\\Commands\\kits.json");
-                // _log.Info("data: " + data);
-                // jsonkit = JsonConvert.DeserializeObject<GMItemKitConfig>(data);
-                
-                var contents = FileManager.GetFileContents($"{FileManager.AppPath}Scripts/Commands/kits.json");
+                var filePath = Path.Combine(FileManager.AppPath, "Scripts", "Commands", "kits.json");
+                var contents = FileManager.GetFileContents(filePath);
                 if (string.IsNullOrWhiteSpace(contents))
-                    throw new IOException($"File {FileManager.AppPath}Scripts/Commands/kits.json doesn't exists or is empty.");
+                    throw new IOException($"File {filePath} doesn't exists or is empty.");
                 jsonkit = JsonConvert.DeserializeObject<GMItemKitConfig>(contents);
 
-                // if (!JsonHelper.TryDeserializeObject(contents, out _config, out _)) // TODO here can out Exception
-                //     throw new Exception(
-                //         $"Kits: Parse {FileManager.AppPath}Scripts/Commands/kits.json file");
                 kitconfig.itemkits.AddRange(jsonkit.itemkits);
             }
             catch (Exception x)

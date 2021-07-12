@@ -1,0 +1,8 @@
+﻿ToDo list for Transforms
+-------------------------
+
+- Check if rotations work as intended
+- Check if parenting works as intended
+- Check if rotation on multiple parent objects works as intended
+- Double-check skill that use rotations
+- Check units, doodad, gimmicks, transfers default rotation

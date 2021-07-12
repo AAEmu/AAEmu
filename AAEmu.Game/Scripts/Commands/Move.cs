@@ -57,9 +57,9 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (MoveToMe)
             {
-                var myX = character.Position.X;
-                var myY = character.Position.Y;
-                var myZ = character.Position.Z + 2f; // drop them slightly above you to avoid weird collision stuff
+                var myX = character.Transform.World.Position.X;
+                var myY = character.Transform.World.Position.Y;
+                var myZ = character.Transform.World.Position.Z + 2f; // drop them slightly above you to avoid weird collision stuff
                 if (targetPlayer != character)
                     targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r has called upon your presence !", character.Name);
                 targetPlayer.DisabledSetPosition = true;
@@ -70,9 +70,9 @@ namespace AAEmu.Game.Scripts.Commands
             
             if ((args.Length == firstarg) && (targetPlayer != character))
             {
-                var targetX = targetPlayer.Position.X;
-                var targetY = targetPlayer.Position.Y;
-                var targetZ = targetPlayer.Position.Z + 2f; // drop me slightly above them to avoid weird collision stuff
+                var targetX = targetPlayer.Transform.World.Position.X;
+                var targetY = targetPlayer.Transform.World.Position.Y;
+                var targetZ = targetPlayer.Transform.World.Position.Z + 2f; // drop me slightly above them to avoid weird collision stuff
                 character.DisabledSetPosition = true;
                 character.SendPacket(new SCTeleportUnitPacket(0, 0, targetX, targetY, targetZ, 0f));
                 character.SendMessage("[Move] Moved to |cFFFFFFFF{0}|r.", targetPlayer.Name);

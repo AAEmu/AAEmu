@@ -54,7 +54,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             if (Speed <= 0)
                 return 0;
 
-            var dist = MathUtil.CalculateDistance(caster.Position, target.Position, true);
+            var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, target.Transform.World.Position, true);
             //We want damage to be applied when the projectile hits target.
             return (int)Math.Round((dist / Speed) * 1000.0f);
 

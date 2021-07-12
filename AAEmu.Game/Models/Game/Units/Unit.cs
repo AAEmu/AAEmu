@@ -1,22 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -36,7 +39,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             get
             {
-                return ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
+                return (ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0) * Scale;
             }
         }
 
@@ -212,9 +215,14 @@ namespace AAEmu.Game.Models.Game.Units
             Cooldowns = new UnitCooldowns();
         }
 
-        public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        public void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {
-            var moved = !Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z);
+            SetPosition(x, y, z, (float)MathUtil.ConvertDirectionToRadian(rotationX), (float)MathUtil.ConvertDirectionToRadian(rotationY), (float)MathUtil.ConvertDirectionToRadian(rotationZ));
+        }
+        
+        public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
+        {
+            var moved = !Transform.World.Position.X.Equals(x) || !Transform.World.Position.Y.Equals(y) || !Transform.World.Position.Z.Equals(z);
             if (moved)
             {
                 Events.OnMovement(this, new OnMovementArgs());
@@ -222,7 +230,28 @@ namespace AAEmu.Game.Models.Game.Units
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
         }
 
-        public virtual void ReduceCurrentHp(Unit attacker, int value)
+        public bool CheckMovedPosition(Vector3 oldPosition)
+        {
+            var moved = !Transform.World.Position.X.Equals(oldPosition.X) || !Transform.World.Position.Y.Equals(oldPosition.Y) || !Transform.World.Position.Z.Equals(oldPosition.Z);
+            if (moved)
+            {
+                Events.OnMovement(this, new OnMovementArgs());
+            }
+            if (DisabledSetPosition)
+                return moved;
+
+            WorldManager.Instance.AddVisibleObject(this);
+            // base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+            return moved;
+        }
+
+        /// <summary>
+        /// Make unit take value amount of damage, if the unit dies, killReason is used as a reason
+        /// </summary>
+        /// <param name="attacker"></param>
+        /// <param name="value"></param>
+        /// <param name="killReason"></param>
+        public virtual void ReduceCurrentHp(Unit attacker, int value, KillReason killReason = KillReason.Damage)
         {
             if (Hp <= 0)
                 return;
@@ -241,7 +270,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (Hp <= 0)
             {
                 attacker.Events.OnKill(attacker, new OnKillArgs { target = attacker });
-                DoDie(attacker);
+                DoDie(attacker,killReason);
                 //StopRegen();
             }
             else
@@ -264,13 +293,13 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
         }
 
-        public virtual void DoDie(Unit killer)
+        public virtual void DoDie(Unit killer, KillReason killReason)
         {
             InterruptSkills();
 
             Events.OnDeath(this, new OnDeathArgs { Killer = killer, Victim =  this});
             Buffs.RemoveEffectsOnDeath();
-            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.Damage, killer), true);
+            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, killer), true);
             if (killer == this)
                 return;
 
@@ -447,10 +476,10 @@ namespace AAEmu.Game.Models.Game.Units
         
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
-            if (Position == baseUnit.Position)
+            if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
                 return 0.0f;
             
-            var rawDist = MathUtil.CalculateDistance(this.Position, baseUnit.Position, includeZAxis);
+            var rawDist = MathUtil.CalculateDistance(this.Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
 
             rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
             if (baseUnit is Unit unit)
@@ -526,5 +555,47 @@ namespace AAEmu.Game.Models.Game.Units
         {
             
         }
+        
+        /// <summary>
+        /// Does fall damage based on velocity 
+        /// </summary>
+        /// <param name="fallVel">Velocity value from MoveType</param>
+        /// <returns>The damage that was dealt</returns>
+        public virtual int DoFallDamage(ushort fallVel)
+        {
+            var fallDmg = Math.Min(MaxHp, (int)(MaxHp * ((fallVel - 8600) / 15000f)));
+            var minHpLeft = MaxHp / 20; //5% of hp 
+            var maxDmgLeft = Hp - minHpLeft; // Max damage one can take 
+
+            if (fallVel >= 32000)
+            {
+                ReduceCurrentHp(this, Hp); // This is instant death so should be first
+                // This will also kill anybody riding this if this is a mount
+            }
+            else
+            {
+                if (fallDmg < maxDmgLeft)
+                {
+                    ReduceCurrentHp(this, fallDmg); //If you can take the hit without reaching 5% hp left take it
+                }
+                else
+                {
+                    var duration = 500 * (fallDmg / minHpLeft);
+
+                    var buff = SkillManager.Instance.GetBuffTemplate(BuffsEnum.FallStun);
+                    var casterObj = new SkillCasterUnit(ObjId);
+                    Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now), 0, duration);
+
+                    if (Hp > minHpLeft)
+                        ReduceCurrentHp(this, maxDmgLeft); // Leaves you at 5% hp no matter what
+                }
+            }
+
+            BroadcastPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)fallDmg), true);
+            //SendPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)fallDmg));
+            // TODO: Maybe adjust formula & need to detect water landing?
+            return fallDmg;
+        }
+        
     }
 }

@@ -87,13 +87,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                 PlotObject casterPlotObj;
                 if (targetInfo.Source.ObjId == uint.MaxValue)
-                    casterPlotObj = new PlotObject(targetInfo.Source.Position);
+                    casterPlotObj = new PlotObject(targetInfo.Source.Transform);
                 else
                     casterPlotObj = new PlotObject(targetInfo.Source);
 
                 PlotObject targetPlotObj;
                 if (targetInfo.Target.ObjId == uint.MaxValue)
-                    targetPlotObj = new PlotObject(targetInfo.Target.Position);
+                    targetPlotObj = new PlotObject(targetInfo.Target.Transform);
                 else
                     targetPlotObj = new PlotObject(targetInfo.Target);
 

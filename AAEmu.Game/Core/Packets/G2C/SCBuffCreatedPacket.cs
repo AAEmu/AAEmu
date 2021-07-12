@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
@@ -31,6 +32,11 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0);
             _buff.WriteData(stream);
             return stream;
+        }
+
+        public override string Verbose()
+        {
+            return " - " + WorldManager.Instance.GetGameObject(_buff.Owner.ObjId)?.DebugName() + " <- " + _buff?.Template?.BuffId.ToString();
         }
     }
 }

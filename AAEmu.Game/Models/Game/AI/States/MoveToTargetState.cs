@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.Char;
@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.AI.States
         public override void Enter()
         {
             _log.Debug("Entering MoveToTargetState - {0}", Target.Name);
-            PreviousDistance = MathUtil.CalculateDistance(AI.Owner.Position, Target.Position);
+            PreviousDistance = MathUtil.CalculateDistance(AI.Owner, Target);
         }
 
         public override void Tick(TimeSpan delta)
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             // if (PreviousDistance > AI.Params.CombatRange)
             if (PreviousDistance > 2.5f)
             {
-                npc.MoveTowards(Target.Position, 3.4f * (delta.Milliseconds / 1000.0f));
+                npc.MoveTowards(Target.Transform.World.Position, 3.4f * (delta.Milliseconds / 1000.0f));
             }
             else
             {
@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.AI.States
                 // Go in combat 
             }
             
-            PreviousDistance = MathUtil.CalculateDistance(AI.Owner.Position, Target.Position);
+            PreviousDistance = MathUtil.CalculateDistance(AI.Owner, Target);
         }
     }
 }

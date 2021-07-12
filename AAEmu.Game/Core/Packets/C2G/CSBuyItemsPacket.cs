@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Merchant;
@@ -40,10 +41,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             MerchantGoods pack = null;
             if (npc != null)
             {
-                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Position, npc.Position);
+                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, npc.Transform.World.Position);
                 if (dist > 3f) // 3m should be enough for NPC shops
                 {
-                    Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.TooFarAway);
+                    Connection.ActiveChar.SendErrorMessage(ErrorMessageType.TooFarAway);
                     return;
                 }
                 pack = NpcManager.Instance.GetGoods(npc.Template.MerchantPackId);
@@ -54,10 +55,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 if (doodad == null)
                     return;
-                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Position, doodad.Position);
+                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
                 if (dist > 3f) // 3m should be enough for these
                 {
-                    Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.TooFarAway);
+                    Connection.ActiveChar.SendErrorMessage(ErrorMessageType.TooFarAway);
                     return;
                 }
             }

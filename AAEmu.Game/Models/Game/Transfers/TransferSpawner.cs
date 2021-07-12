@@ -22,7 +22,6 @@ namespace AAEmu.Game.Models.Game.Transfers
         private Transfer _lastSpawn;
         private int _scheduledCount;
         private int _spawnCount;
-        public float RotationZ;
 
         public uint Count { get; set; }
 
@@ -57,8 +56,8 @@ namespace AAEmu.Game.Models.Game.Transfers
             }
 
             transfer.Spawner = this;
-            transfer.Position = Position.Clone();
-            if (transfer.Position == null)
+            transfer.Transform.ApplyWorldSpawnPosition(Position, transfer.Transform.InstanceId, true);
+            if (transfer.Transform == null)
             {
                 _log.Error("Can't spawn transfer {1} from spawn {0}", Id, UnitId);
                 return null;
@@ -75,9 +74,10 @@ namespace AAEmu.Game.Models.Game.Transfers
                     {
                         transfer.Routes.TryAdd(i, transfer.Template.TransferRoads[i].Pos);
                     }
-                    transfer.TransferPath = transfer.Routes[0]; // начнем с самого начала
 
-                    if (transfer.Routes[0] != null)
+                    transfer.TransferPath = transfer.Routes.Count > 0 ? transfer.Routes[0] : null;// начнем с самого начала
+
+                    if ((transfer.TransferPath != null) && (transfer.TransferPath.Count >= 2))
                     {
                         //_log.Warn("TransfersPath #" + transfer.TemplateId);
                         //_log.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
@@ -87,8 +87,8 @@ namespace AAEmu.Game.Models.Game.Transfers
                         transfer.PathPointIndex = 0;
 
                         // попробуем заспавнить в первой точке пути и попробуем смотреть на следующую точку
-                        var point = transfer.Routes[0][0];
-                        var point2 = transfer.Routes[0][1];
+                        var point = transfer.TransferPath[0];
+                        var point2 = transfer.TransferPath[1];
 
                         var vPosition = new Vector3(point.X, point.Y, point.Z);
                         var vTarget = new Vector3(point2.X, point2.Y, point2.Z);
@@ -96,25 +96,14 @@ namespace AAEmu.Game.Models.Game.Transfers
 
                         //transfer.Position.RotationZ = MathUtil.ConvertDegreeToDirection(MathUtil.RadianToDegree(transfer.Angle));
                         //var quat = Quaternion.CreateFromYawPitchRoll((float)transfer.Angle, 0.0f, 0.0f);
-                        
-                        transfer.Position.RotationZ = Helpers.ConvertRadianToSbyteDirection((float)transfer.Angle);
                         var quat = MathUtil.ConvertRadianToDirectionShort(transfer.Angle);
-
                         transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
+                        transfer.Transform.ApplyWorldSpawnPosition(point, transfer.Transform.InstanceId, true);
 
-                        transfer.Position.WorldId = 0;
-                        transfer.Position.ZoneId = transfer.Template.TransferRoads[0].ZoneId;
-                        transfer.Position.ZoneId = WorldManager.Instance.GetZoneId(transfer.Position.WorldId, point.X, point.Y);
-                        transfer.Position.X = point.X;
-                        transfer.Position.Y = point.Y;
-                        transfer.Position.Z = point.Z;
-
-                        transfer.WorldPos = new WorldPos(Helpers.ConvertLongX(point.X), Helpers.ConvertLongY(point.Y), point.Z);
                         //_log.Warn("TransfersPath #" + transfer.TemplateId);
-                        //_log.Warn("New spawn X={0}", transfer.Position.X);
-                        //_log.Warn("New spawn Y={0}", transfer.Position.Y);
-                        //_log.Warn("New spawn Z={0}", transfer.Position.Z);
-                        //_log.Warn("transfer.Rot={0}, rotZ={1}, zoneId={2}", transfer.Rot, transfer.Position.RotationZ, transfer.Position.ZoneId);
+                        //_log.Warn("New spawn Pos={0}", transfer.Transform.ToString());
+                        //_log.Warn("zoneId={0}", transfer.Transform.ZoneId);
+                        
 
                         transfer.GoToPath(transfer);
                         //TransferManager.Instance.AddMoveTransfers(transfer.ObjId, transfer);

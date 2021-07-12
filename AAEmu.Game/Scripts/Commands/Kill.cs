@@ -4,6 +4,8 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -29,11 +31,10 @@ namespace AAEmu.Game.Scripts.Commands
         {
             Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, null, out var _);
             var playerTarget = character.CurrentTarget;
-            if (playerTarget is Npc)
+            if (playerTarget is Unit aUnit)
             {
                 // Player is trying to kill an NPC/Monster
-                var npcChar = (Npc)character.CurrentTarget;
-                if (npcChar.Hp == 0)
+                if (aUnit.Hp == 0)
                 {
                     character.SendMessage("Target is already dead");
                 }
@@ -41,22 +42,13 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     // We must broadcast this package because if character had initially attacked the mob and then executed kill
                     // the mob's "ghost" will still be attacking you and draining HP even though he doesn't exist in the world anymore
-                    npcChar.CurrentTarget = null;
+                    aUnit.CurrentTarget = null;
                     // HP must be set to 0 because if character engaged in battle and then ran kill command, after mob dies
                     // its hp will start regenerating
-                    npcChar.Hp = 0;
-                    npcChar.DoDie(character);
-                }
-            }
-            else if (playerTarget is Character)
-            {
-                if (targetPlayer.Hp == 0)
-                {
-                    character.SendMessage("Target is already dead");
-                }
-                else
-                {
-                    targetPlayer.DoDie(character);
+                    aUnit.Hp = 0;
+                    // Don't directly do the DoDie(), but trigger a damage with enough damage to kill target
+                    // no matter what (even if it somehow still had hp after settings it to 0)
+                    aUnit.ReduceCurrentHp(character, (aUnit.MaxHp+1) * 10, KillReason.Gm);
                 }
             }
             else

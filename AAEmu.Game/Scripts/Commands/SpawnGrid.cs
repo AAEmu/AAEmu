@@ -40,15 +40,15 @@ namespace AAEmu.Game.Scripts.Commands
             var doodadSpawner = new DoodadSpawner();
             doodadSpawner.Id = 0;
             doodadSpawner.UnitId = unitId;
-            doodadSpawner.Position = character.Position.Clone();
+            doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
             doodadSpawner.Position.Y = newY;
             doodadSpawner.Position.X = newX;
-            double angle = MathUtil.CalculateAngleFrom(doodadSpawner.Position.Y, doodadSpawner.Position.X, character.Position.Y, character.Position.X);
-            sbyte newRotZ = MathUtil.ConvertDegreeToDoodadDirection(angle);
-            doodadSpawner.Position.RotationX = 0;
-            doodadSpawner.Position.RotationY = 0;
-            doodadSpawner.Position.RotationZ = newRotZ;
+            var angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.X, doodadSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
+            doodadSpawner.Position.Yaw = angle.DegToRad(); // TODO: this seems wrong for now, will need to replace with a LookAt() at some later point
+            doodadSpawner.Position.Pitch = 0;
+            doodadSpawner.Position.Roll = 0;
             doodadSpawner.Spawn(0);
+            character.SendMessage(doodadSpawner.Position.ToString());
         }
 
         public void SpawnNPC(uint unitId,Character character,float newX, float newY)
@@ -56,14 +56,13 @@ namespace AAEmu.Game.Scripts.Commands
             var npcSpawner = new NpcSpawner();
             npcSpawner.Id = 0;
             npcSpawner.UnitId = unitId;
-            npcSpawner.Position = character.Position.Clone();
+            npcSpawner.Position = character.Transform.CloneAsSpawnPosition();
             npcSpawner.Position.Y = newY;
             npcSpawner.Position.X = newX;
-            var angle = MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Position.X, character.Position.Y);
-            sbyte newRotZ = MathUtil.ConvertDegreeToDirection(angle);
-            npcSpawner.Position.RotationX = 0;
-            npcSpawner.Position.RotationY = 0;
-            npcSpawner.Position.RotationZ = newRotZ;
+            var angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
+            npcSpawner.Position.Yaw = angle.DegToRad();
+            npcSpawner.Position.Pitch = 0;
+            npcSpawner.Position.Roll = 0;
             npcSpawner.SpawnAll();
         }
 
@@ -113,30 +112,29 @@ namespace AAEmu.Game.Scripts.Commands
                     return;
             }
 
-            float newX;
-            float newY;
             float startX;
             float startY;
 
             // Origin point for spawns
-            (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Position.X, character.Position.Y, character.Position.RotationZ);
+            (startX, startY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
             for (var y = 0; y < rows; y++)
             {
                 float sizeY = rows * spacing;
-                float posY = y * spacing;
+                float posY = (y+1) * spacing;
                 for (var x = 0; x < columns; x++)
                 {
                     float sizeX = columns * spacing;
                     float posX = (x * spacing) - (sizeX / 2);
-                    (newX, newY) = MathUtil.AddDistanceToFront(posY, startX, startY, character.Position.RotationZ);
-                    (newX, newY) = MathUtil.AddDistanceToRight(posX, newX, newY, character.Position.RotationZ);
+                    var newPos = character.Transform.CloneDetached();
+                    newPos.Local.AddDistanceToFront(posY);
+                    newPos.Local.AddDistanceToRight(posX);
                     switch(action)
                     {
                         case "npc":
-                            SpawnNPC(templateId, character, newX, newY);
+                            SpawnNPC(templateId, character, newPos.World.Position.X, newPos.World.Position.Y);
                             break;
                         case "doodad":
-                            SpawnDoodad(templateId, character, newX, newY);
+                            SpawnDoodad(templateId, character, newPos.World.Position.X, newPos.World.Position.Y);
                             break;
                     }
                 }

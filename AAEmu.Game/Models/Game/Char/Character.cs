@@ -13,7 +13,7 @@ using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.Error;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
@@ -25,8 +25,10 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -136,7 +138,7 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterCraft Craft { get; set; }
 
         public int AccessLevel { get; set; }
-        public Point LocalPingPosition { get; set; } // added as a GM command helper
+        public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
         private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
 
         private bool _inParty;
@@ -148,6 +150,7 @@ namespace AAEmu.Game.Models.Game.Char
             get { return _isUnderWater; }
             set
             {
+                if (_isUnderWater == value) return;
                 _isUnderWater = value;
                 if (!_isUnderWater)
                     Breath = LungCapacity;
@@ -1392,26 +1395,37 @@ namespace AAEmu.Game.Models.Game.Char
             Faction = FactionManager.Instance.GetFaction(factionId);
         }
         
-        public override void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
+        public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
-            var moved = !Position.X.Equals(x) || !Position.Y.Equals(y) || !Position.Z.Equals(z);
-            var lastZoneKey = Position.ZoneId;
+            var moved = !Transform.Local.Position.X.Equals(x) || !Transform.Local.Position.Y.Equals(y) || !Transform.Local.Position.Z.Equals(z);
+            var lastZoneKey = Transform.ZoneId;
+            //Connection.ActiveChar.SendMessage("Move Old Pos: {0}", Transform.ToString());
+            
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
-            if (!IsUnderWater && Position.Z < 98) //TODO: Need way to determine when player is under any body of water. 
+            var worldDrownThreshold  = WorldManager.Instance.GetWorld(this.Transform.WorldId)?.OceanLevel -2f ?? 98f ;
+            if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold) 
                 IsUnderWater = true;
-            else if (IsUnderWater && Position.Z > 98)
+            else if (IsUnderWater && Transform.World.Position.Z > worldDrownThreshold)
                 IsUnderWater = false;
+            
+            // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.ToString());
             
             if (!moved)
                 return;
 
             Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
-
-            if (Position.ZoneId == lastZoneKey)
-                return;
             
-            OnZoneChange(lastZoneKey,Position.ZoneId);
+            // Update the party member position on the map
+            // TODO: Check the format of the send packet, as it doesn't seem to be correct
+            // TODO: Somehow make sure that players in instances don't show on the main world map 
+            if (this.InParty)
+                TeamManager.Instance.UpdatePosition(this.Id);
+
+            // Check if zone changed
+            if (Transform.ZoneId == lastZoneKey)
+                return;
+            OnZoneChange(lastZoneKey,Transform.ZoneId);
         }
 
         public void OnZoneChange(uint lastZoneKey, uint newZoneKey)
@@ -1452,25 +1466,25 @@ namespace AAEmu.Game.Models.Game.Char
                 }
             }
 
-            // Ok, we actually changed zone groups, we'll leave to do some chat channel stuff
+            // Ok, we actually changed zone groups, we'll have to do some chat channel stuff
             if (lastZoneGroupId != 0)
                 ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(this);
 
             if (newZoneGroupId != 0)
-                ChatManager.Instance.GetZoneChat(Position.ZoneId).JoinChannel(this);
+                ChatManager.Instance.GetZoneChat(Transform.ZoneId).JoinChannel(this);
 
             if (newZone != null && (!newZone.Closed))
                 return;
 
             // Entered a forbidden zone
             /*
-                            if (!thisChar.isGM)
-                            {
-                                // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
-                                // TODO: Remove backpack immediately
-                            }
-                            */
-            // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour
+                if (!thisChar.isGM)
+                {
+                    // TODO: for non-GMs, add a timed task to kick them out (recall to last Nui)
+                    // TODO: Remove backpack immediately
+                }
+            */
+            // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour!
             if (newZone != null)
                 SendMessage(ChatType.System,
                     "|cFFFF0000You have entered a closed zone ({0} - {1})!\nPlease leave immediately!|r",
@@ -1479,43 +1493,17 @@ namespace AAEmu.Game.Models.Game.Char
             SendErrorMessage(ErrorMessageType.ClosedZone);
         }
 
-        public void DoFallDamage(ushort fallVel)
+        public override int DoFallDamage(ushort fallVel)
         {
             if (AccessLevel > 0)
             {
-                _log.Warn("FallDamage disabled for GMs & Admins");
-                return; // GM & Admin не разбиваются
+                _log.Debug("{0}'s FallDamage disabled because of GM or Admin flag", Name);
+                return 0; // GM & Admin take 0 damage from falling
+                // TODO: Make this a option, or allow settings of minimum access level
             }
-            var fallDmg = Math.Min(MaxHp, (int)(MaxHp * ((fallVel - 8600) / 15000f)));
-            var minHpLeft = MaxHp / 20; //5% of hp 
-            var maxDmgLeft = Hp - minHpLeft; // Max damage one can take 
-
-            if (fallVel >= 32000)
-            {
-                ReduceCurrentHp(this, Hp); //This is instant death so should be first
-            }
-            else
-            {
-                if (fallDmg < maxDmgLeft)
-                {
-                    ReduceCurrentHp(this, fallDmg); //If you can take the hit without reaching 5% hp left take it
-                }
-                else
-                {
-                    var duration = 500 * (fallDmg / minHpLeft);
-
-                    var buff = SkillManager.Instance.GetBuffTemplate(1391);
-                    var casterObj = new SkillCasterUnit(ObjId);
-                    Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now), 0, duration);
-
-                    if (Hp > minHpLeft)
-                        ReduceCurrentHp(this, maxDmgLeft); //Leaves you at 5% hp no matter what
-                }
-            }
-
-            SendPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)fallDmg));
-            //todo stun & maybe adjust formula & need to detect water landing?
-            _log.Warn("FallDamage: Vel {0} DmgPerc: {1}, Damage {2}", fallVel, (int)((fallVel - 8600) / 150f), fallDmg);
+            var fallDamage = base.DoFallDamage(fallVel);
+            _log.Debug("FallDamage: {0} - Vel {1} DmgPerc: {2}, Damage {3}", Name, fallVel, (int)((fallVel - 8600) / 150f), fallDamage);
+            return fallDamage;
         }
 
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
@@ -1564,14 +1552,6 @@ namespace AAEmu.Game.Models.Game.Char
             SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-                character.SendPacket(packet);
-            if (self)
-                SendPacket(packet);
-        }
-
         public static Character Load(uint characterId, uint accountId)
         {
             using (var connection = MySQL.CreateConnection())
@@ -1606,6 +1586,33 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        /// <summary>
+        /// Forcibly remove character from any mount of vehicle they might be riding,
+        /// useful for calling before any kind of teleport function 
+        /// </summary>
+        /// <returns>Returns True is any dismounting happened by this function</returns>
+        public bool ForceDismount(AttachUnitReason reason = AttachUnitReason.PrefabChanged)
+        {
+            var res = false;
+            // Force dismount Mates (mounts)
+            var isOnMount = MateManager.Instance.GetIsMounted(ObjId, out var attachedRiderPoint);
+            if (isOnMount != null)
+            {
+                MateManager.Instance.UnMountMate(this, isOnMount.TlId, attachedRiderPoint, reason);
+                res = true;
+            }
+            // Force remove from slaves
+            var isOnSlave = SlaveManager.Instance.GetIsMounted(ObjId, out var attachedDriverPoint);
+            if (isOnSlave != null)
+            {
+                SlaveManager.Instance.UnbindSlave(this, isOnSlave.TlId, reason);
+                res = true;
+            }
+            // Unbind from any parent
+            Transform.DetachAll();
+            return res;
+        }
+
         #region Database
 
         public static Character Load(MySqlConnection connection, uint characterId, uint accountId)
@@ -1626,7 +1633,6 @@ namespace AAEmu.Game.Models.Game.Char
                         modelParams.Read(stream);
 
                         character = new Character(modelParams);
-                        character.Position = new Point();
                         character.AccountId = accountId;
                         character.Id = reader.GetUInt32("id");
                         character.Name = reader.GetString("name");
@@ -1644,14 +1650,11 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Ability1 = (AbilityType)reader.GetByte("ability1");
                         character.Ability2 = (AbilityType)reader.GetByte("ability2");
                         character.Ability3 = (AbilityType)reader.GetByte("ability3");
-                        character.Position.WorldId = reader.GetUInt32("world_id");
-                        character.Position.ZoneId = reader.GetUInt32("zone_id");
-                        character.Position.X = reader.GetFloat("x");
-                        character.Position.Y = reader.GetFloat("y");
-                        character.Position.Z = reader.GetFloat("z");
-                        character.Position.RotationX = reader.GetSByte("rotation_x");
-                        character.Position.RotationY = reader.GetSByte("rotation_y");
-                        character.Position.RotationZ = reader.GetSByte("rotation_z");
+                        character.Transform = new Transform(character, null,
+                            reader.GetUInt32("world_id"), reader.GetUInt32("zone_id"), WorldManager.DefaultInstanceId,
+                            reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"),
+                            reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll")
+                            );
                         character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
                         character.FactionName = reader.GetString("faction_name");
                         character.Expedition = ExpeditionManager.Instance.GetExpedition(reader.GetUInt32("expedition_id"));
@@ -1733,7 +1736,6 @@ namespace AAEmu.Game.Models.Game.Char
                         modelParams.Read(stream);
 
                         character = new Character(modelParams);
-                        character.Position = new Point();
                         character.Id = reader.GetUInt32("id");
                         character.AccountId = reader.GetUInt32("account_id");
                         character.Name = reader.GetString("name");
@@ -1751,14 +1753,11 @@ namespace AAEmu.Game.Models.Game.Char
                         character.Ability1 = (AbilityType)reader.GetByte("ability1");
                         character.Ability2 = (AbilityType)reader.GetByte("ability2");
                         character.Ability3 = (AbilityType)reader.GetByte("ability3");
-                        character.Position.WorldId = reader.GetUInt32("world_id");
-                        character.Position.ZoneId = reader.GetUInt32("zone_id");
-                        character.Position.X = reader.GetFloat("x");
-                        character.Position.Y = reader.GetFloat("y");
-                        character.Position.Z = reader.GetFloat("z");
-                        character.Position.RotationX = reader.GetSByte("rotation_x");
-                        character.Position.RotationY = reader.GetSByte("rotation_y");
-                        character.Position.RotationZ = reader.GetSByte("rotation_z");
+                        character.Transform = new Transform(character, null,
+                            reader.GetUInt32("world_id"), reader.GetUInt32("zone_id"), WorldManager.DefaultInstanceId,
+                            reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"),
+                            reader.GetFloat("yaw"), reader.GetFloat("pitch"), reader.GetFloat("roll")
+                            );
                         character.Faction = FactionManager.Instance.GetFaction(reader.GetUInt32("faction_id"));
                         character.FactionName = reader.GetString("faction_name");
                         character.Expedition = ExpeditionManager.Instance.GetExpedition(reader.GetUInt32("expedition_id"));
@@ -1818,7 +1817,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             Craft = new CharacterCraft(this);
             Procs = new UnitProcs(this);
-            LocalPingPosition = new Point();
+            LocalPingPosition = new WorldSpawnPosition();
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -1886,18 +1885,18 @@ namespace AAEmu.Game.Models.Game.Char
                         saved = Save(sqlConnection, transaction);
                         transaction.Commit();
                     }
-                    catch
+                    catch (Exception e)
                     {
                         saved = false;
-                        _log.Error(string.Format("Character save failed for {0} - {1}",Id, Name));
+                        _log.Error(e,"Character save failed for {0} - {1}\n",Id, Name);
                         try
                         {
                             transaction.Rollback();
                         }
-                        catch
+                        catch (Exception eRollback)
                         {
                             // Really failed here
-                            _log.Fatal(string.Format("Character save rollback failed for {0} - {1}", Id, Name));
+                            _log.Fatal(eRollback,"Character save rollback failed for {0} - {1}\n", Id, Name);
                         }
                     }
                 }
@@ -1928,8 +1927,21 @@ namespace AAEmu.Game.Models.Game.Char
                     // ----
                     command.CommandText =
                         "REPLACE INTO `characters` " +
-                        "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`,`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`,`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`,`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`,`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`hostile_faction_kills`,`pvp_honor`,`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`,`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`) " +
-                        "VALUES(@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp,@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3,@world_id,@zone_id,@x,@y,@z,@rotation_x,@rotation_y,@rotation_z,@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time,@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@hostile_faction_kills,@pvp_honor,@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift,@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
+                        "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`expirience`,`recoverable_exp`," +
+                        "`hp`,`mp`,`labor_power`,`labor_power_modified`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
+                        "`world_id`,`zone_id`,`x`,`y`,`z`,`rotation_x`,`rotation_y`,`rotation_z`," +
+                        "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
+                        "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`," +
+                        "`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
+                        "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`" +
+                        ") VALUES (" +
+                        "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp," +
+                        "@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3," +
+                        "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
+                        "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
+                        "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record," +
+                        "@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift," +
+                        "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
 
                     command.Parameters.AddWithValue("@id", Id);
                     command.Parameters.AddWithValue("@account_id", AccountId);
@@ -1949,14 +1961,14 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@ability1", (byte)Ability1);
                     command.Parameters.AddWithValue("@ability2", (byte)Ability2);
                     command.Parameters.AddWithValue("@ability3", (byte)Ability3);
-                    command.Parameters.AddWithValue("@world_id", WorldPosition?.WorldId ?? Position.WorldId);
-                    command.Parameters.AddWithValue("@zone_id", WorldPosition?.ZoneId ?? Position.ZoneId);
-                    command.Parameters.AddWithValue("@x", WorldPosition?.X ?? Position.X);
-                    command.Parameters.AddWithValue("@y", WorldPosition?.Y ?? Position.Y);
-                    command.Parameters.AddWithValue("@z", WorldPosition?.Z ?? Position.Z);
-                    command.Parameters.AddWithValue("@rotation_x", WorldPosition?.RotationX ?? Position.RotationX);
-                    command.Parameters.AddWithValue("@rotation_y", WorldPosition?.RotationY ?? Position.RotationY);
-                    command.Parameters.AddWithValue("@rotation_z", WorldPosition?.RotationZ ?? Position.RotationZ);
+                    command.Parameters.AddWithValue("@world_id", MainWorldPosition?.WorldId ?? Transform.WorldId);
+                    command.Parameters.AddWithValue("@zone_id", MainWorldPosition?.ZoneId ?? Transform.ZoneId);
+                    command.Parameters.AddWithValue("@x", MainWorldPosition?.World.Position.X ?? Transform.World.Position.X);
+                    command.Parameters.AddWithValue("@y", MainWorldPosition?.World.Position.Y ?? Transform.World.Position.Y);
+                    command.Parameters.AddWithValue("@z", MainWorldPosition?.World.Position.Z ?? Transform.World.Position.Z);
+                    command.Parameters.AddWithValue("@roll", MainWorldPosition?.World.Rotation.X ?? Transform.World.Rotation.X);
+                    command.Parameters.AddWithValue("@pitch", MainWorldPosition?.World.Rotation.Y ?? Transform.World.Rotation.Y);
+                    command.Parameters.AddWithValue("@yaw", MainWorldPosition?.World.Rotation.Z ?? Transform.World.Rotation.Z);
                     command.Parameters.AddWithValue("@faction_id", Faction.Id);
                     command.Parameters.AddWithValue("@faction_name", FactionName);
                     command.Parameters.AddWithValue("@expedition_id", Expedition?.Id ?? 0);
@@ -2033,19 +2045,23 @@ namespace AAEmu.Game.Models.Game.Char
 
         public override void AddVisibleObject(Character character)
         {
-            character.SendPacket(new SCUnitStatePacket(this));
+            if (this != character) // Never send to self, or the client crashes
+                character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            /*
+            // If player is hanging on something, also send a hung packet, this should work in theory, but doesn't
+            if (this.Transform.StickyParent != null)
+                character.SendPacket(new SCHungPacket(this.ObjId,this.Transform.StickyParent.GameObject.ObjId));
+            */
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
 
-            character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+            if (this != character) // Never send to self, or the client crashes
+                character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
         }
 
         public PacketStream Write(PacketStream stream)
@@ -2057,7 +2073,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Level);
             stream.Write(Hp);
             stream.Write(Mp);
-            stream.Write(Position.ZoneId);
+            stream.Write(Transform.ZoneId);
             stream.Write(Faction.Id);
             stream.Write(FactionName);
             stream.Write(Expedition?.Id ?? 0);
@@ -2076,9 +2092,9 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write((byte)Ability2);
             stream.Write((byte)Ability3);
 
-            stream.Write(Helpers.ConvertLongX(Position.X));
-            stream.Write(Helpers.ConvertLongY(Position.Y));
-            stream.Write(Position.Z);
+            stream.Write(Helpers.ConvertLongX(Transform.Local.Position.X));
+            stream.Write(Helpers.ConvertLongY(Transform.Local.Position.Y));
+            stream.Write(Transform.Local.Position.Z);
 
             stream.Write(ModelParams);
             stream.Write(LaborPower);
@@ -2108,6 +2124,11 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(Updated);
             stream.Write((byte)0); // forceNameChange
             return stream;
+        }
+
+        public override string DebugName()
+        {
+            return base.DebugName() + " ("+Id+")";
         }
     }
 }

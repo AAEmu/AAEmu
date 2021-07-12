@@ -16,5 +16,10 @@ namespace AAEmu.Commons.Network
             _log.Warn("{0} doesn't inherit Write()", GetType().FullName);
             return stream;
         }
+
+        public virtual string Verbose()
+        {
+            return string.Empty;
+        }
     }
 }

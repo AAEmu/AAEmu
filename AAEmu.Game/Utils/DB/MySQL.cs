@@ -14,7 +14,7 @@ namespace AAEmu.Game.Utils.DB
         {
             var config = AppConfiguration.Instance.Connections.MySQLProvider;
             ConnectionString =
-                $"server={config.Host};port={config.Port};user={config.User};password={config.Password};database={config.Database};Pooling=true;Min Pool Size=0;Max Pool Size=10;Connection Lifetime=600;charset=utf8;Allow Zero Datetime=true;Convert Zero Datetime=true;default command timeout=180;SslMode=none";
+                $"server={config.Host};port={config.Port};user={config.User};password={config.Password};database={config.Database};Pooling=true;Min Pool Size=0;Max Pool Size=10;Connection Lifetime=600;charset=utf8;Allow Zero Datetime=true;Convert Zero Datetime=true;default command timeout=180;SslMode=Preferred";
         }
 
         public static MySqlConnection CreateConnection()
@@ -26,7 +26,7 @@ namespace AAEmu.Game.Utils.DB
             }
             catch (Exception e)
             {
-                Log.Error("Error on DB connect: {0}", e.Message);
+                Log.Fatal(e, "Error on DB connect\n");
                 return null;
             }
 

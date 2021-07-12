@@ -63,7 +63,7 @@ namespace AAEmu.Game.Scripts.Commands
 
             if (zonegroupid <= 0)
             {
-                var thiszone = ZoneManager.Instance.GetZoneByKey(character.Position.ZoneId);
+                var thiszone = ZoneManager.Instance.GetZoneByKey(character.Transform.ZoneId);
                 if (thiszone != null)
                     zonegroupid = (ushort)(thiszone.GroupId);
             }

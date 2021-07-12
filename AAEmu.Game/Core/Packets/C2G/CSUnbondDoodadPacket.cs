@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 return;
 
             var doodad = Connection.ActiveChar.Bonding.GetOwner();
-            doodad.Seat.UnLoadPassenger(Connection.ActiveChar.Id, doodad.ObjId); // we free up the place where we were sitting
+            doodad.Seat.UnLoadPassenger(Connection.ActiveChar, doodad.ObjId); // we free up the place where we were sitting
 
             Connection.ActiveChar.Bonding.SetOwner(null);
             Connection.ActiveChar.Bonding = null;

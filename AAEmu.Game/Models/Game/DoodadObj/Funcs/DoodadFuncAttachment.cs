@@ -20,18 +20,20 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 if (BondKindId > BondKind.BondInvalid)
                 {
-                    var spot = owner.Seat.LoadPassenger(character.Id, owner.ObjId, Space); // ask for a free meta number for landing
+                    var spot = owner.Seat.LoadPassenger(character, owner.ObjId, Space); // ask for a free meta number for landing
                     if (spot == -1)
                     {
                         return; // we leave if there is no place
                     }
+
                     character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot);
                     character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
+                    character.Transform.StickyParent = owner.Transform;
                 }
                 // Ships // TODO Check how sit on the ship
                 else
                 {
-                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId, AttachUnitReason.NewMaster);
+                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId,AttachUnitReason.NewMaster);
                 }
             }
             owner.ToPhaseAndUse = false;

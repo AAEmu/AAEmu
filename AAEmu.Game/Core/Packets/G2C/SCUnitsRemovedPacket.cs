@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -20,6 +21,15 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.WriteBc(id);
 
             return stream;
+        }
+
+        public override string Verbose()
+        {
+            if (_ids?.Length > 1)
+                return " - Removed " + _ids.Length.ToString() + " objects";
+            if (_ids?.Length == 1)
+                return " - " + WorldManager.Instance.GetGameObject(_ids[0])?.DebugName();
+            return base.Verbose();
         }
     }
 }

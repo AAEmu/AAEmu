@@ -10,6 +10,8 @@ namespace AAEmu.Game.Models.Game.Models
         public float MassBoxSizeX { get; set; }
         public float MassBoxSizeY { get; set; }
         public float MassBoxSizeZ { get; set; }
+        public float WaterDensity { get; set; }
+        public float WaterResistance { get; set; }
         // ...
         public float SteerVel { get; set; }
         public float Accel { get; set; }

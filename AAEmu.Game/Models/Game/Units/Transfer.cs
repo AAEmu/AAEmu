@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -28,33 +29,24 @@ namespace AAEmu.Game.Models.Game.Units
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer;
         public uint Id { get; set; }
         public uint TemplateId { get; set; }
-        public uint BondingObjId { get; set; } = 0;
-        public byte AttachPointId { get; set; } = 0;
+        public uint BondingObjId { get; set; }
+        public AttachPointKind AttachPointId { get; set; }
         public TransferTemplate Template { get; set; }
         public Transfer Bounded { get; set; }
         public TransferSpawner Spawner { get; set; }
         public override UnitCustomModelParams ModelParams { get; set; }
         public List<Doodad> AttachedDoodads { get; set; }
-        public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
+        public List<Character> AttachedCharacters { get; set; }
         public DateTime SpawnTime { get; set; }
         public float RotationDegrees { get; set; }
-        public Quaternion Rot { get; set; } // значение поворота по оси Z должно быть в радианах
-        public short RotationX { get; set; }
-        public short RotationY { get; set; }
-        public short RotationZ { get; set; }
         public Vector3 Velocity { get; set; }
-        public short VelX { get; set; }
-        public short VelY { get; set; }
-        public short VelZ { get; set; }
         public Vector3 AngVel { get; set; }
-        public float AngVelX { get; set; }
-        public float AngVelY { get; set; }
-        public float AngVelZ { get; set; }
         public int Steering { get; set; } = 1;
         public sbyte Throttle { get; set; } // ?
         public int PathPointIndex { get; set; }
         public float Speed { get; set; }
         public float RotSpeed { get; set; }  // ?
+        public Quaternion Rot { get; set; }
         public bool Reverse { get; set; }
         public sbyte RequestSteering { get; set; }
         public sbyte RequestThrottle { get; set; }
@@ -64,10 +56,9 @@ namespace AAEmu.Game.Models.Game.Units
         public Transfer()
         {
             AttachedDoodads = new List<Doodad>();
-            WorldPos = new WorldPos();
-            Position = new Point();
-            Routes = new Dictionary<int, List<Point>>();
-            TransferPath = new List<Point>();
+            Routes = new Dictionary<int, List<WorldSpawnPosition>>();
+            TransferPath = new List<WorldSpawnPosition>();
+            AttachedCharacters = new List<Character>();
         }
 
         #region Attributes
@@ -418,17 +409,54 @@ namespace AAEmu.Game.Models.Game.Units
         public override void AddVisibleObject(Character character)
         {
             IsVisible = true;
-            TransferManager.Instance.Spawn(character, this);
+            // спавним кабину
+            character.SendPacket(new SCUnitStatePacket(this));
+            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+
+            base.AddVisibleObject(character);
+            return;
+
+            // пробуем спавнить прицеп
+            if (Bounded != null)
+            {
+                character.SendPacket(new SCUnitStatePacket(Bounded));
+                character.SendPacket(new SCUnitPointsPacket(Bounded.ObjId, Bounded.Hp, Bounded.Mp));
+        
+                if (Bounded.AttachedDoodads.Count > 0)
+                {
+                    var doodads = Bounded.AttachedDoodads.ToArray();
+                    for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
+                    {
+                        var count = doodads.Length - i;
+                        var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
+                        Array.Copy(doodads, i, temp, 0, temp.Length);
+                        character.SendPacket(new SCDoodadsCreatedPacket(temp));
+                    }
+                }
+            }
+        
+            // если есть Doodad в кабине
+            if (AttachedDoodads.Count > 0)
+            {
+                var doodads = AttachedDoodads.ToArray();
+                for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
+                {
+                    var count = doodads.Length - i;
+                    var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
+                    Array.Copy(doodads, i, temp, 0, temp.Length);
+                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
+                }
+            }
+            
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
+            
+            character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
 
+            return;
             character.SendPacket(Bounded != null
                 ? new SCUnitsRemovedPacket(new[] { ObjId, Bounded.ObjId })
                 : new SCUnitsRemovedPacket(new[] { ObjId }));
@@ -450,30 +478,22 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-            {
-                character.SendPacket(packet);
-            }
-        }
-
         public PacketStream WriteTelescopeUnit(PacketStream stream)
         {
             stream.WriteBc(ObjId);
             stream.Write(Template.Id);
-            stream.WritePosition(Position.X, Position.Y, Position.Z);
+            stream.WritePosition(Transform.World.Position);
             stream.Write(Template.Name);
 
             return stream;
         }
 
         // ******************************************************************************************************************
-        // Организуем движение транспорта
+        // Организуем движение транспорта / Transport movement information
         // ******************************************************************************************************************
 
-        public Dictionary<int, List<Point>> Routes { get; set; } // Steering, TransferPath - список всех участков дороги
-        public List<Point> TransferPath { get; set; }  // текущий участок дороги
+        public Dictionary<int, List<WorldSpawnPosition>> Routes { get; set; } // Steering, TransferPath - список всех участков дороги
+        public List<WorldSpawnPosition> TransferPath { get; set; }  // текущий участок дороги
         public bool MoveToPathEnabled { get; set; }    // разрешено движение транспорта
         public bool MoveToForward { get; set; }        // movement direction true -> forward, true -> back
         public int MoveStepIndex { get; set; }         // current checkpoint (where are we running now)
@@ -496,9 +516,12 @@ namespace AAEmu.Game.Models.Game.Units
 
             transfer.MoveToPathEnabled = true;
             transfer.MoveToForward = true;
-            transfer.MaxVelocityForward = transfer.Template.PathSmoothing + 1.6f; // попробуем взять эти значения как скорость движения транспорта
+            // попробуем взять эти значения как скорость движения транспорта
+            // let's try to take these values as vehicle speed
+            transfer.MaxVelocityForward = transfer.Template.PathSmoothing + 1.6f; 
             transfer.Speed = 0;
-            if (!transfer.MoveToPathEnabled || transfer.Position == null || !transfer.IsInPatrol)
+            if (!MoveToPathEnabled || !transfer.IsInPatrol)
+            
             {
                 //_log.Warn("the route is stopped.");
                 transfer.StopMove(transfer);
@@ -537,7 +560,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
         }
 
-        private int GetMinCheckPoint(Transfer transfer, List<Point> pointsList)
+        private int GetMinCheckPoint(Transfer transfer, List<WorldSpawnPosition> pointsList)
         {
             var index = -1;
             // check for a route
@@ -548,7 +571,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
             float delta;
             var minDist = 0f;
-            transfer.vTarget = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
+            transfer.vTarget = transfer.Transform.World.ClonePosition();
             for (var i = 0; i < pointsList.Count; i++)
             {
                 transfer.vPosition = new Vector3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
@@ -556,7 +579,7 @@ namespace AAEmu.Game.Models.Game.Units
                 //_log.Warn("#" + i + " x:=" + vPosition.X + " y:=" + vPosition.Y + " z:=" + vPosition.Z);
 
                 delta = MathUtil.GetDistance(transfer.vTarget, transfer.vPosition);
-                if (delta > 200) { continue; } // ищем точку не очень далеко от повозки
+                if (delta > 200) { continue; } // ищем точку не очень далеко от повозки // looking for a point not very far from the carriage 
 
                 if (index == -1) // first assignment
                 {
@@ -597,13 +620,13 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (transfer.TimeLeft > 0) { return; } // Пауза в начале/конце пути и на остановках
 
-            if (!transfer.MoveToPathEnabled || transfer.Position == null || !transfer.IsInPatrol)
+            if (!transfer.MoveToPathEnabled || !transfer.IsInPatrol)
             {
                 transfer.StopMove(transfer);
                 return;
             }
 
-            transfer.vPosition = new Vector3(transfer.Position.X, transfer.Position.Y, transfer.Position.Z);
+            transfer.vPosition = transfer.Transform.World.ClonePosition();
 
             // вектор направление на таргет (последовательность аргументов важно, чтобы смотреть на таргет)
             transfer.vDistance = transfer.vTarget - transfer.vPosition; // dx, dy, dz
@@ -633,9 +656,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             // вектор скорости (т.е. координаты, куда попадём двигаясь со скоростью velociti по направдению direction)
             var diff = direction * velocity;
-            transfer.Position.X += diff.X;
-            transfer.Position.Y += diff.Y;
-            transfer.Position.Z += diff.Z;
+            transfer.Transform.Local.Translate(diff.X,diff.Y,diff.Z);
 
             var nextPoint = Math.Abs(transfer.vDistance.X) < transfer.RangeToCheckPoint
                             && Math.Abs(transfer.vDistance.Y) < transfer.RangeToCheckPoint
@@ -647,6 +668,7 @@ namespace AAEmu.Game.Models.Game.Units
                 transfer.Angle += MathF.PI;
             }
             var quat = MathUtil.ConvertRadianToDirectionShort(transfer.Angle);
+            transfer.Transform.Local.SetZRotation((float)Angle);
             Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
 
             transfer.Velocity = new Vector3(direction.X * 30, direction.Y * 30, direction.Z * 30);
@@ -684,17 +706,36 @@ namespace AAEmu.Game.Models.Game.Units
 
                 // moving to the point #
                 var moveTypeTr = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
-                moveTypeTr.UseTransferBase(this);
-                SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, Helpers.ConvertRadianToSbyteDirection((float)transfer.Angle));
-                BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), true);
+                moveTypeTr.UseTransferBase(transfer);
+                transfer.SetPosition(moveTypeTr.X, moveTypeTr.Y, moveTypeTr.Z, 0, 0, (float)transfer.Angle);
+                // Added so whatever riding this, doesn't clip out of existence when moving
+                transfer.Transform.FinalizeTransform(true);
+                // Only send movement of the main vehicle motor, client will drag carriage on it's own
+                if ((transfer.Bounded != null) || (transfer.ParentObj == null)) 
+                {
+                    transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
+                    /*
+                    // Debug stuff
+                    if (transfer.Transform._debugTrackers.Count > 0)
+                    {
+                        var neighbouringPlayers = WorldManager.Instance.GetAround<Character>(transfer);
+                        _log.Debug("TransferMovement {0} visible to {1} player(s)", DebugName(), neighbouringPlayers.Count);
+                    }
+                    */
+                }
+                
 
-                //if (Bounded == null) { return; }
-
-                //var moveTypeB = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
-                //moveTypeB.UseTransferBase(Bounded);
-                //SetPosition(moveTypeB.X, moveTypeB.Y, moveTypeB.Z, 0, 0, Helpers.ConvertRadianToSbyteDirection((float)Angle));
-                //BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeB), true);
+                /*
+                if (Bounded != null)
+                {
+                    var moveTypeB = (TransferData)MoveType.GetType(MoveTypeEnum.Transfer);
+                    moveTypeB.UseTransferBase(Bounded);
+                    SetPosition(moveTypeB.X, moveTypeB.Y, moveTypeB.Z, 0, 0, (float)Angle);
+                    BroadcastPacket(new SCOneUnitMovementPacket(Bounded.ObjId, moveTypeB), false);
+                }
+                */
             }
+            
         }
 
         public void CheckWaitTime(Transfer transfer)
@@ -743,7 +784,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (transfer.Template.TransferAllPaths[current].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[next].WaitTimeStart > 0)
             {
                 // за несколько (3 ?) точек до конца участка будем тормозить
-                if (transfer.TransferPath.Count - transfer.MoveStepIndex <= 5)
+                if (transfer.TransferPath.Count - transfer.MoveStepIndex <= 1)
                 {
                     if (transfer.velAccel > 0)
                     {

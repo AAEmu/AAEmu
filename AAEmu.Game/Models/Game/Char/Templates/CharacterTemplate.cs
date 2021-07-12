@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Char.Templates
 {
@@ -12,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Char.Templates
         public uint FactionId { get; set; }
         public uint ReturnDictrictId { get; set; }
         public uint ResurrectionDictrictId { get; set; }
-        public Point Position { get; set; }
+        public WorldSpawnPosition SpawnPosition { get; set; }
         public uint[] Items { get; set; }
         public List<uint> Buffs { get; set; }
         public byte NumInventorySlot { get; set; }
@@ -20,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Char.Templates
 
         public CharacterTemplate()
         {
-            Position = new Point();
+            SpawnPosition = new WorldSpawnPosition();
             Items = new uint[7];
             Buffs = new List<uint>();
         }

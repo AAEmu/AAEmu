@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -9,12 +9,14 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils.DB;
-
+using AAEmu.Game.Utils;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
@@ -25,6 +27,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         private float _scale;
         public uint TemplateId { get; set; }
         public uint DbId { get; set; }
+        public bool IsPersistent { get; set; } = false;
         public DoodadTemplate Template { get; set; }
         public override float Scale => _scale;
         public uint FuncGroupId { get; set; }
@@ -38,8 +41,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint OwnerObjId { get; set; }
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
-        public byte AttachPoint { get; set; }
-        public Point AttachPosition { get; set; }
+        public AttachPointKind AttachPoint { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
         public uint QuestGlow { get; set; } //0 off // 1 on
@@ -57,10 +59,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public Doodad()
         {
             _scale = 1f;
-            Position = new Point();
             PlantTime = DateTime.MinValue;
-            AttachPoint = 255;
-            Seat = new VehicleSeat();
+            AttachPoint = AttachPointKind.System;
+            Seat = new VehicleSeat(this);
         }
 
         public void SetScale(float scale)
@@ -241,24 +242,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-                character.SendPacket(packet);
-        }
-
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCDoodadCreatedPacket(this));
+            /*
+            // If we have sticky things attached, send the packet. This should work in theory, but doesn't seem to
+            if (this.Transform.StickyChildren.Count > 0)
+                foreach (var child in this.Transform.StickyChildren)
+                    character.SendPacket(new SCHungPacket(child.GameObject.ObjId, this.ObjId));
+            */
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
             character.SendPacket(new SCDoodadRemovedPacket(ObjId));
         }
 
@@ -268,20 +266,22 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
-            stream.Write(AttachPoint); // attachPoint, relative to the parentObj, (Door or window on a house)
-            if (AttachPoint != 255 && AttachPosition != null)
+            stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
+            if (AttachPoint > 0)
             {
-                stream.WritePosition(AttachPosition.X, AttachPosition.Y, AttachPosition.Z);
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationX)); //''
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationY)); //''
-                stream.Write(Helpers.ConvertRotation(AttachPosition.RotationZ)); //''
+                stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
+                var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
+                stream.Write(roll);
+                stream.Write(pitch);
+                stream.Write(yaw);
             }
             else
             {
-                stream.WritePosition(Position.X, Position.Y, Position.Z); //self explanatory
-                stream.Write(Helpers.ConvertRotation(Position.RotationX)); //''
-                stream.Write(Helpers.ConvertRotation(Position.RotationY)); //''
-                stream.Write(Helpers.ConvertRotation(Position.RotationZ)); //''
+                stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z);
+                var(roll, pitch, yaw) = Transform.World.ToRollPitchYawShorts();
+                stream.Write(roll);
+                stream.Write(pitch);
+                stream.Write(yaw);
             }
 
             stream.Write(Scale); //The size of the object
@@ -325,14 +325,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public void Save()
         {
+            if (!IsPersistent)
+                return;
             DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText =
-                        "REPLACE INTO doodads (id, owner_id, owner_type, template_id, current_phase_id, plant_time, growth_time, phase_time, x, y, z, rotation_x, rotation_y, rotation_z) " +
-                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @rotation_x, @rotation_y, @rotation_z)";
+                    command.CommandText = 
+                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`) " +
+                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw)";
                     command.Parameters.AddWithValue("@id", DbId);
                     command.Parameters.AddWithValue("@owner_id", OwnerId);
                     command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -341,12 +343,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@plant_time", PlantTime);
                     command.Parameters.AddWithValue("@growth_time", GrowthTime);
                     command.Parameters.AddWithValue("@phase_time", DateTime.MinValue);
-                    command.Parameters.AddWithValue("@x", Position.X);
-                    command.Parameters.AddWithValue("@y", Position.Y);
-                    command.Parameters.AddWithValue("@z", Position.Z);
-                    command.Parameters.AddWithValue("@rotation_x", Position.RotationX);
-                    command.Parameters.AddWithValue("@rotation_y", Position.RotationY);
-                    command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
+                    command.Parameters.AddWithValue("@x", Transform.World.Position.X);
+                    command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
+                    command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
+                    command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
+                    command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
+                    command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }

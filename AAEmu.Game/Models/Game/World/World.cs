@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 using System;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World
 {
@@ -12,8 +13,7 @@ namespace AAEmu.Game.Models.Game.World
         public float OceanLevel { get; set; }
         public int CellX { get; set; }
         public int CellY { get; set; }
-        public Point SpawnPosition { get; set; }
-
+        public WorldSpawnPosition SpawnPosition { get; set; }
         public Region[,] Regions { get; set; } // TODO ... world - okey, instance - ....
         public uint[,] ZoneIds { get; set; }
         public ushort[,] HeightMaps { get; set; }

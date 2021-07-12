@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using NLog;
 using System;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -81,6 +82,20 @@ namespace AAEmu.Game.Scripts.Commands
                             character.SendMessage("[Despawn] Removing NPC with ID {0} - @NPC_NAME({1})", myNPC.ObjId, myNPC.TemplateId);
                             ObjectIdManager.Instance.ReleaseId(myNPC.ObjId);
                             myNPC.Delete();
+                        }
+                        else
+                        {
+                            character.SendMessage("|cFFFF0000[Despawn] NPC with objectId {0} don't exist|r", unitId);
+                        }
+                        break;
+                    case "unit":
+                        var myUnit = WorldManager.Instance.GetBaseUnit(unitId);
+
+                        if ((myUnit != null) && (myUnit is BaseUnit))
+                        {
+                            character.SendMessage("[Despawn] Removing Transfer with ID {0}", myUnit.ObjId);
+                            ObjectIdManager.Instance.ReleaseId(myUnit.ObjId);
+                            myUnit.Delete();
                         }
                         else
                         {

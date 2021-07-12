@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
                 owner.ToPhaseAndUse = true;
             else
-                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                character.SendErrorMessage(ErrorMessageType.BagFull);
         }
     }
 }

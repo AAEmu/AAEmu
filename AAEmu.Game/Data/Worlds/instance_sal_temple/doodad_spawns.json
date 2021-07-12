@@ -6,11 +6,8 @@
       "X": 429.4,
       "Y": 300.1,
       "Z": 153.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 90
-    },
-	"Scale": 1.0
+      "Yaw": 89.3565
+    }
   },
   {
     "Id": 2,
@@ -18,11 +15,7 @@
     "Position": {
       "X": 606.3,
       "Y": 416.4,
-      "Z": 147.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 1.0
+      "Z": 147.0
+    }
   }
 ]

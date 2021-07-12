@@ -1,5 +1,6 @@
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Tests.Utils.Mocks;
 
 namespace AAEmu.Tests.Utils
 {

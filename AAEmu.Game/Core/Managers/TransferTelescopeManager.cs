@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -34,14 +35,15 @@ namespace AAEmu.Game.Core.Managers
         internal void TransferTelescopeTick()
         {
             const int MaxCount = 10;
-            var transfers = TransferManager.Instance.GetTransfers();
+            // Copy a list of all transfers that have something attached. Ignore Carriage Boardings (46)
+            var transfers = TransferManager.Instance.GetTransfers().Where(x => x.TemplateId != 46).ToArray();
             // не ограничивать дальность видимости для GM & Admins
             if (owner?.AccessLevel == 0)
             {
                 var transfers2 = new List<Transfer>();
                 foreach (var t in transfers)
                 {
-                    if (!(MathF.Abs(MathUtil.CalculateDistance(owner.Position, t.Position)) < 1000f)) { continue; }
+                    if (!(MathF.Abs(MathUtil.CalculateDistance(owner, t)) < 1000f)) { continue; }
 
                     transfers2.Add(t);
                 }

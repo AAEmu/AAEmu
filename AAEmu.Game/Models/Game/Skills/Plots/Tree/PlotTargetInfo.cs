@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -101,34 +103,18 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
         {
             BaseUnit posUnit = new BaseUnit();
             posUnit.ObjId = uint.MaxValue;
-            posUnit.Region = Target.Region;
-            posUnit.Position = new Point();
-            posUnit.Position.ZoneId = Target.Position.ZoneId;
-            posUnit.Position.WorldId = Target.Position.WorldId;
-
-            //TODO Optimize rotation calc 
-            var rotZ = Target.Position.RotationZ;
-            if (args.Angle != 0)
-                rotZ = MathUtil.ConvertDegreeToDirection(-args.Angle + MathUtil.ConvertDirectionToDegree(Target.Position.RotationZ));
-
-            float x, y;
+            posUnit.Region = PreviousTarget.Region;
+            posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
+            var degrees = (float)(args.Angle);
+            posUnit.Transform.Local.Rotate(0,0,degrees.DegToRad() * -1f);
+            // posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle).DegToRad() * -1f, 0f, 0f));
             if (args.Distance != 0)
-                (x, y) = MathUtil.AddDistanceToFront((args.Distance / 1000.0f) - 0.01f, Target.Position.X, Target.Position.Y, rotZ);
-            // We substract 0.1 here to help with floating point errors
-            else
-                (x, y) = (Target.Position.X, Target.Position.Y);
-
-            posUnit.Position.X = x;
-            posUnit.Position.Y = y;
-            posUnit.Position.Z = Target.Position.Z + (args.HeightOffset / 1000f);
-            posUnit.Position.RotationZ = rotZ;
-            // TODO use heightmap for Z coord 
-
-            if (plotEvent.Id == 3025)
             {
-                _log.Warn("X:{0} Y:{1}   -----   {2},{3}", x, y, state.Caster.Position.X, state.Caster.Position.Y);
+                posUnit.Transform.Local.AddDistanceToFront((args.Distance / 1000f) - 0.01f);
             }
-            
+            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f),WorldManager.Instance.GetHeight(posUnit.Transform)));
+            // posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
+
             if (args.MaxTargets == 0)
             {
                 EffectedTargets.Add(posUnit);
@@ -191,28 +177,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             BaseUnit posUnit = new BaseUnit();
             posUnit.ObjId = uint.MaxValue;
             posUnit.Region = PreviousTarget.Region;
-            posUnit.Position = new Point();
-            posUnit.Position.ZoneId = PreviousTarget.Position.ZoneId;
-            posUnit.Position.WorldId = PreviousTarget.Position.WorldId;
-
-            //TODO Optimize rotation calc 
-            var rotZ = PreviousTarget.Position.RotationZ;
-            int angle = Rand.Next(-180, 180);
-            if (angle != 0)
-                rotZ = MathUtil.ConvertDegreeToDirection(angle + MathUtil.ConvertDirectionToDegree(PreviousTarget.Position.RotationZ));
-
-            float x, y;
-            float distance = Rand.Next(0, (float)args.Distance);
-            if (distance != 0)
-                (x, y) = MathUtil.AddDistanceToFront(distance / 1000, PreviousTarget.Position.X, PreviousTarget.Position.Y, rotZ);
-            else
-                (x, y) = (PreviousTarget.Position.X, PreviousTarget.Position.Y);
-
-            posUnit.Position.X = x;
-            posUnit.Position.Y = y;
-            posUnit.Position.Z = PreviousTarget.Position.Z + (args.HeightOffset / 1000f);
-            posUnit.Position.RotationZ = rotZ;
-            // TODO use heightmap for Z coord 
+            posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
+            posUnit.Transform.ZoneId = PreviousTarget.Transform.ZoneId;
+            posUnit.Transform.WorldId = PreviousTarget.Transform.WorldId;
+            posUnit.Transform.Local.SetZRotation(((float)Rand.Next(-180, 180)).DegToRad());
+            posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
+            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f),WorldManager.Instance.GetHeight(posUnit.Transform)));
+            //posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)
             {

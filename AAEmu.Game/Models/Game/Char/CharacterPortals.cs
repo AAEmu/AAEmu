@@ -77,7 +77,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void AddPrivatePortal(float x, float y, float z, sbyte zRot, uint zoneId, string name)
+        public void AddPrivatePortal(float x, float y, float z, float zRot, uint zoneId, string name)
         {
             // TODO - Only working by command
             var newPortal = new Portal()
@@ -88,7 +88,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Y = y,
                 Z = z,
                 ZoneId = zoneId,
-                ZRot = Helpers.ConvertRotation(zRot),
+                ZRot = zRot,
                 Owner = Owner.Id
             };
             PrivatePortals.Add(newPortal.Id, newPortal);

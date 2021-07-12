@@ -24,29 +24,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 return;
             }
-
-            var delay = Rand.Next(MaxTime, MinTime);
-
+            var spawnPos = character.Transform.Clone();
+            spawnPos.Local.AddDistanceToFront(1f);
+            spawnPos.Local.SetHeight(WorldManager.Instance.GetHeight(spawnPos));
             var doodad = new DoodadSpawner
             {
                 Id = 0,
                 UnitId = owner.TemplateId,
-                Position = character.Position.Clone(),
+                Position = spawnPos.CloneAsSpawnPosition()
             };
-
-            // TODO for test
-            owner.PlantTime = DateTime.Now;
-            //doodad.GrowthTime = DateTime.Now.AddMilliseconds(delay);
-            //owner.GrowthTime = DateTime.Now.AddMilliseconds(7000);
-
-            var (newX2, newY2) = MathUtil.AddDistanceToFront(1, doodad.Position.X, doodad.Position.Y, doodad.Position.RotationZ); //TODO distance 1 meter
-
-            doodad.Position.X = newX2;
-            doodad.Position.Y = newY2;
-            doodad.Position.Z = AppConfiguration.Instance.HeightMapsEnable
-                ? WorldManager.Instance.GetHeight(doodad.Position.ZoneId, doodad.Position.X, doodad.Position.Y)
-                : doodad.Position.Z;
-
             doodad.Spawn(0);
         }
     }

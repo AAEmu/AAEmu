@@ -36,14 +36,20 @@ namespace AAEmu.Game.Scripts.Commands
                 case "reload":
                 case "reboot":
                     CommandManager.Instance.Clear();
-                    ScriptCompiler.Compile();
-                    character.SendMessage("[Scripts] Done");
+                    if (ScriptCompiler.Compile())
+                        character.SendMessage("[Scripts] Reload - Success");
+                    else
+                        character.SendMessage("|cFFFF0000[Scripts] Reload - There were errors, please check the server logs for details !|r");
                     break;
                 case "save":
                     if (SaveManager.Instance.DoSave())
-                        character.SendMessage("[Scripts] Done saving user database");
+                        character.SendMessage("[Scripts] Save - Done saving user database");
                     else
-                        character.SendMessage("|cFFFF0000[Scripts] Failed saving user database, was possible already in the process of saving, please check server console for details.|r");
+                        character.SendMessage("|cFFFF0000[Scripts] Save - Failed saving user database, was possible already in the process of saving, please check server console for details.|r");
+                    break;
+                case "reloadslavepoints":
+                    SlaveManager.Instance.LoadSlaveAttachmentPointLocations();
+                    character.SendMessage("[Scripts] Slave Attachment Point Locations .json Reloaded");
                     break;
                 default:
                     character.SendMessage("|cFFFF0000[Scripts] Undefined action...|r");

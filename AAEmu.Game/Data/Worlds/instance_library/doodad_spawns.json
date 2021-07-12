@@ -5,12 +5,8 @@
     "Position": {
       "X": 640.473,
       "Y": 632.958,
-      "Z": 133.803,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 133.803
+    }
   },
   {
     "Id": 2,
@@ -18,51 +14,35 @@
     "Position": {
       "X": 127.862,
       "Y": 118.501,
-      "Z": 133.303,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 133.303
+    }
   },
   {
     "Id": 3,
     "UnitId": 7453,
     "Position": {
       "X": 128.301,
-      "Y": 1035.04431,
-      "Z": 133.489,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Y": 1035.0443,
+      "Z": 133.489
+    }
   },
   {
     "Id": 4,
     "UnitId": 7453,
     "Position": {
-      "X": 1024.25867,
-      "Y": 1032.67786,
-      "Z": 133.519,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "X": 1024.2587,
+      "Y": 1032.6779,
+      "Z": 133.519
+    }
   },
   {
     "Id": 5,
     "UnitId": 7453,
     "Position": {
-      "X": 1024.76025,
+      "X": 1024.7603,
       "Y": 119.94,
-      "Z": 133.417,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 133.417
+    }
   },
   {
     "Id": 6,
@@ -70,12 +50,8 @@
     "Position": {
       "X": 511.81,
       "Y": 2560.038,
-      "Z": 128.265,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 128.265
+    }
   },
   {
     "Id": 7,
@@ -83,25 +59,17 @@
     "Position": {
       "X": 128.008,
       "Y": 2176.013,
-      "Z": 128.026,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 128.026
+    }
   },
   {
     "Id": 8,
     "UnitId": 7459,
     "Position": {
       "X": 128.073,
-      "Y": 3071.89014,
-      "Z": 128.026,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Y": 3071.8901,
+      "Z": 128.026
+    }
   },
   {
     "Id": 9,
@@ -109,12 +77,8 @@
     "Position": {
       "X": 1023.86,
       "Y": 2175.992,
-      "Z": 128.026,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 128.026
+    }
   },
   {
     "Id": 10,
@@ -122,12 +86,8 @@
     "Position": {
       "X": 1023.88,
       "Y": 3071.87,
-      "Z": 128.026,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 128.026
+    }
   },
   {
     "Id": 11,
@@ -135,12 +95,8 @@
     "Position": {
       "X": 512.296,
       "Y": 4608.3,
-      "Z": 255.661,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 255.661
+    }
   },
   {
     "Id": 12,
@@ -148,12 +104,8 @@
     "Position": {
       "X": 138.029,
       "Y": 5109.76,
-      "Z": 257.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 257.0
+    }
   },
   {
     "Id": 13,
@@ -161,12 +113,8 @@
     "Position": {
       "X": 138.029,
       "Y": 4233.764,
-      "Z": 257.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 257.0
+    }
   },
   {
     "Id": 14,
@@ -174,12 +122,8 @@
     "Position": {
       "X": 1014.08,
       "Y": 5110.1,
-      "Z": 257.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 257.0
+    }
   },
   {
     "Id": 15,
@@ -187,12 +131,8 @@
     "Position": {
       "X": 1014.18,
       "Y": 4233.931,
-      "Z": 257.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 257.0
+    }
   },
   {
     "Id": 16,
@@ -200,12 +140,8 @@
     "Position": {
       "X": 2498.416,
       "Y": 212.824,
-      "Z": 131.087,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 131.087
+    }
   },
   {
     "Id": 17,
@@ -213,12 +149,8 @@
     "Position": {
       "X": 2498.29,
       "Y": 181.488,
-      "Z": 131.087,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 131.087
+    }
   },
   {
     "Id": 18,
@@ -226,38 +158,26 @@
     "Position": {
       "X": 2239.814,
       "Y": 172.445,
-      "Z": 150.481,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 150.481
+    }
   },
   {
     "Id": 19,
     "UnitId": 7462,
     "Position": {
       "X": 2833.995,
-      "Y": 1645.92993,
-      "Z": 136.859,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Y": 1645.9299,
+      "Z": 136.859
+    }
   },
   {
     "Id": 20,
     "UnitId": 7473,
     "Position": {
       "X": 2867.995,
-      "Y": 1645.92993,
-      "Z": 136.859,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Y": 1645.9299,
+      "Z": 136.859
+    }
   },
   {
     "Id": 21,
@@ -265,12 +185,8 @@
     "Position": {
       "X": 2850.0,
       "Y": 1817.0,
-      "Z": 127.5,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 127.5
+    }
   },
   {
     "Id": 22,
@@ -278,12 +194,8 @@
     "Position": {
       "X": 2624.0,
       "Y": 2449.0,
-      "Z": 129.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 129.0
+    }
   },
   {
     "Id": 23,
@@ -291,12 +203,8 @@
     "Position": {
       "X": 2624.0,
       "Y": 2416.0,
-      "Z": 129.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 129.0
+    }
   },
   {
     "Id": 24,
@@ -304,12 +212,8 @@
     "Position": {
       "X": 2628.85,
       "Y": 2586.442,
-      "Z": 128.0,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 128.0
+    }
   },
   {
     "Id": 25,
@@ -317,12 +221,8 @@
     "Position": {
       "X": 3671.562,
       "Y": 631.305,
-      "Z": 210.962,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 210.962
+    }
   },
   {
     "Id": 26,
@@ -330,12 +230,8 @@
     "Position": {
       "X": 3704.499,
       "Y": 631.371,
-      "Z": 210.962,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 210.962
+    }
   },
   {
     "Id": 27,
@@ -343,12 +239,8 @@
     "Position": {
       "X": 3698.154,
       "Y": 464.822,
-      "Z": 188.358,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 188.358
+    }
   },
   {
     "Id": 28,
@@ -356,11 +248,7 @@
     "Position": {
       "X": 3697.993,
       "Y": 413.505,
-      "Z": 188.112,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 0
-    },
-    "Scale": 0.0
+      "Z": 188.112
+    }
   }
 ]

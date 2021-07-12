@@ -66,14 +66,14 @@ namespace AAEmu.Game.Models.Game.AI.States
             // Check distance to aggro list, top to bottom
                 // If no one is within return distance, reset HP, MP and go back to idle position
             // TODO : Use aggro list, not single target
-            var distanceToTarget = MathUtil.CalculateDistance(AI.Owner.Position, Target.Position, true);
+            var distanceToTarget = MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, Target.Transform.World.Position, true);
             if (distanceToTarget > OwnerTemplate.ReturnDistance)
             {
                 GoToReturnToIdle();
                 return;
             }
             
-            var distanceToIdle = MathUtil.CalculateDistance(AI.Owner.Position, AI.IdlePosition, true);
+            var distanceToIdle = MathUtil.CalculateDistance(AI.Owner.Transform.World.Position, AI.IdlePosition.Position, true);
             if (distanceToIdle > OwnerTemplate.AbsoluteReturnDistance)
             {
                 GoToReturnToIdle();

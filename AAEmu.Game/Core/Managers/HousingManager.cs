@@ -14,7 +14,6 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Models.Game.Items.Actions;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -22,6 +21,10 @@ using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Housing;
 using Microsoft.CodeAnalysis.Text;
+using System.Numerics;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -124,10 +127,11 @@ namespace AAEmu.Game.Core.Managers
 
                 _log.Info("Loading Housing Templates...");
 
-                var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/housing_bindings.json");
+                var filePath = Path.Combine(FileManager.AppPath, "Data", "housing_bindings.json");
+                var contents = FileManager.GetFileContents(filePath);
                 if (string.IsNullOrWhiteSpace(contents))
                     throw new IOException(
-                        $"File {FileManager.AppPath}Data/housing_bindings.json doesn't exists or is empty.");
+                        $"File {filePath} doesn't exists or is empty.");
 
                 List<HousingBindingTemplate> binding;
                 if (JsonHelper.TryDeserializeObject(contents, out binding, out _))
@@ -187,7 +191,7 @@ namespace AAEmu.Game.Core.Managers
                                     while (reader2.Read())
                                     {
                                         var bindingDoodad = new HousingBindingDoodad();
-                                        bindingDoodad.AttachPointId = reader2.GetUInt32("attach_point_id");
+                                        bindingDoodad.AttachPointId = (AttachPointKind)reader2.GetInt16("attach_point_id");
                                         bindingDoodad.DoodadId = reader2.GetUInt32("doodad_id");
 
                                         if (templateBindings != null &&
@@ -196,8 +200,7 @@ namespace AAEmu.Game.Core.Managers
                                                 .AttachPointId[bindingDoodad.AttachPointId].Clone();
 
                                         if (bindingDoodad.Position == null)
-                                            bindingDoodad.Position = new Point(0, 0, 0);
-                                        bindingDoodad.Position.WorldId = 0;
+                                            bindingDoodad.Position = new WorldSpawnPosition();
 
                                         doodads.Add(bindingDoodad);
                                     }
@@ -256,10 +259,11 @@ namespace AAEmu.Game.Core.Managers
                             house.OwnerId = reader.GetUInt32("owner");
                             house.CoOwnerId = reader.GetUInt32("co_owner");
                             house.Name = reader.GetString("name");
-                            house.Position = new Point(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z"));
-                            house.Position.RotationZ = reader.GetSByte("rotation_z");
-                            house.Position.WorldId = 0;
-                            house.Position.ZoneId = WorldManager.Instance.GetZoneId(house.Position.WorldId, house.Position.X, house.Position.Y);
+                            house.Transform = new Transform(house, null,
+                                new Vector3(reader.GetFloat("x"), reader.GetFloat("y"), reader.GetFloat("z")),
+                                new Vector3(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"))
+                            );
+                            house.Transform.ZoneId = WorldManager.Instance.GetZoneId(house.Transform.WorldId, house.Transform.World.Position.X, house.Transform.World.Position.Y);
                             house.CurrentStep = reader.GetInt32("current_step");
                             house.NumAction = reader.GetInt32("current_action");
                             house.Permission = (HousingPermission)reader.GetByte("permission");
@@ -432,7 +436,7 @@ namespace AAEmu.Game.Core.Managers
             );
         }
 
-        public void Build(GameConnection connection, uint designId, Point position, float zRot,
+        public void Build(GameConnection connection, uint designId, float posX, float posY, float posZ, float zRot,
             ulong itemId, int moneyAmount, int ht, bool autoUseAaPoint)
         {
             // TODO validate house by range...
@@ -448,7 +452,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
 
-            var zoneId = WorldManager.Instance.GetZoneId(0, position.X, position.Y);
+            var zoneId = WorldManager.Instance.GetZoneId(1, posX, posY);
 
             var houseTemplate = _housingTemplates[designId];
             CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate);
@@ -459,12 +463,12 @@ namespace AAEmu.Game.Core.Managers
 
                 var userTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
                 var userBoundTaxCount = connection.ActiveChar.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
-                var totatUserTaxCount = userTaxCount + userBoundTaxCount;
+                var totalUserTaxCount = userTaxCount + userBoundTaxCount;
                 var totalCertsCost = (int)Math.Ceiling(totalTaxAmountDue / 10000f);
 
                 // Alloyingly complex item consumption, maybe we need a seperate function in inventory to handle this kind of thing
                 var consumedCerts = totalCertsCost;
-                if (totalCertsCost > totatUserTaxCount)
+                if (totalCertsCost > totalUserTaxCount)
                 {
                     connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
                     return;
@@ -526,11 +530,8 @@ namespace AAEmu.Game.Core.Managers
             }
 
             house.Id = HousingIdManager.Instance.GetNextId();
-            house.Position = position;
-            house.Position.RotationZ = MathUtil.ConvertRadianToDirection(zRot);
+            house.Transform = new Transform(house, null, 1, zoneId, 1, posX, posY, posZ, zRot);
 
-            house.Position.WorldId = 0;
-            house.Position.ZoneId = zoneId;
             if (house.Template.BuildSteps.Count > 0)
                 house.CurrentStep = 0;
             else
@@ -631,6 +632,7 @@ namespace AAEmu.Game.Core.Managers
                 house.IsDirty = true;
 
                 // TODO: better house killing handling
+                _removedHousings.Add(house.Id);
             }
             else
             {

@@ -43,14 +43,14 @@ namespace AAEmu.Game.Models.Game.Gimmicks
             }
 
             gimmick.Spawner = this;
-            gimmick.Position = Position.Clone();
+            gimmick.Transform.ApplyWorldSpawnPosition(Position);
             gimmick.EntityGuid = EntityGuid;
             if (Scale > 0)
             {
                 gimmick.SetScale(Scale);
             }
 
-            if (gimmick.Position == null)
+            if (gimmick.Transform.World.IsOrigin())
             {
                 _log.Error("Can't spawn gimmick {1} from spawn {0}", Id, UnitId);
                 return null;

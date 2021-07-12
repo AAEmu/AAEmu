@@ -48,28 +48,26 @@ namespace AAEmu.Game.Scripts.Commands
                 if (doodad != null)
                 {
                     float value = 0;
-                    float x = doodad.Position.X;
-                    float y = doodad.Position.Y;
-                    float z = doodad.Position.Z;
+                    float x = doodad.Transform.Local.Position.X;
+                    float y = doodad.Transform.Local.Position.Y;
+                    float z = doodad.Transform.Local.Position.Z;
 
-                    if (float.TryParse(args[1], out value) && args[1] != "x")
+                    if (args[1] != "x" && float.TryParse(args[1], out value))
                     {
                         x = value;
                     }
 
-                    if (float.TryParse(args[2], out value) && args[2] != "y")
+                    if (args[2] != "y" && float.TryParse(args[2], out value))
                     {
                         y = value;
                     }
 
-                    if (float.TryParse(args[3], out value) && args[3] != "z")
+                    if (args[3] != "z" && float.TryParse(args[3], out value))
                     {
                         z = value;
                     }
 
-                    doodad.Position.X = x;
-                    doodad.Position.Y = y;
-                    doodad.Position.Z = z;
+                    doodad.Transform.Local.SetPosition(x,y,z);
                     
                     doodad.Hide();
                     doodad.Show();

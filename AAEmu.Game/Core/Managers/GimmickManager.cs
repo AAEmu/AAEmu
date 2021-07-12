@@ -56,7 +56,7 @@ namespace AAEmu.Game.Core.Managers
             gimmick.Faction = new SystemFaction();
             gimmick.ModelPath = template.ModelPath;
             gimmick.Patrol = null;
-            gimmick.Position = spawner.Position.Clone();
+            gimmick.Transform.ApplyWorldSpawnPosition(spawner.Position);
             gimmick.Vel = new Vector3(0f, 0f, 0f);
             gimmick.Rot = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
             gimmick.ModelParams = new UnitCustomModelParams();
@@ -166,14 +166,14 @@ namespace AAEmu.Game.Core.Managers
             Vector3 vDistance;
 
             var velocityZ = gimmick.Vel.Z;
-            var pozitionZ = gimmick.Position.Z;
-            vPosition = new Vector3(gimmick.Position.X, gimmick.Position.Y, pozitionZ);
+            var positionZ = gimmick.Transform.World.Position.Z;
+            vPosition = gimmick.Transform.World.ClonePosition();
 
             if (gimmick.Spawner.MiddleZ > 0)
             {
-                if (pozitionZ < gimmick.Spawner.MiddleZ && gimmick.Vel.Z >= 0 && !gimmick.moveDown)
+                if (positionZ < gimmick.Spawner.MiddleZ && gimmick.Vel.Z >= 0 && !gimmick.moveDown)
                 {
-                    vTarget = new Vector3(gimmick.Position.X, gimmick.Position.Y, gimmick.Spawner.MiddleZ);
+                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.MiddleZ);
                     vDistance = vTarget - vPosition; // dx, dy, dz
                     velocityZ = maxVelocityForward;
 
@@ -181,69 +181,69 @@ namespace AAEmu.Game.Core.Managers
 
                     if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
                     {
-                        pozitionZ += movingDistance;
+                        positionZ += movingDistance;
                         gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
                     }
                     else
                     {
-                        pozitionZ = vTarget.Z;
+                        positionZ = vTarget.Z;
                         gimmick.Vel = new Vector3(0f, 0f, 0f);
                     }
                 }
                 else if (vPosition.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0 && !gimmick.moveDown)
                 {
-                    vTarget = new Vector3(gimmick.Position.X, gimmick.Position.Y, gimmick.Spawner.TopZ);
+                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.TopZ);
                     vDistance = vTarget - vPosition; // dx, dy, dz
                     velocityZ = maxVelocityForward;
                     movingDistance = velocityZ * deltaTime;
 
                     if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
                     {
-                        pozitionZ += movingDistance;
+                        positionZ += movingDistance;
                         gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
                         gimmick.moveDown = false;
                     }
                     else
                     {
-                        pozitionZ = vTarget.Z;
+                        positionZ = vTarget.Z;
                         gimmick.Vel = new Vector3(0f, 0f, 0f);
                         gimmick.moveDown = true;
                     }
                 }
                 else if (vPosition.Z > gimmick.Spawner.MiddleZ && gimmick.Vel.Z <= 0 && gimmick.moveDown)
                 {
-                    vTarget = new Vector3(gimmick.Position.X, gimmick.Position.Y, gimmick.Spawner.MiddleZ);
+                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.MiddleZ);
                     vDistance = vTarget - vPosition; // dx, dy, dz
                     velocityZ = maxVelocityBackward;
                     movingDistance = velocityZ * deltaTime;
 
                     if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
                     {
-                        pozitionZ += movingDistance;
+                        positionZ += movingDistance;
                         gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
                     }
                     else
                     {
-                        pozitionZ = vTarget.Z;
+                        positionZ = vTarget.Z;
                         gimmick.Vel = new Vector3(0f, 0f, 0f);
                     }
                 }
                 else
                 {
-                    vTarget = new Vector3(gimmick.Position.X, gimmick.Position.Y, gimmick.Spawner.BottomZ);
+                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.BottomZ);
                     vDistance = vTarget - vPosition; // dx, dy, dz
                     velocityZ = maxVelocityBackward;
                     movingDistance = velocityZ * deltaTime;
 
                     if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
                     {
-                        pozitionZ += movingDistance;
+                        positionZ += movingDistance;
                         gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
                         gimmick.moveDown = true;
                     }
                     else
                     {
-                        pozitionZ = vTarget.Z;
+                        positionZ = vTarget.Z;
                         gimmick.Vel = new Vector3(0f, 0f, 0f);
                         gimmick.moveDown = false;
                     }
@@ -253,7 +253,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 if (vPosition.Z < gimmick.Spawner.TopZ && gimmick.Vel.Z >= 0)
                 {
-                    vTarget = new Vector3(gimmick.Position.X, gimmick.Position.Y, gimmick.Spawner.TopZ);
+                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.TopZ);
                     vDistance = vTarget - vPosition; // dx, dy, dz
                     velocityZ = maxVelocityForward;
 
@@ -261,36 +261,37 @@ namespace AAEmu.Game.Core.Managers
 
                     if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
                     {
-                        pozitionZ += movingDistance;
+                        positionZ += movingDistance;
                         gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
                     }
                     else
                     {
-                        pozitionZ = vTarget.Z;
+                        positionZ = vTarget.Z;
                         gimmick.Vel = new Vector3(0f, 0f, 0f);
                     }
                 }
                 else
                 {
-                    vTarget = new Vector3(gimmick.Position.X, gimmick.Position.Y, gimmick.Spawner.BottomZ);
+                    vTarget = new Vector3(gimmick.Transform.World.Position.X, gimmick.Transform.World.Position.Y, gimmick.Spawner.BottomZ);
                     vDistance = vTarget - vPosition; // dx, dy, dz
                     velocityZ = maxVelocityBackward;
                     movingDistance = velocityZ * deltaTime;
 
                     if (Math.Abs(vDistance.Z) >= Math.Abs(movingDistance))
                     {
-                        pozitionZ += movingDistance;
+                        positionZ += movingDistance;
                         gimmick.Vel = new Vector3(gimmick.Vel.X, gimmick.Vel.Y, velocityZ);
                     }
                     else
                     {
-                        pozitionZ = vTarget.Z;
+                        positionZ = vTarget.Z;
                         gimmick.Vel = new Vector3(0f, 0f, 0f);
                     }
                 }
             }
 
-            gimmick.Position.Z = pozitionZ;
+            // TODO: replace this with .World.SetHeight after .World is correctly implemented
+            gimmick.Transform.Local.SetHeight(positionZ);
 
             // If the number of executions is less than the angle, continue adding tasks or stop moving
             if (Math.Abs(gimmick.Vel.Z) > 0)

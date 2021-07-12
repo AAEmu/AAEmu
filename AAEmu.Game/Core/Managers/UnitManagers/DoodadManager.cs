@@ -2235,6 +2235,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     doodad.OwnerType = DoodadOwnerType.Housing;
                     doodad.DbHouseId = house.Id;
                     break;
+                case Transfer transfer:
+                    doodad.OwnerId = 0;
+                    doodad.ParentObjId = transfer.ObjId;
+                    doodad.OwnerType = DoodadOwnerType.System;
+                    break;
             }
 
             if (obj is Unit unit)
@@ -2302,10 +2307,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             
             // Create doodad
             var doodad = Instance.Create(0, id, character);
-            doodad.Position = character.Position.Clone();
-            doodad.Position.X = x;
-            doodad.Position.Y = y;
-            doodad.Position.Z = z;
+            doodad.IsPersistent = true;
+            doodad.Transform = character.Transform.CloneDetached(doodad);
             doodad.ItemId = itemId;
             doodad.PlantTime = DateTime.Now;
             //if (doodad.GrowthTime.Millisecond <= 0)

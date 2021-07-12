@@ -37,12 +37,14 @@ namespace AAEmu.Game.Core.Packets.C2G
             {
                 var unit = WorldManager.Instance.GetUnit(scu.ObjId);
                 if (unit is Character character)
+                {
                     _log.Debug("{0} is using skill {1}", character.Name, skillId);
+                }
             }
 
             if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && !(skillCaster is SkillItem))
             {
-                var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO переделать...
+                var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
             else if (skillCaster is SkillItem)
@@ -70,7 +72,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 _log.Warn("StartSkill: Id {0}, undefined use type", skillId);
                 //If its a valid skill cast it. This fixes interactions with quest items/doodads.
                 var unskill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
-                if (unskill != null) unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
+                if (unskill != null) 
+                    unskill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
             }
         }
     }

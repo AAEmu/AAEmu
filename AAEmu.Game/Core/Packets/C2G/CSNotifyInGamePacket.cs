@@ -26,7 +26,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             // Joining channel 1 (shout) will automatically also join /lfg and /trade for that zone on the client-side
             // Back in 1.x /trade was zone base, not faction based
-            ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Position.ZoneId).JoinChannel(Connection.ActiveChar); // shout, trade, lfg
+            ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId).JoinChannel(Connection.ActiveChar); // shout, trade, lfg
             ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).JoinChannel(Connection.ActiveChar); // nation
             Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Judge, 0, Connection.ActiveChar.Faction.MotherId)); //trial
             ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).JoinChannel(Connection.ActiveChar); // faction

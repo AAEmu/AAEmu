@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -43,7 +43,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         TowerDefId = startId,
                         ZoneGroupId = 5
-                    }, character.Position.ZoneId);
+                    }, character.Transform.ZoneId);
                     character.SendPacket(startPacket);
                     break;
                 case "end":
@@ -53,7 +53,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         TowerDefId = endId,
                         ZoneGroupId = 5
-                    }, character.Position.ZoneId);
+                    }, character.Transform.ZoneId);
                     character.SendPacket(endPacket);
                     break;
                 case "next":
@@ -65,7 +65,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         TowerDefId = nextId,
                         ZoneGroupId = 5
-                    }, character.Position.ZoneId, step);
+                    }, character.Transform.ZoneId, step);
                     character.SendPacket(nextPacket);
                     break;
             }

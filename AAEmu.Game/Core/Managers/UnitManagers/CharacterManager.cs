@@ -407,38 +407,32 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
             }
 
-            var content = FileManager.GetFileContents($"{FileManager.AppPath}Data/CharTemplates.json");
+            var filePath = Path.Combine(FileManager.AppPath, "Data", "CharTemplates.json");
+            var content = FileManager.GetFileContents(filePath);
             if (string.IsNullOrWhiteSpace(content))
-                throw new IOException(
-                    $"File {FileManager.AppPath + "Data/CharTemplates.json"} doesn't exists or is empty.");
+                throw new IOException($"File {filePath} doesn't exists or is empty.");
 
             if (JsonHelper.TryDeserializeObject(content, out List<CharacterTemplateConfig> charTemplates, out _))
             {
                 foreach (var charTemplate in charTemplates)
                 {
-                    var point = new Point(charTemplate.Pos.X, charTemplate.Pos.Y, charTemplate.Pos.Z);
-                    point.WorldId = charTemplate.Pos.WorldId;
-                    point.ZoneId = WorldManager
-                        .Instance
-                        .GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y); // TODO ...
-                    
-                    point.RotationX = charTemplate.Pos.RotationX;
-                    point.RotationY = charTemplate.Pos.RotationY;
-                    point.RotationZ = charTemplate.Pos.RotationZ;
-                    
+                    var point = charTemplate.Pos.Clone();
+                    // Recalculate ZoneId as this isn't included in the config
+                    point.ZoneId = WorldManager.Instance.GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y);
+
                     var template = _templates[(byte)(16 + charTemplate.Id)];
-                    template.Position = point;
+                    template.SpawnPosition = point;
                     template.NumInventorySlot = charTemplate.NumInventorySlot;
                     template.NumBankSlot = charTemplate.NumBankSlot;
 
                     template = _templates[(byte)(32 + charTemplate.Id)];
-                    template.Position = point;
+                    template.SpawnPosition = point;
                     template.NumInventorySlot = charTemplate.NumInventorySlot;
                     template.NumBankSlot = charTemplate.NumBankSlot;
                 }
             }
             else
-                throw new Exception($"CharacterManager: Parse {FileManager.AppPath + "Data/CharTemplates.json"} file");
+                throw new Exception($"CharacterManager: Error parsing {filePath} file");
 
             Log.Info("Loaded {0} character templates", _templates.Count);
         }
@@ -467,8 +461,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Name = name.Substring(0, 1).ToUpper() + name.Substring(1);
                 character.Race = (Race) race;
                 character.Gender = (Gender) gender;
-                character.Position = template.Position.Clone();
-                character.Position.ZoneId = template.ZoneId;
+                character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
                 character.Level = 1;
                 character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
                 character.FactionName = "";

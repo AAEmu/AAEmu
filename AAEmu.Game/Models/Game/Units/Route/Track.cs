@@ -19,12 +19,13 @@ namespace AAEmu.Game.Models.Game.Units.Route
             if (npc.CurrentTarget != null)
             {
 
-                var x = npc.Position.X - npc.CurrentTarget.Position.X;
-                var y = npc.Position.Y - npc.CurrentTarget.Position.Y;
-                var z = npc.Position.Z - npc.CurrentTarget.Position.Z;
+                var x = npc.Transform.World.Position.X - npc.CurrentTarget.Transform.World.Position.X;
+                var y = npc.Transform.World.Position.Y - npc.CurrentTarget.Transform.World.Position.Y;
+                var z = npc.Transform.World.Position.Z - npc.CurrentTarget.Transform.World.Position.Z;
                 var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
                 float tempMovingDistance;
 
+                // TODO: the assignment to Transform.Local here is the wrong way to do this, it will break when NPC is moving of a vehicle or slave
                 if (Math.Abs(x) > distance)
                 {
                     if (Math.Abs(MaxXYZ - Math.Abs(x)) > tolerance)
@@ -38,11 +39,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                     if (x < 0)
                     {
-                        npc.Position.X += tempMovingDistance;
+                        npc.Transform.Local.Translate(tempMovingDistance, 0f, 0f);
                     }
                     else
                     {
-                        npc.Position.X -= tempMovingDistance;
+                        npc.Transform.Local.Translate(-tempMovingDistance, 0f, 0f);
                     }
                     move = true;
                 }
@@ -58,11 +59,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     }
                     if (y < 0)
                     {
-                        npc.Position.Y += tempMovingDistance;
+                        npc.Transform.Local.Translate(0f, tempMovingDistance, 0f);
                     }
                     else
                     {
-                        npc.Position.Y -= tempMovingDistance;
+                        npc.Transform.Local.Translate(0f, -tempMovingDistance, 0f);
                     }
                     move = true;
                 }
@@ -78,11 +79,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
                     }
                     if (z < 0)
                     {
-                        npc.Position.Z += tempMovingDistance;
+                        npc.Transform.Local.Translate(0f, 0f, tempMovingDistance);
                     }
                     else
                     {
-                        npc.Position.Z -= tempMovingDistance;
+                        npc.Transform.Local.Translate(0f, 0f, -tempMovingDistance);
                     }
                     move = true;
                 }
@@ -98,8 +99,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 //改变NPC坐标
                 //Change NPC coordinates
-                moveType.X = npc.Position.X;
-                moveType.Y = npc.Position.Y;
+                moveType.X = npc.Transform.Local.Position.X;
+                moveType.Y = npc.Transform.Local.Position.Y;
                 if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
                 {
                     moveType.Z = 98.5993f;
@@ -110,12 +111,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 else // other
                 {
-                    moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                    moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Y) : npc.Transform.World.Position.Z;
                 }
 
                 // looks in the direction of movement
                 var angle = MathUtil.CalculateAngleFrom(npc, npc.CurrentTarget);
-                var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+                var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
                 moveType.RotationX = 0;
                 moveType.RotationY = 0;
                 moveType.RotationZ = rotZ;

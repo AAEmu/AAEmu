@@ -1,7 +1,11 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.World
 {
@@ -9,11 +13,17 @@ namespace AAEmu.Game.Models.Game.World
     {
         public Guid Guid { get; set; } = Guid.NewGuid();
         public uint ObjId { get; set; }
-        public uint InstanceId { get; set; } = 0;
+        public uint InstanceId { get; set; } = WorldManager.DefaultInstanceId ;
         public bool DisabledSetPosition { get; set; }
-        public Point Position { get; set; }
-        public Point WorldPosition { get; set; }
-        public WorldPos WorldPos { get; set; }
+        /// <summary>
+        /// Contains position, rotation, zone and instance information
+        /// </summary>
+        public Transform.Transform Transform { get; set; }
+        //public Point Position { get; set; }
+        /// <summary>
+        /// When not null, this is the location where the character last entered a instance from
+        /// </summary>
+        public Transform.Transform MainWorldPosition { get; set; }
         public Region Region { get; set; }
         public DateTime Respawn { get; set; }
         public DateTime Despawn { get; set; }
@@ -21,37 +31,31 @@ namespace AAEmu.Game.Models.Game.World
         public GameObject ParentObj { get; set; }
         public virtual float ModelSize { get; set; } = 0f; 
 
-        public virtual void SetPosition(Point pos)
+        public GameObject()
         {
-            if (DisabledSetPosition)
-                return;
-
-            Position = pos.Clone();
-            WorldManager.Instance.AddVisibleObject(this);
+            Transform = new Transform.Transform(this,null);
         }
 
-        public virtual void SetPosition(float x, float y, float z)
+        public virtual void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
             if (DisabledSetPosition)
                 return;
 
-            Position.X = x;
-            Position.Y = y;
-            Position.Z = z;
-            WorldManager.Instance.AddVisibleObject(this);
-        }
+            //var rX = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationX));
+            //var rY = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationY));
+            //var rZ = MathUtil.ConvertDirectionToRadian((sbyte)MathF.Round(rotationZ));
 
-        public virtual void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
-        {
-            if (DisabledSetPosition)
-                return;
+            /*
+            if (this is Character c)
+            {
+                c.SendMessage("SetPositionRaw(x{0:0.##} y{1:0.##} z{2:0.##} rx{3:0.##} ry{4:0.##} rz{5:0.##})", x, y, z,
+                    rotationX.RadToDeg(), rotationY.RadToDeg(), rotationZ.RadToDeg());
+                c.SendMessage("SetPosition(x{0:0.##} y{1:0.##} z{2:0.##} rx{3:0.##} ry{4:0.##} rz{5:0.##})", x, y, z, rX, rY, rZ);
+            }
+            */
 
-            Position.X = x;
-            Position.Y = y;
-            Position.Z = z;
-            Position.RotationX = rotationX;
-            Position.RotationY = rotationY;
-            Position.RotationZ = rotationZ;
+            Transform.Local.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
+            //Transform.Local.SetPosition(x, y, z, (float)rX, (float)rY , (float)rZ);
             WorldManager.Instance.AddVisibleObject(this);
         }
 
@@ -79,16 +83,43 @@ namespace AAEmu.Game.Models.Game.World
             WorldManager.Instance.RemoveVisibleObject(this);
         }
 
+        /// <summary>
+        /// Broadcasts packet to all players near this GameObject
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="self">Include sending to self (only for if called from Character)</param>
         public virtual void BroadcastPacket(GamePacket packet, bool self)
         {
+            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
+                character.SendPacket(packet);
+            if ((self) && (this is Character chr))
+                chr.SendPacket(packet);
         }
 
         public virtual void AddVisibleObject(Character character)
         {
+            if ((Transform != null) && (Transform.Children.Count > 0))
+                foreach (var child in Transform.Children.ToArray())
+                    //if (child?.GameObject != character) // Never send to self, or the client crashes
+                        child?.GameObject?.AddVisibleObject(character);
         }
 
         public virtual void RemoveVisibleObject(Character character)
         {
+            if ((character.CurrentTarget != null) && (character.CurrentTarget == this))
+            {
+                character.CurrentTarget = null;
+                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
+            }
+            if ((Transform != null) && (Transform.Children.Count > 0))
+                foreach (var child in Transform.Children.ToArray())
+                    //if (child?.GameObject != character) // Never send to self, or the client crashes
+                        child?.GameObject?.RemoveVisibleObject(character);
+        }
+
+        public virtual string DebugName()
+        {
+            return "("+ ObjId.ToString() +") - " + ToString();
         }
     }
 }

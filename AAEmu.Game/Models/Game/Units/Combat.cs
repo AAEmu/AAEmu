@@ -50,9 +50,9 @@ namespace AAEmu.Game.Models.Game.Units
                 float maxXYZ;
                 if (trg != null)
                 {
-                    var x = npc.Position.X - trg.Position.X;
-                    var y = npc.Position.Y - trg.Position.Y;
-                    var z = npc.Position.Z - trg.Position.Z;
+                    var x = npc.Transform.Local.Position.X - trg.Transform.Local.Position.X;
+                    var y = npc.Transform.Local.Position.Y - trg.Transform.Local.Position.Y;
+                    var z = npc.Transform.Local.Position.Z - trg.Transform.Local.Position.Z;
                     maxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
                 }
                 else

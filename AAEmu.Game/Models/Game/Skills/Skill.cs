@@ -19,6 +19,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -284,9 +285,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 var positionTarget = (SkillCastPositionTarget)targetCaster;
                 var positionUnit = new BaseUnit();
                 positionUnit.ObjId = uint.MaxValue;
-                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                positionUnit.Position.ZoneId = caster.Position.ZoneId;
-                positionUnit.Position.WorldId = caster.Position.WorldId;
+                positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                 positionUnit.Region = caster.Region;
                 target = positionUnit;
             }
@@ -295,9 +295,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 var positionTarget = (SkillCastPositionTarget)targetCaster;
                 var positionUnit = new BaseUnit();
                 positionUnit.ObjId = uint.MaxValue;
-                positionUnit.Position = new Point(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
-                positionUnit.Position.ZoneId = caster.Position.ZoneId;
-                positionUnit.Position.WorldId = caster.Position.WorldId;
+                positionUnit.Transform = caster.Transform.CloneDetached(positionUnit);
+                positionUnit.Transform.Local.SetPosition(positionTarget.PosX, positionTarget.PosY, positionTarget.PosZ);
                 positionUnit.Region = caster.Region;
                 target = positionUnit;
             }
@@ -319,10 +318,27 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
 
-                if (scTemplate != null && target is Unit trgUnit)
+                // Get a random number (from 0 to n)
+                var value = Rand.Next(0, 1);
+                // для skillId = 2
+                // 87 (35) - удар наотмаш, chr
+                //  2 (00) - удар сбоку, NPC
+                //  3 (46) - удар сбоку, chr
+                //  1 (00) - удар похож на 2 удар сбоку, NPC
+                // 91 - удар сверху (немного справа)
+                // 92 - удар наотмашь слева вниз направо
+                //  0 - удар не наносится (расстояние большое и надо подойти поближе), f=1, c=15
+                var effectDelay = new Dictionary<int, short> { { 0, 46 }, { 1, 35 } };
+                var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
+                var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
+                var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
+            
+                var targetUnit = (Unit)target;
+                var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, targetUnit.Transform.World.Position, true);
+                if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
                 {
 
-                    var sc = SkillController.CreateSkillController(scTemplate, caster, trgUnit);
+                    var sc = SkillController.CreateSkillController(scTemplate, caster, targetUnit);
                     if (sc != null)
                     {
                         if (caster.ActiveSkillController != null)
@@ -438,7 +454,7 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.ChannelingDoodadId > 0)
             {
                 doodad = DoodadManager.Instance.Create(0, Template.ChannelingDoodadId, caster);
-                doodad.Position = caster.Position.Clone();
+                doodad.Transform = caster.Transform.CloneDetached(doodad);
                 doodad.Spawn();
             }
 

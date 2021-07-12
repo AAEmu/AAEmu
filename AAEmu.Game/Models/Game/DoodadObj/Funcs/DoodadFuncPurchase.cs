@@ -22,13 +22,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 return;
             if (character.Inventory.Bag.SpaceLeftForItem(ItemId) < Count)
             {
-                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+                character.SendErrorMessage(ErrorMessageType.BagFull);
                 return;
             }
 
             if (character.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadInteraction, CoinItemId, CoinCount, null) <= 0)
             {
-                character.SendErrorMessage(Error.ErrorMessageType.NotEnoughItem);
+                character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
                 return;
             }
 
@@ -37,7 +37,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 if (!character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count))
                 {
                     _log.Error(string.Format("DoodadFuncPurchase: Failed to auto-equip backpack item {0} for player {1}", ItemId, character.Name));
-                    character.SendErrorMessage(Error.ErrorMessageType.BackpackOccupied);
+                    character.SendErrorMessage(ErrorMessageType.BackpackOccupied);
+                    return;
                 }
             }
             else

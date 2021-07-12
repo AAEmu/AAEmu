@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         public int Position { get; set; }
         public PlotEffectSource SourceId { get; set; }
         public PlotEffectTarget TargetId { get; set; }
-        public bool NotifyFailure { get; set; }
+        //public bool NotifyFailure { get; set; }
 
         // TODO 1.2 // public bool NotifyFailure { get; set; }
 
@@ -20,8 +20,8 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             if (GetConditionResult(state, targetInfo, this))
                 return true;
 
-            if (NotifyFailure)
-                return false;//Maybe do something here?
+            //if (NotifyFailure)
+                ;//Maybe do something here?
             
             return false;
 

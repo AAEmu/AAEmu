@@ -54,9 +54,9 @@ namespace AAEmu.Game.Scripts.Commands
             if ((args.Length > firstarg) && (args[firstarg] == "mark"))
             { 
                 // Place markers
-                var rX = (int)Math.Floor(targetPlayer.Position.X);
+                var rX = (int)Math.Floor(targetPlayer.Transform.World.Position.X);
                 rX = rX - (rX % 2);
-                var rY = (int)Math.Floor(targetPlayer.Position.Y);
+                var rY = (int)Math.Floor(targetPlayer.Transform.World.Position.Y);
                 rY = rY - (rY % 2);
                 uint unitId = 5622;
                 for (var y = rY - 10; y <= rY + 10; y += 2)
@@ -69,13 +69,13 @@ namespace AAEmu.Game.Scripts.Commands
                         var doodadSpawner = new DoodadSpawner();
                         doodadSpawner.Id = 0;
                         doodadSpawner.UnitId = unitId;
-                        doodadSpawner.Position = character.Position.Clone();
+                        doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                         doodadSpawner.Position.X = x;
                         doodadSpawner.Position.Y = y;
-                        doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Position.ZoneId).GetHeight(x, y);
-                        doodadSpawner.Position.RotationX = 0;
-                        doodadSpawner.Position.RotationY = 0;
-                        doodadSpawner.Position.RotationZ = 0;
+                        doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(x, y);
+                        doodadSpawner.Position.Yaw = 0;
+                        doodadSpawner.Position.Pitch = 0;
+                        doodadSpawner.Position.Roll = 0;
                         doodadSpawner.Spawn(0);
                     }
 
@@ -84,9 +84,9 @@ namespace AAEmu.Game.Scripts.Commands
             if ((args.Length > firstarg) && (args[firstarg] == "line"))
             {
                 // Place markers
-                var rXX = (int)Math.Floor(targetPlayer.Position.X);
+                var rXX = (int)Math.Floor(targetPlayer.Transform.World.Position.X);
                 rXX = rXX - (rXX % 2);
-                var rYY = (int)Math.Floor(targetPlayer.Position.Y);
+                var rYY = (int)Math.Floor(targetPlayer.Transform.World.Position.Y);
                 rYY = rYY - (rYY % 2);
 
                 float rX = rXX;
@@ -101,13 +101,13 @@ namespace AAEmu.Game.Scripts.Commands
                     var doodadSpawner = new DoodadSpawner();
                     doodadSpawner.Id = 0;
                     doodadSpawner.UnitId = unitId;
-                    doodadSpawner.Position = character.Position.Clone();
+                    doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                     doodadSpawner.Position.X = x;
                     doodadSpawner.Position.Y = rY;
-                    doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Position.ZoneId).GetHeight(x, rY);
-                    doodadSpawner.Position.RotationX = 0;
-                    doodadSpawner.Position.RotationY = 0;
-                    doodadSpawner.Position.RotationZ = 0;
+                    doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(x, rY);
+                    doodadSpawner.Position.Yaw = 0;
+                    doodadSpawner.Position.Pitch = 0;
+                    doodadSpawner.Position.Roll = 0;
                     doodadSpawner.Spawn(0);
                 }
                 for (var y = rY - 10f; y <= rY + 10f; y += 1f)
@@ -119,13 +119,13 @@ namespace AAEmu.Game.Scripts.Commands
                     var doodadSpawner = new DoodadSpawner();
                     doodadSpawner.Id = 0;
                     doodadSpawner.UnitId = unitId;
-                    doodadSpawner.Position = character.Position.Clone();
+                    doodadSpawner.Position = character.Transform.CloneAsSpawnPosition();
                     doodadSpawner.Position.X = rX;
                     doodadSpawner.Position.Y = y;
-                    doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Position.ZoneId).GetHeight(rX, y);
-                    doodadSpawner.Position.RotationX = 0;
-                    doodadSpawner.Position.RotationY = 0;
-                    doodadSpawner.Position.RotationZ = 0;
+                    doodadSpawner.Position.Z = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId).GetHeight(rX, y);
+                    doodadSpawner.Position.Yaw = 0;
+                    doodadSpawner.Position.Pitch = 0;
+                    doodadSpawner.Position.Roll = 0;
                     doodadSpawner.Spawn(0);
                 }
 
@@ -133,19 +133,19 @@ namespace AAEmu.Game.Scripts.Commands
             else
             {
                 // Show info
-                var world = WorldManager.Instance.GetWorldByZone(targetPlayer.Position.ZoneId);
+                var world = WorldManager.Instance.GetWorldByZone(targetPlayer.Transform.ZoneId);
 
-                var height = world.GetHeight(targetPlayer.Position.X, targetPlayer.Position.Y);
-                var hDelta = character.Position.Z - height;
-                character.SendMessage("[Height] {2} Z-Pos: {0} - Floor: {1} - HeightmapDelta: {3}", character.Position.Z, height, targetPlayer.Name, hDelta);
+                var height = world.GetHeight(targetPlayer.Transform.World.Position.X,targetPlayer.Transform.World.Position.Y);
+                var hDelta = character.Transform.World.Position.Z - height;
+                character.SendMessage("[Height] {2} Z-Pos: {0} - Floor: {1} - HeightmapDelta: {3}", character.Transform.World.Position.Z, height, targetPlayer.Name, hDelta);
 
                 character.SendMessage("[Position] |cFFFFFFFF{0}|r X: |cFFFFFFFF{1:F1}|r  Y: |cFFFFFFFF{2:F1}|r  Z: |cFFFFFFFF{3:F1}|r ",
-                    targetPlayer.Name, targetPlayer.Position.X, targetPlayer.Position.Y, targetPlayer.Position.Z);
+                    targetPlayer.Name, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z);
 
-                var borderLeft = (int)Math.Floor(targetPlayer.Position.X);
+                var borderLeft = (int)Math.Floor(targetPlayer.Transform.World.Position.X);
                 borderLeft = borderLeft - (borderLeft % 2);
                 var borderRight = borderLeft + 2; // we're using a divider of 2 of the heightmaps in memory, so we need to compensate with that in mind (instead of 1)
-                var borderBottom = (int)Math.Floor(targetPlayer.Position.Y);
+                var borderBottom = (int)Math.Floor(targetPlayer.Transform.World.Position.Y);
                 borderBottom = borderBottom - (borderBottom % 2);
                 var borderTop = borderBottom + 2;
 

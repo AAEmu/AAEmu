@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Managers
             Dictionary<string, string> d = new Dictionary<string, string>();
             try
             {
-                string data = File.ReadAllText("Data/configurations.json");
+                string data = File.ReadAllText(Path.Combine(FileManager.AppPath,"Data","configurations.json"));
                 d = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
                 foreach (var entry in d)
                     _configurations.Add(entry.Key,entry.Value);

@@ -32,9 +32,9 @@ namespace AAEmu.Game.Core.Packets.C2G
             Connection.ActiveChar.BroadcastPacket(
                 new SCCharacterResurrectedPacket(
                     Connection.ActiveChar.ObjId,
-                    Connection.ActiveChar.Position.X,
-                    Connection.ActiveChar.Position.Y,
-                    Connection.ActiveChar.Position.Z,
+                    Connection.ActiveChar.Transform.World.Position.X,
+                    Connection.ActiveChar.Transform.World.Position.Y,
+                    Connection.ActiveChar.Transform.World.Position.Z,
                     0
                 ),
                 true
