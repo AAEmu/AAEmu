@@ -210,6 +210,8 @@ CREATE TABLE `doodads` (
   `roll` float NOT NULL,
   `pitch` float NOT NULL,
   `yaw` float NOT NULL,
+  `item_id` bigint unsigned NOT NULL DEFAULT '0',
+  `house_id` int NOT NULL DEFAULT '0' AFTER `item_id`,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Persistent doodads (e.g. tradepacks on the ground)';
 
@@ -302,6 +304,7 @@ CREATE TABLE `housings` (
   `faction_id` int unsigned NOT NULL DEFAULT '1',
   `sell_to` int unsigned NOT NULL DEFAULT '0',
   `sell_price` bigint NOT NULL DEFAULT '0',
+  `allow_recover` tinyint unsigned NOT NULL DEFAULT '1',
   PRIMARY KEY (`account_id`,`owner`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player buildings';
 

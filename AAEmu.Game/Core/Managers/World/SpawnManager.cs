@@ -213,7 +213,7 @@ namespace AAEmu.Game.Core.Managers.World
                 _gimmickSpawners.Add((byte)world.Id, gimmickSpawners);
             }
 
-            _log.Info("Loading character doodads...");
+            _log.Info("Loading persistent doodads...");
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -235,6 +235,8 @@ namespace AAEmu.Game.Core.Managers.World
                             var phaseTime = reader.GetDateTime("phase_time");
                             var ownerId = reader.GetUInt32("owner_id");
                             var ownerType = reader.GetByte("owner_type");
+                            var itemId = reader.GetUInt64("item_id");
+                            var houseId = reader.GetUInt32("house_id");
 
                             var doodad = new Doodad
                             {
@@ -247,10 +249,27 @@ namespace AAEmu.Game.Core.Managers.World
                                 OwnerType = (DoodadOwnerType)ownerType,
                                 PlantTime = plantTime,
                                 GrowthTime = growthTime,
+                                ItemId = itemId,
+                                DbHouseId = houseId
                             };
                             doodad.Transform.Local.SetPosition(x, y, z);
-                            doodad.Transform.Local.SetZRotation(reader.GetFloat("yaw"));
+                            doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));
 
+                            if (houseId > 0)
+                            {
+                                var owningHouse = HousingManager.Instance.GetHouseById(doodad.DbHouseId);
+                                if (owningHouse == null)
+                                {
+                                    _log.Warn("Unable to place doodad {0} can't find it's owning house {1}", dbId,
+                                        houseId);
+                                }
+                                else
+                                {
+                                    doodad.Transform.Parent = owningHouse.Transform;
+                                    doodad.ParentObj = owningHouse;
+                                    doodad.ParentObjId = owningHouse.ObjId;
+                                }
+                            }
 
                             _playerDoodads.Add(doodad);
                         }

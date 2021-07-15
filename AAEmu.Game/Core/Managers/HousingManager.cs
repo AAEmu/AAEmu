@@ -22,7 +22,9 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Housing;
 using Microsoft.CodeAnalysis.Text;
 using System.Numerics;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.World.Transform;
 
@@ -36,6 +38,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<ushort, House> _housesTl; // TODO or so mb tlId is id in the active zone? or type of house
         private List<uint> _removedHousings;
         private List<HousingItemHousings> _housingItemHousings;
+        private Dictionary<uint, HousingDecoration> _housingDecorations;
         private static int MAX_HEAVY_TAX_COUNTED = 10; // Maximum number of heavy tax buildings to take into account for tax calculation
         private bool isCheckingTaxTiming = false;
 
@@ -83,6 +86,7 @@ namespace AAEmu.Game.Core.Managers
             _housesTl = new Dictionary<ushort, House>();
             _removedHousings = new List<uint>();
             _housingItemHousings = new List<HousingItemHousings>();
+            _housingDecorations = new Dictionary<uint, HousingDecoration>();
 
             //            var housingAreas = new Dictionary<uint, HousingAreas>();
             var houseTaxes = new Dictionary<uint, HouseTax>();
@@ -238,6 +242,32 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+                
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM housing_decorations";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new HousingDecoration();
+                            template.Id = reader.GetUInt32("id");
+                            template.Name = reader.GetString("name");
+                            template.AllowOnFloor = reader.GetBoolean("allow_on_floor", true);
+                            template.AllowOnWall = reader.GetBoolean("allow_on_wall", true);
+                            template.AllowOnCeiling = reader.GetBoolean("allow_on_ceiling", true);
+                            template.DoodadId = reader.GetUInt32("doodad_id");
+                            template.AllowPivotOnGarden = reader.GetBoolean("allow_pivot_on_garden", true);
+                            template.ActabilityGroupId = !reader.IsDBNull("actability_group_id") ? reader.GetUInt32("actability_group_id") : 0 ;
+                            template.ActabilityUp = !reader.IsDBNull("actability_up") ? reader.GetUInt32("actability_up") : 0 ;
+                            template.DecoActAbilityGroupId = !reader.IsDBNull("deco_actability_group_id") ? reader.GetUInt32("deco_actability_group_id") : 0 ;
+                            template.AllowMeshOnGarden = reader.GetBoolean("allow_mesh_on_garden", true);
+
+                            _housingDecorations.Add(template.Id,template);
+                        }
+                    }
+                }                
             }
 
             _log.Info("Loading Player Buildings ...");
@@ -271,6 +301,7 @@ namespace AAEmu.Game.Core.Managers
                             house.ProtectionEndDate = reader.GetDateTime("protected_until");
                             house.SellToPlayerId = reader.GetUInt32("sell_to");
                             house.SellPrice = reader.GetUInt32("sell_price");
+                            house.AllowRecover = reader.GetBoolean("allow_recover");
                             _houses.Add(house.Id, house);
                             _housesTl.Add(house.TlId, house);
                             
@@ -1025,6 +1056,93 @@ namespace AAEmu.Game.Core.Managers
             }
 
             isCheckingTaxTiming = false;
+        }
+
+        public HousingDecoration GetDecorationDesignFromId(uint designId)
+        {
+            if (_housingDecorations.TryGetValue(designId, out var deco))
+            {
+                return deco;
+            }
+
+            return null;
+        }
+
+        public bool DecorateHouse(Character player, ushort houseId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId)
+        {
+            // Check Player
+            if (player == null)
+                return false;
+            
+            // Check Item
+            var item = ItemManager.Instance.GetItemByItemId(itemId);
+            if ((item == null) || (item.OwnerId != player.Id))
+            {
+                // Invalid Item
+                return false;
+            }
+
+            // Check House
+            var house = GetHouseById(houseId);
+            if ((house == null) || (house.Id != houseId))
+            {
+                // Invalid House
+                player.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
+                return false;
+            }
+            
+            // TODO: Validate if designId is correct for the given item
+            
+            // Create decoration doodad
+            var decorationDesign = GetDecorationDesignFromId(designId);
+            
+            var doodadPos = player.Transform.CloneDetached();
+            doodadPos.Local.Translate(pos);
+            doodadPos.Local.ApplyFromQuaternion(quat);
+
+            var doodad = DoodadManager.Instance.Create(0, decorationDesign.DoodadId);
+            doodad.Transform.Parent = house.Transform;
+            doodad.Transform.Local.SetPosition(doodadPos.Local.Position.X, doodadPos.Local.Position.Y, doodadPos.Local.Position.Z);
+            doodad.Transform.Local.SetRotation(doodadPos.Local.Rotation.X,doodadPos.Local.Rotation.Y,doodadPos.Local.Rotation.Z);
+            doodad.ItemTemplateId = designId;
+            doodad.ItemId = itemId;
+            doodad.DbHouseId = house.Id;
+            doodad.OwnerId = player.Id;
+            doodad.ParentObjId = house.ObjId;
+            doodad.ParentObj = house;
+            doodad.OwnerType = DoodadOwnerType.Housing;
+            doodad.IsPersistent = true;
+
+            if (parentObjId > 0)
+            {
+                var pObj = WorldManager.Instance.GetGameObject(parentObjId);
+                if (pObj != null)
+                {
+                    doodad.Transform.DetachAll();
+                    doodad.Transform.Parent = pObj.Transform;
+                    doodad.ParentObjId = parentObjId;
+                    doodad.ParentObj = pObj;
+                }
+                else
+                {
+                    _log.Warn("Unable to find parent {0} for decor {1}", parentObjId, designId);
+                }
+            }
+            doodad.Spawn();
+            doodad.Save();            
+           
+            return true;
+        }
+        
+        public void HousingToggleAllowRecover(Character character, ushort houseTl)
+        {
+            var house = GetHouseByTlId(houseTl);
+            if (house == null)
+                return;
+            if (character.Id != house.OwnerId)
+                return;
+            house.AllowRecover = !house.AllowRecover;
+            house.BroadcastPacket(new SCHousingRecoverTogglePacket(house.TlId,house.AllowRecover), false);
         }
 
     }

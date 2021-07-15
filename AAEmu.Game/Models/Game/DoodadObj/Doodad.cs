@@ -333,8 +333,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = 
-                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`) " +
-                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw)";
+                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`) " +
+                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @itemid, @houseid)";
                     command.Parameters.AddWithValue("@id", DbId);
                     command.Parameters.AddWithValue("@owner_id", OwnerId);
                     command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -349,6 +349,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
                     command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
                     command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
+                    command.Parameters.AddWithValue("@item_id", ItemId);
+                    command.Parameters.AddWithValue("@house_id", DbHouseId);
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }

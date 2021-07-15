@@ -2301,7 +2301,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         /// <summary>
         /// Saves and creates a doodad 
         /// </summary>
-        public void CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
+        public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
         {
             _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
             
@@ -2311,11 +2311,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.Transform = character.Transform.CloneDetached(doodad);
             doodad.ItemId = itemId;
             doodad.PlantTime = DateTime.Now;
-            //if (doodad.GrowthTime.Millisecond <= 0)
-            //{
-            //    //doodad.GrowthTime = DateTime.Now.AddMilliseconds(doodad.Template.MinTime);
-            //doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
-            //}
 
             if (scale > 0)
                 doodad.SetScale(scale);
@@ -2332,6 +2327,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.Spawn();
             // TODO: Save doodad + current phase to database
             doodad.Save();
+            return doodad;
         }
 
         // public void TriggerFunc(string className, Unit caster, Doodad doodad, uint skillId, uint nextPhase = 0)
