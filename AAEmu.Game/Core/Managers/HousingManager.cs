@@ -1096,20 +1096,17 @@ namespace AAEmu.Game.Core.Managers
             // Create decoration doodad
             var decorationDesign = GetDecorationDesignFromId(designId);
             
-            var doodadPos = player.Transform.CloneDetached();
-            doodadPos.Local.Translate(pos);
-            doodadPos.Local.ApplyFromQuaternion(quat);
-
             var doodad = DoodadManager.Instance.Create(0, decorationDesign.DoodadId);
             doodad.Transform.Parent = house.Transform;
-            doodad.Transform.Local.SetPosition(doodadPos.Local.Position.X, doodadPos.Local.Position.Y, doodadPos.Local.Position.Z);
-            doodad.Transform.Local.SetRotation(doodadPos.Local.Rotation.X,doodadPos.Local.Rotation.Y,doodadPos.Local.Rotation.Z);
+            doodad.Transform.Local.SetPosition(pos.X, pos.Y, pos.Z);
+            doodad.Transform.Local.ApplyFromQuaternion(quat);
             doodad.ItemTemplateId = designId;
             doodad.ItemId = itemId;
             doodad.DbHouseId = house.Id;
             doodad.OwnerId = player.Id;
             doodad.ParentObjId = house.ObjId;
             doodad.ParentObj = house;
+            doodad.AttachPoint = AttachPointKind.None;
             doodad.OwnerType = DoodadOwnerType.Housing;
             doodad.IsPersistent = true;
 
@@ -1131,6 +1128,8 @@ namespace AAEmu.Game.Core.Managers
             doodad.Spawn();
             doodad.Save();            
            
+            // TODO: Consume item or store it System container
+            
             return true;
         }
         

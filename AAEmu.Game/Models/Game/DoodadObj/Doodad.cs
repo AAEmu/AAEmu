@@ -267,7 +267,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
-            if (AttachPoint > 0)
+            if ((AttachPoint > 0) || (DbHouseId > 0))
             {
                 stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
                 var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
@@ -349,8 +349,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
                     command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
                     command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
-                    command.Parameters.AddWithValue("@item_id", ItemId);
-                    command.Parameters.AddWithValue("@house_id", DbHouseId);
+                    command.Parameters.AddWithValue("@itemid", ItemId);
+                    command.Parameters.AddWithValue("@houseid", DbHouseId);
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }

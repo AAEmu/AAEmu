@@ -96,9 +96,9 @@ namespace AAEmu.Game
             ModelManager.Instance.Load();
 
             AIManager.Instance.Initialize();
-            HousingManager.Instance.Load(); // Houses need to be loaded before doodads
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
+            HousingManager.Instance.Load();
             TransferManager.Instance.Load();
             GimmickManager.Instance.Load();
 

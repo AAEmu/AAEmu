@@ -68,6 +68,7 @@ namespace AAEmu.Game.Models.Game.World
         public virtual void Delete()
         {
             Hide();
+            Transform?.DetachAll();
             WorldManager.Instance.RemoveObject(this);
         }
 
