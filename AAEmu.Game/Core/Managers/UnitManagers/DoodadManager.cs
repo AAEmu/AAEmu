@@ -2306,15 +2306,28 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
         {
             _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
+
+            var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
             
             // Create doodad
             var doodad = Instance.Create(0, id, character);
             doodad.IsPersistent = true;
             doodad.Transform = character.Transform.CloneDetached(doodad);
+            doodad.Transform.Local.SetPosition(x,y,z);
+            doodad.Transform.Local.SetZRotation(zRot);
             doodad.ItemId = itemId;
             doodad.PlantTime = DateTime.Now;
+            if (targetHouse != null)
+            {
+                doodad.DbHouseId = targetHouse.Id;
+                doodad.OwnerType = DoodadOwnerType.Housing;
+            }
+            else
+            {
+                doodad.DbHouseId = 0;
+            }
 
-            if (scale > 0)
+            if (scale > 0f)
                 doodad.SetScale(scale);
             
             // Consume item
@@ -2327,7 +2340,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Inventory.ConsumeItem(new [] {SlotType.Inventory}, ItemTaskType.DoodadCreate, item, 1, preferredItem);
             
             doodad.Spawn();
-            // TODO: Save doodad + current phase to database
             doodad.Save();
             return doodad;
         }

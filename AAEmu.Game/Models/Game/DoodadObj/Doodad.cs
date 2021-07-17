@@ -327,12 +327,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 using (var command = connection.CreateCommand())
                 {
                     var parentDoodadId = 0u;
-                    if ((Transform.Parent.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
+                    if ((Transform?.Parent?.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
                         parentDoodadId = pDoodad.DbId;
                     
                     command.CommandText = 
-                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`) " +
-                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad)";
+                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`) " +
+                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id)";
                     command.Parameters.AddWithValue("@id", DbId);
                     command.Parameters.AddWithValue("@owner_id", OwnerId);
                     command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -351,6 +351,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@item_id", ItemId);
                     command.Parameters.AddWithValue("@house_id", DbHouseId);
                     command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
+                    command.Parameters.AddWithValue("@item_template_id", ItemTemplateId);
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }

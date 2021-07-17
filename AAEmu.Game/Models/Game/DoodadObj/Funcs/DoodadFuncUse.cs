@@ -1,7 +1,9 @@
 ﻿using System;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -14,7 +16,37 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            //TODO check skill refrences and consume items if items are required for skills
+            if ((owner.DbHouseId > 0) && (caster is Character player))
+            {
+                // If it's on a house, need to check permissions
+                var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
+                if (house == null)
+                {
+                    caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                    _log.Warn("Interaction failed because attached house does not exist for doodad {0}", owner.ObjId);
+                    return;
+                }
+
+                if ((house.Permission == HousingPermission.Private) && (player.Id != house.OwnerId))
+                {
+                    caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                    return;
+                }
+
+                if ((house.Permission == HousingPermission.Family) && (player.Family != house.CoOwnerId))
+                {
+                    caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                    return;
+                }
+
+                if ((house.Permission == HousingPermission.Guild) && (player.Expedition.Id != house.CoOwnerId))
+                {
+                    caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                    return;
+                }
+            }
+
+            // TODO: check skill references and consume items if items are required for skills
             // Make caster cast skill ? 
             if (SkillId > 0)
             {

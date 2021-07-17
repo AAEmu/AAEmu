@@ -197,7 +197,7 @@ CREATE TABLE `completed_quests` (
 DROP TABLE IF EXISTS `doodads`;
 CREATE TABLE `doodads` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `owner_id` int DEFAULT NULL,
+  `owner_id` int DEFAULT NULL COMMENT 'Character DB Id',
   `owner_type` tinyint unsigned DEFAULT '255',
   `template_id` int NOT NULL,
   `current_phase_id` int NOT NULL,
@@ -210,11 +210,12 @@ CREATE TABLE `doodads` (
   `roll` float NOT NULL,
   `pitch` float NOT NULL,
   `yaw` float NOT NULL,
-  `item_id` bigint unsigned NOT NULL DEFAULT '0',
-  `house_id` int unsigned NOT NULL DEFAULT '0' AFTER `item_id`,
-  `parent_doodad` int unsigned NOT NULL DEFAULT '0' AFTER `house_id`,
+  `item_id` bigint unsigned NOT NULL DEFAULT '0' COMMENT 'Item DB Id of the associated item',
+  `house_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'House DB Id if it is on actual house land',
+  `parent_doodad` int unsigned NOT NULL DEFAULT '0' COMMENT 'doodads DB Id this object is standing on',
+  `item_template_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'ItemTemplateId of associated item',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Persistent doodads (e.g. tradepacks on the ground)';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Persistent doodads (e.g. tradepacks, furniture)';
 
 
 DROP TABLE IF EXISTS `expedition_members`;

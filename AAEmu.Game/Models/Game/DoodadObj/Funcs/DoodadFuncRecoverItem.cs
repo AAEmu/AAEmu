@@ -12,7 +12,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Debug("DoodadFuncRecoverItem");
 
-            //TODO: itemId currently using itemtemplate but shouldn't, needs to retain original crafter 
             var character = (Character)caster;
             var addedItem = false;
             if (owner.ItemId > 0)
@@ -42,7 +41,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             else
             {
                 // No itemId was provided with the doodad, need to check what needs to be done with this
-                _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item attached", owner.InstanceId);
+                _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item information attached to it", owner.InstanceId);
             }
 
             //if (addedItem)

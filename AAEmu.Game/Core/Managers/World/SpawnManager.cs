@@ -237,26 +237,27 @@ namespace AAEmu.Game.Core.Managers.World
                             var growthTime = reader.GetDateTime("growth_time");
                             var phaseTime = reader.GetDateTime("phase_time");
                             var ownerId = reader.GetUInt32("owner_id");
-                            var ownerType = reader.GetByte("owner_type");
+                            var ownerType = (DoodadOwnerType)reader.GetByte("owner_type");
                             var itemId = reader.GetUInt64("item_id");
                             var houseId = reader.GetUInt32("house_id");
                             var parentDoodad = reader.GetUInt32("parent_doodad");
+                            var itemTemplateId = reader.GetUInt32("item_template_id");
 
-                            var doodad = new Doodad
-                            {
-                                DbId = dbId,
-                                ObjId = ObjectIdManager.Instance.GetNextId(),
-                                TemplateId = templateId,
-                                Template = DoodadManager.Instance.GetTemplate(templateId),
-                                CurrentPhaseId = phaseId,
-                                OwnerId = ownerId,
-                                OwnerType = (DoodadOwnerType)ownerType,
-                                AttachPoint = AttachPointKind.None,
-                                PlantTime = plantTime,
-                                GrowthTime = growthTime,
-                                ItemId = itemId,
-                                DbHouseId = houseId,
-                            };
+                            var doodad = DoodadManager.Instance.Create(0, templateId);
+
+                            doodad.DbId = dbId;
+                            doodad.CurrentPhaseId = phaseId;
+                            doodad.OwnerId = ownerId;
+                            doodad.OwnerType = ownerType;
+                            doodad.AttachPoint = AttachPointKind.None;
+                            doodad.PlantTime = plantTime;
+                            doodad.GrowthTime = growthTime;
+                            doodad.ItemId = itemId;
+                            doodad.DbHouseId = houseId;
+                            // Try to grab info from the actual item if it still exists
+                            var sourceItem = ItemManager.Instance.GetItemByItemId(itemId);
+                            doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
+                                    
                             doodad.Transform.Local.SetPosition(x, y, z);
                             doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));
 
@@ -326,7 +327,7 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 foreach (var doodad in _playerDoodads)
                 {
-                    doodad.DoPhase(null, 0);
+                    // doodad.DoPhase(null, 0);
                     doodad.Spawn();
                 }
             });

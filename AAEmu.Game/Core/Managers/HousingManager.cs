@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using AAEmu.Commons.IO;
@@ -605,7 +606,8 @@ namespace AAEmu.Game.Core.Managers
             }
 
             house.Permission = permission;
-            connection.SendPacket(new SCHousePermissionChangedPacket(tlId, (byte)permission));
+            house.BroadcastPacket(new SCHousePermissionChangedPacket(tlId, (byte)permission), false);
+            // connection.SendPacket(new SCHousePermissionChangedPacket(tlId, (byte)permission));
         }
 
         public void ChangeHouseName(GameConnection connection, ushort tlId, string name)
@@ -1068,6 +1070,12 @@ namespace AAEmu.Game.Core.Managers
             return null;
         }
 
+        public HousingDecoration GetDecorationDesignFromDoodadId(uint doodadId)
+        {
+            var deco = _housingDecorations.FirstOrDefault(x => x.Value.DoodadId == doodadId).Value;
+            return default ? null : deco;
+        }
+        
         public bool DecorateHouse(Character player, ushort houseId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId)
         {
             // Check Player
@@ -1091,17 +1099,25 @@ namespace AAEmu.Game.Core.Managers
                 return false;
             }
             
-            // TODO: Validate if designId is correct for the given item
             
             // Create decoration doodad
             var decorationDesign = GetDecorationDesignFromId(designId);
+
+            // TODO: Validate if designId is correct for the given item
+            /*
+            if (item.TemplateId != decorationDesign.ItemTemplateId)
+            {
+                player.SendErrorMessage(ErrorMessageType.FailedToUseItem);
+                return false;
+            }
+            */
             
             var doodad = DoodadManager.Instance.Create(0, decorationDesign.DoodadId);
             doodad.Transform.Parent = house.Transform;
             doodad.Transform.Local.SetPosition(pos.X, pos.Y, pos.Z);
             doodad.Transform.Local.ApplyFromQuaternion(quat);
-            doodad.ItemTemplateId = designId;
-            doodad.ItemId = itemId;
+            doodad.ItemTemplateId = item.TemplateId; // designId;
+            doodad.ItemId = (item.Template.MaxCount <= 1) ? itemId : 0;
             doodad.DbHouseId = house.Id;
             doodad.OwnerId = player.Id;
             doodad.ParentObjId = house.ObjId;
@@ -1110,6 +1126,7 @@ namespace AAEmu.Game.Core.Managers
             doodad.OwnerType = DoodadOwnerType.Housing;
             doodad.IsPersistent = true;
 
+            // It's not a good idea to actually parent the object, commented out for now
             /*
             if (parentObjId > 0)
             {
@@ -1130,9 +1147,19 @@ namespace AAEmu.Game.Core.Managers
             doodad.Spawn();
             doodad.Save();            
            
-            // TODO: Consume item or store it System container
-            
-            return true;
+            var res = false;
+            if (item.Template.MaxCount > 1) 
+            {
+                // Stackable items are simply consumed
+                res = (player.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadCreate, item.TemplateId, 1, item) == 1);
+            }
+            else
+            {
+                // Non-stackables are stored in the owner's system container as to retain crafter information and such 
+                res = player.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DoodadCreate, item);
+            }
+
+            return res;
         }
         
         public void HousingToggleAllowRecover(Character character, ushort houseTl)
@@ -1144,6 +1171,26 @@ namespace AAEmu.Game.Core.Managers
                 return;
             house.AllowRecover = !house.AllowRecover;
             house.BroadcastPacket(new SCHousingRecoverTogglePacket(house.TlId,house.AllowRecover), false);
+        }
+
+        /// <summary>
+        /// Returns a house where the given position falls within boundaries of the house 
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <returns>Target House or Null</returns>
+        public House GetHouseAtLocation(float x, float y)
+        {
+            // TODO: Checks if all houses use a square shape 
+            foreach (var h in _houses)
+            {
+                var house = h.Value;
+                var halfRadius = (house.Template.GardenRadius / 2f) - 0.1f;
+                var bounds = new RectangleF(house.Transform.World.Position.X - halfRadius, house.Transform.World.Position.Y - halfRadius,
+                    house.Template.GardenRadius, house.Template.GardenRadius);
+                if (bounds.Contains(x, y))
+                    return house;
+            }
+            return null;
         }
 
     }
