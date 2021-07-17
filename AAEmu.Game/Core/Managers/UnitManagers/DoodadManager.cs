@@ -2321,6 +2321,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             {
                 doodad.DbHouseId = targetHouse.Id;
                 doodad.OwnerType = DoodadOwnerType.Housing;
+                doodad.ParentObj = targetHouse;
+                doodad.ParentObjId = targetHouse.ObjId;
+                doodad.Transform.Parent = targetHouse.Transform;
             }
             else
             {

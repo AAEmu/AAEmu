@@ -26,20 +26,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     _log.Warn("Interaction failed because attached house does not exist for doodad {0}", owner.ObjId);
                     return;
                 }
-
-                if ((house.Permission == HousingPermission.Private) && (player.Id != house.OwnerId))
-                {
-                    caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
-                    return;
-                }
-
-                if ((house.Permission == HousingPermission.Family) && (player.Family != house.CoOwnerId))
-                {
-                    caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
-                    return;
-                }
-
-                if ((house.Permission == HousingPermission.Guild) && (player.Expedition.Id != house.CoOwnerId))
+                if (!house.AllowedToInteract(player))
                 {
                     caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                     return;

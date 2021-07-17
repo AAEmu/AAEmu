@@ -317,5 +317,18 @@ namespace AAEmu.Game.Models.Game.Housing
             HousingManager.Instance.RemoveDeadHouse(this);
         }
 
+        public bool AllowedToInteract(Character player)
+        {
+            switch (Permission)
+            {
+                case HousingPermission.Private when (player.Id != OwnerId):
+                case HousingPermission.Family when (player.Family != CoOwnerId):
+                case HousingPermission.Guild when (player.Expedition.Id != CoOwnerId):
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
     }
 }
