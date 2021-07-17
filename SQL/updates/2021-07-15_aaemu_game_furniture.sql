@@ -9,4 +9,11 @@ ADD `allow_recover` tinyint unsigned NOT NULL DEFAULT '1';
 -- -------------------------------------------------
 ALTER TABLE `doodads`
 ADD `item_id` bigint unsigned NOT NULL DEFAULT '0',
-ADD `house_id` int NOT NULL DEFAULT '0' AFTER `item_id`;
+ADD `house_id` int unsigned NOT NULL DEFAULT '0' AFTER `item_id`,
+ADD `parent_doodad` int unsigned NOT NULL DEFAULT '0' AFTER `house_id`;
+
+-- -------------------------------------------------
+-- Change ID to unsigned
+-- -------------------------------------------------
+ALTER TABLE `doodads`
+CHANGE `id` `id` int unsigned NOT NULL AUTO_INCREMENT FIRST ;

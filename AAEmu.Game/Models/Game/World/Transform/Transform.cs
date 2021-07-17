@@ -308,7 +308,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 _children.Add(child);
                 // TODO: This needs better handling and take into account rotations
                 child.Local.Position -= World.Position;
-                // child.Local.Position -= Local.Position;
+                child.Local.Rotation -= World.Rotation;
                 child.GameObject.ParentObj = this.GameObject;
             }
         }
@@ -320,7 +320,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                 _children.Remove(child);
                 // TODO: This needs better handling and take into account rotations
                 child.Local.Position += World.Position;
-                // child.Local.Position += Local.Position;
+                child.Local.Rotation += World.Rotation;
                 child.GameObject.ParentObj = null;
             }
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AAEmu.Commons.IO;
@@ -8,6 +9,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Transfers;
@@ -218,7 +220,8 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM doodads";
+                    // Sorting required to make make sure parenting doesn't produce invalid parents (normally)
+                    command.CommandText = "SELECT * FROM doodads ORDER BY `plant_time` ASC";
                     command.Prepare();
                     using (var reader = command.ExecuteReader())
                     {
@@ -237,6 +240,7 @@ namespace AAEmu.Game.Core.Managers.World
                             var ownerType = reader.GetByte("owner_type");
                             var itemId = reader.GetUInt64("item_id");
                             var houseId = reader.GetUInt32("house_id");
+                            var parentDoodad = reader.GetUInt32("parent_doodad");
 
                             var doodad = new Doodad
                             {
@@ -247,13 +251,32 @@ namespace AAEmu.Game.Core.Managers.World
                                 CurrentPhaseId = phaseId,
                                 OwnerId = ownerId,
                                 OwnerType = (DoodadOwnerType)ownerType,
+                                AttachPoint = AttachPointKind.None,
                                 PlantTime = plantTime,
                                 GrowthTime = growthTime,
                                 ItemId = itemId,
-                                DbHouseId = houseId
+                                DbHouseId = houseId,
                             };
                             doodad.Transform.Local.SetPosition(x, y, z);
                             doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));
+
+                            // Apparently this is only a reference value, so might not actually need to parent it
+                            if (parentDoodad > 0)
+                            {
+                                // var pDoodad = WorldManager.Instance.GetDoodadByDbId(parentDoodad);
+                                var pDoodad = _playerDoodads.FirstOrDefault(d => d.DbId == parentDoodad);
+                                if (pDoodad == null)
+                                {
+                                    _log.Warn("Unable to place doodad {0} can't find it's parent doodad {1}", dbId,
+                                        parentDoodad);
+                                }
+                                else
+                                {
+                                    //doodad.Transform.Parent = pDoodad.Transform;
+                                    //doodad.ParentObj = pDoodad;
+                                    //doodad.ParentObjId = pDoodad.ObjId;
+                                }
+                            }
 
                             if (houseId > 0)
                             {

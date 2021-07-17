@@ -1110,6 +1110,7 @@ namespace AAEmu.Game.Core.Managers
             doodad.OwnerType = DoodadOwnerType.Housing;
             doodad.IsPersistent = true;
 
+            /*
             if (parentObjId > 0)
             {
                 var pObj = WorldManager.Instance.GetGameObject(parentObjId);
@@ -1125,6 +1126,7 @@ namespace AAEmu.Game.Core.Managers
                     _log.Warn("Unable to find parent {0} for decor {1}", parentObjId, designId);
                 }
             }
+            */
             doodad.Spawn();
             doodad.Save();            
            

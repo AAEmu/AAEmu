@@ -196,7 +196,7 @@ CREATE TABLE `completed_quests` (
 
 DROP TABLE IF EXISTS `doodads`;
 CREATE TABLE `doodads` (
-  `id` int NOT NULL AUTO_INCREMENT,
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` int DEFAULT NULL,
   `owner_type` tinyint unsigned DEFAULT '255',
   `template_id` int NOT NULL,
@@ -211,7 +211,8 @@ CREATE TABLE `doodads` (
   `pitch` float NOT NULL,
   `yaw` float NOT NULL,
   `item_id` bigint unsigned NOT NULL DEFAULT '0',
-  `house_id` int NOT NULL DEFAULT '0' AFTER `item_id`,
+  `house_id` int unsigned NOT NULL DEFAULT '0' AFTER `item_id`,
+  `parent_doodad` int unsigned NOT NULL DEFAULT '0' AFTER `house_id`,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Persistent doodads (e.g. tradepacks on the ground)';
 

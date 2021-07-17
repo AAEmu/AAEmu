@@ -245,12 +245,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public override void AddVisibleObject(Character character)
         {
             character.SendPacket(new SCDoodadCreatedPacket(this));
-            /*
-            // If we have sticky things attached, send the packet. This should work in theory, but doesn't seem to
-            if (this.Transform.StickyChildren.Count > 0)
-                foreach (var child in this.Transform.StickyChildren)
-                    character.SendPacket(new SCHungPacket(child.GameObject.ObjId, this.ObjId));
-            */
             base.AddVisibleObject(character);
         }
 
@@ -267,7 +261,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
-            if ((AttachPoint > 0) || (DbHouseId > 0))
+            if ((AttachPoint > 0) || (ParentObjId > 0))
             {
                 stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
                 var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
@@ -332,9 +326,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 using (var command = connection.CreateCommand())
                 {
+                    var parentDoodadId = 0u;
+                    if ((Transform.Parent.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
+                        parentDoodadId = pDoodad.DbId;
+                    
                     command.CommandText = 
-                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`) " +
-                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @itemid, @houseid)";
+                        "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`) " +
+                        "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad)";
                     command.Parameters.AddWithValue("@id", DbId);
                     command.Parameters.AddWithValue("@owner_id", OwnerId);
                     command.Parameters.AddWithValue("@owner_type", OwnerType);
@@ -343,14 +341,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@plant_time", PlantTime);
                     command.Parameters.AddWithValue("@growth_time", GrowthTime);
                     command.Parameters.AddWithValue("@phase_time", DateTime.MinValue);
+                    // We save it's world position, and upon loading, we re-parent things depending on the data
                     command.Parameters.AddWithValue("@x", Transform.World.Position.X);
                     command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
                     command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
                     command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
                     command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
                     command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
-                    command.Parameters.AddWithValue("@itemid", ItemId);
-                    command.Parameters.AddWithValue("@houseid", DbHouseId);
+                    command.Parameters.AddWithValue("@item_id", ItemId);
+                    command.Parameters.AddWithValue("@house_id", DbHouseId);
+                    command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
                     command.Prepare();
                     command.ExecuteNonQuery();
                 }
