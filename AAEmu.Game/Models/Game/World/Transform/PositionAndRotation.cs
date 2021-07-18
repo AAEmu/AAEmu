@@ -162,7 +162,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             // TODO: Use Quaternion to do a proper InFront, currently height is ignored
             // TODO: Take into account IsLocal = false
-            var off = new Vector3((-distance * (float)Math.Sin(Rotation.Z)), (distance * (float)Math.Cos(Rotation.Z)), 0);
+            var off = new Vector3((-distance * MathF.Sin(Rotation.Z)), (distance * MathF.Cos(Rotation.Z)), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
             Translate(off);
         }
 
@@ -175,11 +175,59 @@ namespace AAEmu.Game.Models.Game.World.Transform
         {
             // TODO: Use Quaternion to do a proper InFront, currently height is ignored
             // TODO: Take into account IsLocal = false
-            var off = new Vector3((distance * (float)Math.Cos(Rotation.Z)), (distance * (float)Math.Sin(Rotation.Z)), 0);
+            var off = new Vector3((distance * MathF.Cos(Rotation.Z)), (distance * MathF.Sin(Rotation.Z)), useFullRotation ? distance * MathF.Cos(Rotation.Y) : 0f);
             Translate(off);
         }
 
         /// <summary>
+        /// Add Distance facing forward taken into account rotations
+        /// </summary>
+        /// <param name="right">On X-Axis</param>
+        /// <param name="front">On Y-Axis</param>
+        /// <param name="up">On Z-Axis</param>
+        public void AddDistance(float right, float front, float up)
+        {
+            // TODO: Don't mind the mess here, it's experimental
+            /*
+            var distance = new Vector3(right, front, up);
+            var m4Origin = Matrix4x4.CreateTranslation(Position);
+            var m4 = Matrix4x4.Transform(m4Origin, ToQuaternion()) + Matrix4x4.CreateTranslation(distance);
+           
+            Position = m4.Translation;
+            FromQuaternion(Quaternion.CreateFromRotationMatrix(m4));
+            */
+            
+            /*
+            var offX = new Vector3((right * MathF.Cos(Rotation.Z)), (right * MathF.Sin(Rotation.Z)), 0);
+            var offY = new Vector3((-front * MathF.Sin(Rotation.Z)), (front * MathF.Cos(Rotation.Z)), front * MathF.Cos(Rotation.Y));
+            var offZ = new Vector3((up * MathF.Sin(Rotation.Z)), (up * MathF.Cos(Rotation.Z)), 0);
+            Translate(offY);
+            */
+            
+            // Front // var off = new Vector3((-distance * MathF.Sin(Rotation.Z)), (distance * MathF.Cos(Rotation.Z)), distance * MathF.Cos(Rotation.Y));
+            // Right // var off = new Vector3((distance * (float)Math.Cos(Rotation.Z)), (distance * (float)Math.Sin(Rotation.Z)), distance * MathF.Cos(Rotation.Y));
+
+            // Front, Right, Up
+            /*
+            float offX = front * -MathF.Sin(Rotation.Z) * MathF.Sin(Rotation.Y);
+            float offY = front *  MathF.Cos(Rotation.Z) * MathF.Cos(Rotation.Y);
+            float offZ = front *  MathF.Sin(Rotation.Y) * MathF.Sin(Rotation.X);
+            var off = new Vector3(offX, offY, offZ);
+            */
+            
+            var off = new Vector3(right, front, up);
+            Translate(off);
+        }
+
+        public void AddDistance(Vector3 move) => AddDistance(move.X, move.Y, move.Z);
+        public void SubDistance(Vector3 move) => AddDistance(-move.X, -move.Y, -move.Z);
+        
+        
+        
+
+
+        /// <summary>
+        
         /// Rotates Transform to make it face towards targetPosition's direction
         /// </summary>
         /// <param name="targetPosition"></param>

@@ -1184,7 +1184,7 @@ namespace AAEmu.Game.Core.Managers
             foreach (var h in _houses)
             {
                 var house = h.Value;
-                var r = house.Template.GardenRadius - 0.1f;
+                var r = house.Template.GardenRadius;
                 var bounds = new RectangleF(house.Transform.World.Position.X - r, house.Transform.World.Position.Y - r,
                     r * 2f, r * 2f);
                 if (bounds.Contains(x, y))

@@ -319,6 +319,8 @@ namespace AAEmu.Game.Models.Game.Housing
 
         public bool AllowedToInteract(Character player)
         {
+            if (Template.AlwaysPublic)
+                return true;
             switch (Permission)
             {
                 case HousingPermission.Private when (player.Id != OwnerId):

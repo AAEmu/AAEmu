@@ -1,6 +1,8 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 
@@ -14,18 +16,29 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             var character = (Character)caster;
             var addedItem = false;
+            var item = ItemManager.Instance.GetItemByItemId(owner.ItemId);
             if (owner.ItemId > 0)
             {
-                var item = ItemManager.Instance.GetItemByItemId(owner.ItemId);
                 if (item != null)
                 {
+                    // Recoverable doodads, should be referencing a item in a System container, if this is not the case,
+                    // that means that it was already picked up by somebody else
+                    if (item._holdingContainer.ContainerType != SlotType.System)
+                    {
+                        owner.ToPhaseAndUse = false;
+                        // character.SendErrorMessage(ErrorMessageType.Backpack); // TODO: Not sure what error I need to put here
+                        return;
+                    }
+                    
                     if (ItemManager.Instance.IsAutoEquipTradePack(item.TemplateId))
                     {
                         if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
+                        {
                             if (character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem,
                                 item,
                                 (int)Items.EquipmentItemSlot.Backpack))
                                 addedItem = true;
+                        }
                     }
                     else
                     {
@@ -44,8 +57,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item information attached to it", owner.InstanceId);
             }
 
-            //if (addedItem)
-            //    owner.Delete();
+            if ((addedItem) && (item != null) && (item._holdingContainer.ContainerType == SlotType.Equipment))
+            {
+                character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
+                //    owner.Delete();
+            }
+
             owner.ToPhaseAndUse = addedItem;
         }
     }
