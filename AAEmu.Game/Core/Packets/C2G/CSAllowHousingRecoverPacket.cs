@@ -1,5 +1,5 @@
 ﻿using AAEmu.Commons.Network;
-//using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var tl = stream.ReadUInt16();
             
             _log.Debug("AllowHousingRecover, Tl: {0}", tl);
-            AAEmu.Game.Core.Managers.HousingManager.Instance.HousingToggleAllowRecover(Connection.ActiveChar,tl);
+            HousingManager.Instance.HousingToggleAllowRecover(Connection.ActiveChar,tl);
         }
     }
 }

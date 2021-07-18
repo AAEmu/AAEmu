@@ -3,6 +3,7 @@ using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -33,9 +34,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             Item item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
             if (item == null) return;
-
+            
             var pos = character.Transform.CloneDetached();
             pos.Local.AddDistanceToFront(1f);
+            //pos.Local.AddDistance(0f,1f,0f); // This function isn't finished yet
+            pos.Local.SetRotation(0f,0f,0f); // Always faces north when placed
             
             var targetHouse = HousingManager.Instance.GetHouseAtLocation(pos.World.Position.X, pos.World.Position.Y);
             if (targetHouse != null)
@@ -72,15 +75,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     doodad.OwnerType = DoodadOwnerType.Housing;
                     doodad.ParentObj = targetHouse;
                     doodad.ParentObjId = targetHouse.ObjId;
-                    doodad.Transform.Parent = targetHouse.Transform;
+                    doodad.Transform.Parent = targetHouse.Transform; // Does not work as intended yet
                 }
-                else
-                {
-                    doodad.DbHouseId = 0;
-                    doodad.OwnerType = DoodadOwnerType.System;
-                }
+                
                 doodad.Spawn();
                 doodad.Save();
+                
+                character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)EquipmentItemSlot.Backpack, null), false);
             }
         }
     }
