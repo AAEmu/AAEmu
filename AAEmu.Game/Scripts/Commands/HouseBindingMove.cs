@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 
 namespace AAEmu.Game.Scripts.Commands
@@ -33,19 +34,18 @@ namespace AAEmu.Game.Scripts.Commands
                     character.SendMessage("[HouseBindings] " + CommandManager.CommandPrefix + "house_binding_move <AttachPointId> <X> <Y> <Z>");
                     return;
                 }
-                if (uint.TryParse(args[0], out var attachPointId) &&
+                if (uint.TryParse(args[0], out var attachPointIdVal) &&
                     float.TryParse(args[1], out var x) &&
                     float.TryParse(args[2], out var y) &&
                     float.TryParse(args[3], out var z))
                 {
+                    var attachPointId = (AttachPointKind)attachPointIdVal;
                     var attachPointObj = house.AttachedDoodads.Find(o => o.AttachPoint == attachPointId);
                     if (attachPointObj != null)
                     {
                         house.Delete();
 
-                        attachPointObj.Position.X = x;
-                        attachPointObj.Position.Y = y;
-                        attachPointObj.Position.Z = z;
+                        attachPointObj.Transform.Local.SetPosition(x, y, z);
 
                         house.Spawn();
                         

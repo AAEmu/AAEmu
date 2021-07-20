@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
 
             doodad.Spawner = this;
-            doodad.Position = Position.Clone();
+            doodad.Transform.ApplyWorldSpawnPosition(Position);
             doodad.QuestGlow = 0u; // TODO: make this OOP
             doodad.ItemId = itemId;
 
@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (Scale > 0)
                 doodad.SetScale(Scale);
 
-            if (doodad.Position == null)
+            if (doodad.Transform == null)
             {
                 _log.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
                 return null;
@@ -64,8 +64,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             
             doodad.Spawner = this;
-            doodad.Position = Position.Clone();
-            
+            doodad.Transform.ApplyWorldSpawnPosition(Position);
             // TODO for test
             doodad.PlantTime = DateTime.Now;
             //if (doodad.GrowthTime.Millisecond <= 0)
@@ -73,10 +72,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             //    doodad.GrowthTime = DateTime.Now.AddMilliseconds(doodad.Template.MinTime);
             //doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
             //}
-            
             if (Scale > 0)
                 doodad.SetScale(Scale);
-            if (doodad.Position == null)
+            if (doodad.Transform == null)
             {
                 _log.Error("Can't spawn doodad {1} from spawn {0}", Id, UnitId);
                 return null;

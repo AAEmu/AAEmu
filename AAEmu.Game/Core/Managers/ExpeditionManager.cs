@@ -13,10 +13,11 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Error;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using AAEmu.Game.Models.Game.Team;
+using System.Numerics;
+using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -55,13 +56,14 @@ namespace AAEmu.Game.Core.Managers
         {
             _expeditions = new Dictionary<uint, Expedition>();
 
-            var contents = FileManager.GetFileContents($"{FileManager.AppPath}Data/expedition.json");
+            var filePath = Path.Combine(FileManager.AppPath, "Data", "expedition.json");
+            var contents = FileManager.GetFileContents(filePath);
             if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException($"File {FileManager.AppPath}Data/expedition.json doesn't exists or is empty.");
+                throw new IOException($"File {filePath} doesn't exists or is empty.");
 
             if (!JsonHelper.TryDeserializeObject(contents, out _config, out _)) // TODO here can out Exception
                 throw new Exception(
-                    $"ExpeditionManager: Parse {FileManager.AppPath}Data/expedition.json file");
+                    $"ExpeditionManager: Parse {filePath} file");
             _nameRegex = new Regex(_config.NameRegex, RegexOptions.Compiled);
 
             using (var connection = MySQL.CreateConnection())
@@ -528,10 +530,8 @@ namespace AAEmu.Game.Core.Managers
             member.Level = character.Level;
             member.Role = (byte)(owner ? 255 : 0);
             member.Memo = "";
-            member.X = character.Position.X;
-            member.Y = character.Position.Y;
-            member.Z = character.Position.Z;
-            member.ZoneId = (int)character.Position.ZoneId;
+            member.Position = new Vector3(character.Transform.World.Position.X,character.Transform.World.Position.Y,character.Transform.World.Position.Z);
+            member.ZoneId = character.Transform.ZoneId;
             member.Abilities = new[]
                 {(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3};
             member.ExpeditionId = expedition.Id;

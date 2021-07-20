@@ -63,7 +63,7 @@ namespace AAEmu.Game.GameData
                         var fileType = fileTypeToId[id];
                         try
                         {
-                            var data = reader.GetString("ai_param");
+                            var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");
                             var aiParams = AiParams.CreateByType(fileType, data);
                             if (aiParams != null && !_aiParams.ContainsKey(id))
                                 _aiParams.Add(id, aiParams);

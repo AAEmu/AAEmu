@@ -44,7 +44,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 owner.ToPhaseAndUse = true;
             }
             else
-                character.SendErrorMessage(Error.ErrorMessageType.BagFull);
+            {
+                character.SendErrorMessage(ErrorMessageType.BagFull);
+            }
         }
     }
 }

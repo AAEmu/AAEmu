@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Utils;
 using AAEmu.Tests.Utils;
+using AAEmu.Tests.Utils.Mocks;
 using Xunit;
 
 namespace AAEmu.Tests

@@ -26,12 +26,12 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<npc||doodad> <objId>";
+            return "[angle]";
         }
 
         public string GetCommandHelpText()
         {
-            return "Rotate target unit towards you";
+            return "Rotate target unit towards you, or set it's local rotation to a given angle";
         }
 
         public void Execute(Character character, string[] args)
@@ -49,22 +49,30 @@ namespace AAEmu.Game.Scripts.Commands
                 var Seq = (uint)Rand.Next(0, 10000);
                 var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
                 
-                moveType.X = character.CurrentTarget.Position.X;
-                moveType.Y = character.CurrentTarget.Position.Y;
-                moveType.Z = character.CurrentTarget.Position.Z;
+                moveType.X = character.CurrentTarget.Transform.World.Position.X;
+                moveType.Y = character.CurrentTarget.Transform.World.Position.Y;
+                moveType.Z = character.CurrentTarget.Transform.World.Position.Z;
 
-                var angle = MathUtil.CalculateAngleFrom(character.CurrentTarget, character);
-                var rotZ = MathUtil.ConvertDegreeToDirection(angle);
-                if (args.Length > 0) 
+                var angle = (float)MathUtil.CalculateAngleFrom(character.CurrentTarget, character) - 90f;
+                var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
+                /*
+                if (args.Length > 0)
                 {
-                    sbyte.TryParse(args[0], out rotZ);
+                    if (!sbyte.TryParse(args[0], out rotZ))
+                        character.SendMessage("Rotation sbyte out of range");
                 }
 
-                moveType.RotationX = 0;
-                moveType.RotationY = 0;
-                moveType.RotationZ = rotZ;
+                var angle2 = angle;
+                angle = (float)MathUtil.ConvertSbyteDirectionToDegree(rotZ);
+                */
+                character.CurrentTarget.Transform.Local.SetRotationDegree(0f,0f,angle);
+                
+                //character.CurrentTarget.Transform.Local.LookAt(character.Transform.Local.Position);
 
-                character.CurrentTarget.Position.RotationZ = rotZ;
+                moveType.RotationX = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.X);
+                moveType.RotationY = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.Y);
+                moveType.RotationZ = MathUtil.ConvertRadianToDirection(character.CurrentTarget.Transform.Local.Rotation.Z);
+                //moveType.RotationZ = rotZ;
 
                 moveType.ActorFlags = 5;
                 moveType.DeltaMovement = new sbyte[3];
@@ -76,6 +84,9 @@ namespace AAEmu.Game.Scripts.Commands
                 moveType.Time += 50; // has to change all the time for normal motion.
 
                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
+                character.SendMessage("New rotation {0}° ({1} rad, sbyte {2}) for {3}",angle, character.CurrentTarget.Transform.Local.Rotation.Z.ToString("0.00"),rotZ,character.CurrentTarget.ObjId);
+                character.SendMessage("New position {0}",character.CurrentTarget.Transform.Local.ToString());
+                //character.SendMessage("New position A1:{0}  A2:{1}  {2}",angle,angle2,character.CurrentTarget.Transform.Local.ToString());
             }
             else
                 character.SendMessage("[Rotate] You need to target something first");

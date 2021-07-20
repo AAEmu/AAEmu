@@ -1,0 +1,31 @@
+Support for docker was added with PR 267 on 2021-05-27 by alex-marchenko
+https://github.com/AAEmu/AAEmu/pull/267
+
+Shellscripts you can use:
+--------------------------
+start.sh builds docker images for AAEmu.Login and AAEmu.Game and starts them along with db container. Building machine requires only docker and docker-compose
+
+stop.sh shuts down and removes all containers leaving only docker volume with db
+
+stop-reset-db.sh shuts down and removes all containers WITH db volume
+
+clear-caches.sh convenience script, removes all cached intermediate docker images, might be useful if you're building a lot
+
+
+How to edit the DB inside docket, or how do I change myself into a GM ?
+------------------------------------------------------------------------
+If you need to edit your DB to for example make your character a GM (change accesslevel to 100). 
+You can go to containers -> aaemu -> aaemu_adminer -> click the open in browser button
+Log into the DB admin using root/password (by default) as username and password.
+
+You can change your character into a GM (after you have created one and logged out), 
+- by going to "aaemu_game"
+- then select "characters"
+- click "select data" at the top
+- find your character in the list, and click the edit button (the pen in the front of the row)
+- change the value of "access_level" to 100
+- click save at the bottom of the page
+
+When this is done you can, just log into the game again, and you should have more GM commands available (use /? in the in-game chat)
+
+

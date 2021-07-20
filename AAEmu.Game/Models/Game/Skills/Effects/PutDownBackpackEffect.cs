@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Numerics;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -34,18 +36,26 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 // Spawn doodad
                 _log.Debug("PutDownPackEffect");
-                var (newX, newY) = MathUtil.AddDistanceToFront(1f, character.Position.X, character.Position.Y, character.Position.RotationZ);
-                var pos = character.Position.Clone();
 
-                pos.X = newX;
-                pos.Y = newY;
-                pos.RotationZ = 0; // packs always place facing north
+                var pos = character.Transform.CloneDetached();
+                pos.Local.AddDistanceToFront(1f);
 
-                var doodadSpawner = new DoodadSpawner();
-                doodadSpawner.Id = 0;
-                doodadSpawner.UnitId = BackpackDoodadId;
-                doodadSpawner.Position = pos;
-                var doodad = doodadSpawner.Spawn(0,item.Id,character.ObjId);
+                var doodad = DoodadManager.Instance.Create(0, BackpackDoodadId);
+                if (doodad == null)
+                {
+                    _log.Warn("Doodad {0}, from BackpackDoodadId could not be created", BackpackDoodadId);
+                    return ;
+                }
+                doodad.OwnerId = character.Id;
+                doodad.OwnerObjId = character.ObjId;
+                doodad.Transform = pos.Clone(doodad);
+                doodad.AttachPoint = 0 ;
+                doodad.ItemId = item.Template.MaxCount > 1 ? item.Id : 0;
+                doodad.SetScale(1f);
+                doodad.Data = 0;
+                doodad.PlantTime = DateTime.Now;
+                //doodad.IsPersistent = false;
+                doodad.Spawn();
             }
         }
     }

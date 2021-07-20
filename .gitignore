@@ -26,3 +26,5 @@ publish/
 *.aelcf
 
 AAEmu.Tests/TestResults/
+Tools/*/bin/
+Tools/*/obj/

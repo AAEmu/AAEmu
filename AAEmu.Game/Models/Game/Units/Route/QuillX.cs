@@ -25,16 +25,16 @@ namespace AAEmu.Game.Models.Game.Units.Route
         /// <param name="degree">Default angle 360 degrees</param>
         public override void Execute(Npc npc)
         {
-            var x = npc.Position.X;
-            var y = npc.Position.Y;
+            var x = npc.Transform.Local.Position.X;
+            var y = npc.Transform.Local.Position.Y;
 
             if (Count < Degree / 2)
             {
-                npc.Position.X += (float)0.1;
+                npc.Transform.Local.Translate(0.1f, 0f, 0f);
             }
             else if (Count < Degree)
             {
-                npc.Position.X -= (float)0.1;
+                npc.Transform.Local.Translate(-0.1f, 0f, 0f);
             }
             //    if (Count < Degree / 4 || (Count > (Degree / 4 + Degree / 2) && Count < Degree))
             //    {
@@ -49,8 +49,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             // Change NPC coordinates
-            moveType.X = npc.Position.X;
-            moveType.Y = npc.Position.Y;
+            moveType.X = npc.Transform.Local.Position.X;
+            moveType.Y = npc.Transform.Local.Position.Y;
             if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
             {
                 moveType.Z = 98.5993f;
@@ -61,11 +61,11 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             else // other
             {
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                moveType.Z = WorldManager.Instance.GetHeight(npc.Transform);
             }
 
-            var angle = MathUtil.CalculateAngleFrom(x, y, npc.Position.X, npc.Position.Y);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            var angle = MathUtil.CalculateAngleFrom(x, y, npc.Transform.Local.Position.X, npc.Transform.Local.Position.Y);
+            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;

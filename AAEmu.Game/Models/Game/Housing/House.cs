@@ -82,8 +82,9 @@ namespace AAEmu.Game.Models.Game.Housing
                     foreach (var bindingDoodad in Template.HousingBindingDoodad)
                     {
                         var doodad = DoodadManager.Instance.Create(0, bindingDoodad.DoodadId, this);
-                        doodad.AttachPoint = (byte)bindingDoodad.AttachPointId;
-                        doodad.Position = bindingDoodad.Position.Clone();
+                        doodad.AttachPoint = bindingDoodad.AttachPointId;
+                        doodad.Transform.Parent = this.Transform;
+                        doodad.Transform.ApplyWorldSpawnPosition(bindingDoodad.Position);
                         doodad.ParentObj = this;
 
                         AttachedDoodads.Add(doodad);
@@ -184,6 +185,7 @@ namespace AAEmu.Game.Models.Game.Housing
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCHouseStatePacket(this));
 
+            // TODO: This should be handled in the base.AddVisibleObject
             var doodads = AttachedDoodads.ToArray();
             for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
             {
@@ -192,18 +194,17 @@ namespace AAEmu.Game.Models.Game.Housing
                 Array.Copy(doodads, i, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
+            
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
 
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
 
+            // TODO: This should be handled in base.RemoveVisibleObject
             var doodadIds = new uint[AttachedDoodads.Count];
             for (var i = 0; i < AttachedDoodads.Count; i++)
                 doodadIds[i] = AttachedDoodads[i].ObjId;
@@ -219,18 +220,14 @@ namespace AAEmu.Game.Models.Game.Housing
             }
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
-        {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
-                character.SendPacket(packet);
-        }
-
         #endregion
 
         public bool Save(MySqlConnection connection, MySqlTransaction transaction = null)
         {
             if (!IsDirty)
                 return false;
+            if ((AccountId <= 0) || (OwnerId <= 0))
+                return false; // recently destroyed/expired house
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -238,8 +235,9 @@ namespace AAEmu.Game.Models.Game.Housing
 
                 command.CommandText =
                     "REPLACE INTO `housings` " +
-                    "(`id`,`account_id`,`owner`,`co_owner`,`template_id`,`name`,`x`,`y`,`z`,`rotation_z`,`current_step`,`current_action`,`permission`,`place_date`,`protected_until`,`faction_id`,`sell_to`,`sell_price`) " +
-                    "VALUES(@id,@account_id,@owner,@co_owner,@template_id,@name,@x,@y,@z,@rotation_z,@current_step,@current_action,@permission,@placedate,@protecteduntil,@factionid,@sellto,@sellprice)";
+                    "(`id`,`account_id`,`owner`,`co_owner`,`template_id`,`name`,`x`,`y`,`z`,`yaw`,`pitch`,`roll`,`current_step`,`current_action`,`permission`,`place_date`,`protected_until`,`faction_id`,`sell_to`,`sell_price`) " +
+                    "VALUES(@id,@account_id,@owner,@co_owner,@template_id,@name,@x,@y,@z,@yaw,@pitch,@roll,@current_step,@current_action,@permission,@placedate," +
+                    "@protecteduntil,@factionid,@sellto,@sellprice)";
 
                 command.Parameters.AddWithValue("@id", Id);
                 command.Parameters.AddWithValue("@account_id", AccountId);
@@ -247,10 +245,13 @@ namespace AAEmu.Game.Models.Game.Housing
                 command.Parameters.AddWithValue("@co_owner", CoOwnerId);
                 command.Parameters.AddWithValue("@template_id", TemplateId);
                 command.Parameters.AddWithValue("@name", Name);
-                command.Parameters.AddWithValue("@x", Position.X);
-                command.Parameters.AddWithValue("@y", Position.Y);
-                command.Parameters.AddWithValue("@z", Position.Z);
-                command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
+                command.Parameters.AddWithValue("@x", Transform.World.Position.X);
+                command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
+                command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
+                //command.Parameters.AddWithValue("@rotation_z", Position.RotationZ);
+                command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
+                command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
+                command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
                 command.Parameters.AddWithValue("@current_step", CurrentStep);
                 command.Parameters.AddWithValue("@current_action", NumAction);
                 command.Parameters.AddWithValue("@permission", (byte)Permission);
@@ -259,6 +260,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 command.Parameters.AddWithValue("@factionid", Faction.Id);
                 command.Parameters.AddWithValue("@sellto", SellToPlayerId);
                 command.Parameters.AddWithValue("@sellprice", SellPrice);
+                command.Prepare();
                 command.ExecuteNonQuery();
             }
 
@@ -295,9 +297,9 @@ namespace AAEmu.Game.Models.Game.Housing
             }
             
             stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
-            stream.Write(Helpers.ConvertLongX(Position.X));
-            stream.Write(Helpers.ConvertLongY(Position.Y));
-            stream.Write(Position.Z);
+            stream.Write(Helpers.ConvertLongX(Transform.World.Position.X));
+            stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
+            stream.Write(Transform.World.Position.Z);
             stream.Write(Name); // house // TODO max length 128
             stream.Write(true); // allowRecover
             stream.Write(SellPrice); // Sale moneyAmount

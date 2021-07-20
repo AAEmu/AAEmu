@@ -40,11 +40,11 @@ namespace AAEmu.Game.Scripts.Commands
             Character targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstarg);
 
             var portalName = args[firstarg+0];
-            var position = character.Position;
+            var position = character.Transform.CloneAsSpawnPosition();
             var x = position.X;
             var y = position.Y;
             var z = position.Z;
-            var zRot = position.RotationZ;
+            var zRot = position.Roll;
             var zoneId = position.ZoneId;
 
             if ((args.Length == firstarg + 5) && (float.TryParse(args[firstarg + 1], out float argx)))

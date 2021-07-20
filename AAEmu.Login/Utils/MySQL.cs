@@ -14,7 +14,7 @@ namespace AAEmu.Login.Utils
         {
             var config = AppConfiguration.Instance.Connections.MySQLProvider;
             ConnectionString =
-                $"server={config.Host};port={config.Port};user={config.User};password={config.Password};database={config.Database};Pooling=true;Min Pool Size=0;Max Pool Size=10;Connection Lifetime=600;charset=utf8;Allow Zero Datetime=true;Convert Zero Datetime=true;default command timeout=180;SslMode=none";
+                $"server={config.Host};port={config.Port};user={config.User};password={config.Password};database={config.Database};Pooling=true;Min Pool Size=0;Max Pool Size=10;Connection Lifetime=600;charset=utf8;Allow Zero Datetime=true;Convert Zero Datetime=true;default command timeout=180;SslMode=Preferred";
         }
 
         public static MySqlConnection Create()

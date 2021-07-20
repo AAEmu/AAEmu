@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -9,9 +9,16 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Units
 {
+    public class MatePassengerInfo
+    {
+        public uint _objId;
+        public AttachUnitReason _reason;
+    }
+    
     public sealed class Mate : Unit
     {
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
@@ -20,10 +27,7 @@ namespace AAEmu.Game.Models.Game.Units
         public NpcTemplate Template { get; set; }
 
         public uint OwnerObjId { get; set; }
-        public uint Att1 { get; set; }
-        public AttachUnitReason Reason1 { get; set; }
-        public uint Att2 { get; set; }
-        public AttachUnitReason Reason2 { get; set; }
+        public Dictionary<AttachPointKind,MatePassengerInfo> Passengers { get; }
 
         public override float Scale => Template.Scale;
 
@@ -386,10 +390,12 @@ namespace AAEmu.Game.Models.Game.Units
         {
             ModelParams = new UnitCustomModelParams();
             Skills = new List<uint>();
-            Att1 = 0u;
-            Reason1 = 0;
-            Att2 = 0u;
-            Reason2 = 0;
+            Passengers = new Dictionary<AttachPointKind, MatePassengerInfo>();
+
+            // TODO: Spawn this with the correct amount of seats depending on the template
+            // 2 seats by default
+            Passengers.Add(AttachPointKind.Driver,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
+            Passengers.Add(AttachPointKind.Passenger0,new MatePassengerInfo() { _objId = 0 , _reason = 0 });
         }
 
         public void AddExp(int exp)
@@ -432,40 +438,47 @@ namespace AAEmu.Game.Models.Game.Units
             character.SendPacket(new SCUnitStatePacket(this));
             character.SendPacket(new SCMateStatePacket(ObjId));
             character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
-            if (Att1 > 0)
+            // TODO: Maybe let base handle this ?
+            foreach (var ati in Passengers)
             {
-                var owner = WorldManager.Instance.GetCharacterByObjId(Att1);
-                if (owner != null)
-                    character.SendPacket(new SCUnitAttachedPacket(owner.ObjId, AttachPointKind.Driver, AttachUnitReason.MountMateForward, ObjId));
+                if (ati.Value._objId > 0)
+                {
+                    var player = WorldManager.Instance.GetCharacterByObjId(ati.Value._objId);
+                    if (player != null)
+                        character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, ati.Value._reason, ObjId));
+                }
             }
-            if (Att2 > 0)
-            {
-                var passenger = WorldManager.Instance.GetCharacterByObjId(Att1);
-                if (passenger != null)
-                    character.SendPacket(new SCUnitAttachedPacket(passenger.ObjId, AttachPointKind.Passenger0, AttachUnitReason.MountMateBack, ObjId));
-            }
+            base.AddVisibleObject(character);
         }
 
         public override void RemoveVisibleObject(Character character)
         {
-            if (character.CurrentTarget != null && character.CurrentTarget == this)
-            {
-                character.CurrentTarget = null;
-                character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
-            }
+            base.RemoveVisibleObject(character);
 
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
-        public override void BroadcastPacket(GamePacket packet, bool self)
+        public override int DoFallDamage(ushort fallVel)
         {
-            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
+            var fallDmg = base.DoFallDamage(fallVel);
+            if (Hp <= 0)
             {
-                if (OwnerObjId == character.ObjId && self)
-                    character.SendPacket(packet);
-                else if (OwnerObjId != character.ObjId)
-                    character.SendPacket(packet);
+                var riders = Passengers.ToList();
+                // When fall damage kills a mount, also kill all of it's riders
+                for (var i = riders.Count - 1; i >= 0; i--)
+                {
+                    var pos = riders[i].Key;
+                    var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value._objId);
+                    if (rider != null)
+                    {
+                        rider.DoFallDamage(fallVel);
+                        if (rider.Hp <= 0)
+                            MateManager.Instance.UnMountMate(rider, TlId, pos, AttachUnitReason.SlaveBinding);
+                    }
+                }
             }
+
+            return fallDmg;
         }
     }
 }

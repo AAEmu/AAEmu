@@ -22,16 +22,16 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_character.Id);
             stream.Write(_character.Name);
             stream.Write((byte)_character.Race);
-            stream.Write(_character.Hp * 100); // health TODO ?
+            stream.Write(_character.Hp * 100); // TODO: precise health ?
             stream.Write(_character.Level);
             stream.Write((byte)_character.Ability1);
             stream.Write((byte)_character.Ability2);
             stream.Write((byte)_character.Ability3);
-            stream.Write(Helpers.ConvertLongX(_character.Position.X));
-            stream.Write(Helpers.ConvertLongY(_character.Position.Y));
-            stream.Write(_character.Position.Z);
-            stream.Write(_character.Position.ZoneId);
-            stream.Write(DateTime.Now); // lastWorldLeaveTime
+            stream.Write(Helpers.ConvertLongX(_character.Transform.Local.Position.X));
+            stream.Write(Helpers.ConvertLongY(_character.Transform.Local.Position.Y));
+            stream.Write(_character.Transform.Local.Position.Z);
+            stream.Write(_character.Transform.ZoneId);
+            stream.Write(DateTime.Now); // TODO: lastWorldLeaveTime
 
             var items = _character.Inventory.Equipment.GetSlottedItemsList();
             foreach (var item in items)

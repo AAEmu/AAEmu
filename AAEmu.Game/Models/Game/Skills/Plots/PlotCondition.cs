@@ -198,7 +198,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
         {
             // Param1 = Min range
             // Param2 = Max range
-            var range = MathUtil.CalculateDistance(caster.Position, target.Position);
+            var range = MathUtil.CalculateDistance(caster.Transform.World.Position, target.Transform.World.Position);
             range -= 2;//Temp fix because the calculation is off
             range = Math.Max(0f, range);
             return range >= minRange && range <= maxRange;

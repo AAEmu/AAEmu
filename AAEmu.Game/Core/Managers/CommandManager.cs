@@ -60,8 +60,10 @@ namespace AAEmu.Game.Core.Managers
         private void ForceScriptsReload(Character character)
         {
             CommandManager.Instance.Clear();
-            ScriptCompiler.Compile();
-            character.SendMessage("[Force Scripts Reload] Done");
+            if (ScriptCompiler.Compile())
+                character.SendMessage("[Force Scripts Reload] Success");
+            else
+                character.SendMessage("|cFFFF0000[Force Scripts Reload] There were errors !|r");
         }
 
         private string[] SplitCommandString(string baseString)
@@ -69,6 +71,14 @@ namespace AAEmu.Game.Core.Managers
             // https://codereview.stackexchange.com/questions/10826/splitting-a-string-into-words-or-double-quoted-substrings
             var re = new Regex("(?<=\")[^\"]*(?=\")|[^\" ]+");
             return re.Matches(baseString).Cast<Match>().Select(m => m.Value).ToArray();
+        }
+
+        public string UnAliasCommandName(string cmd)
+        {
+            if (_commandAliases.TryGetValue(cmd.ToLower(), out var realName))
+                return realName;
+            else
+                return cmd;
         }
 
         public bool Handle(Character character, string text)
@@ -84,7 +94,7 @@ namespace AAEmu.Game.Core.Managers
 
             // Only enable the force_scripts_reload when we don't have anything loaded, this is simply a failsafe function in case
             // things aren't working out when live-editing scripts
-            if ((thisCommand == "force_scripts_reload") && (_commands.Count <= 0))
+            if ((_commands.Count <= 0) && (words.Length == 2) && (thisCommand == "scripts") && (words[1] == "reload") && (character.AccessLevel >= 100))
             {
                 ForceScriptsReload(character);
                 return true;
@@ -92,7 +102,14 @@ namespace AAEmu.Game.Core.Managers
 
             if (_commands.Count <= 0)
             {
-                character.SendMessage("[Error] No commands have been loaded, this is usually because of compile errors. Try using " + CommandManager.CommandPrefix + "force_scripts_reload after the issues have been fixed.");
+                // Only display extended error to admins
+                if (character.AccessLevel >= 100)
+                    character.SendMessage(
+                        "|cFFFF0000[Error] No commands have been loaded, this is usually because of compile errors. Try using \"" +
+                        CommandManager.CommandPrefix + "scripts reload\" after the issues have been fixed.|r");
+                else
+                    character.SendMessage(
+                        "[Error] No commands available.");
                 return false;
             }
 

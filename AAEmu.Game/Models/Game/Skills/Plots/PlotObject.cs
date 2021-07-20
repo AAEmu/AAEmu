@@ -1,6 +1,7 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots
 {
@@ -13,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
     {
         public PlotObjectType Type { get; set; }
         public uint UnitId { get; set; }
-        public Point Position { get; set; }
+        public Transform Position { get; set; }
 
         public PlotObject(BaseUnit unit) 
         {
@@ -27,10 +28,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
             UnitId = unitId;
         }
 
-        public PlotObject(Point position) 
+        public PlotObject(Transform position) 
         {
             Type = PlotObjectType.POSITION;
-            Position = position;
+            Position = position.CloneDetached();
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -42,10 +43,11 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     stream.WriteBc(UnitId);
                     break;
                 case PlotObjectType.POSITION:
-                    stream.WritePosition(Position.X, Position.Y, Position.Z);
-                    stream.Write(Position.RotationX);
-                    stream.Write(Position.RotationY);
-                    stream.Write(Position.RotationZ); 
+                    stream.WritePosition(Position.Local.Position);
+                    var ypr = Position.Local.ToRollPitchYawSBytes();
+                    stream.Write(ypr.Item1);
+                    stream.Write(ypr.Item2);
+                    stream.Write(ypr.Item3);
                     break;
             }
 

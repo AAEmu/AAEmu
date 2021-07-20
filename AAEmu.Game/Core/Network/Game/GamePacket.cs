@@ -62,30 +62,31 @@ namespace AAEmu.Game.Core.Network.Game
             {
                 //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                 //_log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                _log.Debug("GamePacket: S->C type {0:X3} {1}", TypeId, ToString().Substring(23));
-
+                _log.Debug("GamePacket: S->C type {0:X3} {1}{2}", TypeId, ToString().Substring(23), Verbose());
             }
             return ps;
         }
 
         public override PacketBase<GameConnection> Decode(PacketStream ps)
         {
-            // CS here you can set the filter to hide packets
-            if (!(TypeId == PPOffsets.PingPacket && Level == 2) &&
-                !(TypeId == PPOffsets.FastPingPacket && Level == 2) &&
-                !(TypeId == CSOffsets.CSMoveUnitPacket && Level == 1))
-            {
-                //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
-                //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                _log.Debug("GamePacket: C->S type {0:X3} {1}", TypeId, ToString().Substring(23));
-            }
             try
             {
                 Read(ps);
+                // CS here you can set the filter to hide packets
+                if (!(TypeId == PPOffsets.PingPacket && Level == 2) &&
+                    !(TypeId == PPOffsets.FastPingPacket && Level == 2) &&
+                    !(TypeId == CSOffsets.CSMoveUnitPacket && Level == 1)
+                )
+                {
+                    //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
+                    //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
+                    _log.Debug("GamePacket: C->S type {0:X3} {1}{2}", TypeId, ToString().Substring(23),Verbose());
+                }
                 Execute();
             }
             catch (Exception ex)
             {
+                _log.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString().Substring(23));
                 _log.Fatal(ex);
                 throw;
             }

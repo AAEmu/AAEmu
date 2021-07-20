@@ -42,7 +42,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                     catch (Exception e)
                     {
-                        _log.Error(e,"{0}", e.Message);
+                        _log.Error(e);
                     }
                 }
             }

@@ -40,12 +40,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             const uint unitId = 5014u; // Combat Flag
             doodadFlag.Id = 0;
             doodadFlag.UnitId = unitId;
-            doodadFlag.Position = Connection.ActiveChar.Position.Clone();
-
-            doodadFlag.Position.X = Connection.ActiveChar.Position.X - (Connection.ActiveChar.Position.X - challenger.Position.X) / 2;
-            doodadFlag.Position.Y = Connection.ActiveChar.Position.Y - (Connection.ActiveChar.Position.Y - challenger.Position.Y) / 2;
-            doodadFlag.Position.Z = Connection.ActiveChar.Position.Z - (Connection.ActiveChar.Position.Z - challenger.Position.Z) / 2;
-
+            doodadFlag.Position = Connection.ActiveChar.Transform.CloneAsSpawnPosition();
+            doodadFlag.Position.X = Connection.ActiveChar.Transform.World.Position.X - (Connection.ActiveChar.Transform.World.Position.X - challenger.Transform.World.Position.X) / 2;
+            doodadFlag.Position.Y = Connection.ActiveChar.Transform.World.Position.Y - (Connection.ActiveChar.Transform.World.Position.Y - challenger.Transform.World.Position.Y) / 2;
+            doodadFlag.Position.Z = Connection.ActiveChar.Transform.World.Position.Z - (Connection.ActiveChar.Transform.World.Position.Z - challenger.Transform.World.Position.Z) / 2;
             doodadFlag.Spawn(0);
 
             Connection.ActiveChar.BroadcastPacket(new SCDuelStatePacket(challengerObjId, doodadFlag.Last.ObjId), true);

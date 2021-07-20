@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Slaves
 {
@@ -18,6 +19,7 @@ namespace AAEmu.Game.Models.Game.Slaves
         public uint SlaveInitialItemPackId { get; set; }
         public uint SlaveCustomizingId { get; set; }
         public bool Customizable { get; set; }
+        public float PortalTime { get; set; }
 
         public List<SlaveInitialBuffs> InitialBuffs { get; }
         public List<SlavePassiveBuffs> PassiveBuffs { get; }
@@ -30,6 +32,13 @@ namespace AAEmu.Game.Models.Game.Slaves
             PassiveBuffs = new List<SlavePassiveBuffs>();
             DoodadBindings = new List<SlaveDoodadBindings>();
             SlaveBindings = new List<SlaveBindings>();
+        }
+
+        public bool IsABoat()
+        {
+            return ((SlaveKind == SlaveKind.Boat) || (SlaveKind == SlaveKind.Fishboat) ||
+                    (SlaveKind == SlaveKind.Speedboat) || (SlaveKind == SlaveKind.MerchantShip) ||
+                    (SlaveKind == SlaveKind.BigSailingShip) || (SlaveKind == SlaveKind.SmallSailingShip));
         }
     }
 }

@@ -18,9 +18,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_gimmick.GimmickId);
             stream.Write(_gimmick.Time);
-            stream.Write(Helpers.ConvertLongX(_gimmick.Position.X)); // WorldPosition qx,qx,fz
-            stream.Write(Helpers.ConvertLongY(_gimmick.Position.Y));
-            stream.Write(_gimmick.Position.Z);
+            stream.Write(Helpers.ConvertLongX(_gimmick.Transform.World.Position.X)); // WorldPosition qx,qx,fz
+            stream.Write(Helpers.ConvertLongY(_gimmick.Transform.World.Position.Y));
+            stream.Write(_gimmick.Transform.World.Position.Z);
             stream.Write(_gimmick.Rot.X); // Quaternion Rotation
             stream.Write(_gimmick.Rot.Y);
             stream.Write(_gimmick.Rot.Z);

@@ -6,11 +6,8 @@
       "X": 552.2,
       "Y": 499.8,
       "Z": 133.5,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 90
-    },
-    "Scale": 1.0
+      "Yaw": 89.3565
+    }
   },
   {
     "Id": 2,
@@ -19,11 +16,8 @@
       "X": 763.3,
       "Y": 709.5,
       "Z": 141.5,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": -40
+      "Yaw": -36.4199
     },
-    "Scale": 1.0,
-	"FuncGroupId":12276
+    "FuncGroupId": 12276
   }
 ]

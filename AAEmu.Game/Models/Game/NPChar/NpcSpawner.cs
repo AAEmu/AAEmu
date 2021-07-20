@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.World;
+using Newtonsoft.Json;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.NPChar
@@ -17,7 +19,9 @@ namespace AAEmu.Game.Models.Game.NPChar
         private int _scheduledCount;
         private int _spawnCount;
 
-        public uint Count { get; set; }
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(1f)]
+        public uint Count { get; set; } = 1;
 
         public NpcSpawner()
         {
@@ -48,8 +52,8 @@ namespace AAEmu.Game.Models.Game.NPChar
             }
             
             npc.Spawner = this;
-            npc.Position = Position.Clone();
-            if (npc.Position == null)
+            npc.Transform.ApplyWorldSpawnPosition(Position);
+            if (npc.Transform == null)
             {
                 _log.Error("Can't spawn npc {1} from spawn {0}", Id, UnitId);
                 return null;
@@ -57,7 +61,7 @@ namespace AAEmu.Game.Models.Game.NPChar
 
             if (npc.Ai != null)
             {
-                npc.Ai.IdlePosition = npc.Position;
+                npc.Ai.IdlePosition = npc.Transform.CloneDetached();
                 npc.Ai.GoToSpawn();
             }
 

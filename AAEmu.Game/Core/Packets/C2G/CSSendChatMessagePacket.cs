@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -37,13 +38,13 @@ namespace AAEmu.Game.Core.Packets.C2G
                     var target = WorldManager.Instance.GetCharacter(targetName);
                     if ((target == null) || (!target.IsOnline))
                     {
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.WhisperNoTarget);
+                        Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
                     }
                     else
                     if (target.Faction.MotherId != Connection.ActiveChar.Faction.MotherId)
                     {
                         // TODO: proper hostile check
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatCannotWhisperToHostile);
+                        Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatCannotWhisperToHostile);
                     }
                     else
                     {
@@ -65,7 +66,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     {
                         if ((type == ChatType.RaidLeader) && (teamRaid.OwnerId != Connection.ActiveChar.Id))
                         {
-                            Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotRaidOwner);
+                            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotRaidOwner);
                         }
                         else
                         {
@@ -74,7 +75,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     }
                     else
                     {
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInRaid);
+                        Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInRaid);
                     }
                     break;
                 case ChatType.Party:
@@ -85,14 +86,14 @@ namespace AAEmu.Game.Core.Packets.C2G
                     }
                     else
                     {
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInParty);
+                        Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInParty);
                     }
                     break;
                 case ChatType.Trade: //trade
                 case ChatType.GroupFind: //lfg
                 case ChatType.Shout: //shout
                     // We use SendPacket here so we can fake our way through the different channel types
-                    ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Position.ZoneId).SendPacket(
+                    ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId).SendPacket(
                         new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
                         );
                     break;
@@ -104,7 +105,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                     else
                     {
                         // Looks like the client blocks the chat even before it can get to the server, but let's intercept it anyway
-                        Connection.ActiveChar.SendErrorMessage(Models.Game.Error.ErrorMessageType.ChatNotInExpedition);
+                        Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInExpedition);
                     }
                     break;
                     /*

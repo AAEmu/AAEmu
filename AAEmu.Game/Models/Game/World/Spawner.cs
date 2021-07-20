@@ -1,10 +1,12 @@
-﻿namespace AAEmu.Game.Models.Game.World
+﻿using AAEmu.Game.Models.Game.World.Transform;
+
+namespace AAEmu.Game.Models.Game.World
 {
     public class Spawner<T> where T : GameObject
     {
         public uint Id { get; set; }
         public uint UnitId { get; set; }
-        public Point Position { get; set; }
+        public WorldSpawnPosition Position { get; set; }
         public int RespawnTime { get; set; } = 15;
         public int DespawnTime { get; set; } = 20;
 

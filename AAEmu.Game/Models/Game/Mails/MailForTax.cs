@@ -45,7 +45,7 @@ namespace AAEmu.Game.Models.Game.Mails
             mail.ReceiverName = ownerName;
             
             // Grab the zone the house is in
-            var zone = ZoneManager.Instance.GetZoneByKey(house.Position.ZoneId);
+            var zone = ZoneManager.Instance.GetZoneByKey(house.Transform.ZoneId);
             if (zone == null)
                 return false;
 

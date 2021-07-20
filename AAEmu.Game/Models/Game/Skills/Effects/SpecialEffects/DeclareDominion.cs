@@ -40,9 +40,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             var dominion = new DominionData()
             {
                 House = lodestone.Id,
-                X = lodestone.Position.X,
-                Y = lodestone.Position.Y,
-                Z = lodestone.Position.Z,
+                X = lodestone.Transform.World.Position.X,
+                Y = lodestone.Transform.World.Position.Y,
+                Z = lodestone.Transform.World.Position.Z,
                 TaxRate = 50,
                 ReignStartTime = DateTime.Now,
                 ExpeditionId = caster.Expedition.Id,
@@ -105,7 +105,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 },
                 NonPvPDuration = 0,
                 NonPvPStart = DateTime.Now,
-                ZoneId = (ushort) ZoneManager.Instance.GetZoneByKey(lodestone.Position.ZoneId).GroupId,
+                ZoneId = (ushort) ZoneManager.Instance.GetZoneByKey(lodestone.Transform.ZoneId).GroupId,
                 ObjId = 0
             };
             

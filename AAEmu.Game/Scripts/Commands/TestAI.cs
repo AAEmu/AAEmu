@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.AI.UnitTypes;
 using AAEmu.Game.Models.Game.AI.v2.AiCharacters;
@@ -40,7 +40,7 @@ namespace AAEmu.Game.Scripts.Commands
             }
 
             npc.Patrol = null;
-            npc.Ai = new AlmightyNpcAiCharacter() {Owner = npc, IdlePosition = npc.Position.Clone()};
+            npc.Ai = new AlmightyNpcAiCharacter() {Owner = npc, IdlePosition = npc.Transform.CloneDetached()};
             AIManager.Instance.AddAi(npc.Ai);
         }
     }

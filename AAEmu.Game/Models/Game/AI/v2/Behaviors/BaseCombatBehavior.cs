@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             var distanceToTarget = Ai.Owner.GetDistanceTo(target, true);
             // var distanceToTarget = MathUtil.CalculateDistance(Ai.Owner.Position, target.Position, true);
             if (distanceToTarget > range)
-                Ai.Owner.MoveTowards(target.Position, speed);
+                Ai.Owner.MoveTowards(target.Transform.World.Position, speed);
             else 
                 Ai.Owner.StopMovement();
         }
@@ -66,7 +66,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         }
 
         // TODO: Absolute return dist
-        protected bool ShouldReturn => MathUtil.CalculateDistance(Ai.Owner.Position, Ai.IdlePosition) > Ai.Owner.Template.ReturnDistance;
+        protected bool ShouldReturn => MathUtil.CalculateDistance(Ai.Owner.Transform.World.Position, Ai.IdlePosition.Local.Position) > Ai.Owner.Template.ReturnDistance;
 
         public bool UpdateTarget()
         {
@@ -102,14 +102,14 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             switch (skill.Template.TargetType)
             {
                 case SkillTargetType.Pos:
-                    var pos = Ai.Owner.Position;
+                    var pos = Ai.Owner.Transform.World.Position;
                     skillCastTarget = new SkillCastPositionTarget()
                     {
                         ObjId = Ai.Owner.ObjId,
                         PosX = pos.X,
                         PosY = pos.Y,
                         PosZ = pos.Z,
-                        PosRot = (float)MathUtil.ConvertDirectionToDegree(pos.RotationZ) //Is this rotation right?
+                        PosRot = Ai.Owner.Transform.World.ToRollPitchYawDegrees().Z // (float)MathUtil.ConvertDirectionToDegree(pos.RotationZ) //Is this rotation right?
                     };
                     break;
                 default:
@@ -123,7 +123,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             skill.Callback = OnSkillEnded;
             var result = skill.Use(Ai.Owner, skillCaster, skillCastTarget, skillObject);
             if (result == SkillResult.Success)
-                Ai.Owner.LookTowards(target.Position);
+                Ai.Owner.LookTowards(target.Transform.World.Position);
         }
 
         public virtual void OnSkillEnded()

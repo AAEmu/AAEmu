@@ -4,15 +4,13 @@ using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Movements
 {
     public class TransferData : MoveType
     {
         public Vector3 AngVel { get; set; }
-        public float AngVelX { get; set; }
-        public float AngVelY { get; set; }
-        public float AngVelZ { get; set; }
         public int Steering { get; set; }
         public int PathPointIndex { get; set; }
         public float Speed { get; set; }
@@ -28,27 +26,19 @@ namespace AAEmu.Game.Models.Game.Units.Movements
 
         public void UseTransferBase(Transfer transfer)
         {
-            X = transfer.Position.X;
-            Y = transfer.Position.Y;
-            Z = transfer.Position.Z;
-            //WorldPos.X = transfer.WorldPos.X;
-            //WorldPos.Y = transfer.WorldPos.Y;
-            //WorldPos.Z = transfer.WorldPos.Z;
-            WorldPos = transfer.WorldPos;
+            X = transfer.Transform.World.Position.X;
+            Y = transfer.Transform.World.Position.Y;
+            Z = transfer.Transform.World.Position.Z;
+            //var (rx, ry, rz) = transfer.Transform.World.ToRollPitchYawSBytes();
+            //RotationX = rx;
+            //RotationY = ry;
+            //RotationZ = rz;
+            WorldPos = transfer.Transform.World.ToWorldPos();
             Rot = transfer.Rot;
-            //RotationX = transfer.RotationX;
-            //RotationY = transfer.RotationY;
-            //RotationZ = transfer.RotationZ;
             RotSpeed = transfer.RotSpeed;
-            RotationDegrees = transfer.RotationDegrees;
+            RotationDegrees = transfer.RotationDegrees = transfer.Transform.Local.Rotation.Z.RadToDeg();
             Velocity = transfer.Velocity;
-            //VelX = transfer.VelX;
-            //VelY = transfer.VelY;
-            //VelZ = transfer.VelZ;
             AngVel = transfer.AngVel;
-            //AngVelX = transfer.AngVelX;
-            //AngVelY = transfer.AngVelY;
-            //AngVelZ = transfer.AngVelZ;
             Steering = transfer.Steering;
             Throttle = transfer.Throttle;
             PathPointIndex = transfer.PathPointIndex;

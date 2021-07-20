@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
@@ -12,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Units.Route
     {
         float distance = 0f;
         float MovingDistance = 0.27f;
-        public Point Position { get; set; }
+        public Vector3 Position { get; set; }
 
         public override void Execute(Npc npc)
         {
@@ -22,9 +23,9 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 return;
             }
             var move = false;
-            var x = npc.Position.X - Position.X;
-            var y = npc.Position.Y - Position.Y;
-            var z = npc.Position.Z - Position.Z;
+            var x = npc.Transform.Local.Position.X - Position.X;
+            var y = npc.Transform.Local.Position.Y - Position.Y;
+            var z = npc.Transform.Local.Position.Z - Position.Z;
             var MaxXYZ = Math.Max(Math.Max(Math.Abs(x), Math.Abs(y)), Math.Abs(z));
             float tempMovingDistance;
 
@@ -42,15 +43,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
                 if (x < 0)
                 {
-                    npc.Position.X += tempMovingDistance;
+                    npc.Transform.Local.Translate(tempMovingDistance, 0f, 0f);
                 }
                 else
                 {
-                    npc.Position.X -= tempMovingDistance;
+                    npc.Transform.Local.Translate(-tempMovingDistance, 0f, 0f);
                 }
                 if (Math.Abs(x) < tempMovingDistance)
                 {
-                    npc.Position.X = Position.X;
+                    npc.Transform.Local.SetPosition(Position.X, npc.Transform.Local.Position.Y, npc.Transform.Local.Position.Z);
                 }
                 move = true;
             }
@@ -67,15 +68,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (y < 0)
                 {
-                    npc.Position.Y += tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, tempMovingDistance, 0f);
                 }
                 else
                 {
-                    npc.Position.Y -= tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, -tempMovingDistance, 0f);
                 }
                 if (Math.Abs(y) < tempMovingDistance)
                 {
-                    npc.Position.Y = Position.Y;
+                    npc.Transform.Local.SetPosition(npc.Transform.Local.Position.X, Position.Y, npc.Transform.Local.Position.Z);
                 }
                 move = true;
             }
@@ -92,15 +93,15 @@ namespace AAEmu.Game.Models.Game.Units.Route
                 }
                 if (z < 0)
                 {
-                    npc.Position.Z += tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, 0f, tempMovingDistance);
                 }
                 else
                 {
-                    npc.Position.Z -= tempMovingDistance;
+                    npc.Transform.Local.Translate(0f, 0f, -tempMovingDistance);
                 }
                 if (Math.Abs(z) < tempMovingDistance)
                 {
-                    npc.Position.Z = Position.Z;
+                    npc.Transform.Local.SetHeight(Position.Z);
                 }
                 move = true;
             }
@@ -111,8 +112,8 @@ namespace AAEmu.Game.Models.Game.Units.Route
 
             // 改变NPC坐标
             // Change the NPC coordinates
-            moveType.X = npc.Position.X;
-            moveType.Y = npc.Position.Y;
+            moveType.X = npc.Transform.Local.Position.X;
+            moveType.Y = npc.Transform.Local.Position.Y;
             if (npc.TemplateId == 13677 || npc.TemplateId == 13676) // swimming
             {
                 moveType.Z = 98.5993f;
@@ -123,12 +124,12 @@ namespace AAEmu.Game.Models.Game.Units.Route
             }
             else // other
             {
-                moveType.Z = AppConfiguration.Instance.HeightMapsEnable ? WorldManager.Instance.GetHeight(npc.Position.ZoneId, npc.Position.X, npc.Position.Y) : npc.Position.Z;
+                moveType.Z = WorldManager.Instance.GetHeight(npc.Transform);
             }
 
             // looks in the direction of movement
-            var angle = MathUtil.CalculateAngleFrom(npc.Position.X, npc.Position.Y, Position.X, Position.Y);
-            var rotZ = MathUtil.ConvertDegreeToDirection(angle);
+            var angle = MathUtil.CalculateAngleFrom(npc.Transform.Local.Position.X, npc.Transform.Local.Position.Y, Position.X, Position.Y);
+            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
             moveType.RotationX = 0;
             moveType.RotationY = 0;
             moveType.RotationZ = rotZ;

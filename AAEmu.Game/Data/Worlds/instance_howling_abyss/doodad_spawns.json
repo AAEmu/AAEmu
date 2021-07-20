@@ -6,11 +6,8 @@
       "X": 703.9,
       "Y": 723.7,
       "Z": 184.9,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 80
-    },
-    "Scale": 1.0
+      "Yaw": 77.3644
+    }
   },
   {
     "Id": 2,
@@ -19,11 +16,8 @@
       "X": 635.2,
       "Y": 659.8,
       "Z": 178.5,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": 70
-    },
-    "Scale": 1.0
+      "Yaw": 66.3058
+    }
   },
   {
     "Id": 3,
@@ -32,10 +26,7 @@
       "X": 506.3,
       "Y": 530.6,
       "Z": 149.7,
-      "RotationX": 0,
-      "RotationY": 0,
-      "RotationZ": -80
-    },
-    "Scale": 1.0
+      "Yaw": -77.3644
+    }
   }
 ]

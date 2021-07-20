@@ -31,20 +31,19 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
                 character.SendPacket(
                     new SCLoadInstancePacket(
-                        0,
-                        character.WorldPosition.ZoneId,
-                        character.WorldPosition.X,
-                        character.WorldPosition.Y,
-                        character.WorldPosition.Z,
-                        0,
-                        0,
-                        0
+                        character.MainWorldPosition.InstanceId,
+                        character.MainWorldPosition.ZoneId,
+                        character.MainWorldPosition.World.Position.X,
+                        character.MainWorldPosition.World.Position.Y,
+                        character.MainWorldPosition.World.Position.Z,
+                        character.MainWorldPosition.World.Rotation.X,
+                        character.MainWorldPosition.World.Rotation.Y,
+                        character.MainWorldPosition.World.Rotation.Z
                     )
                 );
 
-                character.InstanceId = 0; // TODO ....
-                character.Position = character.WorldPosition.Clone();
-                character.WorldPosition = null;
+                character.Transform = character.MainWorldPosition.Clone();
+                character.MainWorldPosition = null;
             }
         }
     }

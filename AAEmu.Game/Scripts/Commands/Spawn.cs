@@ -8,9 +8,11 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 using NLog;
 using System;
+using System.Globalization;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -44,10 +46,9 @@ namespace AAEmu.Game.Scripts.Commands
             {
                 // character.SendMessage("[Spawn] Arg 0 --- {0} Arg 1 {1}", args[0], args[1]);
 
-                float newX;
-                float newY;
-                double angle;
-                sbyte newRotZ;
+                float angle;
+                float newRotZ;
+                var charPos = character.Transform.CloneDetached();
                 switch (args[0])
                 {
                     case "remove":
@@ -73,21 +74,28 @@ namespace AAEmu.Game.Scripts.Commands
                         var npcSpawner = new NpcSpawner();
                         npcSpawner.Id = 0;
                         npcSpawner.UnitId = unitId;
-                        npcSpawner.Position = character.Position.Clone();
-                        (newX, newY) = MathUtil.AddDistanceToFront(3f, character.Position.X, character.Position.Y, character.Position.RotationZ);
-                        npcSpawner.Position.Y = newY;
-                        npcSpawner.Position.X = newX;
-                        angle = MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Position.X, character.Position.Y);
-                        if ((args.Length <= 2) || (!sbyte.TryParse(args[2], out newRotZ)))
+                        charPos.Local.AddDistanceToFront(3f);
+                        angle = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
+                        npcSpawner.Position = charPos.CloneAsSpawnPosition();
+                        //(newX, newY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
+                        //npcSpawner.Position.Y = newY;
+                        //npcSpawner.Position.X = newX;
+                        // angle = (float)MathUtil.CalculateAngleFrom(npcSpawner.Position.X, npcSpawner.Position.Y, character.Transform.World.Position.X, character.Transform.World.Position.Y);
+                        if ((args.Length > 2) && (float.TryParse(args[2], NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out newRotZ)))
                         {
-                            newRotZ = MathUtil.ConvertDegreeToDirection(angle);
-                            character.SendMessage("[Spawn] NPC {0} using angle {1}°", unitId, angle);
+                            angle = newRotZ.DegToRad();
+                            character.SendMessage("[Spawn] NPC {0} using angle {1}° = {2} rad", unitId, newRotZ, angle);
                         }
-                        npcSpawner.Position.RotationX = 0;
-                        npcSpawner.Position.RotationY = 0;
-                        npcSpawner.Position.RotationZ = newRotZ;
+                        else
+                        {
+                            angle = angle.DegToRad();
+                            character.SendMessage("[Spawn] NPC {0} facing you using angle {1} rad", unitId, angle);
+                        }
+                        npcSpawner.Position.Yaw = angle;
+                        npcSpawner.Position.Pitch = 0;
+                        npcSpawner.Position.Roll = 0;
                         npcSpawner.SpawnAll();
-                        character.SendMessage("[Spawn] NPC {0} spawned with sbyte-angle {1}", unitId, newRotZ);
+                        // character.SendMessage("[Spawn] NPC {0} spawned with angle {1}", unitId, angle);
                         break;
                     case "doodad":
                         if (!DoodadManager.Instance.Exist(unitId))
@@ -98,22 +106,26 @@ namespace AAEmu.Game.Scripts.Commands
                         var doodadSpawner = new DoodadSpawner();
                         doodadSpawner.Id = 0;
                         doodadSpawner.UnitId = unitId;
-                        doodadSpawner.Position = character.Position.Clone();
-                        (newX, newY) = MathUtil.AddDistanceToFront(3f, character.Position.X, character.Position.Y, character.Position.RotationZ);
-                        doodadSpawner.Position.Y = newY;
-                        doodadSpawner.Position.X = newX;
-                        angle = MathUtil.CalculateAngleFrom(doodadSpawner.Position.Y, doodadSpawner.Position.X, character.Position.Y, character.Position.X);
-                        if ((args.Length > 2) && (double.TryParse(args[2], out var degrees)))
+                        charPos.Local.AddDistanceToFront(3f);
+                        angle = (float)MathUtil.CalculateAngleFrom(charPos, character.Transform);
+                        doodadSpawner.Position = charPos.CloneAsSpawnPosition();
+                        //(newX, newY) = MathUtil.AddDistanceToFront(3f, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Rotation.Z);
+                        //doodadSpawner.Position.Y = newY;
+                        //doodadSpawner.Position.X = newX;
+                        //angle = (float)MathUtil.CalculateAngleFrom(doodadSpawner.Position.Y, doodadSpawner.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.X);
+                        if ((args.Length > 2) && (float.TryParse(args[2], NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var degrees)))
                         {
-                            angle = degrees;
-                            character.SendMessage("[Spawn] Doodad {0} using user provided angle {1}°", unitId, angle);
+                            angle = degrees.DegToRad();
+                            character.SendMessage("[Spawn] Doodad {0} using user provided angle {1}° = {2} rad", unitId, degrees, angle);
                         }
                         else
-                            character.SendMessage("[Spawn] Doodad {0} facing you, using characters angle {1}°", unitId, angle);
-                        newRotZ = MathUtil.ConvertDegreeToDoodadDirection(angle);
-                        doodadSpawner.Position.RotationX = 0;
-                        doodadSpawner.Position.RotationY = 0;
-                        doodadSpawner.Position.RotationZ = newRotZ;
+                        {
+                            angle = angle.DegToRad();
+                            character.SendMessage("[Spawn] Doodad {0} facing you, using characters angle {1}", unitId, angle);
+                        }
+                        doodadSpawner.Position.Yaw = angle;
+                        doodadSpawner.Position.Pitch = 0;
+                        doodadSpawner.Position.Roll = 0;
                         doodadSpawner.Spawn(0, 0, character.ObjId);
                         break;
                 }

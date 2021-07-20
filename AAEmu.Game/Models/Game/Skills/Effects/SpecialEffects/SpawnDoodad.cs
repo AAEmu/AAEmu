@@ -20,8 +20,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            var doodad = DoodadManager.Instance.Create(0, (uint)doodadId, caster);
-            doodad.Position = caster.Position.Clone();
+            var doodad = DoodadManager.Instance.Create(0, (uint) doodadId, caster);
+            doodad.Transform = caster.Transform.CloneDetached(doodad);
             doodad.Spawn();
         }
     }

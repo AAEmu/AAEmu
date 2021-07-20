@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // District - [DEBUG] EffectTemplate - OpenPortalEffect, Owner: Lemes, PortalId: 3, Type: 1, X: 20921,96, Y: 13148,55, Z:114,2535
             _log.Debug("OpenPortalEffect, Owner: {0}, PortalId: {1}, Type: {5}, X: {2}, Y: {3}, Z:{4}", portalOwner.Name, portalInfo.Id, portalInfo.X, portalInfo.Y, portalInfo.Z, portalInfo.Type);
 
-            if (portalInfo.X > portalOwner.Position.X + Distance || portalInfo.Y > portalOwner.Position.Y + Distance)
+            if (portalInfo.X > portalOwner.Transform.World.Position.X + Distance || portalInfo.Y > portalOwner.Transform.World.Position.Y + Distance)
             {
                 return;
             }

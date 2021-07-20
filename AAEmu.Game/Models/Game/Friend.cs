@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game
 {
@@ -17,7 +18,7 @@ namespace AAEmu.Game.Models.Game
         public AbilityType Ability1 { get; set; }
         public AbilityType Ability2 { get; set; }
         public AbilityType Ability3 { get; set; }
-        public Point Position { get; set; }
+        public Transform Position { get; set; } = new Transform(null,null);
         public bool InParty { get; set; }
         public bool IsOnline { get; set; }
         public DateTime LastWorldLeaveTime { get; set; }
@@ -32,9 +33,9 @@ namespace AAEmu.Game.Models.Game
             stream.Write((byte)Ability1);
             stream.Write((byte)Ability2);
             stream.Write((byte)Ability3);
-            stream.Write(Helpers.ConvertLongX(Position.X));
-            stream.Write(Helpers.ConvertLongY(Position.Y));
-            stream.Write(Position.Z);
+            stream.Write(Helpers.ConvertLongX(Position.World.Position.X));
+            stream.Write(Helpers.ConvertLongY(Position.World.Position.Y));
+            stream.Write(Position.World.Position.Z);
             stream.Write(Position.ZoneId);
             stream.Write((uint)0); // type(id)
             stream.Write(InParty);

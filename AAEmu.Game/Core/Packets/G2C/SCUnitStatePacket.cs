@@ -5,8 +5,10 @@ using System.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
@@ -114,7 +116,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 case BaseUnitType.Mate:
                     var mount = (Mate)_unit;
                     stream.Write(mount.TlId); // tl
-                    stream.Write(mount.TemplateId); // npc teplateId
+                    stream.Write(mount.TemplateId); // npc templateId
                     stream.Write(mount.OwnerId); // characterId (masterId)
                     break;
                 case BaseUnitType.Shipyard:
@@ -134,7 +136,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write("");
             }
 
-            stream.WritePosition(_unit.Position.X, _unit.Position.Y, _unit.Position.Z);
+            stream.WritePosition(_unit.Transform.Local.Position);
             stream.Write(_unit.Scale);
             stream.Write(_unit.Level);
             stream.Write(_unit.ModelId); // modelRef
@@ -154,7 +156,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             {
                 case Character _:
                 case Npc _:
-                    stream.Write((sbyte)-1); // point
+                    stream.Write((byte)AttachPointKind.System); // point
                     break;
                 case Slave unit:
                     stream.Write(unit.AttachPointId);
@@ -164,11 +166,11 @@ namespace AAEmu.Game.Core.Packets.G2C
                 case House _:
                 case Mate _:
                 case Shipyard _:
-                    stream.Write((sbyte)-1);   // point
+                    stream.Write((byte)AttachPointKind.System);   // point
                     break;
                 case Transfer unit:
-                    stream.Write(unit.AttachPointId);  // point
-                    if (unit.AttachPointId < 255)
+                    stream.Write((byte)unit.AttachPointId);  // point
+                    if (unit.AttachPointId != AttachPointKind.System)
                         stream.WriteBc(unit.BondingObjId); // point to the owner where to attach
                     break;
             }
@@ -267,6 +269,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             stream.Write(_unit.ActiveWeapon);
 
+            // Skills and Passive Buffs
             if (_unit is Character)
             {
                 var character = (Character)_unit;
@@ -289,9 +292,11 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write(0);       // learnedBuffCount
             }
 
-            stream.Write(_unit.Position.RotationX);
-            stream.Write(_unit.Position.RotationY);
-            stream.Write(_unit.Position.RotationZ);
+            // Rotation
+            var (roll, pitch, yaw) = _unit.Transform.Local.ToRollPitchYawSBytes();
+            stream.Write(roll);
+            stream.Write(pitch);
+            stream.Write(yaw);
 
             switch (_unit)
             {
@@ -423,6 +428,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 
             return stream;
         }
+        
         #region Inventory_Equip
         private void Inventory_Equip(PacketStream stream, Unit unit0, BaseUnitType baseUnitType)
         {
@@ -667,5 +673,10 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(0u);                      // type(id) -> cooldownSkill
         }
         #endregion NetBuff
+
+        public override string Verbose()
+        {
+            return " - " + _baseUnitType.ToString() + " - " + _unit?.DebugName();
+        }
     }
 }

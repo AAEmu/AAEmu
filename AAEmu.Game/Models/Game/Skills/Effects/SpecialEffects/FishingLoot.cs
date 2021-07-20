@@ -24,12 +24,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", target.Position.ZoneId, value1, target.Name, targetObj.ObjId);
+            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", target.Transform.ZoneId, value1, target.Name, targetObj.ObjId);
             
             var lootTableId = new uint();
-            var zoneId = ZoneManager.Instance.GetZoneByKey(target.Position.ZoneId).GroupId;
+            var zoneId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;
             
-            if(target.Position.Z > 101)
+            if(target.Transform.World.Position.Z > 101)
                 lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingLandLootPackId;
             else
                 lootTableId = ZoneManager.Instance.GetZoneGroupById(zoneId).FishingSeaLootPackId;
