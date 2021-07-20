@@ -30,6 +30,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                         return;
                     }
                     
+                    // If it's on house property, check if the player has access to it
+                    if (owner.DbHouseId > 0)
+                    {
+                        var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
+                        if ((house != null) && (!house.AllowedToInteract(character)))
+                        {
+                            character.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                            return;
+                        }
+                    }
+                    
                     if (ItemManager.Instance.IsAutoEquipTradePack(item.TemplateId))
                     {
                         if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))

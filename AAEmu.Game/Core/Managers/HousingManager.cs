@@ -74,6 +74,9 @@ namespace AAEmu.Game.Core.Managers
             house.Faction = FactionManager.Instance.GetFaction(factionId); // TODO: Inherit from owner
             house.Name = LocalizationManager.Instance.Get("housings", "name", template.Id);
             house.Hp = house.MaxHp;
+            // Force public on always public properties on create
+            if (template.AlwaysPublic)
+                house.Permission = HousingPermission.Public;
 
             SetUntouchable(house, true);
 

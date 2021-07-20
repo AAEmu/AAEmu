@@ -110,7 +110,12 @@ namespace AAEmu.Game.Models.Game.Housing
         }
         public override int MaxHp => Template.Hp;
         public override UnitCustomModelParams ModelParams { get; set; }
-        public HousingPermission Permission { get => _permission; set { _permission = value; _isDirty = true; } }
+
+        public HousingPermission Permission
+        {
+            get => _permission;
+            set { _permission = ((_template != null) && (_template.AlwaysPublic)) ? HousingPermission.Public : value ; _isDirty = true; }
+        }
 
         public DateTime PlaceDate { get => _placeDate; set { _placeDate = value; _isDirty = true; } }
         public DateTime ProtectionEndDate { get => _protectionEndDate; set { _protectionEndDate = value; _isDirty = true; } }
