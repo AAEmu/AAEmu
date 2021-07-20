@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text;
 using AAEmu.Commons.Conversion;
 using AAEmu.Commons.Utils;
+using System.Numerics;
 
 namespace AAEmu.Commons.Network
 {

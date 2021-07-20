@@ -22,12 +22,6 @@ using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Housing;
 using Microsoft.CodeAnalysis.Text;
-using System.Numerics;
-using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
 {
