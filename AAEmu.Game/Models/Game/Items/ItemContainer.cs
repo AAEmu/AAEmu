@@ -85,7 +85,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// </summary>
         /// <param name="preferredSlot">Preferred location if available</param>
         /// <returns>Location if a empty slot was found, or -1 in case the item container is full</returns>
-        private int GetUnusedSlot(int preferredSlot)
+        public int GetUnusedSlot(int preferredSlot)
         {
             // No max size defined, get the highest number and add one
             if (_containerSize < 0)

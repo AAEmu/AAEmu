@@ -34,6 +34,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             Item item = character.Inventory.Equipment.GetItemByItemId(packItem.ItemId);
             if (item == null) return;
+
+            Item previousGlider = character.Inventory.Bag.GetItemByItemId(character.Inventory.PreviousBackPackItemId);
+            // If no longer valid, reset the value here
+            if ((previousGlider == null) || (previousGlider.SlotType != SlotType.Inventory))
+                character.Inventory.PreviousBackPackItemId = 0;
             
             var pos = character.Transform.CloneDetached();
             pos.Local.AddDistanceToFront(1f);
@@ -51,7 +56,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
             
-            if (character.Inventory.SystemContainer.AddOrMoveExistingItem(Items.Actions.ItemTaskType.DropBackpack, item, (int)EquipmentItemSlot.Backpack))
+            if (character.Inventory.SystemContainer.AddOrMoveExistingItem(Items.Actions.ItemTaskType.DropBackpack, item))
             {
                 // Spawn doodad
                 _log.Debug("PutDownPackEffect");
@@ -82,6 +87,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 doodad.Save();
                 
                 character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)EquipmentItemSlot.Backpack, null), false);
+                if ((previousGlider != null) && character.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack) == null)
+                    character.Inventory.SplitOrMoveItem(Items.Actions.ItemTaskType.SwapItems, previousGlider.Id,
+                        previousGlider.SlotType, (byte)previousGlider.Slot, 0, SlotType.Equipment,
+                        (int)EquipmentItemSlot.Backpack);
             }
         }
     }
