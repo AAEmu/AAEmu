@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
@@ -168,8 +169,10 @@ namespace AAEmu.Game.Models.Game.Housing
 
         public override void Delete()
         {
+            // Detach children that aren't part of the house itself
             foreach (var doodad in AttachedDoodads)
-                doodad.Delete();
+                if (doodad.AttachPoint == AttachPointKind.None)
+                    doodad.Transform.Parent = null;
             base.Delete();
         }
 

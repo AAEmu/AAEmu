@@ -53,14 +53,16 @@ namespace AAEmu.Game.Models.Game.Mails
             mail.Title = "title(" + zone.GroupId.ToString() + ")"; // Title calls a function to call zone group name
 
             // Get Tax info
-            if (!HousingManager.Instance.CalculateBuildingTaxInfo(house.AccountId, house.Template, false, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate))
+            if (!HousingManager.Instance.CalculateBuildingTaxInfo(house.AccountId, house.Template, false, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate, out _))
                 return false;
             
-            var weeksDelta = house.TaxDueDate - DateTime.Now;
-            var weeks = 0 ;
-            if (weeksDelta.TotalSeconds <= 0)
+            // Note: I'm sure this can be done better, but it works and displays correctly
+            var lateFees = 0;
+            var paymentDeadLine = house.TaxDueDate;
+            if (house.TaxDueDate <= DateTime.UtcNow)
             {
-                weeks = (int)Math.Ceiling(weeksDelta.TotalDays / -7f);
+                lateFees = 1;
+                paymentDeadLine = house.ProtectionEndDate;
             }
 
             //testmail 6 .houseTax title(25) "body('Test','1606565186','1607169986','1606565186','250000','50','3','0','500000','true','1')" 0 500000
@@ -68,17 +70,16 @@ namespace AAEmu.Game.Models.Game.Mails
                 house.Name,                                 // House Name
                 Helpers.UnixTime(house.PlaceDate),          // Tax period start (this might need to be the same as tax due date)
                 Helpers.UnixTime(house.ProtectionEndDate),  // Tax period end
-                Helpers.UnixTime(house.TaxDueDate),         // Tax Due Date
+                Helpers.UnixTime(paymentDeadLine),          // Tax Due Date
                 house.Template.Taxation.Tax,                // This house base tax rate
                 hostileTaxRate,                             // dominion tax rate (castle tax rate ?)
                 heavyTaxHouseCount,                         // number of heavy tax houses
-                weeks,                                      // unpaid week count (listed as late fee)
+                lateFees,                                   // unpaid week count (listed as late fee)
                 totalTaxAmountDue,                          // amount to Pay (as gold reference)
                 house.Template.HeavyTax ? "true" : "false", // is this a heavy tax building
-                normalTaxHouseCount                         // number of tax-excempt houses
+                normalTaxHouseCount                         // number of tax-exempt houses
                 );
-            // In never version this has a extra field at the end, which I assume is would be the hostile tax rate
-            // TODO: Make better use of unpaidweekcount
+            // In newer version this has a extra field at the end, which I assume is would be the hostile tax rate
 
             mail.Body.BillingAmount = totalTaxAmountDue;
 
