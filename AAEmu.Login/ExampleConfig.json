@@ -1,6 +1,6 @@
 {
   "SecretKey": "test",
-  "AutoAccount": false,
+  "AutoAccount": true,
   "InternalNetwork": {
     "Host": "*",
     "Port": 1234
