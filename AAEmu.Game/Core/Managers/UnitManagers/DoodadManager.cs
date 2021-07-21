@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -16,6 +17,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using NLog;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -2301,23 +2303,34 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         /// <summary>
         /// Saves and creates a doodad 
         /// </summary>
-        public void CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
+        public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
         {
             _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
+
+            var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
             
             // Create doodad
             var doodad = Instance.Create(0, id, character);
             doodad.IsPersistent = true;
             doodad.Transform = character.Transform.CloneDetached(doodad);
+            doodad.Transform.Local.SetPosition(x,y,z);
+            doodad.Transform.Local.SetZRotation(zRot);
             doodad.ItemId = itemId;
             doodad.PlantTime = DateTime.Now;
-            //if (doodad.GrowthTime.Millisecond <= 0)
-            //{
-            //    //doodad.GrowthTime = DateTime.Now.AddMilliseconds(doodad.Template.MinTime);
-            //doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
-            //}
+            if (targetHouse != null)
+            {
+                doodad.DbHouseId = targetHouse.Id;
+                doodad.OwnerType = DoodadOwnerType.Housing;
+                doodad.ParentObj = targetHouse;
+                doodad.ParentObjId = targetHouse.ObjId;
+                doodad.Transform.Parent = targetHouse.Transform;
+            }
+            else
+            {
+                doodad.DbHouseId = 0;
+            }
 
-            if (scale > 0)
+            if (scale > 0f)
                 doodad.SetScale(scale);
             
             // Consume item
@@ -2330,8 +2343,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Inventory.ConsumeItem(new [] {SlotType.Inventory}, ItemTaskType.DoodadCreate, item, 1, preferredItem);
             
             doodad.Spawn();
-            // TODO: Save doodad + current phase to database
             doodad.Save();
+            return doodad;
         }
 
         // public void TriggerFunc(string className, Unit caster, Doodad doodad, uint skillId, uint nextPhase = 0)
@@ -2372,5 +2385,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         //         doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
         //     doodad.cancelPhasing = false;
         // }
+
     }
 }

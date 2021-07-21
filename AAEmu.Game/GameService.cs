@@ -127,8 +127,8 @@ namespace AAEmu.Game
             var spawnSw = new Stopwatch();
             _log.Info("Spawning units...");
             spawnSw.Start();
+            HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
             SpawnManager.Instance.SpawnAll();
-            HousingManager.Instance.SpawnAll();
             TransferManager.Instance.SpawnAll();
             spawnSw.Stop();
             _log.Info("Units spawned in {0}", spawnSw.Elapsed);

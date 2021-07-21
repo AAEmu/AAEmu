@@ -31,6 +31,7 @@ namespace AAEmu.Game.Models.Game.Char
         public ItemContainer Warehouse { get; private set; }
         public ItemContainer MailAttachments { get; private set; }
         public ItemContainer SystemContainer { get; private set; }
+        public ulong PreviousBackPackItemId { get; set; } // used to re-equip glider when putting backpacks down
 
         public Inventory(Character owner)
         {
@@ -561,8 +562,12 @@ namespace AAEmu.Game.Models.Game.Char
             // Move to first available slot
             if (Bag.FreeSlotCount <= 0) 
                 return false;
+
+            SplitOrMoveItem(taskType, backpack.Id, backpack.SlotType, (byte)backpack.Slot, 0, SlotType.Inventory, (byte)Bag.GetUnusedSlot(0));
+            //Bag.AddOrMoveExistingItem(taskType, backpack);
             
-            Bag.AddOrMoveExistingItem(taskType, backpack);
+            if (glidersOnly)
+                PreviousBackPackItemId = backpack.Id ;
 
             return true;
         }

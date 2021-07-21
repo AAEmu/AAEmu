@@ -1,6 +1,8 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 
@@ -12,21 +14,42 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Debug("DoodadFuncRecoverItem");
 
-            //TODO: itemId currently using itemtemplate but shouldn't, needs to retain original crafter 
             var character = (Character)caster;
             var addedItem = false;
+            var item = ItemManager.Instance.GetItemByItemId(owner.ItemId);
             if (owner.ItemId > 0)
             {
-                var item = ItemManager.Instance.GetItemByItemId(owner.ItemId);
                 if (item != null)
                 {
+                    // Recoverable doodads, should be referencing a item in a System container, if this is not the case,
+                    // that means that it was already picked up by somebody else
+                    if (item._holdingContainer.ContainerType != SlotType.System)
+                    {
+                        owner.ToPhaseAndUse = false;
+                        // character.SendErrorMessage(ErrorMessageType.Backpack); // TODO: Not sure what error I need to put here
+                        return;
+                    }
+                    
+                    // If it's on house property, check if the player has access to it
+                    if (owner.DbHouseId > 0)
+                    {
+                        var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
+                        if ((house != null) && (!house.AllowedToInteract(character)))
+                        {
+                            character.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                            return;
+                        }
+                    }
+                    
                     if (ItemManager.Instance.IsAutoEquipTradePack(item.TemplateId))
                     {
                         if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
+                        {
                             if (character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem,
                                 item,
-                                (int)Items.EquipmentItemSlot.Backpack))
+                                (int)EquipmentItemSlot.Backpack))
                                 addedItem = true;
+                        }
                     }
                     else
                     {
@@ -42,11 +65,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             else
             {
                 // No itemId was provided with the doodad, need to check what needs to be done with this
-                _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item attached", owner.InstanceId);
+                _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item information attached to it", owner.InstanceId);
             }
 
-            //if (addedItem)
-            //    owner.Delete();
+            if ((addedItem) && (item != null) && (item._holdingContainer.ContainerType == SlotType.Equipment))
+                character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
+
             owner.ToPhaseAndUse = addedItem;
         }
     }

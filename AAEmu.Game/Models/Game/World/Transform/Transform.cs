@@ -2,18 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.Intrinsics;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Json;
-using AAEmu.Game.Utils;
-using NLog.Fluent;
-using Quartz.Listener;
-using SQLitePCL;
 
 // INFO
 // https://www.versluis.com/2020/09/what-is-yaw-pitch-and-roll-in-3d-axis-values/
@@ -307,8 +298,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
             {
                 _children.Add(child);
                 // TODO: This needs better handling and take into account rotations
+                //child.Local.SubDistance(World.Position);
                 child.Local.Position -= World.Position;
-                // child.Local.Position -= Local.Position;
+                child.Local.Rotation -= World.Rotation;
                 child.GameObject.ParentObj = this.GameObject;
             }
         }
@@ -319,8 +311,9 @@ namespace AAEmu.Game.Models.Game.World.Transform
             {
                 _children.Remove(child);
                 // TODO: This needs better handling and take into account rotations
+                child.Local.Rotation += World.Rotation;
                 child.Local.Position += World.Position;
-                // child.Local.Position += Local.Position;
+                //child.Local.AddDistance(World.Position);
                 child.GameObject.ParentObj = null;
             }
         }

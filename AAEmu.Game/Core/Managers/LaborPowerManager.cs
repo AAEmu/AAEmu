@@ -48,7 +48,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void LaborPowerTickStart()
         {
-            _log.Warn("LaborPowerTickStart: Started");
+            _log.Debug("LaborPowerTickStart: Started");
 
             var lpTickStartTask = new LaborPowerTickStartTask();
             TaskManager.Instance.Schedule(lpTickStartTask, TimeSpan.FromMinutes(Delay), TimeSpan.FromMinutes(Delay));
@@ -62,7 +62,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     if (character.Value.LaborPower >= UpLimit)
                     {
-                        _log.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
+                        // _log.Warn("No need to increase Labor Point, since they reached the limit {0} for Char: {1}", UpLimit, character.Value.Name);
                         continue;
                     }
 
@@ -75,12 +75,12 @@ namespace AAEmu.Game.Core.Managers
                         {
                             character.Value.LaborPowerModified = DateTime.Now;
                             character.Value.ChangeLabor(needAddOfflineLp, 0);
-                            _log.Warn("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Value.Name);
+                            _log.Debug("Character {1} gained {0} offline Labor Point(s)", needAddOfflineLp, character.Value.Name);
                         }
                         else
                         {
                             var valueLp = (short)(UpLimit - character.Value.LaborPower);
-                            _log.Warn("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Value.Name);
+                            _log.Debug("Character {1} gained {0} offline Labor Point(s)", valueLp, character.Value.Name);
                             character.Value.LaborPowerModified = DateTime.Now;
                             character.Value.ChangeLabor(valueLp, 0);
                         }
@@ -91,13 +91,13 @@ namespace AAEmu.Game.Core.Managers
                     var change = (short)(UpLimit - character.Value.LaborPower);
                     if (change >= LpChangePremium)
                     {
-                        _log.Warn("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Value.Name);
+                        _log.Debug("Character {1} gained {0} Labor Point(s)", LpChangePremium, character.Value.Name);
                         character.Value.LaborPowerModified = DateTime.Now;
                         character.Value.ChangeLabor(LpChangePremium, 0);
                     }
                     else if (change != 0)
                     {
-                        _log.Warn("Character {1} gained {0} Labor Point(s)", change, character.Value.Name);
+                        _log.Debug("Character {1} gained {0} Labor Point(s)", change, character.Value.Name);
                         character.Value.LaborPowerModified = DateTime.Now;
                         character.Value.ChangeLabor(change, 0);
                     }

@@ -392,6 +392,18 @@ namespace AAEmu.Game.Core.Managers.World
             return ret;
         }
 
+        public Doodad GetDoodadByDbId(uint dbId)
+        {
+            var ret = _doodads.FirstOrDefault(x => x.Value.DbId == dbId).Value;
+            return ret ;
+        }
+
+        public List<Doodad> GetDoodadByHouseDbId(uint houseDbId)
+        {
+            var ret = _doodads.Where(x => x.Value.DbHouseId == houseDbId).Select(y => y.Value).ToList();
+            return ret ;
+        }
+
         public Unit GetUnit(uint objId)
         {
             _units.TryGetValue(objId, out var ret);
