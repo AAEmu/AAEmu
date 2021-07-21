@@ -66,9 +66,10 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
         public (short, short, short) ToRollPitchYawShorts()
         {
-            var q = Quaternion.CreateFromYawPitchRoll(Rotation.X, Rotation.Y, Rotation.Z);
-            return ((short)(q.X * short.MaxValue), (short)(q.Y * short.MaxValue),
-                (short)(q.Z * short.MaxValue));
+            var q = ToQuaternion();
+            // var q = Quaternion.CreateFromYawPitchRoll(Rotation.X, Rotation.Y, Rotation.Z);
+            // q = Quaternion.Normalize(q);
+            return ((short)(q.X * short.MaxValue), (short)(q.Y * short.MaxValue), (short)(q.Z * short.MaxValue));
         }
 
         public (sbyte, sbyte, sbyte) ToRollPitchYawSBytes()

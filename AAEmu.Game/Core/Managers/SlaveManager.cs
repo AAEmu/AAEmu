@@ -98,8 +98,9 @@ namespace AAEmu.Game.Core.Managers
         public void BindSlave(Character character, uint objId, AttachPointKind attachPoint, AttachUnitReason bondKind)
         {
             // Check if the target spot is already taken
-            var slave = GetActiveSlaveByObjId(objId);
-            if (slave.AttachedCharacters.ContainsKey(attachPoint))
+            var slave = _tlSlaves.FirstOrDefault(x => x.Value.ObjId == objId).Value;
+            //var slave = GetActiveSlaveByObjId(objId);
+            if ((slave == null) || (slave.AttachedCharacters.ContainsKey(attachPoint)))
                 return;
 
             character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, bondKind, objId), true);
@@ -133,17 +134,23 @@ namespace AAEmu.Game.Core.Managers
             foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
                 UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
 
+            var despawnDelayedTime = DateTime.Now.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f); 
+            
             activeSlaveInfo.Transform.DetachAll();
 
             foreach (var doodad in activeSlaveInfo.AttachedDoodads)
             {
-                doodad.Delete();
+                doodad.Despawn = despawnDelayedTime;
+                SpawnManager.Instance.AddDespawn(doodad);
+                // doodad.Delete();
             }
 
             foreach (var attachedSlave in activeSlaveInfo.AttachedSlaves)
             {
                 _tlSlaves.Remove(attachedSlave.TlId);
-                attachedSlave.Delete();
+                attachedSlave.Despawn = despawnDelayedTime;
+                SpawnManager.Instance.AddDespawn(attachedSlave);
+                //attachedSlave.Delete();
             }
 
             BoatPhysicsManager.Instance.RemoveShip(activeSlaveInfo);
@@ -151,7 +158,8 @@ namespace AAEmu.Game.Core.Managers
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
 
-            activeSlaveInfo.Delete();
+            activeSlaveInfo.Despawn = DateTime.Now.AddSeconds(activeSlaveInfo.Template.PortalTime + 0.5f);
+            SpawnManager.Instance.AddDespawn(activeSlaveInfo);
         }
 
         public void Create(Character owner, SkillItem skillData)
@@ -159,7 +167,7 @@ namespace AAEmu.Game.Core.Managers
             var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
             if (activeSlaveInfo != null)
             {
-                // TODO - IF TO FAR AWAY DONT DELETE
+                // TODO: If too far away, don't delete
                 Delete(owner, activeSlaveInfo.ObjId);
                 return;
             }
@@ -237,9 +245,6 @@ namespace AAEmu.Game.Core.Managers
                 Faction = owner.Faction,
                 Id = 10, // TODO
                 Summoner = owner,
-                AttachedDoodads = new List<Doodad>(),
-                AttachedSlaves = new List<Slave>(),
-                AttachedCharacters = new Dictionary<AttachPointKind, Character>(),
                 SpawnTime = DateTime.Now
             };
             
@@ -339,9 +344,6 @@ namespace AAEmu.Game.Core.Managers
                     Faction = owner.Faction,
                     Id = 11, // TODO
                     Summoner = owner,
-                    AttachedDoodads = new List<Doodad>(),
-                    AttachedSlaves = new List<Slave>(),
-                    AttachedCharacters = new Dictionary<AttachPointKind, Character>(),
                     SpawnTime = DateTime.Now,
                     AttachPointId = (sbyte)slaveBinding.AttachPointId,
                     OwnerObjId = template.ObjId

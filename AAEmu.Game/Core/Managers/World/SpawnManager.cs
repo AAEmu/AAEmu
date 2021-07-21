@@ -441,6 +441,10 @@ namespace AAEmu.Game.Core.Managers.World
                             transfer.Spawner.Despawn(transfer);
                         else if (obj is Gimmick gimmick && gimmick.Spawner != null)
                             gimmick.Spawner.Despawn(gimmick);
+                        else if (obj is Slave slave) // slaves don't have a spawner, but this is used for delayed despawn of un-summoned boats
+                            slave.Delete();
+                        else if (obj is Doodad doodad2)
+                            doodad2.Delete();
                         else
                         {
                             ObjectIdManager.Instance.ReleaseId(obj.ObjId);
