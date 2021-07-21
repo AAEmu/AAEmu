@@ -44,6 +44,13 @@ namespace AAEmu.Game.Models.Game.Units
         public uint OwnerObjId { get; set; }
         public RigidBody RigidBody { get; set; }
 
+        public Slave()
+        {
+            AttachedDoodads = new List<Doodad>();
+            AttachedSlaves = new List<Slave>();
+            AttachedCharacters = new Dictionary<AttachPointKind, Character>();
+        }
+
         #region Attributes
         [UnitAttribute(UnitAttribute.Str)]
         public int Str
