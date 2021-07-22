@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.World.Zones;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -80,6 +81,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.SendOption(1);
                 Connection.ActiveChar.SendOption(2);
                 Connection.ActiveChar.SendOption(5);
+                
+                Connection.ActiveChar.Buffs.AddBuff(BuffsEnum.LoggedOn, Connection.ActiveChar);
                 
                 Connection.ActiveChar.OnZoneChange(0,Connection.ActiveChar.Transform.ZoneId);
             }
