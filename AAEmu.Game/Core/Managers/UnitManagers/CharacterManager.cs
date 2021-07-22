@@ -18,6 +18,7 @@ using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Chat;
 using NLog;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Utils;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
@@ -419,12 +420,18 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     var point = charTemplate.Pos.Clone();
                     // Recalculate ZoneId as this isn't included in the config
                     point.ZoneId = WorldManager.Instance.GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y);
+                    // Convert the json's degrees to rads
+                    point.Roll = point.Roll.DegToRad();
+                    point.Pitch = point.Pitch.DegToRad();
+                    point.Yaw = point.Yaw.DegToRad();
 
+                    // Males
                     var template = _templates[(byte)(16 + charTemplate.Id)];
                     template.SpawnPosition = point;
                     template.NumInventorySlot = charTemplate.NumInventorySlot;
                     template.NumBankSlot = charTemplate.NumBankSlot;
 
+                    // Females
                     template = _templates[(byte)(32 + charTemplate.Id)];
                     template.SpawnPosition = point;
                     template.NumInventorySlot = charTemplate.NumInventorySlot;

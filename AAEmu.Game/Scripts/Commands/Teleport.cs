@@ -106,9 +106,9 @@ namespace AAEmu.Game.Scripts.Commands
                 Region = TeleportCommandRegions.West,
                 Name = "lilyut",
                 Info = "Lilyut Hills, Windshade",
-                X = 13502,
-                Y = 15035,
-                Z = 210,
+                X = 12666,
+                Y = 15520,
+                Z = 165,
                 AltNames = new string[] {"lily", "lili"}
             });
             locations.Add(new TPloc
