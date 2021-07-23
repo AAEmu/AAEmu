@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -409,45 +409,10 @@ namespace AAEmu.Game.Models.Game.Units
         public override void AddVisibleObject(Character character)
         {
             IsVisible = true;
-            // спавним кабину
+            // spawn the cabin
             character.SendPacket(new SCUnitStatePacket(this));
-            character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
 
             base.AddVisibleObject(character);
-            return;
-
-            // пробуем спавнить прицеп
-            if (Bounded != null)
-            {
-                character.SendPacket(new SCUnitStatePacket(Bounded));
-                character.SendPacket(new SCUnitPointsPacket(Bounded.ObjId, Bounded.Hp, Bounded.Mp));
-        
-                if (Bounded.AttachedDoodads.Count > 0)
-                {
-                    var doodads = Bounded.AttachedDoodads.ToArray();
-                    for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
-                    {
-                        var count = doodads.Length - i;
-                        var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
-                        Array.Copy(doodads, i, temp, 0, temp.Length);
-                        character.SendPacket(new SCDoodadsCreatedPacket(temp));
-                    }
-                }
-            }
-        
-            // если есть Doodad в кабине
-            if (AttachedDoodads.Count > 0)
-            {
-                var doodads = AttachedDoodads.ToArray();
-                for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
-                {
-                    var count = doodads.Length - i;
-                    var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
-                    Array.Copy(doodads, i, temp, 0, temp.Length);
-                    character.SendPacket(new SCDoodadsCreatedPacket(temp));
-                }
-            }
-            
         }
 
         public override void RemoveVisibleObject(Character character)
@@ -455,27 +420,6 @@ namespace AAEmu.Game.Models.Game.Units
             base.RemoveVisibleObject(character);
             
             character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
-
-            return;
-            character.SendPacket(Bounded != null
-                ? new SCUnitsRemovedPacket(new[] { ObjId, Bounded.ObjId })
-                : new SCUnitsRemovedPacket(new[] { ObjId }));
-
-            var doodadIds = new uint[AttachedDoodads.Count];
-            for (var i = 0; i < AttachedDoodads.Count; i++)
-            {
-                doodadIds[i] = AttachedDoodads[i].ObjId;
-            }
-
-            for (var i = 0; i < doodadIds.Length; i += SCDoodadsRemovedPacket.MaxCountPerPacket)
-            {
-                var offset = i * SCDoodadsRemovedPacket.MaxCountPerPacket;
-                var length = doodadIds.Length - offset;
-                var last = length <= SCDoodadsRemovedPacket.MaxCountPerPacket;
-                var temp = new uint[last ? length : SCDoodadsRemovedPacket.MaxCountPerPacket];
-                Array.Copy(doodadIds, offset, temp, 0, temp.Length);
-                character.SendPacket(new SCDoodadsRemovedPacket(last, temp));
-            }
         }
 
         public PacketStream WriteTelescopeUnit(PacketStream stream)
