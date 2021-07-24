@@ -2,6 +2,7 @@
 -- Variables 
 -- ----------------------------------------------------------------------------------
 SET @SQLUpdateVersion = '21.7.24.1'; -- Update this with each update, This is used by Updates Manager for tracking (use YY.MM.DD.<revision> versioning scheme)
+SET @SQLUpdateDescription = 'Base installation insertion';
 
 CREATE DATABASE IF NOT EXISTS `aaemu_game`;
 USE aaemu_game;
@@ -474,5 +475,5 @@ CREATE TABLE IF NOT EXISTS `aaemu_updates`.`game_updates` (
   UNIQUE KEY `ID_UNIQUE` (`ID`),
   UNIQUE KEY `UpdateID_UNIQUE` (`UpdateID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-INSERT INTO `aaemu_updates`.`game_updates` (`UpdateType`, `UpdateID`, `InstalledDate`,`UpdateDescription`) VALUES ('SQL', @SQLUpdateVersion, CURRENT_TIMESTAMP(), 'Base installation insertion');
+INSERT INTO `aaemu_updates`.`game_updates` (`UpdateType`, `UpdateID`, `InstalledDate`,`UpdateDescription`) VALUES ('SQL', @SQLUpdateVersion, CURRENT_TIMESTAMP(), @SQLUpdateDescription);
 
