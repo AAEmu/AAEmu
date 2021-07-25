@@ -12,7 +12,9 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Core.Update;
 using Microsoft.Extensions.Hosting;
 using NLog;
 
@@ -21,10 +23,13 @@ namespace AAEmu.Game
     public class GameService : IHostedService, IDisposable
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+        public string _appPath = AppDomain.CurrentDomain.BaseDirectory;
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             _log.Info("Starting daemon: AAEmu.Game");
+            var updateManagerResult = UpdateManager.CheckUpdates(_appPath);
+            _log.Info("Update Manager Result: " + updateManagerResult);
 
             var stopWatch = new Stopwatch();
 

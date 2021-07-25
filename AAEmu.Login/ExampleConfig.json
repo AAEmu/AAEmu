@@ -1,22 +1,27 @@
 {
-  "SecretKey": "test",
-  "AutoAccount": true,
-  "InternalNetwork": {
-    "Host": "*",
-    "Port": 1234
-  },
-  "Network": {
-    "Host": "*",
-    "Port": 1237,
-    "NumConnections": 10
-  },
-  "Connections": {
-    "MySQLProvider": {
-      "Host": "%db_host%",
-      "Port": "%db_port%",
-      "User": "%db_user%",
-      "Password": "%db_password%",
-      "Database": "aaemu_login"
+    "SecretKey": "test",
+    "AutoAccount": true,
+    "InternalNetwork": {
+        "Host": "*",
+        "Port": 1234
+    },
+    "Network": {
+        "Host": "*",
+        "Port": 1237,
+        "NumConnections": 10
+    },
+    "Updates": {
+        "UpdateSQL": true,
+        "UpdateFromWeb": true,
+        "UpdateFromWebURL": "https://aaemu-testing.to/downloads/SQLDBUpdates"
+    },
+    "Connections": {
+        "MySQLProvider": {
+            "Host": "%db_host%",
+            "Port": "%db_port%",
+            "User": "%db_user%",
+            "Password": "%db_password%",
+            "Database": "aaemu_login"
+        }
     }
-  }
 }

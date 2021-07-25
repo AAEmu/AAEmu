@@ -7,6 +7,8 @@
     <VersionPrefix>0.0.2.0</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <LangVersion>7.3</LangVersion>
+    <ApplicationIcon>AAEmu-LS-Icon.ico</ApplicationIcon>
+    <Win32Resource />
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +35,12 @@
     <Content Include="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -15,12 +15,20 @@ namespace AAEmu.Game.Models
         public int MaxConcurencyThreadPool { get; set; }
         public bool HeightMapsEnable { get; set; }
         public string DiscordToken { get; set; }
+        public UpdateConfig Updates { get; set; }
 
         public class NetworkConfig
         {
             public string Host { get; set; }
             public ushort Port { get; set; }
             public int NumConnections { get; set; }
+        }
+
+        public class UpdateConfig
+        {
+            public bool UpdateSQL { get; set; }
+            public bool UpdateFromWeb { get; set; }
+            public string UpdateFromWebURL { get; set; }
         }
 
         public class DBConnections
