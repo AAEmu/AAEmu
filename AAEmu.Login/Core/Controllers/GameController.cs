@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.L2C;
@@ -51,6 +52,12 @@ namespace AAEmu.Login.Core.Controllers
                         }
                     }
                 }
+
+                if (_gameServers.Count <= 0)
+                {
+                    _log.Fatal("No servers have been defined in the game_servers table !");
+                    return;
+                }
             }
 
             _log.Info("Loaded {0} gs", _gameServers.Count);
@@ -60,6 +67,8 @@ namespace AAEmu.Login.Core.Controllers
         {
             if (!_gameServers.ContainsKey(gsId))
             {
+                _log.Error("GameServer connection from {0} is requests a invalid WorldId {1}",connection.Ip, gsId);
+                Thread.Sleep(5000);
                 connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
                 return;
             }

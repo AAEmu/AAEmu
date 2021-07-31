@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Internal;
@@ -28,8 +29,9 @@ namespace AAEmu.Login.Core.Packets.G2L
             }
             else
             {
-                Connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
                 _log.Error("Connection {0}, bad secret key", Connection.Ip);
+                Thread.Sleep(5000);
+                Connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
             }
         }
     }
