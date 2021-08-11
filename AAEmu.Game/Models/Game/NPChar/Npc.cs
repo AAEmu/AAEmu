@@ -3,12 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.AI;
-using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.v2;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
@@ -16,12 +12,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Game.World.Transform;
-using AAEmu.Game.Models.Json;
-using AAEmu.Game.Models.Tasks.UnitMove;
 using AAEmu.Game.Utils;
 using NLog;
 using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
@@ -830,24 +821,26 @@ namespace AAEmu.Game.Models.Game.NPChar
             if (ActiveSkillController != null && ActiveSkillController.State != SCState.Ended)
                 return;
 
-            var oldPosition = Transform.World.ClonePosition();
+            var oldPosition = Transform.Local.ClonePosition();
 
-            var targetDist = MathUtil.CalculateDistance(this.Transform.World.Position, other);
+            var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other);
             if (targetDist <= 0.01f)
                 return;
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
             var travelDist = Math.Min(targetDist, distance);
-            var angle = MathUtil.CalculateAngleFrom(this.Transform.World.Position, other);
+
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
-            var (newX, newY) = MathUtil.AddDistanceToFront(travelDist, Transform.World.Position.X, Transform.World.Position.Y, (float)angle.DegToRad());
-            var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
+            var (newX, newY) = Transform.Local.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
 
             // TODO: Implement Transform.World to do proper movement
-            Transform.Local.SetPosition(newX,newY,WorldManager.Instance.GetHeight(Transform));
-            Transform.Local.SetRotationDegree(0f, 0f, (float)angle-90);
-            var (rx,ry,rz) = Transform.Local.ToRollPitchYawSBytesMovement();
-            
+            Transform.Local.SetPosition(newX, newY, WorldManager.Instance.GetHeight(Transform));
+
+            var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
+            var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
+            Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
+            var (rx, ry, rz) = Transform.Local.ToRollPitchYawSBytesMovement();
+
             moveType.X = Transform.Local.Position.X;
             moveType.Y = Transform.Local.Position.Y;
             moveType.Z = Transform.Local.Position.Z;
@@ -865,7 +858,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
+            moveType.Time = (uint)(DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
 
             CheckMovedPosition(oldPosition);
             //SetPosition(Position);
@@ -874,15 +867,15 @@ namespace AAEmu.Game.Models.Game.NPChar
         
         public void LookTowards(Vector3 other, byte flags = 4)
         {
-            var oldPosition = Transform.World.ClonePosition();
+            var oldPosition = Transform.Local.ClonePosition();
 
             var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
 
-            var angle = MathUtil.CalculateAngleFrom(this.Transform.World.Position, other);
-            var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
+            var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
+            //var rotZ = MathUtil.ConvertDegreeToSByteDirection(angle);
 
             // TODO: Implement Transform.World to do proper movement
-            Transform.Local.SetRotationDegree(0f, 0f, (float)angle-90);
+            Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
             var (rx, ry, rz) = Transform.Local.ToRollPitchYawSBytesMovement();
 
             moveType.X = Transform.Local.Position.X;
@@ -900,7 +893,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = 0;    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
+            moveType.Time = (uint)(DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
 
             CheckMovedPosition(oldPosition);
             //SetPosition(Position);
@@ -915,7 +908,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.Z = Transform.Local.Position.Z;
             moveType.RotationX = 0;
             moveType.RotationY = 0;
-            moveType.RotationZ = Transform.World.ToRollPitchYawSBytesMovement().Item3;
+            moveType.RotationZ = Transform.Local.ToRollPitchYawSBytesMovement().Item3;
             moveType.Flags = 4;
             moveType.DeltaMovement = new sbyte[3];
             moveType.DeltaMovement[0] = 0;
@@ -923,7 +916,7 @@ namespace AAEmu.Game.Models.Game.NPChar
             moveType.DeltaMovement[2] = 0;
             moveType.Stance = (sbyte) (CurrentAggroTarget > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
             moveType.Alertness = 2; // IDLE = 0x0, ALERT = 0x1, COMBAT = 0x2
-            moveType.Time = (uint) (DateTime.Now - DateTime.Today).TotalMilliseconds;
+            moveType.Time = (uint)(DateTime.UtcNow - DateTime.Today).TotalMilliseconds;
             BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
         }
 

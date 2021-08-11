@@ -2,7 +2,6 @@
 using System.Numerics;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace AAEmu.Game.Utils
 {
@@ -56,7 +55,7 @@ namespace AAEmu.Game.Utils
         /// <returns>Angle in degrees</returns>
         public static double CalculateAngleFrom(float obj1X, float obj1Y, float obj2X, float obj2Y)
         {
-            var angleTarget = (Math.Atan2(obj2Y - obj1Y, obj2X - obj1X)).RadToDeg() + 90;
+            var angleTarget = (Math.Atan2(obj2Y - obj1Y, obj2X - obj1X)).RadToDeg(); // + 90;
             return angleTarget % 360f;
         }
 
