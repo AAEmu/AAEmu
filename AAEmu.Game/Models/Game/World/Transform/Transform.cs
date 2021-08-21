@@ -465,7 +465,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             }
             
             ResetFinalizeTransform();            
-            //_owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,Local.Rotation.X,Local.Rotation.Y,Local.Rotation.Z);
+            _owningObject.SetPosition(Local.Position.X,Local.Position.Y,Local.Position.Z,Local.Rotation.X,Local.Rotation.Y,Local.Rotation.Z);
         }
 
         public void ResetFinalizeTransform()
