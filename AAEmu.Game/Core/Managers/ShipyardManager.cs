@@ -5,8 +5,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Shipyard;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Utils;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -17,60 +16,83 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<uint, ShipyardsTemplate> _shipyards;
-        private Dictionary<ulong, Shipyard> _allShipyard;
+        public Dictionary<uint, ShipyardsTemplate> _shipyards;
+        public Dictionary<uint, Shipyard> _allShipyard;
+        private List<uint> _removedShipyards;
 
-        public void Create(Character owner, ShipyardData shipyardData, int step)
+        public void Initialize()
         {
+            _shipyards = new Dictionary<uint, ShipyardsTemplate>();
+            _allShipyard = new Dictionary<uint, Shipyard>();
+            _removedShipyards = new List<uint>();
+            _log.Info("Initialising Shipyard Manager...");
+        }
+
+        public Shipyard Create(Character owner, ShipyardData shipyardData)
+        {
+            if (!_shipyards.ContainsKey(shipyardData.TemplateId))
+                return null;
+
             var pos = owner.Transform.CloneAsSpawnPosition();
             pos.X = shipyardData.X;
             pos.Y = shipyardData.Y;
             pos.Z = shipyardData.Z;
-            pos.Yaw = (float)(MathUtil.ConvertDirectionToRadian(Helpers.ConvertRotation((short)shipyardData.zRot)));
-            var objId = ObjectIdManager.Instance.GetNextId();
-            var template = _shipyards[shipyardData.TemplateId];
-            //var shipId = 3039u;
+            pos.Yaw = shipyardData.zRot;
 
-            var shipyard = new Shipyard
-            {
-                ObjId = objId,
-                Faction = owner.Faction,
-                Level = 30,
-                Hp = 10000,
-                MaxHp = 10000,
-                Name = owner.Name,
-                ModelId = template.ShipyardSteps[step].ModelId
-            };
+            var objId = ObjectIdManager.Instance.GetNextId();
+            var shipId = ShipyardIdManager.Instance.GetNextId();
+
+            var template = _shipyards[shipyardData.TemplateId];
+
+            var shipyard = new Shipyard();
+            shipyard.ObjId = objId;
+            shipyard.Template = template;
+            shipyard.Faction = owner.Faction;
+            shipyard.Level = 30;
+            shipyard.Hp = shipyard.MaxHp;
+            shipyard.Name = owner.Name;
+            shipyard.ModelId = template.ShipyardSteps[shipyardData.Step].ModelId;
             shipyard.Transform.ApplyWorldSpawnPosition(pos);
 
-            shipyard.Template = new ShipyardData
-            {
-                Id = shipyardData.Id,
-                TemplateId = template.Id,
-                X = pos.X,
-                Y = pos.Y,
-                Z = pos.Z,
-                zRot = pos.Yaw,
-                MoneyAmount = 0,
-                Actions = step,
-                Type = template.OriginItemId, // type1
-                OwnerName = owner.Name,
-                Type2 = owner.Id, // type2
-                Type3 = owner.Faction.Id, // type3
-                Spawned = DateTime.MinValue,
-                ObjId = objId,
-                Hp = template.ShipyardSteps[step].MaxHp * 100,
-                Step = step
-            };
-            shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(3554), null, System.DateTime.UtcNow));
+            shipyard.ShipyardData = new ShipyardData();
+            shipyard.ShipyardData.Id = shipId;
+            shipyard.ShipyardData.TemplateId = template.Id;
+            shipyard.ShipyardData.X = pos.X;
+            shipyard.ShipyardData.Y = pos.Y;
+            shipyard.ShipyardData.Z = pos.Z;
+            shipyard.ShipyardData.zRot = pos.Yaw;
+            shipyard.ShipyardData.MoneyAmount = 0;
+            shipyard.ShipyardData.Actions = shipyardData.Step;
+            shipyard.ShipyardData.Type = template.OriginItemId;
+            shipyard.ShipyardData.OwnerName = owner.Name;
+            shipyard.ShipyardData.Type2 = owner.Id;
+            shipyard.ShipyardData.Type3 = owner.Faction.Id;
+            shipyard.ShipyardData.Spawned = DateTime.UtcNow;
+            shipyard.ShipyardData.ObjId = objId;
+            shipyard.ShipyardData.Hp = template.ShipyardSteps[shipyardData.Step].MaxHp * 100;
+            shipyard.ShipyardData.Step = shipyardData.Step;
+
+            shipyard.Buffs.AddBuff(BuffsEnum.BuffTaxprotection, shipyard);
+
+            _allShipyard.Add(shipId, shipyard);
             shipyard.Spawn();
+
+            return shipyard;
+        }
+
+        public void RemoveShipyard(Shipyard shipyard)
+        {
+            var shipId = (uint)shipyard.ShipyardData.Id;
+            // Remove Shipyard from Shipyard tables
+            _removedShipyards.Add(shipId);
+            _allShipyard.Remove(shipId);
+            ShipyardIdManager.Instance.ReleaseId(shipId);
+            ObjectIdManager.Instance.ReleaseId(shipyard.ObjId);
+            shipyard.Delete();
         }
 
         public void Load()
         {
-            _shipyards = new Dictionary<uint, ShipyardsTemplate>();
-            _allShipyard = new Dictionary<ulong, Shipyard>();
-
             _log.Info("Loading Shipyards...");
             using (var connection = SQLite.CreateConnection())
             {

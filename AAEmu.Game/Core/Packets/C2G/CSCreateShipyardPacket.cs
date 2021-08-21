@@ -35,10 +35,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             shipyardData.Z = z;
             shipyardData.zRot = zRot;
             shipyardData.Id = designItem;
+            shipyardData.Step = 0;
 
             _log.Warn("CreateShipyard, Id: {0}, X: {1}, Y: {2}, Z: {3}, DesignItem: {4}", id, x, y, z, designItem);
-            //ShipyardManager.Instance.Create(Connection.ActiveChar, id, x, y, z, (short)zRot, 0, 0, 0, 0);
-            ShipyardManager.Instance.Create(Connection.ActiveChar, shipyardData, 0);
+            ShipyardManager.Instance.Create(Connection.ActiveChar, shipyardData);
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Shipyard;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -20,6 +19,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_shipyardData);
             stream.Write(_step);
+
             return stream;
         }
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -11,7 +12,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
-using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -145,7 +145,7 @@ namespace AAEmu.Game.Models.Game.Units
         [UnitAttribute(UnitAttribute.IncomingHealMul)]
         public virtual float IncomingHealMul { get; set; } = 1.0f;
         [UnitAttribute(UnitAttribute.HealMul)]
-        public virtual float HealMul { get; set; }  = 1.0f;
+        public virtual float HealMul { get; set; } = 1.0f;
         [UnitAttribute(UnitAttribute.IncomingDamageMul)]
         public virtual float IncomingDamageMul { get; set; } = 1f;
         [UnitAttribute(UnitAttribute.IncomingMeleeDamageMul)]
@@ -199,7 +199,7 @@ namespace AAEmu.Game.Models.Game.Units
         /// </summary>
         public Patrol Patrol { get; set; }
         public Simulation Simulation { get; set; }
-        
+
         public UnitProcs Procs { get; set; }
         public object ChargeLock { get; set; }
 
@@ -219,7 +219,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             SetPosition(x, y, z, (float)MathUtil.ConvertDirectionToRadian(rotationX), (float)MathUtil.ConvertDirectionToRadian(rotationY), (float)MathUtil.ConvertDirectionToRadian(rotationZ));
         }
-        
+
         public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
             var moved = !Transform.World.Position.X.Equals(x) || !Transform.World.Position.Y.Equals(y) || !Transform.World.Position.Z.Equals(z);
@@ -265,12 +265,12 @@ namespace AAEmu.Game.Models.Game.Units
                     value = absorptionEffect.ConsumeCharge(value);
                 }
             }
-            
+
             Hp = Math.Max(Hp - value, 0);
             if (Hp <= 0)
             {
                 attacker.Events.OnKill(attacker, new OnKillArgs { target = attacker });
-                DoDie(attacker,killReason);
+                DoDie(attacker, killReason);
                 //StopRegen();
             }
             else
@@ -279,12 +279,12 @@ namespace AAEmu.Game.Models.Game.Units
             }
             BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
         }
-        
+
         public virtual void ReduceCurrentMp(Unit unit, int value)
         {
             if (Hp == 0)
                 return;
-            
+
             Mp = Math.Max(Mp - value, 0);
             if (Mp == 0)
                 StopRegen();
@@ -297,7 +297,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             InterruptSkills();
 
-            Events.OnDeath(this, new OnDeathArgs { Killer = killer, Victim =  this});
+            Events.OnDeath(this, new OnDeathArgs { Killer = killer, Victim = this });
             Buffs.RemoveEffectsOnDeath();
             killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, killer), true);
             if (killer == this)
@@ -383,13 +383,13 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (criminalState)
             {
-                var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.RETRIBUTION_BUFF);
+                var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.RETRIBUTION_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
                 Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
             }
             else
             {
-                Buffs.RemoveBuff((uint) BuffConstants.RETRIBUTION_BUFF);
+                Buffs.RemoveBuff((uint)BuffConstants.RETRIBUTION_BUFF);
             }
         }
 
@@ -398,13 +398,13 @@ namespace AAEmu.Game.Models.Game.Units
             ForceAttack = value;
             if (ForceAttack)
             {
-                var buff = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.BLOODLUST_BUFF);
+                var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.BLOODLUST_BUFF);
                 var casterObj = new SkillCasterUnit(ObjId);
                 Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
             }
             else
             {
-                Buffs.RemoveBuff((uint) BuffConstants.BLOODLUST_BUFF);
+                Buffs.RemoveBuff((uint)BuffConstants.BLOODLUST_BUFF);
             }
             BroadcastPacket(new SCForceAttackSetPacket(ObjId, ForceAttack), true);
         }
@@ -473,18 +473,30 @@ namespace AAEmu.Game.Models.Game.Units
         {
             SendPacket(new SCErrorMsgPacket(type, 0, true));
         }
-        
+
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
             if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
                 return 0.0f;
-            
-            var rawDist = MathUtil.CalculateDistance(this.Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
 
-            rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
-            if (baseUnit is Unit unit)
-                rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
-            
+            var rawDist = MathUtil.CalculateDistance(Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
+            if (baseUnit is Shipyard.Shipyard shipyard)
+            {
+                ////TODO: I don't know if this is right but its the only radius I could find since shipyards dont have actor models
+                ////we add +4 cuzz one of the models is stupid log and can go beyond radius
+                //rawDist -= ShipyardManager.Instance._shipyards[shipyard.Template.TemplateId].BuildRadius + 4;
+
+                // мой вариант
+                rawDist -= ShipyardManager.Instance._shipyards[shipyard.ShipyardData.TemplateId].BuildRadius;
+                rawDist -= ModelManager.Instance.GetActorModel(ModelId).Radius;
+            }
+            else
+            {
+                rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
+                if (baseUnit is Unit unit)
+                    rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
+            }
+
             return Math.Max(rawDist, 0);
         }
 
@@ -495,7 +507,7 @@ namespace AAEmu.Game.Models.Game.Units
 
         public string GetAttribute(UnitAttribute attr)
         {
-            var props = this.GetType().GetProperties()
+            var props = GetType().GetProperties()
                 .Where(o => (o.GetCustomAttributes(typeof(UnitAttributeAttribute), true) as IEnumerable<UnitAttributeAttribute>)
                     .Any(a => a.Attributes.Contains(attr)));
 
@@ -553,9 +565,9 @@ namespace AAEmu.Game.Models.Game.Units
 
         public virtual void OnSkillEnd(Skill skill)
         {
-            
+
         }
-        
+
         /// <summary>
         /// Does fall damage based on velocity 
         /// </summary>
@@ -596,6 +608,6 @@ namespace AAEmu.Game.Models.Game.Units
             // TODO: Maybe adjust formula & need to detect water landing?
             return fallDmg;
         }
-        
+
     }
 }

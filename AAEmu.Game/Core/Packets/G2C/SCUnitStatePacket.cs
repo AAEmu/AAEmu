@@ -121,8 +121,8 @@ namespace AAEmu.Game.Core.Packets.G2C
                     break;
                 case BaseUnitType.Shipyard:
                     var shipyard = (Shipyard)_unit;
-                    stream.Write(shipyard.Template.Id); // type(id)
-                    stream.Write(shipyard.Template.TemplateId); // type(id)
+                    stream.Write(shipyard.ShipyardData.Id); // type(id)
+                    stream.Write(shipyard.ShipyardData.TemplateId); // type(id)
                     break;
             }
 

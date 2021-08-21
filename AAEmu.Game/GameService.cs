@@ -56,17 +56,17 @@ namespace AAEmu.Game
             QuestIdManager.Instance.Initialize();
             MailIdManager.Instance.Initialize();
             UccIdManager.Instance.Initialize();
+            ShipyardIdManager.Instance.Initialize();
+            ShipyardManager.Instance.Initialize();
 
-            GameDataManager.Instance.LoadGameData();
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
             var heightmapTask = Task.Run(() =>
             {
                 WorldManager.Instance.LoadHeightmaps();
             });
+            GameDataManager.Instance.LoadGameData();
             QuestManager.Instance.Load();
-
-            ShipyardManager.Instance.Load();
 
             FormulaManager.Instance.Load();
             ExpirienceManager.Instance.Load();
@@ -101,6 +101,7 @@ namespace AAEmu.Game
             HousingManager.Instance.Load();
             TransferManager.Instance.Load();
             GimmickManager.Instance.Load();
+            ShipyardManager.Instance.Load();
 
             SpawnManager.Instance.Load();
 
