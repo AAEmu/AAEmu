@@ -67,7 +67,7 @@ namespace AAEmu.Login.Core.Controllers
         {
             if (!_gameServers.ContainsKey(gsId))
             {
-                _log.Error("GameServer connection from {0} is requests a invalid WorldId {1}",connection.Ip, gsId);
+                _log.Error("GameServer connection from {0} is requesting a invalid WorldId {1}",connection.Ip, gsId);
                 Thread.Sleep(5000);
                 connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
                 return;
