@@ -19,7 +19,6 @@ using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Game.Units.Static;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -594,7 +593,7 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     var duration = 500 * (fallDmg / minHpLeft);
 
-                    var buff = SkillManager.Instance.GetBuffTemplate(BuffsEnum.FallStun);
+                    var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.FallStun);
                     var casterObj = new SkillCasterUnit(ObjId);
                     Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now), 0, duration);
 

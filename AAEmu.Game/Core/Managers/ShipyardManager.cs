@@ -5,7 +5,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Shipyard;
-using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -72,7 +72,7 @@ namespace AAEmu.Game.Core.Managers
             shipyard.ShipyardData.Hp = template.ShipyardSteps[shipyardData.Step].MaxHp * 100;
             shipyard.ShipyardData.Step = shipyardData.Step;
 
-            shipyard.Buffs.AddBuff(BuffsEnum.BuffTaxprotection, shipyard);
+            shipyard.Buffs.AddBuff((uint)BuffConstants.BuffTaxprotection, shipyard);
 
             _allShipyard.Add(shipId, shipyard);
             shipyard.Spawn();

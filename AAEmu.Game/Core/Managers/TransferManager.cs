@@ -11,19 +11,13 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.Transfers;
-using AAEmu.Game.Utils;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
@@ -174,7 +168,7 @@ namespace AAEmu.Game.Core.Managers
             
             owner.Patrol = null;
             // BUFF: Untouchable (Unable to attack this target)
-            var buffId = BuffsEnum.Untouchable; 
+            var buffId = (uint)BuffConstants.Untouchable; 
             owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
             owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
@@ -212,7 +206,7 @@ namespace AAEmu.Game.Core.Managers
             
             transfer.Patrol = null;
             // add effect
-            buffId = BuffsEnum.Untouchable; // Buff: Unable to attack this target
+            buffId = (uint)BuffConstants.Untouchable; // Buff: Unable to attack this target
             transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
 
             owner.Bounded = transfer; // запомним параметры связанной части в родителе

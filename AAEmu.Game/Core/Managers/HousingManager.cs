@@ -17,17 +17,15 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Items.Actions;
 using MySql.Data.MySqlClient;
 using NLog;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Housing;
-using Microsoft.CodeAnalysis.Text;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -389,11 +387,11 @@ namespace AAEmu.Game.Core.Managers
         {
             if (isUntouchable)
             {
-                if (house.Buffs.CheckBuff(BuffsEnum.Untouchable))
+                if (house.Buffs.CheckBuff((uint)BuffConstants.Untouchable))
                     return;
 
                 // Permanent Untouchable buff, should only be removed when failed tax payment, or demolishing by hand
-                var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate(BuffsEnum.Untouchable);
+                var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Untouchable);
                 if (protectionBuffTemplate != null)
                 {
                     var casterObj = new Models.Game.Skills.SkillCasterUnit(house.ObjId);
@@ -408,8 +406,8 @@ namespace AAEmu.Game.Core.Managers
             else
             {
                 // Remove Untouchable if it's enabled
-                if (house.Buffs.CheckBuff(BuffsEnum.Untouchable))
-                    house.Buffs.RemoveBuff(BuffsEnum.Untouchable);
+                if (house.Buffs.CheckBuff((uint)BuffConstants.Untouchable))
+                    house.Buffs.RemoveBuff((uint)BuffConstants.Untouchable);
             }
         }
 
@@ -417,10 +415,10 @@ namespace AAEmu.Game.Core.Managers
         {
             if (isDeteriorating)
             {
-                if (!house.Buffs.CheckBuff(BuffsEnum.RemovalDebuff))
+                if (!house.Buffs.CheckBuff((uint)BuffConstants.RemovalDebuff))
                 {
                     // Permanent Untouchable buff, should only be removed when failed tax payment, or demolishing by hand
-                    var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate(BuffsEnum.RemovalDebuff);
+                    var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.RemovalDebuff);
                     if (protectionBuffTemplate != null)
                     {
                         var casterObj = new Models.Game.Skills.SkillCasterUnit(house.ObjId);
@@ -436,8 +434,8 @@ namespace AAEmu.Game.Core.Managers
             else
             {
                 // Remove Untouchable if it's enabled
-                if (house.Buffs.CheckBuff(BuffsEnum.RemovalDebuff))
-                    house.Buffs.RemoveBuff(BuffsEnum.RemovalDebuff);
+                if (house.Buffs.CheckBuff((uint)BuffConstants.RemovalDebuff))
+                    house.Buffs.RemoveBuff((uint)BuffConstants.RemovalDebuff);
             }
         }
 
