@@ -5,7 +5,9 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
@@ -20,14 +22,14 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public Dictionary<uint, ShipyardsTemplate> _shipyards;
-        private Dictionary<uint, Shipyard> _allShipyard;
+        public Dictionary<uint, ShipyardsTemplate> _shipyardsTemplate;
+        private Dictionary<uint, Shipyard> _shipyard;
         private List<uint> _removedShipyards;
 
         public void Initialize()
         {
-            _shipyards = new Dictionary<uint, ShipyardsTemplate>();
-            _allShipyard = new Dictionary<uint, Shipyard>();
+            _shipyardsTemplate = new Dictionary<uint, ShipyardsTemplate>();
+            _shipyard = new Dictionary<uint, Shipyard>();
             _removedShipyards = new List<uint>();
             _log.Info("Initialising Shipyard Manager...");
             ShipyardTickStart();
@@ -43,7 +45,7 @@ namespace AAEmu.Game.Core.Managers
 
         public Shipyard Create(Character owner, ShipyardData shipyardData)
         {
-            if (!_shipyards.ContainsKey(shipyardData.TemplateId))
+            if (!_shipyardsTemplate.ContainsKey(shipyardData.TemplateId))
                 return null;
 
             var pos = owner.Transform.CloneAsSpawnPosition();
@@ -55,7 +57,7 @@ namespace AAEmu.Game.Core.Managers
             var objId = ObjectIdManager.Instance.GetNextId();
             var shipId = ShipyardIdManager.Instance.GetNextId();
 
-            var template = _shipyards[shipyardData.TemplateId];
+            var template = _shipyardsTemplate[shipyardData.TemplateId];
 
             var shipyard = new Shipyard();
             shipyard.ObjId = objId;
@@ -84,10 +86,93 @@ namespace AAEmu.Game.Core.Managers
             shipyard.ShipyardData.ObjId = objId;
             shipyard.ShipyardData.Hp = template.ShipyardSteps[shipyardData.Step].MaxHp * 100;
             shipyard.ShipyardData.Step = shipyardData.Step;
-            _allShipyard.Add(shipId, shipyard);
+
+            // we will make checks for the availability of money and items to create a shipyard
+            // and remove from the inventory items and money necessary for the construction of the shipyard
+            if (!RemoveRequiredItems(shipyard))
+            {
+                owner.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+                return null;
+            }
+
+            _shipyard.Add(shipId, shipyard);
             shipyard.Spawn();
 
             return shipyard;
+        }
+
+        private bool RemoveRequiredItems(Shipyard shipyard)
+        {
+            var character = WorldManager.Instance.GetCharacter(shipyard.ShipyardData.OwnerName);
+            var designId = shipyard.Template.OriginItemId;
+            var moneyOwed = TaxationsManager.Instance.taxations[(uint)shipyard.Template.TaxationId].Tax;
+
+            if (!character.Inventory.CheckItems(SlotType.Inventory, designId, 1))
+            {
+                character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+                return false;
+            }
+
+            if (character.Money < moneyOwed)
+            {
+                character.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                return false;
+            }
+
+            var found = character.Inventory.Bag.GetAllItemsByTemplate(designId, -1, out var foundItems, out _);
+            if (!found)
+            {
+                return false;
+            }
+            var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(foundItems[0].Template.UseSkillId);
+            var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(foundItems[0].Template.UseSkillId);
+            if (reagents != null && skillProducts != null)
+            {
+                if (reagents.Count > 0)
+                {
+                    // first check only
+                    var enough = true;
+                    foreach (var reagent in reagents)
+                    {
+                        var consumeCount = character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
+                        if (consumeCount < reagent.Amount)
+                        {
+                            enough = false;
+                            _log.Error("Not enough reagents ", reagent.ItemId);
+                        }
+                    }
+                    if(!enough)
+                    {
+                        return false;
+                    }
+                    foreach (var reagent in reagents)
+                    {
+                        var consumeCount = character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
+                        if (consumeCount < reagent.Amount)
+                        {
+                            character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
+                        }
+                    }
+                }
+
+                if (skillProducts.Count > 0)
+                {
+                    foreach (var product in skillProducts)
+                    {
+                        character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectGainItem, product.ItemId, product.Amount);
+                    }
+                }
+            }
+            else
+            {
+                _log.Error("Could not find Reagents/Products for Template[{0}]", foundItems[0].Template.UseSkillId);
+                return false;
+            }
+
+            character.Inventory.Bag.ConsumeItem(ItemTaskType.Shipyard, designId, 1, null);
+            character.SubtractMoney(SlotType.Inventory, (int)moneyOwed, ItemTaskType.Shipyard);
+
+            return true;
         }
 
         public void RemoveShipyard(Shipyard shipyard)
@@ -95,7 +180,7 @@ namespace AAEmu.Game.Core.Managers
             var shipId = (uint)shipyard.ShipyardData.Id;
             // Remove Shipyard from Shipyard tables
             _removedShipyards.Add(shipId);
-            _allShipyard.Remove(shipId);
+            _shipyard.Remove(shipId);
             ShipyardIdManager.Instance.ReleaseId(shipId);
             ObjectIdManager.Instance.ReleaseId(shipyard.ObjId);
             shipyard.Delete();
@@ -131,7 +216,7 @@ namespace AAEmu.Game.Core.Managers
 
         public void ShipyardTick()
         {
-            foreach (var shipyard in _allShipyard)
+            foreach (var shipyard in _shipyard)
             {
                 UpdateShipyardInfo(shipyard.Value);
             }
@@ -234,11 +319,11 @@ namespace AAEmu.Game.Core.Managers
                                 OriginItemId = reader.GetUInt32("origin_item_id", 0),
                                 TaxationId = reader.GetInt32("taxation_id")
                             };
-                            _shipyards.Add(template.Id, template);
+                            _shipyardsTemplate.Add(template.Id, template);
                         }
                     }
                 }
-                _log.Info("Loaded {0} shipyards", _shipyards.Count);
+                _log.Info("Loaded {0} shipyards", _shipyardsTemplate.Count);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -258,9 +343,9 @@ namespace AAEmu.Game.Core.Managers
                                 NumActions = reader.GetInt32("num_actions"),
                                 MaxHp = reader.GetInt32("max_hp")
                             };
-                            if (_shipyards.ContainsKey(template.ShipyardId))
+                            if (_shipyardsTemplate.ContainsKey(template.ShipyardId))
                             {
-                                _shipyards[template.ShipyardId].ShipyardSteps.Add(template.Step, template);
+                                _shipyardsTemplate[template.ShipyardId].ShipyardSteps.Add(template.Step, template);
                             }
                         }
                     }
