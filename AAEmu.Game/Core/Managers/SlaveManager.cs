@@ -5,6 +5,7 @@ using System.Linq;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -13,23 +14,18 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.Slave;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
-using System.Numerics;
-using System.Security.Claims;
-using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Units.Static;
-using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -121,8 +117,8 @@ namespace AAEmu.Game.Core.Managers
         {
             var unit = connection.ActiveChar;
             var slave = _tlSlaves[tlId];
-            
-            BindSlave(unit,slave.ObjId,AttachPointKind.Driver,AttachUnitReason.NewMaster);
+
+            BindSlave(unit, slave.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster);
         }
 
         // TODO - GameConnection connection
@@ -134,8 +130,8 @@ namespace AAEmu.Game.Core.Managers
             foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
                 UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
 
-            var despawnDelayedTime = DateTime.Now.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f); 
-            
+            var despawnDelayedTime = DateTime.Now.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f);
+
             activeSlaveInfo.Transform.DetachAll();
 
             foreach (var doodad in activeSlaveInfo.AttachedDoodads)
@@ -162,7 +158,7 @@ namespace AAEmu.Game.Core.Managers
             SpawnManager.Instance.AddDespawn(activeSlaveInfo);
         }
 
-        public void Create(Character owner, SkillItem skillData)
+        public void Create(Character owner, SkillItem skillData, bool hidespawneffect = false, Unit newOwnerPos = null)
         {
             var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
             if (activeSlaveInfo != null)
@@ -183,8 +179,14 @@ namespace AAEmu.Game.Core.Managers
 
             var tlId = (ushort)TlIdManager.Instance.GetNextId();
             var objId = ObjectIdManager.Instance.GetNextId();
-
+            
             var spawnPos = owner.Transform.CloneDetached();
+            // replacing the position with the new coordinates from the method call parameters
+            if (newOwnerPos != null)
+            {
+                spawnPos = newOwnerPos.Transform.CloneDetached();
+            }
+            
             // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
             spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
             // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
@@ -225,11 +227,10 @@ namespace AAEmu.Game.Core.Managers
                     spawnPos.Local.SetHeight(h);
             }
 
-            spawnPos.Local.SetRotation(0f, 0f,
-                owner.Transform.World.Rotation.Z + (MathF.PI / 2)); // Always spawn horizontal and 90° CCW
+            //spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2)); // Always spawn horizontal and 90° CCW
 
             // TODO
-            owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, false, 0, owner.Name), true);
+            owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hidespawneffect, 0, owner.Name), true);
             var template = new Slave
             {
                 TlId = tlId,
@@ -247,7 +248,7 @@ namespace AAEmu.Game.Core.Managers
                 Summoner = owner,
                 SpawnTime = DateTime.Now
             };
-            
+
             if (_slaveInitialItems.TryGetValue(template.Template.SlaveInitialItemPackId, out var itemPack))
             {
                 foreach (var initialItem in itemPack)
@@ -464,7 +465,7 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM slave_initial_items";
@@ -477,26 +478,27 @@ namespace AAEmu.Game.Core.Managers
                             var ItemPackId = reader.GetUInt32("slave_initial_item_pack_id");
                             var SlotId = reader.GetByte("equip_slot_id");
                             var item = reader.GetUInt32("item_id");
-                            
-                            if (_slaveInitialItems.TryGetValue(ItemPackId,out var key))
+
+                            if (_slaveInitialItems.TryGetValue(ItemPackId, out var key))
                             {
-                                key.Add(new SlaveInitialItems() { slaveInitialItemPackId = ItemPackId, equipSlotId = SlotId, itemId = item});
+                                key.Add(new SlaveInitialItems() { slaveInitialItemPackId = ItemPackId, equipSlotId = SlotId, itemId = item });
                             }
                             else
                             {
                                 var newPack = new List<SlaveInitialItems>();
-                                var newKey = new SlaveInitialItems()
+                                var newKey = new SlaveInitialItems
                                 {
-                                    slaveInitialItemPackId = ItemPackId, equipSlotId = SlotId, itemId = item
+                                    slaveInitialItemPackId = ItemPackId,
+                                    equipSlotId = SlotId,
+                                    itemId = item
                                 };
                                 newPack.Add(newKey);
-                                
+
                                 _slaveInitialItems.Add(ItemPackId, newPack);
                             }
                         }
                     }
                 }
-                
 
                 using (var command = connection.CreateCommand())
                 {
@@ -598,9 +600,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
             }
-
             #endregion
-
 
             LoadSlaveAttachmentPointLocations();
         }
@@ -627,14 +627,14 @@ namespace AAEmu.Game.Core.Managers
         {
             attachPoint = AttachPointKind.None;
             foreach (var slave in _activeSlaves)
-            foreach (var unit in slave.Value.AttachedCharacters)
-            {
-                if (unit.Value.ObjId == objId)
+                foreach (var unit in slave.Value.AttachedCharacters)
                 {
-                    attachPoint = unit.Key;
-                    return slave.Value;
+                    if (unit.Value.ObjId == objId)
+                    {
+                        attachPoint = unit.Key;
+                        return slave.Value;
+                    }
                 }
-            }
             return null;
         }
     }

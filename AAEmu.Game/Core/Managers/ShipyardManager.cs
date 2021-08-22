@@ -3,9 +3,13 @@ using System.Collections.Generic;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Tasks.Shipyard;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -17,7 +21,7 @@ namespace AAEmu.Game.Core.Managers
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         public Dictionary<uint, ShipyardsTemplate> _shipyards;
-        public Dictionary<uint, Shipyard> _allShipyard;
+        private Dictionary<uint, Shipyard> _allShipyard;
         private List<uint> _removedShipyards;
 
         public void Initialize()
@@ -26,6 +30,15 @@ namespace AAEmu.Game.Core.Managers
             _allShipyard = new Dictionary<uint, Shipyard>();
             _removedShipyards = new List<uint>();
             _log.Info("Initialising Shipyard Manager...");
+            ShipyardTickStart();
+        }
+
+        private void ShipyardTickStart()
+        {
+            _log.Warn("ShipyardDecayTickStart: Started");
+
+            var shipyardTickStartTask = new ShipyardTickTask();
+            TaskManager.Instance.Schedule(shipyardTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         }
 
         public Shipyard Create(Character owner, ShipyardData shipyardData)
@@ -67,13 +80,10 @@ namespace AAEmu.Game.Core.Managers
             shipyard.ShipyardData.OwnerName = owner.Name;
             shipyard.ShipyardData.Type2 = owner.Id;
             shipyard.ShipyardData.Type3 = owner.Faction.Id;
-            shipyard.ShipyardData.Spawned = DateTime.UtcNow;
+            shipyard.ShipyardData.Spawned = DateTime.Now;
             shipyard.ShipyardData.ObjId = objId;
             shipyard.ShipyardData.Hp = template.ShipyardSteps[shipyardData.Step].MaxHp * 100;
             shipyard.ShipyardData.Step = shipyardData.Step;
-
-            shipyard.Buffs.AddBuff((uint)BuffConstants.BuffTaxprotection, shipyard);
-
             _allShipyard.Add(shipId, shipyard);
             shipyard.Spawn();
 
@@ -89,6 +99,112 @@ namespace AAEmu.Game.Core.Managers
             ShipyardIdManager.Instance.ReleaseId(shipId);
             ObjectIdManager.Instance.ReleaseId(shipyard.ObjId);
             shipyard.Delete();
+        }
+
+        public void ShipyardCompleted(Shipyard shipyard)
+        {
+            var character = WorldManager.Instance.GetCharacter(shipyard.ShipyardData.OwnerName);
+            var found = character.Inventory.Bag.GetAllItemsByTemplate(shipyard.Template.ItemId, -1, out var foundItems, out _);
+            if (found)
+            {
+                // calculate skillData
+                var skillData = (SkillItem)SkillCaster.GetByType(SkillCasterType.Item);
+                skillData.ItemId = foundItems[0].Id;
+                SlaveManager.Instance.Create(character, skillData, true, shipyard);
+            }
+            RemoveShipyard(shipyard);
+        }
+
+        public void ShipyardCompletedTask(Shipyard shipyard)
+        {
+            var character = WorldManager.Instance.GetCharacter(shipyard.ShipyardData.OwnerName);
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Shipyard, shipyard.Template.ItemId, 1, 0);
+            var shipyardCompleteTask = new ShipyardCompleteTask();
+            shipyardCompleteTask._shipyard = shipyard;
+
+            shipyard.ShipyardData.Step = 1000; // last step, the ceremony of launching the ship
+            character.BroadcastPacket(new SCShipyardStatePacket(shipyard.ShipyardData), true);
+
+            var animTime = shipyard.Template.CeremonyAnimTime;
+            TaskManager.Instance.Schedule(shipyardCompleteTask, TimeSpan.FromMilliseconds(animTime));
+        }
+
+        public void ShipyardTick()
+        {
+            foreach (var shipyard in _allShipyard)
+            {
+                UpdateShipyardInfo(shipyard.Value);
+            }
+        }
+
+        private void UpdateShipyardInfo(Shipyard shipyard)
+        {
+            var isDecaying = (DateTime.Now >= shipyard.ShipyardData.Spawned.AddDays(3));
+
+            SetProtectionBuff(shipyard, isDecaying);
+            SetDecayBuff(shipyard, isDecaying);
+        }
+
+        private void SetProtectionBuff(Shipyard shipyard, bool isDecay)
+        {
+            if (!isDecay)
+            {
+                var duration = shipyard.ShipyardData.Spawned - DateTime.Now;
+                var mins = Math.Round(duration.TotalMinutes) * 60000;
+
+                var timeleft = shipyard.Template.TaxDuration + mins;
+
+                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.BuffTaxprotection))
+                    return;
+
+                var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.BuffTaxprotection);
+                if (protectionBuffTemplate != null)
+                {
+                    var casterObj = new SkillCasterUnit(shipyard.ObjId);
+                    shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, casterObj, protectionBuffTemplate, null, DateTime.Now), 0, (int)timeleft);
+                }
+                else
+                {
+                    _log.Error("Unable to find Protection Buff template");
+                }
+            }
+            else
+            {
+                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.BuffTaxprotection))
+                    shipyard.Buffs.RemoveBuff((uint)BuffConstants.BuffTaxprotection);
+            }
+        }
+
+        private void SetDecayBuff(Shipyard shipyard, bool isDecay)
+        {
+            if (isDecay)
+            {
+                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.BuffDeterioration))
+                {
+                    shipyard.ReduceCurrentHp(shipyard, 7);
+                    var character = WorldManager.Instance.GetCharacter(shipyard.ShipyardData.OwnerName);
+                    character.SendPacket(new SCUnitStatePacket(shipyard));
+                    character.SendPacket(new SCShipyardStatePacket(shipyard.ShipyardData));
+
+                    return;
+                }
+
+                var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.BuffDeterioration);
+                if (protectionBuffTemplate != null)
+                {
+                    var casterObj = new SkillCasterUnit(shipyard.ObjId);
+                    shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, casterObj, protectionBuffTemplate, null, DateTime.Now));
+                }
+                else
+                {
+                    _log.Error("Unable to find Deterioration Debuff template");
+                }
+            }
+            else
+            {
+                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.BuffDeterioration))
+                    shipyard.Buffs.RemoveBuff((uint)BuffConstants.BuffDeterioration);
+            }
         }
 
         public void Load()
@@ -110,6 +226,7 @@ namespace AAEmu.Game.Core.Managers
                                 Name = reader.GetString("name"),
                                 MainModelId = reader.GetUInt32("main_model_id"),
                                 ItemId = reader.GetUInt32("item_id"),
+                                CeremonyAnimTime = reader.GetInt32("ceremony_anim_time"),
                                 SpawnOffsetFront = reader.GetFloat("spawn_offset_front"),
                                 SpawnOffsetZ = reader.GetFloat("spawn_offset_z"),
                                 BuildRadius = reader.GetInt32("build_radius"),
