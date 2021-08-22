@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Managers
 
         private void ShipyardTickStart()
         {
-            _log.Warn("ShipyardDecayTickStart: Started");
+            _log.Warn("ShipyardUpdateInfoTick: Started");
 
             var shipyardTickStartTask = new ShipyardTickTask();
             TaskManager.Instance.Schedule(shipyardTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
@@ -110,6 +110,7 @@ namespace AAEmu.Game.Core.Managers
             if (!character.Inventory.CheckItems(SlotType.Inventory, designId, 1))
             {
                 character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+                _log.Error("Not enough item Id={0}", designId);
                 return false;
             }
 
@@ -134,12 +135,13 @@ namespace AAEmu.Game.Core.Managers
                     var enough = true;
                     foreach (var reagent in reagents)
                     {
-                        var consumeCount = character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
-                        if (consumeCount < reagent.Amount)
+                        if (character.Inventory.CheckItems(SlotType.Inventory, reagent.ItemId, reagent.Amount))
                         {
-                            enough = false;
-                            _log.Error("Not enough reagents ", reagent.ItemId);
+                            continue;
                         }
+
+                        enough = false;
+                        _log.Error("Not enough reagents Id={0}, Amount={1}", reagent.ItemId, reagent.Amount);
                     }
                     if(!enough)
                     {
@@ -147,14 +149,10 @@ namespace AAEmu.Game.Core.Managers
                     }
                     foreach (var reagent in reagents)
                     {
-                        var consumeCount = character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
-                        if (consumeCount < reagent.Amount)
-                        {
-                            character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
-                        }
+                        character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, reagent.ItemId, reagent.Amount, null);
                     }
                 }
-
+                // maybe not needed
                 if (skillProducts.Count > 0)
                 {
                     foreach (var product in skillProducts)
