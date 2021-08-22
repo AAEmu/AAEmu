@@ -1,5 +1,6 @@
 ﻿using System;
 
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -33,19 +34,19 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             _log.Debug("[Shipyard] ID {0}, objID {1}", shipyard.ShipyardData.TemplateId, shipyard.ObjId);
 
                             shipyard.AddBuildAction();
-                            _log.Debug("[Shipyard] BaseAction {0}, NumAction {1}, CurrentAction {2}", shipyard.BaseAction, shipyard.NumAction, shipyard.CurrentAction);
-                            _log.Debug("[Shipyard] AllAction {0}, CurrentStep {1}, ShipyardSteps.Count {2}", shipyard.AllAction, shipyard.CurrentStep, shipyard.Template.ShipyardSteps.Count);
+                            //_log.Debug("[Shipyard] BaseAction {0}, NumAction {1}, CurrentAction {2}", shipyard.BaseAction, shipyard.NumAction, shipyard.CurrentAction);
+                            //_log.Debug("[Shipyard] AllAction {0}, CurrentStep {1}, ShipyardSteps.Count {2}", shipyard.AllAction, shipyard.CurrentStep, shipyard.Template.ShipyardSteps.Count);
                             if (shipyard.CurrentStep == -1)
                             {
                                 shipyard.ShipyardData.Actions = shipyard.AllAction;
                                 shipyard.ShipyardData.Step = shipyard.Template.ShipyardSteps.Count;
-                                _log.Debug("[Shipyard] : Actions {0}, Step {1}", shipyard.AllAction, shipyard.Template.ShipyardSteps.Count);
+                                _log.Debug("[Shipyard] Actions {0}, Step {1}", shipyard.AllAction, shipyard.Template.ShipyardSteps.Count);
                             }
                             else
                             {
                                 shipyard.ShipyardData.Actions = shipyard.CurrentAction;
                                 shipyard.ShipyardData.Step = shipyard.CurrentStep;
-                                _log.Debug("[Shipyard] : Actions {0}, Step {1}", shipyard.CurrentAction, shipyard.CurrentStep);
+                                _log.Debug("[Shipyard] Actions {0}, Step {1}", shipyard.CurrentAction, shipyard.CurrentStep);
                             }
                             character.BroadcastPacket(new SCShipyardStatePacket(shipyard.ShipyardData), true);
                         }
@@ -83,8 +84,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         {
                             if (sy.ShipyardData.OwnerName == caster.Name)
                             {
-                                sy.ShipyardData.Step = 1000;
-                                character.BroadcastPacket(new SCShipyardStatePacket(sy.ShipyardData), true);
+                                ShipyardManager.Instance.ShipyardCompletedTask(sy);
                             }
                             else
                                 caster.SendErrorMessage(ErrorMessageType.NoPermissionToLoot);

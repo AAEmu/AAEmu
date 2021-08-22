@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Shipyard
         public string Name { get; set; }
         public uint MainModelId { get; set; }
         public uint ItemId { get; set; }
+        public int CeremonyAnimTime { get; set; }
         public float SpawnOffsetFront { get; set; }
         public float SpawnOffsetZ { get; set; }
         public int BuildRadius { get; set; }
