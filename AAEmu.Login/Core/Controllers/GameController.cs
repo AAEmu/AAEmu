@@ -1,7 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
 using AAEmu.Login.Core.Network.Connections;
+using AAEmu.Login.Core.Network.Internal;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Core.Packets.L2G;
 using AAEmu.Login.Models;
@@ -29,6 +32,12 @@ namespace AAEmu.Login.Core.Controllers
             _gameServers = new Dictionary<byte, GameServer>();
             _mirrorsId = new Dictionary<byte, byte>();
         }
+        
+        async Task SendPacketWithDelay(InternalConnection connection, int delay, InternalPacket message)
+        {
+            await Task.Delay(delay);
+            connection.SendPacket(message);
+        }        
 
         public void Load()
         {
@@ -51,6 +60,12 @@ namespace AAEmu.Login.Core.Controllers
                         }
                     }
                 }
+
+                if (_gameServers.Count <= 0)
+                {
+                    _log.Fatal("No servers have been defined in the game_servers table !");
+                    return;
+                }
             }
 
             _log.Info("Loaded {0} gs", _gameServers.Count);
@@ -60,7 +75,10 @@ namespace AAEmu.Login.Core.Controllers
         {
             if (!_gameServers.ContainsKey(gsId))
             {
-                connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
+                _log.Error("GameServer connection from {0} is requesting a invalid WorldId {1}",connection.Ip, gsId);
+
+                Task.Run(() => SendPacketWithDelay(connection, 5000, new LGRegisterGameServerPacket(GSRegisterResult.Error)));
+                // connection.SendPacket(new LGRegisterGameServerPacket(GSRegisterResult.Error));
                 return;
             }
 
