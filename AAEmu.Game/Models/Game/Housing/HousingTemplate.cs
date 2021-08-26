@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+
+using AAEmu.Game.Models.Game.Taxations;
 
 namespace AAEmu.Game.Models.Game.Housing
 {
@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.Housing
         public uint RepairCost { get; set; }
         public float GardenRadius { get; set; }
         public string Family { get; set; }
-        public HouseTax Taxation { get; set; }
+        public Taxation Taxation { get; set; }
         public uint GuardTowerSettingId { get; set; }
         public float CinemaRadius { get; set; }
         public float AutoZOffsetX { get; set; }

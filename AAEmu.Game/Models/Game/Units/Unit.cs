@@ -486,7 +486,7 @@ namespace AAEmu.Game.Models.Game.Units
                 //rawDist -= ShipyardManager.Instance._shipyards[shipyard.Template.TemplateId].BuildRadius + 4;
 
                 // мой вариант
-                rawDist -= ShipyardManager.Instance._shipyards[shipyard.ShipyardData.TemplateId].BuildRadius;
+                rawDist -= ShipyardManager.Instance._shipyardsTemplate[shipyard.ShipyardData.TemplateId].BuildRadius;
                 rawDist -= ModelManager.Instance.GetActorModel(ModelId).Radius;
             }
             else

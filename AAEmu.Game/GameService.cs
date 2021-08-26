@@ -98,6 +98,7 @@ namespace AAEmu.Game
             AIManager.Instance.Initialize();
             NpcManager.Instance.Load();
             DoodadManager.Instance.Load();
+            TaxationsManager.Instance.Load();
             HousingManager.Instance.Load();
             TransferManager.Instance.Load();
             GimmickManager.Instance.Load();
