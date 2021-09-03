@@ -310,7 +310,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if (itemToRemove.ClientName == "") //Testing feature. Relists an item if the server listed it. 
             {
-                itemToRemove.EndTime = DateTime.Now.AddSeconds(172800);
+                itemToRemove.EndTime = DateTime.UtcNow.AddHours(48);
                 return;
             }
             lock (_auctionItems)
@@ -338,18 +338,18 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Trace("Updating Auction House!");
             lock (_auctionItems)
-                {
-                    var itemsToRemove = _auctionItems.Where(c => DateTime.Now > c.EndTime);
+            {
+                var itemsToRemove = _auctionItems.Where(c => DateTime.UtcNow > c.EndTime);
 
-                    foreach (var item in itemsToRemove)
-                    {
-                        if (item.BidderId != 0)
-                            RemoveAuctionItemSold(item, item.BidderName, item.BidMoney);
-                        else
-                            RemoveAuctionItemFail(item);
-                    }
+                foreach (var item in itemsToRemove)
+                {
+                    if (item.BidderId != 0)
+                        RemoveAuctionItemSold(item, item.BidderName, item.BidMoney);
+                    else
+                        RemoveAuctionItemFail(item);
                 }
             }
+        }
 
         public AuctionItem CreateAuctionItem(Character player, Item itemToList, int startPrice, int buyoutPrice, byte duration)
         {
@@ -385,13 +385,13 @@ namespace AAEmu.Game.Core.Managers
                 Flags = newItem.ItemFlags,
                 StackSize = (uint)newItem.Count,
                 DetailType = 0,
-                CreationTime = DateTime.Now,
-                EndTime = DateTime.Now.AddHours(timeLeft),
+                CreationTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow.AddHours(timeLeft),
                 LifespanMins = 0,
                 Type1 = 0,
                 WorldId = 0,
-                UnpackDateTIme = DateTime.Now,
-                UnsecureDateTime = DateTime.Now,
+                UnpackDateTIme = DateTime.UtcNow,
+                UnsecureDateTime = DateTime.UtcNow,
                 WorldId2 = 0,
                 ClientId = player.Id,
                 ClientName = player.Name,

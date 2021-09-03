@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (needRestorationOnReturn)
             {
                 // StartSkill RETURN SKILL TYPE
-                Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NPC_RETURN_BUFF, Ai.Owner);
+                Ai.Owner.Buffs.AddBuff((uint)BuffConstants.NpcReturn, Ai.Owner);
                 Ai.Owner.Hp = Ai.Owner.MaxHp;
                 Ai.Owner.Mp = Ai.Owner.MaxMp;
                 Ai.Owner.BroadcastPacket(new SCUnitPointsPacket(Ai.Owner.ObjId, Ai.Owner.Hp, Ai.Owner.Mp), true);
@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 OnCompletedReturnNoTeleport();
             }
             
-            _timeoutTime = DateTime.Now.AddSeconds(20); 
+            _timeoutTime = DateTime.UtcNow.AddSeconds(20); 
         }
 
         public override void Tick(TimeSpan delta)
@@ -50,7 +50,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
             if (distanceToIdle < 1.0f)
                 OnCompletedReturnNoTeleport();
             
-            if (DateTime.Now > _timeoutTime)
+            if (DateTime.UtcNow > _timeoutTime)
                 OnCompletedReturn();
         }
 
@@ -76,7 +76,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             // TODO: Ai.Owner.EnableAggro();
             
-            Ai.Owner.Buffs.RemoveBuff((uint)BuffConstants.NPC_RETURN_BUFF);
+            Ai.Owner.Buffs.RemoveBuff((uint)BuffConstants.NpcReturn);
         }
     }
 }

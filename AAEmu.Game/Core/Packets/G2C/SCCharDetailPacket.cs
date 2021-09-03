@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(Helpers.ConvertLongY(_character.Transform.Local.Position.Y));
             stream.Write(_character.Transform.Local.Position.Z);
             stream.Write(_character.Transform.ZoneId);
-            stream.Write(DateTime.Now); // TODO: lastWorldLeaveTime
+            stream.Write(DateTime.UtcNow); // TODO: lastWorldLeaveTime
 
             var items = _character.Inventory.Equipment.GetSlottedItemsList();
             foreach (var item in items)

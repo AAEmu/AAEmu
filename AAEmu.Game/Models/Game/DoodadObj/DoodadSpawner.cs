@@ -33,11 +33,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             doodad.ItemId = itemId;
 
             // TODO for test
-            doodad.PlantTime = DateTime.Now;
+            doodad.PlantTime = DateTime.UtcNow;
             //if (doodad.GrowthTime.Millisecond <= 0)
             //{
-            //    //doodad.GrowthTime = DateTime.Now.AddMilliseconds(template.MinTime);
-            //    doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
+            //    //doodad.GrowthTime = DateTime.UtcNow.AddMilliseconds(template.MinTime);
+            //    doodad.GrowthTime = DateTime.UtcNow.AddMilliseconds(10000);
             //}
 
             if (Scale > 0)
@@ -66,11 +66,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             doodad.Spawner = this;
             doodad.Transform.ApplyWorldSpawnPosition(Position);
             // TODO for test
-            doodad.PlantTime = DateTime.Now;
+            doodad.PlantTime = DateTime.UtcNow;
             //if (doodad.GrowthTime.Millisecond <= 0)
             //{
-            //    doodad.GrowthTime = DateTime.Now.AddMilliseconds(doodad.Template.MinTime);
-            //doodad.GrowthTime = DateTime.Now.AddMilliseconds(10000);
+            //    doodad.GrowthTime = DateTime.UtcNow.AddMilliseconds(doodad.Template.MinTime);
+            //doodad.GrowthTime = DateTime.UtcNow.AddMilliseconds(10000);
             //}
             if (Scale > 0)
                 doodad.SetScale(Scale);
@@ -97,7 +97,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             if (RespawnTime > 0)
             {
-                doodad.Respawn = DateTime.Now.AddSeconds(RespawnTime);
+                doodad.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
                 SpawnManager.Instance.AddRespawn(doodad);
             }
             else

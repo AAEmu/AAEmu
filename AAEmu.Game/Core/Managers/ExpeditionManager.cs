@@ -39,7 +39,7 @@ namespace AAEmu.Game.Core.Managers
             expedition.OwnerName = owner.Name;
             expedition.UnitOwnerType = 0;
             expedition.PoliticalSystem = 1;
-            expedition.Created = DateTime.Now;
+            expedition.Created = DateTime.UtcNow;
             expedition.AggroLink = false;
             expedition.DiplomacyTarget = false;
             expedition.Members = new List<ExpeditionMember>();

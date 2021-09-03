@@ -40,9 +40,9 @@ namespace AAEmu.Game.Models.Game.Char
 
         private void ApplyWeaponWieldBuff()
         {
-            Buffs.RemoveBuff((uint)BuffConstants.EQUIP_DUALWIELD_BUFF);
-            Buffs.RemoveBuff((uint)BuffConstants.EQUIP_SHIELD_BUFF);
-            Buffs.RemoveBuff((uint)BuffConstants.EQUIP_TWOHANDED_BUFF);
+            Buffs.RemoveBuff((uint)BuffConstants.EquipDualwield);
+            Buffs.RemoveBuff((uint)BuffConstants.EquipShield);
+            Buffs.RemoveBuff((uint)BuffConstants.EquipTwoHanded);
 
             BuffTemplate buffTemplate = null;
             switch (GetWeaponWieldKind())
@@ -54,20 +54,20 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         var slotId = (EquipmentItemSlotType)weapon.HoldableTemplate.SlotTypeId;
                         if (slotId == EquipmentItemSlotType.Shield)
-                            buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EQUIP_SHIELD_BUFF);
+                            buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipShield);
                     }
                     break;
                 case WeaponWieldKind.TwoHanded:
-                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EQUIP_TWOHANDED_BUFF);
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipTwoHanded);
                     break;
                 case WeaponWieldKind.DuelWielded:
-                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EQUIP_DUALWIELD_BUFF);
+                    buffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.EquipDualwield);
                     break;
             }
 
             if(buffTemplate != null)
             {
-                var effect = new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now);
+                var effect = new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow);
                 Buffs.AddBuff(effect);
             }
 
@@ -117,7 +117,7 @@ namespace AAEmu.Game.Models.Game.Char
                             var buffTemplate = SkillManager.Instance.GetBuffTemplate(bonus.BuffId);
 
                             var newEffect =
-                                new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.Now)
+                                new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow)
                                 {
                                     AbLevel = itemLevels[setCount.Key]
                                 };
@@ -146,7 +146,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
 
             // Clear any existing armor grade buffs
-            Buffs.RemoveBuffs((uint) BuffConstants.ARMOR_BUFF_TAG, 10);
+            Buffs.RemoveBuffs((uint) BuffConstants.ArmorBuffTag, 10);
 
             // Get armor pieces by kind
             var armorPieces = new Dictionary<ArmorType, List<Armor>>();
@@ -190,18 +190,18 @@ namespace AAEmu.Game.Models.Game.Char
                 switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
                 {
                     case ArmorType.Cloth:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.CLOTH_7P);
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Cloth7P);
                         break;
                     case ArmorType.Leather:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.LEATHER_7P);
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Leather7P);
                         break;
                     case ArmorType.Metal:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.PLATE_7P);
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Plate7P);
                         break;
                 }
                 
                 if (templ != null)
-                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.Now));
+                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
             }
             else
             {
@@ -209,18 +209,18 @@ namespace AAEmu.Game.Models.Game.Char
                 switch ((ArmorType)finalArmorTemplate.WearableTemplate.TypeId)
                 {
                     case ArmorType.Cloth:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.CLOTH_4P);
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Cloth4P);
                         break;
                     case ArmorType.Leather:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.LEATHER_4P);
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Leather4P);
                         break;
                     case ArmorType.Metal:
-                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.PLATE_4P);
+                        templ = SkillManager.Instance.GetBuffTemplate((uint) BuffConstants.Plate4P);
                         break;
                 }
                 
                 if (templ != null)
-                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.Now));
+                    Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(), templ, null, DateTime.UtcNow));
             }
 
             // Get only pieces >= arcane
@@ -244,7 +244,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var buffTemplate = SkillManager.Instance.GetBuffTemplate(armorGradeBuff.BuffId);
 
                 var newEffect =
-                    new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
+                    new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                     {
                         AbLevel = (uint)gradeBuffAbLevel
                     };
@@ -277,7 +277,7 @@ namespace AAEmu.Game.Models.Game.Char
                 if (itemAddedBuff != null) // add buff from equipped item
                 {
                     var newEffect =
-                        new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.Now)
+                        new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.UtcNow)
                         {
                             AbLevel = (uint)itemAdded.Template.Level
                         };
@@ -288,7 +288,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if(itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 
             {
-                Buffs.RemoveBuffs((uint)BuffConstants.EQUIPMENT_BUFF_TAG, 20);
+                Buffs.RemoveBuffs((uint)BuffConstants.EquipmentBuffTag, 20);
                 foreach (var item in Equipment.Items)
                 {
                     if(item.Template.BuffId != 0)
@@ -297,7 +297,7 @@ namespace AAEmu.Game.Models.Game.Char
                         if (buffTemplate == null)
                             buffTemplate = SkillManager.Instance.GetBuffTemplate(item?.Template.BuffId ?? 0);
                         var newEffect =
-                            new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.Now)
+                            new Buff(this, this, new SkillCasterUnit(), buffTemplate, null, DateTime.UtcNow)
                             {
                                 AbLevel = (uint)item.Template.Level
                             };

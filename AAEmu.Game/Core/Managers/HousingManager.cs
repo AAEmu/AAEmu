@@ -381,7 +381,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     var casterObj = new Models.Game.Skills.SkillCasterUnit(house.ObjId);
                     house.Buffs.AddBuff(new Models.Game.Skills.Buff(house, house, casterObj,
-                        protectionBuffTemplate, null, System.DateTime.Now));
+                        protectionBuffTemplate, null, System.DateTime.UtcNow));
                 }
                 else
                 {
@@ -408,7 +408,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         var casterObj = new Models.Game.Skills.SkillCasterUnit(house.ObjId);
                         house.Buffs.AddBuff(new Models.Game.Skills.Buff(house, house, casterObj,
-                            protectionBuffTemplate, null, System.DateTime.Now));
+                            protectionBuffTemplate, null, System.DateTime.UtcNow));
                     }
                     else
                     {
@@ -470,7 +470,7 @@ namespace AAEmu.Game.Core.Managers
                 weeksWithoutPay = 0;
             }
             else
-            if (house.TaxDueDate <= DateTime.Now)
+            if (house.TaxDueDate <= DateTime.UtcNow)
             {
                 requiresPayment = true;
                 weeksWithoutPay = 1;
@@ -599,8 +599,8 @@ namespace AAEmu.Game.Core.Managers
             house.CoOwnerId = connection.ActiveChar.Id;
             house.AccountId = connection.AccountId;
             house.Permission = HousingPermission.Private;
-            house.PlaceDate = DateTime.Now;
-            house.ProtectionEndDate = DateTime.Now.AddDays(7);
+            house.PlaceDate = DateTime.UtcNow;
+            house.ProtectionEndDate = DateTime.UtcNow.AddDays(7);
             _houses.Add(house.Id, house);
             _housesTl.Add(house.TlId, house);
             connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
@@ -663,7 +663,7 @@ namespace AAEmu.Game.Core.Managers
                 // VERIFY: check if tax payed, cannot manually demolish or sell a house with unpaid taxes ?
                 // Note - ZeromusXYZ: I'm disabling this "feature", as it would prevent you from demolishing freshly placed buildings that you want to move 
                 /*
-                if (house.TaxDueDate <= DateTime.Now)
+                if (house.TaxDueDate <= DateTime.UtcNow)
                 {
                     connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotDemolishUnpaidTax);
                     return;
@@ -672,7 +672,7 @@ namespace AAEmu.Game.Core.Managers
                 var ownerChar = WorldManager.Instance.GetCharacterById(house.OwnerId);
 
                 // Mark it as expired protection
-                house.ProtectionEndDate = DateTime.Now.AddSeconds(-1);
+                house.ProtectionEndDate = DateTime.UtcNow.AddSeconds(-1);
                 // Make sure to call UpdateTaxInfo first to remove tax-rated mails of this house
                 UpdateTaxInfo(house);
                 // Return items to player by mail
@@ -714,7 +714,7 @@ namespace AAEmu.Game.Core.Managers
             // TODO: not sure how to handle this, just insta-delete it for now
             house.Delete();
             // TODO: Add to despawn handler
-            //house.Despawn = DateTime.Now.AddSeconds(20);
+            //house.Despawn = DateTime.UtcNow.AddSeconds(20);
             //SpawnManager.Instance.AddDespawn(house);
         }
 
@@ -765,8 +765,8 @@ namespace AAEmu.Game.Core.Managers
 
         public void UpdateTaxInfo(House house)
         {
-            var isDemolished = (house.ProtectionEndDate <= DateTime.Now);
-            var isTaxDue = (house.TaxDueDate <= DateTime.Now);
+            var isDemolished = (house.ProtectionEndDate <= DateTime.UtcNow);
+            var isTaxDue = (house.TaxDueDate <= DateTime.UtcNow);
 
             // Update Buffs (if needed)
             SetUntouchable(house, !isDemolished);
@@ -963,11 +963,11 @@ namespace AAEmu.Game.Core.Managers
                     newMail.Header.SenderName = ".houseDemolish";
                     newMail.Title = "title";
                     newMail.Body.Text = "body"; // Yes, that's indeed what it needs to be set to
-                    newMail.Body.SendDate = DateTime.Now;
+                    newMail.Body.SendDate = DateTime.UtcNow;
                     if (failedToPayTax)
-                        newMail.Body.RecvDate = DateTime.Now.AddHours(22);
+                        newMail.Body.RecvDate = DateTime.UtcNow.AddHours(22);
                     else
-                        newMail.Body.RecvDate = DateTime.Now;
+                        newMail.Body.RecvDate = DateTime.UtcNow;
                     newMail.Header.Extra = house.Id;
                 }
                 // Only attach money to first mail
@@ -1156,7 +1156,7 @@ namespace AAEmu.Game.Core.Managers
                 var expiredHouseList = new List<House>();
                 foreach (var house in _houses)
                 {
-                    if ((house.Value?.ProtectionEndDate <= DateTime.Now) && (house.Value?.OwnerId > 0))
+                    if ((house.Value?.ProtectionEndDate <= DateTime.UtcNow) && (house.Value?.OwnerId > 0))
                         expiredHouseList.Add(house.Value);
                     UpdateTaxInfo(house.Value);
                 }

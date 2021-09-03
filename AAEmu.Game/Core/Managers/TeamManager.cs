@@ -124,7 +124,7 @@ namespace AAEmu.Game.Core.Managers
                 Owner = owner,
                 Target = target,
                 IsParty = activeTeam?.IsParty ?? isParty,
-                Time = DateTime.Now,
+                Time = DateTime.UtcNow,
                 TeamId = activeTeam?.Id ?? 0u,
             });
             target.SendPacket(new SCAskToJoinTeamPacket(activeTeam?.Id ?? 0u, owner.Id, owner.Name, isParty));
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Core.Managers
                 return;
             }
 
-            if (isReject || activeInvitation.Time.AddSeconds(60) < DateTime.Now) // 60 seconds for timeout
+            if (isReject || activeInvitation.Time.AddSeconds(60) < DateTime.UtcNow) // 60 seconds for timeout
             {
                 activeInvitation.Owner.SendPacket(new SCRejectedTeamPacket(activeInvitation.Target.Name, activeInvitation.IsParty));
                 _activeInvitations.Remove(target.Id);

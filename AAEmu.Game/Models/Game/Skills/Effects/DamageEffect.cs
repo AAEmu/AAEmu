@@ -380,7 +380,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (caster.GetRelationStateTo(trg) == RelationState.Friendly)
             {
-                if (!trg.Buffs.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF))
+                if (!trg.Buffs.CheckBuff((uint)BuffConstants.Retribution))
                 {
                     caster.SetCriminalState(true);
                 }
@@ -392,7 +392,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (trgCharacter != null)
             {
                 trgCharacter.IsInCombat = true;
-                trgCharacter.LastCombatActivity = DateTime.Now;
+                trgCharacter.LastCombatActivity = DateTime.UtcNow;
                 if (attacker != null)
                 {
                     trgCharacter.SetHostileActivity(attacker);
@@ -402,7 +402,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (attacker != null)
             {
                 attacker.IsInCombat = true;
-                attacker.LastCombatActivity = DateTime.Now;
+                attacker.LastCombatActivity = DateTime.UtcNow;
                 attacker.Procs.RollProcsForKind(ProcChanceKind.HitAny);
             }
 

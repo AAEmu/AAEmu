@@ -374,7 +374,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                         worldPosDelta.X.ToString("F1"),worldPosDelta.Y.ToString("F1"),worldPosDelta.Z.ToString("F1"));
                     */
                     /*
-                    character.SendMessage("["+DateTime.Now.ToString("HH:mm:ss") + "] {0} - ZoneKey: {2} Region: ({3} {4}) - {1}",
+                    character.SendMessage("["+DateTime.UtcNow.ToString("HH:mm:ss") + "] {0} - ZoneKey: {2} Region: ({3} {4}) - {1}",
                         _owningObject.ObjId,
                         (_owningObject is BaseUnit bu) ? bu.Name : "<gameobject>",
                         ZoneId, _owningObject?.Region?.X.ToString() ?? "??", _owningObject?.Region?.Y.ToString() ?? "??");

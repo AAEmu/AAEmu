@@ -1217,9 +1217,9 @@ namespace AAEmu.Game.Models.Game.Char
         public void SetHostileActivity(Character attacker)
         {
             if (_hostilePlayers.ContainsKey(attacker.ObjId))
-                _hostilePlayers[attacker.ObjId] = DateTime.Now;
+                _hostilePlayers[attacker.ObjId] = DateTime.UtcNow;
             else
-                _hostilePlayers.TryAdd(attacker.ObjId, DateTime.Now);
+                _hostilePlayers.TryAdd(attacker.ObjId, DateTime.UtcNow);
         }
 
         public bool IsActivelyHostile(Character target)
@@ -1227,7 +1227,7 @@ namespace AAEmu.Game.Models.Game.Char
             if(_hostilePlayers.TryGetValue(target.ObjId, out var value))
             {
                 //Maybe get the time to stay hostile from db?
-                return value.AddSeconds(30) > DateTime.Now;
+                return value.AddSeconds(30) > DateTime.UtcNow;
             }
             return false;
         }
@@ -1460,7 +1460,7 @@ namespace AAEmu.Game.Models.Game.Char
                     if (buffTemplate != null)
                     {
                         var casterObj = new SkillCasterUnit(ObjId);
-                        var newZoneBuff = new Buff(this, this, casterObj, buffTemplate, null, System.DateTime.Now);
+                        var newZoneBuff = new Buff(this, this, casterObj, buffTemplate, null, System.DateTime.UtcNow);
                         Buffs.AddBuff(newZoneBuff);
                     }
                 }

@@ -46,7 +46,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
 
             Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
                 new EffectSource(), // TODO : EffectSource Type trigger 
-                null, DateTime.Now);
+                null, DateTime.UtcNow);
         }
 
         public StartedBuffTrigger(Buff owner, BuffTriggerTemplate template) : base(owner, template)

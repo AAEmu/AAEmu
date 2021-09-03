@@ -70,13 +70,13 @@ namespace AAEmu.Commons.Utils
 
         public static long UnixTimeNow()
         {
-            var timeSpan = (DateTime.Now - _unixDate);
+            var timeSpan = (DateTime.UtcNow - _unixDate);
             return (long)timeSpan.TotalSeconds;
         }
 
         public static long UnixTimeNowInMilli()
         {
-            var timeSpan = (DateTime.Now - _unixDate);
+            var timeSpan = (DateTime.UtcNow - _unixDate);
             return (long)timeSpan.TotalMilliseconds;
         }
 

@@ -176,7 +176,7 @@ namespace AAEmu.Game.Core.Managers
                         var item = new Item();
                         item.TemplateId = lootPacks[uii].ItemId;
                         item.WorldId = 1;
-                        item.CreateTime = DateTime.Now;
+                        item.CreateTime = DateTime.UtcNow;
                         item.Id = ++itemId;
                         item.MadeUnitId = npcId;
                         item.Count = Rand.Next(lootPacks[uii].MinAmount, lootPacks[uii].MaxAmount);
@@ -193,7 +193,7 @@ namespace AAEmu.Game.Core.Managers
             {
                 TemplateId = Item.Coins,
                 WorldId = 1,
-                CreateTime = DateTime.Now,
+                CreateTime = DateTime.UtcNow,
                 Id = ++itemId,
                 Count = Rand.Next(unit.Level * 5, unit.Level * 400),
                 MadeUnitId = 0
@@ -470,7 +470,7 @@ namespace AAEmu.Game.Core.Managers
 
             if (item.Template.FixedGrade >= 0)
                 item.Grade = (byte)item.Template.FixedGrade;
-            item.CreateTime = DateTime.Now;
+            item.CreateTime = DateTime.UtcNow;
             if (generateId)
                 _allItems.Add(item.Id, item);
             return item;

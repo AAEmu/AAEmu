@@ -39,7 +39,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             get
             {
-                return DateTime.Now > _delayEnd || _strafeDuringDelay;
+                return DateTime.UtcNow > _delayEnd || _strafeDuringDelay;
             }
         }
 
@@ -61,7 +61,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                     return false;
                 if (Ai.Owner.Buffs.HasEffectsMatchingCondition(e => e.Template.Stun || e.Template.Sleep || e.Template.Silence))
                     return false;
-                return DateTime.Now >= _delayEnd && !Ai.Owner.IsGlobalCooldowned;
+                return DateTime.UtcNow >= _delayEnd && !Ai.Owner.IsGlobalCooldowned;
             }
         }
 
@@ -130,7 +130,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
         {
             try
             {
-                _delayEnd = DateTime.Now.AddSeconds(_nextTimeToDelay);
+                _delayEnd = DateTime.UtcNow.AddSeconds(_nextTimeToDelay);
             }
             catch
             {

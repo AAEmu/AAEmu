@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
             {
                 if (_respawnTime is null)
                 {
-                    _respawnTime = DateTime.Now;
+                    _respawnTime = DateTime.UtcNow;
                     TaskManager.Instance.Schedule(_owner.FuncTask, TimeSpan.FromMilliseconds(_delay));
                     return;
                 }

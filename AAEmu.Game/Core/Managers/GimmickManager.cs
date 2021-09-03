@@ -304,7 +304,7 @@ namespace AAEmu.Game.Core.Managers
                 // stop for a few seconds
                 gimmick.Time += 50;    // has to change all the time for normal motion.
                 gimmick.BroadcastPacket(new SCGimmickMovementPacket(gimmick), true);
-                gimmick.WaitTime = DateTime.Now.AddSeconds(gimmick.Spawner.WaitTime);
+                gimmick.WaitTime = DateTime.UtcNow.AddSeconds(gimmick.Spawner.WaitTime);
             }
         }
     }

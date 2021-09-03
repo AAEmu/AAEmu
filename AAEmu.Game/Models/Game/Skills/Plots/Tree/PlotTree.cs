@@ -40,7 +40,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 var queue = new Queue<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)>();
                 var executeQueue = new Queue<(PlotNode node, PlotTargetInfo targetInfo)>();
 
-                queue.Enqueue((RootNode, DateTime.Now, new PlotTargetInfo(state)));
+                queue.Enqueue((RootNode, DateTime.UtcNow, new PlotTargetInfo(state)));
 
                 while (queue.Count > 0)
                 {
@@ -64,7 +64,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                         return;
                     }
                     var item = queue.Dequeue();
-                    var now = DateTime.Now;
+                    var now = DateTime.UtcNow;
                     var node = item.node;
 
                     if (now >= item.timestamp)
@@ -133,7 +133,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
 
                     if (queue.Count > 0)
                     {
-                        int delay = (int)queue.Min(o => (o.timestamp - DateTime.Now).TotalMilliseconds);
+                        int delay = (int)queue.Min(o => (o.timestamp - DateTime.UtcNow).TotalMilliseconds);
                         delay = Math.Max(delay, 0);
 
                         //await Task.Delay(delay).ConfigureAwait(false);

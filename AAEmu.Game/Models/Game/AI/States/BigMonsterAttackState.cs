@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.AI.States
             if (Npc.SkillTask != null || Npc.ActivePlotState != null)
                 return;
 
-            if (_lastSkillEnd.AddSeconds(_currentDelay) > DateTime.Now)
+            if (_lastSkillEnd.AddSeconds(_currentDelay) > DateTime.UtcNow)
                 return;
 
             var combatSkill = GetNextAiCombatSkill();
@@ -152,7 +152,7 @@ namespace AAEmu.Game.Models.Game.AI.States
 
         public void OnSkillEnd(Skill skill)
         {
-            _lastSkillEnd = DateTime.Now;
+            _lastSkillEnd = DateTime.UtcNow;
             _currentDelay = _nextDelay;
             _nextDelay = 0.0f;
         }

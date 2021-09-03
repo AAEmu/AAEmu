@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             var customDelay = Delay / 100.0f; // decrease delay
 
             owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, skillId, NextPhase, EndScale / 1000f);
-            owner.GrowthTime = DateTime.Now.AddMilliseconds(customDelay);
+            owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(customDelay);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(customDelay));
             owner.ToPhaseAndUse = false;
         }

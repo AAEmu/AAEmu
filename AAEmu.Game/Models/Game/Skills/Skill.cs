@@ -75,13 +75,13 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 lock (caster.GCDLock)
                 {
-                    if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.Now)
+                    if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow)
                         return SkillResult.CooldownTime;
 
-                    if (caster.GlobalCooldown >= DateTime.Now && !Template.IgnoreGlobalCooldown)
+                    if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
                         return SkillResult.CooldownTime;
 
-                    caster.SkillLastUsed = DateTime.Now;
+                    caster.SkillLastUsed = DateTime.UtcNow;
                 }
             }
 
@@ -312,7 +312,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 if (Template.DefaultGcd)
                     gcd = caster is NPChar.Npc ? 1500 : 1000;
 
-                caster.GlobalCooldown = DateTime.Now.AddMilliseconds(gcd * (caster.GlobalCooldownMul / 100));
+                caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (caster.GlobalCooldownMul / 100));
             }
             if (caster is Npc && Template.SkillControllerId != 0)
             {
@@ -441,13 +441,13 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.ChannelingBuffId != 0)
             {
                 var buff = SkillManager.Instance.GetBuffTemplate(Template.ChannelingBuffId);
-                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
+                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow);
             }
 
             if (Template.ChannelingTargetBuffId != 0)
             {
                 var buff = SkillManager.Instance.GetBuffTemplate(Template.ChannelingTargetBuffId);
-                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
+                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow);
             }
 
             Doodad doodad = null;
@@ -487,7 +487,7 @@ namespace AAEmu.Game.Models.Game.Skills
             if (Template.ToggleBuffId != 0)
             {
                 var buff = SkillManager.Instance.GetBuffTemplate(Template.ToggleBuffId);
-                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now);
+                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow);
             }
 
             var totalDelay = 0;
@@ -669,7 +669,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
 
                     effectsToApply.Add((target, effect));
-                    //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now, packets);
+                    //effect.Template?.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 }
             }
 
@@ -708,7 +708,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 //Template can be null for some reason..
                 if (item.effect.Template != null)
-                    item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.Now, packets);
+                    item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 else
                     _log.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
             }
@@ -793,8 +793,8 @@ namespace AAEmu.Game.Models.Game.Skills
                 if (damageType == DamageType.Melee)
                     return SkillHitType.MeleeParry;
                 if (damageType == DamageType.Ranged
-                    && target.Buffs.CheckBuff((uint)BuffConstants.EQUIP_DUALWIELD_BUFF)
-                    && target.Buffs.CheckBuff((uint)BuffConstants.DUALWIELD_PROFICIENCY))
+                    && target.Buffs.CheckBuff((uint)BuffConstants.EquipDualwield)
+                    && target.Buffs.CheckBuff((uint)BuffConstants.DualwieldProficiency))
                 {
                     return SkillHitType.MeleeParry;
                 }
@@ -856,7 +856,7 @@ AlwaysHit:
             caster.ReduceCurrentMp(null, manaCost);
             if (caster is Character character)
             {
-                character.LastCast = DateTime.Now;
+                character.LastCast = DateTime.UtcNow;
                 character.IsInPostCast = true;
             }
         }

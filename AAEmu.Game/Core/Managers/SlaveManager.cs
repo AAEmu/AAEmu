@@ -130,8 +130,8 @@ namespace AAEmu.Game.Core.Managers
             foreach (var character in activeSlaveInfo.AttachedCharacters.Values.ToList())
                 UnbindSlave(character, activeSlaveInfo.TlId, AttachUnitReason.SlaveBinding);
 
-            var despawnDelayedTime = DateTime.Now.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f);
-
+            var despawnDelayedTime = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime - 0.5f); 
+            
             activeSlaveInfo.Transform.DetachAll();
 
             foreach (var doodad in activeSlaveInfo.AttachedDoodads)
@@ -154,7 +154,7 @@ namespace AAEmu.Game.Core.Managers
             owner.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, activeSlaveInfo.TlId), true);
             _activeSlaves.Remove(owner.ObjId);
 
-            activeSlaveInfo.Despawn = DateTime.Now.AddSeconds(activeSlaveInfo.Template.PortalTime + 0.5f);
+            activeSlaveInfo.Despawn = DateTime.UtcNow.AddSeconds(activeSlaveInfo.Template.PortalTime + 0.5f);
             SpawnManager.Instance.AddDespawn(activeSlaveInfo);
         }
 
@@ -246,7 +246,7 @@ namespace AAEmu.Game.Core.Managers
                 Faction = owner.Faction,
                 Id = 10, // TODO
                 Summoner = owner,
-                SpawnTime = DateTime.Now
+                SpawnTime = DateTime.UtcNow
             };
 
             if (_slaveInitialItems.TryGetValue(template.Template.SlaveInitialItemPackId, out var itemPack))
@@ -278,7 +278,7 @@ namespace AAEmu.Game.Core.Managers
                     ParentObjId = template.ObjId,
                     AttachPoint = doodadBinding.AttachPointId,
                     OwnerId = owner.Id,
-                    PlantTime = DateTime.Now,
+                    PlantTime = DateTime.UtcNow,
                     OwnerType = DoodadOwnerType.Slave,
                     DbHouseId = template.Id,
                     Template = DoodadManager.Instance.GetTemplate(doodadBinding.DoodadId),
@@ -345,7 +345,7 @@ namespace AAEmu.Game.Core.Managers
                     Faction = owner.Faction,
                     Id = 11, // TODO
                     Summoner = owner,
-                    SpawnTime = DateTime.Now,
+                    SpawnTime = DateTime.UtcNow,
                     AttachPointId = (sbyte)slaveBinding.AttachPointId,
                     OwnerObjId = template.ObjId
                 };
