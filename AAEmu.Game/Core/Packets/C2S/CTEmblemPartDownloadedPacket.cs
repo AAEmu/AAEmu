@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Network.Stream;
 
 namespace AAEmu.Game.Core.Packets.C2S
@@ -11,8 +12,10 @@ namespace AAEmu.Game.Core.Packets.C2S
 
         public override void Read(PacketStream stream)
         {
-            var index = stream.ReadInt32();
-            var size = stream.ReadInt32();
+            var previousIndex = stream.ReadInt32();
+            var previousSize = stream.ReadInt32(); // TODO: Verify if this size matches maybe ?
+
+            UccManager.Instance.RequestUccPart(Connection, previousIndex);
         }
     }
 }

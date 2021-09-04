@@ -1,16 +1,40 @@
-﻿using AAEmu.Commons.Network;
+﻿using System;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Stream;
+using AAEmu.Game.Models.Stream;
 
 namespace AAEmu.Game.Core.Packets.S2C
 {
     public class TCEmblemStreamDownloadPacket : StreamPacket
     {
-        public TCEmblemStreamDownloadPacket() : base(TCOffsets.TCEmblemStreamDownloadPacket)
+        public CustomUcc _ucc;
+        public int _currentIndex;
+        public const ushort BufferSize = 3096 ;
+        public TCEmblemStreamDownloadPacket(Ucc ucc, int currentIndex) : base(TCOffsets.TCEmblemStreamDownloadPacket)
         {
+            if (ucc is CustomUcc customUcc)
+                _ucc = customUcc;
+            _currentIndex = currentIndex;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
+            if (_ucc == null)
+                return stream;
+
+            var startPos = _currentIndex * BufferSize;
+            var size = Math.Min(_ucc.Data.Count - startPos, BufferSize); // 3096 is the buffer size retail seems to use
+            
+            stream.WriteBc(0);
+            stream.Write(_currentIndex);
+            stream.Write(size); // One of these two size things is likely for uncompressed size in later versions ?
+            stream.WriteBc(0);
+            if (size > 0)
+            {
+                var buffer = _ucc.Data.GetRange(startPos, size).ToArray();
+                stream.Write(buffer, true);
+            }
+
             /*
             v2 = (char *)this;
             a2->Reader->ReadInt32("index", (char *)this + 8, 0);
