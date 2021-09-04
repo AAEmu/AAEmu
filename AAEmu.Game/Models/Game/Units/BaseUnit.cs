@@ -63,7 +63,7 @@ namespace AAEmu.Game.Models.Game.Units
             var zone = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId);
             if (this is Character me && target is Character other)
             {
-                var trgIsFlagged = other.Buffs.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF);
+                var trgIsFlagged = other.Buffs.CheckBuff((uint)BuffConstants.Retribution);
 
                 //check safezone
                 if (other.Faction.MotherId != 0 && other.Faction.MotherId == zone.FactionId 

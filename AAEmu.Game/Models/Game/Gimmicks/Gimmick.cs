@@ -43,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Gimmicks
         /// </summary>
         public bool moveDown  { get; set; } = false;
         public DateTime WaitTime { get; set; }
-        public uint TimeLeft => WaitTime > DateTime.Now ? (uint)(WaitTime - DateTime.Now).TotalMilliseconds : 0;
+        public uint TimeLeft => WaitTime > DateTime.UtcNow ? (uint)(WaitTime - DateTime.UtcNow).TotalMilliseconds : 0;
         
         public Gimmick()
         {

@@ -2216,9 +2216,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 OwnerObjId = obj?.ObjId ?? 0,
 
                 // TODO for test
-                PlantTime = DateTime.Now,
-                //GrowthTime = DateTime.Now.AddMilliseconds(template.MinTime),
-                //GrowthTime = DateTime.Now.AddMilliseconds(10000),
+                PlantTime = DateTime.UtcNow,
+                //GrowthTime = DateTime.UtcNow.AddMilliseconds(template.MinTime),
+                //GrowthTime = DateTime.UtcNow.AddMilliseconds(10000),
                
                 OwnerType = DoodadOwnerType.System
             };
@@ -2316,7 +2316,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.Transform.Local.SetPosition(x,y,z);
             doodad.Transform.Local.SetZRotation(zRot);
             doodad.ItemId = itemId;
-            doodad.PlantTime = DateTime.Now;
+            doodad.PlantTime = DateTime.UtcNow;
             if (targetHouse != null)
             {
                 doodad.DbHouseId = targetHouse.Id;

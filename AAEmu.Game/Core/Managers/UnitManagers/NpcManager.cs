@@ -118,7 +118,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
 
                 var obj = new SkillCasterUnit(npc.ObjId);
-                buff.Apply(npc, obj, npc, null, null, new EffectSource(), null, DateTime.Now);
+                buff.Apply(npc, obj, npc, null, null, new EffectSource(), null, DateTime.UtcNow);
             }
 
             foreach (var npcPassiveBuff in template.PassiveBuffs)

@@ -82,7 +82,7 @@ namespace AAEmu.Game.Core.Managers
             shipyard.ShipyardData.OwnerName = owner.Name;
             shipyard.ShipyardData.Type2 = owner.Id;
             shipyard.ShipyardData.Type3 = owner.Faction.Id;
-            shipyard.ShipyardData.Spawned = DateTime.Now;
+            shipyard.ShipyardData.Spawned = DateTime.UtcNow;
             shipyard.ShipyardData.ObjId = objId;
             shipyard.ShipyardData.Hp = template.ShipyardSteps[shipyardData.Step].MaxHp * 100;
             shipyard.ShipyardData.Step = shipyardData.Step;
@@ -222,7 +222,7 @@ namespace AAEmu.Game.Core.Managers
 
         private void UpdateShipyardInfo(Shipyard shipyard)
         {
-            var isDecaying = (DateTime.Now >= shipyard.ShipyardData.Spawned.AddDays(3));
+            var isDecaying = (DateTime.UtcNow >= shipyard.ShipyardData.Spawned.AddDays(3));
 
             SetProtectionBuff(shipyard, isDecaying);
             SetDecayBuff(shipyard, isDecaying);
@@ -232,19 +232,19 @@ namespace AAEmu.Game.Core.Managers
         {
             if (!isDecay)
             {
-                var duration = shipyard.ShipyardData.Spawned - DateTime.Now;
+                var duration = shipyard.ShipyardData.Spawned - DateTime.UtcNow;
                 var mins = Math.Round(duration.TotalMinutes) * 60000;
 
                 var timeleft = shipyard.Template.TaxDuration + mins;
 
-                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.BuffTaxprotection))
+                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.TaxProtection))
                     return;
 
-                var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.BuffTaxprotection);
+                var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.TaxProtection);
                 if (protectionBuffTemplate != null)
                 {
                     var casterObj = new SkillCasterUnit(shipyard.ObjId);
-                    shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, casterObj, protectionBuffTemplate, null, DateTime.Now), 0, (int)timeleft);
+                    shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, casterObj, protectionBuffTemplate, null, DateTime.UtcNow), 0, (int)timeleft);
                 }
                 else
                 {
@@ -253,8 +253,8 @@ namespace AAEmu.Game.Core.Managers
             }
             else
             {
-                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.BuffTaxprotection))
-                    shipyard.Buffs.RemoveBuff((uint)BuffConstants.BuffTaxprotection);
+                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.TaxProtection))
+                    shipyard.Buffs.RemoveBuff((uint)BuffConstants.TaxProtection);
             }
         }
 
@@ -262,7 +262,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if (isDecay)
             {
-                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.BuffDeterioration))
+                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.Deterioration))
                 {
                     shipyard.ReduceCurrentHp(shipyard, 7);
                     var character = WorldManager.Instance.GetCharacter(shipyard.ShipyardData.OwnerName);
@@ -272,11 +272,11 @@ namespace AAEmu.Game.Core.Managers
                     return;
                 }
 
-                var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.BuffDeterioration);
+                var protectionBuffTemplate = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Deterioration);
                 if (protectionBuffTemplate != null)
                 {
                     var casterObj = new SkillCasterUnit(shipyard.ObjId);
-                    shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, casterObj, protectionBuffTemplate, null, DateTime.Now));
+                    shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, casterObj, protectionBuffTemplate, null, DateTime.UtcNow));
                 }
                 else
                 {
@@ -285,8 +285,8 @@ namespace AAEmu.Game.Core.Managers
             }
             else
             {
-                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.BuffDeterioration))
-                    shipyard.Buffs.RemoveBuff((uint)BuffConstants.BuffDeterioration);
+                if (shipyard.Buffs.CheckBuff((uint)BuffConstants.Deterioration))
+                    shipyard.Buffs.RemoveBuff((uint)BuffConstants.Deterioration);
             }
         }
 

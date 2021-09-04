@@ -82,7 +82,7 @@ namespace AAEmu.Game.Models.Game.World.Zones
             if ((CurrentZoneState == ZoneConflictType.Crisis) && (KillCount > NumKills[4]))
             {
                 CurrentZoneState = ZoneConflictType.Conflict;
-                NextStateTime = DateTime.Now.AddMinutes(ConflictMin);
+                NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
                 KillCount = 0;
             }
             if (LastState != CurrentZoneState)
@@ -96,7 +96,7 @@ namespace AAEmu.Game.Models.Game.World.Zones
             if (NextStateTime > DateTime.MinValue)
             {
                 var lpConflictStartTask = new ZoneStateChangeTask(this);
-                TaskManager.Instance.Schedule(lpConflictStartTask, this.NextStateTime - DateTime.Now);
+                TaskManager.Instance.Schedule(lpConflictStartTask, this.NextStateTime - DateTime.UtcNow);
             }
         }
 
@@ -110,7 +110,7 @@ namespace AAEmu.Game.Models.Game.World.Zones
 
         public void CheckTimer()
         {
-            if ((NextStateTime > DateTime.MinValue) && (DateTime.Now >= NextStateTime))
+            if ((NextStateTime > DateTime.MinValue) && (DateTime.UtcNow >= NextStateTime))
                 ForceNextState();
         }
 
@@ -122,15 +122,15 @@ namespace AAEmu.Game.Models.Game.World.Zones
             {
                 case ZoneConflictType.Conflict:
                     KillCount = 0;
-                    NextStateTime = DateTime.Now.AddMinutes(ConflictMin);
+                    NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
                     break;
                 case ZoneConflictType.War:
                     KillCount = 0;
-                    NextStateTime = DateTime.Now.AddMinutes(WarMin);
+                    NextStateTime = DateTime.UtcNow.AddMinutes(WarMin);
                     break;
                 case ZoneConflictType.Peace:
                     KillCount = 0;
-                    NextStateTime = DateTime.Now.AddMinutes(PeaceMin);
+                    NextStateTime = DateTime.UtcNow.AddMinutes(PeaceMin);
                     break;
                 default:
                     NextStateTime = DateTime.MinValue;

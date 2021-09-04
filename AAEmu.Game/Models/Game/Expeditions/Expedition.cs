@@ -54,7 +54,7 @@ namespace AAEmu.Game.Models.Game.Expeditions
             if (member != null)
             {
                 member.IsOnline = false;
-                member.LastWorldLeaveTime = DateTime.Now;
+                member.LastWorldLeaveTime = DateTime.UtcNow;
 
                 SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
             }

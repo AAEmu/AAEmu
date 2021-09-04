@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (caster is Character character)
             {
                 character.IsInPostCast = true;
-                character.LastCast = DateTime.Now;
+                character.LastCast = DateTime.UtcNow;
             }
         }
     }

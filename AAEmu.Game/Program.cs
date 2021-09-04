@@ -23,7 +23,7 @@ namespace AAEmu.Game
         private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
         public static AutoResetEvent ShutdownSignal = new AutoResetEvent(false); // TODO save to shutdown server?
 
-        public static int UpTime => (int)(DateTime.Now - _startTime).TotalSeconds;
+        public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
 
         public static async Task Main(string[] args)
         {
@@ -73,7 +73,7 @@ namespace AAEmu.Game
         private static void Initialization()
         {
             _thread.Name = "AA.Game Base Thread";
-            _startTime = DateTime.Now;
+            _startTime = DateTime.UtcNow;
         }
 
         private static void Configuration(string[] args)

@@ -106,8 +106,8 @@ namespace AAEmu.Game.Models.Game.World
         public void OnEnter(Unit unit)
         {
             if (SkillTargetingUtil.IsRelationValid(TargetRelation, Caster, unit))
-                InsideBuffTemplate?.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.Now);
-            // unit.Effects.AddEffect(new Effect(Owner, Caster, new SkillCasterUnit(Caster.ObjId), InsideBuffTemplate, null, DateTime.Now));
+                InsideBuffTemplate?.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), null, new EffectSource(), null, DateTime.UtcNow);
+            // unit.Effects.AddEffect(new Effect(Owner, Caster, new SkillCasterUnit(Caster.ObjId), InsideBuffTemplate, null, DateTime.UtcNow));
         }
 
         public void OnLeave(Unit unit)
@@ -148,7 +148,7 @@ namespace AAEmu.Game.Models.Game.World
                     else
                         castAction = new CastSkill(SkillId, 0);
                     
-                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), castAction, new EffectSource(), new SkillObject(), DateTime.Now);
+                    effect.Apply(Caster, new SkillCasterUnit(Caster.ObjId), unit, new SkillCastUnitTarget(unit.ObjId), castAction, new EffectSource(), new SkillObject(), DateTime.UtcNow);
                 }
             }
         }
@@ -158,10 +158,10 @@ namespace AAEmu.Game.Models.Game.World
         {
             UpdateUnits();
             if (TickRate > 0)
-                if ((DateTime.Now - _lastTick).TotalMilliseconds > TickRate)
+                if ((DateTime.UtcNow - _lastTick).TotalMilliseconds > TickRate)
                 {
                     ApplyEffects();
-                    _lastTick = DateTime.Now;
+                    _lastTick = DateTime.UtcNow;
                 }
         }
     }

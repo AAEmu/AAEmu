@@ -174,7 +174,7 @@ namespace AAEmu.Game.Models.Game.Units
         public SkillTask SkillTask { get; set; }
         public SkillTask AutoAttackTask { get; set; }
         public DateTime GlobalCooldown { get; set; }
-        public bool IsGlobalCooldowned => GlobalCooldown > DateTime.Now;
+        public bool IsGlobalCooldowned => GlobalCooldown > DateTime.UtcNow;
         public object GCDLock { get; set; }
         public DateTime SkillLastUsed { get; set; }
         public PlotState ActivePlotState { get; set; }
@@ -330,7 +330,7 @@ namespace AAEmu.Game.Models.Game.Units
                 {
                     character2.StopAutoSkill(character2);
                     character2.IsInBattle = false; // we need the character to be "not in battle"
-                    character2.DeadTime = DateTime.Now;
+                    character2.DeadTime = DateTime.UtcNow;
                 }
 
                 killer.CurrentTarget = null;
@@ -382,13 +382,13 @@ namespace AAEmu.Game.Models.Game.Units
         {
             if (criminalState)
             {
-                var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.RETRIBUTION_BUFF);
+                var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Retribution);
                 var casterObj = new SkillCasterUnit(ObjId);
-                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
+                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow));
             }
             else
             {
-                Buffs.RemoveBuff((uint)BuffConstants.RETRIBUTION_BUFF);
+                Buffs.RemoveBuff((uint)BuffConstants.Retribution);
             }
         }
 
@@ -397,13 +397,13 @@ namespace AAEmu.Game.Models.Game.Units
             ForceAttack = value;
             if (ForceAttack)
             {
-                var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.BLOODLUST_BUFF);
+                var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Bloodlust);
                 var casterObj = new SkillCasterUnit(ObjId);
-                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now));
+                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow));
             }
             else
             {
-                Buffs.RemoveBuff((uint)BuffConstants.BLOODLUST_BUFF);
+                Buffs.RemoveBuff((uint)BuffConstants.Bloodlust);
             }
             BroadcastPacket(new SCForceAttackSetPacket(ObjId, ForceAttack), true);
         }
@@ -595,7 +595,7 @@ namespace AAEmu.Game.Models.Game.Units
 
                     var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.FallStun);
                     var casterObj = new SkillCasterUnit(ObjId);
-                    Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.Now), 0, duration);
+                    Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow), 0, duration);
 
                     if (Hp > minHpLeft)
                         ReduceCurrentHp(this, maxDmgLeft); // Leaves you at 5% hp no matter what

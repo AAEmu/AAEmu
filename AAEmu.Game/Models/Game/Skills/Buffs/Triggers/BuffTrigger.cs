@@ -52,7 +52,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
 
             Template.Effect.Apply(source, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
                 new EffectSource(_buff?.Skill), // TODO : EffectSource Type trigger 
-                null, DateTime.Now);
+                null, DateTime.UtcNow);
         }
 
         public BuffTrigger(Buff buff, BuffTriggerTemplate template)

@@ -45,11 +45,11 @@ namespace AAEmu.Game.Models.Game.Units
             
             foreach (var proc in procs)
             {
-                if (proc.LastProc.AddSeconds(proc.Template.CooldownSec) <= DateTime.Now)
+                if (proc.LastProc.AddSeconds(proc.Template.CooldownSec) <= DateTime.UtcNow)
                     continue;
 
                 proc.Apply(Owner);
-                proc.LastProc = DateTime.Now;
+                proc.LastProc = DateTime.UtcNow;
             }
         }
     }

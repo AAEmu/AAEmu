@@ -115,7 +115,7 @@ namespace AAEmu.Game.Scripts.Commands
                 var targetObj = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
                 targetObj.ObjId = targetUnit.ObjId;
 
-                var newBuff = new Buff(targetUnit, sourceUnit, casterObj, buffTemplate, null, System.DateTime.Now)
+                var newBuff = new Buff(targetUnit, sourceUnit, casterObj, buffTemplate, null, System.DateTime.UtcNow)
                 {
                     AbLevel = abLevel
                 };

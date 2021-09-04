@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.Mails
             _house = house;
 
             MailType = MailType.Billing;
-            Body.RecvDate = DateTime.Now ;
+            Body.RecvDate = DateTime.UtcNow ;
         }
 
         public static bool UpdateTaxInfo(BaseMail mail, House house)

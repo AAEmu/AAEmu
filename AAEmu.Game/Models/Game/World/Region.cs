@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.World
             if (obj.Transform._debugTrackers.Count > 0)
                 foreach (var chr in obj.Transform._debugTrackers)
                     chr?.SendMessage("[{0}] {1} entered region ({2} {3})){4}",
-                        DateTime.Now.ToString("HH:mm:ss"), obj.ObjId, X, Y,
+                        DateTime.UtcNow.ToString("HH:mm:ss"), obj.ObjId, X, Y,
                         obj is BaseUnit bu ? " - " + bu.Name : "");
         }
 
@@ -131,7 +131,7 @@ namespace AAEmu.Game.Models.Game.World
             if (obj.Transform._debugTrackers.Count > 0)
                 foreach (var chr in obj.Transform._debugTrackers)
                     chr?.SendMessage("[{0}] {1} left the region ({2} {3})){4}",
-                        DateTime.Now.ToString("HH:mm:ss"), obj.ObjId, X, Y,
+                        DateTime.UtcNow.ToString("HH:mm:ss"), obj.ObjId, X, Y,
                         obj is BaseUnit bu ? " - " + bu.Name : "");
         }
 

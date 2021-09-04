@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Tasks
             {
                 _connection.ActiveChar.DisabledSetPosition = true;
                 _connection.ActiveChar.IsOnline = false;
-                _connection.ActiveChar.LeaveTime = DateTime.Now;
+                _connection.ActiveChar.LeaveTime = DateTime.UtcNow;
 
                 // Despawn and unmount everybody from owned Mates
                 MateManager.Instance.RemoveAndDespawnAllActiveOwnedMates(_connection.ActiveChar);

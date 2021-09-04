@@ -73,7 +73,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 doodad.ItemId = item.Id ;
                 doodad.ItemTemplateId = item.Template.Id;
                 doodad.SetScale(1f);
-                doodad.PlantTime = DateTime.Now;
+                doodad.PlantTime = DateTime.UtcNow;
                 if (targetHouse != null)
                 {
                     doodad.DbHouseId = targetHouse.Id;

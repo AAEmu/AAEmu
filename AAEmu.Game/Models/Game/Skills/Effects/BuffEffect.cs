@@ -74,7 +74,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
             
             if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly 
-                && caster != target && !target.Buffs.CheckBuff((uint)BuffConstants.RETRIBUTION_BUFF))
+                && caster != target && !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
             {
                 caster.SetCriminalState(true);
             }

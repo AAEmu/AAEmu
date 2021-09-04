@@ -47,7 +47,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint QuestGlow { get; set; } //0 off // 1 on
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
-        public uint TimeLeft => GrowthTime > DateTime.Now ? (uint)(GrowthTime - DateTime.Now).TotalMilliseconds : 0; // TODO formula time of phase
+        public uint TimeLeft => GrowthTime > DateTime.UtcNow ? (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds : 0; // TODO formula time of phase
         public bool ToPhaseAndUse { get; set; }
         public int PhaseRatio { get; set; }
         public int CumulativePhaseRatio { get; set; }

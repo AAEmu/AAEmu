@@ -169,7 +169,7 @@ namespace AAEmu.Game.Core.Managers
             owner.Patrol = null;
             // BUFF: Untouchable (Unable to attack this target)
             var buffId = (uint)BuffConstants.Untouchable; 
-            owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
+            owner.Buffs.AddBuff(new Buff(owner, owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
             owner.Spawn();
             _activeTransfers.Add(owner.ObjId, owner);
 
@@ -207,7 +207,7 @@ namespace AAEmu.Game.Core.Managers
             transfer.Patrol = null;
             // add effect
             buffId = (uint)BuffConstants.Untouchable; // Buff: Unable to attack this target
-            transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.Now));
+            transfer.Buffs.AddBuff(new Buff(transfer, transfer, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(buffId), null, DateTime.UtcNow));
 
             owner.Bounded = transfer; // запомним параметры связанной части в родителе
 
@@ -232,7 +232,7 @@ namespace AAEmu.Game.Core.Managers
                         break;
                 }
                 doodad.Transform.ResetFinalizeTransform();
-                doodad.PlantTime = DateTime.Now;
+                doodad.PlantTime = DateTime.UtcNow;
                 doodad.Data = (byte)doodadBinding.AttachPointId;
                 doodad.SetScale(1f);
                 doodad.FuncGroupId = doodad.GetFuncGroupId();

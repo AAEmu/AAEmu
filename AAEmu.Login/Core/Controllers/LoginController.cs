@@ -48,7 +48,7 @@ namespace AAEmu.Login.Core.Controllers
 
                         connection.AccountId = reader.GetUInt32("id");
                         connection.AccountName = username;
-                        connection.LastLogin = DateTime.Now;
+                        connection.LastLogin = DateTime.UtcNow;
                         connection.LastIp = connection.Ip;
 
                         connection.SendPacket(new ACJoinResponsePacket(0, 6));
@@ -99,7 +99,7 @@ namespace AAEmu.Login.Core.Controllers
 
                         connection.AccountId = reader.GetUInt32("id");
                         connection.AccountName = username;
-                        connection.LastLogin = DateTime.Now;
+                        connection.LastLogin = DateTime.UtcNow;
                         connection.LastIp = connection.Ip;
 
                         _log.Info("{0} connected.", connection.AccountName);
