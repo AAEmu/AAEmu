@@ -1237,6 +1237,7 @@ namespace AAEmu.Game.Core.Managers
             doodad.ParentObj = house;
             doodad.AttachPoint = AttachPointKind.None;
             doodad.OwnerType = DoodadOwnerType.Housing;
+            doodad.UccId = 1;
             doodad.IsPersistent = true;
 
             // It's not a good idea to actually parent the object, commented out for now

@@ -282,7 +282,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             stream.Write(false); // hasLootItem
             stream.Write(CurrentPhaseId); // doodad_func_group_id
             stream.Write(OwnerId); // characterId (Database relative)
-            stream.Write(UccId);
+            if (TemplateId == 5497)
+                stream.Write((ulong)1);
+            else
+                stream.Write(UccId);
             stream.Write(ItemTemplateId);
             stream.Write(0u); //??type2
             stream.Write(TimeLeft); // growing

@@ -1,27 +1,36 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.S2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Stream;
 using AAEmu.Game.Utils.DB;
+using NLog;
+using NLog.Fluent;
 
 namespace AAEmu.Game.Core.Managers.Stream
 {
     public class UccManager : Singleton<UccManager>
     {
+        private static Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<uint, Ucc> _uploadQueue;
         private Dictionary<uint, SortedList<uint, UccPart>> _complexUploadParts;
         private Dictionary<ulong, Ucc> _uccs;
+        private Dictionary<uint, ulong> _downloadQueue; // connection, UCCId
 
         public void Load()
         {
             _uploadQueue = new Dictionary<uint, Ucc>();
             _complexUploadParts = new Dictionary<uint, SortedList<uint, UccPart>>();
             _uccs = new Dictionary<ulong, Ucc>();
+            _downloadQueue = new Dictionary<uint, ulong>();
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -52,13 +61,36 @@ namespace AAEmu.Game.Core.Managers.Stream
                                     Color3R = reader.GetUInt32("color3R"),
                                     Color3G = reader.GetUInt32("color3G"),
                                     Color3B = reader.GetUInt32("color3B"),
-                                    // Modified = reader.GetDateTime("modifier").To
+                                    Modified = reader.GetDateTime("modified")
                                 };
                                 
                                 _uccs.Add(id, ucc);
                             } else if (type == UccType.Complex)
                             {
-                                // TODO
+                                var ucc = new CustomUcc()
+                                {
+                                    Id = id,
+                                    UploaderId = reader.GetUInt32("uploader_id"),
+                                    Pattern1 = reader.GetUInt32("pattern1"),
+                                    Pattern2 = reader.GetUInt32("pattern2"),
+                                    Color1R = reader.GetUInt32("color1R"),
+                                    Color1G = reader.GetUInt32("color1G"),
+                                    Color1B = reader.GetUInt32("color1B"),
+                                    Color2R = reader.GetUInt32("color2R"),
+                                    Color2G = reader.GetUInt32("color2G"),
+                                    Color2B = reader.GetUInt32("color2B"),
+                                    Color3R = reader.GetUInt32("color3R"),
+                                    Color3G = reader.GetUInt32("color3G"),
+                                    Color3B = reader.GetUInt32("color3B"),
+                                    Modified = reader.GetDateTime("modified"),
+                                };
+                                var uccFileName = Path.Combine(FileManager.AppPath, "UserData", "UCC", id.ToString("000000") + ".dds");
+                                if (File.Exists(uccFileName))
+                                    ucc.Data.AddRange(File.ReadAllBytes(uccFileName));
+                                else
+                                    _log.Error("Missing UCC file: {0}", uccFileName);
+                                
+                                _uccs.Add(id, ucc);
                             }
                         }
                     }
@@ -100,12 +132,46 @@ namespace AAEmu.Game.Core.Managers.Stream
 
         public void RequestUcc(StreamConnection connection, ulong id)
         {
-            if (!_uccs.ContainsKey(id))
+            _log.Warn("User {0} requesting UCC {1}", connection.GameConnection.ActiveChar.Name, id);
+            if (!_uccs.TryGetValue(id, out var ucc))
                 return;
-            var ucc = _uccs[id];
+
+            // Update currently downloading UCC Id
+            _downloadQueue.Remove(connection.Id);
+            _downloadQueue.Add(connection.Id, id);
+
+            //connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
+            connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
             
-            connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Continue));
+            //connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Continue));
         }
+        
+        public void RequestUccPart(StreamConnection connection, int previousIndex)
+        {
+            _log.Warn("User {0} validated UCC part {1}", connection.GameConnection.ActiveChar.Name, previousIndex);
+            if (!_downloadQueue.TryGetValue(connection.Id,out var uccId))
+                return;
+            
+            if (!_uccs.ContainsKey(uccId))
+                return;
+            var ucc = _uccs[uccId];
+            if (!(ucc is CustomUcc customUcc))
+                return;
+
+            var index = previousIndex ;
+            index++;
+            var startPos = index * TCEmblemStreamDownloadPacket.BufferSize;
+            if (startPos < customUcc.Data.Count)
+            {
+                connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, index));
+                //connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.End));
+            }
+            else
+            {
+                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Continue));
+            }
+        }
+        
 
         public void DownloadStatus(StreamConnection connection, ulong id)
         {

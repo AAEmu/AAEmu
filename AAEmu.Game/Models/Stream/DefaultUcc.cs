@@ -60,7 +60,7 @@ namespace AAEmu.Game.Models.Stream
             stream.Write(Color3R);
             stream.Write(Color3G);
             stream.Write(Color3B);
-            stream.Write(Modified);
+            stream.Write(Modified.ToBinary());
             return stream;
         }
 
@@ -77,7 +77,7 @@ namespace AAEmu.Game.Models.Stream
             Color3R = stream.ReadUInt32();
             Color3G = stream.ReadUInt32();
             Color3B = stream.ReadUInt32();
-            Modified = stream.ReadUInt64();
+            Modified = DateTime.FromBinary(stream.ReadInt64());
         }
     }
 }
