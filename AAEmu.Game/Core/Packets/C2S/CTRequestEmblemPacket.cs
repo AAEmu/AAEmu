@@ -12,8 +12,8 @@ namespace AAEmu.Game.Core.Packets.C2S
 
         public override void Read(PacketStream stream)
         {
-            var type = stream.ReadUInt64();
-            UccManager.Instance.RequestUcc(Connection, type);
+            var uccId = stream.ReadUInt64();
+            UccManager.Instance.RequestUcc(Connection, uccId);
         }
     }
 }
