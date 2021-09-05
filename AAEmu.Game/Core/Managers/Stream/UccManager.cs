@@ -24,6 +24,7 @@ namespace AAEmu.Game.Core.Managers.Stream
         private Dictionary<uint, SortedList<uint, UccPart>> _complexUploadParts;
         private Dictionary<ulong, Ucc> _uccs;
         private Dictionary<uint, ulong> _downloadQueue; // connection, UCCId
+        private static Object lockObject = new object();
 
         public void Load()
         {
@@ -136,14 +137,25 @@ namespace AAEmu.Game.Core.Managers.Stream
             if (!_uccs.TryGetValue(id, out var ucc))
                 return;
 
-            // Update currently downloading UCC Id
-            _downloadQueue.Remove(connection.Id);
-            _downloadQueue.Add(connection.Id, id);
+            lock (lockObject)
+            {
+                
+                if (_downloadQueue.ContainsKey(connection.Id))
+                    if (_downloadQueue[connection.Id] == id)
+                    {
+                        _log.Warn("User {0} is already requesting UCC {1}, skipping request !",
+                            connection.GameConnection.ActiveChar.Name, id);
+                        return;
+                    }
 
-            //connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
-            connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
-            
+                // Update currently downloading UCC Id
+                _downloadQueue.Remove(connection.Id);
+                _downloadQueue.Add(connection.Id, id);
+            }
+
+            connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
             //connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Continue));
+            //connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
         }
         
         public void RequestUccPart(StreamConnection connection, int previousIndex)
@@ -161,25 +173,48 @@ namespace AAEmu.Game.Core.Managers.Stream
             var index = previousIndex ;
             index++;
             var startPos = index * TCEmblemStreamDownloadPacket.BufferSize;
-            if (startPos < customUcc.Data.Count)
+            var endPos = startPos + TCEmblemStreamDownloadPacket.BufferSize;
+            if (endPos < customUcc.Data.Count)
             {
                 connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, index));
                 //connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.End));
             }
             else
             {
-                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Continue));
+                lock (lockObject)
+                {
+                    _downloadQueue.Remove(connection.Id);
+                }
+                connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, index));
+                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start)); //1
             }
         }
         
 
-        public void DownloadStatus(StreamConnection connection, ulong id)
+        public void DownloadStatus(StreamConnection connection, ulong id, byte status, int count)
         {
+            _log.Warn("DownloadStatus Id:{0}, Status: {1}, Count:{2}", id, status, count);
             if (!_uccs.ContainsKey(id))
                 return;
             var ucc = _uccs[id];
-            
-            connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
+
+            if ((ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+            {
+                var maxParts = (int)Math.Ceiling((double)customUcc.Data.Count / TCEmblemStreamDownloadPacket.BufferSize);
+                var sendPart = maxParts - count;
+                if (sendPart > 0)
+                {
+                    RequestUccPart(connection, sendPart);
+                }
+                else
+                {
+                    RequestUcc(connection, id);
+                }
+            }
+            else
+            {
+                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
+            }
         }
 
         public void ConfirmDefaultUcc(StreamConnection connection)
