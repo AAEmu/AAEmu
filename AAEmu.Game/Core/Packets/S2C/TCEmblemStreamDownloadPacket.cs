@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.S2C
     {
         public CustomUcc _ucc;
         public int _currentIndex;
-        public const ushort BufferSize = 3096 ; // 3096?
+        public const ushort BufferSize = 1024 * 3 ; // 3096?
         public TCEmblemStreamDownloadPacket(Ucc ucc, int currentIndex) : base(TCOffsets.TCEmblemStreamDownloadPacket)
         {
             if (ucc is CustomUcc customUcc)
@@ -19,14 +19,21 @@ namespace AAEmu.Game.Core.Packets.S2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            if (_ucc == null)
+            if ((_ucc == null) || (_ucc.Data.Count <= 0))
+            {
+                stream.Write((int)_currentIndex);
+                stream.Write((int)0);
+                stream.Write((short)0);
                 return stream;
+            }
 
             var startPos = _currentIndex * BufferSize;
             var size = Math.Min(_ucc.Data.Count - startPos, BufferSize); // 3096 is the buffer size retail seems to use
             
-            stream.Write(size); // Later versions have two size fields, one is likely for uncompressed size ?
             stream.Write(_currentIndex);
+            //stream.Write(_ucc.Data.Count); // Later versions have two size fields, one is likely for uncompressed size ?
+            stream.Write(size); // Later versions have two size fields, one is likely for uncompressed size ?
+            stream.Write((short)size); // Later versions have two size fields, one is likely for uncompressed size ?
             if (size > 0)
             {
                 var buffer = _ucc.Data.GetRange(startPos, size).ToArray();
