@@ -143,8 +143,9 @@ namespace AAEmu.Game.Core.Managers.Stream
                 if (_downloadQueue.ContainsKey(connection.Id))
                     if (_downloadQueue[connection.Id] == id)
                     {
-                        _log.Warn("User {0} is already requesting UCC {1}, skipping request !",
-                            connection.GameConnection.ActiveChar.Name, id);
+                        //_log.Warn("User {0} is already requesting UCC {1}, skipping request !", connection.GameConnection.ActiveChar.Name, id);
+                        _log.Warn("User {0} is already requesting UCC {1}, sending first block !", connection.GameConnection.ActiveChar.Name, id);
+                        connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
                         return;
                     }
 
@@ -153,17 +154,27 @@ namespace AAEmu.Game.Core.Managers.Stream
                 _downloadQueue.Add(connection.Id, id);
             }
 
-            connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
-            //connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Continue));
-            //connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
+            if ((ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+            {
+                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
+                //connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
+            }
+            else
+            {
+                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Continue));
+            }
+
         }
         
-        public void RequestUccPart(StreamConnection connection, int previousIndex)
+        public void RequestUccPart(StreamConnection connection, int previousIndex, int previousSize)
         {
-            _log.Warn("User {0} validated UCC part {1}", connection.GameConnection.ActiveChar.Name, previousIndex);
-            if (!_downloadQueue.TryGetValue(connection.Id,out var uccId))
+            _log.Warn("User {0} validated UCC part {1} ({2} bytes), sending next part", connection.GameConnection.ActiveChar.Name, previousIndex, previousSize);
+            if (!_downloadQueue.TryGetValue(connection.Id, out var uccId))
+            {
+                _log.Warn("User {0} UCC {1} was not in the request queue", connection.GameConnection.ActiveChar.Name, previousIndex);
                 return;
-            
+            }
+
             if (!_uccs.ContainsKey(uccId))
                 return;
             var ucc = _uccs[uccId];
@@ -174,20 +185,21 @@ namespace AAEmu.Game.Core.Managers.Stream
             index++;
             var startPos = index * TCEmblemStreamDownloadPacket.BufferSize;
             var endPos = startPos + TCEmblemStreamDownloadPacket.BufferSize;
-            if (endPos < customUcc.Data.Count)
-            {
-                connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, index));
-                //connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.End));
-            }
-            else
+
+            if (startPos >= customUcc.Data.Count)
             {
                 lock (lockObject)
                 {
                     _downloadQueue.Remove(connection.Id);
                 }
-                connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, index));
-                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start)); //1
+                _log.Warn("User {0} UCC {1}, sending end part TCEmblemStreamSendStatusPacket", connection.GameConnection.ActiveChar.Name, customUcc.Id);
+                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, (EmblemStreamStatus)0)); // 1?
+                return;
             }
+            
+            _log.Warn("User {0} UCC {1}, sending part {2} ({3} => {4} / {5})", connection.GameConnection.ActiveChar.Name, customUcc.Id, index, startPos, endPos, customUcc.Data.Count);
+            connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, index));
+            
         }
         
 
@@ -198,18 +210,24 @@ namespace AAEmu.Game.Core.Managers.Stream
                 return;
             var ucc = _uccs[id];
 
-            if ((ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+            // status 4 == I'm ready to begin download of the image ?
+            if ((status == 4) && (ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
             {
                 var maxParts = (int)Math.Ceiling((double)customUcc.Data.Count / TCEmblemStreamDownloadPacket.BufferSize);
                 var sendPart = maxParts - count;
                 if (sendPart > 0)
                 {
-                    RequestUccPart(connection, sendPart);
+                    RequestUccPart(connection, sendPart,0);
                 }
                 else
                 {
                     RequestUcc(connection, id);
                 }
+            }
+            // status 3 == I'm done downloading the image ?
+            else if (status == 3)
+            {
+                connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.End));
             }
             else
             {

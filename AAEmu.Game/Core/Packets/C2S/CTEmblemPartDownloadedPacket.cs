@@ -15,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2S
             var previousIndex = stream.ReadInt32();
             var previousSize = stream.ReadInt32(); // TODO: Verify if this size matches maybe ?
 
-            UccManager.Instance.RequestUccPart(Connection, previousIndex);
+            UccManager.Instance.RequestUccPart(Connection, previousIndex, previousSize);
         }
     }
 }
