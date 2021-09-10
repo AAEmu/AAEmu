@@ -6,8 +6,6 @@ namespace AAEmu.Game.Models.Game.Items
     public class UccItem : Item
     {
         public override ItemDetailType DetailType => ItemDetailType.Ucc;
-        
-        public ulong UccId { get; set; }
 
         public UccItem()
         {

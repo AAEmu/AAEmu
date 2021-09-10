@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.S2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Stream;
@@ -21,7 +22,7 @@ namespace AAEmu.Game.Core.Managers.Stream
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<uint, Ucc> _uploadQueue;
-        private Dictionary<uint, SortedList<uint, UccPart>> _complexUploadParts;
+        private Dictionary<uint, UccUploadHandle> _complexUploadParts;
         private Dictionary<ulong, Ucc> _uccs;
         private Dictionary<uint, ulong> _downloadQueue; // connection, UCCId
         private static Object lockObject = new object();
@@ -29,7 +30,7 @@ namespace AAEmu.Game.Core.Managers.Stream
         public void Load()
         {
             _uploadQueue = new Dictionary<uint, Ucc>();
-            _complexUploadParts = new Dictionary<uint, SortedList<uint, UccPart>>();
+            _complexUploadParts = new Dictionary<uint, UccUploadHandle>();
             _uccs = new Dictionary<ulong, Ucc>();
             _downloadQueue = new Dictionary<uint, ulong>();
 
@@ -65,7 +66,6 @@ namespace AAEmu.Game.Core.Managers.Stream
                                     Color3B = reader.GetUInt32("color3B"),
                                     Modified = reader.GetDateTime("modified")
                                 };
-                                ucc.Type = type;
                                 
                                 _uccs.Add(id, ucc);
                             } else if (type == UccType.Complex)
@@ -103,18 +103,30 @@ namespace AAEmu.Game.Core.Managers.Stream
             }
         }
 
-        public void StartUpload(StreamConnection connection)
+        public void StartUpload(StreamConnection connection, int expectedDataSize, CustomUcc customUcc)
         {
-            _complexUploadParts.Add(connection.Id, new SortedList<uint, UccPart>());
+            _uploadQueue.Add(connection.Id, customUcc);
+            var uploadHandler = new UccUploadHandle() { ExpectedSize = expectedDataSize, UploadingUcc = customUcc };
+            _complexUploadParts.Add(connection.Id, uploadHandler);
             connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.Continue));
         }
 
         public void UploadPart(StreamConnection connection, UccPart part)
         {
-            if (!_complexUploadParts.ContainsKey(connection.Id))
+            if (!_complexUploadParts.TryGetValue(connection.Id, out var handle))
                 return;
-            
-            _complexUploadParts[connection.Id].Add(part.Index, part);
+
+            handle.AddPart(part);
+
+            if (handle.UploadComplete)
+            {
+                handle.FinalizeUpload();
+                ConfirmDefaultUcc(connection);
+            }
+            else
+            {
+                connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.Continue));
+            }
         }
 
         public void AddDefaultUcc(DefaultUcc defaultUcc, StreamConnection connection)
@@ -247,16 +259,37 @@ namespace AAEmu.Game.Core.Managers.Stream
             ucc.Id = id;
             _uccs.Add(id, ucc);
             _uploadQueue.Remove(connection.Id);
+            
+            if ((ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+            {
+                var uccFileName = Path.Combine(FileManager.AppPath, "UserData", "UCC", id.ToString("000000") + ".dds");
+                File.WriteAllBytes(uccFileName,customUcc.Data.ToArray());
+                if (!File.Exists(uccFileName))
+                    _log.Error("Failed to save UCC data to file {0}", uccFileName);
+            }
+            
             connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.End));
 
             var character = connection.GameConnection.ActiveChar;
 
             connection.GameConnection.ActiveChar.ChangeMoney(SlotType.Inventory, -50000);
             
-            var newItem = (UccItem)ItemManager.Instance.Create(17663, 1, 0, true);
+            var newItem = (UccItem)ItemManager.Instance.Create(Item.CrestInk, 1, 0, true); // Crest Ink
             newItem.UccId = id;
             Save(ucc);
             character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.GainItemWithUcc, newItem);
+        }
+
+        public void CreateStamp(Character player, Item sourceInk)
+        {
+            var newItem = ItemManager.Instance.Create(Item.CrestStamp, 1, 0, true); // Crest Stamp
+            newItem.UccId = sourceInk.UccId;
+            player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.GainItemWithUcc, newItem);
+        }
+
+        public void ApplyStamp(Item stamp, Item targetItem)
+        {
+            targetItem.UccId = stamp.UccId;
         }
 
         public void Save(Ucc ucc)
@@ -273,9 +306,8 @@ namespace AAEmu.Game.Core.Managers.Stream
 
         public Ucc GetUccFromItem(Item item)
         {
-            if (item is UccItem uccItem)
-                if (_uccs.TryGetValue(uccItem.UccId, out var ucc))
-                    return ucc;
+            if (_uccs.TryGetValue(item.UccId, out var ucc))
+                return ucc;
             
             return null;
         }

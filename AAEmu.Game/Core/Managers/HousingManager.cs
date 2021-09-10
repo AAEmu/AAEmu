@@ -1243,26 +1243,6 @@ namespace AAEmu.Game.Core.Managers
             doodad.UccId = itemUcc?.Id ?? 0;
             doodad.IsPersistent = true;
 
-            doodad.UccId = 1;  // TODO: Temporary hack (Blank Canvas)
-            
-            // It's not a good idea to actually parent the object, commented out for now
-            /*
-            if (parentObjId > 0)
-            {
-                var pObj = WorldManager.Instance.GetGameObject(parentObjId);
-                if (pObj != null)
-                {
-                    doodad.Transform.DetachAll();
-                    doodad.Transform.Parent = pObj.Transform;
-                    doodad.ParentObjId = parentObjId;
-                    doodad.ParentObj = pObj;
-                }
-                else
-                {
-                    _log.Warn("Unable to find parent {0} for decor {1}", parentObjId, designId);
-                }
-            }
-            */
             doodad.Spawn();
             doodad.Save();
 

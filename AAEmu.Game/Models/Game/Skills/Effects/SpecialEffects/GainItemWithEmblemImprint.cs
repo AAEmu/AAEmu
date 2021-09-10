@@ -1,4 +1,7 @@
 ﻿using System;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Stream;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
@@ -18,8 +21,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            // TODO ...
-            _log.Warn("Special effects: GainItemWithEmblemImprint");
+            var sourceItem = ItemManager.Instance.GetItemByItemId(((SkillItem)casterObj).ItemId);
+            if ((sourceItem != null) && (target is Character player))
+            {
+                UccManager.Instance.CreateStamp(player, sourceItem);
+            }
         }
     }
 }

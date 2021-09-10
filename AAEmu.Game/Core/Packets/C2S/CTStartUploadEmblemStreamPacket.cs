@@ -15,12 +15,15 @@ namespace AAEmu.Game.Core.Packets.C2S
         public override void Read(PacketStream stream)
         {
             var bc = stream.ReadBc();
-            var type = stream.ReadInt64();
-            var total = stream.ReadInt32();
+            var UccId = stream.ReadInt64();
+            var dataSize = stream.ReadInt32();
             // -----------------------
 
+            _log.Warn("Create UCC Crest, printer bc:{0}, UccId:{1}, dataSize:{2}", bc, UccId, dataSize);
+            
+            // TODO: check if bc points to a Crest Printer (and you are nearby)
 
-            if (total == 0) // simple
+            if (dataSize == 0) // simple
             {
                 var defaultUcc = new DefaultUcc()
                 {
@@ -31,7 +34,9 @@ namespace AAEmu.Game.Core.Packets.C2S
             }
             else // complex
             {
-                UccManager.Instance.StartUpload(Connection);
+                var customUcc = new CustomUcc() { UploaderId = Connection.GameConnection.ActiveChar.Id };
+                customUcc.Read(stream);
+                UccManager.Instance.StartUpload(Connection, dataSize, customUcc);
             }
         }
     }
