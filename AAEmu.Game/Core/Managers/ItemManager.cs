@@ -1009,9 +1009,12 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                // HACKFIX FOR CREST INK
-                var uccItemTemplate = new UccTemplate { Id = 17663 };
-                _templates.Add(uccItemTemplate.Id, uccItemTemplate);
+                // TODO: HACKFIX FOR CREST INK/STAMP
+                var crestInkItemTemplate = new UccTemplate { Id = Item.CrestInk };
+                _templates.Add(crestInkItemTemplate.Id, crestInkItemTemplate);
+                
+                var crestSTampItemTemplate = new UccTemplate { Id = Item.CrestStamp };
+                _templates.Add(crestSTampItemTemplate.Id, crestSTampItemTemplate);
 
                 using (var command = connection.CreateCommand())
                 {
