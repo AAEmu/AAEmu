@@ -8,6 +8,7 @@ using System.Numerics;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
@@ -1212,6 +1213,8 @@ namespace AAEmu.Game.Core.Managers
                 return false;
             }
 
+            var itemUcc = UccManager.Instance.GetUccFromItem(item);
+
 
             // Create decoration doodad
             var decorationDesign = GetDecorationDesignFromId(designId);
@@ -1237,9 +1240,11 @@ namespace AAEmu.Game.Core.Managers
             doodad.ParentObj = house;
             doodad.AttachPoint = AttachPointKind.None;
             doodad.OwnerType = DoodadOwnerType.Housing;
-            doodad.UccId = 1;
+            doodad.UccId = itemUcc?.Id ?? 0;
             doodad.IsPersistent = true;
 
+            doodad.UccId = 1;  // TODO: Temporary hack (Blank Canvas)
+            
             // It's not a good idea to actually parent the object, commented out for now
             /*
             if (parentObjId > 0)

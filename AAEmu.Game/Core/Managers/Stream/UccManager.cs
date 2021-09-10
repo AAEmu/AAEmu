@@ -50,6 +50,7 @@ namespace AAEmu.Game.Core.Managers.Stream
                                 var ucc = new DefaultUcc()
                                 {
                                     Id = id,
+                                    Type = type,
                                     UploaderId = reader.GetUInt32("uploader_id"),
                                     Pattern1 = reader.GetUInt32("pattern1"),
                                     Pattern2 = reader.GetUInt32("pattern2"),
@@ -64,6 +65,7 @@ namespace AAEmu.Game.Core.Managers.Stream
                                     Color3B = reader.GetUInt32("color3B"),
                                     Modified = reader.GetDateTime("modified")
                                 };
+                                ucc.Type = type;
                                 
                                 _uccs.Add(id, ucc);
                             } else if (type == UccType.Complex)
@@ -71,6 +73,7 @@ namespace AAEmu.Game.Core.Managers.Stream
                                 var ucc = new CustomUcc()
                                 {
                                     Id = id,
+                                    Type = type,
                                     UploaderId = reader.GetUInt32("uploader_id"),
                                     Pattern1 = reader.GetUInt32("pattern1"),
                                     Pattern2 = reader.GetUInt32("pattern2"),
@@ -85,6 +88,7 @@ namespace AAEmu.Game.Core.Managers.Stream
                                     Color3B = reader.GetUInt32("color3B"),
                                     Modified = reader.GetDateTime("modified"),
                                 };
+                                
                                 var uccFileName = Path.Combine(FileManager.AppPath, "UserData", "UCC", id.ToString("000000") + ".dds");
                                 if (File.Exists(uccFileName))
                                     ucc.Data.AddRange(File.ReadAllBytes(uccFileName));
@@ -265,6 +269,15 @@ namespace AAEmu.Game.Core.Managers.Stream
                     ucc.Save(command);
                 }
             }
+        }
+
+        public Ucc GetUccFromItem(Item item)
+        {
+            if (item is UccItem uccItem)
+                if (_uccs.TryGetValue(uccItem.UccId, out var ucc))
+                    return ucc;
+            
+            return null;
         }
     }
 }

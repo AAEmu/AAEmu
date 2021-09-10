@@ -158,7 +158,7 @@ namespace AAEmu.Game.Core.Managers
             SpawnManager.Instance.AddDespawn(activeSlaveInfo);
         }
 
-        public void Create(Character owner, SkillItem skillData, bool hidespawneffect = false, Unit newOwnerPos = null)
+        public void Create(Character owner, SkillItem skillData, bool hideSpawnEffect = false, Transform positionOverride = null)
         {
             var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
             if (activeSlaveInfo != null)
@@ -181,56 +181,64 @@ namespace AAEmu.Game.Core.Managers
             var objId = ObjectIdManager.Instance.GetNextId();
             
             var spawnPos = owner.Transform.CloneDetached();
-            // replacing the position with the new coordinates from the method call parameters
-            if (newOwnerPos != null)
-            {
-                spawnPos = newOwnerPos.Transform.CloneDetached();
-            }
             
-            // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
-            spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
-            // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
-            // spawnPos.Local.AddDistanceToRight(slaveTemplate.SpawnXOffset);
-            if (slaveTemplate.IsABoat())
+            // Replacing the position with the new coordinates from the method call parameters
+            
+            if (positionOverride != null)
             {
-                // If we're spawning a boat, put it at the water level regardless of our own height
-                // TODO: if not at ocean level, get actual target location water body height (for example rivers)
-                var worldWaterLevel = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f;
-                spawnPos.Local.SetHeight(worldWaterLevel);
-
-                // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
-                var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
-                var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
-                for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
-                {
-                    var depthCheckPos = spawnPos.CloneDetached();
-                    depthCheckPos.Local.AddDistanceToFront(inFront);
-                    var h = WorldManager.Instance.GetHeight(depthCheckPos);
-                    if (h > 0f)
-                    {
-                        var d = worldWaterLevel - h;
-                        if (d > minDepth)
-                        {
-                            // owner.SendMessage("Extra inFront = {0}, required Depth = {1}", inFront, minDepth);
-                            spawnPos = depthCheckPos.CloneDetached();
-                            break;
-                        }
-                    }
-                }
+                // If manually defined a spawn location (i.e. created from ShipYard), use that location instead
+                spawnPos = positionOverride.CloneDetached();
             }
             else
             {
-                // If a land vehicle, put it a the ground level of it's target spawn location
-                // TODO: check for maximum height difference for summoning
-                var h = WorldManager.Instance.GetHeight(spawnPos);
-                if (h > 0f)
-                    spawnPos.Local.SetHeight(h);
+                // If no spawn position override has been provided, then handle normal spawning algorithm
+
+                // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
+                spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
+                // INFO: Seems like X offset is defined as the size of the vehicle summoned, but visually it's nicer if we just ignore this 
+                // spawnPos.Local.AddDistanceToRight(slaveTemplate.SpawnXOffset);
+                if (slaveTemplate.IsABoat())
+                {
+                    // If we're spawning a boat, put it at the water level regardless of our own height
+                    // TODO: if not at ocean level, get actual target location water body height (for example rivers)
+                    var worldWaterLevel = WorldManager.Instance.GetWorld(spawnPos.WorldId)?.OceanLevel ?? 100f;
+                    spawnPos.Local.SetHeight(worldWaterLevel);
+
+                    // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
+                    var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
+                    var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
+                    for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
+                    {
+                        var depthCheckPos = spawnPos.CloneDetached();
+                        depthCheckPos.Local.AddDistanceToFront(inFront);
+                        var h = WorldManager.Instance.GetHeight(depthCheckPos);
+                        if (h > 0f)
+                        {
+                            var d = worldWaterLevel - h;
+                            if (d > minDepth)
+                            {
+                                //owner.SendMessage("Extra inFront = {0}, required Depth = {1}", inFront, minDepth);
+                                spawnPos = depthCheckPos.CloneDetached();
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // If a land vehicle, put it a the ground level of it's target spawn location
+                    // TODO: check for maximum height difference for summoning
+                    var h = WorldManager.Instance.GetHeight(spawnPos);
+                    if (h > 0f)
+                        spawnPos.Local.SetHeight(h);
+                }
+
+                // Always spawn horizontal(level) and 90° CCW of the player
+                spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2)); 
             }
 
-            //spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2)); // Always spawn horizontal and 90° CCW
-
             // TODO
-            owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hidespawneffect, 0, owner.Name), true);
+            owner.BroadcastPacket(new SCSlaveCreatedPacket(owner.ObjId, tlId, objId, hideSpawnEffect, 0, owner.Name), true);
             var template = new Slave
             {
                 TlId = tlId,
@@ -248,7 +256,7 @@ namespace AAEmu.Game.Core.Managers
                 Summoner = owner,
                 SpawnTime = DateTime.UtcNow
             };
-
+            
             if (_slaveInitialItems.TryGetValue(template.Template.SlaveInitialItemPackId, out var itemPack))
             {
                 foreach (var initialItem in itemPack)
@@ -291,6 +299,7 @@ namespace AAEmu.Game.Core.Managers
                 doodad.CurrentPhaseId = doodad.GetFuncGroupId();
                 doodad.Transform = template.Transform.CloneAttached(doodad);
                 doodad.Transform.Parent = template.Transform;
+                doodad.UccId = 1; // TODO: Temporary Hack
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {
