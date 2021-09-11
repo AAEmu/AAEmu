@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.Char
             _removedMates = new List<uint>();
         }
 
-        private MateDb GetMateInfo(ulong itemId)
+        public MateDb GetMateInfo(ulong itemId)
         {
             return _mates.ContainsKey(itemId) ? _mates[itemId] : null;
         }

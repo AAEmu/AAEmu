@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
 
@@ -19,9 +19,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActObjInteraction");
-            if(objective >= Count)
-                return true;
-            return false;
+            return objective >= Count;
         }
     }
 }
