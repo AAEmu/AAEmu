@@ -1430,10 +1430,10 @@ namespace AAEmu.Game.Core.Managers
 
                         command.CommandText = "REPLACE INTO items (" +
                             "`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
-                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `flags`" +
+                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`" +
                             ") VALUES ( " +
                             "@id, @type, @template_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
-                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags" +
+                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc" +
                             ")";
 
                         command.Parameters.AddWithValue("@id", item.Id);
@@ -1451,6 +1451,7 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@owner", item.OwnerId);
                         command.Parameters.AddWithValue("@grade", item.Grade);
                         command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
+                        command.Parameters.AddWithValue("@ucc", item.UccId);
                         command.ExecuteNonQuery();
                         command.Parameters.Clear();
                         item.IsDirty = false;
@@ -1521,6 +1522,7 @@ namespace AAEmu.Game.Core.Managers
                         item.UnpackTime = reader.GetDateTime("unpack_time");
                         item.CreateTime = reader.GetDateTime("created_at");
                         item.ItemFlags = (ItemFlag)reader.GetByte("flags");
+                        item.UccId = reader.GetUInt32("ucc"); // Make sure this UCC is set BEFORE reading details as UccItem needs to be able to override it
                         var details = (Commons.Network.PacketStream)(byte[])reader.GetValue("details");
                         item.ReadDetails(details);
 

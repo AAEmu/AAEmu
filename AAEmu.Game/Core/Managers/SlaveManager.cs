@@ -14,6 +14,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Shipyard;
@@ -256,7 +257,7 @@ namespace AAEmu.Game.Core.Managers
                 Summoner = owner,
                 SpawnTime = DateTime.UtcNow
             };
-            
+
             if (_slaveInitialItems.TryGetValue(template.Template.SlaveInitialItemPackId, out var itemPack))
             {
                 foreach (var initialItem in itemPack)
@@ -299,7 +300,11 @@ namespace AAEmu.Game.Core.Managers
                 doodad.CurrentPhaseId = doodad.GetFuncGroupId();
                 doodad.Transform = template.Transform.CloneAttached(doodad);
                 doodad.Transform.Parent = template.Transform;
-                doodad.UccId = 1; // TODO: Temporary Hack
+                
+                // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
+                // Should probably have a check somewhere if a doodad can have the UCC applied or not
+                if (item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+                    doodad.UccId = item.UccId;
 
                 if (_attachPoints.ContainsKey(template.ModelId))
                 {

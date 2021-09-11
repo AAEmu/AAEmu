@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -29,9 +30,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var targetItem = ItemManager.Instance.GetItemByItemId(scit.Id);
 
             // TODO: Check if items are owned by caster
-            
+
             if ((sourceItem != null) && (targetItem != null))
+            {
                 UccManager.Instance.ApplyStamp(sourceItem, targetItem);
+                // Consume the stamp
+                sourceItem._holdingContainer.ConsumeItem(ItemTaskType.ImprintUcc, sourceItem.TemplateId,1, sourceItem);
+            }
         }
     }
 }
