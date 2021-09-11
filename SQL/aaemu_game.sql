@@ -325,6 +325,7 @@ CREATE TABLE `items` (
   `grade` tinyint(1) DEFAULT '0',
   `flags` tinyint unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
+  `ucc` int unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `owner` (`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='All items';

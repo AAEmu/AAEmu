@@ -400,22 +400,25 @@ namespace AAEmu.Game.Models.Game.Skills
             //     }
             // }
 
+            /*
             if (caster is Character player && casterCaster is SkillItem castItem)
             {
                 var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
                 if (castItemTemplate.UseSkillAsReagent)
                 {
-                    var consumeAmt = player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, 1, null);
+                    var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
+                    var consumeAmt = player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, 1, useItem);
                     if (consumeAmt == 0)
                     {
                         //try to consume from equipment if failed (for backpacks)
-                        consumeAmt = player.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, 1, null);
+                        consumeAmt = player.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, 1, useItem);
                         if (consumeAmt == 0)
                             return; //Failed to consume?
                     }
                 }
-            }     
-            
+            }
+            */    
+
             if (Template.ChannelingTime > 0)
             {
                 StartChanneling(caster, casterCaster, target, targetCaster, skillObject);
@@ -424,6 +427,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 ScheduleEffects(caster, casterCaster, target, targetCaster, skillObject);
             }
+            
         }
 
         public async void StopSkill(Unit caster)
@@ -632,16 +636,19 @@ namespace AAEmu.Game.Models.Game.Skills
                         continue;
                     }
 
+                    /*
                     if (casterCaster is SkillItem castItem) // TODO Clean up. 
                     {
                         var player = (Character)caster;
+                        var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
                         if (effect.ConsumeSourceItem)
-                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, null);
+                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, useItem);
 
                         var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
-                        if ((castItemTemplate.UseSkillAsReagent) && player != null)
-                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, null);
+                        if ((castItemTemplate.UseSkillAsReagent) && (player != null))
+                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, useItem);
                     }
+                    */
 
                     if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
                     {
