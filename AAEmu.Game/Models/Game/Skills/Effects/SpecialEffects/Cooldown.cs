@@ -8,6 +8,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class Cooldown : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.Cooldown;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

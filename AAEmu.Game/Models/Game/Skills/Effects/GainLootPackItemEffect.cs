@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
@@ -42,7 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
 
 
-            _log.Debug("LootGroups {0}", lootGroups);
+            _log.Debug("LootGroups {0}", string.Join(',', lootGroups.Select(x => x.Id)));
 
             var rowG = lootGroups.Length;
             var rowP = lootPacks.Length;
@@ -98,12 +99,12 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         }
                     }
 
-                    if (minAmount > 1 && itemIdLoot == 500)
+                    if (minAmount > 1 && itemIdLoot == Item.Coins)
                     {
                         AddGold(caster, minAmount, maxAmount);
                     }
 
-                    if (itemIdLoot > 0 && itemIdLoot != 500)
+                    if (itemIdLoot > 0 && itemIdLoot != Item.Coins)
                     {
                         if (InheritGrade)
                             gradeId = lootPackItem.Grade;
@@ -165,6 +166,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
 
+            //if (sourceItem != null)
+            //    character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, sourceItem.TemplateId, 1, sourceItem);   
+
             _log.Debug("GainLootPackItemEffect {0}", LootPackId);
         }
 
@@ -185,7 +189,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 new List<ItemTask> {new MoneyChange(goldAdd)}, new List<ulong>()));
         }
 
-        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount, Item sourceItem = null)
+        private void AddItem(Unit caster, uint itemId, byte gradeId, int minAmount, int maxAmount,
+            Item sourceItem = null)
         {
             var character = (Character)caster;
             if (character == null) return;
@@ -195,6 +200,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 // TODO: do proper handling of insufficient bag space
                 character.SendErrorMessage(ErrorMessageType.BagFull);
             }
+            /*
             else
             {
                 if(ConsumeSourceItem)
@@ -203,9 +209,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
                 else
                 {
-                    character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
+                    character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, sourceItem);
                 }
             }
+            */
         }
 
         private byte GetGradeDistributionId(byte gradeId)

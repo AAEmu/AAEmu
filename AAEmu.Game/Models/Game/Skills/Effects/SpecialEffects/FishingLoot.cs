@@ -11,6 +11,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     class FishingLoot : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.FishingLoot;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

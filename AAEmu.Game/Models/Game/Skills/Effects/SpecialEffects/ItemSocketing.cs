@@ -15,6 +15,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ItemSocketing : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.ItemSocketing;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

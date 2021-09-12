@@ -9,6 +9,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class SpawnPet : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.SpawnPet;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

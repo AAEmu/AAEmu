@@ -8,6 +8,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class StopManaRegen : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.StopManaRegen;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

@@ -19,6 +19,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class GradeEnchant : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.GradeEnchant;
+        
         private enum GradeEnchantResult
         {
             Break = 0,

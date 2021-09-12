@@ -14,6 +14,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ItemCapScaleReset : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.ItemCapScaleReset;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

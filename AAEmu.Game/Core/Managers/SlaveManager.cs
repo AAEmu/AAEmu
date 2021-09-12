@@ -253,7 +253,7 @@ namespace AAEmu.Game.Core.Managers
                 Mp = 1,
                 ModelParams = new UnitCustomModelParams(),
                 Faction = owner.Faction,
-                Id = 10, // TODO
+                Id = 0, // TODO (previously set to 10 which prevented the use of the slave doodads 
                 Summoner = owner,
                 SpawnTime = DateTime.UtcNow
             };

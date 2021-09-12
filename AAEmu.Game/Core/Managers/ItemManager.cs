@@ -1600,7 +1600,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var template = GetTemplate(itemTemplateId);
             // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
-            return template != null && template is BackpackTemplate bt && !template.BindType.HasFlag(ItemBindType.BindOnEquip);
+            return (template != null) && (template is BackpackTemplate bt) && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
         }
     }
 }

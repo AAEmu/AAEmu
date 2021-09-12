@@ -5,6 +5,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class DisturbCasting : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.DisturbCasting;
+        
         // Parameters are estimated to be :
         // value1 = chance ?
         // value2 = delay ?

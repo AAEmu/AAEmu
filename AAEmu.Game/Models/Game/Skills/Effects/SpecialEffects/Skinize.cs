@@ -14,6 +14,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class Skinize : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.Skinize;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

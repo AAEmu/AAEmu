@@ -13,6 +13,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class GiveCashPoint : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.GiveCashPoint;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
