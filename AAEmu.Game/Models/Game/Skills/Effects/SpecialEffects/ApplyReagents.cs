@@ -8,6 +8,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     class ApplyReagents : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.ApplyReagents;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

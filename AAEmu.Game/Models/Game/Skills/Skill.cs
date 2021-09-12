@@ -555,6 +555,8 @@ namespace AAEmu.Game.Models.Game.Skills
             }
 
             var packets = new CompressedGamePackets();
+            var consumedItems = new List<(Item,int)>();
+            var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
 
             var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
             foreach (var effect in Template.Effects)
@@ -636,21 +638,22 @@ namespace AAEmu.Game.Models.Game.Skills
                         continue;
                     }
 
-                    /*
-                    if (casterCaster is SkillItem castItem) // TODO Clean up. 
+                    if ((casterCaster is SkillItem castItem) && (caster is Character player)) 
                     {
-                        var player = (Character)caster;
                         var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
                         if (effect.ConsumeSourceItem)
-                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, useItem);
-
-                        var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
-                        if ((castItemTemplate.UseSkillAsReagent) && (player != null))
-                            player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, useItem);
+                            consumedItems.Add((useItem,effect.ConsumeItemCount));
+                            //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, useItem);
+                        else
+                        {
+                            var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
+                            if (castItemTemplate.UseSkillAsReagent)
+                                consumedItems.Add((useItem,effect.ConsumeItemCount));
+                                //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, useItem);
+                        }
                     }
-                    */
-
-                    if (caster is Character character && effect.ConsumeItemId != 0 && effect.ConsumeItemCount > 0)
+                    
+                    if ((caster is Character character) && (effect.ConsumeItemId != 0) && (effect.ConsumeItemCount > 0))
                     {
                         if (effect.ConsumeSourceItem)
                         {
@@ -666,12 +669,15 @@ namespace AAEmu.Game.Models.Game.Skills
                             {
                                 continue;
                             }
-
+                            
+                            consumedItemTemplates.Add((effect.ConsumeItemId,effect.ConsumeItemCount));
+                            /*
                             if (inventory)
                                 character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount, null);
                             else
                             if (equipment)
                                 character.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount, null);
+                            */
                         }
                     }
 
@@ -719,9 +725,17 @@ namespace AAEmu.Game.Models.Game.Skills
                 else
                     _log.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
             }
+            
             // Quick Hack
             if (packets.Packets.Count > 0)
                 caster.BroadcastPacket(packets, true);
+
+            // Actually consume the to be consumed items
+            foreach (var (item, amount) in consumedItems)
+                item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
+            if (caster is Character playerToConsumeFrom)
+                foreach (var (templateId, amount) in consumedItemTemplates)
+                    playerToConsumeFrom.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId, amount, null);
         }
 
         public void EndSkill(Unit caster)

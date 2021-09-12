@@ -10,6 +10,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ExitArchemall : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.ExitArchemall;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

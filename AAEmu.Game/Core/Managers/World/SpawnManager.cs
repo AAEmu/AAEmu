@@ -257,6 +257,8 @@ namespace AAEmu.Game.Core.Managers.World
                             // Try to grab info from the actual item if it still exists
                             var sourceItem = ItemManager.Instance.GetItemByItemId(itemId);
                             doodad.ItemTemplateId = sourceItem?.TemplateId ?? itemTemplateId;
+                            // Grab Ucc from it's old source item
+                            doodad.UccId = sourceItem?.UccId ?? 0;
                                     
                             doodad.Transform.Local.SetPosition(x, y, z);
                             doodad.Transform.Local.SetRotation(reader.GetFloat("roll"), reader.GetFloat("pitch"), reader.GetFloat("yaw"));

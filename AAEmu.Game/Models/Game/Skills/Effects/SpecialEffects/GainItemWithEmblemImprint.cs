@@ -8,6 +8,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class GainItemWithEmblemImprint : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.GainItemWithEmblemImprint;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

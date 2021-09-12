@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -26,16 +28,26 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             if (!(targetObj is SkillCastItemTarget scit))
                 return;
-            var sourceItem = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
+            var stampItem = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
             var targetItem = ItemManager.Instance.GetItemByItemId(scit.Id);
 
             // TODO: Check if items are owned by caster
 
-            if ((sourceItem != null) && (targetItem != null))
+            if ((stampItem != null) && (targetItem != null))
             {
-                UccManager.Instance.ApplyStamp(sourceItem, targetItem);
+                //var oldFlags = targetItem.ItemFlags;
+                UccManager.Instance.ApplyStamp(stampItem, targetItem);
+                // Send Item Ucc changed packet
+                player.SendPacket(new SCItemUccDataChangedPacket(stampItem.UccId, player.Id, targetItem.Id));
+                // Send ItemTask to change flags on client
+                player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GainItemWithUcc, new ItemUpdateBits(targetItem), null));
                 // Consume the stamp
-                sourceItem._holdingContainer.ConsumeItem(ItemTaskType.ImprintUcc, sourceItem.TemplateId,1, sourceItem);
+                // Retail seems to use QuestRemoveSupplies (39) for this instead of ImprintUcc
+                //stampItem._holdingContainer.ConsumeItem(ItemTaskType.ImprintUcc, stampItem.TemplateId,1, stampItem);
+            }
+            else
+            {
+                _log.Warn("ImprintUccEffect: Invalid item reference");
             }
         }
     }

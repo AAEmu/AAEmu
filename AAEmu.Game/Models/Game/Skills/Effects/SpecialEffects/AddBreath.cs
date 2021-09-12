@@ -9,6 +9,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class AddBreath : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.AddBreath;
+
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
