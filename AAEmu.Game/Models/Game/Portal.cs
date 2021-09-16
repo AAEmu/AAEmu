@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Numerics;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Models.Game
 {
@@ -21,8 +24,11 @@ namespace AAEmu.Game.Models.Game
             stream.Write(Id);
             stream.Write(Name); // TODO max length 128
             stream.Write(ZoneId);
-            stream.Write(X);
-            stream.Write(Y);
+            var origin = ZoneManager.Instance.GetZoneOriginCell(ZoneId);
+            var offX = (X - (origin.X * 1024f));
+            var offY = (Y - (origin.Y * 1024f));
+            stream.Write(offX);
+            stream.Write(offY);
             stream.Write(Z);
             stream.Write(ZRot);
             return stream;

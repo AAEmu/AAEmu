@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using AAEmu.Commons.Utils;
@@ -30,7 +31,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             return _zones.ContainsKey(zoneKey) ? _zones[zoneKey] : null;
         }
-        
+
         public ZoneGroup GetZoneGroupById(uint zoneId)
         {
             return _groups.ContainsKey(zoneId) ? _groups[zoneId] : null;
@@ -85,7 +86,7 @@ namespace AAEmu.Game.Core.Managers.World
                         }
                     }
                 }
-
+                
                 _log.Info("Loaded {0} zones", _zones.Count);
 
                 using (var command = connection.CreateCommand())
@@ -98,7 +99,7 @@ namespace AAEmu.Game.Core.Managers.World
                         {
                             var template = new ZoneGroup();
                             template.Id = reader.GetUInt32("id");
-                            template.Name = (string) reader.GetValue("name");
+                            template.Name = (string)reader.GetValue("name");
                             template.X = reader.GetFloat("x");
                             template.Y = reader.GetFloat("y");
                             template.Width = reader.GetFloat("w");
@@ -130,7 +131,7 @@ namespace AAEmu.Game.Core.Managers.World
                             {
                                 var template = new ZoneConflict(_groups[zoneGroupId]);
                                 template.ZoneGroupId = zoneGroupId;
-                                
+
                                 for (var i = 0; i < 5; i++)
                                 {
                                     template.NumKills[i] = reader.GetInt32($"num_kills_{i}");
@@ -146,14 +147,15 @@ namespace AAEmu.Game.Core.Managers.World
                                 template.HariharaReturnPointId = reader.GetUInt32("harihara_return_point_id", 0);
                                 template.WarTowerDefId = reader.GetUInt32("war_tower_def_id", 0);
                                 // TODO 1.2 // template.PeaceTowerDefId = reader.GetUInt32("peace_tower_def_id", 0);
-                                template.Closed = reader.GetBoolean("closed",true);
+                                template.Closed = reader.GetBoolean("closed", true);
 
                                 _groups[zoneGroupId].Conflict = template;
                                 _conflicts.Add(zoneGroupId, template);
 
                                 // Only do intial setup when the zone isn't closed
                                 if (!template.Closed)
-                                    template.SetState(ZoneConflictType.Conflict); // Set to Conflict for testing, normally it should start at Tension
+                                    template.SetState(ZoneConflictType
+                                        .Conflict); // Set to Conflict for testing, normally it should start at Tension
                             }
                             else
                                 _log.Warn("ZoneGroupId: {1} doesn't exist for conflict", zoneGroupId);
@@ -200,13 +202,9 @@ namespace AAEmu.Game.Core.Managers.World
                 _log.Info("Loaded {0} climate elems", _climateElem.Count);
             }
         }
-            /// <summary>
-        /// translate the local coordinates to the world coordinates using the original coordinates of the cells for the zone
-        /// </summary>
-        /// <param name="zoneId"></param>
-        /// <param name="point"></param>
-        /// <returns></returns>
-        public (float, float, float) ConvertToWorldCoordinates(uint zoneId, Vector3 point)
+
+
+        public Vector2 GetZoneOriginCell(uint zoneId)
         {
             var origin = new Vector2();
 
@@ -643,10 +641,23 @@ namespace AAEmu.Game.Core.Managers.World
                 //    break;
             }
 
+            return origin;
+        }
+
+        /// <summary>
+        /// translate the local coordinates to the world coordinates using the original coordinates of the cells for the zone
+        /// </summary>
+        /// <param name="zoneId"></param>
+        /// <param name="point"></param>
+        /// <returns></returns>
+        public (float, float, float) ConvertToWorldCoordinates(uint zoneId, Vector3 point)
+        {
+            var origin = GetZoneOriginCell(zoneId);
+        
             var newX = origin.X * 1024 + point.X;
             var newY = origin.Y * 1024 + point.Y;
 
             return (newX, newY, point.Z);
         }
-}
+    }
 }
