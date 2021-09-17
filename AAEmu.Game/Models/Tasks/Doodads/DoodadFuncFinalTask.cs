@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         {
             if (_respawn && _owner.Spawner != null)
             {
-                if (_respawnTime is null)
+                if ((_respawnTime == null) && (_owner.FuncTask != null))
                 {
                     _respawnTime = DateTime.UtcNow;
                     TaskManager.Instance.Schedule(_owner.FuncTask, TimeSpan.FromMilliseconds(_delay));

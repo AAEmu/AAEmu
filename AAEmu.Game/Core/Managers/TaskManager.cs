@@ -48,6 +48,12 @@ namespace AAEmu.Game.Core.Managers
             if (_generalScheduler.IsShutdown)
                 return;
 
+            if (task == null)
+            {
+                _log.Error("Task.Schedule: Task is NULL !!! StartTime: {0}, repeatInterval: {1}, count: {2}", startTime,repeatInterval, count);
+                return;
+            }
+
             task.Id = TaskIdManager.Instance.GetNextId();
             while (await _generalScheduler.CheckExists(new JobKey(task.Name + task.Id, task.Name)))
                 task.Id = TaskIdManager.Instance.GetNextId();
