@@ -160,8 +160,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         if (character.Transform.WorldId == world.Id)
                         {
-                            string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name,
-                                "npc_spawns.json");
+                            string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns.json");
 
                             var contents = FileManager.GetFileContents(jsonPath);
                             if (string.IsNullOrWhiteSpace(contents))

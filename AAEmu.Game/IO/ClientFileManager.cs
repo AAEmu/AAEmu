@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Xml;
 using AAEmu.Game.Models;
 using AAEmu.Commons.Utils.AAPak;
 using NLog;
+using SQLitePCL;
 
 namespace AAEmu.Game.IO
 {
@@ -27,6 +29,7 @@ namespace AAEmu.Game.IO
                     return true;
                 case ClientSourceType.GamePak:
                     GamePak = new AAPak(PathName);
+                    // GamePak.GenerateFolderList();
                     return GamePak.isOpen;
                 default:
                     return false;
@@ -60,6 +63,70 @@ namespace AAEmu.Game.IO
                 default:
                     return false;
             }
+        }
+        
+        public static string WildcardToRegex(string pattern)
+        {
+            return "^" + Regex.Escape(pattern).
+                Replace("\\*", ".*").
+                Replace("\\?", ".") + "$";
+        }        
+        
+        /// <summary>
+        /// Create a list of filenames found in target directory
+        /// </summary>
+        /// <param name="directory">Directory to search in</param>
+        /// <param name="searchPattern">search pattern to use</param>
+        /// <param name="includeSubDirectories"></param>
+        /// <returns>List of filenames</returns>
+        public List<string> GetFilesInDirectory(string directory, string searchPattern, bool includeSubDirectories)
+        {
+            var list = new List<string>();
+            switch (SourceType)
+            {
+                case ClientSourceType.Directory:
+                    {
+                        var rootDir = directory.Replace('/', Path.DirectorySeparatorChar);
+                        try
+                        {
+                            var files = Directory.GetFiles(Path.Combine(PathName, rootDir), searchPattern,
+                                includeSubDirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+                            list.AddRange(files);
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                        break;
+                    }
+                case ClientSourceType.GamePak:
+                    {
+                        var rootDir = directory.Replace('/',Path.DirectorySeparatorChar).Replace(Path.DirectorySeparatorChar, '/').ToLower();
+                        var wildCard = WildcardToRegex("*" + searchPattern.ToLower() + "*");// Hopefully this behaves the same as the Directory.GetFiles pattern
+                        if (includeSubDirectories)
+                        {
+                            foreach (var pfi in GamePak.files)
+                            {
+                                if (pfi.name.ToLower().StartsWith(rootDir))
+                                {
+                                    if ((string.IsNullOrWhiteSpace(searchPattern) ||
+                                         (Regex.Match(pfi.name.ToLower(), wildCard).Success)))
+                                        list.Add(pfi.name);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var files = GamePak.GetFilesInDirectory(rootDir);
+                            foreach (var pfi in files)
+                                if ((string.IsNullOrWhiteSpace(searchPattern) || (Regex.Match(pfi.name, wildCard).Success)))
+                                    list.Add(pfi.name);
+                        }
+                        break;
+                    }
+            }
+            
+            return list;
         }
 
         /// <summary>
@@ -115,7 +182,17 @@ namespace AAEmu.Game.IO
         {
             if (string.IsNullOrWhiteSpace(pathName))
                 return false;
-            
+
+            try
+            {
+                var p = Path.GetFullPath(pathName);
+                pathName = p;
+            }
+            catch
+            {
+                // ignored
+            }
+
             // Source is a directory of unpacked client files ?
             if (Directory.Exists(pathName))
             {
@@ -176,7 +253,8 @@ namespace AAEmu.Game.IO
         {
             foreach (var source in Sources)
             {
-                return source;
+                if (source.FileExists(fileName))
+                    return source;
             }
             return null;
         }
@@ -201,7 +279,11 @@ namespace AAEmu.Game.IO
         {
             var source = GetFileSource(fileName);
             if (source == null)
+            {
+                _log.Debug($"GetFileStream({fileName}) not found");
                 return null;
+            }
+            _log.Debug($"[{source.PathName}].GetFileStream({fileName})");
             return source.GetFileStream(fileName);
         }
 
@@ -219,6 +301,22 @@ namespace AAEmu.Game.IO
             AddSource(AppConfiguration.Instance.ClientGamePak);
             if (ListSources().Count <= 0)
                 _log.Error("No client sources have been defined !");
+        }
+
+        /// <summary>
+        /// Create a list of filenames found in target directory
+        /// </summary>
+        /// <param name="directory">Directory to search in</param>
+        /// <param name="searchPattern">search pattern to use</param>
+        /// <param name="includeSubDirectories"></param>
+        /// <returns>List of filenames</returns>
+        public static List<string> GetFilesInDirectory(string directory, string searchPattern, bool includeSubDirectories)
+        {
+            var list = new List<string>();
+            // TODO: remove duplicate entries
+            foreach (var source in Sources)
+                list.AddRange(source.GetFilesInDirectory(directory,searchPattern,includeSubDirectories));
+            return list;
         }
     }
 }
