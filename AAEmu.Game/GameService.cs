@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using AAEmu.Commons.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -34,6 +36,11 @@ namespace AAEmu.Game
             TaskManager.Instance.Initialize();
 
             FeaturesManager.Instance.Initialize();
+            ClientFileManager.ClearSources();
+            ClientFileManager.AddSource(Path.Combine(FileManager.AppPath, "ClientData"));
+            ClientFileManager.AddSource(Path.Combine(FileManager.AppPath, "ClientData","game_pak"));
+            if (ClientFileManager.ListSources().Count <= 0)
+                _log.Error("No client sources have been found !");
             LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
