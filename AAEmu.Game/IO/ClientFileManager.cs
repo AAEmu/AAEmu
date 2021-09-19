@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using AAEmu.Game.Models;
 using AAEmu.Commons.Utils.AAPak;
 using NLog;
 
-namespace AAEmu.Commons.IO
+namespace AAEmu.Game.IO
 {
     public enum ClientSourceType
     {
-        File,
+        Directory,
         GamePak
     }
     public class ClientSource
@@ -22,7 +23,7 @@ namespace AAEmu.Commons.IO
         {
             switch (SourceType)
             {
-                case ClientSourceType.File when (Directory.Exists(PathName)):
+                case ClientSourceType.Directory when (Directory.Exists(PathName)):
                     return true;
                 case ClientSourceType.GamePak:
                     GamePak = new AAPak(PathName);
@@ -49,7 +50,7 @@ namespace AAEmu.Commons.IO
         {
             switch (SourceType)
             {
-                case ClientSourceType.File:
+                case ClientSourceType.Directory:
                     {
                         var fn = Path.Combine(PathName, fileName);
                         return File.Exists(fn);
@@ -70,7 +71,7 @@ namespace AAEmu.Commons.IO
         {
             switch (SourceType)
             {
-                case ClientSourceType.File:
+                case ClientSourceType.Directory:
                     {
                         var fn = Path.Combine(PathName, fileName);
                         var fStream = new FileStream(fn, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -112,14 +113,17 @@ namespace AAEmu.Commons.IO
         /// <returns></returns>
         public static bool AddSource(string pathName)
         {
+            if (string.IsNullOrWhiteSpace(pathName))
+                return false;
+            
             // Source is a directory of unpacked client files ?
             if (Directory.Exists(pathName))
             {
-                var newSource = new ClientSource { SourceType = ClientSourceType.File, PathName = pathName };
+                var newSource = new ClientSource { SourceType = ClientSourceType.Directory, PathName = pathName };
                 if (newSource.Open())
                 {
                     Sources.Add(newSource);
-                    _log.Info($"Using Client Source [{Sources.Count}:Directory]: {pathName}");
+                    _log.Info($"Using Source [{Sources.Count}:{newSource.SourceType}]: {pathName}");
                     return true;
                 }
             }
@@ -131,8 +135,13 @@ namespace AAEmu.Commons.IO
                 if (newSource.Open())
                 {
                     Sources.Add(newSource);
-                    _log.Info($"Using Client Source [{Sources.Count}:Pak]: {pathName}");
+                    _log.Info($"Using Source [{Sources.Count}:{newSource.SourceType}]: {pathName}");
                     return true;
+                }
+                else
+                {
+                    _log.Error($"Source could not be opened, or is invalid: {pathName}");
+                    return false;
                 }
             }
 
@@ -203,6 +212,13 @@ namespace AAEmu.Commons.IO
                 return string.Empty;
             return source.GetFileAsString(fileName);
         }
-        
+
+        public static void Initialize()
+        {
+            AddSource(AppConfiguration.Instance.ClientDirectory);
+            AddSource(AppConfiguration.Instance.ClientGamePak);
+            if (ListSources().Count <= 0)
+                _log.Error("No client sources have been defined !");
+        }
     }
 }

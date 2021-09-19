@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using AAEmu.Commons.IO;
+using AAEmu.Game.IO;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -14,6 +14,8 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Network.Login;
 using AAEmu.Game.Core.Network.Stream;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
@@ -36,6 +38,7 @@ namespace AAEmu.Game
             TaskManager.Instance.Initialize();
 
             FeaturesManager.Instance.Initialize();
+            ClientFileManager.Initialize();
             ClientFileManager.ClearSources();
             ClientFileManager.AddSource(Path.Combine(FileManager.AppPath, "ClientData"));
             ClientFileManager.AddSource(Path.Combine(FileManager.AppPath, "ClientData","game_pak"));
@@ -174,6 +177,8 @@ namespace AAEmu.Game
 
             TickManager.Instance.Stop();
             TimeManager.Instance.Stop();
+            
+            ClientFileManager.ClearSources();
             return Task.CompletedTask;
         }
 
