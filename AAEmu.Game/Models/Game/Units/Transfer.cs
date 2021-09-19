@@ -725,18 +725,22 @@ namespace AAEmu.Game.Models.Game.Units
                 next++;
             }
 
-            if (transfer.Template.TransferAllPaths[current].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[next].WaitTimeStart > 0)
-            {
-                // за несколько (3 ?) точек до конца участка будем тормозить
-                if (transfer.TransferPath.Count - transfer.MoveStepIndex <= 1)
+            if ((current < transfer.Template.TransferAllPaths.Count) && (next < transfer.Template.TransferAllPaths.Count))
+                if (transfer.Template.TransferAllPaths[current].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[next].WaitTimeStart > 0)
                 {
-                    if (transfer.velAccel > 0)
+                    // за несколько (3 ?) точек до конца участка будем тормозить
+                    // several (3?) points before the end of the section we will slow down
+                    if (transfer.TransferPath.Count - transfer.MoveStepIndex <= 1)
                     {
-                        transfer.velAccel *= -1.0f;
+                        if (transfer.velAccel > 0)
+                        {
+                            transfer.velAccel *= -1.0f;
+                        }
+
+                        return true;
                     }
-                    return true;
                 }
-            }
+
             if (transfer.velAccel < 0)
             {
                 transfer.velAccel *= -1.0f;

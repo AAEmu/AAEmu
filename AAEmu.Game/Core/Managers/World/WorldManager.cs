@@ -139,7 +139,7 @@ namespace AAEmu.Game.Core.Managers.World
 
             foreach (var world in _worlds.Values)
             {
-                pathFile = Path.Combine(FileManager.AppPath,"Data","Worlds",world.Name,"zones.json");
+                pathFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "zones.json");
                 
                 if (!File.Exists(pathFile))
                     throw new IOException($"File {pathFile} doesn't exists!");
