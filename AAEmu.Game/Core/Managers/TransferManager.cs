@@ -5,8 +5,6 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Xml;
-
-using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -22,8 +20,8 @@ using AAEmu.Game.Models.Tasks.Transfers;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
-
 using NLog;
+using XmlHelper = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -360,7 +358,7 @@ namespace AAEmu.Game.Core.Managers
             var worlds = WorldManager.Instance.GetWorlds();
             Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
 
-            //                              worldId           key   transfer_path
+            //                              worldId           key  transfer_path
             _transferRoads = new Dictionary<byte, Dictionary<uint, List<TransferRoads>>>();
             foreach (var world in worlds)
             {
@@ -397,43 +395,35 @@ namespace AAEmu.Game.Core.Managers
                         foreach (XmlElement xNode in xRoot)
                         {
                             var transferRoad = new TransferRoads();
-                            if (xNode.Attributes.Count > 0)
-                            {
-                                transferRoad.Name = xNode.Attributes.GetNamedItem("Name").Value;
-                                transferRoad.ZoneId = zoneId;
-                                transferRoad.Type = int.Parse(xNode.Attributes.GetNamedItem("Type").Value);
-                                transferRoad.CellX = int.Parse(xNode.Attributes.GetNamedItem("cellX").Value);
-                                transferRoad.CellY = int.Parse(xNode.Attributes.GetNamedItem("cellY").Value);
-                            }
+                            var transferAttribs = XmlHelper.ReadNodeAttributes(xNode);
+
+                            transferRoad.ZoneId = zoneId;
+                            transferRoad.Name = XmlHelper.ReadAttributeString(transferAttribs, "Name");
+                            transferRoad.Type = XmlHelper.ReadAttributeInt(transferAttribs, "Type");
+                            transferRoad.CellX = XmlHelper.ReadAttributeInt(transferAttribs, "cellX");
+                            transferRoad.CellY = XmlHelper.ReadAttributeInt(transferAttribs, "cellY");
 
                             foreach (XmlNode childNode in xNode.ChildNodes)
                             {
                                 foreach (XmlNode node in childNode.ChildNodes)
                                 {
-                                    if ((node.Attributes != null) && (node.Attributes.Count > 0))
+                                    var posNodeAttribs = XmlHelper.ReadNodeAttributes(node);
+                                    if (posNodeAttribs.TryGetValue("Pos", out var attributeValue))
                                     {
-                                        var attributeValue = node.Attributes.GetNamedItem("Pos").Value;
-                                        var splitVals = attributeValue.Split(',');
-                                        if (splitVals.Length == 3)
+                                        var xyz = XmlHelper.StringToVector3(attributeValue);
+
+                                        // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
+                                        // convert coordinates from local to world, immediately when reading the path from the file
+                                        var (xx, yy, zz) = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
+                                        var pos = new WorldSpawnPosition()
                                         {
-                                            var x = float.Parse(splitVals[0]);
-                                            var y = float.Parse(splitVals[1]);
-                                            var z = float.Parse(splitVals[2]);
-                                            // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
-                                            // convert coordinates from local to world, immediately when reading the path from the file
-                                            var xyz = new Vector3(x, y, z);
-                                            var (xx, yy, zz) =
-                                                ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
-                                            var pos = new WorldSpawnPosition()
-                                            {
-                                                X = xx,
-                                                Y = yy,
-                                                Z = zz,
-                                                WorldId = world.Id,
-                                                ZoneId = zoneId
-                                            };
-                                            transferRoad.Pos.Add(pos);
-                                        }
+                                            X = xx,
+                                            Y = yy,
+                                            Z = zz,
+                                            WorldId = world.Id,
+                                            ZoneId = zoneId
+                                        };
+                                        transferRoad.Pos.Add(pos);
                                     }
                                 }
                             }
