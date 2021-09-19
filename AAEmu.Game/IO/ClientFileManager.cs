@@ -165,6 +165,31 @@ namespace AAEmu.Game.IO
             }
         }
 
+        /// <summary>
+        /// Returns a string that can be compared to against
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        public string GetBaseName(string fileName)
+        {
+            if (SourceType == ClientSourceType.GamePak)
+            {
+                return fileName.Replace('/', Path.DirectorySeparatorChar);
+            }
+
+            if (SourceType == ClientSourceType.Directory)
+            {
+                if (fileName.StartsWith(PathName))
+                {
+                    var res = fileName.Substring(PathName.Length);
+                    res = res.TrimStart(Path.DirectorySeparatorChar);
+                    return res;
+                }
+            }
+
+            // Failed ?
+            return fileName;
+        }
     }
     
     public static class ClientFileManager
@@ -313,9 +338,20 @@ namespace AAEmu.Game.IO
         public static List<string> GetFilesInDirectory(string directory, string searchPattern, bool includeSubDirectories)
         {
             var list = new List<string>();
-            // TODO: remove duplicate entries
+            var baseList = new List<string>(); // Helper
             foreach (var source in Sources)
-                list.AddRange(source.GetFilesInDirectory(directory,searchPattern,includeSubDirectories));
+            {
+                var filesList = source.GetFilesInDirectory(directory, searchPattern, includeSubDirectories);
+                foreach (var fName in filesList)
+                {
+                    var baseName = source.GetBaseName(fName);
+                    if (!baseList.Contains(baseName))
+                    {
+                        list.Add(fName);
+                        baseList.Add(baseName);
+                    }
+                }
+            }
             return list;
         }
     }
