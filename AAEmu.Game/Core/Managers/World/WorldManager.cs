@@ -774,18 +774,20 @@ namespace AAEmu.Game.Core.Managers.World
         public void ResendVisibleObjectsToCharacter(Character character)
         {
             // Re-send visible flags to character getting out of cinema
-            var stuffs = WorldManager.Instance.GetAround<Unit>(character, 1000f);
+            var stuffs = WorldManager.Instance.GetAround<GameObject>(character, REGION_NEIGHBORHOOD_SIZE * REGION_SIZE);
+            var doodads = new List<Doodad>();
             foreach (var stuff in stuffs)
             {
-                stuff.AddVisibleObject(character);
+                if (stuff is Doodad d)
+                    doodads.Add(d);
+                else
+                    stuff.AddVisibleObject(character);
             }
 
-            var doodads = WorldManager.Instance.GetAround<Doodad>(character, 1000f).ToArray();
-            for (var i = 0; i < doodads.Length; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
+            for (var i = 0; i < doodads.Count; i += SCDoodadsCreatedPacket.MaxCountPerPacket)
             {
-                var count = doodads.Length - i;
-                var temp = new Doodad[count <= SCDoodadsCreatedPacket.MaxCountPerPacket ? count : SCDoodadsCreatedPacket.MaxCountPerPacket];
-                Array.Copy(doodads, i, temp, 0, temp.Length);
+                var count = Math.Min(doodads.Count - i, SCDoodadsCreatedPacket.MaxCountPerPacket);
+                var temp = doodads.GetRange(i, count).ToArray();
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
         }
