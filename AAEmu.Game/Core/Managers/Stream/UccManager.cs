@@ -1,20 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
+using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.S2C;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Stream;
 using AAEmu.Game.Utils.DB;
 using NLog;
-using NLog.Fluent;
+
+// If you want your server to store the UCC data as actual files instead of in the MediumBlob field, you can enable the
+// below define by removing the comment before it. Please note that existing data will not migrate if this setting is
+// changed on a already existing server. (recommended to keep OFF)
+//#define STORE_UCC_AS_FILE
 
 namespace AAEmu.Game.Core.Managers.Stream
 {
@@ -25,14 +28,37 @@ namespace AAEmu.Game.Core.Managers.Stream
         private Dictionary<uint, UccUploadHandle> _complexUploadParts;
         private Dictionary<ulong, Ucc> _uccs;
         private Dictionary<uint, ulong> _downloadQueue; // connection, UCCId
-        private static Object lockObject = new object();
+        private static readonly object s_lockObject = new object();
+
+        /// <summary>
+        /// Helper function to get the actual byte size of the data blob field
+        /// </summary>
+        /// <param name="uccId"></param>
+        /// <returns></returns>
+        private long GetUccBlobSize(ulong uccId)
+        {
+            using (var connection = MySQL.CreateConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT OCTET_LENGTH(data) FROM uccs WHERE id = @id";
+                command.Parameters.AddWithValue("@id", uccId);
+                command.Prepare();
+                var res = command.ExecuteScalar();
+                if (res is long resVal)
+                    return resVal;
+            }
+            return 0;
+        }
 
         public void Load()
         {
             _uploadQueue = new Dictionary<uint, Ucc>();
             _complexUploadParts = new Dictionary<uint, UccUploadHandle>();
             _uccs = new Dictionary<ulong, Ucc>();
-            _downloadQueue = new Dictionary<uint, ulong>();
+            lock (s_lockObject)
+            {
+                _downloadQueue = new Dictionary<uint, ulong>();
+            }
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -89,11 +115,42 @@ namespace AAEmu.Game.Core.Managers.Stream
                                     Modified = reader.GetDateTime("modified"),
                                 };
                                 
+                                #if STORE_UCC_AS_FILE
+                                
+                                ucc.SaveDataInDB = false ;
+                                // Read UCC data from disk
                                 var uccFileName = Path.Combine(FileManager.AppPath, "UserData", "UCC", id.ToString("000000") + ".dds");
                                 if (File.Exists(uccFileName))
                                     ucc.Data.AddRange(File.ReadAllBytes(uccFileName));
                                 else
                                     _log.Error("Missing UCC file: {0}", uccFileName);
+                                
+                                #else
+                                
+                                ucc.SaveDataInDB = true ;
+
+                                // Read UCC data from DB
+                                var blobSize = reader.IsDBNull(reader.GetOrdinal("data")) ? 0 : GetUccBlobSize(ucc.Id);
+                                if (blobSize > 0)
+                                {
+                                    var blobBuffer = new byte[blobSize];
+                                    var readData = reader.GetBytes(reader.GetOrdinal("data"), 0, blobBuffer, 0, (int)blobSize);
+                                    if (readData == blobSize)
+                                    {
+                                        ucc.Data = blobBuffer.ToList();
+                                    }
+                                    else
+                                    {
+                                        _log.Error("Read blob data size did not match suggested size for UCC {0}", ucc.Id);
+                                        ucc.Data.Clear();
+                                    }
+                                }
+                                else
+                                {
+                                    _log.Warn("CustomUcc has no data for UccId {0}", ucc.Id);
+                                }
+                                
+                                #endif
                                 
                                 _uccs.Add(id, ucc);
                             }
@@ -105,6 +162,13 @@ namespace AAEmu.Game.Core.Managers.Stream
 
         public void StartUpload(StreamConnection connection, int expectedDataSize, CustomUcc customUcc)
         {
+            // Make sure the newly created customUcc has it's SaveDataInDB value set correctly
+            #if STORE_UCC_AS_FILE
+            customUcc.SaveDataInDB = false;
+            #else
+            customUcc.SaveDataInDB = true;
+            #endif
+            
             _uploadQueue.Add(connection.Id, customUcc);
             var uploadHandler = new UccUploadHandle() { ExpectedSize = expectedDataSize, UploadingUcc = customUcc };
             _complexUploadParts.Add(connection.Id, uploadHandler);
@@ -153,7 +217,7 @@ namespace AAEmu.Game.Core.Managers.Stream
             if (!_uccs.TryGetValue(id, out var ucc))
                 return;
 
-            lock (lockObject)
+            lock (s_lockObject)
             {
                 
                 if (_downloadQueue.ContainsKey(connection.Id))
@@ -185,14 +249,21 @@ namespace AAEmu.Game.Core.Managers.Stream
         public void RequestUccPart(StreamConnection connection, int previousIndex, int previousSize)
         {
             _log.Warn("User {0} validated UCC part {1} ({2} bytes), sending next part", connection.GameConnection.ActiveChar.Name, previousIndex, previousSize);
-            if (!_downloadQueue.TryGetValue(connection.Id, out var uccId))
+            ulong uccId = 0;
+            lock (s_lockObject)
             {
-                _log.Warn("User {0} UCC {1} was not in the request queue", connection.GameConnection.ActiveChar.Name, previousIndex);
-                return;
+                if (!_downloadQueue.TryGetValue(connection.Id, out var uccIdVal))
+                {
+                    _log.Warn("User {0} UCC {1} was not in the request queue",
+                        connection.GameConnection.ActiveChar.Name, previousIndex);
+                    return;
+                }
+                uccId = uccIdVal;
             }
 
             if (!_uccs.ContainsKey(uccId))
                 return;
+            
             var ucc = _uccs[uccId];
             if (!(ucc is CustomUcc customUcc))
                 return;
@@ -204,7 +275,7 @@ namespace AAEmu.Game.Core.Managers.Stream
 
             if (startPos >= customUcc.Data.Count)
             {
-                lock (lockObject)
+                lock (s_lockObject)
                 {
                     _downloadQueue.Remove(connection.Id);
                 }
@@ -260,6 +331,8 @@ namespace AAEmu.Game.Core.Managers.Stream
             _uccs.Add(id, ucc);
             _uploadQueue.Remove(connection.Id);
             
+            #if STORE_UCC_AS_FILE
+            // Temporary on-disk storage of UCC data
             if ((ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
             {
                 var uccFileName = Path.Combine(FileManager.AppPath, "UserData", "UCC", id.ToString("000000") + ".dds");
@@ -267,6 +340,7 @@ namespace AAEmu.Game.Core.Managers.Stream
                 if (!File.Exists(uccFileName))
                     _log.Error("Failed to save UCC data to file {0}", uccFileName);
             }
+            #endif
             
             connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.End));
 

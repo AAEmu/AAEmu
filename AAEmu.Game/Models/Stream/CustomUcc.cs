@@ -9,13 +9,24 @@ namespace AAEmu.Game.Models.Stream
     {
         public override UccType Type => UccType.Complex ;
         public virtual List<byte> Data { get; set; } = new List<byte>();
+        public bool SaveDataInDB = true;
         
         public override void Save(MySqlCommand command)
         {
-            command.CommandText =
-                "REPLACE INTO `uccs` " +
-                "(`id`,`uploader_id`,`type`,`pattern1`,`pattern2`,`color1R`,`color1G`,`color1B`,`color2R`,`color2G`,`color2B`,`color3R`,`color3G`,`color3B`,`modified`) " +
-                "VALUES(@id, @uploader_id, @type, @pattern1, @pattern2, @color1R, @color1G, @color1B, @color2R, @color2G, @color2B, @color3R, @color3G, @color3B, @modified)";
+            if (SaveDataInDB)
+            {
+                command.CommandText =
+                    "REPLACE INTO `uccs` " +
+                    "(`id`,`uploader_id`,`type`,`pattern1`,`pattern2`,`color1R`,`color1G`,`color1B`,`color2R`,`color2G`,`color2B`,`color3R`,`color3G`,`color3B`,`modified`,`data`) " +
+                    "VALUES(@id, @uploader_id, @type, @pattern1, @pattern2, @color1R, @color1G, @color1B, @color2R, @color2G, @color2B, @color3R, @color3G, @color3B, @modified, @data)";
+            }
+            else
+            {
+                command.CommandText =
+                    "REPLACE INTO `uccs` " +
+                    "(`id`,`uploader_id`,`type`,`pattern1`,`pattern2`,`color1R`,`color1G`,`color1B`,`color2R`,`color2G`,`color2B`,`color3R`,`color3G`,`color3B`,`modified`) " +
+                    "VALUES(@id, @uploader_id, @type, @pattern1, @pattern2, @color1R, @color1G, @color1B, @color2R, @color2G, @color2B, @color3R, @color3G, @color3B, @modified)";
+            }
 
             command.Parameters.AddWithValue("@id", Id);
             command.Parameters.AddWithValue("@uploader_id", UploaderId);
@@ -32,7 +43,8 @@ namespace AAEmu.Game.Models.Stream
             command.Parameters.AddWithValue("@color3G", Color3G);
             command.Parameters.AddWithValue("@color3B", Color3B);
             command.Parameters.AddWithValue("@modified", DateTime.UtcNow);
-            //command.Parameters.AddWithValue("@data", Data.ToArray());
+            if (SaveDataInDB)
+                command.Parameters.AddWithValue("@data", Data.ToArray());
             command.ExecuteNonQuery();
         }
         
