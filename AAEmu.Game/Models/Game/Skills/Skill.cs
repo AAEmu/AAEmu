@@ -400,24 +400,34 @@ namespace AAEmu.Game.Models.Game.Skills
             //     }
             // }
 
-            /*
+            // Validate cast Item
             if (caster is Character player && casterCaster is SkillItem castItem)
             {
                 var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
                 if (castItemTemplate.UseSkillAsReagent)
                 {
                     var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
-                    var consumeAmt = player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, 1, useItem);
-                    if (consumeAmt == 0)
+                    if (useItem == null)
                     {
-                        //try to consume from equipment if failed (for backpacks)
-                        consumeAmt = player.Inventory.Equipment.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, 1, useItem);
-                        if (consumeAmt == 0)
-                            return; //Failed to consume?
+                        _log.Warn("SkillItem does not exists {0} (templateId: {1})", castItem.ItemId, castItem.ItemTemplateId);
+                        return; // Item does not exists
+                    }
+
+                    if (useItem._holdingContainer.Owner.Id != player.Id)
+                    {
+                        _log.Warn("SkillItem {0} (itemId:{1}) is not owned by player {2} ({3})", useItem.Template.Name, useItem.Id, player.Name, player.Id);
+                        return; // Item is not in the player's possessions
+                    }
+
+                    var itemCount = player.Inventory.GetItemsCount(useItem.TemplateId);
+                    var itemsRequired = 1; // TODO: This probably needs a check if it doesn't require multiple of source item to use, instead of just 1
+                    if (itemCount < itemsRequired) 
+                    {
+                        _log.Warn("SkillItem, player does not own enough of {0} (count: {1}/{2}, templateId: {3})", useItem.Id, itemCount, itemsRequired, castItem.ItemTemplateId);
+                        return; // not enough of item
                     }
                 }
             }
-            */    
 
             if (Template.ChannelingTime > 0)
             {
