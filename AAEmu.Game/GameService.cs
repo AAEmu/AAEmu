@@ -58,6 +58,7 @@ namespace AAEmu.Game
             UccIdManager.Instance.Initialize();
             ShipyardIdManager.Instance.Initialize();
             ShipyardManager.Instance.Initialize();
+            MusicManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();

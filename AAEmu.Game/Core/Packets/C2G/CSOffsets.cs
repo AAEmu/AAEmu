@@ -253,6 +253,8 @@
         public const ushort CSICSGoodsListPacket = 0x11c;
         public const ushort CSICSBuyGoodPacket = 0x11d;
         public const ushort CSICSMoneyRequestPacket = 0x11e;
+        public const ushort CSSaveUserMusicNotes = 0x122;
+        public const ushort CSMusicEnd = 0x124; // tentative name
         // 0x12e CSEnterBeautySalonPacket
         public const ushort CSRankCharacterPacket = 0x12F;
         public const ushort CSRequestSecondPasswordKeyTablesPacket = 0x125;
