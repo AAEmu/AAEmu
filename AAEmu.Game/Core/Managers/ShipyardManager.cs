@@ -193,7 +193,7 @@ namespace AAEmu.Game.Core.Managers
                 // calculate skillData
                 var skillData = (SkillItem)SkillCaster.GetByType(SkillCasterType.Item);
                 skillData.ItemId = foundItems[0].Id;
-                SlaveManager.Instance.Create(character, skillData, true, shipyard);
+                SlaveManager.Instance.Create(character, skillData, true, shipyard.Transform);
             }
             RemoveShipyard(shipyard);
         }

@@ -583,6 +583,23 @@ namespace AAEmu.Game.Models.Game.Char
             return false;
         }
 
+        /// <summary>
+        /// Tries to add a new item to the player's inventory bag (or backpack slot if it's a auto-equip backpack)
+        /// </summary>
+        /// <param name="taskType"></param>
+        /// <param name="itemId">Item Template Id</param>
+        /// <param name="itemCount"></param>
+        /// <param name="gradeToAdd"></param>
+        /// <param name="crafterId"></param>
+        /// <returns></returns>
+        public bool TryAddNewItem(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1, uint crafterId = 0)
+        {
+            if (ItemManager.Instance.IsAutoEquipTradePack(itemId))
+                return TryEquipNewBackPack(taskType, itemId, itemCount, gradeToAdd, crafterId);
+            
+            return Bag.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd, crafterId);
+        }
+
         public Item GetItemById(ulong id)
         {
             foreach(var c in _itemContainers)

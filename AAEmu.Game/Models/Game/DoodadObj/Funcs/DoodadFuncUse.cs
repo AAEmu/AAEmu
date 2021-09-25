@@ -22,10 +22,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
                 if (house == null)
                 {
-                    caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
-                    _log.Warn("Interaction failed because attached house does not exist for doodad {0}", owner.ObjId);
-                    return;
+                    //caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+                    // Added fail-safe in case a doodad wasn't properly deleted from a house
+                    // The first try to recover the doodad will still give a error, but after that, it's free to recover by anyone. 
+                    owner.DbHouseId = 0;
+                    owner.OwnerId = 0;
+                    _log.Warn("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
+                    //return;
                 }
+                else
                 if (!house.AllowedToInteract(player))
                 {
                     caster.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);

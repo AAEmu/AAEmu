@@ -11,6 +11,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ResetCooldown : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.ResetCooldown;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

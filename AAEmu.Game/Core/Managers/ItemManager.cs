@@ -1009,9 +1009,12 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                // HACKFIX FOR CREST INK
-                var uccItemTemplate = new UccTemplate { Id = 17663 };
-                _templates.Add(uccItemTemplate.Id, uccItemTemplate);
+                // TODO: HACKFIX FOR CREST INK/STAMP
+                var crestInkItemTemplate = new UccTemplate { Id = Item.CrestInk };
+                _templates.Add(crestInkItemTemplate.Id, crestInkItemTemplate);
+                
+                var crestSTampItemTemplate = new UccTemplate { Id = Item.CrestStamp };
+                _templates.Add(crestSTampItemTemplate.Id, crestSTampItemTemplate);
 
                 using (var command = connection.CreateCommand())
                 {
@@ -1427,10 +1430,10 @@ namespace AAEmu.Game.Core.Managers
 
                         command.CommandText = "REPLACE INTO items (" +
                             "`id`,`type`,`template_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
-                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`, `flags`" +
+                            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`" +
                             ") VALUES ( " +
                             "@id, @type, @template_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
-                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags" +
+                            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc" +
                             ")";
 
                         command.Parameters.AddWithValue("@id", item.Id);
@@ -1448,6 +1451,7 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@owner", item.OwnerId);
                         command.Parameters.AddWithValue("@grade", item.Grade);
                         command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
+                        command.Parameters.AddWithValue("@ucc", item.UccId);
                         command.ExecuteNonQuery();
                         command.Parameters.Clear();
                         item.IsDirty = false;
@@ -1518,6 +1522,7 @@ namespace AAEmu.Game.Core.Managers
                         item.UnpackTime = reader.GetDateTime("unpack_time");
                         item.CreateTime = reader.GetDateTime("created_at");
                         item.ItemFlags = (ItemFlag)reader.GetByte("flags");
+                        item.UccId = reader.GetUInt32("ucc"); // Make sure this UCC is set BEFORE reading details as UccItem needs to be able to override it
                         var details = (Commons.Network.PacketStream)(byte[])reader.GetValue("details");
                         item.ReadDetails(details);
 
@@ -1595,7 +1600,7 @@ namespace AAEmu.Game.Core.Managers
         {
             var template = GetTemplate(itemTemplateId);
             // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
-            return template != null && template is BackpackTemplate bt && !template.BindType.HasFlag(ItemBindType.BindOnEquip);
+            return (template != null) && (template is BackpackTemplate bt) && (!template.BindType.HasFlag(ItemBindType.BindOnEquip));
         }
     }
 }

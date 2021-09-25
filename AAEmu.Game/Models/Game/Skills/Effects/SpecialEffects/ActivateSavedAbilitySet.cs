@@ -5,6 +5,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ActivateSavedAbilitySet : SpecialEffectAction
     {
+        //protected override SpecialType SpecialEffectActionType => SpecialType.ActivateSavedAbilitySet;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

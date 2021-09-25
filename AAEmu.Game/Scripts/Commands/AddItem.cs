@@ -64,7 +64,7 @@ namespace AAEmu.Game.Scripts.Commands
                 return;
             }
 
-            if ((itemTemplate.Category_Id == 133) || (itemTemplate.Category_Id == 122)) // Speciality Packs or Tradepacks
+            if (ItemManager.Instance.IsAutoEquipTradePack(itemTemplate.Id))// .Category_Id == 133) || (itemTemplate.Category_Id == 122)) // Speciality Packs or Tradepacks
             {
                 var currentBackpack = targetPlayer.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
                 if (currentBackpack != null)

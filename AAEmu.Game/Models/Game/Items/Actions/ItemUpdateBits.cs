@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         private readonly SlotType _slotType;
         private readonly byte _slot;
         private readonly byte _bits;
+        //private readonly byte _oldBits;
 
         public ItemUpdateBits(Item item)
         {
@@ -18,6 +19,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             _type = ItemAction.SetFlagsBits; // 10
             // 10 image
             // 20 unwrapp
+            //_oldBits = oldBits;
         }
 
         public override PacketStream Write(PacketStream stream)

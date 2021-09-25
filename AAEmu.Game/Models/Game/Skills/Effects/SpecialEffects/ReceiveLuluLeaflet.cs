@@ -23,10 +23,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             var itemInfo = owner.Inventory.GetItemById(skillData.ItemId);
             if (itemInfo == null || itemInfo.Count <= 0) return;
 
-            // TODO: use the selected item instead of the item template
             if (owner.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents,skillData.ItemTemplateId,1,itemInfo) <= 0)
             {
-                // TODO: LOYALT IS ACCOUNT WIDE
+                // TODO: LOYALTY IS ACCOUNT WIDE
+                owner.BmPoint += Value1;
                 owner.SendPacket(new SCBmPointPacket(owner.BmPoint));
             }
             /*

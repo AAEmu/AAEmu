@@ -57,6 +57,7 @@ namespace AAEmu.Game.Models.Game.Items
         private DateTime _unpackTime;
         private uint _imageItemTemplateId;
         private bool _isDirty;
+        private ulong _uccId;
 
         public bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public byte WorldId { get => _worldId; set { _worldId = value; _isDirty = true; } }
@@ -76,6 +77,20 @@ namespace AAEmu.Game.Models.Game.Items
         public DateTime UnpackTime { get => _unpackTime; set { _unpackTime = value; _isDirty = true; } }
         public uint ImageItemTemplateId { get => _imageItemTemplateId; set { _imageItemTemplateId = value; _isDirty = true; } }
 
+        public ulong UccId
+        {
+            get => _uccId;
+            set
+            {
+                _uccId = value;
+                if (value > 0)
+                    SetFlag(ItemFlag.HasUCC);
+                else
+                    RemoveFlag(ItemFlag.HasUCC);
+                _isDirty = true;
+            }
+        }
+
         public virtual ItemDetailType DetailType => 0; // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
 
         // Helper
@@ -84,6 +99,8 @@ namespace AAEmu.Game.Models.Game.Items
         public static uint TaxCertificate = 31891;
         public static uint BoundTaxCertificate = 31892;
         public static uint AppraisalCertificate = 28085;
+        public static uint CrestStamp = 17662;
+        public static uint CrestInk = 17663;
 
         /// <summary>
         /// Sort will use itemSlot numbers

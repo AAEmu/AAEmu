@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 return;
 
             var count = Rand.Next(CountMin, CountMax);
-            if (character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
+            if (character.Inventory.TryAddNewItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
                 owner.ToPhaseAndUse = true;
             else
                 character.SendErrorMessage(ErrorMessageType.BagFull);

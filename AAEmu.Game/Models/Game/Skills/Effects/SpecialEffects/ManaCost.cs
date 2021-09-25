@@ -10,6 +10,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class ManaCost : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.ManaCost;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

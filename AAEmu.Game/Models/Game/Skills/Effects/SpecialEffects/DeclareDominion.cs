@@ -12,6 +12,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class DeclareDominion: SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.DeclareDominion;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,

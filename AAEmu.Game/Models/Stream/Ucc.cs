@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Stream
     {
         public uint Id { get; set; }
         public uint UploaderId { get; set; }
-        public ulong Modified { get; set; }
+        public DateTime Modified { get; set; }
         public virtual UccType Type { get; set; }
         public virtual void Save(MySqlCommand cmd) {}
         public virtual void Load(MySqlCommand cmd) {}

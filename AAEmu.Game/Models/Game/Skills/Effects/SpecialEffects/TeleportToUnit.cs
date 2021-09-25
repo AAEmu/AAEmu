@@ -12,6 +12,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
     public class TeleportToUnit : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.TeleportToUnit;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
