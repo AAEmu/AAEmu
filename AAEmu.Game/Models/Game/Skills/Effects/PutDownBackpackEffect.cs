@@ -72,6 +72,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 doodad.AttachPoint = AttachPointKind.None ;
                 doodad.ItemId = item.Id ;
                 doodad.ItemTemplateId = item.Template.Id;
+                doodad.UccId = item.UccId; // Not sure if it's needed, but let's copy the Ucc for completeness' sake
                 doodad.SetScale(1f);
                 doodad.PlantTime = DateTime.UtcNow;
                 if (targetHouse != null)
