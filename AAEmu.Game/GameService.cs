@@ -56,9 +56,9 @@ namespace AAEmu.Game
             QuestIdManager.Instance.Initialize();
             MailIdManager.Instance.Initialize();
             UccIdManager.Instance.Initialize();
+            MusicIdManager.Instance.Initialize();
             ShipyardIdManager.Instance.Initialize();
             ShipyardManager.Instance.Initialize();
-            MusicManager.Instance.Initialize();
 
             ZoneManager.Instance.Load();
             WorldManager.Instance.Load();
@@ -110,6 +110,8 @@ namespace AAEmu.Game
             AccessLevelManager.Instance.Load();
             CashShopManager.Instance.Load();
             UccManager.Instance.Load();
+            MusicManager.Instance.Load();
+            
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();
