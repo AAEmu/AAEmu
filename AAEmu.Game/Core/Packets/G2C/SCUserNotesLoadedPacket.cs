@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _songId ;
         private readonly SongData _song;
 
-        public SCUserNotesLoadedPacket(uint songId) : base(SCOffsets.SCGetSlotCountPacket, 1)
+        public SCUserNotesLoadedPacket(uint songId) : base(SCOffsets.SCUserNoteLoadedPacket, 1)
         {
             _songId = songId;
             _song = MusicManager.Instance.GetSongById(_songId);
@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 stream.Write((byte)1); // Observed as 1
                 stream.Write(_song.Song.Length);
                 stream.Write(_song.Title);
-                stream.Write(_song.Song, true, true);
+                stream.Write(_song.Song+"\0");
             }
             return stream;
         }

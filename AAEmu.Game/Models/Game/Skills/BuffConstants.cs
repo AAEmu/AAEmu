@@ -20,6 +20,7 @@
         Deterioration = 3553, // Deterioration
         TaxProtection = 3554, // Tax Protection
         EquipDualwield = 4899,
+        ScoreMemorized = 6010,
         EquipShield = 8226,
         EquipTwoHanded = 8227,
         NpcReturn = 550 // TODO: Find

@@ -1,4 +1,5 @@
 ﻿using System;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
@@ -20,6 +21,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             // TODO ...
             _log.Warn("Special effects: PauseUserMusic");
+            target.BroadcastPacket(new SCPauseUserMusicPacket(target.ObjId), true);
+            //target.Buffs.RemoveBuff(6176); // Flute Play
+            //target.Buffs.RemoveBuff(6177); // Lute Play
         }
     }
 }
