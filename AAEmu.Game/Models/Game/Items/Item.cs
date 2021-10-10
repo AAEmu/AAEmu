@@ -101,6 +101,7 @@ namespace AAEmu.Game.Models.Game.Items
         public static uint AppraisalCertificate = 28085;
         public static uint CrestStamp = 17662;
         public static uint CrestInk = 17663;
+        public static uint SheetMusic = 28051;
 
         /// <summary>
         /// Sort will use itemSlot numbers

@@ -1009,12 +1009,15 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                // TODO: HACKFIX FOR CREST INK/STAMP
+                // TODO: HACKFIX FOR CREST INK/STAMP/MUSIC
                 var crestInkItemTemplate = new UccTemplate { Id = Item.CrestInk };
                 _templates.Add(crestInkItemTemplate.Id, crestInkItemTemplate);
                 
-                var crestSTampItemTemplate = new UccTemplate { Id = Item.CrestStamp };
-                _templates.Add(crestSTampItemTemplate.Id, crestSTampItemTemplate);
+                var crestStampItemTemplate = new UccTemplate { Id = Item.CrestStamp };
+                _templates.Add(crestStampItemTemplate.Id, crestStampItemTemplate);
+
+                var sheetMusicItemTemplate = new MusicSheetTemplate { Id = Item.SheetMusic };
+                _templates.Add(sheetMusicItemTemplate.Id,sheetMusicItemTemplate);
 
                 using (var command = connection.CreateCommand())
                 {

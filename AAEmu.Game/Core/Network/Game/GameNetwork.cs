@@ -269,6 +269,11 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSICSGoodsListPacket, 1, typeof(CSICSGoodsListPacket));
             RegisterPacket(CSOffsets.CSICSBuyGoodPacket, 1, typeof(CSICSBuyGoodPacket));
             RegisterPacket(CSOffsets.CSICSMoneyRequestPacket, 1, typeof(CSICSMoneyRequestPacket));
+            RegisterPacket(CSOffsets.CSSaveUserMusicNotesPacket,1,typeof(CSSaveUserMusicNotesPacket));
+            RegisterPacket(CSOffsets.CSRequestMusicNotesPacket,1,typeof(CSRequestMusicNotesPacket));
+            RegisterPacket(CSOffsets.CSSendUserMusicPacket,1,typeof(CSSendUserMusicPacket));
+            RegisterPacket(CSOffsets.CSEndMusicPacket,1,typeof(CSEndMusicPacket));
+            
             // 0x12e CSEnterBeautySalonPacket
             RegisterPacket(CSOffsets.CSRankCharacterPacket, 1, typeof(CSRankCharacterPacket));
             RegisterPacket(CSOffsets.CSRequestSecondPasswordKeyTablesPacket, 1, typeof(CSRequestSecondPasswordKeyTablesPacket));
