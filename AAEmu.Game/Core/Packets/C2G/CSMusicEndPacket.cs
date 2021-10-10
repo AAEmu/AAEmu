@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
@@ -16,9 +17,14 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             _log.Warn("CSEndMusicPacket");
             var b = Connection.ActiveChar.Buffs;
-            b.RemoveBuff((uint)BuffConstants.ScoreMemorized);
-            //b.RemoveBuff(6176); // Flute Play
-            //b.RemoveBuff(6177); // Lute Play
+
+            var allMusicBuffs = SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong); // 1155 = Play Song
+            foreach (var buff in allMusicBuffs)
+            {
+                if (b.CheckBuff(buff))
+                    b.RemoveBuff(buff);
+            }
+            
         }
     }
 }

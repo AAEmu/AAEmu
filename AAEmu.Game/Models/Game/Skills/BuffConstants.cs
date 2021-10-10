@@ -21,6 +21,9 @@
         TaxProtection = 3554, // Tax Protection
         EquipDualwield = 4899,
         ScoreMemorized = 6010,
+        FlutePlay = 6176,
+        LutePlay = 6177,
+        DrumPlay = 8216, // this one is actually called Play Drums, but not really used
         EquipShield = 8226,
         EquipTwoHanded = 8227,
         NpcReturn = 550 // TODO: Find

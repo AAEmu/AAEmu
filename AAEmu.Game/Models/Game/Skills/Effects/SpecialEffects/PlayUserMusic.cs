@@ -1,5 +1,6 @@
 ﻿using System;
-
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
 
 using NLog;
@@ -26,9 +27,37 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             _log.Warn("SpecialEffectAction - PlayUserMusic - value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
             // TODO: make sure the proper instrument buff gets applied
             // The related tags seems to be "Play Song" (1155) and "Music Play Animation" (1202)
+
+            if (target is Character player)
+            {
+                var instrument = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Musical);
+                if (instrument != null)
+                {
+                    // I'm sure we can get this relation info from the tables somewhere, but can't find it
+                    // TODO: It might be that instrument doodads require special handling (not tested)
+                    switch ((ItemCategory)instrument.Template.Category_Id)
+                    {
+                        case ItemCategory.Lute:
+                            target.Buffs.AddBuff((uint)BuffConstants.LutePlay, caster);
+                            break;
+                        case ItemCategory.Flute:
+                            target.Buffs.AddBuff((uint)BuffConstants.FlutePlay, caster);
+                            break;
+                        //case ItemCategory.Drum:
+                        //    // NOTE: You can't actually use drum weapons as a instrument, client will throw a "requirements not met" error
+                        //    target.Buffs.AddBuff((uint)BuffConstants.DrumPlay, caster);
+                        //    break;
+                        default:
+                            _log.Warn("SpecialEffectAction - PlayUserMusic - Equipped instrument slot is not a known instrument !");
+                            break;
+                    }
+                }
+                else
+                {
+                    _log.Warn("SpecialEffectAction - PlayUserMusic - No instrument equipped !");
+                }
+            }
             
-            //target.Buffs.AddBuff(6176, caster); // Flute Play 
-            target.Buffs.AddBuff(6177, caster); // Lute Play 
         }
     }
 }
