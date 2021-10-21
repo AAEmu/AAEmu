@@ -12,6 +12,8 @@
         public const uint HealPetSWounds = 12195;
         public const uint FormGuild = 13736;
         public const uint WarSupport = 12660; // Arena
+        public const uint StopPlaying = 22214; // Pause music
+        public const uint CloseTheScore = 22217; // End of song/stop
         public const uint ItemFusion = 23478;
     }
  
