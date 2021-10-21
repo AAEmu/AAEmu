@@ -1,4 +1,6 @@
 ﻿using System;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
@@ -30,6 +32,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             if (target is Character player)
             {
+                // Send Midi data
+                player.BroadcastPacket(new SCSendUserMusicPacket(player.ObjId, player.Name, MusicManager.Instance.GetMidiCache(player.Id)), true);
+                
+                
                 var instrument = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Musical);
                 if (instrument != null)
                 {
@@ -56,6 +62,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 {
                     _log.Warn("SpecialEffectAction - PlayUserMusic - No instrument equipped !");
                 }
+
             }
             
         }

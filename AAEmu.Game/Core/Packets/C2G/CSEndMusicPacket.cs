@@ -16,15 +16,19 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             _log.Warn("CSEndMusicPacket");
-            var b = Connection.ActiveChar.Buffs;
-
-            var allMusicBuffs = SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong); // 1155 = Play Song
-            foreach (var buff in allMusicBuffs)
-            {
-                if (b.CheckBuff(buff))
-                    b.RemoveBuff(buff);
-            }
             
+            // remove all remaining music buffs is score memorization has ended already
+            var b = Connection.ActiveChar.Buffs;
+            if (!b.CheckBuff((uint)BuffConstants.ScoreMemorized))
+            {
+                var allMusicBuffs = SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong); // 1155 = Play Song
+                foreach (var buff in allMusicBuffs)
+                {
+                    if (b.CheckBuff(buff))
+                        b.RemoveBuff(buff);
+                }
+            }
+
         }
     }
 }
