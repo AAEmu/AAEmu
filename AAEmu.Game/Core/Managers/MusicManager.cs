@@ -26,14 +26,14 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<uint, SongData> _uploadQueue; // playerId, song
         private Dictionary<uint, SongData> _allSongs; // songId, song
-        private Dictionary<uint, byte[]> _MidiCache; // playerId, midi data
+        private Dictionary<uint, byte[]> _midiCache; // playerId, midi data
         
 
         public void Load()
         {
             _uploadQueue = new Dictionary<uint, SongData>();            
             _allSongs = new Dictionary<uint, SongData>();
-            _MidiCache = new Dictionary<uint, byte[]>();
+            _midiCache = new Dictionary<uint, byte[]>();
             
             using (var connection = MySQL.CreateConnection())
             {
@@ -162,14 +162,14 @@ namespace AAEmu.Game.Core.Managers
 
         public void CacheMidi(uint playerId, byte[] midiData)
         {
-            if (_MidiCache.ContainsKey(playerId))
-                _MidiCache.Remove(playerId);
-            _MidiCache.Add(playerId,midiData);
+            if (_midiCache.ContainsKey(playerId))
+                _midiCache.Remove(playerId);
+            _midiCache.Add(playerId,midiData);
         }
 
         public byte[] GetMidiCache(uint playerId)
         {
-            if (_MidiCache.TryGetValue(playerId, out var data))
+            if (_midiCache.TryGetValue(playerId, out var data))
                 return data;
             return Array.Empty<byte>();
         }
