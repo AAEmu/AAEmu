@@ -2,7 +2,7 @@
 {
     public static class CSOffsets
     {
-        // All opcodes here are updated for version client_12_r223748
+        // All opcodes here are updated for client 1.2 version 223748 March 18, 2015
         public const ushort X2EnterWorldPacket = 0x00;
         // double _01_&_05_
         public const ushort CSResturnAddrsPacket = 0x056;     // level = 1
