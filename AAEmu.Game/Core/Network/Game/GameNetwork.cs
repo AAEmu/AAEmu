@@ -28,8 +28,8 @@ namespace AAEmu.Game.Core.Network.Game
             //
             RegisterPacket(CSOffsets.CSResturnAddrsPacket, 1, typeof(CSResturnAddrsPacket)); // level = 1
             RegisterPacket(CSOffsets.CSResturnAddrs_05_Packet, 5, typeof(CSResturnAddrs_05_Packet)); // level = 5
-            RegisterPacket(CSOffsets.CSHgResponsePacket, 1, typeof(CSHgResponsePacket)); // level = 1
-            RegisterPacket(CSOffsets.CSHgResponse_05_Packet, 5, typeof(CSHgResponse_05_Packet)); // level = 5
+            RegisterPacket(CSOffsets.CSHGResponsePacket, 1, typeof(CSHGResponsePacket)); // level = 1
+            RegisterPacket(CSOffsets.CSHGResponse_05_Packet, 5, typeof(CSHGResponse_05_Packet)); // level = 5
 
             RegisterPacket(CSOffsets.CSLeaveWorldPacket, 5, typeof(CSLeaveWorldPacket));
             RegisterPacket(CSOffsets.CSCancelLeaveWorldPacket, 5, typeof(CSCancelLeaveWorldPacket));

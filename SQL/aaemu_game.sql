@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS `aaemu_game`;
-USE aaemu_game;
+CREATE DATABASE IF NOT EXISTS `aaemu_game12march`;
+USE aaemu_game12march;
 -- --------------------------------------------------------------------------
 -- Make sure to remove the above two lines if you want use your own DB names
 -- --------------------------------------------------------------------------

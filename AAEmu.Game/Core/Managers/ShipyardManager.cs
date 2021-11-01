@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Managers
             pos.RotationZ = Helpers.ConvertRotation(zrot);
             var objId = ObjectIdManager.Instance.GetNextId();
             var template = _shipyards[id];
-            var shipId = 7199u;
+            var shipId = 3039u;
             var shipyard = new Shipyard
             {
                 ObjId = objId,
@@ -53,15 +53,16 @@ namespace AAEmu.Game.Core.Managers
                 zRot = pos.RotationZ,
                 MoneyAmount = 0,
                 Actions = 0,
-                Type = type1,
+                Type = template.OriginItemId,
                 OwnerName = owner.Name,
-                Type2 = type2,
-                Type3 = type3,
+                Type2 = owner.Id,
+                Type3 = owner.Faction.Id,
                 Spawned = DateTime.Now,
                 ObjId = objId,
                 Hp = template.ShipyardSteps[step].MaxHp * 100,
                 Step = step
             };
+            shipyard.Buffs.AddBuff(new Buff(shipyard, shipyard, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(3554), null, System.DateTime.UtcNow));
             shipyard.Spawn();
         }
 

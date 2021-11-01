@@ -3,9 +3,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
-    public class CSHgResponse_05_Packet : GamePacket
+    public class CSHGResponse_05_Packet : GamePacket
     {
-        public CSHgResponse_05_Packet() : base(CSOffsets.CSHgResponse_05_Packet, 5)
+        public CSHGResponse_05_Packet() : base(CSOffsets.CSHGResponse_05_Packet, 5)
         {
         }
 

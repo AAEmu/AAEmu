@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly MoveType _type;
 
-        public SCOneUnitMovementPacket(uint id, MoveType type) : base(SCOffsets.SCOneUnitMovementPacket, 5)
+        public SCOneUnitMovementPacket(uint id, MoveType type) : base(SCOffsets.SCOneUnitMovementPacket, 1)
         {
             _id = id;
             _type = type;
