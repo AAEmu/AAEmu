@@ -178,7 +178,7 @@ CREATE TABLE `characters` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `deleted` int NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`,`account_id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Basic player character data';
 
 
@@ -257,7 +257,7 @@ CREATE TABLE `expeditions` (
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `mother` int NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`,`owner`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guilds';
 
 
@@ -304,7 +304,7 @@ CREATE TABLE `housings` (
   `sell_to` int unsigned NOT NULL DEFAULT '0',
   `sell_price` bigint NOT NULL DEFAULT '0',
   `allow_recover` tinyint unsigned NOT NULL DEFAULT '1',
-  PRIMARY KEY (`account_id`,`owner`,`id`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player buildings';
 
 
