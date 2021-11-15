@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Models
@@ -19,6 +19,10 @@ namespace AAEmu.Game.Models
         }
     }
 
+    /// <summary>
+    /// Registered payment type.
+    /// Scripts seem to reference the following types related to labor info: person, person_time, pcbang, trial, event (siege_event)
+    /// </summary>
     public enum PaymentMethodType
     {
         Premium = 1,
