@@ -458,7 +458,7 @@ CREATE TABLE `uccs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='User Created Content (crests)';
 
 
-DROP TABLE IF EXISTS `music`
+DROP TABLE IF EXISTS `music`;
 CREATE TABLE `music` (
   `id` int NOT NULL AUTO_INCREMENT,
   `author` int NOT NULL COMMENT 'PlayerId',
