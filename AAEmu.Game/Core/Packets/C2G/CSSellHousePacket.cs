@@ -31,8 +31,11 @@ namespace AAEmu.Game.Core.Packets.C2G
                     return;
                 }
             }
-            
-            HousingManager.Instance.SetForSale(tl, moneyAmount, sellToId, Connection.ActiveChar);
+
+            if (moneyAmount > 0)
+                HousingManager.Instance.SetForSale(tl, moneyAmount, sellToId, Connection.ActiveChar);
+            else
+                HousingManager.Instance.CancelForSale(tl, true);
         }
     }
 }

@@ -32,10 +32,14 @@ namespace AAEmu.Game.Core.Packets.Proxy
                     }
                     Connection.SendPacket(new SetGameTypePacket(levelname, 0, 1)); // TODO - level
                     Connection.SendPacket(new SCInitialConfigPacket());
+                    
                     // Test URLs                                     // Original Trion values
-                    var authUrl     = "http://localhost/login/";     // "https://session.draft.integration.triongames.priv";
-                    var platformUrl = "http://localhost/platform/";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
-                    var commerceUrl = "http://localhost/shop/";      // "" ;
+                    // Client treats these as folders and will add a trailing slash (/) with whatever it needs
+                    // For example, opening the Wiki would send http://localhost/aaemu/platform/login
+                    var authUrl     = "http://localhost/aaemu/login";     // "https://session.draft.integration.triongames.priv";
+                    var platformUrl = "http://localhost/aaemu/platform";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
+                    var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
+
                     // It seems this packet can be ignored if you don't use the wiki/shop
                     Connection.SendPacket(new SCTrionConfigPacket(
                         true,

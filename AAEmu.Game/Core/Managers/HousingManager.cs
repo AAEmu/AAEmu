@@ -156,7 +156,8 @@ namespace AAEmu.Game.Core.Managers
                             template.GardenRadius = reader.GetFloat("garden_radius");
                             template.Family = reader.GetString("family");
                             var taxationId = reader.GetUInt32("taxation_id");
-                            template.Taxation = TaxationsManager.Instance.taxations.ContainsKey(taxationId) ? TaxationsManager.Instance.taxations[taxationId] : null; template.GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id", 0);
+                            template.Taxation = TaxationsManager.Instance.taxations.ContainsKey(taxationId) ? TaxationsManager.Instance.taxations[taxationId] : null; 
+                            template.GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id", 0);
                             template.CinemaRadius = reader.GetFloat("cinema_radius");
                             template.AutoZOffsetX = reader.GetFloat("auto_z_offset_x");
                             template.AutoZOffsetY = reader.GetFloat("auto_z_offset_y");
@@ -1019,6 +1020,55 @@ namespace AAEmu.Game.Core.Managers
             return certAmount;
         }
 
+        private void SetForSaleMarkers(House house, bool isForSale)
+        {
+            const uint ForSaleMarkerId = 6760;
+            
+            if (isForSale)
+            {
+                for (int postId = 0; postId < 4; postId++)
+                {
+                    var xMultiplier = (postId % 2) == 0 ? -1 : 1f;
+                    var yMultiplier = (postId / 2) == 0 ? -1 : 1f;
+                    
+                    var doodad = DoodadManager.Instance.Create(0, ForSaleMarkerId);
+                    doodad.Transform.Parent = house.Transform;
+                    // location
+                    doodad.Transform.Local.SetPosition(
+                        (house.Template.GardenRadius * xMultiplier) + house.Transform.World.Position.X,
+                        (house.Template.GardenRadius * yMultiplier) + house.Transform.World.Position.Y,
+                        +house.Transform.World.Position.Z);
+                    // adjust height to the floor
+                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform) + 2f);
+                    doodad.ItemTemplateId = 0; // designId;
+                    doodad.ItemId = 0;
+                    doodad.DbHouseId = house.Id;
+                    doodad.OwnerId = house.OwnerId;
+                    doodad.ParentObjId = house.ObjId;
+                    doodad.ParentObj = house;
+                    doodad.AttachPoint = AttachPointKind.None;
+                    doodad.OwnerType = DoodadOwnerType.Housing;
+                    doodad.UccId = 0;
+
+                    doodad.Spawn();
+                }
+                
+            }
+            else
+            {
+                for(var c = house.AttachedDoodads.Count-1 ; c >= 0; c--)
+                {
+                    var doodad = house.AttachedDoodads[c];
+                    if (doodad.TemplateId == ForSaleMarkerId)
+                    {
+                        house.AttachedDoodads.Remove(doodad);
+                        doodad.Delete();
+                    }
+                
+                }
+            }
+        }
+        
         public bool SetForSale(ushort houseTlId, uint price, uint buyerId, Character seller) =>
             SetForSale(GetHouseByTlId(houseTlId), price, buyerId, seller);
 
@@ -1055,8 +1105,12 @@ namespace AAEmu.Game.Core.Managers
             house.BroadcastPacket(new SCHouseSetForSalePacket(house.TlId, price, house.SellToPlayerId, buyerName, house.Name), false);
 
             // TODO: spawn for sale markers
+            SetForSaleMarkers(house, true);
             return true;
         }
+        
+        public bool CancelForSale(ushort houseTlId, bool returnCertificates = true) =>
+            CancelForSale(GetHouseByTlId(houseTlId),returnCertificates);
 
         public bool CancelForSale(House house, bool returnCertificates = true)
         {
@@ -1069,6 +1123,7 @@ namespace AAEmu.Game.Core.Managers
 
             house.BroadcastPacket(new SCHouseResetForSalePacket(house.TlId, house.Name), false);
             // TODO: remove for sale markers
+            SetForSaleMarkers(house, false);
 
             return true;
         }
