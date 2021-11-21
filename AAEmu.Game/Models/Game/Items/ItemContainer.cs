@@ -437,21 +437,27 @@ namespace AAEmu.Game.Models.Game.Items
 
             // First try to add to existing item counts
             var itemTasks = new List<ItemTask>();
-            foreach (var i in currentItems)
+            // Never update in mail containers
+            if (ContainerType != SlotType.Mail)
             {
-                var freeSpace = i.Template.MaxCount - i.Count;
-                if (freeSpace > 0)
+                foreach (var i in currentItems)
                 {
-                    var addAmount = Math.Min(freeSpace, amountToAdd);
-                    i.Count += addAmount;
-                    amountToAdd -= addAmount;
-                    itemTasks.Add(new ItemCountUpdate(i, addAmount));
-                    updatedItemsList.Add(i);
-                    Owner?.Inventory.OnAcquiredItem(i, addAmount, true);
+                    var freeSpace = i.Template.MaxCount - i.Count;
+                    if (freeSpace > 0)
+                    {
+                        var addAmount = Math.Min(freeSpace, amountToAdd);
+                        i.Count += addAmount;
+                        amountToAdd -= addAmount;
+                        itemTasks.Add(new ItemCountUpdate(i, addAmount));
+                        updatedItemsList.Add(i);
+                        Owner?.Inventory.OnAcquiredItem(i, addAmount, true);
+                    }
+
+                    if (amountToAdd < 0)
+                        break;
                 }
-                if (amountToAdd < 0)
-                    break;
             }
+
             while (amountToAdd > 0)
             {
                 var addAmount = Math.Min(amountToAdd, template.MaxCount);

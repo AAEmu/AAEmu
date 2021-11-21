@@ -20,11 +20,13 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Housing;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
@@ -35,6 +37,8 @@ namespace AAEmu.Game.Core.Managers
 {
     public class HousingManager : Singleton<HousingManager>
     {
+        private const uint ForSaleMarkerDoodadId = 6760;
+        
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private Dictionary<uint, HousingTemplate> _housingTemplates;
         private Dictionary<uint, House> _houses;
@@ -678,7 +682,7 @@ namespace AAEmu.Game.Core.Managers
                 // Make sure to call UpdateTaxInfo first to remove tax-rated mails of this house
                 UpdateTaxInfo(house);
                 // Return items to player by mail
-                ReturnHouseItemsToOwner(house, failedToPayTax, forceRestoreAllDecor);
+                ReturnHouseItemsToOwner(house, failedToPayTax, forceRestoreAllDecor, null);
 
                 // Remove owner
                 house.OwnerId = 0;
@@ -692,6 +696,9 @@ namespace AAEmu.Game.Core.Managers
                 ownerChar?.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
                 // Make killable
                 UpdateHouseFaction(house, (uint)FactionsEnum.Monstrosity);
+                
+                SetForSaleMarkers(house, false);
+                
                 house.IsDirty = true;
 
                 // TODO: better house killing handling
@@ -840,7 +847,7 @@ namespace AAEmu.Game.Core.Managers
                     UpdateHouseFaction(h.Value, factionId);
         }
 
-        public void ReturnHouseItemsToOwner(House house, bool failedToPayTax, bool forceRestoreAllDecor)
+        public void ReturnHouseItemsToOwner(House house, bool failedToPayTax, bool forceRestoreAllDecor, Character newOwner)
         {
             if (house.OwnerId <= 0)
                 return;
@@ -848,26 +855,33 @@ namespace AAEmu.Game.Core.Managers
             var returnedItems = new List<Item>();
             var returnedMoney = 0;
 
-            // TODO: proper grades for design
-            // TODO for future versions: Support Full-Kit demolition
-            var designItemId = GetItemIdByDesign(house.Template.Id);
-            var designItem = ItemManager.Instance.Create(designItemId, 1, 0);
-            designItem.OwnerId = house.OwnerId;
-            designItem.SlotType = SlotType.Mail;
-            returnedItems.Add(designItem);
-
-            if (!failedToPayTax)
+            // If returning items because of a new House Owner, then don't include the design
+            if (newOwner == null)
             {
-                if (FeaturesManager.Fsets.Check(Models.Game.Features.Feature.taxItem))
+                // TODO: proper grades for design
+                // TODO for future versions: Support Full-Kit demolition
+                var designItemId = GetItemIdByDesign(house.Template.Id);
+                var designItem = ItemManager.Instance.Create(designItemId, 1, 0);
+                var designTemplate = ItemManager.Instance.GetTemplate(designItemId);
+                designItem.Grade = (designTemplate.FixedGrade >= 0) ? (byte)designTemplate.FixedGrade : (byte)0 ;
+                designItem.OwnerId = house.OwnerId;
+                designItem.SlotType = SlotType.Mail;
+                returnedItems.Add(designItem);
+
+                // Return taxes
+                if (!failedToPayTax)
                 {
-                    var taxItem = ItemManager.Instance.Create(Item.BoundTaxCertificate, (int)(house.Template.Taxation.Tax / 5000), 0);
-                    taxItem.OwnerId = house.OwnerId;
-                    taxItem.SlotType = SlotType.Mail;
-                    returnedItems.Add(taxItem);
-                }
-                else
-                {
-                    returnedMoney = (int)(house.Template.Taxation.Tax * 2);
+                    if (FeaturesManager.Fsets.Check(Models.Game.Features.Feature.taxItem))
+                    {
+                        var taxItem = ItemManager.Instance.Create(Item.BoundTaxCertificate, (int)(house.Template.Taxation.Tax / 5000), 0);
+                        taxItem.OwnerId = house.OwnerId;
+                        taxItem.SlotType = SlotType.Mail;
+                        returnedItems.Add(taxItem);
+                    }
+                    else
+                    {
+                        returnedMoney = (int)(house.Template.Taxation.Tax * 2);
+                    }
                 }
             }
 
@@ -876,6 +890,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 // Ignore attached objects (those are doors/windows etc)
                 if (f.AttachPoint != AttachPointKind.None)
+                    continue;
+                
+                // Ignore for sale signs
+                if (f.TemplateId == ForSaleMarkerDoodadId)
                     continue;
 
                 var decoDesign = GetDecorationDesignFromDoodadId(f.TemplateId);
@@ -898,32 +916,71 @@ namespace AAEmu.Game.Core.Managers
                     f.ParentObjId = 0;
                     f.ParentObj = null;
                     f.DbHouseId = 0;
+                    _log.Warn("ReturnHouseItemsToOwner - Furniture doesn't have design info for Doodad Id:{0} Template:{1}", f.ObjId, f.TemplateId);
                     continue;
                 }
 
                 var thisDoodadsItem = ItemManager.Instance.GetItemByItemId(f.ItemId);
+                var returnedThisItem = false;
 
-                // If the decoration item isn't marked as Restore, then just delete it (and it's possibly attached item)
-                if ((!decoInfo.Restore) && (!forceRestoreAllDecor))
-                {
-                    // Delete the attached item
-                    if (f.ItemId != 0)
-                        thisDoodadsItem._holdingContainer.ConsumeItem(ItemTaskType.Invalid, thisDoodadsItem.TemplateId, thisDoodadsItem.Count, thisDoodadsItem);
-
-                    // Is furniture, but doesn't restore, destroy it
-                    f.Transform.DetachAll();
-                    f.Delete();
-                    continue;
-                }
-
+                var wantReturned = (newOwner == null) && decoInfo.Restore;
+                if (forceRestoreAllDecor)
+                    wantReturned = true;
+                
+                // If item is bound, always return it owner
                 if (f.ItemId > 0)
                 {
+                    var item = ItemManager.Instance.GetItemByItemId(f.ItemId);
+                    if (item.ItemFlags.HasFlag(ItemFlag.SoulBound))
+                        wantReturned = true;
+                }
+
+                // If the decoration item isn't marked as Restore, then just delete it (and it's possibly attached item)
+                if (!wantReturned)
+                {
+                    // Non-restore-able item
+                    if (newOwner == null)
+                    {
+                        // Just delete the doodad and attached item if no new owner
+                        // Delete the attached item
+                        if (f.ItemId != 0)
+                            thisDoodadsItem._holdingContainer.ConsumeItem(ItemTaskType.Invalid,
+                                thisDoodadsItem.TemplateId, thisDoodadsItem.Count, thisDoodadsItem);
+
+                        // Is furniture, but doesn't restore, destroy it
+                        f.Transform.DetachAll();
+                        f.Delete();
+                    }
+                    else
+                    {
+                        // Move the doodad and item to the new owner
+                        if (f.ItemId != 0)
+                        {
+                            // If a single item is attached, change it's owner and location
+                            var item = ItemManager.Instance.GetItemByItemId(f.ItemId);
+                            newOwner.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
+                        }
+                        // Change doodad owner
+                        f.OwnerId = newOwner.Id;
+                    }
+
+                    continue;
+                }
+                
+                // Item needs to be actually returned, so let's do that
+                if (f.ItemId > 0)
+                {
+                    // Ignore if it's not in a System container for whatever reason
                     if ((thisDoodadsItem != null) && (thisDoodadsItem.SlotType == SlotType.System))
+                    {
                         returnedItems.Add(thisDoodadsItem);
+                        returnedThisItem = true;
+                    }
                 }
                 else
                 if (f.ItemTemplateId > 0)
                 {
+                    // try to stack stackable items
                     var oldItem = returnedItems.FirstOrDefault(x => (x.TemplateId == f.ItemTemplateId) && (x.Count < x.Template.MaxCount));
 
                     if (oldItem != null)
@@ -932,19 +989,31 @@ namespace AAEmu.Game.Core.Managers
                     }
                     else
                     {
+                        // It's a new one, add a item slot
                         var furnitureItem = ItemManager.Instance.Create(f.ItemTemplateId, 1, 0);
+                        var furnitureTemplate = ItemManager.Instance.GetTemplate(f.ItemTemplateId);
+                        furnitureItem.Grade = (furnitureTemplate.FixedGrade >= 0) ? (byte)furnitureTemplate.FixedGrade : (byte)0 ;
                         furnitureItem.OwnerId = house.OwnerId;
                         furnitureItem.SlotType = SlotType.Mail;
                         returnedItems.Add(furnitureItem);
                     }
+                    returnedThisItem = true;
                 }
                 else
                 {
                     // Not sure what happened here, just ignore it
                     continue;
                 }
-                f.Transform.DetachAll();
-                f.Delete();
+
+                // Set new doodad owner if needed
+                if (newOwner != null)
+                    f.OwnerId = newOwner.Id;
+
+                if ((newOwner == null) || returnedThisItem)
+                {
+                    f.Transform.DetachAll();
+                    f.Delete();
+                }
             }
 
             // TODO: Grab a list of items in chests
@@ -1022,33 +1091,32 @@ namespace AAEmu.Game.Core.Managers
 
         private void SetForSaleMarkers(House house, bool isForSale)
         {
-            const uint ForSaleMarkerId = 6760;
-            
             if (isForSale)
             {
                 for (int postId = 0; postId < 4; postId++)
                 {
                     var xMultiplier = (postId % 2) == 0 ? -1 : 1f;
                     var yMultiplier = (postId / 2) == 0 ? -1 : 1f;
+                    var zRot = ((135f + (90f * postId) % 360)).DegToRad(); 
                     
-                    var doodad = DoodadManager.Instance.Create(0, ForSaleMarkerId);
-                    doodad.Transform.Parent = house.Transform;
+                    var doodad = DoodadManager.Instance.Create(0, ForSaleMarkerDoodadId);
                     // location
                     doodad.Transform.Local.SetPosition(
                         (house.Template.GardenRadius * xMultiplier) + house.Transform.World.Position.X,
                         (house.Template.GardenRadius * yMultiplier) + house.Transform.World.Position.Y,
                         +house.Transform.World.Position.Z);
                     // adjust height to the floor
-                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform) + 2f);
+                    doodad.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(doodad.Transform));
+                    doodad.Transform.Local.SetZRotation(zRot);
                     doodad.ItemTemplateId = 0; // designId;
                     doodad.ItemId = 0;
-                    doodad.DbHouseId = house.Id;
-                    doodad.OwnerId = house.OwnerId;
-                    doodad.ParentObjId = house.ObjId;
-                    doodad.ParentObj = house;
+                    doodad.OwnerId = 0;
+                    doodad.ParentObjId = 0;
+                    doodad.ParentObj = null;
+                    doodad.UccId = 0;
                     doodad.AttachPoint = AttachPointKind.None;
                     doodad.OwnerType = DoodadOwnerType.Housing;
-                    doodad.UccId = 0;
+                    doodad.DbHouseId = house.Id;
 
                     doodad.Spawn();
                 }
@@ -1056,15 +1124,17 @@ namespace AAEmu.Game.Core.Managers
             }
             else
             {
-                for(var c = house.AttachedDoodads.Count-1 ; c >= 0; c--)
+                // Get all doodads related to this house
+                var thisHouseSalePosts = WorldManager.Instance.GetDoodadByHouseDbId(house.Id);
+                for(var c = thisHouseSalePosts.Count-1 ; c >= 0; c--)
                 {
-                    var doodad = house.AttachedDoodads[c];
-                    if (doodad.TemplateId == ForSaleMarkerId)
+                    var doodad = thisHouseSalePosts[c];
+                    // If it's a for sale sign, remove it
+                    if (doodad.TemplateId == ForSaleMarkerDoodadId)
                     {
                         house.AttachedDoodads.Remove(doodad);
                         doodad.Delete();
                     }
-                
                 }
             }
         }
@@ -1101,11 +1171,10 @@ namespace AAEmu.Game.Core.Managers
 
             house.SellPrice = price;
             house.SellToPlayerId = buyerId;
-            // TODO: broadcast changes
-            house.BroadcastPacket(new SCHouseSetForSalePacket(house.TlId, price, house.SellToPlayerId, buyerName, house.Name), false);
 
-            // TODO: spawn for sale markers
+            house.BroadcastPacket(new SCHouseSetForSalePacket(house.TlId, price, house.SellToPlayerId, buyerName, house.Name), false);
             SetForSaleMarkers(house, true);
+            
             return true;
         }
         
@@ -1114,15 +1183,39 @@ namespace AAEmu.Game.Core.Managers
 
         public bool CancelForSale(House house, bool returnCertificates = true)
         {
+            var certAmount = CalculateSaleCertifcates(house, house.SellPrice);
+            var owner = WorldManager.Instance.GetCharacterById(house.OwnerId);
+            
             house.SellPrice = 0;
             house.SellToPlayerId = 0;
-            if (returnCertificates)
+            // Can only return certificates if owner is online and is the one resetting the sale
+            if ((certAmount > 0) && (returnCertificates) && (owner != null))
             {
-                // TODO: mail certificates back to owner
+                if (owner.Inventory.MailAttachments.AcquireDefaultItemEx(ItemTaskType.Invalid,
+                    Item.AppraisalCertificate, certAmount, -1, out var addedItems, out _, 0))
+                {
+                    // Mail container is set up to never update existing items, so we can discard that result
+                    var mail = new BaseMail();
+                    mail.MailType = MailType.HousingSale;
+                    mail.Header.ReceiverId = house.OwnerId;
+                    mail.ReceiverName = NameManager.Instance.GetCharacterName(house.OwnerId);
+                    mail.Title = "title(" + ZoneManager.Instance.GetZoneByKey(house.Transform.ZoneId)?.GroupId.ToString() + ",'" + house.Name + "')";
+                    mail.Header.SenderName = ".houseSellCancel";
+                    mail.Body.Text = "body('" + house.Name + "', " + Item.AppraisalCertificate.ToString() + ", " + certAmount.ToString() + ")";
+                    mail.Body.Attachments.AddRange(addedItems);
+                    mail.Body.SendDate = DateTime.UtcNow;
+                    mail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
+                    mail.Send();
+                }
+                else
+                {
+                    // Failed to create Appraisal certificate ?
+                    _log.Warn("CancelForSale - Failed to create Appraisal Certificates for mail");
+                    return false;
+                }
             }
 
             house.BroadcastPacket(new SCHouseResetForSalePacket(house.TlId, house.Name), false);
-            // TODO: remove for sale markers
             SetForSaleMarkers(house, false);
 
             return true;
@@ -1177,10 +1270,35 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var previousOwner = house.OwnerId;
+            var previousOwnerName = NameManager.Instance.GetCharacterName(previousOwner);
 
-            // TODO: MailProfit to previous owner
-            // TODO: Return bound furniture back to owner
-
+            // Mail confirmation mail to new owner
+            var newOwnerMail = new BaseMail();
+            newOwnerMail.MailType = MailType.HousingSale;
+            newOwnerMail.Header.ReceiverId = character.Id;
+            newOwnerMail.ReceiverName = character.Name;
+            newOwnerMail.Title = "title(" + ZoneManager.Instance.GetZoneByKey(house.Transform.ZoneId)?.GroupId.ToString() + ",'" + house.Name + "')";
+            newOwnerMail.Header.SenderName = ".houseBought";
+            newOwnerMail.Body.Text = "body('" + previousOwnerName + "', '" + house.Name + "', " + house.SellPrice.ToString() + ")";
+            newOwnerMail.Body.SendDate = DateTime.UtcNow;
+            newOwnerMail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
+            newOwnerMail.Send();
+            
+            // Send sales money to previous owner
+            var profitMail = new BaseMail();
+            profitMail.MailType = MailType.HousingSale;
+            profitMail.Header.ReceiverId = previousOwner;
+            profitMail.ReceiverName = previousOwnerName;
+            profitMail.Title = "title('" + character.Name + "','" + house.Name + "')";
+            profitMail.Header.SenderName = ".houseSold";
+            profitMail.Body.Text = "body('" + character.Name + "', '" + house.Name + "', " + house.SellPrice.ToString() + ")";
+            profitMail.Body.CopperCoins = (int)house.SellPrice; // add the money
+            profitMail.Body.SendDate = DateTime.UtcNow;
+            profitMail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
+            profitMail.Send();
+            
+            ReturnHouseItemsToOwner(house, false, false, character);
+            
             // Set new owner info
             house.SellPrice = 0;
             house.SellToPlayerId = 0;
@@ -1195,6 +1313,13 @@ namespace AAEmu.Game.Core.Managers
             house.BroadcastPacket(
                 new SCHouseSoldPacket(house.TlId, previousOwner, character.Id, character.AccountId, character.Name,
                     house.Name), false);
+
+            SetForSaleMarkers(house, false);
+            
+            character.SendPacket(new SCMyHousePacket(house));
+            var oldOwner = WorldManager.Instance.GetCharacterById(previousOwner);
+            if ((oldOwner != null) && (oldOwner.IsOnline))
+                oldOwner.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
 
             house.IsDirty = true;
 
