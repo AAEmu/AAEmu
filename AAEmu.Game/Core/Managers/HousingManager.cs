@@ -4,7 +4,6 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -20,7 +19,6 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -50,6 +48,12 @@ namespace AAEmu.Game.Core.Managers
         private static int MAX_HEAVY_TAX_COUNTED = 10; // Maximum number of heavy tax buildings to take into account for tax calculation
         private bool isCheckingTaxTiming = false;
 
+        /// <summary>
+        /// Gets all houses for a given Account
+        /// </summary>
+        /// <param name="values"></param>
+        /// <param name="accountId"></param>
+        /// <returns></returns>
         public int GetByAccountId(Dictionary<uint, House> values, uint accountId)
         {
             foreach (var (id, house) in _houses)
@@ -58,6 +62,12 @@ namespace AAEmu.Game.Core.Managers
             return values.Count;
         }
 
+        /// <summary>
+        /// Gets all houses owned by Character
+        /// </summary>
+        /// <param name="values"></param>
+        /// <param name="characterId"></param>
+        /// <returns></returns>
         public int GetByCharacterId(Dictionary<uint, House> values, uint characterId)
         {
             foreach (var (id, house) in _houses)
@@ -374,6 +384,11 @@ namespace AAEmu.Game.Core.Managers
                 house.Spawn();
         }
 
+        /// <summary>
+        /// Sets or removes the untouchable buff for the house
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="isUntouchable"></param>
         public void SetUntouchable(House house, bool isUntouchable)
         {
             if (isUntouchable)
@@ -402,6 +417,11 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
+        /// <summary>
+        /// Sets or removes the removal debuff for demolishing houses
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="isDeteriorating"></param>
         public void SetRemovalDebuff(House house, bool isDeteriorating)
         {
             if (isDeteriorating)
@@ -430,8 +450,6 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-
-
         public void ConstructHouseTax(GameConnection connection, uint designId, float x, float y, float z)
         {
             // TODO validation position and some range...
@@ -455,6 +473,11 @@ namespace AAEmu.Game.Core.Managers
             );
         }
 
+        /// <summary>
+        /// Request house tax information (using name plaque of a house)
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="tlId"></param>
         public void HouseTaxInfo(GameConnection connection, ushort tlId)
         {
             if (!_housesTl.ContainsKey(tlId))
@@ -501,6 +524,19 @@ namespace AAEmu.Game.Core.Managers
             );
         }
 
+        /// <summary>
+        /// Start building a house at target location using design
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="designId"></param>
+        /// <param name="posX"></param>
+        /// <param name="posY"></param>
+        /// <param name="posZ"></param>
+        /// <param name="zRot"></param>
+        /// <param name="itemId"></param>
+        /// <param name="moneyAmount"></param>
+        /// <param name="ht"></param>
+        /// <param name="autoUseAaPoint"></param>
         public void Build(GameConnection connection, uint designId, float posX, float posY, float posZ, float zRot,
             ulong itemId, int moneyAmount, int ht, bool autoUseAaPoint)
         {
@@ -614,6 +650,12 @@ namespace AAEmu.Game.Core.Managers
             UpdateTaxInfo(house);
         }
 
+        /// <summary>
+        /// Update house permission settings
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="tlId"></param>
+        /// <param name="permission"></param>
         public void ChangeHousePermission(GameConnection connection, ushort tlId, HousingPermission permission)
         {
             if (!_housesTl.ContainsKey(tlId))
@@ -643,6 +685,12 @@ namespace AAEmu.Game.Core.Managers
             // connection.SendPacket(new SCHousePermissionChangedPacket(tlId, (byte)permission));
         }
 
+        /// <summary>
+        /// Rename house
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="tlId"></param>
+        /// <param name="name"></param>
         public void ChangeHouseName(GameConnection connection, ushort tlId, string name)
         {
             if (!_housesTl.ContainsKey(tlId))
@@ -656,6 +704,13 @@ namespace AAEmu.Game.Core.Managers
             connection.SendPacket(new SCUnitNameChangedPacket(house.ObjId, house.Name));
         }
 
+        /// <summary>
+        /// Start demolishing of a house
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="house"></param>
+        /// <param name="failedToPayTax"></param>
+        /// <param name="forceRestoreAllDecor"></param>
         public void Demolish(GameConnection connection, House house, bool failedToPayTax, bool forceRestoreAllDecor)
         {
             if (!_houses.ContainsKey(house.Id))
@@ -727,6 +782,18 @@ namespace AAEmu.Game.Core.Managers
             //SpawnManager.Instance.AddDespawn(house);
         }
 
+        /// <summary>
+        /// Helper function to calculate due tax
+        /// </summary>
+        /// <param name="AccountId"></param>
+        /// <param name="newHouseTemplate"></param>
+        /// <param name="buildingNewHouse"></param>
+        /// <param name="totalTaxToPay"></param>
+        /// <param name="heavyHouseCount"></param>
+        /// <param name="normalHouseCount"></param>
+        /// <param name="hostileTaxRate"></param>
+        /// <param name="oneWeekTaxCount"></param>
+        /// <returns></returns>
         public bool CalculateBuildingTaxInfo(uint AccountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount)
         {
             totalTaxToPay = 0;
@@ -772,6 +839,10 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
+        /// <summary>
+        /// This function updates related tax mails of a house (if needed)
+        /// </summary>
+        /// <param name="house"></param>
         public void UpdateTaxInfo(House house)
         {
             var isDemolished = (house.ProtectionEndDate <= DateTime.UtcNow);
@@ -816,6 +887,11 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
+        /// <summary>
+        /// Adds a week to the protection end date (pay 1 week's tax)
+        /// </summary>
+        /// <param name="house"></param>
+        /// <returns></returns>
         public bool PayWeeklyTax(House house)
         {
             house.ProtectionEndDate = house.ProtectionEndDate.AddDays(7);
@@ -832,12 +908,22 @@ namespace AAEmu.Game.Core.Managers
             return _housesTl.TryGetValue(houseTlId, out var house) ? house : null;
         }
 
+        /// <summary>
+        /// Changes the faction of the house
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="factionId"></param>
         public void UpdateHouseFaction(House house, uint factionId)
         {
             house.BroadcastPacket(new SCUnitFactionChangedPacket(house.ObjId, house.Name, house.Faction?.Id ?? 0, factionId, false), true);
             house.Faction = FactionManager.Instance.GetFaction(factionId);
         }
 
+        /// <summary>
+        /// Helper function for when the owning character changes faction
+        /// </summary>
+        /// <param name="characterId"></param>
+        /// <param name="factionId"></param>
         public void UpdateOwnedHousingFaction(uint characterId, uint factionId)
         {
             var myHouses = new Dictionary<uint, House>();
@@ -847,6 +933,13 @@ namespace AAEmu.Game.Core.Managers
                     UpdateHouseFaction(h.Value, factionId);
         }
 
+        /// <summary>
+        /// Returns furniture of a house that's being demolished or sold
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="failedToPayTax">Set true if demilishing due to failed tax, this adds a delay to the mail</param>
+        /// <param name="forceRestoreAllDecor">For GM commands or server merges. Will try to send ALL placed furniture if set to true, even those that normally don't get returned.</param>
+        /// <param name="newOwner">New owner Character if buying, otherwise leave null</param>
         public void ReturnHouseItemsToOwner(House house, bool failedToPayTax, bool forceRestoreAllDecor, Character newOwner)
         {
             if (house.OwnerId <= 0)
@@ -1079,6 +1172,12 @@ namespace AAEmu.Game.Core.Managers
             return design?.Item_Id ?? 0;
         }
 
+        /// <summary>
+        /// Helper function to calculate how many Appraisal Certificates are needed to sell a house at a given price
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="salePrice"></param>
+        /// <returns></returns>
         public int CalculateSaleCertifcates(House house, uint salePrice)
         {
             // NOTE: In earlier AA, you need 1 appraisal certificate for every 100 gold of sales price
@@ -1089,6 +1188,11 @@ namespace AAEmu.Game.Core.Managers
             return certAmount;
         }
 
+        /// <summary>
+        /// Sets or removes For Sale Signs on the property
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="isForSale"></param>
         private void SetForSaleMarkers(House house, bool isForSale)
         {
             if (isForSale)
@@ -1142,6 +1246,14 @@ namespace AAEmu.Game.Core.Managers
         public bool SetForSale(ushort houseTlId, uint price, uint buyerId, Character seller) =>
             SetForSale(GetHouseByTlId(houseTlId), price, buyerId, seller);
 
+        /// <summary>
+        /// Puts up a house for sale
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="price"></param>
+        /// <param name="buyerId">Use CharacterId for selling to a specific person</param>
+        /// <param name="seller">Current owner of the property (needed to manipulate inventory)</param>
+        /// <returns></returns>
         public bool SetForSale(House house, uint price, uint buyerId, Character seller)
         {
             if (house == null)
@@ -1181,8 +1293,16 @@ namespace AAEmu.Game.Core.Managers
         public bool CancelForSale(ushort houseTlId, bool returnCertificates = true) =>
             CancelForSale(GetHouseByTlId(houseTlId),returnCertificates);
 
+        /// <summary>
+        /// Cancels a sale
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="returnCertificates"></param>
+        /// <returns></returns>
         public bool CancelForSale(House house, bool returnCertificates = true)
         {
+            if (house.SellPrice <= 0)
+                return true;
             var certAmount = CalculateSaleCertifcates(house, house.SellPrice);
             var owner = WorldManager.Instance.GetCharacterById(house.OwnerId);
             
@@ -1221,6 +1341,34 @@ namespace AAEmu.Game.Core.Managers
             return true;
         }
 
+        /// <summary>
+        /// Updates all furniture on the house to a new owner and broadcasts packets for it
+        /// </summary>
+        /// <param name="house"></param>
+        /// <param name="characterId"></param>
+        /// <returns>The number of items that have their owner information updated</returns>
+        public uint UpdateFurnitureOwner(House house, uint characterId)
+        {
+            uint res = 0;
+            var furnitures = WorldManager.Instance.GetDoodadByHouseDbId(house.Id);
+            foreach (var furniture in furnitures)
+            {
+                if (furniture.AttachPoint != AttachPointKind.None)
+                    continue;
+                furniture.OwnerId = characterId;
+                furniture.BroadcastPacket(new SCDoodadOriginatorPacket(furniture.ObjId, characterId),true);
+                res++;
+            }
+            return res;
+        }
+
+        /// <summary>
+        /// Buys the house using money amount
+        /// </summary>
+        /// <param name="houseId"></param>
+        /// <param name="money"></param>
+        /// <param name="character"></param>
+        /// <returns>Returns true if successful</returns>
         public bool BuyHouse(uint houseId, uint money, Character character)
         {
             var house = GetHouseById(houseId);
@@ -1321,11 +1469,16 @@ namespace AAEmu.Game.Core.Managers
             if ((oldOwner != null) && (oldOwner.IsOnline))
                 oldOwner.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
 
+            UpdateFurnitureOwner(house, character.Id);
+            
             house.IsDirty = true;
 
             return true;
         }
 
+        /// <summary>
+        /// Ticker function for checking all houses if they need tax mails sent
+        /// </summary>
         public void CheckHousingTaxes()
         {
             if (isCheckingTaxTiming)
@@ -1370,6 +1523,17 @@ namespace AAEmu.Game.Core.Managers
             return default ? null : deco;
         }
 
+        /// <summary>
+        /// Places a piece of furniture at a given location, using item and design
+        /// </summary>
+        /// <param name="player"></param>
+        /// <param name="houseId"></param>
+        /// <param name="designId"></param>
+        /// <param name="pos"></param>
+        /// <param name="quat"></param>
+        /// <param name="parentObjId"></param>
+        /// <param name="itemId"></param>
+        /// <returns></returns>
         public bool DecorateHouse(Character player, ushort houseId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId)
         {
             // Check Player
@@ -1457,11 +1621,13 @@ namespace AAEmu.Game.Core.Managers
         /// <summary>
         /// Returns a house where the given position falls within boundaries of the house 
         /// </summary>
-        /// <param name="pos"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
         /// <returns>Target House or Null</returns>
         public House GetHouseAtLocation(float x, float y)
         {
-            // TODO: Checks if all houses use a square shape 
+            // TODO: Check if all houses actually use a square shape aligned to grid
+            // TODO: Add world and/or instance checks
             foreach (var h in _houses)
             {
                 var house = h.Value;
