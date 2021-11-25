@@ -76,8 +76,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(0); // count
 
             stream.Write(50); // initLp
-            stream.Write(false); // canPlaceHouse
-            stream.Write(false); // canPayTax
+            stream.Write(true); // canPlaceHouse
+            stream.Write(true); // canPayTax
             stream.Write(true); // canUseAuction
             stream.Write(true); // canTrade
             stream.Write(true); // canSendMail

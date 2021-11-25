@@ -46,6 +46,8 @@ namespace AAEmu.Game.Models.Game.Housing
         private DateTime _placeDate;
         private DateTime _protectionEndDate;
         private bool _allowRecover;
+        private uint _sellToPlayerId;
+        private uint _sellPrice;
 
         /// <summary>
         /// IsDirty flag for Houses, not all properties are taken into account here as most of the data that needs to be updated will never change
@@ -121,8 +123,8 @@ namespace AAEmu.Game.Models.Game.Housing
         public DateTime PlaceDate { get => _placeDate; set { _placeDate = value; _isDirty = true; } }
         public DateTime ProtectionEndDate { get => _protectionEndDate; set { _protectionEndDate = value; _isDirty = true; } }
         public DateTime TaxDueDate { get => _protectionEndDate.AddDays(-7); }
-        public uint SellToPlayerId { get; set; }
-        public uint SellPrice { get; set; }
+        public uint SellToPlayerId { get => _sellToPlayerId; set { _sellToPlayerId = value; _isDirty = true; } }
+        public uint SellPrice { get => _sellPrice ; set { _sellPrice = value; _isDirty = true; } }
         public bool AllowRecover { get => _allowRecover; set { _allowRecover = value; _isDirty = true; } }
 
 
@@ -328,6 +330,8 @@ namespace AAEmu.Game.Models.Game.Housing
         public bool AllowedToInteract(Character player)
         {
             if (Template.AlwaysPublic)
+                return true;
+            if (CurrentStep != -1) // unfinished houses can't be used to private store
                 return true;
             switch (Permission)
             {

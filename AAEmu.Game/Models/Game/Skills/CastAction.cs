@@ -26,7 +26,10 @@ namespace AAEmu.Game.Models.Game.Skills
     {
         private uint _skillId;
         private ushort _tlId;
-
+        
+        public uint SkillId { get => _skillId; }
+        public uint TlId { get => _skillId; }
+        
         public CastSkill(uint skillId, ushort tlId)
         {
             Type = CastType.Skill;
