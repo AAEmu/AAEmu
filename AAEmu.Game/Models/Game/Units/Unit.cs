@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -473,6 +474,12 @@ namespace AAEmu.Game.Models.Game.Units
             SendPacket(new SCErrorMsgPacket(type, 0, true));
         }
 
+        /// <summary>
+        /// Get distance between two units taking into account their model sizes
+        /// </summary>
+        /// <param name="baseUnit"></param>
+        /// <param name="includeZAxis"></param>
+        /// <returns></returns>
         public float GetDistanceTo(BaseUnit baseUnit, bool includeZAxis = false)
         {
             if (Transform.World.Position.Equals(baseUnit.Transform.World.Position))
@@ -481,20 +488,23 @@ namespace AAEmu.Game.Models.Game.Units
             var rawDist = MathUtil.CalculateDistance(Transform.World.Position, baseUnit.Transform.World.Position, includeZAxis);
             if (baseUnit is Shipyard.Shipyard shipyard)
             {
-                ////TODO: I don't know if this is right but its the only radius I could find since shipyards dont have actor models
-                ////we add +4 cuzz one of the models is stupid log and can go beyond radius
-                //rawDist -= ShipyardManager.Instance._shipyards[shipyard.Template.TemplateId].BuildRadius + 4;
-
-                // мой вариант
+                // Let's use the build radius for this, as it doesn't really have a easy to grab model to get it from 
                 rawDist -= ShipyardManager.Instance._shipyardsTemplate[shipyard.ShipyardData.TemplateId].BuildRadius;
-                rawDist -= ModelManager.Instance.GetActorModel(ModelId).Radius;
+            }
+            else
+            if (baseUnit is House house)
+            {
+                // Subtract house radius, this should be fair enough for building
+                rawDist -= (house.Template.GardenRadius * house.Scale);
             }
             else
             {
-                rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
+                // If target is a Unit, then use it's model for radius
                 if (baseUnit is Unit unit)
                     rawDist -= ModelManager.Instance.GetActorModel(unit.ModelId)?.Radius ?? 0 * unit.Scale;
             }
+            // Subtract own radius
+            rawDist -= ModelManager.Instance.GetActorModel(ModelId)?.Radius ?? 0 * Scale;
 
             return Math.Max(rawDist, 0);
         }

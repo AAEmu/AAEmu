@@ -1,5 +1,4 @@
 ﻿using System;
-
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -54,12 +53,34 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                         break;
                     case WorldInteractionGroup.Collect:
                         break;
-                    case WorldInteractionGroup.Building when target is House house: // TODO not done, debug only
+                    case WorldInteractionGroup.Building when target is House house:
+                        // Check what skill triggered this build
+                        uint usedSkill = 0;
+                        if (castObj is CastSkill castSkill)
+                            usedSkill = castSkill.SkillId;
+
+                        // Get the house's current build step
+                        var currentStep =
+                            (house.CurrentAction >= 0) && (house.CurrentStep < house.Template.BuildSteps.Count)
+                                ? house.Template.BuildSteps[house.CurrentStep]
+                                : null;
+
+                        // Compare if the used skill (correct pack) is still valid when used
+                        if ((currentStep != null) && (usedSkill != currentStep.SkillId))
+                        {
+                            _log.Warn("{0} tried to building using the wrong skill, {1} instead of {2}", caster.Name, usedSkill, currentStep.SkillId);
+                            character.SkillTask.Skill.Cancelled = true ;
+                            character.InterruptSkills();
+                            break;
+                        }
+        
+                        // When done, set step to -1
                         if (house.Template.BuildSteps.Count == 0)
                             house.CurrentStep = -1;
                         else
                             house.AddBuildAction();
 
+                        // Send build packet
                         character.BroadcastPacket(
                             new SCHouseBuildProgressPacket(
                                 house.TlId,
@@ -70,13 +91,14 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                             true
                         );
 
+                        // When done, spawn all attached doodads like doors and windows
                         if (house.CurrentStep == -1)
                         {
                             var doodads = house.AttachedDoodads.ToArray();
                             foreach (var doodad in doodads)
                                 doodad.Spawn();
                         }
-
+                        
                         break;
                     default:
                         _log.Warn("CraftEffect, {0} not have wi group", WorldInteraction);
