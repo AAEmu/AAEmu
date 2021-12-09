@@ -59,12 +59,12 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
 
                 var components = Template.GetComponents(Step);
-                if (components.Length == 0)
+                if (components.Count == 0)
                 {
                     continue;
                 }
                 int c;
-                for (c = 0; c <= components.Length - 1; c++)
+                for (c = 0; c <= components.Count - 1; c++)
                 {
                     var acts = QuestManager.Instance.GetActs(components[c].Id);
                     for (var i = 0; i < acts.Length; i++)
@@ -130,7 +130,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     Status = QuestStatus.Ready;
                 }
                 var components = Template.GetComponents(Step);
-                switch (components.Length)
+                switch (components.Count)
                 {
                     case 0 when Step == QuestComponentKind.Ready:
                         Owner.Quests.Complete(TemplateId, 0);
@@ -139,7 +139,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         continue;
                 }
                 int c;
-                for (c = 0; c <= components.Length - 1; c++)
+                for (c = 0; c <= components.Count - 1; c++)
                 {
                     var acts = QuestManager.Instance.GetActs(components[c].Id);
                     for (var i = 0; i < acts.Length; i++)

@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
@@ -15,7 +15,9 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActObjSphere");
-            return false;
+            character.SendMessage("[AAEmu] Your quest was auto-progressed because it uses Spheres which are not implemented yet. Please screenshot this and send it to the AAEmu team.");
+            character.SendMessage("Quest {0}, Act {1}", quest.TemplateId, Id);
+            return true;
         }
     }
 }

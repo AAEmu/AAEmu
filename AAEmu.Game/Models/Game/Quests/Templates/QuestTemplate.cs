@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 using AAEmu.Game.Models.Game.Quests.Static;
 
@@ -38,17 +39,9 @@ namespace AAEmu.Game.Models.Game.Quests.Templates
                     return component;
             return null;
         }
-        public QuestComponent[] GetComponents(QuestComponentKind step)
+        public List<QuestComponent> GetComponents(QuestComponentKind step)
         {
-            QuestComponent[] qcl = new QuestComponent[0];
-            foreach (var component in Components.Values)
-                if (component.KindId == step)
-                {
-                    System.Array.Resize(ref qcl, qcl.Length + 1);
-                    qcl[qcl.Length - 1] = component;
-                    // return component;
-                }
-            return qcl;
+            return Components.Values.Where(c => c.KindId == step).ToList();
         }
     }
 }
