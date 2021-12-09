@@ -21,8 +21,9 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<byte, QuestSupplies> _supplies;
         private Dictionary<uint, List<QuestAct>> _acts;
         private Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates;
-        private Dictionary<uint, List<uint>> _groupItems;
+        private Dictionary<QuestItemGroups, List<uint>> _groupItems;
         private Dictionary<uint, List<uint>> _groupNpcs;
+        private Dictionary<uint, List<QuestContextTextKind>> _questContexts;
 
         public QuestTemplate GetTemplate(uint id)
         {
@@ -41,6 +42,11 @@ namespace AAEmu.Game.Core.Managers
             return res;
         }
 
+        public List<QuestContextTextKind> GetQuestContexts(uint id)
+        {
+            return _questContexts.ContainsKey(id) ? _questContexts[id] : new List<QuestContextTextKind>();
+        }
+
         public QuestActTemplate GetActTemplate(uint id, string type)
         {
             if (!_actTemplates.ContainsKey(type))
@@ -55,19 +61,19 @@ namespace AAEmu.Game.Core.Managers
             return _actTemplates[type].ContainsKey(id) ? (T) _actTemplates[type][id] : default(T);
         }
 
-        public List<uint> GetGroupItems(uint groupId)
+        public List<uint> GetGroupItems(QuestItemGroups groupId)
         {
-            return _groupItems.ContainsKey(groupId) ? (_groupItems[groupId]) : new List<uint>();
+            return _groupItems.ContainsKey(groupId) ? _groupItems[groupId] : new List<uint>();
         }
 
-        public bool CheckGroupItem(uint groupId, uint itemId)
+        public bool CheckGroupItem(QuestItemGroups groupId, uint itemId)
         {
             return _groupItems.ContainsKey(groupId) && (_groupItems[groupId].Contains(itemId));
         }
 
         public bool CheckGroupNpc(uint groupId, uint npcId)
         {
-            return _groupNpcs.ContainsKey(groupId) && (_groupNpcs[groupId].Contains(npcId));
+            return _groupNpcs.ContainsKey(groupId) && _groupNpcs[groupId].Contains(npcId);
         }
         
         public void Load()
@@ -76,9 +82,10 @@ namespace AAEmu.Game.Core.Managers
             _supplies = new Dictionary<byte, QuestSupplies>();
             _acts = new Dictionary<uint, List<QuestAct>>();
             _actTemplates = new Dictionary<string, Dictionary<uint, QuestActTemplate>>();
-            _groupItems = new Dictionary<uint, List<uint>>();
+            _groupItems = new Dictionary<QuestItemGroups, List<uint>>();
             _groupNpcs = new Dictionary<uint, List<uint>>();
-            
+            _questContexts = new  Dictionary<uint, List<QuestContextTextKind>>();
+
             foreach(var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.Quests.Acts"))
                 if(type.BaseType == typeof(QuestActTemplate))
                     _actTemplates.Add(type.Name, new Dictionary<uint, QuestActTemplate>());
@@ -133,7 +140,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Id = reader.GetUInt32("id");
                             template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
                             template.NextComponent = reader.GetUInt32("next_component", 0);
-                            template.NpcAiId = reader.GetUInt32("npc_ai_id", 0);
+                            template.NpcAiId = (QuestNpcAiName)reader.GetUInt32("npc_ai_id", 0);
                             template.NpcId = reader.GetUInt32("npc_id", 0);
                             template.SkillId = reader.GetUInt32("skill_id", 0);
                             template.SkillSelf = reader.GetBoolean("skill_self", true);
@@ -194,7 +201,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_check_complete_components";
                     command.Prepare();
@@ -803,7 +810,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new QuestActObjItemGroupGather();
                             template.Id = reader.GetUInt32("id");
-                            template.ItemGroupId = reader.GetUInt32("item_group_id");
+                            template.ItemGroupId = (QuestItemGroups)reader.GetUInt32("item_group_id");
                             template.Count = reader.GetInt32("count");
                             template.Cleanup = reader.GetBoolean("cleanup", true);
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
@@ -827,7 +834,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new QuestActObjItemGroupUse();
                             template.Id = reader.GetUInt32("id");
-                            template.ItemGroupId = reader.GetUInt32("item_group_id");
+                            template.ItemGroupId = (QuestItemGroups)reader.GetUInt32("item_group_id");
                             template.Count = reader.GetInt32("count");
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
                             template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
@@ -1344,23 +1351,49 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var groupId = reader.GetUInt32("quest_item_group_id");
-                            var itemId = reader.GetUInt32("item_id");
-                            List<uint> items;
-                            if (!_groupItems.ContainsKey(groupId))
+                            var template = new QuestItemGroupsItem();
+                            template.GroupId = (QuestItemGroups)reader.GetUInt32("quest_item_group_id");
+                            template.ItemId = reader.GetUInt32("item_id");
+                            if (!_groupItems.ContainsKey(template.GroupId))
                             {
-                                items = new List<uint>();
-                                _groupItems.Add(groupId, items);
+                                _groupItems.Add(template.GroupId, template.Items);
                             }
                             else
-                                items = _groupItems[groupId];
+                            {
+                                template.Items = _groupItems[template.GroupId]; 
+                            }
 
-                            items.Add(itemId);
+                            template.Items.Add(template.ItemId);
                         }
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM quest_context_texts";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new QuestContextText();
+                            template.QuestContextTextKindId = (QuestContextTextKind)reader.GetUInt32("quest_context_text_kind_id");
+                            template.QuestContextId = reader.GetUInt32("quest_context_id");
+                            if (!_questContexts.ContainsKey(template.QuestContextId))
+                            {
+                                _questContexts.Add(template.QuestContextId, template.QuestContexts);
+                            }
+                            else
+                            {
+                                template.QuestContexts = _questContexts[template.QuestContextId];
+                            }
+
+                            template.QuestContexts.Add(template.QuestContextTextKindId);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_monster_npcs";
                     command.Prepare();

@@ -95,7 +95,7 @@ namespace AAEmu.Game.GameData
                         {
                             Id = reader.GetUInt32("id"),
                             QuestId = reader.GetUInt32("quest_id"),
-                            QuestTriggerId = reader.GetUInt32("quest_trigger_id")
+                            QuestTriggerId = (QuestTrigger)reader.GetUInt32("quest_trigger_id")
                         };
 
                         if (!_sphereQuests.ContainsKey(template.Id))
