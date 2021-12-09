@@ -397,7 +397,7 @@ namespace AAEmu.Game.Core.Managers
                 ClientName = player.Name,
                 StartMoney = startPrice,
                 DirectMoney = buyoutPrice,
-                BidWorldID = 0,
+                GameServerId = 0,
                 BidderId = 0,
                 BidderName = "",
                 BidMoney = 0,
@@ -442,7 +442,7 @@ namespace AAEmu.Game.Core.Managers
                             auctionItem.ClientName = reader.GetString("client_name");
                             auctionItem.StartMoney = reader.GetInt32("start_money");
                             auctionItem.DirectMoney = reader.GetInt32("direct_money");
-                            auctionItem.BidWorldID = reader.GetByte("bid_world_id");
+                            auctionItem.GameServerId = reader.GetByte("bid_world_id");
                             auctionItem.BidderId = reader.GetUInt32("bidder_id");
                             auctionItem.BidderName = reader.GetString("bidder_name");
                             auctionItem.BidMoney = reader.GetInt32("bid_money");
@@ -518,7 +518,7 @@ namespace AAEmu.Game.Core.Managers
                     command.Parameters.AddWithValue("@start_money", mtbs.StartMoney);
                     command.Parameters.AddWithValue("@direct_money", mtbs.DirectMoney);
                     command.Parameters.AddWithValue("@time_left", mtbs.TimeLeft);
-                    command.Parameters.AddWithValue("@bid_world_id", mtbs.BidWorldID);
+                    command.Parameters.AddWithValue("@bid_world_id", mtbs.GameServerId);
                     command.Parameters.AddWithValue("@bidder_id", mtbs.BidderId);
                     command.Parameters.AddWithValue("@bidder_name", mtbs.BidderName);
                     command.Parameters.AddWithValue("@bid_money", mtbs.BidMoney);

@@ -59,7 +59,7 @@ namespace AAEmu.Game.Scripts.Commands
                     ClientName = "",
                     StartMoney = 0,
                     DirectMoney = 1,
-                    BidWorldID = 0,
+                    GameServerId = 0,
                     BidderId = 0,
                     BidderName = "",
                     BidMoney = 0,

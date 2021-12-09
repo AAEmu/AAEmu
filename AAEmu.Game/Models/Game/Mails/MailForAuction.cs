@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Mails
         // TODO: verify title names
         public static string TitleSold = "Successful Auction Notice";
         public static string TitleNotSold = "Failed Auction Notice";
-        public static string TitleBidWin = "Succesfull Purchase";
+        public static string TitleBidWin = "Successfull Purchase";
         public static string TitleBidLost = "Failed Bid Notice";
         public static string TitleCancel = "Cancelled Auction Notice";
 
