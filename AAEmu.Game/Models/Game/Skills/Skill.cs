@@ -68,6 +68,7 @@ namespace AAEmu.Game.Models.Game.Skills
             else
                 Level = 1;
         }
+
         public SkillResult Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
         {
             _bypassGcd = bypassGcd;
@@ -519,7 +520,10 @@ namespace AAEmu.Game.Models.Game.Skills
             }, true);
 
             if (totalDelay > 0)
-                TaskManager.Instance.Schedule(new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject), TimeSpan.FromMilliseconds(totalDelay));
+            {
+                var thisSkillTask = new ApplySkillTask(this, caster, casterCaster, target, targetCaster, skillObject);
+                TaskManager.Instance.Schedule(thisSkillTask, TimeSpan.FromMilliseconds(totalDelay));
+            }
             else
             {
                 ApplyEffects(caster, casterCaster, target, targetCaster, skillObject);
@@ -740,17 +744,20 @@ namespace AAEmu.Game.Models.Game.Skills
             if (packets.Packets.Count > 0)
                 caster.BroadcastPacket(packets, true);
 
-            // Actually consume the to be consumed items
-            foreach (var (item, amount) in consumedItems)
-                item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
-            if (caster is Character playerToConsumeFrom)
-                foreach (var (templateId, amount) in consumedItemTemplates)
-                    playerToConsumeFrom.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId, amount, null);
+            if (!Cancelled)
+            {
+                // Actually consume the to be consumed items
+                foreach (var (item, amount) in consumedItems)
+                    item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
+                if (caster is Character playerToConsumeFrom)
+                    foreach (var (templateId, amount) in consumedItemTemplates)
+                        playerToConsumeFrom.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId, amount, null);
+            }
         }
 
         public void EndSkill(Unit caster)
         {
-            if (Template.ConsumeLaborPower > 0 && caster is Character chart)
+            if (Template.ConsumeLaborPower > 0 && caster is Character chart && !Cancelled)
             {
                 chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
             }
