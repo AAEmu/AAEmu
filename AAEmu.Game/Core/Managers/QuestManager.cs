@@ -615,6 +615,40 @@ namespace AAEmu.Game.Core.Managers
 
                 using (var command = connection.CreateCommand())
                 {
+                    command.CommandText = "SELECT * FROM quest_act_obj_aliases";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new QuestActObjAliase();
+                            template.Id = reader.GetUInt32("id");
+                            template.Name = reader.GetString("name");
+                            _actTemplates["QuestActObjAliase"].Add(template.Id, template);
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM quest_act_obj_cinemas";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new QuestActObjCinema();
+                            template.Id = reader.GetUInt32("id");
+                            template.CinemaId = reader.GetUInt32("cinema_id");                     
+                            template.UseAlias = reader.GetBoolean("use_alias", true);
+                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id");
+                            _actTemplates["QuestActObjCinema"].Add(template.Id, template);
+                        }
+                    }
+                }
+                
+                using (var command = connection.CreateCommand())
+                {
                     command.CommandText = "SELECT * FROM quest_act_obj_complete_quests";
                     command.Prepare();
                     using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
