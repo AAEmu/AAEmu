@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading.Tasks;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.C2G;
@@ -15,12 +17,12 @@ namespace AAEmu.Game.Core.Network.Game
         {
             Level = level;
         }
-        
+
         /// <summary>
         /// This is called in Encode after Read() in the case of GamePackets
         /// The purpose is to separate packet data from packet behavior
         /// </summary>
-        public virtual void Execute(){}
+        public virtual async Task Execute() { }
 
         public override PacketStream Encode()
         {

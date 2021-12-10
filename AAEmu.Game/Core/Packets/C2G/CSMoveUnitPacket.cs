@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -35,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             stream.Read(_moveType);
         }
 
-        public override void Execute()
+        public override async Task Execute()
         {
             // _moveType.Flags
             // 0x02 : Moving
