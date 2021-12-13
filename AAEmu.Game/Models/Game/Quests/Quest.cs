@@ -143,6 +143,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 {
                     Status = QuestStatus.Ready;
                 }
+
                 var components = Template.GetComponents(Step);
                 switch (components.Count)
                 {
@@ -307,9 +308,9 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public void RemoveQuestItems()
         {
-            for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
+            for (Step = QuestComponentKind.None; Step <= QuestComponentKind.Reward; Step++)
             {
-                var component = Template.GetComponent(step);
+                var component = Template.GetComponent(Step);
                 if (component == null)
                 {
                     continue;
@@ -319,7 +320,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 foreach (var act in acts)
                 {
                     var items = new List<(Item, int)>();
-                    if (act.DetailType == "QuestActSupplyItem" && step == QuestComponentKind.Supply)
+                    if (act.DetailType == "QuestActSupplyItem" && Step == QuestComponentKind.Supply)
                     {
                         var template = act.GetTemplate<QuestActSupplyItem>();
                         if (template.DestroyWhenDrop)
@@ -360,11 +361,11 @@ namespace AAEmu.Game.Models.Game.Quests
         public void Drop(bool update)
         {
             Status = QuestStatus.Dropped;
+            Step = QuestComponentKind.Drop;
             for (var i = 0; i < OBJECTIVE_COUNT; i++)
             {
                 CurrentObjectives[i] = 0;
             }
-
             if (update)
                 Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
             RemoveQuestItems();
@@ -560,18 +561,18 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                     if (act.DetailType == "QuestActObjItemGather")
                     {
-                        var template = acts[i].GetTemplate<QuestActObjItemGather>();                        
+                        var template = acts[i].GetTemplate<QuestActObjItemGather>();
                         CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
                         if (CurrentObjectives[i] >= template.Count) // TODO check to overtime
                         {
                             CurrentObjectives[i] = template.Count;
                             res = true;
-                        }                       
+                        }
                     }
                 }
             }
-        
-    
+
+
             Update(res);
         }
 
@@ -604,7 +605,7 @@ namespace AAEmu.Game.Models.Game.Quests
             Update(res);
         }
 
-        public void OnQuestComplete(uint questId)
+        public void OnQuestComplete(uint questContextId)
         {
             var res = false;
             var component = Template.GetComponent(Step);
@@ -619,7 +620,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         case "QuestActObjCompleteQuest":
                             {
                                 var template = act.GetTemplate<QuestActObjCompleteQuest>();
-                                if (template.QuestId == questId)
+                                if (template.QuestId == questContextId)
                                 {
                                     res = true;
                                     CurrentObjectives[i]++;
@@ -691,6 +692,19 @@ namespace AAEmu.Game.Models.Game.Quests
             }
 
             Update(send);
+        }
+
+        public void ClearObjectives()
+        {
+            for (var i = QuestComponentKind.None; i <= QuestComponentKind.Reward; i++)
+            {
+                ObjectivesForStep.TryAdd(i, new[] { 0, 0, 0, 0, 0 });
+            }
+        }
+
+        public int[] GetCurrentObjectives(QuestComponentKind step)
+        {
+            return CurrentObjectives;
         }
 
         public override PacketStream Write(PacketStream stream)

@@ -38,15 +38,15 @@ namespace AAEmu.Game.Models.Game.Char
             _removed = new List<uint>();
         }
 
-        public void Add(uint questId)
+        public void Add(uint questContextId)
         {
-            if (Quests.ContainsKey(questId))
+            if (Quests.ContainsKey(questContextId))
             {
-                _log.Warn("Duplicate add quest {0}", questId);
+                _log.Warn("Duplicate add quest {0}", questContextId);
                 return;
             }
 
-            var template = QuestManager.Instance.GetTemplate(questId);
+            var template = QuestManager.Instance.GetTemplate(questContextId);
             if (template == null)
                 return;
             var quest = new Quest(template);
@@ -54,6 +54,7 @@ namespace AAEmu.Game.Models.Game.Char
             quest.Status = QuestStatus.Progress;
             quest.Owner = Owner;
             Quests.Add(quest.TemplateId, quest);
+            quest.ClearObjectives();
 
             var res = quest.Start();
             if (res == 0)
@@ -62,15 +63,15 @@ namespace AAEmu.Game.Models.Game.Char
                 Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
         }
 
-        public void Complete(uint questId, int selected, bool supply = true)
+        public void Complete(uint questContextId, int selected, bool supply = true)
         {
-            if (!Quests.ContainsKey(questId))
+            if (!Quests.ContainsKey(questContextId))
             {
-                _log.Warn("Complete not exist quest {0}", questId);
+                _log.Warn("Complete not exist quest {0}", questContextId);
                 return;
             }
 
-            var quest = Quests[questId];
+            var quest = Quests[questContextId];
             var res = quest.Complete(selected);
             if (res != 0)
             {
@@ -104,20 +105,20 @@ namespace AAEmu.Game.Models.Game.Char
                 complete.Body.Set((int)(quest.TemplateId - completeId * 64), true);
                 var body = new byte[8];
                 complete.Body.CopyTo(body, 0);
-                Drop(questId, false);
+                Drop(questContextId, false);
                 Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
-                OnQuestComplete(questId);
+                OnQuestComplete(questContextId);
             }
         }
 
-        public void Drop(uint questId, bool update)
+        public void Drop(uint questContextId, bool update)
         {
-            if (!Quests.ContainsKey(questId))
+            if (!Quests.ContainsKey(questContextId))
                 return;
-            var quest = Quests[questId];
+            var quest = Quests[questContextId];
             quest.Drop(update);
-            Quests.Remove(questId);
-            _removed.Add(questId);
+            Quests.Remove(questContextId);
+            _removed.Add(questContextId);
             QuestIdManager.Instance.ReleaseId((uint)quest.Id);
         }
 
@@ -153,10 +154,10 @@ namespace AAEmu.Game.Models.Game.Char
                 quest.OnLevelUp();
         }
 
-        public void OnQuestComplete(uint questId)
+        public void OnQuestComplete(uint questContextId)
         {
             foreach (var quest in Quests.Values)
-                quest.OnQuestComplete(questId);
+                quest.OnQuestComplete(questContextId);
         }
 
         public void AddCompletedQuest(CompletedQuest quest)
@@ -169,12 +170,12 @@ namespace AAEmu.Game.Models.Game.Char
             return CompletedQuests.ContainsKey(id) ? CompletedQuests[id] : null;
         }
 
-        public bool IsQuestComplete(uint questId)
+        public bool IsQuestComplete(uint questContextId)
         {
-            var completeId = (ushort)(questId / 64);
+            var completeId = (ushort)(questContextId / 64);
             if (!CompletedQuests.ContainsKey(completeId))
                 return false;
-            return CompletedQuests[completeId].Body[(int)(questId - completeId * 64)];
+            return CompletedQuests[completeId].Body[(int)(questContextId - completeId * 64)];
         }
 
         public void Send()
