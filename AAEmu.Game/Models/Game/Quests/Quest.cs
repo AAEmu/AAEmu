@@ -23,12 +23,25 @@ namespace AAEmu.Game.Models.Game.Quests
         public uint TemplateId { get; set; }
         public QuestTemplate Template { get; set; }
         public QuestStatus Status { get; set; }
-        public int[] Objectives { get; set; }
+        public Dictionary<QuestComponentKind, int[]> ObjectivesForStep { get; set; }
+
+        private int[] CurrentObjectives
+        {
+            get
+            {
+                return ObjectivesForStep[Step];
+            }
+        }
         public QuestComponentKind Step { get; set; }
         public DateTime Time { get; set; }
         public Character Owner { get; set; }
         public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalSeconds : -1;
         public int SupplyItem = 0;
+        public bool EarlyCompletion = false;
+        public long DoodadId { get; set; }
+        public uint ComponentId { get; set; }
+        public QuestAcceptorType QuestAcceptorType { get; set; }
+        public uint AcceptorType { get; set; }
 
         public uint GetActiveComponent()
         {
@@ -37,14 +50,14 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public Quest()
         {
-            Objectives = new int[5];
+            ObjectivesForStep = new Dictionary<QuestComponentKind, int[]>();
         }
 
         public Quest(QuestTemplate template)
         {
             TemplateId = template.Id;
             Template = template;
-            Objectives = new int[5];
+            ObjectivesForStep = new Dictionary<QuestComponentKind, int[]>();
         }
 
         public uint Start()
@@ -76,15 +89,15 @@ namespace AAEmu.Game.Models.Game.Quests
                                     var template = acts[i].GetTemplate<QuestActObjItemGather>();
                                     // TODO: Check both inventory and warehouse
                                     Owner.Inventory.Bag.GetAllItemsByTemplate(template.Id, -1, out _, out var objectivesCounted);
-                                    Objectives[i] = objectivesCounted;
-                                    //Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
+                                    CurrentObjectives[i] = objectivesCounted;
+                                    //CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                                     {
-                                        Objectives[i] = template.Count;
+                                        CurrentObjectives[i] = template.Count;
                                     }
 
                                     _log.Warn("Quest: {0} {1} {2}", Step, res, acts[i].DetailType);//  for debuging
-                                    res = acts[i].Use(Owner, this, Objectives[i]);
+                                    res = acts[i].Use(Owner, this, CurrentObjectives[i]);
                                     break;
                                 }
                             case "QuestActConReportNpc":
@@ -97,7 +110,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 res = acts[i].Use(Owner, this, SupplyItem);
                                 break;
                             default:
-                                res = acts[i].Use(Owner, this, Objectives[i]);
+                                res = acts[i].Use(Owner, this, CurrentObjectives[i]);
                                 break;
                         }
 
@@ -172,7 +185,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                             case "QuestActObjMonsterGroupHunt":
                                 {
-                                    res = acts[i].Use(Owner, this, Objectives[i]);
+                                    res = acts[i].Use(Owner, this, CurrentObjectives[i]);
                                     if (res)
                                     {
                                         Owner.Quests.Complete(TemplateId, 0);
@@ -183,7 +196,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 res = false;
                                 break;
                             default:
-                                res = acts[i].Use(Owner, this, Objectives[i]);
+                                res = acts[i].Use(Owner, this, CurrentObjectives[i]);
                                 break;
                         }
                         SupplyItem = 0;
@@ -227,7 +240,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 selective++;
                                 if (selective == selected)
                                 {
-                                    res = acts[i].Use(Owner, this, Objectives[i]);
+                                    res = acts[i].Use(Owner, this, CurrentObjectives[i]);
                                 }
 
                                 break;
@@ -239,7 +252,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             res = true;
                             break;
                         default:
-                            res = acts[i].Use(Owner, this, Objectives[i]);
+                            res = acts[i].Use(Owner, this, CurrentObjectives[i]);
                             break;
                     }
 
@@ -348,7 +361,7 @@ namespace AAEmu.Game.Models.Game.Quests
             Status = QuestStatus.Dropped;
             for (var i = 0; i < 5; i++)
             {
-                Objectives[i] = 0;
+                CurrentObjectives[i] = 0;
             }
 
             if(update)
@@ -374,10 +387,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (template.NpcId == npc.TemplateId)
                                 {
                                     res = true;
-                                    Objectives[i]++;
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
+                                    CurrentObjectives[i]++;
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                                     {
-                                        Objectives[i] = template.Count;
+                                        CurrentObjectives[i] = template.Count;
                                     }
                                 }
 
@@ -389,10 +402,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (QuestManager.Instance.CheckGroupNpc(template.QuestMonsterGroupId, npc.TemplateId))
                                 {
                                     res = true;
-                                    Objectives[i]++;
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
+                                    CurrentObjectives[i]++;
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                                     {
-                                        Objectives[i] = template.Count;
+                                        CurrentObjectives[i] = template.Count;
                                     }
                                 }
 
@@ -437,10 +450,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (template.ItemId == item.TemplateId)
                                 {
                                     res = true;
-                                    Objectives[i] += count;
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
+                                    CurrentObjectives[i] += count;
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                                     {
-                                        Objectives[i] = template.Count;
+                                        CurrentObjectives[i] = template.Count;
                                     }
                                 }
 
@@ -452,10 +465,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (QuestManager.Instance.CheckGroupItem(template.ItemGroupId, item.TemplateId))
                                 {
                                     res = true;
-                                    Objectives[i] += count;
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
+                                    CurrentObjectives[i] += count;
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                                     {
-                                        Objectives[i] = template.Count;
+                                        CurrentObjectives[i] = template.Count;
                                     }
                                 }
 
@@ -486,10 +499,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (template.ItemId == item.TemplateId)
                                 {
                                     res = true;
-                                    Objectives[i]++;
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
+                                    CurrentObjectives[i]++;
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                                     {
-                                        Objectives[i] = template.Count;
+                                        CurrentObjectives[i] = template.Count;
                                     }
                                 }
 
@@ -501,10 +514,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (QuestManager.Instance.CheckGroupItem(template.ItemGroupId, item.TemplateId))
                                 {
                                     res = true;
-                                    Objectives[i]++;
-                                    if (Objectives[i] > template.Count) // TODO check to overtime
+                                    CurrentObjectives[i]++;
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                                     {
-                                        Objectives[i] = template.Count;
+                                        CurrentObjectives[i] = template.Count;
                                     }
                                 }
 
@@ -536,10 +549,10 @@ namespace AAEmu.Game.Models.Game.Quests
                             if (template.DoodadId == interactionTarget.TemplateId)
                             {
                                 res = true;
-                                Objectives[i]++;
-                                if (Objectives[i] > template.Count) // TODO check to overtime
+                                CurrentObjectives[i]++;
+                                if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                                 {
-                                    Objectives[i] = template.Count;
+                                    CurrentObjectives[i] = template.Count;
                                 }
                             }
                         }
@@ -547,10 +560,10 @@ namespace AAEmu.Game.Models.Game.Quests
                     if (act.DetailType == "QuestActObjItemGather")
                     {
                         var template = acts[i].GetTemplate<QuestActObjItemGather>();                        
-                        Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
-                        if (Objectives[i] >= template.Count) // TODO check to overtime
+                        CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                        if (CurrentObjectives[i] >= template.Count) // TODO check to overtime
                         {
-                            Objectives[i] = template.Count;
+                            CurrentObjectives[i] = template.Count;
                             res = true;
                         }                       
                     }
@@ -583,7 +596,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
 
                     res = true;
-                    Objectives[i]++;
+                    CurrentObjectives[i]++;
                 }
             }
 
@@ -608,7 +621,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 if (template.QuestId == questId)
                                 {
                                     res = true;
-                                    Objectives[i]++;
+                                    CurrentObjectives[i]++;
                                 }
 
                                 break;
@@ -638,10 +651,10 @@ namespace AAEmu.Game.Models.Game.Quests
                     case "QuestActSupplyItem":
                         {
                             var template = acts[i].GetTemplate<QuestActSupplyItem>();
-                            Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
-                            if (Objectives[i] > template.Count) // TODO check to overtime
+                            CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                            if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                             {
-                                Objectives[i] = template.Count;
+                                CurrentObjectives[i] = template.Count;
                             }
 
                             break;
@@ -649,10 +662,10 @@ namespace AAEmu.Game.Models.Game.Quests
                     case "QuestActObjItemGather":
                         {
                             var template = acts[i].GetTemplate<QuestActObjItemGather>();
-                            Objectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
-                            if (Objectives[i] > template.Count) // TODO check to overtime
+                            CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                            if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                             {
-                                Objectives[i] = template.Count;
+                                CurrentObjectives[i] = template.Count;
                             }
 
                             break;
@@ -660,15 +673,15 @@ namespace AAEmu.Game.Models.Game.Quests
                     case "QuestActObjItemGroupGather":
                         {
                             var template = acts[i].GetTemplate<QuestActObjItemGroupGather>();
-                            Objectives[i] = 0;
+                            CurrentObjectives[i] = 0;
                             foreach (var itemId in QuestManager.Instance.GetGroupItems(template.ItemGroupId))
                             {
-                                Objectives[i] += Owner.Inventory.GetItemsCount(itemId);
+                                CurrentObjectives[i] += Owner.Inventory.GetItemsCount(itemId);
                             }
 
-                            if (Objectives[i] > template.Count) // TODO check to overtime
+                            if (CurrentObjectives[i] > template.Count) // TODO check to overtime
                             {
-                                Objectives[i] = template.Count;
+                                CurrentObjectives[i] = template.Count;
                             }
 
                             break;
@@ -684,31 +697,34 @@ namespace AAEmu.Game.Models.Game.Quests
             stream.Write(Id);
             stream.Write(TemplateId);
             stream.Write((byte)Status);
-            foreach (var objective in Objectives) // TODO do-while, count 5
+            foreach (var objective in CurrentObjectives) // TODO do-while, count 5
             {
                 stream.Write(objective);
             }
 
             stream.Write(false);             // isCheckSet
-            stream.WriteBc(0);
+            stream.WriteBc(0);               // ObjId
             stream.Write(0u);                // type(id)
-            stream.WriteBc(0);
-            stream.WriteBc(0);
+            stream.WriteBc(0);               // ObjId
+            stream.WriteBc(0);               // ObjId
             stream.Write(LeftTime);
-            stream.Write(0u);                // type(id)
-            stream.Write(0L);                // doodadId
-            stream.Write(DateTime.MinValue); // acceptTime
-            stream.Write((byte)0);           // type
-            stream.Write(0u);                // acceptorType
+            stream.Write(0u);                      // type(id)
+            stream.Write(DoodadId);                // doodadId
+            stream.Write(DateTime.UtcNow);         // acceptTime
+            stream.Write((byte)QuestAcceptorType); // type QuestAcceptorType
+            stream.Write(AcceptorType);            // acceptorType npcId or doodadId
             return stream;
         }
 
         public void ReadData(byte[] data)
         {
             var stream = new PacketStream(data);
-            for (var i = 0; i < 5; i++)
+
+            for (var i = QuestComponentKind.None; i <= QuestComponentKind.Reward; i++)
             {
-                Objectives[i] = stream.ReadInt32();
+                ObjectivesForStep.TryAdd(i, new[] { 0, 0, 0, 0, 0 });
+                for (var objIdx = 0; objIdx < 5; objIdx++)
+                    ObjectivesForStep[i][objIdx] = stream.ReadInt32();
             }
 
             Step = (QuestComponentKind)stream.ReadByte();
@@ -718,10 +734,10 @@ namespace AAEmu.Game.Models.Game.Quests
         public byte[] WriteData()
         {
             var stream = new PacketStream();
-            foreach (var objective in Objectives)
-            {
-                stream.Write(objective);
-            }
+
+            for (var i = QuestComponentKind.None; i <= QuestComponentKind.Reward; i++)
+                foreach (var value in ObjectivesForStep[i])
+                    stream.Write(value);
 
             stream.Write((byte)Step);
             stream.Write(Time);
