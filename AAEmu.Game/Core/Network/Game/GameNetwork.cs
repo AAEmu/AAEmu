@@ -205,6 +205,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSUnbondDoodadPacket, 1, typeof(CSUnbondDoodadPacket));
             RegisterPacket(CSOffsets.CSCompletedCinemaPacket, 1, typeof(CSCompletedCinemaPacket));
             RegisterPacket(CSOffsets.CSStartedCinemaPacket, 1, typeof(CSStartedCinemaPacket));
+            RegisterPacket(CSOffsets.CSRequestPermissionToPlayCinemaForDirectingMode, 1, typeof(CSRequestPermissionToPlayCinemaForDirectingMode));
             //0xd0 CSRequestPermissionToPlayCinemaForDirectingMode
             //0xd1 CSEditorRemoveGimmickPacket
             //0xd2 CSEditorAddGimmickPacket
