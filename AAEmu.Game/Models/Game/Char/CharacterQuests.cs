@@ -27,7 +27,6 @@ namespace AAEmu.Game.Models.Game.Char
 
         public Dictionary<uint, Quest> Quests { get; }
         public Dictionary<ushort, CompletedQuest> CompletedQuests { get; }
-
         public Character Owner { get; set; }
 
         public CharacterQuests(Character owner)
@@ -52,6 +51,7 @@ namespace AAEmu.Game.Models.Game.Char
             var quest = new Quest(template);
             quest.Id = QuestIdManager.Instance.GetNextId();
             quest.Status = QuestStatus.Progress;
+            quest.Step = QuestComponentKind.Start;
             quest.Owner = Owner;
             Quests.Add(quest.TemplateId, quest);
             quest.ClearObjectives();
