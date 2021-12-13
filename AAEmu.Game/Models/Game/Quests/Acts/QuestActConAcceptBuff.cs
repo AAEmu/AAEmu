@@ -1,5 +1,6 @@
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.Static;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {
@@ -10,6 +11,10 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActConAcceptBuff: BuffId {0}", BuffId);
+
+            quest.QuestAcceptorType = QuestAcceptorType.Buff;
+            quest.AcceptorType = BuffId;
+
             return false;
         }
     }

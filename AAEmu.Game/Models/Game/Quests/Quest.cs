@@ -23,6 +23,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public uint TemplateId { get; set; }
         public QuestTemplate Template { get; set; }
         public QuestStatus Status { get; set; }
+        private const int OBJECTIVE_COUNT = 5;
         public Dictionary<QuestComponentKind, int[]> ObjectivesForStep { get; set; }
 
         private int[] CurrentObjectives
@@ -359,12 +360,12 @@ namespace AAEmu.Game.Models.Game.Quests
         public void Drop(bool update)
         {
             Status = QuestStatus.Dropped;
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < OBJECTIVE_COUNT; i++)
             {
                 CurrentObjectives[i] = 0;
             }
 
-            if(update)
+            if (update)
                 Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
             RemoveQuestItems();
         }
@@ -723,7 +724,7 @@ namespace AAEmu.Game.Models.Game.Quests
             for (var i = QuestComponentKind.None; i <= QuestComponentKind.Reward; i++)
             {
                 ObjectivesForStep.TryAdd(i, new[] { 0, 0, 0, 0, 0 });
-                for (var objIdx = 0; objIdx < 5; objIdx++)
+                for (var objIdx = 0; objIdx < OBJECTIVE_COUNT; objIdx++)
                     ObjectivesForStep[i][objIdx] = stream.ReadInt32();
             }
 

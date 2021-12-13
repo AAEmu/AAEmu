@@ -1,4 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
@@ -13,7 +15,10 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective) // triggered by using things
         {
             _log.Debug("QuestActConAcceptItem: ItemId {0}", ItemId);
-            // TODO Cleanup
+
+            quest.QuestAcceptorType = QuestAcceptorType.Item;
+            quest.AcceptorType = ItemId;
+
             return character.Inventory.CheckItems(Items.SlotType.Inventory, ItemId, 1);
         }
     }
