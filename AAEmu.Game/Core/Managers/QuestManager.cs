@@ -112,7 +112,7 @@ namespace AAEmu.Game.Core.Managers
                             template.QuestIdx = reader.GetUInt32("quest_idx", 0);
                             template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.LetItDone = reader.GetBoolean("let_it_done", true);
-                            template.DetailId = reader.GetUInt32("detail_id");
+                            template.DetailId = (QuestDetail)reader.GetUInt32("detail_id");
                             template.ZoneId = reader.GetUInt32("zone_id");
                             template.Degree = reader.GetInt32("degree", 0);
                             template.UseQuestCamera = reader.GetBoolean("use_quest_camera", true);

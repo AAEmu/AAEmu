@@ -6,7 +6,7 @@
     <VersionPrefix>0.0.2.0</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
   
   <ItemGroup>
