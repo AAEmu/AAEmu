@@ -14,10 +14,11 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
 
         public override bool Use(Character character, Quest quest, int objective)
         {
-            _log.Trace("QuestActObjMonsterGroupHunt: Score {8} QuestMonsterGroupId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}",
+            _log.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
                 QuestMonsterGroupId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
-            var tempScore = objective * Count;
-            if(tempScore >= quest.Template.Score)
+
+            var tempScore = objective; // Old code ( var tempScore = objective * Count )
+            if (tempScore >= Count)    // Old code (  if (tempScore >= quest.Template.Score) )
             {
                 return true;
             }
