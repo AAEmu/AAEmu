@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -26,6 +25,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public QuestStatus Status { get; set; }
         private const int OBJECTIVE_COUNT = 5;
         public Dictionary<QuestComponentKind, int[]> ObjectivesForStep { get; set; }
+
         private int[] CurrentObjectives
         {
             get
@@ -65,66 +65,67 @@ namespace AAEmu.Game.Models.Game.Quests
         {
             var res = false;
             var componentId = 0u;
-
-            foreach (var (key, qc) in Template.Components)
+            for (Step = QuestComponentKind.None; Step <= QuestComponentKind.Reward; Step++)
             {
-                if (qc.KindId >= QuestComponentKind.Ready)
+                if (Step >= QuestComponentKind.Ready)
                 {
                     Status = QuestStatus.Ready;
-                    Step = QuestComponentKind.Ready;
                 }
-                else
+
+                var components = Template.GetComponents(Step);
+                if (components.Count == 0)
                 {
-                    Status = QuestStatus.Progress;
-                    Step = QuestComponentKind.Progress;
+                    continue;
                 }
-                var acts = QuestManager.Instance.GetActs(key);
-                for (var i = 0; i < acts.Length; i++)
+                int c;
+                for (c = 0; c <= components.Count - 1; c++)
                 {
-                    switch (acts[i].DetailType)
+                    var acts = QuestManager.Instance.GetActs(components[c].Id);
+                    for (var i = 0; i < acts.Length; i++)
                     {
-                        case "QuestActObjItemGather":
-                            {
-                                var template = acts[i].GetTemplate<QuestActObjItemGather>();
-                                // TODO: Check both inventory and warehouse
-                                Owner.Inventory.Bag.GetAllItemsByTemplate(template.Id, -1, out _, out var objectivesCounted);
-                                CurrentObjectives[i] = objectivesCounted;
-                                //CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                if (CurrentObjectives[i] > template.Count) // TODO check to overtime
+                        switch (acts[i].DetailType)
+                        {
+                            case "QuestActObjItemGather":
                                 {
-                                    CurrentObjectives[i] = template.Count;
+                                    var template = acts[i].GetTemplate<QuestActObjItemGather>();
+                                    // TODO: Check both inventory and warehouse
+                                    Owner.Inventory.Bag.GetAllItemsByTemplate(template.Id, -1, out _, out var objectivesCounted);
+                                    CurrentObjectives[i] = objectivesCounted;
+                                    //CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
+                                    {
+                                        CurrentObjectives[i] = template.Count;
+                                    }
+
+                                    _log.Warn("Quest: {0} {1} {2}", Step, res, acts[i].DetailType);//  for debuging
+                                    res = acts[i].Use(Owner, this, CurrentObjectives[i]);
+                                    componentId = components[c].Id;
+                                    break;
                                 }
-
-                                _log.Warn("Quest: step:{0} res:{1} DetailType:{2}", qc.KindId, res, acts[i].DetailType);//  for debuging
-                                res = acts[i].Use(Owner, this, CurrentObjectives[i]);
-                                componentId = key;
+                            case "QuestActConReportNpc":
+                                res = false;
                                 break;
-                            }
-                        case "QuestActConReportNpc":
-                            res = false;
-                            break;
-                        case "QuestActObjItemUse":
-                            res = false;
-                            break;
-                        case "QuestActSupplyItem" when qc.KindId == QuestComponentKind.Supply:
-                            res = acts[i].Use(Owner, this, SupplyItem);
-                            componentId = key;
-                            break;
-                        default:
-                            res = acts[i].Use(Owner, this, CurrentObjectives[i]);
-                            componentId = key;
-                            break;
-                    }
+                            case "QuestActObjItemUse":
+                                res = false;
+                                break;
+                            case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
+                                res = acts[i].Use(Owner, this, SupplyItem);
+                                componentId = components[c].Id;
+                                break;
+                            default:
+                                res = acts[i].Use(Owner, this, CurrentObjectives[i]);
+                                componentId = components[c].Id;
+                                break;
+                        }
 
-                    _log.Warn("Quest: step:{0} res:{1} DetailType:{2}", qc.KindId, res, acts[i].DetailType);//  for debuging
+                        _log.Warn("Quest: {0} {1} {2}", Step, res, acts[i].DetailType); // for debuging
+                    }
                 }
                 if (!res)
-                    break;
-            }
-            if (!res)
                 {
                     return componentId;
                 }
+            }
             return res ? componentId : 0;
         }
 
@@ -270,9 +271,7 @@ namespace AAEmu.Game.Models.Game.Quests
             }
             return res ? componentId : 0;
         }
-
         public int GetCustomExp() { return GetCustomSupplies("exp"); }
-
         public int GetCustomCopper() { return GetCustomSupplies("copper"); }
 
         public int GetCustomSupplies(string supply)
@@ -707,12 +706,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public int[] GetCurrentObjectives(QuestComponentKind step)
         {
-            var preStep = Step;
-            Step = step;
-            var res = CurrentObjectives;
-            Step = preStep; // restore the current step
-
-            return res;
+            return CurrentObjectives;
         }
 
         public override PacketStream Write(PacketStream stream)
