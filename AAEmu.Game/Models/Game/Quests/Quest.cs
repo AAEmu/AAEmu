@@ -38,6 +38,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public Character Owner { get; set; }
         public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalSeconds : -1;
         public int SupplyItem = 0;
+        public bool LID = false;
         public bool EarlyCompletion = false;
         public long DoodadId { get; set; }
         public uint ComponentId { get; set; }
@@ -187,6 +188,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
                                     break;
                                 }
+                                /*
                             case "QuestActObjMonsterGroupHunt":
                                 {
                                     res = acts[i].Use(Owner, this, CurrentObjectives[i]);
@@ -196,6 +198,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     }
                                     break;
                                 }
+                                */
                             case "QuestActConReportNpc":
                                 res = false;
                                 break;
@@ -257,6 +260,13 @@ namespace AAEmu.Game.Models.Game.Quests
                             break;
                         default:
                             res = acts[i].Use(Owner, this, CurrentObjectives[i]);
+                            bool CStep = Template.LetItDone;
+                            if (CStep == true && res == false)
+                            {
+                                LID = true;
+                                res = true;
+                                break;
+                            }
                             break;
                     }
 
