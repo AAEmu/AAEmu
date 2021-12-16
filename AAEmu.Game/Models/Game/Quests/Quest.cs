@@ -263,7 +263,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             bool CStep = Template.LetItDone;
                             if (CStep == true && res == false)
                             {
-                                LID = true;
+                                EarlyCompletion = true;
                                 res = true;
                                 break;
                             }

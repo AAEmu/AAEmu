@@ -80,7 +80,7 @@ namespace AAEmu.Game.Models.Game.Char
                     var exps = quest.GetCustomExp(); 
                     var amount = quest.GetCustomCopper();
                     bool CStep = quest.Template.LetItDone;
-                    if (CStep == true && quest.LID == true)
+                    if (CStep == true && quest.EarlyCompletion == true)
                     {
                         var suppli = QuestManager.Instance.GetSupplies(quest.Template.Level);
                         if (suppli != null)
