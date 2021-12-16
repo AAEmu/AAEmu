@@ -38,6 +38,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public Character Owner { get; set; }
         public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalSeconds : -1;
         public int SupplyItem = 0;
+        public bool LID = false;
         public bool EarlyCompletion = false;
         public long DoodadId { get; set; }
         public uint ComponentId { get; set; }

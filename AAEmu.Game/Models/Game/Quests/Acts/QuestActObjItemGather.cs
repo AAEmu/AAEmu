@@ -1,5 +1,6 @@
-using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.Acts;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {
@@ -15,9 +16,18 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public bool DropWhenDestroy { get; set; }
         public bool DestroyWhenDrop { get; set; }
 
+        public static int HuntStatus = 0;
         public override bool Use(Character character, Quest quest, int objective)
         {
+            _log.Debug("QuestActObjItemGather: QuestActObjItemGatherId {0}, Count {1}, UseAlias {2}, QuestActObjAliasId {3}, HighlightDoodadId {4}, HighlightDoodadPhase {5}, quest {6}, objective {7}, Score {8}",
+                ItemId, Count, UseAlias, QuestActObjAliasId, HighlightDoodadId, HighlightDoodadPhase, quest.TemplateId, objective, quest.Template.Score);
+
             _log.Warn("QuestActObjItemGather");
+            if (quest.Template.Score > 0)
+            {
+                QuestActObjMonsterGroupHunt.GatherStatus = objective;
+                return objective + HuntStatus >= quest.Template.Score / Count;
+            }
             return objective >= Count;
         }
     }
