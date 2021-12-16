@@ -79,23 +79,48 @@ namespace AAEmu.Game.Models.Game.Char
                 {
                     var exps = quest.GetCustomExp(); 
                     var amount = quest.GetCustomCopper();
-                    var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
-                    if (supplies != null)
+                    bool CStep = quest.Template.LetItDone;
+                    if (CStep == true && quest.LID == true)
                     {
-                        if (exps == 0)
-                            Owner.AddExp(supplies.Exp, true);
-                        if (amount == 0)
-                            amount = supplies.Copper;
-                        Owner.Money += amount;
-                        Owner.SendPacket(
-                            new SCItemTaskSuccessPacket(
-                                ItemTaskType.QuestComplete,
-                                new List<ItemTask>
-                                {
+                        var suppli = QuestManager.Instance.GetSupplies(quest.Template.Level);
+                        if (suppli != null)
+                        {
+                            if (exps == 0)
+                                Owner.AddExp(suppli.Exp/10*3, true);
+                            if (amount == 0)
+                                amount = suppli.Copper;
+                            Owner.Money += amount;
+                            Owner.SendPacket(
+                                new SCItemTaskSuccessPacket(
+                                    ItemTaskType.QuestComplete,
+                                    new List<ItemTask>
+                                    {
                                     new MoneyChange(amount)
-                                },
-                                new List<ulong>())
-                        );
+                                    },
+                                    new List<ulong>())
+                            );
+                        }
+                    }
+                    else
+                    {
+                        var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
+                        if (supplies != null)
+                        {
+                            if (exps == 0)
+                                Owner.AddExp(supplies.Exp, true);
+                            if (amount == 0)
+                                amount = supplies.Copper;
+                            Owner.Money += amount;
+                            Owner.SendPacket(
+                                new SCItemTaskSuccessPacket(
+                                    ItemTaskType.QuestComplete,
+                                    new List<ItemTask>
+                                    {
+                                    new MoneyChange(amount)
+                                    },
+                                    new List<ulong>())
+                            );
+                        }
                     }
                 }
                 var completeId = (ushort)(quest.TemplateId / 64);
