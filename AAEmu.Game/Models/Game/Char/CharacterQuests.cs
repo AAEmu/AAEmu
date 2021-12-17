@@ -50,8 +50,8 @@ namespace AAEmu.Game.Models.Game.Char
                 return;
             var quest = new Quest(template);
             quest.Id = QuestIdManager.Instance.GetNextId();
-            quest.Status = QuestStatus.Progress;
-            quest.Step = QuestComponentKind.Start;
+            quest.Status = QuestStatus.Invalid;
+            quest.Step = QuestComponentKind.None;
             quest.Owner = Owner;
             Quests.Add(quest.TemplateId, quest);
             quest.ClearObjectives();
