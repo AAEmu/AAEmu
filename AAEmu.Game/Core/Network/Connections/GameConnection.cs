@@ -5,6 +5,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
@@ -105,6 +106,8 @@ namespace AAEmu.Game.Core.Network.Connections
             Subscribers.Add(disposable);
         }
 
+        
+
         public void LoadAccount()
         {
             Characters.Clear();
@@ -128,22 +131,7 @@ namespace AAEmu.Game.Core.Network.Connections
                     var character = Character.Load(connection, id, AccountId);
                     if (character == null)
                         continue; // TODO ...
-                    
-                    // Mark characters marked for deletion as deleted after their time is finished
-                    if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime < DateTime.UtcNow))
-                    {
-                        // Console.WriteLine("\n---\nWe need to delete: {0} - {1}\n---\n", character.Id, character.Name);
-                        using (var command = connection.CreateCommand())
-                        {
-                            command.Connection = connection;
-                            command.CommandText = "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time WHERE `id`=@char_id and`account_id`=@account_id;";
-                            command.Parameters.AddWithValue("@new_delete_time", DateTime.MinValue);
-                            command.Parameters.AddWithValue("@char_id", character.Id);
-                            command.Parameters.AddWithValue("@account_id", AccountId);
-                            command.ExecuteNonQuery();
-                        }
-                    }
-                    else
+                    if (!CharacterManager.Instance.CheckCharacterDelete(character, this, connection))
                     {
                         Characters.Add(character.Id, character);
                     }
@@ -163,7 +151,6 @@ namespace AAEmu.Game.Core.Network.Connections
             {
                 var character = Characters[characterId];
                 character.DeleteRequestTime = DateTime.UtcNow;
-                // character.DeleteTime = character.DeleteRequestTime.AddDays(7); // TODO to config...
 
                 // TODO: We need a config for this, but for now I added a silly if/else group
                 if (character.Level <= 1)
@@ -179,6 +166,9 @@ namespace AAEmu.Game.Core.Network.Connections
                     character.DeleteTime = character.DeleteRequestTime.AddDays(1);
                 else
                     character.DeleteTime = character.DeleteRequestTime.AddDays(7);
+                
+                // DEBUG Override
+                character.DeleteTime = character.DeleteRequestTime.AddSeconds(15);
 
                 // TODO: Delete leadership, set properties to public, remove from party/guild/family
                 SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime,

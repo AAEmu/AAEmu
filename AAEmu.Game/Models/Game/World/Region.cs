@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -373,10 +373,7 @@ namespace AAEmu.Game.Models.Game.World
 
         public override int GetHashCode()
         {
-            var result = (int)_worldId;
-            result = (result * 397) ^ X;
-            result = (result * 397) ^ Y;
-            return result;
+            return HashCode.Combine(_worldId, X, Y);
         }
     }
 }
