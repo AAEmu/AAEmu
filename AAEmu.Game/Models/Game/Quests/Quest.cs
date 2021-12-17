@@ -510,7 +510,7 @@ namespace AAEmu.Game.Models.Game.Quests
             //var component = GetCurrentComponent(); // возьмем компонент
             if (component != null)
             {
-                var acts = QuestManager.Instance.GetActs((uint)component.KindId); // обработаем все акты для текущего компонента
+                var acts = QuestManager.Instance.GetActs(component.Id); // обработаем все акты для текущего компонента
                 for (var i = 0; i < acts.Length; i++)
                 {
                     var act = acts[i];
