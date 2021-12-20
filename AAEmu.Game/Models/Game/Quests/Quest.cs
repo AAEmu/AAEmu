@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -42,7 +41,6 @@ namespace AAEmu.Game.Models.Game.Quests
         public bool LID = false;
         public bool EarlyCompletion = false;
         public long DoodadId { get; set; }
-        public ulong ObjId { get; set; }
         public uint ComponentId { get; set; }
         public QuestAcceptorType QuestAcceptorType { get; set; }
         public uint AcceptorType { get; set; }
@@ -66,59 +64,70 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public uint Start()
         {
-            ObjId = 0;
-
             var res = false;
-            var component = GetFirstComponent(); // в начале берем всегда первый компонент
-            CheckThatTheNextStepIsReady();
-            var acts = QuestManager.Instance.GetActs(component.Id); // обработаем все акты для текущего компонента
-            for (var i = 0; i < acts.Length; i++)
+            var componentId = 0u;
+            for (Step = QuestComponentKind.None; Step <= QuestComponentKind.Reward; Step++)
             {
-                switch (acts[i].DetailType)
+                if (Step >= QuestComponentKind.Ready)
                 {
-                    case "QuestActObjItemGather":
-                        {
-                            var template = acts[i].GetTemplate<QuestActObjItemGather>();
-                            // TODO: Check both inventory and warehouse
-                            Owner.Inventory.Bag.GetAllItemsByTemplate(template.Id, -1, out _, out var objectivesCounted);
-                            CurrentObjectives[i] = objectivesCounted;
-                            //CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
-                            if (CurrentObjectives[i] > template.Count) // TODO check to overtime
-                            {
-                                CurrentObjectives[i] = template.Count;
-                            }
-
-                            _log.Warn("Quest: step:{0} status:{3} res:{1} DetailType:{2}", component.KindId, res, acts[i].DetailType, Status);//  for debuging
-                            res = acts[i].Use(Owner, this, CurrentObjectives[i]);
-                            break;
-                        }
-                    case "QuestActConReportNpc":
-                        res = false;
-                        break;
-                    case "QuestActObjItemUse":
-                        res = false;
-                        break;
-                    case "QuestActSupplyItem" when component.KindId == QuestComponentKind.Supply:
-                        res = acts[i].Use(Owner, this, SupplyItem);
-                        break;
-                    case "QuestActConAcceptNpc":
-                    case "QuestActConAcceptDoodad":
-                        res = acts[i].Use(Owner, this, CurrentObjectives[i]);
-                        break;
-                    default:
-                        res = acts[i].Use(Owner, this, CurrentObjectives[i]);
-                        break;
+                    Status = QuestStatus.Ready;
                 }
 
-                _log.Warn("Quest: step:{0} status:{3} res:{1} DetailType:{2}", component.KindId, res, acts[i].DetailType, Status);//  for debuging
+                var components = Template.GetComponents(Step);
+                if (components.Count == 0)
+                {
+                    continue;
+                }
+                int c;
+                for (c = 0; c <= components.Count - 1; c++)
+                {
+                    var acts = QuestManager.Instance.GetActs(components[c].Id);
+                    for (var i = 0; i < acts.Length; i++)
+                    {
+                        switch (acts[i].DetailType)
+                        {
+                            case "QuestActObjItemGather":
+                                {
+                                    var template = acts[i].GetTemplate<QuestActObjItemGather>();
+                                    // TODO: Check both inventory and warehouse
+                                    Owner.Inventory.Bag.GetAllItemsByTemplate(template.Id, -1, out _, out var objectivesCounted);
+                                    CurrentObjectives[i] = objectivesCounted;
+                                    //CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                    if (CurrentObjectives[i] > template.Count) // TODO check to overtime
+                                    {
+                                        CurrentObjectives[i] = template.Count;
+                                    }
 
-            }
+                                    _log.Warn("Quest: {0} {1} {2}", Step, res, acts[i].DetailType);//  for debuging
+                                    res = acts[i].Use(Owner, this, CurrentObjectives[i]);
+                                    componentId = components[c].Id;
+                                    break;
+                                }
+                            case "QuestActConReportNpc":
+                                res = false;
+                                break;
+                            case "QuestActObjItemUse":
+                                res = false;
+                                break;
+                            case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
+                                res = acts[i].Use(Owner, this, SupplyItem);
+                                componentId = components[c].Id;
+                                break;
+                            default:
+                                res = acts[i].Use(Owner, this, CurrentObjectives[i]);
+                                componentId = components[c].Id;
+                                break;
+                        }
 
-            if (!res)
-            {
-                return component.Id;
+                        _log.Warn("Quest: {0} {1} {2}", Step, res, acts[i].DetailType); // for debuging
+                    }
+                }
+                if (!res)
+                {
+                    return componentId;
+                }
             }
-            return res ? component.Id : 0;
+            return res ? componentId : 0;
         }
 
         public void Update(bool send = true)
@@ -207,57 +216,66 @@ namespace AAEmu.Game.Models.Game.Quests
         public uint Complete(int selected)
         {
             var res = false;
-            var component = GetNextComponent(); // возьмем следующий компонент
-            //var component = GetCurrentComponent(); // возьмем компонент
-            CheckThatTheNextStepIsReady();
-            var acts = QuestManager.Instance.GetActs(component.Id); // обработаем все акты для текущего компонента
-            var selective = 0;
-            for (var i = 0; i < acts.Length; i++)
+            var componentId = 0u;
+            for (; Step <= QuestComponentKind.Reward; Step++)
             {
-                switch (acts[i].DetailType)
+                if (Step >= QuestComponentKind.Drop)
                 {
-                    case "QuestActSupplySelectiveItem":
-                        {
-                            selective++;
-                            if (selective == selected)
-                            {
-                                res = acts[i].Use(Owner, this, CurrentObjectives[i]);
-                            }
-
-                            break;
-                        }
-                    case "QuestActSupplyItem":
-                        res = acts[i].Use(Owner, this, SupplyItem);
-                        break;
-                    case "QuestActConAutoComplete":
-                        res = true;
-                        break;
-                    default:
-                        res = acts[i].Use(Owner, this, CurrentObjectives[i]);
-                        bool CStep = Template.LetItDone;
-                        if (CStep == true && res == false)
-                        {
-                            EarlyCompletion = true;
-                            res = true;
-                            break;
-                        }
-                        break;
+                    Status = QuestStatus.Completed;
                 }
 
-                SupplyItem = 0;
+                var component = Template.GetComponent(Step);
+                if (component == null)
+                {
+                    continue;
+                }
 
-                _log.Warn("Quest: step:{0} status:{3} res:{1} DetailType:{2}", component.KindId, res, acts[i].DetailType, Status);//  for debuging
+                var acts = QuestManager.Instance.GetActs(component.Id);
+                var selective = 0;
+                for (var i = 0; i < acts.Length; i++)
+                {
+                    switch (acts[i].DetailType)
+                    {
+                        case "QuestActSupplySelectiveItem":
+                            {
+                                selective++;
+                                if (selective == selected)
+                                {
+                                    res = acts[i].Use(Owner, this, CurrentObjectives[i]);
+                                }
+
+                                break;
+                            }
+                        case "QuestActSupplyItem":
+                            res = acts[i].Use(Owner, this, SupplyItem);
+                            break;
+                        case "QuestActConAutoComplete":
+                            res = true;
+                            break;
+                        default:
+                            res = acts[i].Use(Owner, this, CurrentObjectives[i]);
+                            bool CStep = Template.LetItDone;
+                            if (CStep == true && res == false)
+                            {
+                                EarlyCompletion = true;
+                                res = true;
+                                break;
+                            }
+                            break;
+                    }
+
+                    SupplyItem = 0;
+                }
+                if (!res)
+                {
+                    return componentId;
+                }
+
+                componentId = component.Id;
             }
-
-            if (!res)
-            {
-                return component.Id;
-            }
-            return res ? component.Id : 0;
-
+            return res ? componentId : 0;
         }
         public int GetCustomExp() { return GetCustomSupplies("exp"); }
-
         public int GetCustomCopper() { return GetCustomSupplies("copper"); }
 
         public int GetCustomSupplies(string supply)
@@ -346,7 +364,6 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
         }
-
         public void Drop(bool update)
         {
             Status = QuestStatus.Dropped;
@@ -532,13 +549,10 @@ namespace AAEmu.Game.Models.Game.Quests
         public void OnInteraction(WorldInteractionType type, Units.BaseUnit target)
         {
             var res = false;
-
-            var component = GetNextComponent(); // возьмем следующий компонент
-            CheckThatTheNextStepIsReady();
-            //var component = GetCurrentComponent(); // возьмем компонент
+            var component = Template.GetComponent(Step);
             if (component != null)
             {
-                var acts = QuestManager.Instance.GetActs(component.Id); // обработаем все акты для текущего компонента
+                var acts = QuestManager.Instance.GetActs(component.Id);
                 for (var i = 0; i < acts.Length; i++)
                 {
                     var act = acts[i];
@@ -550,8 +564,6 @@ namespace AAEmu.Game.Models.Game.Quests
                             var interactionTarget = (Doodad)target;
                             if (template.DoodadId == interactionTarget.TemplateId)
                             {
-                                ObjId = interactionTarget.ObjId;
-
                                 res = true;
                                 CurrentObjectives[i]++;
                                 if (CurrentObjectives[i] > template.Count) // TODO check to overtime
@@ -564,28 +576,17 @@ namespace AAEmu.Game.Models.Game.Quests
                     if (act.DetailType == "QuestActObjItemGather")
                     {
                         var template = acts[i].GetTemplate<QuestActObjItemGather>();
-
-                        var items = new List<Item>();
-                        if (target != null)
-                        {
-                            var interactionTarget = (Doodad)target;
-                            ObjId = interactionTarget.ObjId;
-                        }
-
                         CurrentObjectives[i] = Owner.Inventory.GetItemsCount(template.ItemId);
                         if (CurrentObjectives[i] >= template.Count) // TODO check to overtime
                         {
                             CurrentObjectives[i] = template.Count;
-                            res = false;
+                            res = true;
                         }
                     }
                 }
             }
 
-            if (!res)
-            {
-                Owner.SendPacket(new SCQuestContextUpdatedPacket(this, component.Id));
-            }
+
             Update(res);
         }
 
@@ -720,106 +721,6 @@ namespace AAEmu.Game.Models.Game.Quests
             return CurrentObjectives;
         }
 
-        public void CheckThatTheNextStepIsReady()
-        {
-            for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
-            {
-                var component = Template.GetComponent(step);
-                if (component == null) // пропускаем пустые
-                    continue;
-
-                if (component.KindId <= Step) // находим компонент следующий за текущим
-                    continue;
-
-                Status = component.KindId == QuestComponentKind.Ready ? QuestStatus.Ready : QuestStatus.Progress;
-                //    SetStatus();
-                return;
-            }
-
-            return; // нет следующего компонента
-        }
-
-        public QuestComponent GetFirstComponent()
-        {
-            for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
-            {
-                var component = Template.GetComponent(step);
-                if (component == null)
-                    continue;
-
-                Step = component.KindId; // указываем на первый шаг
-                //SetStatus();
-                return component;
-            }
-
-            return null; // нет следующего компонента
-        }
-
-        public QuestComponent GetNextComponent()
-        {
-            for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
-            {
-                var component = Template.GetComponent(step);
-                if (component == null) // пропускаем пустые
-                    continue;
-
-                if (component.KindId <= Step) // находим компонент следующий за текущим
-                    continue;
-
-                Step = component.KindId; // указываем на следующий шаг
-                //    SetStatus();
-                return component;
-            }
-
-            return null; // нет следующего компонента
-        }
-
-        public QuestComponent GetCurrentComponent()
-        {
-            var component = Template.GetComponent(Step);
-            if (component == null)
-                return null; // нет компонента
-
-            Step = component.KindId; // указываем на текущий шаг
-            //SetStatus();
-
-            return component;
-        }
-
-        private void SetStatus()
-        {
-            return;
-            switch (Step)
-            {
-                case QuestComponentKind.None:
-                    Status = QuestStatus.Invalid;
-                    break;
-                case QuestComponentKind.Start:
-                    Status = QuestStatus.Progress;
-                    break;
-                case QuestComponentKind.Supply:
-                    Status = QuestStatus.Progress;
-                    break;
-                case QuestComponentKind.Progress:
-                    Status = QuestStatus.Progress;
-                    break;
-                case QuestComponentKind.Ready:
-                    Status = QuestStatus.Ready;
-                    break;
-                case QuestComponentKind.Fail:
-                    Status = QuestStatus.Failed;
-                    break;
-                case QuestComponentKind.Drop:
-                    Status = QuestStatus.Dropped;
-                    break;
-                case QuestComponentKind.Reward:
-                    Status = QuestStatus.Progress;
-                    break;
-                default:
-                    break;
-            }
-        }
-
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(Id);
@@ -830,11 +731,11 @@ namespace AAEmu.Game.Models.Game.Quests
                 stream.Write(objective);
             }
 
-            stream.Write(false);         // isCheckSet
-            stream.WriteBc((uint)ObjId); // ObjId
-            stream.Write(0u);            // type(id)
-            stream.WriteBc((uint)ObjId); // ObjId
-            stream.WriteBc((uint)ObjId); // ObjId
+            stream.Write(false);             // isCheckSet
+            stream.WriteBc(0);               // ObjId
+            stream.Write(0u);                // type(id)
+            stream.WriteBc(0);               // ObjId
+            stream.WriteBc(0);               // ObjId
             stream.Write(LeftTime);
             stream.Write(0u);                      // type(id)
             stream.Write(DoodadId);                // doodadId
