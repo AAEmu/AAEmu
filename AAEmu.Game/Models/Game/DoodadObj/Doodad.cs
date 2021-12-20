@@ -213,7 +213,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             var startGroupIds = new List<uint>();
             foreach (var funcGroup in Template.FuncGroups)
             {
-                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start) // Add Line || funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Normal || funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.End ?????????
+                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
                     startGroupIds.Add(funcGroup.Id);
             }
 
@@ -224,8 +224,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             foreach (var funcGroup in Template.FuncGroups)
             {
-                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start || funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Normal) // Add Lin  || funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.End ???????
+                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
+                {
                     return funcGroup.Id;
+                }
+                else
+                {
+                    uint[] ListFunc = new uint[4] { 4204, 13475, 13698, 13461 };
+                    foreach (uint FuncId in ListFunc)
+                    {
+                        if (funcGroup.Id == FuncId || funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
+                        {
+                            return funcGroup.Id;
+                        }
+                    }
+                }
             }
             return 0;
         }
