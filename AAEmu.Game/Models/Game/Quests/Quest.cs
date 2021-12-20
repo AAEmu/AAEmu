@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 using AAEmu.Commons.Network;
@@ -804,3 +804,4 @@ namespace AAEmu.Game.Models.Game.Quests
         }
     }
 }
+
