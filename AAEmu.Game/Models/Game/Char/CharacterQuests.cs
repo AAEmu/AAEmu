@@ -5,11 +5,13 @@ using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -17,6 +19,7 @@ using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
 
 using NLog;
+using NLog.Targets;
 
 namespace AAEmu.Game.Models.Game.Char
 {
@@ -37,6 +40,10 @@ namespace AAEmu.Game.Models.Game.Char
             _removed = new List<uint>();
         }
 
+        public bool HasQuest(uint questId)
+        {
+            return Quests.ContainsKey(questId);
+        }
         public void Add(uint questContextId)
         {
             if (Quests.ContainsKey(questContextId))
@@ -56,11 +63,15 @@ namespace AAEmu.Game.Models.Game.Char
             Quests.Add(quest.TemplateId, quest);
             quest.ClearObjectives();
 
+            quest.GetFirstComponent();
             var res = quest.Start();
             if (res == 0)
                 Quests.Remove(quest.TemplateId);
             else
+            {
                 Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
+            }
+            quest.GetNextComponent();
         }
 
         public void Complete(uint questContextId, int selected, bool supply = true)
@@ -77,7 +88,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (supply)
                 {
-                    var exps = quest.GetCustomExp(); 
+                    var exps = quest.GetCustomExp();
                     var amount = quest.GetCustomCopper();
                     bool CStep = quest.Template.LetItDone;
                     if (CStep == true && quest.EarlyCompletion == true)
@@ -86,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Char
                         if (suppli != null)
                         {
                             if (exps == 0)
-                                Owner.AddExp(suppli.Exp/10*3, true);
+                                Owner.AddExp(suppli.Exp / 10 * 3, true);
                             if (amount == 0)
                                 amount = suppli.Copper;
                             Owner.Money += amount;
@@ -132,6 +143,7 @@ namespace AAEmu.Game.Models.Game.Char
                 complete.Body.CopyTo(body, 0);
                 Drop(questContextId, false);
                 Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
+                quest.GetNextComponent();
                 OnQuestComplete(questContextId);
             }
         }
@@ -145,6 +157,20 @@ namespace AAEmu.Game.Models.Game.Char
             Quests.Remove(questContextId);
             _removed.Add(questContextId);
             QuestIdManager.Instance.ReleaseId((uint)quest.Id);
+        }
+
+        public void OnDoodadGather(WorldInteractionType type, uint questId, Units.BaseUnit target)
+        {
+            if (!Quests.ContainsKey(questId))
+                return;
+            var quest = Quests[questId];
+
+            //var doodad = WorldManager.Instance.GetDoodad(objId);
+            //if (doodad == null)
+            //    return;
+
+            //quest.OnDoodadGather(objId, selected);
+            quest.OnInteraction(type, target);
         }
 
         public void OnKill(Npc npc)

@@ -95,7 +95,7 @@ namespace AAEmu.Game.Core.Managers
                 _log.Info("Loading quests...");
                 using(var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM quest_contexts";
+                    command.CommandText = "SELECT * FROM quest_contexts ORDER BY id ASC";
                     command.Prepare();
                     using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
@@ -126,7 +126,7 @@ namespace AAEmu.Game.Core.Managers
                 }
                 using(var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM quest_components";
+                    command.CommandText = "SELECT * FROM quest_components ORDER BY quest_context_id ASC, component_kind_id ASC, id ASC";
                     command.Prepare();
                     using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
@@ -138,6 +138,7 @@ namespace AAEmu.Game.Core.Managers
                             
                             var template = new QuestComponent();
                             template.Id = reader.GetUInt32("id");
+                            template.ContextId = reader.GetUInt32("quest_context_id");
                             template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
                             template.NextComponent = reader.GetUInt32("next_component", 0);
                             template.NpcAiId = (QuestNpcAiName)reader.GetUInt32("npc_ai_id", 0);
@@ -176,7 +177,7 @@ namespace AAEmu.Game.Core.Managers
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM quest_acts";
+                    command.CommandText = "SELECT * FROM quest_acts ORDER BY quest_component_id ASC, id ASC";
                     command.Prepare();
                     using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {

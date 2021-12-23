@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Models.Game.DoodadObj.Templates;
+﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -12,6 +14,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
             _log.Debug("DoodadFuncRequireQuest QuestId: {0}, WorldIntId {1}", QuestId, WorldInteractionId);
+            if (caster is Character character)
+            {
+
+                character.Quests.OnDoodadGather(WorldInteractionId, QuestId, character.CurrentTarget);
+            }
             owner.ToPhaseAndUse = false;
         }
     }
