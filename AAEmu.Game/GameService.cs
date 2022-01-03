@@ -136,6 +136,8 @@ namespace AAEmu.Game
             spawnSw.Stop();
             _log.Info("Units spawned in {0}", spawnSw.Elapsed);
             
+            CharacterManager.Instance.CheckForDeletedCharacters();
+            
             GameNetwork.Instance.Start();
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();

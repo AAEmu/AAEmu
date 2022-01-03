@@ -9,12 +9,12 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
-using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Network.Connections
 {
@@ -131,7 +131,7 @@ namespace AAEmu.Game.Core.Network.Connections
                     var character = Character.Load(connection, id, AccountId);
                     if (character == null)
                         continue; // TODO ...
-                    if (!CharacterManager.Instance.CheckCharacterDelete(character, this, connection))
+                    if (!CharacterManager.Instance.CheckForDeletedCharactersDeletion(character, this, connection))
                     {
                         Characters.Add(character.Id, character);
                     }
@@ -145,83 +145,6 @@ namespace AAEmu.Game.Core.Network.Connections
             HousingManager.Instance.GetByAccountId(Houses, AccountId);
         }
 
-        public void SetDeleteCharacter(uint characterId)
-        {
-            if (Characters.ContainsKey(characterId))
-            {
-                var character = Characters[characterId];
-                character.DeleteRequestTime = DateTime.UtcNow;
-
-                // TODO: We need a config for this, but for now I added a silly if/else group
-                if (character.Level <= 1)
-                    character.DeleteTime = character.DeleteRequestTime.AddMinutes(5);
-                else
-                if (character.Level < 10)
-                    character.DeleteTime = character.DeleteRequestTime.AddMinutes(30);
-                else
-                if (character.Level < 30)
-                    character.DeleteTime = character.DeleteRequestTime.AddHours(4);
-                else
-                if (character.Level < 40)
-                    character.DeleteTime = character.DeleteRequestTime.AddDays(1);
-                else
-                    character.DeleteTime = character.DeleteRequestTime.AddDays(7);
-                
-                // DEBUG Override
-                character.DeleteTime = character.DeleteRequestTime.AddSeconds(15);
-
-                // TODO: Delete leadership, set properties to public, remove from party/guild/family
-                SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime,
-                    character.DeleteTime));
-
-                using (var connection = MySQL.CreateConnection())
-                {
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText =
-                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
-                        command.Prepare();
-                        command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
-                        command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
-                        command.Parameters.AddWithValue("@id", character.Id);
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-            else
-            {
-                SendPacket(new SCDeleteCharacterResponsePacket(characterId, 0));
-            }
-        }
-
-        public void SetRestoreCharacter(uint characterId)
-        {
-            if (Characters.ContainsKey(characterId))
-            {
-                var character = Characters[characterId];
-                character.DeleteRequestTime = DateTime.MinValue;
-                character.DeleteTime = DateTime.MinValue;
-                SendPacket(new SCCancelCharacterDeleteResponsePacket(character.Id, 3));
-
-                using (var connection = MySQL.CreateConnection())
-                {
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText =
-                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
-                        command.Prepare();
-                        command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
-                        command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
-                        command.Parameters.AddWithValue("@id", character.Id);
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-            else
-            {
-                SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
-            }
-        }
         /// <summary>
         /// Called when closing a connection
         /// </summary>
