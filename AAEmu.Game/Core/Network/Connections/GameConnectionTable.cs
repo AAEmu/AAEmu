@@ -38,8 +38,10 @@ namespace AAEmu.Game.Core.Network.Connections
 
         public GameConnection GetConnectionByAccount(uint accountId)
         {
-            var connectionInfo = _connections.First(c => c.Value.AccountId == accountId);
-            return connectionInfo.Value;
+            var connectionInfo = _connections.Where(c => c.Value.AccountId == accountId).ToList();
+            if (connectionInfo.Count >= 1)
+                return connectionInfo[0].Value;
+            return null;
         }
     }
 }

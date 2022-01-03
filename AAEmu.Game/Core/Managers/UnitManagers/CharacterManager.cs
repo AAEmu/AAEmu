@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
+using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Utils;
@@ -8,6 +10,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -443,10 +446,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             else
                 throw new Exception($"CharacterManager: Error parsing {filePath} file");
 
-            // Start a Delete Tick Task
-            var deleteCheckTask = new CharacterDeleteTask();
-            TaskManager.Instance.Schedule(deleteCheckTask, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(5));
-            
             Log.Info("Loaded {0} character templates", _templates.Count);
         }
 
@@ -598,13 +597,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         /// Mark characters marked for deletion as deleted after their time is finished
         /// </summary>
         /// <param name="character"></param>
+        /// <param name="gameConnection"></param>
         /// <param name="dbConnection"></param>
         /// <returns>Returns true if a character was marked deleted, otherwise false</returns>
-        public bool CheckCharacterDelete(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
+        public bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
         {
-            if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime < DateTime.UtcNow))
+            if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime <= DateTime.UtcNow))
             {
-                Log.Debug("CheckCharacterDelete - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId,character.Id,character.Name);
+                Log.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId,character.Id,character.Name);
                 using (var command = dbConnection.CreateCommand())
                 {
                     command.Connection = dbConnection;
@@ -618,21 +618,33 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     {
                         // TODO: Remove from guild/family/nation, demolish owned houses
                         if (gameConnection != null)
+                        {
                             gameConnection.SendPacket(new SCCharacterDeletedPacket(character.Id, character.Name));
+                            // Not sure if this is the way it should be send or not, but it seems to work with status 1
+                            gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 1, character.DeleteRequestTime, character.DeleteTime));
+                        }
                     }
                     return res > 0;
                 }
             }
+            else
+            {
+                Log.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId,character.Id,character.Name);
+            }
             return false;
         }
 
-        public void CheckForDeletedCharactersTick()
+        public void CheckForDeletedCharacters()
         {
-            Log.Debug("CheckForDeletedCharactersTick");
+            var nextCheckTime = DateTime.MaxValue;
+            var deleteList = new List<(uint, uint)>(); // charId, accountId
+            
+            Log.Debug("CheckForDeletedCharacters - Begin");
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
                 {
+                    // TODO: Update this query to be more efficient
                     command.CommandText = "SELECT `id`, `name`, `account_id`, `delete_time` FROM characters WHERE `deleted`=0";
                     using (var reader = command.ExecuteReader())
                     {
@@ -642,26 +654,139 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             var deleteTime = reader.GetDateTime("delete_time");
                             var charId = reader.GetUInt32("id");
                             var accountId = reader.GetUInt32("account_id");
-                            if ((deleteTime > DateTime.MinValue) && (deleteTime < DateTime.UtcNow))
+                            if ((deleteTime > DateTime.MinValue) && (deleteTime <= DateTime.UtcNow))
                             {
-                                var character = Character.Load(connection, charId, accountId);
-                                if (character != null)
-                                {
-                                    var accountConnection = GameConnectionTable.Instance?.GetConnectionByAccount(character.AccountId) ?? null;
-                                    CheckCharacterDelete(character, accountConnection, connection);
-                                }
-                                else
-                                {
-                                    // Failed to load character for deletion somehow
-                                }
+                                deleteList.Add((charId,accountId));
+                            }
+                            else
+                            if ((deleteTime > DateTime.MinValue) && (deleteTime < nextCheckTime))
+                            {
+                                nextCheckTime = deleteTime;
                             }
                         }
                     }
                 }
-            }            
+                
+                // Actually start deleting
+                foreach (var (charId,accountId) in deleteList)
+                {
+                    var character = Character.Load(connection, charId, accountId);
+                    if (character != null)
+                    {
+                        var accountConnection = GameConnectionTable.Instance?.GetConnectionByAccount(character.AccountId) ?? null;
+                        if (CheckForDeletedCharactersDeletion(character, accountConnection, connection))
+                            Log.Info("CheckForDeletedCharacters - Delete charId:{0}", charId);
+                        else
+                            // Failed to delete character from DB
+                            Log.Error("CheckForDeletedCharacters - Failed to delete character for deletion charId:{0}", charId);
+                    }
+                    else
+                    {
+                        // Failed to load character for deletion somehow
+                        Log.Error("CheckForDeletedCharacters - Failed to load character for deletion charId:{0}", charId);
+                    }
+                }
+            }
             
+            // Start a Delete Tick Task
+            if (nextCheckTime < DateTime.MaxValue)
+            {
+                var deleteCheckTask = new CharacterDeleteTask();
+                TaskManager.Instance?.Schedule(deleteCheckTask, nextCheckTime - DateTime.UtcNow);
+                Log.Debug("CheckForDeletedCharacters - Next delete scheduled at " + nextCheckTime.ToString());
+            }
+            else
+            {
+                Log.Debug("CheckForDeletedCharacters - No new deletions scheduled");
+            }
         }
         
+        public void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
+        {
+            if (gameConnection.Characters.ContainsKey(characterId))
+            {
+                var character = gameConnection.Characters[characterId];
+                character.DeleteRequestTime = DateTime.UtcNow;
+
+                // TODO: We need a config for this, but for now I added a silly if/else group
+                if (character.Level <= 1)
+                    character.DeleteTime = character.DeleteRequestTime.AddMinutes(5);
+                else
+                if (character.Level < 10)
+                    character.DeleteTime = character.DeleteRequestTime.AddMinutes(30);
+                else
+                if (character.Level < 30)
+                    character.DeleteTime = character.DeleteRequestTime.AddHours(4);
+                else
+                if (character.Level < 40)
+                    character.DeleteTime = character.DeleteRequestTime.AddDays(1);
+                else
+                    character.DeleteTime = character.DeleteRequestTime.AddDays(7);
+                
+                // DEBUG Override
+                character.DeleteTime = character.DeleteRequestTime.AddSeconds(15);
+
+                using (var connection = MySQL.CreateConnection())
+                {
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
+                        command.Prepare();
+                        command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
+                        command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
+                        command.Parameters.AddWithValue("@id", character.Id);
+                        if (command.ExecuteNonQuery() == 1)
+                        {
+                            // TODO: Delete leadership, set properties to public, remove from party/guild/family/nation
+                            gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
+                        }
+                        else
+                        {
+                            // Failed to mark for deletion
+                            // Not the correct message, but it seems funny enough
+                            gameConnection.SendPacket(new SCErrorMsgPacket(ErrorMessageType.CannotDeleteCharWhileBotSuspected, 0, true));
+                        }
+
+                    }
+                }
+            }
+            else
+            {
+                gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(characterId, 0));
+            }
+            // Trigger our task queueing
+            CharacterManager.Instance.CheckForDeletedCharacters();
+        }
+
+        public void SetRestoreCharacter(GameConnection gameConnection, uint characterId)
+        {
+            if (gameConnection.Characters.ContainsKey(characterId))
+            {
+                var character = gameConnection.Characters[characterId];
+                character.DeleteRequestTime = DateTime.MinValue;
+                character.DeleteTime = DateTime.MinValue;
+                gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(character.Id, 3));
+
+                using (var connection = MySQL.CreateConnection())
+                {
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
+                        command.Prepare();
+                        command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
+                        command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
+                        command.Parameters.AddWithValue("@id", character.Id);
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            else
+            {
+                gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
+            }
+        }
         public List<LoginCharacterInfo> LoadCharacters(uint accountId)
         {
             var result = new List<LoginCharacterInfo>();
