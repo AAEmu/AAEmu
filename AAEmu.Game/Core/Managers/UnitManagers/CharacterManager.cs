@@ -19,10 +19,12 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Housing;
 using NLog;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Utils;
+using Microsoft.CodeAnalysis.Text;
 using MySql.Data.MySqlClient;
 using SQLitePCL;
 
@@ -595,6 +597,57 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         }
 
         /// <summary>
+        /// Removed all items and assets this character currently owns
+        /// </summary>
+        /// <param name="character">Character to delete assets from</param>
+        /// <param name="fullWipe">Do owned items need to be actually deleted</param>
+        public void DeleteCharacterAssets(Character character, bool fullWipe)
+        {
+            // Demolish owned houses
+            var myHouses = new Dictionary<uint, House>();
+            if (HousingManager.Instance.GetByCharacterId(myHouses, character.Id) > 0)
+            {
+                foreach (var (houseId, house) in myHouses)
+                {
+                    house.Permission = HousingPermission.Public;
+                    // force expire the house
+                    // This should technically kill the house, and return the minimum amount of furniture
+                    house.ProtectionEndDate = DateTime.UtcNow.AddDays(-21);
+                    HousingManager.Instance.UpdateTaxInfo(house);
+                }
+            }
+                        
+            // Remove from Guild
+            if (character.Expedition != null)
+                ExpeditionManager.Instance.Leave(character);
+
+            // Remove from Family
+            if (character.Family > 0)
+                FamilyManager.Instance.LeaveFamily(character);
+                        
+            // TODO: Remove from player nation
+            // TODO: Delete leadership
+            
+            // Return all mails to sender (if needed)
+            // The main reason we do this is so other people's items wouldn't get delete if fullWipe is enabled
+            foreach (var (mailId, mail) in MailManager.Instance._allPlayerMails)
+            {
+                if (mail.CanReturnMail() && !mail.ReturnToSender())
+                    Log.Warn(
+                        "DeleteCharacterAssets - Unable to return mail to sender for mail: {0}, deleted char: {1}({2}), sender: {3}({4})",
+                        mail.Id,
+                        mail.Header.ReceiverName, mail.Header.ReceiverId,
+                        mail.Header.SenderName, mail.Header.SenderId);
+            }
+
+            if (!fullWipe)
+                return;
+            
+            // TODO: Wipe all mails
+            // TODO: Wipe all items/gold (this also deletes all pets/vehicles)
+        }
+        
+        /// <summary>
         /// Mark characters marked for deletion as deleted after their time is finished
         /// </summary>
         /// <param name="character"></param>
@@ -617,7 +670,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     // Send update to current connection
                     if (res > 0)
                     {
-                        // TODO: Remove from guild/family/nation, demolish owned houses
+                        DeleteCharacterAssets(character, false);
+
+                        // Send delete packet to the player if online
                         if (gameConnection != null)
                         {
                             gameConnection.SendPacket(new SCCharacterDeletedPacket(character.Id, character.Name));
@@ -725,7 +780,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     character.DeleteTime = character.DeleteRequestTime.AddDays(7);
                 
                 // DEBUG Override
-                character.DeleteTime = character.DeleteRequestTime.AddSeconds(15);
+                //character.DeleteTime = character.DeleteRequestTime.AddSeconds(15);
 
                 using (var connection = MySQL.CreateConnection())
                 {
@@ -739,7 +794,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         command.Parameters.AddWithValue("@id", character.Id);
                         if (command.ExecuteNonQuery() == 1)
                         {
-                            // TODO: Delete leadership, set properties to public, remove from party/guild/family/nation
                             gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
                         }
                         else

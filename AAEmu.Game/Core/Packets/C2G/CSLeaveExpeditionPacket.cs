@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             _log.Debug("LeaveExpedition");
-            ExpeditionManager.Instance.Leave(Connection);
+            ExpeditionManager.Instance.Leave(Connection.ActiveChar);
         }
     }
 }
