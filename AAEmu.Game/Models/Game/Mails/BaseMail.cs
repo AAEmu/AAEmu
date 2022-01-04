@@ -4,7 +4,9 @@ using System.Dynamic;
 using System.Text;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.C2G;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
@@ -51,10 +53,41 @@ namespace AAEmu.Game.Models.Game.Mails
             return MailManager.Instance.Send(this);
         }
 
+        /// <summary>
+        /// Checks if a mail can returned to it's sender
+        /// </summary>
+        /// <returns></returns>
+        public bool CanReturnMail()
+        {
+            return ((IsDelivered == false) && (Header.SenderId != Header.ReceiverId) && (Header.SenderId > 0) && ((MailType == MailType.Normal) || (MailType == MailType.Express)) );
+        }
+
         public bool ReturnToSender()
         {
+            if (!CanReturnMail())
+                return false;
+
+            var originalReceiver = WorldManager.Instance.GetCharacterById(Header.ReceiverId);
+            var originalSender = WorldManager.Instance.GetCharacterById(Header.SenderId);
+
+            if ((originalReceiver != null) && (originalReceiver.IsOnline))
+                originalReceiver.SendPacket(new SCMailReturnedPacket(_id, _header));
+
+            var originalReceiverId = Header.ReceiverId;
+            var originalReceiverName = Header.ReceiverName;
+            Header.ReceiverId = Header.SenderId;
+            ReceiverName = Header.SenderName;
+            Header.SenderId = originalReceiverId;
+            Header.SenderName = originalReceiverName;
+
+            Send();
+
+            if ((originalSender != null) && (originalSender.IsOnline))
+                MailManager.Instance.NotifyNewMailByNameIfOnline(this, originalSender.Name);
+
+            
             // TODO
-            return false;
+            return true;
         }
 
         public byte GetTotalAttachmentCount()
