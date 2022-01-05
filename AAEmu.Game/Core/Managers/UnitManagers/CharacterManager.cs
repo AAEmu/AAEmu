@@ -643,6 +643,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (!fullWipe)
                 return;
             
+            Log.Warn("DeleteCharacterAssets - fullWipe is currently not implemented yet, charId: {0}", character.Id);
             // TODO: Wipe all mails
             // TODO: Wipe all items/gold (this also deletes all pets/vehicles)
         }
