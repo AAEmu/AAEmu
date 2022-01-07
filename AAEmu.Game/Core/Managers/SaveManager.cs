@@ -4,6 +4,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Tasks.SaveTask;
@@ -32,14 +33,7 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Info("Initialising Save Manager...");
             _enabled = true;
-            if (double.TryParse(ConfigurationManager.Instance.GetConfiguration("AutoSaveInterval"),out var d))
-            {
-                Delay = d;
-            }
-            else
-            {
-                Delay = 5; // Default to 5 minutes
-            }
+            Delay = AppConfiguration.Instance.World.AutoSaveInterval ;
             SaveTickStart();
         }
 

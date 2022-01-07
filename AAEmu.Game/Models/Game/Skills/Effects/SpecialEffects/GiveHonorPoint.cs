@@ -1,4 +1,5 @@
 using System;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -15,7 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (!(caster is Character character))
                 return;
 
-            character.HonorPoint += amount;
+            character.HonorPoint += (int)Math.Round(AppConfiguration.Instance.World.HonorRate * amount);
             character.SendPacket(new SCGamePointChangedPacket(0, amount));
         }
     }

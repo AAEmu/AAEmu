@@ -15,14 +15,14 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Content Include="Configurations\AccessLevels.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         <Content Include="NLog.config">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <None Remove="ExampleConfig.xml" />
         <Content Include="ExampleConfig.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="AccessLevels.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <None Include="Scripts\Commands\Nrot.cs">
@@ -32,6 +32,16 @@
         <None Include="Scripts\Commands\TestTracker.cs">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <LinkBase>Scripts\</LinkBase>
+        </None>
+        <None Update="Gonfigurations\expedition.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+          <LinkBase>Data\</LinkBase>
+        </None>
+        <None Update="Configurations\Expedition.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="Configurations\World.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
     

@@ -84,9 +84,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public void CombatTick(TimeSpan delta)
         {
-            //Not sure if we should put htis here or world
+            // Not sure if we should put this here or world
             foreach(var character in WorldManager.Instance.GetAllCharacters())
             {
+                // TODO: Make it so you can also become out of combat if you are not on any aggro lists
                 if (character.IsInCombat && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
                 {
                     character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);

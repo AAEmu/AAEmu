@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.Units
         public uint Id { get; set; }
         public ulong ItemId { get; set; }
         public byte UserState { get; set; }
-        public int Exp { get; set; }
+        public int Experience { get; set; }
         public int Mileage { get; set; }
         public uint SpawnDelayTime { get; set; }
         public List<uint> Skills { get; set; }
@@ -400,14 +400,14 @@ namespace AAEmu.Game.Models.Game.Units
 
         public void AddExp(int exp)
         {
-            var expMultiplier = 1d;
+            
             if (exp == 0)
                 return;
-            if (float.TryParse(ConfigurationManager.Instance.GetConfiguration("ExperienceMultiplierInPercent"), out var xpm))
-                expMultiplier = xpm / 100f;
-            var totalExp = Math.Round(expMultiplier * exp);
-            exp = (int)totalExp;
-            Exp += exp;
+            if (exp > 0)
+            {
+                var totalExp = (int)Math.Round(AppConfiguration.Instance.World.ExpRate * exp);
+                Experience += totalExp;
+            }
             SendPacket(new SCExpChangedPacket(ObjId, exp, false));
             CheckLevelUp();
         }
@@ -416,7 +416,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             var needExp = ExpirienceManager.Instance.GetExpForLevel((byte)(Level + 1));
             var change = false;
-            while (Exp >= needExp)
+            while (Experience >= needExp)
             {
                 change = true;
                 Level++;
@@ -429,7 +429,7 @@ namespace AAEmu.Game.Models.Game.Units
                 StartRegen();
             }
 
-            DbInfo.Xp = Exp;
+            DbInfo.Xp = Experience;
             DbInfo.Level = Level;
         }
 

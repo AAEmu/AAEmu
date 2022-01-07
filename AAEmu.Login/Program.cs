@@ -28,12 +28,12 @@ namespace AAEmu.Login
         {
             Initialization();
 
-            var filePath = Path.Combine(FileManager.AppPath, "Config.json");
-            if (FileManager.FileExists(filePath))
-                Configuration(args);
+            var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
+            if (FileManager.FileExists(mainConfig))
+                Configuration(args, mainConfig);
             else
             {
-                _log.Error($"{filePath} doesn't exist!");
+                _log.Error($"{mainConfig} doesn't exist!");
                 return;
             }
 
@@ -73,10 +73,10 @@ namespace AAEmu.Login
             _startTime = DateTime.UtcNow;
         }
 
-        private static void Configuration(string[] args)
+        private static void Configuration(string[] args, string mainConfigJson)
         {
             var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile(Path.Combine(FileManager.AppPath, "Config.json"))
+                .AddJsonFile(mainConfigJson)
                 .AddCommandLine(args)
                 .Build();
 

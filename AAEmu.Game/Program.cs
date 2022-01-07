@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,18 +27,13 @@ namespace AAEmu.Game
         public static AutoResetEvent ShutdownSignal = new AutoResetEvent(false); // TODO save to shutdown server?
 
         public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
+        private static string[] _launchArgs; 
 
         public static async Task Main(string[] args)
         {
             Initialization();
-            
-            if (FileManager.FileExists(FileManager.AppPath + "Config.json"))
-                Configuration(args);
-            else
-            {
-                _log.Error($"{FileManager.AppPath}Config.json doesn't exist!");
-                return;
-            }
+            _launchArgs = args;
+            LoadConfiguration();
 
             _log.Info("{0} version {1}", Name, Version);
 
@@ -76,23 +74,49 @@ namespace AAEmu.Game
             _startTime = DateTime.UtcNow;
         }
 
-        private static void Configuration(string[] args)
+        public static void LoadConfiguration()
         {
-            var configurationBuilder = new ConfigurationBuilder()
-                .AddJsonFile(FileManager.AppPath + "Config.json")
-                .AddCommandLine(args)
-                .Build();
+            var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
+            if (FileManager.FileExists(mainConfig))
+                Configuration(_launchArgs, mainConfig);
+            else
+            {
+                _log.Error($"{mainConfig} doesn't exist!");
+                return;
+            }
+        }
 
-            configurationBuilder.Bind(AppConfiguration.Instance);
+        private static void Configuration(string[] args, string mainConfigJson)
+        {
+            // Load NLog configuration
+            LogManager.Configuration = new XmlLoggingConfiguration(Path.Combine(FileManager.AppPath, "NLog.config"), false);
 
-            LogManager.Configuration = new XmlLoggingConfiguration(FileManager.AppPath + "NLog.config", false);
+            // Load Game server configuration
+            // Get files inside in the Configurations folder
+            var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath,"Configurations"), "*.json", SearchOption.AllDirectories).ToList();
+            configFiles.Sort();
+            // Add the old main Config.json file
+            configFiles.Insert(0, mainConfigJson);
+
+            var configurationBuilder = new ConfigurationBuilder();
+            // Add config json files
+            foreach (var file in configFiles)
+            {
+                _log.Info($"Config: {file}");
+                configurationBuilder.AddJsonFile(file);
+            }
+            // Add command-line arguments
+            configurationBuilder.AddCommandLine(args);
+
+            var configurationBuilderResult = configurationBuilder.Build();
+            configurationBuilderResult.Bind(AppConfiguration.Instance);
         }
         
         private static void OnUnhandledException(
             object sender, UnhandledExceptionEventArgs e)
         {
             var exceptionStr = e.ExceptionObject.ToString();
-            _log.Error(exceptionStr);
+            //_log.Error(exceptionStr);
             _log.Fatal(exceptionStr);
         }
     }

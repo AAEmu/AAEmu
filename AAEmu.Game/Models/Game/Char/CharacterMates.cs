@@ -99,7 +99,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Id = mateDbInfo.Id,
                 ItemId = mateDbInfo.ItemId,
                 UserState = 1, // TODO
-                Exp = mateDbInfo.Xp,
+                Experience = mateDbInfo.Xp,
                 Mileage = mateDbInfo.Mileage,
                 SpawnDelayTime = 0, // TODO
                 DbInfo = mateDbInfo
@@ -140,7 +140,7 @@ namespace AAEmu.Game.Models.Game.Char
                     mateDbInfo.Hp = mateInfo.Hp;
                     mateDbInfo.Mp = mateInfo.Mp;
                     mateDbInfo.Level = mateInfo.Level;
-                    mateDbInfo.Xp = mateInfo.Exp;
+                    mateDbInfo.Xp = mateInfo.Experience;
                     mateDbInfo.Mileage = mateInfo.Mileage;
                     mateDbInfo.Name = mateInfo.Name;
                     mateDbInfo.UpdatedAt = DateTime.UtcNow;

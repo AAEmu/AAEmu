@@ -33,7 +33,8 @@ namespace AAEmu.Game.Scripts.Commands
         {
             try
             {
-                ConfigurationManager.Instance.Load();
+                Program.LoadConfiguration();
+                //ConfigurationManager.Instance.Load();
                 character.SendMessage("Configuration reloaded");
             }
             catch (Exception e)
