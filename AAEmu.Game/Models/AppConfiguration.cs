@@ -21,6 +21,7 @@ namespace AAEmu.Game.Models
         public ExpeditionConfig Expedition { get; set; }
         public WorldConfig World { get; set; }
         public Dictionary<string, int> AccessLevel { get; set; } = new Dictionary<string, int>();
+        public AccountConfig Account { get; set; }
 
         public class NetworkConfig
         {

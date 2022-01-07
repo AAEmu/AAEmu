@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
@@ -662,11 +664,21 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 Log.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId,character.Id,character.Name);
                 using (var command = dbConnection.CreateCommand())
                 {
+                    var deletedName = character.Name;
+                    if (AppConfiguration.Instance.Account.DeleteReleaseName)
+                    {
+                        deletedName = "!" + character.Name;
+                        NameManager.Instance.RemoveCharacterName(character.Id);
+                        NameManager.Instance.AddCharacterName(character.Id,deletedName);
+                    }
+                    
                     command.Connection = dbConnection;
-                    command.CommandText = "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time WHERE `id`=@char_id and`account_id`=@account_id;";
+                    command.CommandText = "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time, `name`=@deletedname WHERE `id`=@char_id and `account_id`=@account_id;";
                     command.Parameters.AddWithValue("@new_delete_time", DateTime.MinValue);
                     command.Parameters.AddWithValue("@char_id", character.Id);
                     command.Parameters.AddWithValue("@account_id", character.AccountId);
+                    command.Parameters.AddWithValue("@deletedname", deletedName);
+                    
                     var res = command.ExecuteNonQuery();
                     // Send update to current connection
                     if (res > 0)
@@ -765,23 +777,17 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 var character = gameConnection.Characters[characterId];
                 character.DeleteRequestTime = DateTime.UtcNow;
 
-                // TODO: We need a config for this, but for now I added a silly if/else group
-                if (character.Level <= 1)
-                    character.DeleteTime = character.DeleteRequestTime.AddMinutes(5);
-                else
-                if (character.Level < 10)
-                    character.DeleteTime = character.DeleteRequestTime.AddMinutes(30);
-                else
-                if (character.Level < 30)
-                    character.DeleteTime = character.DeleteRequestTime.AddHours(4);
-                else
-                if (character.Level < 40)
-                    character.DeleteTime = character.DeleteRequestTime.AddDays(1);
-                else
-                    character.DeleteTime = character.DeleteRequestTime.AddDays(7);
+                var targetDeleteDelay = 0;
                 
-                // DEBUG Override
-                //character.DeleteTime = character.DeleteRequestTime.AddSeconds(15);
+                // Get timings from settings
+                foreach (var timing in AppConfiguration.Instance.Account.DeleteTimings)
+                {
+                    if (character.Level >= timing.Level)
+                        targetDeleteDelay = timing.Delay;
+                }
+
+                // Add the actual timing
+                character.DeleteTime = character.DeleteRequestTime.AddMinutes(targetDeleteDelay);
 
                 using (var connection = MySQL.CreateConnection())
                 {
@@ -812,7 +818,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(characterId, 0));
             }
             // Trigger our task queueing
-            CharacterManager.Instance.CheckForDeletedCharacters();
+            CheckForDeletedCharacters();
         }
 
         public void SetRestoreCharacter(GameConnection gameConnection, uint characterId)

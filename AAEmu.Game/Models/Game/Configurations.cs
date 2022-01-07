@@ -21,4 +21,17 @@ namespace AAEmu.Game.Models.Game
         public double LootRate { get; set; } = 1.0;
     }
 
+    public class AccountDeleteDelayTiming
+    {
+        public int Level { get; set; }
+        public int Delay { get; set; }
+    }
+
+    public class AccountConfig
+    {
+        public string NameRegex { get; set; } = "^[a-zA-Z0-9]{1,18}$";
+        public bool DeleteReleaseName { get; set; } = false;
+        public List<AccountDeleteDelayTiming> DeleteTimings { get; set; } = new List<AccountDeleteDelayTiming>();
+    }
+
 }
