@@ -6,6 +6,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
@@ -140,6 +141,7 @@ namespace AAEmu.Game.Core.Managers
         }
         public List<Item> CreateLootDropItems(uint npcId)
         {
+            // TODO: Implement AppConfiguration.Instance.World.LootRate
             var items = GetLootDropItems(npcId);
 
             if (items.Count > 0)

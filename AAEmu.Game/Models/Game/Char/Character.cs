@@ -1234,13 +1234,14 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void AddExp(int exp, bool shouldAddAbilityExp)
         {
-            var expMultiplier = 1d;
             if (exp == 0)
                 return;
-            if (float.TryParse(ConfigurationManager.Instance.GetConfiguration("ExperienceMultiplierInPercent"), out var xpm))
-                expMultiplier = xpm / 100f;
-            var totalExp = Math.Round(expMultiplier * exp);
-            exp = (int)totalExp;
+
+            if (exp > 0)
+            {
+                var totalExp = exp * AppConfiguration.Instance.World.ExpRate;
+                exp = (int)totalExp;
+            }
             Expirience = Math.Min(Expirience + exp, ExpirienceManager.Instance.GetExpForLevel(55));
             if (shouldAddAbilityExp)
                 Abilities.AddActiveExp(exp); // TODO ... or all?

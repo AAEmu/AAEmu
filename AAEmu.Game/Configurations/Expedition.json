@@ -1,0 +1,77 @@
+{
+    "Expedition": {
+        "Create": {
+            "Cost": 10000,
+            "Level": 5,
+            "PartyMemberCount": 5
+        },
+        "NameRegex": "^[a-zA-Zа-яА-Я ]{3,32}$",
+        "RolePolicies": [
+            {
+                "Role": 0,
+                "Name": "Apprentice",
+                "DominionDeclare": true,
+                "Invite": false,
+                "Expel": false,
+                "Promote": false,
+                "Dismiss": false,
+                "Chat": true,
+                "ManagerChat": false,
+                "SiegeMaster": false,
+                "JoinSiege": true
+            },
+            {
+                "Role": 1,
+                "Name": "Member",
+                "DominionDeclare": true,
+                "Invite": false,
+                "Expel": false,
+                "Promote": false,
+                "Dismiss": false,
+                "Chat": true,
+                "ManagerChat": false,
+                "SiegeMaster": false,
+                "JoinSiege": true
+            },
+            {
+                "Role": 2,
+                "Name": "Officer",
+                "DominionDeclare": true,
+                "Invite": true,
+                "Expel": false,
+                "Promote": false,
+                "Dismiss": false,
+                "Chat": true,
+                "ManagerChat": false,
+                "SiegeMaster": false,
+                "JoinSiege": true
+            },
+            {
+                "Role": 3,
+                "Name": "Commander",
+                "DominionDeclare": true,
+                "Invite": true,
+                "Expel": true,
+                "Promote": false,
+                "Dismiss": false,
+                "Chat": true,
+                "ManagerChat": false,
+                "SiegeMaster": true,
+                "JoinSiege": true
+            },
+            {
+                "Role": 255,
+                "Name": "General",
+                "DominionDeclare": true,
+                "Invite": true,
+                "Expel": true,
+                "Promote": true,
+                "Dismiss": true,
+                "Chat": true,
+                "ManagerChat": true,
+                "SiegeMaster": true,
+                "JoinSiege": true
+            }
+        ]
+    }
+}

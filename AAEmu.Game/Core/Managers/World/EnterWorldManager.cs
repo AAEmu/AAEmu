@@ -7,6 +7,8 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Core.Packets.G2L;
 using AAEmu.Game.Core.Packets.Proxy;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks;
 using NLog;
 
@@ -71,18 +73,28 @@ namespace AAEmu.Game.Core.Managers.World
         {
             switch (type)
             {
-                case 0: // выход из игры
-                case 1: // выход к списку персонажей
+                case 0: // выход из игры, quit game
+                case 1: // выход к списку персонажей, go to character select
                     if (connection.State == GameState.World)
                     {
-                        connection.SendPacket(new SCPrepareLeaveWorldPacket(10000, type, false));
+                        // Say goodbye if player is quitting (but not going to character select)
+                        if (type == 0)
+                            connection.ActiveChar?.SendMessage(ChatType.System, AppConfiguration.Instance.World.LogoutMessage);
+
+                        int logoutTime = 10000; // in ms
+
+                        // Make it 5 minutes if you're still in combat
+                        if (connection.ActiveChar?.IsInCombat ?? false)
+                            logoutTime *= 30;
+                        
+                        connection.SendPacket(new SCPrepareLeaveWorldPacket(logoutTime, type, false));
 
                         connection.LeaveTask = new LeaveWorldTask(connection, type);
-                        TaskManager.Instance.Schedule(connection.LeaveTask, TimeSpan.FromSeconds(10));
+                        TaskManager.Instance.Schedule(connection.LeaveTask, TimeSpan.FromMilliseconds(logoutTime));
                     }
 
                     break;
-                case 2: // выбор сервера
+                case 2: // выбор сервера, server select
                     if (connection.State == GameState.Lobby)
                     {
                         var gsId = AppConfiguration.Instance.Id;
@@ -94,7 +106,7 @@ namespace AAEmu.Game.Core.Managers.World
 
                     break;
                 default:
-                    _log.Info("[Leave] Unknown type: {0}", type);
+                    _log.Warn("[Leave] Unknown type: {0}", type);
                     break;
             }
         }

@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using NLog;
 
@@ -16,12 +17,12 @@ namespace AAEmu.Game.Core.Managers
         
         public void Load()
         {
-            Dictionary<string, int> dic = readSettings();
+            // Dictionary<string, int> dic = readSettings();
 
             _log.Info("Loading CommandAccessLevels...");
 
-            foreach(KeyValuePair<string, int> entry in dic)
-                CMD.Add(new Command{ command = entry.Key, level = entry.Value });
+            foreach(var (cmdName, cmdLevel) in AppConfiguration.Instance.AccessLevel)
+                CMD.Add(new Command{ command = cmdName, level = cmdLevel });
 
             _log.Info("Loaded {0} CommandAccessLevels", CMD.Count);
         }

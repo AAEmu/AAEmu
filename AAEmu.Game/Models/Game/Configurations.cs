@@ -10,4 +10,15 @@ namespace AAEmu.Game.Models.Game
         public string Value { get; set; }
     }
 
+    public class WorldConfig
+    {
+        public string MOTD { get; set; } = "";
+        public string LogoutMessage { get; set; } = "";
+        public double AutoSaveInterval { get; set; } = 5.0;
+        public double ExpRate { get; set; } = 1.0;
+        public double HonorRate { get; set; } = 1.0;
+        public double VocationRate { get; set; } = 1.0;
+        public double LootRate { get; set; } = 1.0;
+    }
+
 }

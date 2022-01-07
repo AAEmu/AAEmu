@@ -17,6 +17,7 @@ using AAEmu.Game.Utils.DB;
 using NLog;
 using AAEmu.Game.Models.Game.Team;
 using System.Numerics;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Managers
@@ -24,7 +25,7 @@ namespace AAEmu.Game.Core.Managers
     public class ExpeditionManager : Singleton<ExpeditionManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        private ExpeditionConfig _config;
+        //private ExpeditionConfig _config;
         private Regex _nameRegex;
 
         private Dictionary<uint, Expedition> _expeditions;
@@ -55,16 +56,7 @@ namespace AAEmu.Game.Core.Managers
         public void Load()
         {
             _expeditions = new Dictionary<uint, Expedition>();
-
-            var filePath = Path.Combine(FileManager.AppPath, "Data", "expedition.json");
-            var contents = FileManager.GetFileContents(filePath);
-            if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException($"File {filePath} doesn't exists or is empty.");
-
-            if (!JsonHelper.TryDeserializeObject(contents, out _config, out _)) // TODO here can out Exception
-                throw new Exception(
-                    $"ExpeditionManager: Parse {filePath} file");
-            _nameRegex = new Regex(_config.NameRegex, RegexOptions.Compiled);
+            _nameRegex = new Regex(AppConfiguration.Instance.Expedition.NameRegex, RegexOptions.Compiled);
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -157,7 +149,7 @@ namespace AAEmu.Game.Core.Managers
         public List<ExpeditionRolePolicy> GetDefaultPolicies(uint expeditionId)
         {
             var res = new List<ExpeditionRolePolicy>();
-            foreach (var rolePolicy in _config.RolePolicies)
+            foreach (var rolePolicy in AppConfiguration.Instance.Expedition.RolePolicies)
             {
                 var policy = rolePolicy.Clone();
                 policy.Id = expeditionId;
@@ -221,7 +213,7 @@ namespace AAEmu.Game.Core.Managers
                 if (m?.Character == null)
                     continue;
 
-                if (m.Character.Level < _config.Create.Level)
+                if (m.Character.Level < AppConfiguration.Instance.Expedition.Create.Level)
                 {
                     connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateLevel);
                     return;
@@ -239,25 +231,25 @@ namespace AAEmu.Game.Core.Managers
                 validMembers.Add(m);
             }
 
-            if (validMembers.Count < _config.Create.PartyMemberCount)
+            if (validMembers.Count < AppConfiguration.Instance.Expedition.Create.PartyMemberCount)
             {
                 connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateMember);
                 return;
             }
 
-            if (owner.Money < _config.Create.Cost)
+            if (owner.Money < AppConfiguration.Instance.Expedition.Create.Cost)
             {
                 connection.ActiveChar.SendErrorMessage(ErrorMessageType.ExpeditionCreateMoney);
                 return;
             }
 
-            owner.Money -= _config.Create.Cost;
+            owner.Money -= AppConfiguration.Instance.Expedition.Create.Cost;
             owner.SendPacket(
                 new SCItemTaskSuccessPacket(
                     ItemTaskType.ExpeditionCreation,
                     new List<ItemTask>
                     {
-                        new MoneyChange(-_config.Create.Cost)
+                        new MoneyChange(-AppConfiguration.Instance.Expedition.Create.Cost)
                     },
                     new List<ulong>())
             );

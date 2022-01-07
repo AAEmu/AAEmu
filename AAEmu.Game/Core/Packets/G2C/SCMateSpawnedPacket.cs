@@ -20,7 +20,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_mate.Id);
             stream.Write(_mate.ItemId);
             stream.Write(_mate.UserState);
-            stream.Write(_mate.Exp);
+            stream.Write(_mate.Experience);
             stream.Write(_mate.Mileage);
             stream.Write(_mate.SpawnDelayTime);
 
