@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Data;
 using System.IO;
+using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Utils;
@@ -8,6 +11,8 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -16,10 +21,14 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Housing;
 using NLog;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Utils;
+using Microsoft.CodeAnalysis.Text;
 using MySql.Data.MySqlClient;
+using SQLitePCL;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -589,6 +598,258 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
         }
 
+        /// <summary>
+        /// Removed all items and assets this character currently owns
+        /// </summary>
+        /// <param name="character">Character to delete assets from</param>
+        /// <param name="fullWipe">Do owned items need to be actually deleted</param>
+        public void DeleteCharacterAssets(Character character, bool fullWipe)
+        {
+            // Demolish owned houses
+            var myHouses = new Dictionary<uint, House>();
+            if (HousingManager.Instance.GetByCharacterId(myHouses, character.Id) > 0)
+            {
+                foreach (var (houseId, house) in myHouses)
+                {
+                    house.Permission = HousingPermission.Public;
+                    // force expire the house
+                    // This should technically kill the house, and return the minimum amount of furniture
+                    house.ProtectionEndDate = DateTime.UtcNow.AddDays(-21);
+                    HousingManager.Instance.UpdateTaxInfo(house);
+                }
+            }
+                        
+            // Remove from Guild
+            if (character.Expedition != null)
+                ExpeditionManager.Instance.Leave(character);
+
+            // Remove from Family
+            if (character.Family > 0)
+                FamilyManager.Instance.LeaveFamily(character);
+                        
+            // TODO: Remove from player nation
+            // TODO: Delete leadership
+            
+            // Return all mails to sender (if needed)
+            // The main reason we do this is so other people's items wouldn't get delete if fullWipe is enabled
+            foreach (var (mailId, mail) in MailManager.Instance._allPlayerMails)
+            {
+                if (mail.CanReturnMail() && !mail.ReturnToSender())
+                    Log.Warn(
+                        "DeleteCharacterAssets - Unable to return mail to sender for mail: {0}, deleted char: {1}({2}), sender: {3}({4})",
+                        mail.Id,
+                        mail.Header.ReceiverName, mail.Header.ReceiverId,
+                        mail.Header.SenderName, mail.Header.SenderId);
+            }
+
+            if (!fullWipe)
+                return;
+            
+            Log.Warn("DeleteCharacterAssets - fullWipe is currently not implemented yet, charId: {0}", character.Id);
+            // TODO: Wipe all mails
+            // TODO: Wipe all items/gold (this also deletes all pets/vehicles)
+        }
+        
+        /// <summary>
+        /// Mark characters marked for deletion as deleted after their time is finished
+        /// </summary>
+        /// <param name="character"></param>
+        /// <param name="gameConnection"></param>
+        /// <param name="dbConnection"></param>
+        /// <returns>Returns true if a character was marked deleted, otherwise false</returns>
+        public bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
+        {
+            if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime <= DateTime.UtcNow))
+            {
+                Log.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId,character.Id,character.Name);
+                using (var command = dbConnection.CreateCommand())
+                {
+                    var deletedName = character.Name;
+                    if (AppConfiguration.Instance.Account.DeleteReleaseName)
+                    {
+                        deletedName = "!" + character.Name;
+                        NameManager.Instance.RemoveCharacterName(character.Id);
+                        NameManager.Instance.AddCharacterName(character.Id,deletedName);
+                    }
+                    
+                    command.Connection = dbConnection;
+                    command.CommandText = "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time, `name`=@deletedname WHERE `id`=@char_id and `account_id`=@account_id;";
+                    command.Parameters.AddWithValue("@new_delete_time", DateTime.MinValue);
+                    command.Parameters.AddWithValue("@char_id", character.Id);
+                    command.Parameters.AddWithValue("@account_id", character.AccountId);
+                    command.Parameters.AddWithValue("@deletedname", deletedName);
+                    
+                    var res = command.ExecuteNonQuery();
+                    // Send update to current connection
+                    if (res > 0)
+                    {
+                        DeleteCharacterAssets(character, false);
+
+                        // Send delete packet to the player if online
+                        if (gameConnection != null)
+                        {
+                            gameConnection.SendPacket(new SCCharacterDeletedPacket(character.Id, character.Name));
+                            // Not sure if this is the way it should be send or not, but it seems to work with status 1
+                            gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 1, character.DeleteRequestTime, character.DeleteTime));
+                        }
+                    }
+                    return res > 0;
+                }
+            }
+            else
+            if (character.DeleteRequestTime > DateTime.MinValue)
+            {
+                Log.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId,character.Id,character.Name);
+            }
+            return false;
+        }
+
+        public void CheckForDeletedCharacters()
+        {
+            var nextCheckTime = DateTime.MaxValue;
+            var deleteList = new List<(uint, uint)>(); // charId, accountId
+            
+            Log.Debug("CheckForDeletedCharacters - Begin");
+            using (var connection = MySQL.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    // TODO: Update this query to be more efficient
+                    command.CommandText = "SELECT `id`, `name`, `account_id`, `delete_time` FROM characters WHERE `deleted`=0";
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            // Check the delete time for this entry
+                            var deleteTime = reader.GetDateTime("delete_time");
+                            var charId = reader.GetUInt32("id");
+                            var accountId = reader.GetUInt32("account_id");
+                            if ((deleteTime > DateTime.MinValue) && (deleteTime <= DateTime.UtcNow))
+                            {
+                                deleteList.Add((charId,accountId));
+                            }
+                            else
+                            if ((deleteTime > DateTime.MinValue) && (deleteTime < nextCheckTime))
+                            {
+                                nextCheckTime = deleteTime;
+                            }
+                        }
+                    }
+                }
+                
+                // Actually start deleting
+                foreach (var (charId,accountId) in deleteList)
+                {
+                    var character = Character.Load(connection, charId, accountId);
+                    if (character != null)
+                    {
+                        var accountConnection = GameConnectionTable.Instance?.GetConnectionByAccount(character.AccountId) ?? null;
+                        if (CheckForDeletedCharactersDeletion(character, accountConnection, connection))
+                            Log.Info("CheckForDeletedCharacters - Delete charId:{0}", charId);
+                        else
+                            // Failed to delete character from DB
+                            Log.Error("CheckForDeletedCharacters - Failed to delete character for deletion charId:{0}", charId);
+                    }
+                    else
+                    {
+                        // Failed to load character for deletion somehow
+                        Log.Error("CheckForDeletedCharacters - Failed to load character for deletion charId:{0}", charId);
+                    }
+                }
+            }
+            
+            // Start a Delete Tick Task
+            if (nextCheckTime < DateTime.MaxValue)
+            {
+                var deleteCheckTask = new CharacterDeleteTask();
+                TaskManager.Instance?.Schedule(deleteCheckTask, nextCheckTime - DateTime.UtcNow);
+                Log.Debug("CheckForDeletedCharacters - Next delete scheduled at " + nextCheckTime.ToString());
+            }
+            else
+            {
+                Log.Debug("CheckForDeletedCharacters - No new deletions scheduled");
+            }
+        }
+        
+        public void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
+        {
+            if (gameConnection.Characters.ContainsKey(characterId))
+            {
+                var character = gameConnection.Characters[characterId];
+                character.DeleteRequestTime = DateTime.UtcNow;
+
+                var targetDeleteDelay = 0;
+                
+                // Get timings from settings
+                foreach (var timing in AppConfiguration.Instance.Account.DeleteTimings)
+                {
+                    if (character.Level >= timing.Level)
+                        targetDeleteDelay = timing.Delay;
+                }
+
+                // Add the actual timing
+                character.DeleteTime = character.DeleteRequestTime.AddMinutes(targetDeleteDelay);
+
+                using (var connection = MySQL.CreateConnection())
+                {
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
+                        command.Prepare();
+                        command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
+                        command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
+                        command.Parameters.AddWithValue("@id", character.Id);
+                        if (command.ExecuteNonQuery() == 1)
+                        {
+                            gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
+                        }
+                        else
+                        {
+                            // Failed to mark for deletion
+                            // Not the correct message, but it seems funny enough
+                            gameConnection.SendPacket(new SCErrorMsgPacket(ErrorMessageType.CannotDeleteCharWhileBotSuspected, 0, true));
+                        }
+
+                    }
+                }
+            }
+            else
+            {
+                gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(characterId, 0));
+            }
+            // Trigger our task queueing
+            CheckForDeletedCharacters();
+        }
+
+        public void SetRestoreCharacter(GameConnection gameConnection, uint characterId)
+        {
+            if (gameConnection.Characters.ContainsKey(characterId))
+            {
+                var character = gameConnection.Characters[characterId];
+                character.DeleteRequestTime = DateTime.MinValue;
+                character.DeleteTime = DateTime.MinValue;
+                gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(character.Id, 3));
+
+                using (var connection = MySQL.CreateConnection())
+                {
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
+                        command.Prepare();
+                        command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
+                        command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
+                        command.Parameters.AddWithValue("@id", character.Id);
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            else
+            {
+                gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
+            }
+        }
         public List<LoginCharacterInfo> LoadCharacters(uint accountId)
         {
             var result = new List<LoginCharacterInfo>();

@@ -354,14 +354,15 @@ namespace AAEmu.Game.Core.Managers
             Save(expedition);
         }
 
-        public void Leave(GameConnection connection)
+        /// <summary>
+        /// Removes a character from their Guild
+        /// </summary>
+        /// <param name="character"></param>
+        public void Leave(Character character)
         {
-            var character = connection.ActiveChar;
-
             var expedition = character.Expedition;
             if (expedition == null) return;
 
-            character.Expedition = null;
             expedition.RemoveMember(expedition.GetMember(character));
             var changedPacket = new SCUnitExpeditionChangedPacket(
                 character.ObjId,
@@ -376,7 +377,6 @@ namespace AAEmu.Game.Core.Managers
             character.BroadcastPacket(changedPacket, true);
             expedition.SendPacket(changedPacket);
             Save(expedition);
-            // character.Save(); // Moved to SaveMananger
         }
 
         public void Kick(GameConnection connection, uint kickedId)
@@ -403,7 +403,6 @@ namespace AAEmu.Game.Core.Managers
             {
                 kickedChar.Expedition = null;
                 kickedChar?.BroadcastPacket(changedPacket, true);
-                // kickedChar.Save(); // Moved to SaveMananger
             }
             expedition.SendPacket(changedPacket);
 

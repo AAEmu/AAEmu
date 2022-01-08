@@ -1588,7 +1588,7 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
         /// <summary>
-        /// Forcibly remove character from any mount of vehicle they might be riding,
+        /// Forcibly remove character from any mount or vehicle they might be riding,
         /// useful for calling before any kind of teleport function 
         /// </summary>
         /// <returns>Returns True is any dismounting happened by this function</returns>
@@ -2107,23 +2107,23 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(RezPenaltyDuration);
             stream.Write(LeaveTime); // lastWorldLeaveTime
             stream.Write(Money);
-            stream.Write(0L); // moneyAmount
-            stream.Write(CrimePoint);
-            stream.Write(CrimeRecord);
-            stream.Write((short)0); // crimeScore
+            stream.Write(0L); // moneyAmount ?
+            stream.Write(CrimePoint); // current crime points (/50)
+            stream.Write(CrimeRecord); // total infamy 
+            stream.Write((short)0); // crimeScore?
             stream.Write(DeleteRequestTime);
             stream.Write(TransferRequestTime);
             stream.Write(DeleteTime); // deleteDelay
             stream.Write(ConsumedLaborPower);
-            stream.Write(BmPoint);
-            stream.Write(Money2); //moneyAmount
-            stream.Write(0L); //moneyAmount
+            stream.Write(BmPoint); // loyalty tokens
+            stream.Write(Money2); // moneyAmount
+            stream.Write(0L); // moneyAmount ?
             stream.Write(AutoUseAAPoint);
             stream.Write(PrevPoint);
             stream.Write(Point);
             stream.Write(Gift);
             stream.Write(Updated);
-            stream.Write((byte)0); // forceNameChange
+            stream.Write((byte)0); // forceNameChange ?
             return stream;
         }
 
