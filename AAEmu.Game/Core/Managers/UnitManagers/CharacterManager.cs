@@ -697,6 +697,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 }
             }
             else
+            if (character.DeleteRequestTime > DateTime.MinValue)
             {
                 Log.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId,character.Id,character.Name);
             }

@@ -1,6 +1,6 @@
 ﻿{
     "Account": {
-        "DeleteReleaseName": false,
+        "DeleteReleaseName": true,
         "DeleteTimings": [
             {
                 "Level": 0,
