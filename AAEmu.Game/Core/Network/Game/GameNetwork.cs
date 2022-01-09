@@ -275,7 +275,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSEndMusicPacket,1,typeof(CSEndMusicPacket));
             
             RegisterPacket(CSOffsets.CSExitBeautySalonPacket, 1, typeof(CSExitBeautySalonPacket));
-            RegisterPacket(CSOffsets.CSApplyBeautySalonPacket, 1, typeof(CSApplyBeautySalonPacket));
+            RegisterPacket(CSOffsets.CSBeautyshopDataPacket, 1, typeof(CSBeautyshopDataPacket));
             RegisterPacket(CSOffsets.CSEnterBeautySalonPacket, 1, typeof(CSEnterBeautySalonPacket));
 
             RegisterPacket(CSOffsets.CSRankCharacterPacket, 1, typeof(CSRankCharacterPacket));
