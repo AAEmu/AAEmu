@@ -40,5 +40,28 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Templates
         {
             FuncGroups = new List<DoodadFuncGroups>();
         }
+
+        /// <summary>
+        /// There's probably a better why to check this
+        /// </summary>
+        /// <returns>Returns true if the GroupId is one of ones that give vocation badges when used</returns>
+        public bool GrantsVocationWhenUsed()
+        {
+            // TODO: Need to remove magic numbers
+            switch (GroupId)
+            {
+                case 2: // Deforestation - Trees
+                case 3: // Picking - Herbs
+                case 4: // Mining - Minerals
+                case 5: // Livestock - Livestock
+                case 12: // Agriculture - Crops
+                case 39: //Interaction - Excavation
+                case 40: // Agriculture - Marine Crops
+                case 65: // Fish (sports fishing ?)
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 }
