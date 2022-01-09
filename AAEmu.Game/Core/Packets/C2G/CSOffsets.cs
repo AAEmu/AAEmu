@@ -258,7 +258,7 @@
         public const ushort CSRequestMusicNotesPacket = 0x123;
         public const ushort CSEndMusicPacket = 0x124; // tentative name
         public const ushort CSExitBeautySalonPacket = 0x12c;
-        public const ushort CSApplyBeautySalonPacket = 0x12d;
+        public const ushort CSBeautyshopDataPacket = 0x12d;
         public const ushort CSEnterBeautySalonPacket = 0x12e;
         public const ushort CSRankCharacterPacket = 0x12F;
         public const ushort CSRequestSecondPasswordKeyTablesPacket = 0x125;
