@@ -1,5 +1,8 @@
 ﻿using System;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
@@ -18,8 +21,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            // TODO ...
-            _log.Warn("Special effects: GiveLivingPoint");
+            if (!(caster is Character character))
+                return;
+
+            var points = (int)Math.Round(AppConfiguration.Instance.World.VocationRate * value1);
+            character.ChangeGamePoints(GamePointKind.Vocation,points);
         }
     }
 }

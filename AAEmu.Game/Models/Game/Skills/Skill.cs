@@ -28,6 +28,7 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
@@ -759,7 +760,20 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             if (Template.ConsumeLaborPower > 0 && caster is Character chart && !Cancelled)
             {
+                // Consume labor
                 chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
+                
+                // Add vocation where needed
+                if ((InitialTarget is Doodad doodad) && (caster is Character character))
+                {
+                    if (doodad.Template.GrantsVocationWhenUsed())
+                    {
+                        // From what I remember this has always been half the labor rounded upwards
+                        // This is however not correct, as some actions only give a fraction of what you would normally expect
+                        // We multiply the BASE value for server settings, not the total (although I don't think this would affect anything since we don't really have a +1 badge/action buff)
+                        character.ChangeGamePoints(GamePointKind.Vocation, (int)Math.Ceiling(AppConfiguration.Instance.World.VocationRate * Template.ConsumeLaborPower / 2));
+                    }
+                }
             }
 
             Callback?.Invoke();

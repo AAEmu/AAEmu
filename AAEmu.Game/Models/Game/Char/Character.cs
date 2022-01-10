@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -1171,6 +1172,28 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get => (float)CalculateWithBonuses(1d, UnitAttribute.FallDamageMul);
         }
+        
+        [UnitAttribute(UnitAttribute.LivingPointGain)]
+        public float LivingPointGain
+        {
+            get
+            {
+                double res = 0.0;
+                res = CalculateWithBonuses(res, UnitAttribute.LivingPointGain);
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.LivingPointGainMul)]
+        public float LivingPointGainMul
+        {
+            get
+            {
+                double res = 0.0;
+                res = CalculateWithBonuses(res, UnitAttribute.LivingPointGainMul);
+                return (float)res;
+            }
+        }
 
         #endregion
 
@@ -1351,6 +1374,28 @@ namespace AAEmu.Game.Models.Game.Char
 
             LaborPower += change;
             SendPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep));
+        }
+
+        public void ChangeGamePoints(GamePointKind kind, int change)
+        {
+            switch (kind)
+            {
+                case GamePointKind.Honor:
+                    VocationPoint += change;
+                    HonorPoint += change;
+                    break;
+                case GamePointKind.Vocation:
+                    var vocAdd = GetAttribute<float>(UnitAttribute.LivingPointGain,0f);
+                    change = (int)Math.Round(change + vocAdd);
+                    var vocMul = GetAttribute<float>(UnitAttribute.LivingPointGainMul, 0f) + 100f;
+                    change = (int)Math.Round(change * (vocMul / 100f));
+                    VocationPoint += change;
+                    break;
+                default:
+                    _log.Error($"ChangeGamePoints - Unknown Game Point Type {kind}");
+                    return;
+            }
+            SendPacket(new SCGamePointChangedPacket((byte)kind, change));            
         }
 
         public override int GetAbLevel(AbilityType type)
