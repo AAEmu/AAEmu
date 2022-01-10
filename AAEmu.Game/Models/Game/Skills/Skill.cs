@@ -770,6 +770,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     {
                         // From what I remember this has always been half the labor rounded upwards
                         // This is however not correct, as some actions only give a fraction of what you would normally expect
+                        // We multiply the BASE value for server settings, not the total (although I don't think this would affect anything since we don't really have a +1 badge/action buff)
                         character.ChangeGamePoints(GamePointKind.Vocation, (int)Math.Ceiling(AppConfiguration.Instance.World.VocationRate * Template.ConsumeLaborPower / 2));
                     }
                 }

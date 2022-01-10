@@ -526,6 +526,23 @@ namespace AAEmu.Game.Models.Game.Units
                 return "NotFound";
         }
 
+        public T GetAttribute<T>(UnitAttribute attr, T defaultVal)
+        {
+            var props = GetType().GetProperties()
+                .Where(o => (o.GetCustomAttributes(typeof(UnitAttributeAttribute), true) as IEnumerable<UnitAttributeAttribute>)
+                    .Any(a => a.Attributes.Contains(attr)));
+
+            if (props.Any())
+            {
+                var ElementValue = props.ElementAt(0).GetValue(this);
+                if (ElementValue is T ret)
+                    return ret;
+            }
+            return defaultVal;
+        }
+        
+        
+
         public string GetAttribute(uint attr) => GetAttribute((UnitAttribute)attr);
 
         //Uncomment if you need this

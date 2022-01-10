@@ -1172,6 +1172,28 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get => (float)CalculateWithBonuses(1d, UnitAttribute.FallDamageMul);
         }
+        
+        [UnitAttribute(UnitAttribute.LivingPointGain)]
+        public float LivingPointGain
+        {
+            get
+            {
+                double res = 0.0;
+                res = CalculateWithBonuses(res, UnitAttribute.LivingPointGain);
+                return (float)res;
+            }
+        }
+
+        [UnitAttribute(UnitAttribute.LivingPointGainMul)]
+        public float LivingPointGainMul
+        {
+            get
+            {
+                double res = 0.0;
+                res = CalculateWithBonuses(res, UnitAttribute.LivingPointGainMul);
+                return (float)res;
+            }
+        }
 
         #endregion
 
@@ -1363,12 +1385,10 @@ namespace AAEmu.Game.Models.Game.Char
                     HonorPoint += change;
                     break;
                 case GamePointKind.Vocation:
-                    var vocAddAttr = GetAttribute(UnitAttribute.LivingPointGainMul);
-                    if (double.TryParse(vocAddAttr, NumberStyles.Float, CultureInfo.InvariantCulture, out var vocAdd))
-                        change = (int)Math.Round(change + vocAdd);
-                    var vocMulAttr = GetAttribute(UnitAttribute.LivingPointGainMul);
-                    if (double.TryParse(vocMulAttr, NumberStyles.Float, CultureInfo.InvariantCulture, out var vocMul))
-                        change = (int)Math.Round(change * vocMul);
+                    var vocAdd = GetAttribute<float>(UnitAttribute.LivingPointGain,0f);
+                    change = (int)Math.Round(change + vocAdd);
+                    var vocMul = GetAttribute<float>(UnitAttribute.LivingPointGainMul, 0f) + 100f;
+                    change = (int)Math.Round(change * (vocMul / 100f));
                     VocationPoint += change;
                     break;
                 default:
