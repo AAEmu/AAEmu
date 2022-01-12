@@ -40,11 +40,7 @@ namespace AAEmu.Game
 
             FeaturesManager.Instance.Initialize();
 
-            ClientFileManager.ClearSources();
-            ClientFileManager.AddSource(Path.Combine(FileManager.AppPath, "ClientData"));
-            ClientFileManager.AddSource(Path.Combine(FileManager.AppPath, "ClientData","game_pak"));
-            if (ClientFileManager.ListSources().Count <= 0)
-                _log.Error("No client sources have been found !");
+            ClientFileManager.Initialize();
             
             LocalizationManager.Instance.Load();
             ObjectIdManager.Instance.Initialize();

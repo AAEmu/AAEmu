@@ -140,10 +140,14 @@ namespace AAEmu.Game.IO
 
         public static void Initialize()
         {
-            AddSource(AppConfiguration.Instance.ClientDirectory);
-            AddSource(AppConfiguration.Instance.ClientGamePak);
+            ClearSources();
+            foreach (var source in AppConfiguration.Instance.ClientData.Sources)
+            {
+                if (!AddSource(source))
+                    _log.Warn($"{source} is not a valid source for client data");    
+            }
             if (ListSources().Count <= 0)
-                _log.Error("No client sources have been defined !");
+                _log.Error("No valid client sources have been defined or found, some features will not work !");
         }
 
         /// <summary>
