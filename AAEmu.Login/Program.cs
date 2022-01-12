@@ -29,7 +29,7 @@ namespace AAEmu.Login
             Initialization();
 
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-            if (FileManager.FileExists(mainConfig))
+            if (File.Exists(mainConfig))
                 Configuration(args, mainConfig);
             else
             {

@@ -77,7 +77,7 @@ namespace AAEmu.Game
         public static void LoadConfiguration()
         {
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-            if (FileManager.FileExists(mainConfig))
+            if (File.Exists(mainConfig))
                 Configuration(_launchArgs, mainConfig);
             else
             {
