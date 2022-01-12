@@ -46,9 +46,6 @@
         <None Update="Configurations\CharacterDeleteSettings.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <Content Include="AccessLevels.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
     </ItemGroup>
 
     <ItemGroup>
