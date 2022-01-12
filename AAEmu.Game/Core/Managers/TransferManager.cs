@@ -398,10 +398,10 @@ namespace AAEmu.Game.Core.Managers
                             var transferAttribs = XmlHelper.ReadNodeAttributes(xNode);
 
                             transferRoad.ZoneId = zoneId;
-                            transferRoad.Name = XmlHelper.ReadAttributeString(transferAttribs, "Name");
-                            transferRoad.Type = XmlHelper.ReadAttributeInt(transferAttribs, "Type");
-                            transferRoad.CellX = XmlHelper.ReadAttributeInt(transferAttribs, "cellX");
-                            transferRoad.CellY = XmlHelper.ReadAttributeInt(transferAttribs, "cellY");
+                            transferRoad.Name = XmlHelper.ReadAttribute<string>(transferAttribs, "Name","");
+                            transferRoad.Type = XmlHelper.ReadAttribute<int>(transferAttribs, "Type",0);
+                            transferRoad.CellX = XmlHelper.ReadAttribute<int>(transferAttribs, "cellX",0);
+                            transferRoad.CellY = XmlHelper.ReadAttribute<int>(transferAttribs, "cellY",0);
 
                             foreach (XmlNode childNode in xNode.ChildNodes)
                             {
