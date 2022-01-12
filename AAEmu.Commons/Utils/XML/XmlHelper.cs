@@ -32,19 +32,18 @@ namespace AAEmu.Commons.Utils.XML
             return res;
         }
 
-        public static string ReadAttributeString(Dictionary<string, string> attribs, string field, string defaultValue = "")
+        public static T ReadAttribute<T>(Dictionary<string, string> attribs, string field, T defaultValue)
         {
-            if (attribs.TryGetValue(field, out var val))
-                return val;
-            return defaultValue;
-        }
-
-        public static int ReadAttributeInt(Dictionary<string, string> attribs, string field, int defaultValue = 0)
-        {
-            if (attribs.TryGetValue(field, out var val))
-                if (int.TryParse(val, out var i))
-                    return i;
-            return defaultValue;
+            if (!attribs.TryGetValue(field, out var val))
+                return defaultValue;
+            try
+            {
+                return (T)Convert.ChangeType(val, typeof(T));
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
 
     }
