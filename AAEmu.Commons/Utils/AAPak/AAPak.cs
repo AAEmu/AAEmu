@@ -1291,9 +1291,10 @@ namespace AAEmu.Commons.Utils.AAPak
         /// <returns>Returns true if the file was found</returns>
         public bool GetFileByName(string filename, ref AAPakFileInfo fileInfo)
         {
+            var fn = ToPakSlashes(filename);
             foreach (AAPakFileInfo pfi in files)
             {
-                if (pfi.name == filename)
+                if (pfi.name == fn)
                 {
                     fileInfo = pfi;
                     return true;
@@ -1317,6 +1318,11 @@ namespace AAEmu.Commons.Utils.AAPak
             return false;
         }
 
+        public static string ToPakSlashes(string fileName)
+        {
+            return fileName.Replace(Path.DirectorySeparatorChar, '/');
+        }
+        
         /// <summary>
         /// Check if file exists within the pak
         /// </summary>
@@ -1324,9 +1330,10 @@ namespace AAEmu.Commons.Utils.AAPak
         /// <returns>Returns true if the file was found</returns>
         public bool FileExists(string filename)
         {
+            var fn = ToPakSlashes(filename);
             foreach (AAPakFileInfo pfi in files)
             {
-                if (pfi.name == filename)
+                if (pfi.name == fn)
                 {
                     return true;
                 }

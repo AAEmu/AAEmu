@@ -20,8 +20,13 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.World.Transform;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Xml;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Shipyard;
+using AAEmu.Game.Models.Game.World.Xml;
+using AAEmu.Game.Models.Game.World.Zones;
+using NLog.Internal;
 
 namespace AAEmu.Game.Core.Managers.World
 {
@@ -45,6 +50,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, AreaShape> _areaShapes;
         private readonly ConcurrentDictionary<uint, Transfer> _transfers;
         private readonly ConcurrentDictionary<uint, Gimmick> _gimmicks;
+        private readonly ConcurrentDictionary<uint, IndunZone> _indunZones;
 
         public const int REGION_SIZE = 64;
         public const int CELL_SIZE = 1024 / REGION_SIZE;
@@ -66,6 +72,7 @@ namespace AAEmu.Game.Core.Managers.World
             _areaShapes = new ConcurrentDictionary<uint, AreaShape>();
             _transfers = new ConcurrentDictionary<uint, Transfer>();
             _gimmicks = new ConcurrentDictionary<uint, Gimmick>();
+            _indunZones = new ConcurrentDictionary<uint, IndunZone>();
         }
 
         public void ActiveRegionTick(TimeSpan delta)
@@ -112,13 +119,86 @@ namespace AAEmu.Game.Core.Managers.World
 
             _log.Info("Loading world data...");
 
+            #region IndungeonZones
+            using (var connection = SQLite.CreateConnection())
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM indun_zones";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var idz = new IndunZone()
+                            {
+                                ZoneGroupId = reader.GetUInt32("zone_group_id"),
+                                Name = reader.GetString("name"),
+                                Comment = reader.GetString("comment"),
+                                LevelMin = reader.GetUInt32("level_min"),
+                                LevelMax = reader.GetUInt32("level_max"),
+                                MaxPlayers = reader.GetUInt32("max_players"),
+                                PvP = reader.GetBoolean("pvp"),
+                                HasGraveyard = reader.GetBoolean("has_graveyard"),
+                                ItemId = reader.IsDBNull("item_id") ? 0 : reader.GetUInt32("item_id"),
+                                RestoreItemTime = reader.GetUInt32("restore_item_time"),
+                                PartyOnly = reader.GetBoolean("party_only"),
+                                ClientDriven = reader.GetBoolean("client_driven"),
+                                SelectChannel = reader.GetBoolean("select_channel")
+                            };
+                            idz.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
+                            if (!_indunZones.TryAdd(idz.ZoneGroupId,idz))
+                                _log.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
+                        }
+                    }
+                }
+            }
+            _log.Debug($"Loaded {_indunZones.Count()} dungeon zones");
+            // add dummy main world as ID 0
+            if (!_indunZones.TryAdd(0, new IndunZone() { ZoneGroupId = 0, Name = "Main World", LocalizedName = "Erenor" }))
+            {
+                _log.Fatal("Failed to add main world");
+                return;
+            }
+            #endregion
+
             #region FileManager
+            
+            var worldXmlPaths = ClientFileManager.GetFilesInDirectory(Path.Combine("game", "worlds"), "world.xml", true);
+            var worldNames = new List<string>();
+            worldNames.Add("main_world");
+            foreach (var worldXmlPath in worldXmlPaths)
+            {
+                var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
+                if (!worldNames.Contains(worldName))
+                    worldNames.Add(worldName);
+            }
 
             var pathFile = Path.Combine(FileManager.AppPath, "Data", "worlds.json");
+            /*
             var contents = FileManager.GetFileContents(pathFile);
             if (string.IsNullOrWhiteSpace(contents))
                 throw new IOException($"File {pathFile} doesn't exists or is empty.");
+            */
 
+            for (uint id = 0; id < worldNames.Count; id++)
+            {
+                var worldName = worldNames[(int)id];
+                var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
+                var xml = new XmlDocument();
+                xml.Load(worldXmlData);
+                var worldNode = xml.SelectSingleNode("/World");
+                if (worldNode != null)
+                {
+                    var xmlWorld = new XmlWorld();
+                    var world = new InstanceWorld();
+                    world.Id = id;
+                    xmlWorld.ReadNode(worldNode, world);
+                    _worlds.Add(id, world);
+                }
+            }
+
+            /*
             if (JsonHelper.TryDeserializeObject(contents, out List<InstanceWorld> worlds, out _))
             {
                 foreach (var world in worlds)
@@ -136,6 +216,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
             else
                 throw new Exception($"WorldManager: Parse {pathFile} file");
+            */
 
             foreach (var world in _worlds.Values)
             {
@@ -144,7 +225,7 @@ namespace AAEmu.Game.Core.Managers.World
                 if (!File.Exists(pathFile))
                     throw new IOException($"File {pathFile} doesn't exists!");
                 
-                contents = FileManager.GetFileContents(pathFile);
+                var contents = FileManager.GetFileContents(pathFile);
                 if (string.IsNullOrWhiteSpace(contents))
                     throw new IOException($"File {pathFile} is empty.");
 
