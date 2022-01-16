@@ -1,4 +1,8 @@
-﻿using System.Xml;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Xml;
+using AAEmu.Game.Core.Managers.World;
 using XmlH = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Models.Game.World.Xml
@@ -17,7 +21,10 @@ namespace AAEmu.Game.Models.Game.World.Xml
         public float MaxTerrainHeight { get; set; }
         public uint IsReleaseBranch { get; set; }
         
-        public XmlWorldZoneList ZoneList { get; set; }
+        /// <summary>
+        /// Zones by zoneKey
+        /// </summary>
+        public ConcurrentDictionary<uint,XmlWorldZone> Zones { get; set; }
 
         public void ReadNode(XmlNode node, World world)
         {
@@ -42,9 +49,31 @@ namespace AAEmu.Game.Models.Game.World.Xml
             world.OceanLevel = OceanLevel;
             world.MaxHeight = MaxTerrainHeight;
 
-            var zoneListNode = node.SelectSingleNode("ZoneList");
-            ZoneList = new XmlWorldZoneList();
-            ZoneList.ReadNode(zoneListNode, world, this);
+            // pre-create heightmap data
+            world.HeightMaps = new ushort[world.CellX * 512, world.CellY * 512];
+            world.HeightMaxCoefficient = ushort.MaxValue / (world.MaxHeight / 4.0);
+            
+            // pre-create the required Sectors
+            world.Regions = new Region[world.CellX * WorldManager.SECTORS_PER_CELL, world.CellY * WorldManager.SECTORS_PER_CELL];
+            // Xml zone stuff cache
+            world.XmlWorldZones = new ConcurrentDictionary<uint, XmlWorldZone>();
+
+            var zoneNodes = node.SelectNodes("ZoneList/Zone");
+            Zones = new ConcurrentDictionary<uint, XmlWorldZone>();
+            
+            // Read Zone XML
+            if (zoneNodes != null)
+            {
+                for (var i = 0; i < zoneNodes.Count; i++)
+                {
+                    var zone = new XmlWorldZone();
+                    zone.ReadNode(zoneNodes[i], world, this);
+                    if (!Zones.TryAdd(zone.Id, zone))
+                        throw new Exception("Duplicate zoneKey while reading world.xml");
+                    world.XmlWorldZones.TryAdd(zone.Id, zone);
+                }
+            }
+
         }
     }
 }
