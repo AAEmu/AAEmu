@@ -33,8 +33,8 @@ namespace AAEmu.Game.Core.Managers.World
     public class WorldManager : Singleton<WorldManager>
     {
         // Default World and Instance ID that will be assigned to all Transforms as a Default value
-        public static readonly uint DefaultWorldId = 1;
-        public static readonly uint DefaultInstanceId = 0;
+        public static uint DefaultWorldId = 1;
+        public static uint DefaultInstanceId = 0;
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private Dictionary<uint, InstanceWorld> _worlds;
@@ -53,7 +53,7 @@ namespace AAEmu.Game.Core.Managers.World
         private readonly ConcurrentDictionary<uint, IndunZone> _indunZones;
 
         public const int REGION_SIZE = 64;
-        public const int CELL_SIZE = 1024 / REGION_SIZE;
+        public const int SECTORS_PER_CELL = 1024 / REGION_SIZE;
         /*
         REGION_NEIGHBORHOOD_SIZE (cell sector size) used for polling objects in your proximity
         Was originally set to 1, recommended 3 and max 5
@@ -119,7 +119,46 @@ namespace AAEmu.Game.Core.Managers.World
 
             _log.Info("Loading world data...");
 
-            #region IndungeonZones
+            #region LoadClientData
+            
+            var worldXmlPaths = ClientFileManager.GetFilesInDirectory(Path.Combine("game", "worlds"), "world.xml", true);
+            var worldNames = new List<string>();
+            worldNames.Add("main_world"); // Make sure main_world is the first even if it wouldn't exist
+            foreach (var worldXmlPath in worldXmlPaths)
+            {
+                var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
+                if (!worldNames.Contains(worldName))
+                    worldNames.Add(worldName);
+            }
+
+            for (uint id = 0; id < worldNames.Count; id++)
+            {
+                var worldName = worldNames[(int)id];
+                if (worldName == "main_world")
+                    WorldManager.DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
+                
+                var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
+                var xml = new XmlDocument();
+                xml.Load(worldXmlData);
+                var worldNode = xml.SelectSingleNode("/World");
+                if (worldNode != null)
+                {
+                    var xmlWorld = new XmlWorld();
+                    var world = new InstanceWorld();
+                    world.Id = id;
+                    xmlWorld.ReadNode(worldNode, world);
+                    _worlds.Add(id, world);
+                    
+                    // cache zone keys to world reference
+                    foreach (var zoneKey in world.ZoneKeys)
+                        _worldIdByZoneId.Add(zoneKey,world.Id);
+                }
+            }
+            
+            #endregion
+
+            #region LoadServerDB
+            
             using (var connection = SQLite.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -146,114 +185,24 @@ namespace AAEmu.Game.Core.Managers.World
                                 ClientDriven = reader.GetBoolean("client_driven"),
                                 SelectChannel = reader.GetBoolean("select_channel")
                             };
-                            idz.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
-                            if (!_indunZones.TryAdd(idz.ZoneGroupId,idz))
+                            idz.LocalizedName =
+                                LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
+                            if (!_indunZones.TryAdd(idz.ZoneGroupId, idz))
                                 _log.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
                         }
                     }
                 }
-            }
-            _log.Debug($"Loaded {_indunZones.Count()} dungeon zones");
-            // add dummy main world as ID 0
-            if (!_indunZones.TryAdd(0, new IndunZone() { ZoneGroupId = 0, Name = "Main World", LocalizedName = "Erenor" }))
-            {
-                _log.Fatal("Failed to add main world");
-                return;
-            }
-            #endregion
 
-            #region FileManager
-            
-            var worldXmlPaths = ClientFileManager.GetFilesInDirectory(Path.Combine("game", "worlds"), "world.xml", true);
-            var worldNames = new List<string>();
-            worldNames.Add("main_world");
-            foreach (var worldXmlPath in worldXmlPaths)
-            {
-                var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
-                if (!worldNames.Contains(worldName))
-                    worldNames.Add(worldName);
-            }
-
-            var pathFile = Path.Combine(FileManager.AppPath, "Data", "worlds.json");
-            /*
-            var contents = FileManager.GetFileContents(pathFile);
-            if (string.IsNullOrWhiteSpace(contents))
-                throw new IOException($"File {pathFile} doesn't exists or is empty.");
-            */
-
-            for (uint id = 0; id < worldNames.Count; id++)
-            {
-                var worldName = worldNames[(int)id];
-                var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
-                var xml = new XmlDocument();
-                xml.Load(worldXmlData);
-                var worldNode = xml.SelectSingleNode("/World");
-                if (worldNode != null)
+                _log.Debug($"Loaded {_indunZones.Count()} dungeon zones");
+                /*
+                // add dummy main world as ID 0
+                if (!_indunZones.TryAdd(0, new IndunZone() { ZoneGroupId = 0, Name = "Main World", LocalizedName = "Erenor" }))
                 {
-                    var xmlWorld = new XmlWorld();
-                    var world = new InstanceWorld();
-                    world.Id = id;
-                    xmlWorld.ReadNode(worldNode, world);
-                    _worlds.Add(id, world);
+                    _log.Fatal("Failed to add main world");
+                    return;
                 }
-            }
-
-            /*
-            if (JsonHelper.TryDeserializeObject(contents, out List<InstanceWorld> worlds, out _))
-            {
-                foreach (var world in worlds)
-                {
-                    if (_worlds.ContainsKey(world.Id))
-                        throw new Exception("WorldManager: there are duplicates in world ids");
-
-                    world.Regions = new Region[world.CellX * CELL_SIZE, world.CellY * CELL_SIZE];
-                    world.ZoneIds = new uint[world.CellX * CELL_SIZE, world.CellY * CELL_SIZE];
-                    world.HeightMaps = new ushort[world.CellX * 512, world.CellY * 512];
-                    world.HeightMaxCoefficient = ushort.MaxValue / (world.MaxHeight / 4.0);
-
-                    _worlds.Add(world.Id, world);
-                }
-            }
-            else
-                throw new Exception($"WorldManager: Parse {pathFile} file");
-            */
-
-            foreach (var world in _worlds.Values)
-            {
-                pathFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "zones.json");
+                */
                 
-                if (!File.Exists(pathFile))
-                    throw new IOException($"File {pathFile} doesn't exists!");
-                
-                var contents = FileManager.GetFileContents(pathFile);
-                if (string.IsNullOrWhiteSpace(contents))
-                    throw new IOException($"File {pathFile} is empty.");
-
-                if (JsonHelper.TryDeserializeObject(contents, out List<ZoneConfig> zones, out _))
-                    foreach (var zone in zones)
-                    {
-                        _worldIdByZoneId.Add(zone.Id, world.Id);
-
-                        foreach (var cell in zone.Cells)
-                        {
-                            var x = cell.X * CELL_SIZE;
-                            var y = cell.Y * CELL_SIZE;
-                            foreach (var sector in cell.Sectors)
-                            {
-                                var sx = x + sector.X;
-                                var sy = y + sector.Y;
-                                world.ZoneIds[sx, sy] = zone.Id;
-                                world.Regions[sx, sy] = new Region(world.Id, sx, sy);
-                            }
-                        }
-                    }
-                else
-                    throw new Exception($"WorldManager: Parse {pathFile} file");
-            }
-            #endregion
-
-            using (var connection = SQLite.CreateConnection())
-            {
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM wi_group_wis";
@@ -288,6 +237,7 @@ namespace AAEmu.Game.Core.Managers.World
                     }
                 }
             }
+            #endregion
 
             //TickManager.Instance.OnLowFrequencyTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(5));
         }
@@ -383,10 +333,14 @@ namespace AAEmu.Game.Core.Managers.World
             var sx = (int)(x / REGION_SIZE);
             var sy = (int)(y / REGION_SIZE);
 
-            if ((sx <= (world.CellX * CELL_SIZE)) && (sy <= (world.CellY * CELL_SIZE)) && (sx >= 0) && (sy >= 0))
-                return world.ZoneIds[sx, sy];
-            _log.Fatal("GetZoneId(): Coordicates out of bounds for WorldId {0} - x:{1:#,0.#} - y: {2:#,0.#}",worldId,x,y);
-            return 0;
+            if (!world.ValidRegion(sx, sy))
+            {
+                _log.Fatal("GetZoneId(): Coordicates out of bounds for WorldId {0} - x:{1:#,0.#} - y: {2:#,0.#}", worldId, x, y);
+                return 0;
+            }
+
+            var region = world.GetRegion(sx, sy);
+            return region.ZoneKey;
         }
 
         public float GetHeight(uint zoneId, float x, float y)
@@ -753,8 +707,8 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var result = new List<T>();
             var regions = new List<Region>();
-            for (var a = x * CELL_SIZE; a < (x + 1) * CELL_SIZE; a++)
-                for (var b = y * CELL_SIZE; b < (y + 1) * CELL_SIZE; b++)
+            for (var a = x * SECTORS_PER_CELL; a < (x + 1) * SECTORS_PER_CELL; a++)
+                for (var b = y * SECTORS_PER_CELL; b < (y + 1) * SECTORS_PER_CELL; b++)
                 {
                     if (ValidRegion(worldId, a, b) && _worlds[worldId].Regions[a, b] != null)
                         regions.Add(_worlds[worldId].Regions[a, b]);

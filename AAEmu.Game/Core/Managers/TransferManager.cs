@@ -414,12 +414,12 @@ namespace AAEmu.Game.Core.Managers
 
                                         // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
                                         // convert coordinates from local to world, immediately when reading the path from the file
-                                        var (xx, yy, zz) = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
+                                        var vec = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
                                         var pos = new WorldSpawnPosition()
                                         {
-                                            X = xx,
-                                            Y = yy,
-                                            Z = zz,
+                                            X = vec.X,
+                                            Y = vec.Y,
+                                            Z = vec.Z,
                                             WorldId = world.Id,
                                             ZoneId = zoneId
                                         };
