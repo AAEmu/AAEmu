@@ -37,6 +37,10 @@ namespace AAEmu.Game.Models.Game.Skills.SkillControllers
 
         public static SkillController CreateSkillController(SkillControllerTemplate template, Unit owner, Unit target)
         {
+            if (template == null)
+            {
+                return null;
+            }
             switch ((SkillControllerKind)template.KindId)
             {
                 case SkillControllerKind.Floating:
