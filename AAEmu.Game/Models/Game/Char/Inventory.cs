@@ -751,7 +751,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             // Quests
             if ((item?.Template.LootQuestId > 0) && (count != 0))
-                Owner?.Quests?.OnItemGather(item, -count);
+                Owner?.Quests?.OnItemUse(item); //Owner?.Quests?.OnItemGather(item, -count); // OnItemUse
         }
 
     }

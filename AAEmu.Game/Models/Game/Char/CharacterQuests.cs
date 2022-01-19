@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks.Quests;
 using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
@@ -25,10 +26,10 @@ namespace AAEmu.Game.Models.Game.Char
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private readonly List<uint> _removed;
 
+        public Character Owner { get; set; }
+
         public Dictionary<uint, Quest> Quests { get; }
         public Dictionary<ushort, CompletedQuest> CompletedQuests { get; }
-
-        public Character Owner { get; set; }
 
         public CharacterQuests(Character owner)
         {
@@ -62,7 +63,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             var res = quest.Start();
             if (res == 0)
-                Quests.Remove(quest.TemplateId);
+                Drop(questId, true); // TODO может быть update = false?
             else
                 Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
         }
@@ -111,8 +112,33 @@ namespace AAEmu.Game.Models.Game.Char
                 complete.Body.CopyTo(body, 0);
                 Drop(questId, false);
                 Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
-                OnQuestComplete(questId);
+                //OnQuestComplete(questId);
             }
+        }
+
+        public void Complete(uint questId, int selected)
+        {
+            if (!Quests.ContainsKey(questId))
+            {
+                _log.Warn("Complete not exist quest {0}", questId);
+                return;
+            }
+
+            var quest = Quests[questId];
+            quest.CompleteQuest();
+        }
+
+        public void CompleteQuest(Quest quest)
+        {
+            var completeId = (ushort)(quest.TemplateId / 64);
+            if (!CompletedQuests.ContainsKey(completeId))
+                CompletedQuests.Add(completeId, new CompletedQuest(completeId));
+            var complete = CompletedQuests[completeId];
+            complete.Body.Set((int)(quest.TemplateId - completeId * 64), true);
+            var body = new byte[8];
+            complete.Body.CopyTo(body, 0);
+            Drop(quest.TemplateId, false);
+            Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, quest.ComponentId));
         }
 
         public void Drop(uint questId, bool update)

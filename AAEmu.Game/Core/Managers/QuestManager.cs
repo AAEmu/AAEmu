@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
@@ -68,6 +69,11 @@ namespace AAEmu.Game.Core.Managers
         public bool CheckGroupNpc(uint groupId, uint npcId)
         {
             return _groupNpcs.ContainsKey(groupId) && (_groupNpcs[groupId].Contains(npcId));
+        }
+
+        public void QuestCompleteTask(Character owner, uint questId)
+        {
+            owner.Quests.Complete(questId, 0);
         }
 
         public void Load()
