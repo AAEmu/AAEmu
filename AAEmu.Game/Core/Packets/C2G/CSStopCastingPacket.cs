@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (Connection.ActiveChar.ObjId != objId)
                 return;
-            if (pid != 0)
+            if (pid != 0 && Connection.ActiveChar.ActivePlotState != null)
             {
                 if(Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == pid)
                 {

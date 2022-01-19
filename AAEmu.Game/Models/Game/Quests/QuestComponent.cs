@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.Quests
+﻿using AAEmu.Game.Models.Game.Quests.Static;
+
+namespace AAEmu.Game.Models.Game.Quests
 {
     public class QuestComponent
     {

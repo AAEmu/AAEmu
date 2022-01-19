@@ -68,6 +68,9 @@ namespace AAEmu.Game
             GameDataManager.Instance.LoadGameData();
             QuestManager.Instance.Load();
 
+            SphereQuestManager.Instance.Load();
+            SphereQuestManager.Instance.Initialize();
+
             FormulaManager.Instance.Load();
             ExpirienceManager.Instance.Load();
 

@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
@@ -9,9 +10,12 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -32,6 +36,11 @@ namespace AAEmu.Game.Models.Game.Char
             Quests = new Dictionary<uint, Quest>();
             CompletedQuests = new Dictionary<ushort, CompletedQuest>();
             _removed = new List<uint>();
+        }
+
+        public bool HasQuest(uint questId)
+        {
+            return Quests.ContainsKey(questId);
         }
 
         public void Add(uint questId)
@@ -72,7 +81,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 if (supply)
                 {
-                    var exps = quest.GetCustomExp(); 
+                    var exps = quest.GetCustomExp();
                     var amount = quest.GetCustomCopper();
                     var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
                     if (supplies != null)
@@ -117,6 +126,19 @@ namespace AAEmu.Game.Models.Game.Char
             QuestIdManager.Instance.ReleaseId((uint)quest.Id);
         }
 
+        public bool SetStep(uint questContextId, uint step)
+        {
+            if (step > 8)
+                return false;
+
+            if (!Quests.ContainsKey(questContextId))
+                return false;
+
+            var quest = Quests[questContextId];
+            quest.Step = (QuestComponentKind)step;
+            return true;
+        }
+
         public void OnKill(Npc npc)
         {
             foreach (var quest in Quests.Values.ToList())
@@ -153,6 +175,12 @@ namespace AAEmu.Game.Models.Game.Char
         {
             foreach (var quest in Quests.Values)
                 quest.OnQuestComplete(questId);
+        }
+
+        public void OnEnterSphere(SphereQuest sphereQuest)
+        {
+            foreach (var quest in Quests.Values.ToList())
+                quest.OnEnterSphere(sphereQuest);
         }
 
         public void AddCompletedQuest(CompletedQuest quest)

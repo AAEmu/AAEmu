@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -49,7 +52,7 @@ namespace AAEmu.Game.Core.Managers
         {
             if (!_actTemplates.ContainsKey(type))
                 return default(T);
-            return _actTemplates[type].ContainsKey(id) ? (T) _actTemplates[type][id] : default(T);
+            return _actTemplates[type].ContainsKey(id) ? (T)_actTemplates[type][id] : default(T);
         }
 
         public List<uint> GetGroupItems(uint groupId)
@@ -66,7 +69,7 @@ namespace AAEmu.Game.Core.Managers
         {
             return _groupNpcs.ContainsKey(groupId) && (_groupNpcs[groupId].Contains(npcId));
         }
-        
+
         public void Load()
         {
             _templates = new Dictionary<uint, QuestTemplate>();
@@ -75,21 +78,21 @@ namespace AAEmu.Game.Core.Managers
             _actTemplates = new Dictionary<string, Dictionary<uint, QuestActTemplate>>();
             _groupItems = new Dictionary<uint, List<uint>>();
             _groupNpcs = new Dictionary<uint, List<uint>>();
-            
-            foreach(var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.Quests.Acts"))
-                if(type.BaseType == typeof(QuestActTemplate))
+
+            foreach (var type in Helpers.GetTypesInNamespace("AAEmu.Game.Models.Game.Quests.Acts"))
+                if (type.BaseType == typeof(QuestActTemplate))
                     _actTemplates.Add(type.Name, new Dictionary<uint, QuestActTemplate>());
-            
-            using(var connection = SQLite.CreateConnection())
+
+            using (var connection = SQLite.CreateConnection())
             {
                 _log.Info("Loading quests...");
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM quest_contexts";
+                    command.CommandText = "SELECT * FROM quest_contexts ORDER BY id ASC";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestTemplate();
                             template.Id = reader.GetUInt32("id");
@@ -114,18 +117,18 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM quest_components";
+                    command.CommandText = "SELECT * FROM quest_components ORDER BY quest_context_id ASC, component_kind_id ASC, id ASC";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var questId = reader.GetUInt32("quest_context_id");
                             if (!_templates.ContainsKey(questId))
                                 continue;
-                            
+
                             var template = new QuestComponent();
                             template.Id = reader.GetUInt32("id");
                             template.KindId = (QuestComponentKind)reader.GetByte("component_kind_id");
@@ -146,13 +149,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
                 _log.Info("Loaded {0} quests", _templates.Count);
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_supplies";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestSupplies();
                             template.Id = reader.GetUInt32("id");
@@ -166,7 +169,7 @@ namespace AAEmu.Game.Core.Managers
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM quest_acts";
+                    command.CommandText = "SELECT * FROM quest_acts ORDER BY quest_component_id ASC, id ASC";
                     command.Prepare();
                     using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
@@ -191,13 +194,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_check_complete_components";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActCheckCompleteComponent();
                             template.Id = reader.GetUInt32("id");
@@ -206,13 +209,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_check_distances";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActCheckDistance();
                             template.Id = reader.GetUInt32("id");
@@ -223,13 +226,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_check_guards";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActCheckGuard();
                             template.Id = reader.GetUInt32("id");
@@ -238,13 +241,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_check_spheres";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActCheckSphere();
                             template.Id = reader.GetUInt32("id");
@@ -253,13 +256,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_check_timers";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActCheckTimer();
                             template.Id = reader.GetUInt32("id");
@@ -277,13 +280,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_buffs";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptBuff();
                             template.Id = reader.GetUInt32("id");
@@ -292,13 +295,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_components";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptComponent();
                             template.Id = reader.GetUInt32("id");
@@ -307,13 +310,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_doodads";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptDoodad();
                             template.Id = reader.GetUInt32("id");
@@ -322,13 +325,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_item_equips";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptItemEquip();
                             template.Id = reader.GetUInt32("id");
@@ -337,13 +340,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_item_gains";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptItemGain();
                             template.Id = reader.GetUInt32("id");
@@ -353,13 +356,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_items";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptItem();
                             template.Id = reader.GetUInt32("id");
@@ -371,13 +374,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_level_ups";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptLevelUp();
                             template.Id = reader.GetUInt32("id");
@@ -386,13 +389,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_npc_emotions";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptNpcEmotion();
                             template.Id = reader.GetUInt32("id");
@@ -402,13 +405,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_npc_kills";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptNpcKill();
                             template.Id = reader.GetUInt32("id");
@@ -417,13 +420,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_npcs";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptNpc();
                             template.Id = reader.GetUInt32("id");
@@ -432,13 +435,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_skills";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptSkill();
                             template.Id = reader.GetUInt32("id");
@@ -447,13 +450,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_accept_spheres";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAcceptSphere();
                             template.Id = reader.GetUInt32("id");
@@ -462,13 +465,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_auto_completes";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConAutoComplete();
                             template.Id = reader.GetUInt32("id");
@@ -476,13 +479,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_fails";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConFail();
                             template.Id = reader.GetUInt32("id");
@@ -491,13 +494,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_report_doodads";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConReportDoodad();
                             template.Id = reader.GetUInt32("id");
@@ -508,13 +511,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_report_journals";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConReportJournal();
                             template.Id = reader.GetUInt32("id");
@@ -522,13 +525,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_con_report_npcs";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActConReportNpc();
                             template.Id = reader.GetUInt32("id");
@@ -539,13 +542,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_etc_item_obtains";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActEtcItemObtain();
                             template.Id = reader.GetUInt32("id");
@@ -557,13 +560,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_obj_ability_levels";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActObjAbilityLevel();
                             template.Id = reader.GetUInt32("id");
@@ -662,13 +665,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_obj_distances";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActObjDistance();
                             template.Id = reader.GetUInt32("id");
@@ -752,27 +755,27 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new QuestActObjInteraction();
                             template.Id = reader.GetUInt32("id");
-                            template.WorldInteractionId = (WorldInteractionType) reader.GetInt32("wi_id");
+                            template.WorldInteractionId = (WorldInteractionType)reader.GetInt32("wi_id");
                             template.Count = reader.GetInt32("count");
                             template.DoodadId = reader.GetUInt32("doodad_id", 0);
                             template.UseAlias = reader.GetBoolean("use_alias", true);
                             template.TeamShare = reader.GetBoolean("team_share", true);
                             template.HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0);
                             template.HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1); // TODO phase = 0?
-                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id",0);
+                            template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
                             template.Phase = reader.GetUInt32("phase", 0);
                             _actTemplates["QuestActObjInteraction"].Add(template.Id, template);
                         }
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_obj_item_gathers";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActObjItemGather();
                             template.Id = reader.GetUInt32("id");
@@ -814,13 +817,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_obj_item_group_uses";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActObjItemGroupUse();
                             template.Id = reader.GetUInt32("id");
@@ -835,13 +838,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_obj_item_uses";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActObjItemUse();
                             template.Id = reader.GetUInt32("id");
@@ -856,13 +859,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_obj_levels";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActObjLevel();
                             template.Id = reader.GetUInt32("id");
@@ -894,13 +897,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_obj_monster_group_hunts";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActObjMonsterGroupHunt();
                             template.Id = reader.GetUInt32("id");
@@ -914,13 +917,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_obj_monster_hunts";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActObjMonsterHunt();
                             template.Id = reader.GetUInt32("id");
@@ -1103,13 +1106,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_supply_aa_points";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActSupplyAaPoint();
                             template.Id = reader.GetUInt32("id");
@@ -1118,13 +1121,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_supply_appellations";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActSupplyAppellation();
                             template.Id = reader.GetUInt32("id");
@@ -1166,13 +1169,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_supply_exps";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActSupplyExp();
                             template.Id = reader.GetUInt32("id");
@@ -1181,13 +1184,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_supply_honor_points";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActSupplyHonorPoint();
                             template.Id = reader.GetUInt32("id");
@@ -1235,13 +1238,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_supply_jury_points";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActSupplyJuryPoint();
                             template.Id = reader.GetUInt32("id");
@@ -1250,13 +1253,13 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_supply_living_points";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActSupplyLivingPoint();
                             template.Id = reader.GetUInt32("id");
@@ -1270,7 +1273,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     command.CommandText = "SELECT * FROM quest_act_supply_lps";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
                         while (reader.Read())
                         {
@@ -1317,13 +1320,13 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_act_supply_skills";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var template = new QuestActSupplySkill();
                             template.Id = reader.GetUInt32("id");
@@ -1357,18 +1360,18 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                using(var command = connection.CreateCommand())
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM quest_monster_npcs";
                     command.Prepare();
-                    using(var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                     {
-                        while(reader.Read())
+                        while (reader.Read())
                         {
                             var groupId = reader.GetUInt32("quest_monster_group_id");
                             var npcId = reader.GetUInt32("npc_id");
                             List<uint> npcs;
-                            if(!_groupNpcs.ContainsKey(groupId))
+                            if (!_groupNpcs.ContainsKey(groupId))
                             {
                                 npcs = new List<uint>();
                                 _groupNpcs.Add(groupId, npcs);
