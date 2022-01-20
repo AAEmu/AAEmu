@@ -14,19 +14,19 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<list||add||remove||update||step||reward>";
+            return "<list||add||remove||prog||reward>";
         }
 
         public string GetCommandHelpText()
         {
-            return "/quest <list||add||remove||update||step||reward>";
+            return "/quest <list||add||remove||prog||reward>";
         }
 
         public void Execute( Character character, string[] args )
         {
             if ( args.Length < 1 )
             {
-                character.SendMessage( "/quest <list||add||remove||update||step||reward>" );
+                character.SendMessage( "/quest <list||add||remove||prog||reward>" );
                 return;
             }
 

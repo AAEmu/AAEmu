@@ -5,11 +5,13 @@ using System.Linq;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Quests;
@@ -48,7 +50,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             if (Quests.ContainsKey(questId))
             {
-                _log.Warn("Duplicate add quest {0}", questId);
+                _log.Warn("Duplicate quest {0}, not added!", questId);
                 return;
             }
 
@@ -62,6 +64,34 @@ namespace AAEmu.Game.Models.Game.Char
             Quests.Add(quest.TemplateId, quest);
 
             var res = quest.Start();
+            if (res == 0)
+                Drop(questId, true); // TODO может быть update = false?
+            else
+                Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
+        }
+
+        /// <summary>
+        /// Метод предназначен для вызова из скрита QuestCmd, команда /quest add <questId>
+        /// </summary>
+        /// <param name="questId"></param>
+        public void AddStart(uint questId)
+        {
+            if (Quests.ContainsKey(questId))
+            {
+                _log.Warn("Duplicate quest {0}, added!", questId);
+                Drop(questId, true);
+            }
+
+            var template = QuestManager.Instance.GetTemplate(questId);
+            if (template == null)
+                return;
+            var quest = new Quest(template);
+            quest.Id = QuestIdManager.Instance.GetNextId();
+            quest.Status = QuestStatus.Progress;
+            quest.Owner = Owner;
+            Quests.Add(quest.TemplateId, quest);
+
+            var res = quest.StartFirstOnly();
             if (res == 0)
                 Drop(questId, true); // TODO может быть update = false?
             else
@@ -116,31 +146,6 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
-        public void Complete(uint questId, int selected)
-        {
-            if (!Quests.ContainsKey(questId))
-            {
-                _log.Warn("Complete not exist quest {0}", questId);
-                return;
-            }
-
-            var quest = Quests[questId];
-            quest.CompleteQuest();
-        }
-
-        public void CompleteQuest(Quest quest)
-        {
-            var completeId = (ushort)(quest.TemplateId / 64);
-            if (!CompletedQuests.ContainsKey(completeId))
-                CompletedQuests.Add(completeId, new CompletedQuest(completeId));
-            var complete = CompletedQuests[completeId];
-            complete.Body.Set((int)(quest.TemplateId - completeId * 64), true);
-            var body = new byte[8];
-            complete.Body.CopyTo(body, 0);
-            Drop(quest.TemplateId, false);
-            Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, quest.ComponentId));
-        }
-
         public void Drop(uint questId, bool update)
         {
             if (!Quests.ContainsKey(questId))
@@ -163,6 +168,57 @@ namespace AAEmu.Game.Models.Game.Char
             var quest = Quests[questContextId];
             quest.Step = (QuestComponentKind)step;
             return true;
+        }
+
+        public void OnReportToNpc(uint objId, uint questId, int selected)
+        {
+            if (!Quests.ContainsKey(questId))
+                return;
+
+            var quest = Quests[questId];
+
+            var npc = WorldManager.Instance.GetNpc(objId);
+            if (npc == null)
+                return;
+
+            //if (npc.GetDistanceTo(Owner) > 8.0f)
+            //    return;
+
+            quest.OnReportToNpc(npc, selected);
+        }
+
+        public void OnReportToDoodad(uint objId, uint questId, int selected)
+        {
+            if (!Quests.ContainsKey(questId))
+                return;
+
+            var quest = Quests[questId];
+
+            var doodad = WorldManager.Instance.GetDoodad(objId);
+            if (doodad == null)
+                return;
+
+            // if (npc.GetDistanceTo(Owner) > 8.0f)
+            //     return;
+
+            quest.OnReportToDoodad(doodad);
+        }
+
+        public void OnTalkMade(uint npcObjId, uint questContextId, uint questComponentId, uint questActId)
+        {
+            var npc = WorldManager.Instance.GetNpc(npcObjId);
+            if (npc == null)
+                return;
+
+            if (npc.GetDistanceTo(Owner) > 8.0f)
+                return;
+
+            if (!Quests.ContainsKey(questContextId))
+                return;
+
+            var quest = Quests[questContextId];
+
+            quest.OnTalkMade(npc);
         }
 
         public void OnKill(Npc npc)

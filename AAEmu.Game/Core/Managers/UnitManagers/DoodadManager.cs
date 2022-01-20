@@ -2344,6 +2344,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             
             doodad.Spawn();
             doodad.Save();
+
+            // для системы квестов
+            character.Quests.OnInteraction(WorldInteractionType.Use, doodad);
+
             return doodad;
         }
 

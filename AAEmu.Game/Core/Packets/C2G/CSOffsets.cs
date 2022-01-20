@@ -189,7 +189,7 @@
         public const ushort CSUnbondDoodadPacket = 0x0cd;
         public const ushort CSCompletedCinemaPacket = 0x0ce;
         public const ushort CSStartedCinemaPacket = 0x0cf;
-        //0xd0 CSRequestPermissionToPlayCinemaForDirectingMode
+        public const ushort CSRequestPermissionToPlayCinemaForDirectingMode = 0xd0;
         //0xd1 CSEditorRemoveGimmickPacket
         //0xd2 CSEditorAddGimmickPacket
         //0xd3 CSInteractGimmickPacket

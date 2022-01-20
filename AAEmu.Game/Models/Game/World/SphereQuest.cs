@@ -69,8 +69,8 @@ namespace AAEmu.Game.Models.Game.World
                 if (trigger.Quest.ComponentId == trigger.Sphere.ComponentID)
                 {
                     var xyzSphereQuest = new Vector3(trigger.Sphere.X, trigger.Sphere.Y, trigger.Sphere.Z);
-                    // TODO срабатывает триггер в радиусе 3 м от центра сферы
-                    if (MathUtil.CalculateDistance(trigger.Owner.Transform.World.Position, xyzSphereQuest) <= trigger.Sphere.Radius - (trigger.Sphere.Radius - 3))
+                    // TODO срабатывает триггер в радиусе 1 м от центра сферы
+                    if (MathUtil.CalculateDistance(trigger.Owner.Transform.World.Position, xyzSphereQuest) <= trigger.Sphere.Radius)
                     {
                         trigger.Owner.Quests.OnEnterSphere(trigger.Sphere);
                         SphereQuestManager.Instance.RemoveSphereQuestTrigger(trigger);

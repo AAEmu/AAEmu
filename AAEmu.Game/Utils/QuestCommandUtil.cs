@@ -19,7 +19,7 @@ namespace AAEmu.Game.Utils
                     {
                         if (uint.TryParse(args[1], out questId))
                         {
-                            character.Quests.Add(questId);
+                            character.Quests.AddStart(questId);
                         }
                     }
                     else
@@ -80,7 +80,7 @@ namespace AAEmu.Game.Utils
                         character.SendMessage("[Quest] Proper usage: /quest step <questId> <stepId>");
                     }
                     break;
-                case "update":
+                case "prog":
                     if (args.Length >= 2)
                     {
                         if (uint.TryParse(args[1], out questId))
@@ -89,13 +89,19 @@ namespace AAEmu.Game.Utils
                             {
 
                                 var quest = character.Quests.Quests[questId];
+                                if (quest.Step == QuestComponentKind.Fail)
+                                    quest.Step = QuestComponentKind.Ready;
+                                if (quest.Step == QuestComponentKind.Drop)
+                                    quest.Step = QuestComponentKind.Reward;
                                 if (quest.Step > QuestComponentKind.Reward)
-                                    quest.Step = QuestComponentKind.Start;
-
+                                {
+                                    character.SendMessage("[Quest] You do not have the quest {0}", questId);
+                                    break;
+                                }
                                 character.SendMessage("[Quest] Perform step {1} for quest {0}", questId, quest.Step);
-                                quest.Status = QuestStatus.Progress;
                                 quest.Update();
                                 quest.Step++;
+                                character.SendMessage("[Quest] Next step {1} for quest {0}", questId, quest.Step);
                             }
                             else
                             {
@@ -129,7 +135,7 @@ namespace AAEmu.Game.Utils
                     }
                     break;
                 default:
-                    character.SendMessage("[Quest] /quest <add/remove/list/update/step/reward>");
+                    character.SendMessage("[Quest] /quest <add/remove/list/prog/reward>");
                     break;
             }
         }

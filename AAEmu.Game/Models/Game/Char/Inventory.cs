@@ -10,6 +10,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Utils.DB;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -751,8 +752,14 @@ namespace AAEmu.Game.Models.Game.Char
         {
             // Quests
             if ((item?.Template.LootQuestId > 0) && (count != 0))
-                Owner?.Quests?.OnItemUse(item); //Owner?.Quests?.OnItemGather(item, -count); // OnItemUse
+                Owner?.Quests?.OnItemUse(item);
         }
 
+        public void OnItemManuallyDestroyed(Item item, int count)
+        {
+            if (item?.Template.LootQuestId > 0)
+                if (Owner.Quests.HasQuest(item.Template.LootQuestId))
+                    Owner.Quests.Drop(item.Template.LootQuestId, true);
+        }
     }
 }
