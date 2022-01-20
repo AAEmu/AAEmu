@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("DispelEffect {0}", Id);
+            _log.Trace("DispelEffect {0}", Id);
 
             if (BuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(BuffTagId)))
                 return;

@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             // Not sure what to actually do with this other than validate the last uploaded song and create the item
             // There does not seem to be any reference to the source song, other than the used itemId to create it
-            _log.Debug("Special effects: UserMusicSaveNotes");
+            _log.Trace("Special effects: UserMusicSaveNotes");
             if ((caster is Character player) && (casterObj is SkillItem si))
             {
                 var item = ItemManager.Instance.GetItemByItemId(si.ItemId);

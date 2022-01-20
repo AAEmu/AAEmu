@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value4)
         {
             // TODO ...
-            _log.Warn("Special effects: ExpandDecoLimit");
+            _log.Trace("Special effects: ExpandDecoLimit");
         }
     }
 }

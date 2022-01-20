@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             }
             else
                 _log.Error("No active plot state located.");
-            _log.Debug("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            _log.Trace("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
         }
     }
 }

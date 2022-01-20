@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("PutDownBackpackEffect");
+            _log.Trace("PutDownBackpackEffect");
 
             Character character = (Character)caster;
             if (character == null) return;
@@ -59,7 +59,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (character.Inventory.SystemContainer.AddOrMoveExistingItem(Items.Actions.ItemTaskType.DropBackpack, item))
             {
                 // Spawn doodad
-                _log.Debug("PutDownPackEffect");
+                _log.Trace("PutDownPackEffect");
 
                 var doodad = DoodadManager.Instance.Create(0, BackpackDoodadId, character);
                 if (doodad == null)

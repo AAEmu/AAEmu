@@ -329,7 +329,7 @@ namespace AAEmu.Game.Core.Managers.World
             {
                 foreach (var doodad in _playerDoodads)
                 {
-                    // doodad.DoPhase(null, 0);
+                    doodad.DoPhase(null, 0);
                     doodad.Spawn();
                 }
             });

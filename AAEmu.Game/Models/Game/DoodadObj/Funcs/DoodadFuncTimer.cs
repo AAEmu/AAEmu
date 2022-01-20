@@ -18,12 +18,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            //_log.Debug("Delay " + Delay);
-            //_log.Debug("NextPhase " + NextPhase);
-            //_log.Debug("KeepRequester " + KeepRequester);
-            //_log.Debug("ShowTip " + ShowTip);
-            //_log.Debug("ShowEndTime " + ShowEndTime);
-            //_log.Debug("Tip " + Tip);
+            //_log.Trace("Delay " + Delay);
+            //_log.Trace("NextPhase " + NextPhase);
+            //_log.Trace("KeepRequester " + KeepRequester);
+            //_log.Trace("ShowTip " + ShowTip);
+            //_log.Trace("ShowEndTime " + ShowEndTime);
+            //_log.Trace("Tip " + Tip);
 
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(Delay + 1); // TODO need here
 

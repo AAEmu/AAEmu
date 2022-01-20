@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("RestoreManaEffect");
+            _log.Trace("RestoreManaEffect");
 
             if (!(target is Unit))
                 return;

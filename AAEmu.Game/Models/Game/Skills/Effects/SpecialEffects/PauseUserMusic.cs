@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             // Skill 22214 = Stop Playing (pressed pause)
             // Skill 22217 = Close the Score (pressed stop or end of song)
-            _log.Warn("Special effects: PauseUserMusic -> {0}",
+            _log.Trace("Special effects: PauseUserMusic -> {0}",
                 skill?.Id == SkillsEnum.CloseTheScore ? "Stop" : "Pause");
             target.BroadcastPacket(new SCPauseUserMusicPacket(target.ObjId), true);
 

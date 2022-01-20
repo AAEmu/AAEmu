@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("KillNpcWithoutCorpseEffect");
+            _log.Trace("KillNpcWithoutCorpseEffect");
 
             if (Vanish && Radius == 0)
             {

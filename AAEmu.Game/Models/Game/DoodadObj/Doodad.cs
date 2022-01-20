@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Utils;
 using NLog;
+using System.Threading.Tasks;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
 {
@@ -67,6 +68,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public void SetScale(float scale)
         {
             _scale = scale;
+        }
+
+        public void InitWorldDoodad()
+        {
+            var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
+            if (funcs.Count > 0) // Only non-use doodads
+                return;
+
+            DoPhase(null, 0);
         }
 
         // public void DoFirstPhase(Unit unit)
@@ -180,7 +190,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 CumulativePhaseRatio = 0;
                 DoPhase(unit, skillId);
 
-                _log.Debug("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
+                _log.Trace("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
             }
         }
@@ -201,7 +211,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 CumulativePhaseRatio = 0;
                 DoPhase(unit, skillId);
 
-                _log.Debug("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
+                _log.Trace("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
 
                 Use(unit, skillId, recursionDepth);
@@ -252,6 +262,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             base.RemoveVisibleObject(character);
             character.SendPacket(new SCDoodadRemovedPacket(ObjId));
+        }
+
+        public override void Spawn()
+        {
+            base.Spawn();
+            var unit = WorldManager.Instance.GetUnit(OwnerObjId);
+
+            if (unit is not null)
+                DoPhase(unit, 0);
+            else
+                Task.Run(InitWorldDoodad);
         }
 
         public PacketStream Write(PacketStream stream)

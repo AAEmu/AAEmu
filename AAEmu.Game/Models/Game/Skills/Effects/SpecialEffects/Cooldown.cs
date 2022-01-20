@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             // TODO only for server
             caster.Cooldowns.AddCooldown(skill.Template.Id, (uint)cooldownTime);
-            _log.Warn("cooldownTime {0}, value2 {1}, value3 {2}, value4 {3}", cooldownTime, value2, value3, value4);
+            _log.Trace("cooldownTime {0}, value2 {1}, value3 {2}, value4 {3}", cooldownTime, value2, value3, value4);
         }
     }
 }

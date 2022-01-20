@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value4)
         {
             // TODO ...
-            _log.Warn("Special effects: StopChanneling");
+            _log.Trace("Special effects: StopChanneling");
         }
     }
 }

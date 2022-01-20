@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Warn("value1 {0}, value2 {1}, value3 {2}, value4 {3}", target.Transform.ZoneId, value1, target.Name, targetObj.ObjId);
+            _log.Trace("value1 {0}, value2 {1}, value3 {2}, value4 {3}", target.Transform.ZoneId, value1, target.Name, targetObj.ObjId);
             
             var lootTableId = new uint();
             var zoneId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;

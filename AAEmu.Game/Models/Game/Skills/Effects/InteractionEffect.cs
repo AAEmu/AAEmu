@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
             CompressedGamePackets packetBuilder = null)
         {
-            _log.Debug("InteractionEffect, {0}", WorldInteraction);
+            _log.Trace("InteractionEffect, {0}", WorldInteraction);
 
             var classType = Type.GetType("AAEmu.Game.Models.Game.World.Interactions." + WorldInteraction);
             if (classType == null)
@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             }
 
-            _log.Debug("InteractionEffect, Action: {0}", classType); // TODO help to debug...
+            _log.Trace("InteractionEffect, Action: {0}", classType); // TODO help to debug...
 
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
 

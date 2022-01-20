@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncSign");
+            _log.Trace("DoodadFuncSign");
             owner.ToPhaseAndUse = false;
         }
     }
