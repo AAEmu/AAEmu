@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -38,10 +39,19 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
             }
 
-            // TODO do we need this call?
             if (caster is Character character)
             {
-                character.Quests.OnInteraction(WorldInteraction, target);
+                if (target is Doodad)
+                {
+                    character.Quests.OnInteraction(WorldInteraction, target);
+                }
+                else
+                {
+                    var skillItem = casterObj as SkillItem;
+                    character.Inventory.Bag.GetAllItemsByTemplate(skillItem.ItemTemplateId, -1, out var items, out var count);
+                    if (count > 0)
+                        character.Quests.OnItemUse(items[0]);
+                }
             }
         }
     }

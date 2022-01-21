@@ -70,15 +70,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _scale = scale;
         }
 
-        public void InitWorldDoodad()
-        {
-            var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
-            if (funcs.Count > 0) // Only non-use doodads
-                return;
-
-            DoPhase(null, 0);
-        }
-
         // public void DoFirstPhase(Unit unit)
         // {
         //     
@@ -264,17 +255,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             character.SendPacket(new SCDoodadRemovedPacket(ObjId));
         }
 
-        public override void Spawn()
-        {
-            base.Spawn();
-            var unit = WorldManager.Instance.GetUnit(OwnerObjId);
-
-            if (unit is not null)
-                DoPhase(unit, 0);
-            else
-                Task.Run(InitWorldDoodad);
-        }
-
         public PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(ObjId); //The object # in the list
@@ -293,7 +273,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             else
             {
                 stream.WritePosition(Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z);
-                var(roll, pitch, yaw) = Transform.World.ToRollPitchYawShorts();
+                var (roll, pitch, yaw) = Transform.World.ToRollPitchYawShorts();
                 stream.Write(roll);
                 stream.Write(pitch);
                 stream.Write(yaw);
@@ -350,8 +330,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     var parentDoodadId = 0u;
                     if ((Transform?.Parent?.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
                         parentDoodadId = pDoodad.DbId;
-                    
-                    command.CommandText = 
+
+                    command.CommandText =
                         "REPLACE INTO doodads (`id`, `owner_id`, `owner_type`, `template_id`, `current_phase_id`, `plant_time`, `growth_time`, `phase_time`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `item_id`, `house_id`, `parent_doodad`, `item_template_id`) " +
                         "VALUES(@id, @owner_id, @owner_type, @template_id, @current_phase_id, @plant_time, @growth_time, @phase_time, @x, @y, @z, @roll, @pitch, @yaw, @item_id, @house_id, @parent_doodad, @item_template_id)";
                     command.Parameters.AddWithValue("@id", DbId);

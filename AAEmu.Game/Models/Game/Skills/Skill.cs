@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -20,14 +18,12 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
-using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
@@ -72,44 +68,20 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public SkillResult Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
         {
-            var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Id);
-            foreach (var reagent in reagents)
-            {
-                if (caster is Character character)
-                {
-                    var hasItem = character.Inventory.CheckItems(SlotType.Inventory, reagent.ItemId, reagent.Amount)
-                                              || character.Inventory.CheckItems(SlotType.Equipment, reagent.ItemId, reagent.Amount);
-                    if (!hasItem)
-                    {
-                        return SkillResult.ItemSecured;
-                    }
-                }
-            }
             _bypassGcd = bypassGcd;
             if (!_bypassGcd)
             {
                 lock (caster.GCDLock)
                 {
-                    // Items are 'immune' to this, it seems ?
-                    // if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow && casterCaster is not SkillItem)
-                    // return SkillResult.CooldownTime;
-                    var now = DateTime.UtcNow;
-                    if (caster.GlobalCooldown >= now && !Template.IgnoreGlobalCooldown)
-                    {
-                        _log.Info("Skill still on GCD. {0}ms left", (caster.GlobalCooldown - now).Milliseconds);
+                    if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow)
                         return SkillResult.CooldownTime;
-                    }
 
-                    caster.SkillLastUsed = now;
+                    if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
+                        return SkillResult.CooldownTime;
+
+                    caster.SkillLastUsed = DateTime.UtcNow;
                 }
             }
-
-            if (caster.Cooldowns.CheckCooldown(Id))
-                return SkillResult.CooldownTime;
-
-            if (caster.SkillTask is CastTask ct)
-                if (!ct.Cancelled && ct.Skill.Template.Id == Template.Id)
-                    return SkillResult.NotNow;
 
             if (Template.CancelOngoingBuffs)
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
@@ -123,14 +95,6 @@ namespace AAEmu.Game.Models.Game.Skills
             InitialTarget = target;
             if (target == null)
                 return SkillResult.NoTarget;//We should try to make sure this doesnt happen
-
-            if (Template.Unmount)
-            {
-                if (caster is Character character)
-                {
-                    character.ForceDismount();
-                }
-            }
 
             TlId = SkillManager.Instance.NextId();
             if (Template.Plot != null)
@@ -164,19 +128,6 @@ namespace AAEmu.Game.Models.Game.Skills
                     return SkillResult.TooCloseRange;
                 if (targetDist > maxWeaponRange)
                     return SkillResult.TooFarRange;
-            }
-
-            if (!_bypassGcd)
-            {
-                var gcd = Template.CustomGcd;
-                if (Template.DefaultGcd)
-                {
-                    gcd = caster is Npc ? 1500 : 1000;
-                    if (casterCaster is SkillItem)
-                        gcd = 400;
-                }
-
-                caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (caster.GetAttribute<float>(UnitAttribute.GlobalCooldownMul, 0f) / 100));
             }
 
             if (Template.CastingTime > 0)
@@ -224,6 +175,10 @@ namespace AAEmu.Game.Models.Game.Skills
         private BaseUnit GetInitialTarget(Unit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
         {
             var target = (BaseUnit)caster;
+            if (target == null) // проверяем, так как иногда бывает null
+            {
+                return null;
+            }
             // HACKFIX : Mounts and Turbulence
             if (skillCaster.Type == SkillCasterType.Unk3 || ((caster == null) && (skillCaster.Type == SkillCasterType.Unit)))
                 target = WorldManager.Instance.GetUnit(skillCaster.ObjId);
@@ -379,7 +334,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
                 var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
                 var fireAnimId2 = new Dictionary<int, int> { { 0, 1 }, { 1, 2 } };
-            
+
                 var targetUnit = (Unit)target;
                 var dist = MathUtil.CalculateDistance(caster.Transform.World.Position, targetUnit.Transform.World.Position, true);
                 if (dist >= SkillManager.Instance.GetSkillTemplate(Id).MinRange && dist <= SkillManager.Instance.GetSkillTemplate(Id).MaxRange)
@@ -468,7 +423,7 @@ namespace AAEmu.Game.Models.Game.Skills
 
                     var itemCount = player.Inventory.GetItemsCount(useItem.TemplateId);
                     var itemsRequired = 1; // TODO: This probably needs a check if it doesn't require multiple of source item to use, instead of just 1
-                    if (itemCount < itemsRequired) 
+                    if (itemCount < itemsRequired)
                     {
                         _log.Warn("SkillItem, player does not own enough of {0} (count: {1}/{2}, templateId: {3})", useItem.Id, itemCount, itemsRequired, castItem.ItemTemplateId);
                         return; // not enough of item
@@ -484,7 +439,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 ScheduleEffects(caster, casterCaster, target, targetCaster, skillObject);
             }
-            
+
         }
 
         public async void StopSkill(Unit caster)
@@ -575,7 +530,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 ApplyEffects(caster, casterCaster, target, targetCaster, skillObject);
                 EndSkill(caster);
             }
-
         }
 
         private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, IEnumerable<BaseUnit> units)
@@ -615,7 +569,7 @@ namespace AAEmu.Game.Models.Game.Skills
             }
 
             var packets = new CompressedGamePackets();
-            var consumedItems = new List<(Item,int)>();
+            var consumedItems = new List<(Item, int)>();
             var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
 
             var effectsToApply = new List<(BaseUnit target, SkillEffect effect)>(targets.Count * Template.Effects.Count);
@@ -698,21 +652,21 @@ namespace AAEmu.Game.Models.Game.Skills
                         continue;
                     }
 
-                    if ((casterCaster is SkillItem castItem) && (caster is Character player)) 
+                    if ((casterCaster is SkillItem castItem) && (caster is Character player))
                     {
                         var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
                         if (effect.ConsumeSourceItem)
-                            consumedItems.Add((useItem,effect.ConsumeItemCount));
-                            //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, useItem);
+                            consumedItems.Add((useItem, effect.ConsumeItemCount));
+                        //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItem.ItemTemplateId, effect.ConsumeItemCount, useItem);
                         else
                         {
                             var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
                             if (castItemTemplate.UseSkillAsReagent)
-                                consumedItems.Add((useItem,effect.ConsumeItemCount));
-                                //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, useItem);
+                                consumedItems.Add((useItem, effect.ConsumeItemCount));
+                            //player.Inventory.Bag.ConsumeItem(ItemTaskType.SkillReagents, castItemTemplate.Id, effect.ConsumeItemCount, useItem);
                         }
                     }
-                    
+
                     if ((caster is Character character) && (effect.ConsumeItemId != 0) && (effect.ConsumeItemCount > 0))
                     {
                         if (effect.ConsumeSourceItem)
@@ -729,8 +683,8 @@ namespace AAEmu.Game.Models.Game.Skills
                             {
                                 continue;
                             }
-                            
-                            consumedItemTemplates.Add((effect.ConsumeItemId,effect.ConsumeItemCount));
+
+                            consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
                             /*
                             if (inventory)
                                 character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectConsumption, effect.ConsumeItemId, effect.ConsumeItemCount, null);
@@ -785,7 +739,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 else
                     _log.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
             }
-            
+
             // Quick Hack
             if (packets.Packets.Count > 0)
                 caster.BroadcastPacket(packets, true);
@@ -807,7 +761,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 // Consume labor
                 chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
-                
+
                 // Add vocation where needed
                 if ((InitialTarget is Doodad doodad) && (caster is Character character))
                 {
