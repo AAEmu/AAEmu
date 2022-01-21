@@ -131,8 +131,19 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Warn("GimmickTickTask: Started");
 
-            GimmickTickTask = new GimmickTickStartTask();
-            TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
+            //GimmickTickTask = new GimmickTickStartTask();
+            //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMinutes(DelayInit));
+            TickManager.Instance.OnTick.Subscribe(GimmickTick, TimeSpan.FromMilliseconds(Delay), true);
+        }
+        internal void GimmickTick(TimeSpan delta)
+        {
+            var activeGimmicks = GetActiveGimmicks();
+            foreach (var gimmick in activeGimmicks)
+            {
+                GimmickTick(gimmick);
+            }
+
+            //TaskManager.Instance.Schedule(GimmickTickTask, TimeSpan.FromMilliseconds(Delay));
         }
         internal void GimmickTick()
         {

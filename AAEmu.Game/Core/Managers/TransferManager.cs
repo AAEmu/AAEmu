@@ -41,10 +41,22 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Warn("TransferTickStart: Started");
 
-            TransferTickTask = new TransferTickStartTask();
-            TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit), TimeSpan.FromMilliseconds(Delay));
+            //TransferTickTask = new TransferTickStartTask();
+            //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMinutes(DelayInit), TimeSpan.FromMilliseconds(Delay));
+            
+            TickManager.Instance.OnTick.Subscribe(TransferTick, TimeSpan.FromMilliseconds(Delay), true);
         }
 
+        internal void TransferTick(TimeSpan delta)
+        {
+            var activeTransfers = GetTransfers();
+            foreach (var transfer in activeTransfers)
+            {
+                transfer.MoveTo(transfer);
+            }
+
+            //TaskManager.Instance.Schedule(TransferTickTask, TimeSpan.FromMilliseconds(Delay));
+        }
         internal void TransferTick()
         {
             var activeTransfers = GetTransfers();

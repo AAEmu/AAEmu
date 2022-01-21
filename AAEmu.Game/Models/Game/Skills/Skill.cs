@@ -72,20 +72,44 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public SkillResult Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
         {
+            var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Id);
+            foreach (var reagent in reagents)
+            {
+                if (caster is Character character)
+                {
+                    var hasItem = character.Inventory.CheckItems(SlotType.Inventory, reagent.ItemId, reagent.Amount)
+                                              || character.Inventory.CheckItems(SlotType.Equipment, reagent.ItemId, reagent.Amount);
+                    if (!hasItem)
+                    {
+                        return SkillResult.ItemSecured;
+                    }
+                }
+            }
             _bypassGcd = bypassGcd;
             if (!_bypassGcd)
             {
                 lock (caster.GCDLock)
                 {
-                    if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow)
+                    // Items are 'immune' to this, it seems ?
+                    // if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow && casterCaster is not SkillItem)
+                    // return SkillResult.CooldownTime;
+                    var now = DateTime.UtcNow;
+                    if (caster.GlobalCooldown >= now && !Template.IgnoreGlobalCooldown)
+                    {
+                        _log.Info("Skill still on GCD. {0}ms left", (caster.GlobalCooldown - now).Milliseconds);
                         return SkillResult.CooldownTime;
+                    }
 
-                    if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
-                        return SkillResult.CooldownTime;
-
-                    caster.SkillLastUsed = DateTime.UtcNow;
+                    caster.SkillLastUsed = now;
                 }
             }
+
+            if (caster.Cooldowns.CheckCooldown(Id))
+                return SkillResult.CooldownTime;
+
+            if (caster.SkillTask is CastTask ct)
+                if (!ct.Cancelled && ct.Skill.Template.Id == Template.Id)
+                    return SkillResult.NotNow;
 
             if (Template.CancelOngoingBuffs)
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
@@ -99,6 +123,14 @@ namespace AAEmu.Game.Models.Game.Skills
             InitialTarget = target;
             if (target == null)
                 return SkillResult.NoTarget;//We should try to make sure this doesnt happen
+
+            if (Template.Unmount)
+            {
+                if (caster is Character character)
+                {
+                    character.ForceDismount();
+                }
+            }
 
             TlId = SkillManager.Instance.NextId();
             if (Template.Plot != null)
@@ -132,6 +164,19 @@ namespace AAEmu.Game.Models.Game.Skills
                     return SkillResult.TooCloseRange;
                 if (targetDist > maxWeaponRange)
                     return SkillResult.TooFarRange;
+            }
+
+            if (!_bypassGcd)
+            {
+                var gcd = Template.CustomGcd;
+                if (Template.DefaultGcd)
+                {
+                    gcd = caster is Npc ? 1500 : 1000;
+                    if (casterCaster is SkillItem)
+                        gcd = 400;
+                }
+
+                caster.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (caster.GetAttribute<float>(UnitAttribute.GlobalCooldownMul, 0f) / 100));
             }
 
             if (Template.CastingTime > 0)
