@@ -583,7 +583,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            if (obj?.Region == null)
+            if (obj.Region == null) // здесь нужна проверка на null для Region
                 return;
 
             obj.Region.RemoveObject(obj);
