@@ -616,7 +616,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public void OnTalkMade(Npc npc)
         {
             var res = false;
-            Step = QuestComponentKind.Ready;
+            Step = QuestComponentKind.Progress;
             var components = Template.GetComponents(Step);
             if (components.Length == 0)
                 return;
