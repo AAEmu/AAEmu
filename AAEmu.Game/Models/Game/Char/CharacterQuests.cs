@@ -64,10 +64,10 @@ namespace AAEmu.Game.Models.Game.Char
             Quests.Add(quest.TemplateId, quest);
 
             var res = quest.Start();
-            if (res == 0)
+            if (!res)
                 Drop(questId, true); // TODO может быть update = false?
-            else
-                Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
+            //else
+            //    Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
         }
 
         /// <summary>

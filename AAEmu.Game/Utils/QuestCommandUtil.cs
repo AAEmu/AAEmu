@@ -28,6 +28,7 @@ namespace AAEmu.Game.Utils
                     }
                     break;
                 case "list":
+                    character.SendMessage("[Quest] LIST");
                     foreach (var quest in character.Quests.Quests.Values)
                     {
                         var objectives = quest.GetObjectives(quest.Step).Select(t => t.ToString()).ToList();

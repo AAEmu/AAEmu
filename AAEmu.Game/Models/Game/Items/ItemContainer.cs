@@ -293,7 +293,6 @@ namespace AAEmu.Game.Models.Game.Items
         /// <returns></returns>
         public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
         {
-            Owner?.Inventory.OnConsumedItem(item, item.Count);
             bool res = item._holdingContainer.Items.Remove(item);
             if (res && task != ItemTaskType.Invalid)
                 item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, new List<ItemTask> { new ItemRemoveSlot(item) }, new List<ulong>()));
@@ -342,6 +341,7 @@ namespace AAEmu.Game.Models.Game.Items
                 preferredItem.Count -= toRemove;
                 amountToConsume -= toRemove;
 
+                
                 if (preferredItem.Count > 0)
                 {
                     Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
@@ -349,6 +349,7 @@ namespace AAEmu.Game.Models.Game.Items
                 }
                 else
                 {
+                    Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
                     RemoveItem(taskType, preferredItem, true); // Normally, this can never fail
                 }
 
@@ -371,6 +372,7 @@ namespace AAEmu.Game.Models.Game.Items
                     }
                     else
                     {
+                        Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
                         RemoveItem(taskType, i, true); // Normally, this can never fail
                     }
 

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using AAEmu.Commons.Network;
@@ -68,14 +70,21 @@ namespace AAEmu.Game.Models.Game.Quests
             ObjId = 0;
         }
 
-        public uint Start()
+        public void CheckStatus()
+        {
+            // проверим следующий компонент на QuestComponentKind.Ready
+            var (key, component) = Template.Components.ElementAt(1); // возьмём компонент следующий за текущим
+            //Step = component.KindId;
+            Status = component.KindId >= QuestComponentKind.Ready ? QuestStatus.Ready : QuestStatus.Progress;
+
+            return;
+        }
+
+        public bool Start()
         {
             var res = false;
-            for (Step = QuestComponentKind.None; Step <= QuestComponentKind.Reward; Step++)
+            for (Step = QuestComponentKind.None; Step < QuestComponentKind.Progress; Step++)
             {
-                if (Step >= QuestComponentKind.Ready)
-                    Status = QuestStatus.Ready;
-
                 var components = Template.GetComponents(Step);
                 if (components.Length == 0 || Step == QuestComponentKind.Fail || Step == QuestComponentKind.Drop)
                     continue;
@@ -87,66 +96,43 @@ namespace AAEmu.Game.Models.Game.Quests
                     {
                         switch (acts[i].DetailType)
                         {
-                            case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
+                            case "QuestActConAcceptDoodad": //  старт ежедневного квеста
+                            case "QuestActConAcceptNpc":
+                                res = acts[i].Use(Owner, this, SupplyItem);
+                                if (res)
                                 {
-                                    res = acts[i].Use(Owner, this, SupplyItem);
-                                    var next = QuestComponentKind.Progress;
-                                    var componentnext = Template.GetComponent(next);
-                                    if (componentnext == null)
-                                        break;
-                                    var actsnext = QuestManager.Instance.GetActs(componentnext.Id);
-                                    foreach (var qa in actsnext)
-                                    {
-                                        var questSupplyItem = (QuestActSupplyItem)QuestManager.Instance.GetActTemplate(acts[i].DetailId, "QuestActSupplyItem");
-                                        var questItemGather = (QuestActObjItemGather)QuestManager.Instance.GetActTemplate(qa.DetailId, "QuestActObjItemGather");
-                                        switch (qa.DetailType)
-                                        {
-                                            case "QuestActObjItemGather" when questSupplyItem.ItemId == questItemGather.ItemId:
-                                                Owner.Inventory.Bag.GetAllItemsByTemplate(questSupplyItem.ItemId, -1, out _, out Objectives[componentIndex]);
-                                                res = qa.Use(Owner, this, Objectives[componentIndex]);
-                                                Step = next;
-                                                ComponentId = components[componentIndex].Id;
-                                                break;
-                                            default:
-                                                res = false;
-                                                break;
-                                        }
-                                    }
-                                    break;
-                                }
-                            case "QuestActObjItemGather":
-                                {
-                                    var template = acts[i].GetTemplate<QuestActObjItemGather>();
-                                    // TODO: Check both inventory and warehouse
-                                    Owner.Inventory.Bag.GetAllItemsByTemplate(template.ItemId, -1, out _, out Objectives[componentIndex]);
-                                    //Objectives[c] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                    res = acts[i].Use(Owner, this, Objectives[componentIndex]);
                                     ComponentId = components[componentIndex].Id;
-                                    break;
+                                    CheckStatus();
+                                    Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
                                 }
-                            case "QuestActConReportNpc":
-                            case "QuestActConAutoComplete":
-                            case "QuestActObjItemUse":
-                                res = false;
+                                else
+                                {
+                                    return res; // не тот Npc, что нужен по квесту, выход
+                                }
                                 break;
                             case "QuestActSupplyItem":
-                                res = acts[i].Use(Owner, this, SupplyItem);
-                                ComponentId = components[componentIndex].Id;
-                                break;
+                                {
+                                    acts[i].Use(Owner, this, 0); // получим предмет
+                                    return res; // пробуем сразу  на выход, без проверки шага 4
+                                }
+                            case "QuestActCheckTimer":
+                                {
+                                    // TODO настройка и старт таймера
+                                    break;
+                                }
                             default:
-                                res = acts[i].Use(Owner, this, Objectives[componentIndex]);
-                                ComponentId = components[componentIndex].Id;
                                 break;
                         }
                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[i].DetailType);
                     }
                 }
-                if (!res)
-                {
-                    return ComponentId;
-                }
             }
-            return res ? ComponentId : 0;
+            if (Status == QuestStatus.Progress)
+            {
+                Update(res);
+            }
+
+            return res;
         }
 
         /// <summary>
@@ -188,6 +174,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
         public void Update(bool send = true)
         {
+            
             if (!send) { return; }
 
             var res = false;
@@ -217,6 +204,9 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
+                    if (Step == QuestComponentKind.Progress)
+                        ComponentId = components[componentIndex].Id;
+
                     var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
                     for (var i = 0; i < acts.Length; i++)
                     {
@@ -250,17 +240,30 @@ namespace AAEmu.Game.Models.Game.Quests
                                     break;
                                 }
                             case "QuestActConReportNpc":
-                            case "QuestActConAutoComplete":
                                 res = acts[i].Use(Owner, this, Objectives[componentIndex]);
                                 // проверка результатов на валидность
                                 if (res)
                                 {
-                                    // компонент - выполнен
+                                    // компонент - выполнен, мы у нужного Npc
                                     Status = QuestStatus.Ready;
+                                    //ComponentId = components[componentIndex].Id;
+                                    Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
                                     Owner.Quests.Complete(TemplateId, 0);
                                     return;
                                 }
+                                else
+                                {
+                                    // компонент - выполнен, мы у нужного Npc
+                                    Status = QuestStatus.Ready;
+                                    //ComponentId = components[componentIndex].Id;
+                                }
                                 break;
+                            case "QuestActConAutoComplete":
+                                // компонент - выполнен
+                                Status = QuestStatus.Ready;
+                                Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+                                Owner.Quests.Complete(TemplateId, 0);
+                                return;
                             case "QuestActObjSphere":
                                 {
                                     // подготовим работу QuestSphere
@@ -284,10 +287,14 @@ namespace AAEmu.Game.Models.Game.Quests
                                             await Task.Delay(Duration);
                                         });
                                     }
-                                    break;
+                                    return;
                                 }
-                                case "QuestActObjItemGather":
+                            case "QuestActObjItemGather":
                                 {
+                                    // нужно посмотреть в инвентарь, так как после Start() ещё не знаем, есть предмет в инвентаре или нет
+                                    var template = acts[i].GetTemplate<QuestActObjItemGather>();
+                                    if (Objectives[componentIndex] == 0)
+                                        Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
                                     res = acts[i].Use(Owner, this, Objectives[componentIndex]);
                                     // проверка результатов на валидность
                                     if (!Template.Selective)
@@ -327,13 +334,13 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         // компонент - выполнен
                                         Status = QuestStatus.Ready;
-                                        ComponentId = components[componentIndex].Id;
+                                        //ComponentId = components[componentIndex].Id;
                                     }
                                     else
                                     {
                                         // компонент - в процессе выполнения
                                         Status = QuestStatus.Progress;
-                                        ComponentId = 0;
+                                        //ComponentId = 0;
                                         // если res == false, также надо слать пакет SCQuestContextUpdatedPacket
                                         //Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
                                     }
@@ -948,6 +955,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     ComponentId = components[componentIndex].Id;
                                     //Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
                                     _log.Warn("[Quest] OnEnterSphere: do it - {0}, ComponentId {1}, Step {2}, Status {3}, act.DetailType {4}", TemplateId, ComponentId, Step, Status, act.DetailType);
+                                    Step++;
                                 }
                                 break;
                             }
