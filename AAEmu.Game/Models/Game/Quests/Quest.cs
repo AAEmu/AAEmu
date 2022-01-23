@@ -75,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Quests
             // проверим следующий компонент на QuestComponentKind.Ready
             var (key, component) = Template.Components.ElementAt(1); // возьмём компонент следующий за текущим
             //Step = component.KindId;
-            Status = component.KindId >= QuestComponentKind.Ready ? QuestStatus.Ready : QuestStatus.Progress;
+            Status = component.KindId != QuestComponentKind.Progress ? QuestStatus.Ready : QuestStatus.Progress;
 
             return;
         }
@@ -83,6 +83,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public bool Start()
         {
             var res = false;
+            var supply = false;
             for (Step = QuestComponentKind.None; Step < QuestComponentKind.Progress; Step++)
             {
                 var components = Template.GetComponents(Step);
@@ -112,8 +113,9 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             case "QuestActSupplyItem":
                                 {
-                                    acts[i].Use(Owner, this, 0); // получим предмет
-                                    return res; // пробуем сразу  на выход, без проверки шага 4
+                                    res = acts[i].Use(Owner, this, 0); // получим предмет
+                                    supply = res; // если было пополнение предметом, то на метод Update() не переходить
+                                    break;
                                 }
                             case "QuestActCheckTimer":
                                 {
@@ -127,7 +129,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
             }
-            if (Status == QuestStatus.Progress)
+            if (Status == QuestStatus.Progress && !supply)
             {
                 Update(res);
             }
