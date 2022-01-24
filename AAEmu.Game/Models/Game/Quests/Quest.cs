@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public QuestComponentKind Step { get; set; }
         public DateTime Time { get; set; }
         public Character Owner { get; set; }
-        public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalSeconds : -1;
+        public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalMilliseconds : -1;
         public int SupplyItem = 0;
         public bool EarlyCompletion { get; set; }
         public bool ExtraCompletion { get; set; }
@@ -110,7 +110,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     ComponentId = components[componentIndex].Id;
                                     CheckStatus();
-                                    Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
                                 }
                                 else
                                 {
@@ -137,6 +136,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
             }
+            Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
             if (Status == QuestStatus.Progress && !supply)
             {
                 Update(res);
@@ -174,7 +174,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     ComponentId = components[componentIndex].Id;
                                     CheckStatus();
-                                    Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
                                 }
                                 else
                                 {
@@ -200,6 +199,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
             }
+            Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
         }
 
         public void Update(bool send = true)
