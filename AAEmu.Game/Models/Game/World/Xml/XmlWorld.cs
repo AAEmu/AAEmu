@@ -50,7 +50,8 @@ namespace AAEmu.Game.Models.Game.World.Xml
             world.MaxHeight = MaxTerrainHeight;
 
             // pre-create heightmap data
-            world.HeightMaps = new ushort[world.CellX * 512, world.CellY * 512];
+            world.HeightMaps = new ushort[world.CellX * WorldManager.CELL_HMAP_RESOLUTION, world.CellY * WorldManager.CELL_HMAP_RESOLUTION];
+            // world.HeightMaps = new ushort[world.CellX * 512, world.CellY * 512];
             world.HeightMaxCoefficient = ushort.MaxValue / (world.MaxHeight / 4.0);
             
             // pre-create the required Sectors

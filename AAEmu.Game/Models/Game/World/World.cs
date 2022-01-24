@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.World
         public int CellX { get; set; }
         public int CellY { get; set; }
         public WorldSpawnPosition SpawnPosition { get; set; }
-        public Region[,] Regions { get; set; } // TODO ... world - okey, instance - ....
+        public Region[,] Regions { get; set; } // TODO ... world - okay, instance - ....
         public ushort[,] HeightMaps { get; set; }
         public List<uint> ZoneKeys { get; set; } = new List<uint>();
         public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;

@@ -46,6 +46,13 @@ namespace AAEmu.Game
             ObjectIdManager.Instance.Initialize();
             TradeIdManager.Instance.Initialize();
 
+            ZoneManager.Instance.Load();
+            WorldManager.Instance.Load();
+            var heightmapTask = Task.Run(() =>
+            {
+                WorldManager.Instance.LoadHeightmaps();
+            });
+
             ItemIdManager.Instance.Initialize();
             DoodadIdManager.Instance.Initialize();
             ChatManager.Instance.Initialize();
@@ -67,12 +74,6 @@ namespace AAEmu.Game
             ShipyardIdManager.Instance.Initialize();
             ShipyardManager.Instance.Initialize();
 
-            ZoneManager.Instance.Load();
-            WorldManager.Instance.Load();
-            var heightmapTask = Task.Run(() =>
-            {
-                WorldManager.Instance.LoadHeightmaps();
-            });
             GameDataManager.Instance.LoadGameData();
             QuestManager.Instance.Load();
 
@@ -133,8 +134,12 @@ namespace AAEmu.Game
             CashShopManager.Instance.Initialize();
             GameDataManager.Instance.PostLoadGameData();
 
-            await heightmapTask;
-            
+            if ((heightmapTask != null) && (!heightmapTask.IsCompleted))
+            {
+                _log.Info("Waiting on heightmaps to be loaded before proceeding, please wait ...");
+                await heightmapTask;
+            }
+
             var spawnSw = new Stopwatch();
             _log.Info("Spawning units...");
             spawnSw.Start();

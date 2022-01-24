@@ -135,7 +135,7 @@ namespace AAEmu.Game.IO
                         return fStream;
                     }
                 case ClientSourceType.GamePak:
-                    return GamePak.ExportFileAsStream(fileName);
+                    return GamePak.ExportFileAsStreamCloned(fileName);
                 default:
                     return null;
             }

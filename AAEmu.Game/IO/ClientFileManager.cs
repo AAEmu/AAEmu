@@ -123,10 +123,10 @@ namespace AAEmu.Game.IO
             var source = GetFileSource(fileName);
             if (source == null)
             {
-                _log.Debug($"GetFileStream({fileName}) not found");
+                _log.Trace($"GetFileStream({fileName}) not found");
                 return null;
             }
-            _log.Debug($"[{source.PathName}].GetFileStream({fileName})");
+            //_log.Debug($"[{source.PathName}].GetFileStream({fileName})");
             return source.GetFileStream(fileName);
         }
 
