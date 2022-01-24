@@ -1,5 +1,6 @@
 ﻿{
     "ClientData": {
+        "PreferClientHeightMap": true,
         "Sources": [
             "ClientData",
             "ClientData/game_pak"

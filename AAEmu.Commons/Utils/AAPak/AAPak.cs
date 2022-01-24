@@ -1352,7 +1352,7 @@ namespace AAEmu.Commons.Utils.AAPak
         }
 
         /// <summary>
-        /// Exports a given file as stream
+        /// Exports a given file as stream (might not be thread-safe)
         /// </summary>
         /// <param name="fileName">filename inside the pak of the file to be exported</param>
         /// <returns>Returns a SubStream of file within the pak</returns>
@@ -1368,6 +1368,24 @@ namespace AAEmu.Commons.Utils.AAPak
                 return new MemoryStream();
             }
         }
+
+        /// <summary>
+        /// Exports a given file as stream by first creating a new file handle to access it
+        /// </summary>
+        /// <param name="fileName">filename inside the pak of the file to be exported</param>
+        /// <returns>Returns a SubStream of file within the pak</returns>
+        public Stream ExportFileAsStreamCloned(string fileName)
+        {
+            AAPakFileInfo file = nullAAPakFileInfo ;
+            if (GetFileByName(fileName, ref file) == true)
+            {
+                var fs = new FileStream(_gpFilePath, FileMode.Open, FileAccess.Read);
+                if (fs.Length > 0)
+                    return new SubStream(fs, file.offset, file.size);
+            }
+            return new MemoryStream();
+        }
+        
 
         /// <summary>
         /// Calculates and set the MD5 Hash of a given file
