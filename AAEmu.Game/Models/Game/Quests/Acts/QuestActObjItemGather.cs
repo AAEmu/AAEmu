@@ -26,10 +26,31 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             {
                 QuestActObjMonsterGroupHunt.GatherStatus = objective * Count;
                 QuestActObjMonsterHunt.GatherStatus = objective * Count;
-                return QuestActObjMonsterHunt.GatherStatus + QuestActObjMonsterGroupHunt.GatherStatus + HuntStatus >= quest.Template.Score;
+                quest.OverCompletionPercent = QuestActObjMonsterHunt.GatherStatus + QuestActObjMonsterGroupHunt.GatherStatus + HuntStatus;
+
+                if (quest.Template.LetItDone)
+                {
+                    if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
+                        quest.EarlyCompletion = true;
+
+                    if (quest.OverCompletionPercent > quest.Template.Score)
+                        quest.ExtraCompletion = true;
+                }
+
+                return quest.OverCompletionPercent >= quest.Template.Score;
             }
             else
             {
+                if (quest.Template.LetItDone)
+                {
+                    quest.OverCompletionPercent = objective * 100 / Count;
+
+                    if (quest.OverCompletionPercent >= 60)
+                        quest.EarlyCompletion = true;
+
+                    if (quest.OverCompletionPercent > 100)
+                        quest.ExtraCompletion = true;
+                }
                 return objective >= Count;
             }
         }

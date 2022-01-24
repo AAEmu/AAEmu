@@ -1552,6 +1552,19 @@ namespace AAEmu.Game.Models.Game.Char
             return fallDamage;
         }
 
+        public void UseSkill(uint skillId, Unit target)
+        {
+            var skill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
+
+            var caster = SkillCaster.GetByType(SkillCasterType.Unit);
+            caster.ObjId = ObjId;
+
+            var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+            sct.ObjId = target.ObjId;
+
+            skill.Use(this, caster, sct, null, true);
+        }
+
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;

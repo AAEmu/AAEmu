@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks.Quests;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -24,6 +25,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates;
         private Dictionary<uint, List<uint>> _groupItems;
         private Dictionary<uint, List<uint>> _groupNpcs;
+        public Dictionary<uint, QuestTimeoutTask> QuestTimeoutTask;
 
         public QuestTemplate GetTemplate(uint id)
         {
@@ -76,8 +78,17 @@ namespace AAEmu.Game.Core.Managers
             owner.Quests.Complete(questId, 0);
         }
 
+        public void CancelQuest(Character owner, uint questId)
+        {
+            owner.Quests.Drop(questId, true);
+            owner.SendMessage("[Quest] {0}, quest {1} time is over, you didn't make it. Try again.", owner.Name, questId);
+            _log.Warn("[Quest] {0}, quest {1} time is over, you didn't make it. Try again.", owner.Name, questId);
+        }
+
         public void Load()
         {
+            QuestTimeoutTask = new Dictionary<uint, QuestTimeoutTask>();
+
             _templates = new Dictionary<uint, QuestTemplate>();
             _supplies = new Dictionary<byte, QuestSupplies>();
             _acts = new Dictionary<uint, List<QuestAct>>();
@@ -150,6 +161,7 @@ namespace AAEmu.Game.Core.Managers
                             template.AiCommandSetId = reader.GetUInt32("ai_command_set_id", 0);
                             template.OrUnitReqs = reader.GetBoolean("or_unit_reqs", true);
                             template.CinemaId = reader.GetUInt32("cinema_id", 0);
+                            template.BuffId = reader.GetUInt32("buff_id", 0);
                             _templates[questId].Components.Add(template.Id, template);
                         }
                     }

@@ -1,5 +1,9 @@
-﻿using AAEmu.Game.Models.Game.Quests.Templates;
+﻿using System;
+
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Tasks.Quests;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts
 {
@@ -20,6 +24,11 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         {
             _log.Warn("QuestActCheckTimer");
             // TODO add what to do with timer
+            // TODO настройка и старт таймера ограничения времени на квест
+            QuestManager.Instance.QuestTimeoutTask.Add(quest.TemplateId, new QuestTimeoutTask(character, quest.TemplateId));
+            TaskManager.Instance.Schedule(QuestManager.Instance.QuestTimeoutTask[quest.TemplateId], TimeSpan.FromMilliseconds(objective));
+            character.SendMessage("[Quest] {0}, quest {1} will end in {2} seconds.", character.Name, quest.TemplateId, objective / 1000);
+
             return true;
         }
     }

@@ -750,9 +750,10 @@ namespace AAEmu.Game.Models.Game.Char
         /// <param name="onlyUpdatedCount"></param>
         public void OnConsumedItem(Item item, int count, bool onlyUpdatedCount = false)
         {
+            // вызов OnItemUse перенес в CSStartSkillPacket
             // Quests
-            if ((item?.Template.LootQuestId > 0) && (count != 0))
-                Owner?.Quests?.OnItemUse(item);
+            //if ((item?.Template.LootQuestId > 0) && (count != 0))
+            //    Owner?.Quests?.OnItemUse(item);
         }
 
         public void OnItemManuallyDestroyed(Item item, int count)

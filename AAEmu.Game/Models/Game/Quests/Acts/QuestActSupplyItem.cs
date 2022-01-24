@@ -24,34 +24,34 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActSupplyItem");
-            if (objective >= Count)
-                return true;
+            //if (objective >= Count)
+            //    return true;
+            //else
+            //{
+            if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
+            {
+                return character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+            }
             else
             {
-                if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
-                {
-                    return character.Inventory.TryEquipNewBackPack(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-                }
-                else
-                {
-                    return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-                }
-                /*
-                var template = ItemManager.Instance.GetTemplate(ItemId);
-                if (template is BackpackTemplate backpackTemplate)
-                {
-                    if (character.Inventory.TakeoffBackpack(ItemTaskType.QuestSupplyItems, true))
-                        return character.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-                    else
-                        return false;
-                }
-                else
-                {
-                    return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
-                }
-                */
-
+                return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
             }
+            //    /*
+            //    var template = ItemManager.Instance.GetTemplate(ItemId);
+            //    if (template is BackpackTemplate backpackTemplate)
+            //    {
+            //        if (character.Inventory.TakeoffBackpack(ItemTaskType.QuestSupplyItems, true))
+            //            return character.Inventory.Equipment.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+            //        else
+            //            return false;
+            //    }
+            //    else
+            //    {
+            //        return character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.QuestSupplyItems, ItemId, Count, GradeId);
+            //    }
+            //    */
+
+            //}
         }
     }
 }

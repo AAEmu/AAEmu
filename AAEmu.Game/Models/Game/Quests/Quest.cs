@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,7 +7,6 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.AI.v2;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
@@ -17,10 +15,9 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Quests;
-
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Quests
 {
@@ -39,13 +36,14 @@ namespace AAEmu.Game.Models.Game.Quests
         public int LeftTime => Time > DateTime.UtcNow ? (int)(Time - DateTime.UtcNow).TotalSeconds : -1;
         public int SupplyItem = 0;
         public bool EarlyCompletion { get; set; }
+        public bool ExtraCompletion { get; set; }
+        public int OverCompletionPercent { get; set; }
         public long DoodadId { get; set; }
         public long ObjId { get; set; }
         public uint ComponentId { get; set; }
         public QuestAcceptorType QuestAcceptorType { get; set; }
         public uint AcceptorType { get; set; }
         public QuestCompleteTask QuestTask { get; set; }
-
 
         public uint GetActiveComponent()
         {
@@ -57,6 +55,7 @@ namespace AAEmu.Game.Models.Game.Quests
             Objectives = new int[ObjectiveCount];
             SupplyItem = 0;
             EarlyCompletion = false;
+            ExtraCompletion = false;
             ObjId = 0;
         }
 
@@ -67,16 +66,21 @@ namespace AAEmu.Game.Models.Game.Quests
             Objectives = new int[ObjectiveCount];
             SupplyItem = 0;
             EarlyCompletion = false;
+            ExtraCompletion = false;
             ObjId = 0;
         }
 
         public void CheckStatus()
         {
             // проверим следующий компонент на QuestComponentKind.Ready
-            var (key, component) = Template.Components.ElementAt(1); // возьмём компонент следующий за текущим
-            //Step = component.KindId;
-            Status = component.KindId != QuestComponentKind.Progress ? QuestStatus.Ready : QuestStatus.Progress;
-
+            var (_, component) = Template.Components.ElementAt(1); // возьмём компонент следующий за Start or None
+            if (component.KindId == QuestComponentKind.Supply)
+            {
+                var (_, component2) = Template.Components.ElementAt(2); // возьмём компонент следующий за Supply
+                Status = component2.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
+                return;
+            }
+            Status = component.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
             return;
         }
 
@@ -97,9 +101,11 @@ namespace AAEmu.Game.Models.Game.Quests
                     {
                         switch (acts[i].DetailType)
                         {
-                            case "QuestActConAcceptDoodad": //  старт ежедневного квеста
-                            case "QuestActConAcceptNpc":
-                                res = acts[i].Use(Owner, this, SupplyItem);
+                            default:
+                                //case "QuestActConAcceptDoodad": //  старт ежедневного квеста
+                                //case "QuestActConAcceptNpc":
+                                //case "QuestActConAcceptNpcKill":
+                                res = acts[i].Use(Owner, this, Objectives[componentIndex]);
                                 if (res)
                                 {
                                     ComponentId = components[componentIndex].Id;
@@ -110,6 +116,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 {
                                     return res; // не тот Npc, что нужен по квесту, выход
                                 }
+                                UseSkill(components, componentIndex);
                                 break;
                             case "QuestActSupplyItem":
                                 {
@@ -119,11 +126,12 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                             case "QuestActCheckTimer":
                                 {
-                                    // TODO настройка и старт таймера
+                                    // TODO настройка и старт таймера ограничения времени на квест
+                                    var template = acts[i].GetTemplate<QuestActCheckTimer>();
+                                    res = acts[i].Use(Owner, this, template.LimitTime);
+
                                     break;
                                 }
-                            default:
-                                break;
                         }
                         _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[i].DetailType);
                     }
@@ -141,16 +149,15 @@ namespace AAEmu.Game.Models.Game.Quests
         /// Метод предназначен для вызова из скрита QuestCmd, команда /quest add <questId>
         /// </summary>
         /// <returns></returns>
-        public uint StartFirstOnly()
+        public void StartFirstOnly()
         {
             var res = false;
-            for (Step = QuestComponentKind.None; Step <= QuestComponentKind.Start; Step++)
+            for (Step = QuestComponentKind.None; Step < QuestComponentKind.Progress; Step++)
             {
                 var components = Template.GetComponents(Step);
-                if (components.Length == 0)
-                {
+                if (components.Length == 0 || Step == QuestComponentKind.Fail || Step == QuestComponentKind.Drop)
                     continue;
-                }
+
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
                     var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
@@ -159,24 +166,45 @@ namespace AAEmu.Game.Models.Game.Quests
                         switch (acts[i].DetailType)
                         {
                             default:
+                                //case "QuestActConAcceptDoodad": //  старт ежедневного квеста
+                                //case "QuestActConAcceptNpc":
+                                //case "QuestActConAcceptNpcKill":
                                 res = acts[i].Use(Owner, this, Objectives[componentIndex]);
-                                ComponentId = components[componentIndex].Id;
-                                _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[i].DetailType);
+                                if (res)
+                                {
+                                    ComponentId = components[componentIndex].Id;
+                                    CheckStatus();
+                                    Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
+                                }
+                                else
+                                {
+                                    return; // не тот Npc, что нужен по квесту, выход
+                                }
+                                UseSkill(components, componentIndex);
                                 break;
+                            case "QuestActSupplyItem":
+                                {
+                                    res = acts[i].Use(Owner, this, 0); // получим предмет
+                                    break;
+                                }
+                            case "QuestActCheckTimer":
+                                {
+                                    // TODO настройка и старт таймера ограничения времени на квест
+                                    var template = acts[i].GetTemplate<QuestActCheckTimer>();
+                                    res = acts[i].Use(Owner, this, template.LimitTime);
+
+                                    break;
+                                }
                         }
+                        _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[i].DetailType);
                     }
                 }
-                if (!res)
-                {
-                    return ComponentId;
-                }
             }
-            return res ? ComponentId : 0;
         }
 
         public void Update(bool send = true)
         {
-            
+
             if (!send) { return; }
 
             var res = false;
@@ -199,11 +227,15 @@ namespace AAEmu.Game.Models.Game.Quests
                             var delay = 6;
                             QuestTask = new QuestCompleteTask(Owner, TemplateId);
                             TaskManager.Instance.Schedule(QuestTask, TimeSpan.FromSeconds(delay));
+                            return;
                         }
-                        continue;
                     case 0: // пропустим пустые шаги
                         continue;
                 }
+
+                EarlyCompletion = false;
+                ExtraCompletion = false;
+
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
                     if (Step == QuestComponentKind.Progress)
@@ -305,7 +337,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                         {
                                             // компонент - выполнен
                                             Status = QuestStatus.Ready;
-                                            ComponentId = components[componentIndex].Id;
                                         }
                                         else
                                         {
@@ -320,7 +351,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                         // компонент - выполнен
                                         res = true;
                                         Status = QuestStatus.Ready;
-                                        ComponentId = components[componentIndex].Id;
+                                        //ComponentId = components[componentIndex].Id;
                                     }
                                     break;
                                 }
@@ -336,15 +367,13 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         // компонент - выполнен
                                         Status = QuestStatus.Ready;
-                                        //ComponentId = components[componentIndex].Id;
                                     }
                                     else
                                     {
                                         // компонент - в процессе выполнения
                                         Status = QuestStatus.Progress;
-                                        //ComponentId = 0;
+                                        ComponentId = 0;
                                         // если res == false, также надо слать пакет SCQuestContextUpdatedPacket
-                                        //Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
                                     }
                                     break;
                                 }
@@ -352,6 +381,12 @@ namespace AAEmu.Game.Models.Game.Quests
                         SupplyItem = 0;
                         _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[i].DetailType);
                     }
+
+                    UseSkill(components, componentIndex);
+                }
+                if (res && (EarlyCompletion || ExtraCompletion))
+                {
+                    break; // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
                 }
                 if (!res)
                 {
@@ -359,6 +394,39 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
             Owner.SendPacket(new SCQuestContextUpdatedPacket(this, ComponentId));
+        }
+
+        /// <summary>
+        /// Use Skill на себя или на Npc, с которым взаимодействуем
+        /// </summary>
+        /// <param name="components"></param>
+        /// <param name="componentIndex"></param>
+        private void UseSkill(QuestComponent[] components, int componentIndex)
+        {
+            if (components[componentIndex].SkillId > 0)
+            {
+                if (components[componentIndex].SkillSelf)
+                {
+                    Owner.UseSkill(components[componentIndex].SkillId, Owner);
+                }
+                else
+                {
+                    if (components[componentIndex].NpcId > 0)
+                    {
+                        if (Owner.CurrentTarget is Npc npc)
+                        {
+                            if (npc.TemplateId == components[componentIndex].NpcId)
+                            {
+                                Owner.UseSkill(components[componentIndex].SkillId, npc);
+                            }
+                        }
+                    }
+                }
+            }
+            if (components[componentIndex].BuffId > 0)
+            {
+                Owner.Buffs.AddBuff(new Buff(Owner, Owner, SkillCaster.GetByType(SkillCasterType.Unit), SkillManager.Instance.GetBuffTemplate(components[componentIndex].BuffId), null, DateTime.UtcNow));
+            }
         }
 
         public uint Complete(int selected)
@@ -413,12 +481,6 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             default:
                                 res = act.Use(Owner, this, Objectives[componentIndex]);
-                                var CStep = Template.LetItDone;
-                                if (CStep && res == false)
-                                {
-                                    EarlyCompletion = true;
-                                    res = true;
-                                }
                                 if (ComponentId == 0)
                                     ComponentId = components[componentIndex].Id;
                                 break;
@@ -767,11 +829,18 @@ namespace AAEmu.Game.Models.Game.Quests
                     {
                         case "QuestActObjItemUse":
                             {
+                                // нужно посмотреть в инвентарь, есть предмет в инвентаре или нет
                                 var template = act.GetTemplate<QuestActObjItemUse>();
                                 if (template.ItemId == item.TemplateId)
                                 {
+                                    if (Objectives[componentIndex] == 0)
+                                        Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
                                     res = true;
-                                    Objectives[componentIndex]++;
+                                    //Objectives[componentIndex]++;
+                                }
+                                else
+                                {
+                                    res = false;
                                 }
 
                                 break;

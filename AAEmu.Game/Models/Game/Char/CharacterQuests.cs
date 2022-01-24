@@ -11,10 +11,8 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Tasks.Quests;
 using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
@@ -91,11 +89,7 @@ namespace AAEmu.Game.Models.Game.Char
             quest.Owner = Owner;
             Quests.Add(quest.TemplateId, quest);
 
-            var res = quest.StartFirstOnly();
-            if (res == 0)
-                Drop(questId, true); // TODO может быть update = false?
-            else
-                Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
+            quest.StartFirstOnly();
         }
 
         public void Complete(uint questId, int selected, bool supply = true)
@@ -117,11 +111,32 @@ namespace AAEmu.Game.Models.Game.Char
                     var supplies = QuestManager.Instance.GetSupplies(quest.Template.Level);
                     if (supplies != null)
                     {
-                        if (exps == 0)
-                            Owner.AddExp(supplies.Exp, true);
-                        if (amount == 0)
-                            amount = supplies.Copper;
-                        Owner.Money += amount;
+                        if (quest.Template.LetItDone)
+                        {
+                            // Добавим|убавим за перевыполнение|недовыполнение плана, если позволено квестом
+                            if (exps == 0)
+                                Owner.AddExp(supplies.Exp * quest.OverCompletionPercent / 100, true);
+                            if (amount == 0)
+                                amount = supplies.Copper * quest.OverCompletionPercent / 100;
+                            Owner.Money += amount;
+
+                            if (!quest.ExtraCompletion)
+                            {
+                                // посылаем пакет, так как он был пропущен в методе Update()
+                                quest.Status = QuestStatus.Progress;
+                                Owner.SendPacket(new SCQuestContextUpdatedPacket(quest, quest.ComponentId));
+                                quest.Status = QuestStatus.Completed;
+                            }
+                        }
+                        else
+                        {
+                            if (exps == 0)
+                                Owner.AddExp(supplies.Exp, true);
+                            if (amount == 0)
+                                amount = supplies.Copper;
+                            Owner.Money += amount;
+                        }
+
                         Owner.SendPacket(
                             new SCItemTaskSuccessPacket(
                                 ItemTaskType.QuestComplete,
@@ -154,6 +169,16 @@ namespace AAEmu.Game.Models.Game.Char
             quest.Drop(update);
             Quests.Remove(questId);
             _removed.Add(questId);
+
+            quest.Owner.SendMessage("[Quest] {0}, quest {1} removed.", Owner.Name, questId);
+            _log.Warn("[Quest] {0}, quest {1} removed.", Owner.Name, questId);
+
+            if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(questId))
+            {
+                _ = QuestManager.Instance.QuestTimeoutTask[questId].Cancel();
+                QuestManager.Instance.QuestTimeoutTask.Remove(questId);
+            }
+
             QuestIdManager.Instance.ReleaseId((uint)quest.Id);
         }
 
