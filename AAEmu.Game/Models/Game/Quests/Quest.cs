@@ -913,12 +913,17 @@ namespace AAEmu.Game.Models.Game.Quests
                         case "QuestActObjItemGather":
                             {
                                 var template = act.GetTemplate<QuestActObjItemGather>();
-                                Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                if (Objectives[componentIndex] > 0)
+                                if (interactionTarget.TemplateId == template.HighlightDoodadId)
                                 {
+                                    Objectives[componentIndex]++;
                                     res = true;
-                                    //Objectives[componentIndex]++;
                                 }
+                                //Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                //if (Objectives[componentIndex] > 0)
+                                //{
+                                //    res = true;
+                                //    //Objectives[componentIndex]++;
+                                //}
                                 break;
                             }
                         case "QuestActObjItemGroupUse":
