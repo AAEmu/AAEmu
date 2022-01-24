@@ -1150,6 +1150,9 @@ namespace AAEmu.Game.Models.Game.Quests
             }
 
             Step = (QuestComponentKind)stream.ReadByte();
+            QuestAcceptorType = (QuestAcceptorType)stream.ReadByte();
+            ComponentId = stream.ReadUInt32();
+            AcceptorType = stream.ReadUInt32();
             Time = stream.ReadDateTime();
         }
 
@@ -1162,6 +1165,9 @@ namespace AAEmu.Game.Models.Game.Quests
             }
 
             stream.Write((byte)Step);
+            stream.Write((byte)QuestAcceptorType);
+            stream.Write(ComponentId);
+            stream.Write(AcceptorType);
             stream.Write(Time);
             return stream.GetBytes();
         }
