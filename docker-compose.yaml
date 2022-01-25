@@ -66,6 +66,8 @@ services:
                 - GAME_DB_URL=${GAME_DB_URL}
         image: aaemu-game:${PROJECT_VERSION_PREFIX}-${PROJECT_VERSION_SUFFIX}
         restart: unless-stopped
+        volumes:
+          - ${CLIENT_DATA}:/app/ClientData:ro
         environment:
             DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: 1
         ports:
