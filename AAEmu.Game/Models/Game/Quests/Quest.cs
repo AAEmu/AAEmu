@@ -919,7 +919,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             }
                         case "QuestActObjItemUse":
-                            {
+                            {   // нужен для квеста получения питомцам
                                 var template = act.GetTemplate<QuestActObjItemUse>();
                                 if (template.ItemId == interactionTarget.ItemTemplateId)
                                 {
@@ -936,7 +936,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             }
                         case "QuestActObjItemGather":
-                            {
+                            {   // нужен для квеста рубить деревья
                                 var template = act.GetTemplate<QuestActObjItemGather>();
                                 if (interactionTarget.TemplateId == template.HighlightDoodadId)
                                 {
