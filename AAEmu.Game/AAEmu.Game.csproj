@@ -46,14 +46,17 @@
         <None Update="Configurations\CharacterDeleteSettings.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="Configurations\ClientData.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
-    
+
     <ItemGroup>
-        <Compile Remove="Scripts\**\**" />
-        <Compile Include="Scripts\Commands\TestAI.cs" />
-        <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
-        <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
+      <Compile Remove="Scripts\**\**" />
+      <None Include="Scripts\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Scripts\" />
       <None Include="Configs\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Configs\" />
+      <None Include="Data\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="Data\" />
+      <None Include="ClientData\**\**" CopyToOutputDirectory="PreserveNewest" LinkBase="ClientData\" />
     </ItemGroup>
     
     <ItemGroup>
@@ -116,5 +119,9 @@
       <None Update="Scripts\Commands\GetAttribute.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Models\ClientData" />
     </ItemGroup>
 </Project>

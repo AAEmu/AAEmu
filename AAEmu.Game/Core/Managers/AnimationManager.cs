@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.Animation;
 using AAEmu.Game.Utils.DB;
 using NLog;
@@ -24,6 +26,84 @@ namespace AAEmu.Game.Core.Managers
         public Anim GetAnimation(string name)
         {
             return _animationsByName.ContainsKey(name) ? _animationsByName[name] : null;
+        }
+
+        /// <summary>
+        /// Parse target .g file into a List<AnimCombatSyncEvent>
+        /// </summary>
+        /// <param name="gFileName"></param>
+        /// <returns>Returns null if there is a error, otherwise returns the list</returns>
+        private List<AnimCombatSyncEvent> ParseGFile(string gFileName)
+        {
+            var res = new List<AnimCombatSyncEvent>();
+            var lines = ClientFileManager.GetFileAsString(gFileName).Split("\r\n");
+
+            AnimCombatSyncEvent lastCombatSyncEvent = null;
+            AnimDuration lastAnimDuration = null;
+            for (var n = 0; n < lines.Length; n++)
+            {
+                var line = lines[n];
+                var spaceCount = line.TakeWhile(char.IsWhiteSpace).Count();
+                var trimmedLine = line.Trim(' ');
+                if (spaceCount == 0)
+                {
+                    // Start of new model section
+                    lastCombatSyncEvent = new AnimCombatSyncEvent();
+                    lastCombatSyncEvent.ModelName = line.Trim('"');
+                    res.Add(lastCombatSyncEvent);
+                    lastAnimDuration = null;
+                }
+                else if ((lastCombatSyncEvent != null) && (spaceCount == 4))
+                {
+                    // Start of new animation section
+                    lastAnimDuration = new AnimDuration();
+                    if (!lastCombatSyncEvent.Animations.TryAdd(trimmedLine, lastAnimDuration))
+                    {
+                        _log.Warn($"Syntax error in {gFileName} at line {n + 1} : {line}");
+                        return null;
+                    }
+                }
+                else if ((lastAnimDuration != null) && (spaceCount == 8))
+                {
+                    // This is a actual property
+                    var props = trimmedLine.Split(' ');
+                    if (props.Length != 2)
+                    {
+                        _log.Warn($"Syntax error in {gFileName} at line {n + 1} : {line}");
+                        return null;
+                    }
+                    else if (props[0] == "total_time")
+                    {
+                        if (int.TryParse(props[1], out var totTime))
+                            lastAnimDuration.total_time = totTime;
+                        else
+                        {
+                            _log.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
+                            return null;
+                        }
+                    }
+                    else if (props[0] == "combat_sync_time")
+                    {
+                        if (int.TryParse(props[1], out var syncTime))
+                            lastAnimDuration.combat_sync_time = syncTime;
+                        else
+                        {
+                            _log.Warn($"int parse error in {gFileName} at line {n + 1} : {line}");
+                            return null;
+                        }
+                    }
+                    else
+                    {
+                        _log.Warn($"Unknown property in {gFileName} at line {n + 1} : {line}");
+                    }
+                }
+                else
+                {
+                    _log.Warn($"Unknown Syntax in {gFileName} at line {n + 1} : {line}");
+                    return null;
+                }
+            }
+            return res;
         }
 
         public void Load()
@@ -65,29 +145,30 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
 
+            // Load animation durations from client data
+            var gFileName = "game/combat_sync_event_list.g"; 
+            var combatSyncEvents = ParseGFile(gFileName);
 
-            var filePath = Path.Combine(FileManager.AppPath, "Data", "anim_durations.json");
-            if (!File.Exists(filePath))
-                _log.Warn($"File {filePath} doesn't exist!");
-            else
+            if (combatSyncEvents == null)
             {
-                var contents = FileManager.GetFileContents(filePath);
-                if (string.IsNullOrWhiteSpace(contents))
-                    _log.Warn($"File {filePath} is empty.");
-                else
+                _log.Fatal($"Error reading {gFileName}");
+                return;
+            }
+            
+            // Apply values to our animation manager (only takes nuian_male into account as a base value)
+            foreach (var cse in combatSyncEvents)
+            {
+                if (cse.ModelName == "nuian_male")
                 {
-                    if (JsonHelper.TryDeserializeObject(contents, out Dictionary<string, AnimDuration> animDurations,
-                        out _))
-                        foreach (var key in animDurations.Keys)
+                    // Copy stuff
+                    foreach (var (animKey,animVal) in cse.Animations)
+                    {
+                        if (_animationsByName.TryGetValue(animKey, out var anim))
                         {
-                            if (!_animationsByName.ContainsKey(key)) continue;
-
-                            var anim = _animationsByName[key];
-                            anim.Duration = animDurations[key].total_time;
-                            anim.CombatSyncTime = animDurations[key].combat_sync_time;
+                            anim.Duration = animVal.total_time;
+                            anim.CombatSyncTime = animVal.combat_sync_time;
                         }
-                    else
-                        throw new Exception($"AnimationManager: Error parsing {filePath} file");
+                    }
                 }
             }
         }

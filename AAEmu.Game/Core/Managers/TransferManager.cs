@@ -5,12 +5,11 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Xml;
-
-using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
@@ -21,8 +20,8 @@ using AAEmu.Game.Models.Tasks.Transfers;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
-
 using NLog;
+using XmlHelper = AAEmu.Commons.Utils.XML.XmlHelper;
 
 namespace AAEmu.Game.Core.Managers
 {
@@ -352,27 +351,23 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
             #endregion
+            
             #region TransferPath
             _log.Info("Loading transfer_path...");
 
             var worlds = WorldManager.Instance.GetWorlds();
             Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
 
-            //                              worldId           key   transfer_path
+            //                              worldId           key  transfer_path
             _transferRoads = new Dictionary<byte, Dictionary<uint, List<TransferRoads>>>();
             foreach (var world in worlds)
             {
                 var transferPaths = new Dictionary<uint, List<TransferRoads>>();
-                var worldLevelDesignDir = Path.Combine(FileManager.AppPath, "data", "worlds", world.Name, "level_design");
-                if (!Directory.Exists(worldLevelDesignDir))
-                {
-                    _log.Warn($"{world.Name} doesn't seem to have Transfers data.");
-                    continue;
-                }
-
-                var pathFiles = Directory.GetFiles(worldLevelDesignDir,"transfer_path.xml", SearchOption.AllDirectories);
+                
+                var worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone");
+                var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "transfer_path.xml", true);
+                
                 foreach(var pathFileName in pathFiles)
-                //for (uint zoneId = 129; zoneId < 346; zoneId++)
                 {
                     if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))),
                         out var zoneId))
@@ -381,60 +376,54 @@ namespace AAEmu.Game.Core.Managers
                         continue;
                     }
 
-                    var contents = FileManager.GetFileContents(pathFileName);
+                    var contents = ClientFileManager.GetFileAsString(pathFileName);
+                    
                     if (string.IsNullOrWhiteSpace(contents))
                     {
                         _log.Warn($"{pathFileName} doesn't exists or is empty.");
                         continue;
                     }
 
-                    _log.Warn($"Loading {pathFileName}");
+                    _log.Debug($"Loading {pathFileName}");
                     
                     var transferPath = new List<TransferRoads>();
                     var xDoc = new XmlDocument();
-                    xDoc.Load(pathFileName);
+                    xDoc.LoadXml(contents);
                     var xRoot = xDoc.DocumentElement;
                     if (xRoot != null)
                     {
-                        foreach (XmlElement xnode in xRoot)
+                        foreach (XmlElement xNode in xRoot)
                         {
                             var transferRoad = new TransferRoads();
-                            if (xnode.Attributes.Count > 0)
-                            {
-                                transferRoad.Name = xnode.Attributes.GetNamedItem("Name").Value;
-                                transferRoad.ZoneId = zoneId;
-                                transferRoad.Type = int.Parse(xnode.Attributes.GetNamedItem("Type").Value);
-                                transferRoad.CellX = int.Parse(xnode.Attributes.GetNamedItem("cellX").Value);
-                                transferRoad.CellY = int.Parse(xnode.Attributes.GetNamedItem("cellY").Value);
-                            }
+                            var transferAttribs = XmlHelper.ReadNodeAttributes(xNode);
 
-                            foreach (XmlNode childnode in xnode.ChildNodes)
+                            transferRoad.ZoneId = zoneId;
+                            transferRoad.Name = XmlHelper.ReadAttribute<string>(transferAttribs, "Name","");
+                            transferRoad.Type = XmlHelper.ReadAttribute<int>(transferAttribs, "Type",0);
+                            transferRoad.CellX = XmlHelper.ReadAttribute<int>(transferAttribs, "cellX",0);
+                            transferRoad.CellY = XmlHelper.ReadAttribute<int>(transferAttribs, "cellY",0);
+
+                            foreach (XmlNode childNode in xNode.ChildNodes)
                             {
-                                foreach (XmlNode node in childnode.ChildNodes)
+                                foreach (XmlNode node in childNode.ChildNodes)
                                 {
-                                    if ((node.Attributes != null) && (node.Attributes.Count > 0))
+                                    var posNodeAttribs = XmlHelper.ReadNodeAttributes(node);
+                                    if (posNodeAttribs.TryGetValue("Pos", out var attributeValue))
                                     {
-                                        var attributeValue = node.Attributes.GetNamedItem("Pos").Value;
-                                        var splitVals = attributeValue.Split(',');
-                                        if (splitVals.Length == 3)
+                                        var xyz = XmlHelper.StringToVector3(attributeValue);
+
+                                        // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
+                                        // convert coordinates from local to world, immediately when reading the path from the file
+                                        var vec = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
+                                        var pos = new WorldSpawnPosition()
                                         {
-                                            var x = float.Parse(splitVals[0]);
-                                            var y = float.Parse(splitVals[1]);
-                                            var z = float.Parse(splitVals[2]);
-                                            // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
-                                            var xyz = new Vector3(x, y, z);
-                                            var (xx, yy, zz) =
-                                                ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
-                                            var pos = new WorldSpawnPosition()
-                                            {
-                                                X = xx,
-                                                Y = yy,
-                                                Z = zz,
-                                                WorldId = world.Id,
-                                                ZoneId = zoneId
-                                            };
-                                            transferRoad.Pos.Add(pos);
-                                        }
+                                            X = vec.X,
+                                            Y = vec.Y,
+                                            Z = vec.Z,
+                                            WorldId = world.Id,
+                                            ZoneId = zoneId
+                                        };
+                                        transferRoad.Pos.Add(pos);
                                     }
                                 }
                             }

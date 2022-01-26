@@ -41,9 +41,6 @@ namespace AAEmu.Commons.IO
 
         #endregion // AppPath
 
-        /// <summary>Platform-specific directory separator.</summary>
-        public static char DirectorySeparator => Path.DirectorySeparatorChar;
-
         #region SaveFile
 
         /// <summary>
@@ -75,8 +72,8 @@ namespace AAEmu.Commons.IO
                     throw new Exception("Directory must be specified for the file");
 
                 var directory = file.Remove(index) + Path.DirectorySeparatorChar;
-                if (!DirectoryExists(directory))
-                    CreateDirectory(directory);
+                if (!Directory.Exists(directory))
+                    Directory.CreateDirectory(directory);
 
                 var opened = false;
                 while (!opened)
@@ -101,47 +98,6 @@ namespace AAEmu.Commons.IO
 
         #endregion // SaveFile
 
-        #region DirectoryExists
-
-        /// <summary>
-        /// Determines if a directory exists.
-        /// </summary>
-        /// <param name="directory">Path of the directory.</param>
-        /// <returns>true if it exists, false otherwise</returns>
-        public static bool DirectoryExists(string directory)
-        {
-            return Directory.Exists(directory);
-        }
-
-        #endregion // DirectoryExists
-
-        #region FileExists
-
-        /// <summary>
-        /// Determines if a file exists.
-        /// </summary>
-        /// <param name="file">File name.</param>
-        /// <returns>true if it exists, false otherwise.</returns>
-        public static bool FileExists(string file)
-        {
-            return File.Exists(file);
-        }
-
-        #endregion // FileExists
-
-        #region CreateDirectory
-
-        /// <summary>
-        /// Creates a directory.
-        /// </summary>
-        /// <param name="directory">Directory to create.</param>
-        public static void CreateDirectory(string directory)
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        #endregion // CreateDirectory
-
         #region GetFileContents
 
         /// <summary>
@@ -156,7 +112,7 @@ namespace AAEmu.Commons.IO
             var startTime = Environment.TickCount;
             try
             {
-                if (!FileExists(file))
+                if (!File.Exists(file))
                     return string.Empty;
 
                 var opened = false;

@@ -20,7 +20,7 @@ namespace AAEmu.Login
         private static Thread _thread = Thread.CurrentThread;
         private static DateTime _startTime;
         private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
-        private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
 
         public static int UpTime => (int) (DateTime.UtcNow - _startTime).TotalSeconds;
 
@@ -29,7 +29,7 @@ namespace AAEmu.Login
             Initialization();
 
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-            if (FileManager.FileExists(mainConfig))
+            if (File.Exists(mainConfig))
                 Configuration(args, mainConfig);
             else
             {
@@ -75,6 +75,7 @@ namespace AAEmu.Login
 
         private static void Configuration(string[] args, string mainConfigJson)
         {
+            var configJsonFile = Path.Combine(FileManager.AppPath, "Config.json");
             var configurationBuilder = new ConfigurationBuilder()
                 .AddJsonFile(mainConfigJson)
                 .AddCommandLine(args)

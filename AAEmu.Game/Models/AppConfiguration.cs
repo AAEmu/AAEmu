@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Expeditions;
 
@@ -22,6 +23,7 @@ namespace AAEmu.Game.Models
         public WorldConfig World { get; set; }
         public Dictionary<string, int> AccessLevel { get; set; } = new Dictionary<string, int>();
         public AccountConfig Account { get; set; }
+        public ClientDataConfig ClientData { get; set; } = new ClientDataConfig();
 
         public class NetworkConfig
         {
