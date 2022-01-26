@@ -51,7 +51,7 @@ namespace AAEmu.Commons.IO
         {
             if (string.IsNullOrEmpty(fileName))
                 throw new ArgumentException("File name can not be null/empty");
-            if (!FileManager.FileExists(fileName))
+            if (!File.Exists(fileName))
                 throw new ArgumentException("File does not exist");
             var content = FileManager.GetFileContents(fileName);
             result = XMLToObject<T>(content, rootName);
@@ -84,7 +84,7 @@ namespace AAEmu.Commons.IO
         {
             if (string.IsNullOrEmpty(fileName))
                 throw new ArgumentException("File name can not be null/empty");
-            if (!FileManager.FileExists(fileName))
+            if (!File.Exists(fileName))
                 throw new ArgumentException("File does not exist");
             var content = FileManager.GetFileContents(fileName);
             result = XMLToObject(content, type, rootName);

@@ -23,7 +23,7 @@ namespace AAEmu.Game
         private static Thread _thread = Thread.CurrentThread;
         private static DateTime _startTime;
         private static string Name => Assembly.GetExecutingAssembly().GetName().Name;
-        private static string Version => Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        private static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "???";
         public static AutoResetEvent ShutdownSignal = new AutoResetEvent(false); // TODO save to shutdown server?
 
         public static int UpTime => (int)(DateTime.UtcNow - _startTime).TotalSeconds;
@@ -77,7 +77,7 @@ namespace AAEmu.Game
         public static void LoadConfiguration()
         {
             var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-            if (FileManager.FileExists(mainConfig))
+            if (File.Exists(mainConfig))
                 Configuration(_launchArgs, mainConfig);
             else
             {

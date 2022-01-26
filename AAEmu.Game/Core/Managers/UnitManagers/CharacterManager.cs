@@ -429,7 +429,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     var point = charTemplate.Pos.Clone();
                     // Recalculate ZoneId as this isn't included in the config
-                    point.ZoneId = WorldManager.Instance.GetZoneId(charTemplate.Pos.WorldId, charTemplate.Pos.X, charTemplate.Pos.Y);
+                    // Always use main_world Id for this
+                    point.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldId, charTemplate.Pos.X, charTemplate.Pos.Y);
                     // Convert the json's degrees to rads
                     point.Roll = point.Roll.DegToRad();
                     point.Pitch = point.Pitch.DegToRad();
