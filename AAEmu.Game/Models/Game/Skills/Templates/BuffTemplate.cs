@@ -241,6 +241,10 @@ namespace AAEmu.Game.Models.Game.Skills.Templates
                     owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(tickEff.TargetNoBuffTagId)))
                     return;
                 var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
+                if (eff == null)
+                {
+                    return;
+                }
                 var targetObj = new SkillCastUnitTarget(owner.ObjId);
                 var skillObj = new SkillObject(); // TODO ?
                 eff.Apply(caster, buff.SkillCaster, owner, targetObj, new CastBuff(buff), new EffectSource(this), skillObj, DateTime.UtcNow);
