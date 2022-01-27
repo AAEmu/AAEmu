@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         public override void Execute()
         {
             _owner.Scale = _endScale;
-            _owner.GoToPhase(_caster, _nextPhase);
+            _owner.GoToPhaseAndUse(_caster, _nextPhase, 0);
         }
     }
 }

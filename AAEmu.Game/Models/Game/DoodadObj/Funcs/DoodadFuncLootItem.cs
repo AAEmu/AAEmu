@@ -31,13 +31,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             var count = Rand.Next(CountMin, CountMax);
 
-            // попытка исправить переполнение инвентаря по квесту Id=259, Echoes from the Past, Solzreed Peninsula, Solzreed Peninsula
-            if (character.Inventory.GetItemsCount(ItemId) == count)
-            {
-                owner.ToPhaseAndUse = false;
-                character.SendErrorMessage(ErrorMessageType.ItemPickupLimit);
-                return;
-            }
+            //// попытка исправить переполнение инвентаря по квесту Id=259, Echoes from the Past, Solzreed Peninsula, Solzreed Peninsula
+            //if (character.Inventory.GetItemsCount(ItemId) == count)
+            //{
+            //    owner.ToPhaseAndUse = false;
+            //    character.SendErrorMessage(ErrorMessageType.ItemPickupLimit);
+            //    return;
+            //}
 
             if (character.Inventory.TryAddNewItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
                 owner.ToPhaseAndUse = true;

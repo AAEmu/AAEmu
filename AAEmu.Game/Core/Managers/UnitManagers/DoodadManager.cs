@@ -57,7 +57,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 _log.Info("Loading doodad templates...");
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * from doodad_almighties";
+                    command.CommandText = "SELECT * FROM doodad_almighties ORDER BY id ASC";
                     command.Prepare();
                     using (var sqliteDataReader = command.ExecuteReader())
                     using (var reader = new SQLiteWrapperReader(sqliteDataReader))
@@ -104,7 +104,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM doodad_func_groups";
+                    command.CommandText = "SELECT * FROM doodad_func_groups ORDER BY id ASC";
                     command.Prepare();
                     using (var sqliteDataReaderChild = command.ExecuteReader())
                     using (var reader = new SQLiteWrapperReader(sqliteDataReaderChild))
@@ -128,7 +128,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM doodad_funcs";
+                    command.CommandText = "SELECT * FROM doodad_funcs ORDER BY doodad_func_group_id ASC, actual_func_id ASC";
                     command.Prepare();
                     using (var sqliteDataReader = command.ExecuteReader())
                     using (var reader = new SQLiteWrapperReader(sqliteDataReader))

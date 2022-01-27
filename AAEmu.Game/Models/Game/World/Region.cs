@@ -4,6 +4,7 @@ using System.Threading;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -147,9 +148,20 @@ namespace AAEmu.Game.Models.Game.World
                 foreach (var go in objectsInRegion)
                 {
                     // Ignore doodads here, as we have a special packet for those
-                    if (go is Doodad)
+                    if (go is Doodad doodad)
+                    {
+                        // turning the first Phase on to display on the ground for player
+                        var unit = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
+                        if (unit is null)
+                        {
+                            var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.CurrentPhaseId);
+                            if (funcs.Count > 0)
+                                continue;
+                        }
+                        doodad.DoPhase(unit, 0);
                         continue;
-                    
+                    }
+
                     // turn on the motion of the visible NPC
                     if ((go is Npc npc) && (npc.Ai != null)) 
                         npc.Ai.ShouldTick = true;

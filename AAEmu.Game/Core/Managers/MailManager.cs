@@ -442,7 +442,7 @@ namespace AAEmu.Game.Core.Managers
                     character.Mails.unreadMailCount.Received--;
                 }
 
-                character.SendPacket(new SCChargeMoneyPaid(mail.Id));
+                character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
                 character.SendPacket(new SCMailDeletedPacket(false, mail.Id, false, character.Mails.unreadMailCount));
                 DeleteMail(mail);
                 character.Mails.SendUnreadMailCount();

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
 
@@ -11,6 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         public SCDoodadPhaseChangedPacket(Doodad doodad) : base(SCOffsets.SCDoodadPhaseChangedPacket, 1)
         {
             _doodad = doodad;
+            _log.Debug("[Doodad] SCDoodadPhaseChangedPacket: ObjId {0},  CurrentPhaseId {1}, TimeLeft {2}", _doodad.ObjId, _doodad.CurrentPhaseId, _doodad.TimeLeft);
         }
 
         public override PacketStream Write(PacketStream stream)

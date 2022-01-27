@@ -16,6 +16,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
+            _log.Debug("DoodadFuncFakeUse: skillId {0}, nextPhase {1},  SkillId {2}, FakeSkillId {3}, TargetParent {4}",
+                skillId, nextPhase, SkillId, FakeSkillId, TargetParent);
+
             if (SkillId != 0)
             {
                 var skillCaster = SkillCaster.GetByType(SkillCasterType.Doodad);

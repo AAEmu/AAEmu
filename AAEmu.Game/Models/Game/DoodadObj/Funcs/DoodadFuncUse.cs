@@ -16,6 +16,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
+            _log.Debug("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
+
             if ((owner.DbHouseId > 0) && (caster is Character player))
             {
                 // If it's on a house, need to check permissions
@@ -27,7 +29,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     // The first try to recover the doodad will still give a error, but after that, it's free to recover by anyone. 
                     owner.DbHouseId = 0;
                     owner.OwnerId = 0;
-                    _log.Warn("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
+                    _log.Debug("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
                     //return;
                 }
                 else
@@ -53,9 +55,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     new UseSkillTask(useSkill, caster, new SkillCasterUnit(caster.ObjId), owner,
                         new SkillCastDoodadTarget { ObjId = owner.ObjId }, null), TimeSpan.FromMilliseconds(0));
             }
-            // TODO далее, после возврата, будет вызов GoToPhase
+            // TODO далее, после возврата, будет вызов GoToPhaseAndUse
             //if (nextPhase > 0)
-            //    owner.GoToPhase(null, nextPhase, skillId);
+            //    owner.GoToPhaseAndUse(null, nextPhase, skillId);
 
             owner.ToPhaseAndUse = skillId > 0;
         }

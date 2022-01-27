@@ -83,7 +83,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             recursionDepth++;
             if (recursionDepth % 10 == 0)
                 _log.Warn("Doodad {0} (TemplateId {1}) might be looping indefinitely. {2} recursionDepth.", ObjId, TemplateId, recursionDepth);
-            _log.Trace("Using phase {0}", CurrentPhaseId);
+            _log.Debug("[Doodad] Use: Using skill {0} with doodad phase {1}", skillId, CurrentPhaseId);
             // Get all doodad_funcs
             var funcs = DoodadManager.Instance.GetFuncsForGroup(CurrentPhaseId);
 
@@ -112,16 +112,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
             catch (Exception e)
             {
-                _log.Fatal(e, "Doodad func crashed !");
+                _log.Fatal(e, "[Doodad] Doodad func crashed !");
             }
 
             if (nextFunc == 0)
                 return;
 
             if (isUse)
-                GoToPhaseAndUse(unit, nextFunc, skillId, recursionDepth);
+                GoToPhaseAndUse(unit, nextFunc, skillId, recursionDepth, true);
             else
-                GoToPhase(unit, nextFunc);
+                GoToPhaseAndUse(unit, nextFunc, 0, 0, false);
         }
 
         /// <summary>
@@ -133,8 +133,31 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (recursionDepth % 10 == 0)
                 _log.Warn("Doodad {0} (TemplateId {1}) might be phasing indefinitely. {2} recursionDepth.", ObjId, TemplateId, recursionDepth);
 
-            _log.Trace("Doing phase {0}", CurrentPhaseId);
+            _log.Debug("[Doodad] DoPhase: Using skill {0} with doodad phase {1}", skillId, CurrentPhaseId);
+
+            if (Template.FuncGroups.Count <= 0)
+            {
+                _log.Debug("Missing doodad funcs for phase {0}", CurrentPhaseId);
+                return;
+            }
             var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
+            if (phaseFuncs.Length == 0)
+            {
+                FuncGroupId++;
+                if (FuncGroupId >= Template.FuncGroups.Count)
+                {
+                    _log.Debug("Missing doodad funcs for phase {0}", CurrentPhaseId);
+                    return;
+                }
+                CurrentPhaseId = Template.FuncGroups[(int)FuncGroupId].Id;
+                phaseFuncs = DoodadManager.Instance.GetPhaseFunc(CurrentPhaseId);
+                if (phaseFuncs.Length == 0)
+                {
+                    _log.Debug("Missing doodad funcs for override doodad phase {0}", CurrentPhaseId);
+                    return;
+                }
+                _log.Debug("[Doodad] DoPhase: Using skill {0} with override doodad phase {1}", skillId, Template.FuncGroups[(int)FuncGroupId].Id);
+            }
 
             OverridePhase = 0;
             try
@@ -166,30 +189,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         /// </summary>
         /// <param name="unit">Unit who triggered the change</param>
         /// <param name="funcGroupId">New phase to go to</param>
-        public void GoToPhase(Unit unit, int funcGroupId, uint skillId = 0)
+        public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId = 0, uint recursionDepth = 0, bool use = false)
         {
-            _log.Trace("Going to phase {0}", funcGroupId);
-            if (funcGroupId == -1)
-            {
-                // Delete doodad
-                Delete();
-            }
-            else
-            {
-                CurrentPhaseId = (uint)funcGroupId;
-                PhaseRatio = Rand.Next(0, 10000);
-                CumulativePhaseRatio = 0;
-                DoPhase(unit, skillId);
-
-                _log.Trace("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
-                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
-            }
-        }
-
-        public void GoToPhaseAndUse(Unit unit, int funcGroupId, uint skillId, uint recursionDepth = 0)
-        {
+            _log.Debug("[Doodad] GoToPhaseAndUse: Using skill {0} with doodad funcGroupId {1} & phase {2}, use {3}", skillId, funcGroupId, CurrentPhaseId, use);
             recursionDepth++;
-            _log.Trace("Going to phase {0} and using it", funcGroupId);
+            if (use)
+                _log.Debug("Going to phase {0} and using it", funcGroupId);
+            else
+                _log.Debug("Going to phase {0}", funcGroupId);
+
             if (funcGroupId == -1)
             {
                 // Delete doodad
@@ -202,10 +210,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 CumulativePhaseRatio = 0;
                 DoPhase(unit, skillId);
 
-                _log.Trace("SCDoodadPhaseChangedPacket : CurrentPhaseId {0}", CurrentPhaseId);
+                _log.Debug("[Doodad] SCDoodadPhaseChangedPacket: CurrentPhaseId {0}", CurrentPhaseId);
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
-
-                Use(unit, skillId, recursionDepth);
+                if (use)
+                {
+                    Use(unit, skillId, recursionDepth);
+                }
             }
         }
 

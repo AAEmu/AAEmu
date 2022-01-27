@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         public override void Execute()
         {
             _owner.FuncTask = null;
-            _owner.GoToPhase(_caster, _nextPhase, 0);
+            _owner.GoToPhaseAndUse(_caster, _nextPhase, 0);
         }
     }
 }
