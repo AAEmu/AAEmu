@@ -26,6 +26,7 @@
         DrumPlay = 8216, // this one is actually called Play Drums, but not really used
         EquipShield = 8226,
         EquipTwoHanded = 8227,
+        InBeautySalon = 6117,
         NpcReturn = 550 // TODO: Find
     }
 }
