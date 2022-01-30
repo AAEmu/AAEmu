@@ -274,7 +274,10 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSSendUserMusicPacket,1,typeof(CSSendUserMusicPacket));
             RegisterPacket(CSOffsets.CSEndMusicPacket,1,typeof(CSEndMusicPacket));
             
-            // 0x12e CSEnterBeautySalonPacket
+            RegisterPacket(CSOffsets.CSExitBeautySalonPacket, 1, typeof(CSExitBeautySalonPacket));
+            RegisterPacket(CSOffsets.CSBeautyshopDataPacket, 1, typeof(CSBeautyshopDataPacket));
+            RegisterPacket(CSOffsets.CSEnterBeautySalonPacket, 1, typeof(CSEnterBeautySalonPacket));
+
             RegisterPacket(CSOffsets.CSRankCharacterPacket, 1, typeof(CSRankCharacterPacket));
             RegisterPacket(CSOffsets.CSRequestSecondPasswordKeyTablesPacket, 1, typeof(CSRequestSecondPasswordKeyTablesPacket));
             // 0x130 CSRankSnapshotPacket

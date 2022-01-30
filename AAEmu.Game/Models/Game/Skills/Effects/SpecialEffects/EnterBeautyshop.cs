@@ -1,10 +1,13 @@
 ﻿using System;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 {
-    public class AddEEnterBeautyshopxp : SpecialEffectAction
+    public class EnterBeautyshop : SpecialEffectAction
     {
+        protected override SpecialType SpecialEffectActionType => SpecialType.EnterBeautyshop;
+        
         public override void Execute(Unit caster,
             SkillCaster casterObj,
             BaseUnit target,
@@ -19,7 +22,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value4)
         {
             // TODO ...
-            _log.Trace("Special effects: EnterBeautyshop");
+            _log.Warn("Special effects: EnterBeautyshop");
+            
+            caster.SendPacket(new SCToggleBeautyshopResponsePacket(1));
         }
     }
 }
