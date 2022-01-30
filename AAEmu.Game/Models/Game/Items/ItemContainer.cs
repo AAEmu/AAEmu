@@ -409,7 +409,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="gradeToAdd">Overrides default grade if possible</param>
         /// <param name="updatedItemsList">A List of the newly added or updated items</param>
         /// <returns></returns>
-        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId)
+        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferedSlot = -1)
         {
             newItemsList = new List<Item>();
             updatedItemsList = new List<Item>();
@@ -469,7 +469,7 @@ namespace AAEmu.Game.Models.Game.Items
                     newItem.WorldId = 1; // TODO: proper world id handling
                 }
                 amountToAdd -= addAmount;
-                var prefSlot = -1;
+                var prefSlot = preferedSlot;
                 if ((newItem.Template is BackpackTemplate) && (ContainerType == SlotType.Equipment))
                     prefSlot = (int)EquipmentItemSlot.Backpack;
                 if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem,prefSlot)) // Task set to invalid as we send our own packets inside this function
