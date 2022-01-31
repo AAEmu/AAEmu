@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Collections.Generic;
+
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Utils;
@@ -18,15 +20,15 @@ namespace AAEmu.Game.Scripts.Commands
         }
 
         public string GetCommandHelpText()
-        {
-            return "/quest <list||add||remove||prog||reward>";
+{
+            return "[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest";
         }
 
         public void Execute( Character character, string[] args )
         {
             if ( args.Length < 1 )
             {
-                character.SendMessage( "/quest <list||add||remove||prog||reward>" );
+                character.SendMessage( "[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest" );
                 return;
             }
 

@@ -17,7 +17,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             { 
                 //The client might handle this flag already
             }
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

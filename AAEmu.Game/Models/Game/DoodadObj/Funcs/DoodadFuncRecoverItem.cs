@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     // that means that it was already picked up by somebody else
                     if (item._holdingContainer.ContainerType != SlotType.System)
                     {
-                        owner.ToPhaseAndUse = false;
+                        owner.NeedChangePhase = false;
                         // character.SendErrorMessage(ErrorMessageType.Backpack); // TODO: Not sure what error I need to put here
                         return;
                     }
@@ -71,7 +71,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if ((addedItem) && (item != null) && (item._holdingContainer.ContainerType == SlotType.Equipment))
                 character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
 
-            owner.ToPhaseAndUse = addedItem;
+            owner.NeedChangePhase = addedItem;
         }
     }
 }

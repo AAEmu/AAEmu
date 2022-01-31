@@ -1,6 +1,8 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 
@@ -24,7 +26,7 @@ namespace AAEmu.Game.Utils
                     }
                     else
                     {
-                        character.SendMessage("[Quest] Proper usage: /quest add <questId>");
+                        character.SendMessage("[Quest] Proper usage: /quest add <questId>\nBefore that, target the Npc you need for the quest");
                     }
                     break;
                 case "list":
@@ -64,7 +66,7 @@ namespace AAEmu.Game.Utils
                             {
                                 if (args.Length >= 3 && uint.TryParse(args[2], out var stepId))
                                 {
-                                    if(character.Quests.SetStep(questId, stepId))
+                                    if (character.Quests.SetStep(questId, stepId))
                                         character.SendMessage("[Quest] set Step {0} for Quest {1}", stepId, questId);
                                     else
                                         character.SendMessage("[Quest] Proper usage: /quest step <questId> <stepId>");
@@ -136,7 +138,7 @@ namespace AAEmu.Game.Utils
                     }
                     break;
                 default:
-                    character.SendMessage("[Quest] /quest <add/remove/list/prog/reward>");
+                    character.SendMessage("[Quest] /quest <add/remove/list/prog/reward>\nBefore that, target the Npc you need for the quest");
                     break;
             }
         }

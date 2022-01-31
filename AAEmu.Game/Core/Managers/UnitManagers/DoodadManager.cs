@@ -95,8 +95,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.NoCollision = reader.GetBoolean("no_collision", true);
                             template.RestrictZoneId = reader.IsDBNull("restrict_zone_id") ? 0 : reader.GetUInt32("restrict_zone_id");
 
-
-
                             _templates.Add(template.Id, template);
                         }
                     }
@@ -116,6 +114,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             funcGroups.Almighty = reader.GetUInt32("doodad_almighty_id");
                             funcGroups.GroupKindId = (DoodadFuncGroups.DoodadFuncGroupKind)reader.GetUInt32("doodad_func_group_kind_id");
                             funcGroups.SoundId = reader.GetUInt32("sound_id", 0);
+                            funcGroups.Model = reader.GetString("model", "");
 
                             var template = GetTemplate(funcGroups.Almighty);
                             if (template != null)
@@ -161,7 +160,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM doodad_phase_funcs";
+                    command.CommandText = "SELECT * FROM doodad_phase_funcs"; // ORDER BY doodad_func_group_id ASC, actual_func_id ASC
                     command.Prepare();
                     using (var sqliteDataReader = command.ExecuteReader())
                     using (var reader = new SQLiteWrapperReader(sqliteDataReader))
@@ -459,7 +458,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         }
                     }
                 }
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM doodad_func_clout_effects";
@@ -2219,10 +2218,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 PlantTime = DateTime.UtcNow,
                 //GrowthTime = DateTime.UtcNow.AddMilliseconds(template.MinTime),
                 //GrowthTime = DateTime.UtcNow.AddMilliseconds(10000),
-               
+
                 OwnerType = DoodadOwnerType.System
             };
-            doodad.CurrentPhaseId = doodad.GetFuncGroupId();
+            doodad.FuncGroupId = doodad.GetFuncGroupId();
 
             switch (obj)
             {
@@ -2245,8 +2244,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
 
             if (obj is Unit unit)
-                doodad.DoPhase(unit, 0);
-
+            {
+                //doodad.DoPhase(unit, 0);
+                doodad.UseNew(unit, 0);
+            }
             return doodad;
         }
 
@@ -2256,7 +2257,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 return null;
             return _funcsById[funcId];
         }
-        
+
         public DoodadFunc GetFunc(uint funcGroupId, uint skillId)
         {
             if (!_funcsByGroups.ContainsKey(funcGroupId))
@@ -2301,6 +2302,52 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         }
 
         /// <summary>
+        /// GetDoodadFuncGroups - Получить для заданного TemplateId группу функций
+        /// </summary>
+        /// <param name="doodadTemplateId"></param>
+        /// <returns>List<DoodadFuncGroups></returns>
+        public List<DoodadFuncGroups> GetDoodadFuncGroups(uint doodadTemplateId)
+        {
+            var listDoodadFuncGroups = new List<DoodadFuncGroups>();
+
+            if (_templates.ContainsKey(doodadTemplateId))
+            {
+                var doodaTemplates = _templates[doodadTemplateId];
+                foreach (var doodaTemplate in doodaTemplates.FuncGroups)
+                {
+                    if (doodaTemplate.Almighty == doodadTemplateId)
+                    {
+                        listDoodadFuncGroups.Add(doodaTemplate);
+                    }
+                }
+                return listDoodadFuncGroups;
+            }
+            return null;
+        }
+        /// <summary>
+        /// GetDoodadFuncs - Получить все функции
+        /// </summary>
+        /// <param name="doodadFuncGroupId"></param>
+        /// <returns>List<DoodadFunc></returns>
+        public List<DoodadFunc> GetDoodadFuncs(uint doodadFuncGroupId)
+        {
+            if (_funcsByGroups.ContainsKey(doodadFuncGroupId))
+                return _funcsByGroups[doodadFuncGroupId];
+            return new List<DoodadFunc>();
+        }
+        /// <summary>
+        /// GetDoodadPhaseFuncs - Получить все фазовые функции
+        /// </summary>
+        /// <param name="funcGroupId"></param>
+        /// <returns>DoodadFunc[]</returns>
+        public DoodadFunc[] GetDoodadPhaseFuncs(uint funcGroupId)
+        {
+            if (_phaseFuncs.ContainsKey(funcGroupId))
+                return _phaseFuncs[funcGroupId].ToArray();
+            return new DoodadFunc[0];
+        }
+
+        /// <summary>
         /// Saves and creates a doodad 
         /// </summary>
         public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId)
@@ -2308,12 +2355,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             _log.Warn("{0} is placing a doodad {1} at position {2} {3} {4}", character.Name, id, x, y, z);
 
             var targetHouse = HousingManager.Instance.GetHouseAtLocation(x, y);
-            
+
             // Create doodad
             var doodad = Instance.Create(0, id, character);
             doodad.IsPersistent = true;
             doodad.Transform = character.Transform.CloneDetached(doodad);
-            doodad.Transform.Local.SetPosition(x,y,z);
+            doodad.Transform.Local.SetPosition(x, y, z);
             doodad.Transform.Local.SetZRotation(zRot);
             doodad.ItemId = itemId;
             doodad.PlantTime = DateTime.UtcNow;
@@ -2332,7 +2379,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             if (scale > 0f)
                 doodad.SetScale(scale);
-            
+
             // Consume item
             var items = ItemManager.Instance.GetItemIdsFromDoodad(id);
             var preferredItem = character.Inventory.Bag.GetItemByItemId(itemId);
@@ -2340,13 +2387,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.ItemTemplateId = preferredItem.TemplateId;
 
             foreach (var item in items)
-                character.Inventory.ConsumeItem(new [] {SlotType.Inventory}, ItemTaskType.DoodadCreate, item, 1, preferredItem);
-            
+                character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
+
             doodad.Spawn();
             doodad.Save();
 
-            // для системы квестов
-            character.Quests.OnInteraction(WorldInteractionType.Use, doodad);
+            //// для системы квестов
+            //character.Quests.OnInteraction(WorldInteractionType.Use, doodad);
 
             return doodad;
         }

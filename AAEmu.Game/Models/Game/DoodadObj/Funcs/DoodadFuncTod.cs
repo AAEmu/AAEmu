@@ -1,6 +1,11 @@
-﻿using AAEmu.Game.Models.Game.Char;
+﻿using System;
+
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Doodads;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
@@ -17,8 +22,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (caster is Character)
             {
                 //I think this is used to reschedule anything that needs triggered at a specific gametime
+                //if (owner.FuncTask != null)
+                //{
+                //    _ = owner.FuncTask.Cancel();
+                //    _ = owner.FuncTask = null;
+                //}
+                //owner.FuncTask = new DoodadFuncTodTask(caster, owner, skillId, (int)NextPhase);
+                //TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Tod + 1));
+                //owner.NeedChangePhase = false;
             }
-            owner.ToPhaseAndUse = false;
+            owner.OverridePhase = NextPhase;
+            owner.NeedChangePhase = true;
         }
     }
 }

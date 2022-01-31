@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Trace("DoodadFuncLootPack : LootPackId {0}, SkillId {1}", LootPackId, skillId);
 
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
             var character = (Character)caster;
             if (character == null)
                 return;
@@ -41,7 +41,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     var count = itemQuantity.Next(pack.MinAmount, pack.MaxAmount);
                     character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, pack.ItemId, count);
                 }
-                owner.ToPhaseAndUse = true;
+                owner.NeedChangePhase = true;
             }
             else
             {

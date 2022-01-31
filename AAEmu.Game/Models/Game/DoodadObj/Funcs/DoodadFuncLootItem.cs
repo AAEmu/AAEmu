@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -19,7 +20,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
 
             var character = (Character)caster;
             if (character == null)
@@ -31,18 +32,37 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             var count = Rand.Next(CountMin, CountMax);
 
+            if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
+            {
+                var item = ItemManager.Instance.Create(ItemId, count, 0);
+                if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
+                {
+                    if (character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item, (int)Items.EquipmentItemSlot.Backpack))
+                    {
+                        owner.NeedChangePhase = true;
+                    }
+                }
+            }
+            else
+            {
+                owner.NeedChangePhase = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, ItemId, count);
+            }
+
+            if (owner.NeedChangePhase == false)
+                character.SendErrorMessage(ErrorMessageType.BagFull);
+
             //// попытка исправить переполнение инвентаря по квесту Id=259, Echoes from the Past, Solzreed Peninsula, Solzreed Peninsula
             //if (character.Inventory.GetItemsCount(ItemId) == count)
             //{
-            //    owner.ToPhaseAndUse = false;
+            //    owner.NeedChangePhase = false;
             //    character.SendErrorMessage(ErrorMessageType.ItemPickupLimit);
             //    return;
             //}
 
-            if (character.Inventory.TryAddNewItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
-                owner.ToPhaseAndUse = true;
-            else
-                character.SendErrorMessage(ErrorMessageType.BagFull);
+            //if (character.Inventory.TryAddNewItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
+            //    owner.NeedChangePhase = true;
+            //else
+            //    character.SendErrorMessage(ErrorMessageType.BagFull);
         }
     }
 }

@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
                 skill.Use(caster, skillCaster, target);
             }
-            if (FakeSkillId != 0)
+            else  if (FakeSkillId != 0)
             {
                 var transferTelescope = 20580;
                 var range = 1000f;
@@ -48,11 +48,25 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                 if (FakeSkillId == skillId && nextPhase > 0)
                 {
-                    owner.ToPhaseAndUse = true;
-                    return;
+                    var skillCaster = SkillCaster.GetByType(SkillCasterType.Doodad);
+                    skillCaster.ObjId = owner.ObjId;
+
+                    var target = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+                    target.ObjId = caster.ObjId;
+                    if (TargetParent)
+                    {
+                        //target owner/doodad
+                        target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
+                        target.ObjId = owner.ObjId;
+                    }
+
+                    var skill = new Skill(SkillManager.Instance.GetSkillTemplate(FakeSkillId));
+                    skill.Use(caster, skillCaster, target);
+                    //owner.NeedChangePhase = true;
+                    //return;
                 }
             }
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

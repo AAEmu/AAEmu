@@ -39,20 +39,20 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
             }
 
-            if (caster is Character character)
-            {
-                if (target is Doodad)
-                {
-                    character.Quests.OnInteraction(WorldInteraction, target);
-                }
-                else
-                {
-                    var skillItem = casterObj as SkillItem;
-                    character.Inventory.Bag.GetAllItemsByTemplate(skillItem.ItemTemplateId, -1, out var items, out var count);
-                    if (count > 0)
-                        character.Quests.OnItemUse(items[0]);
-                }
-            }
+            //if (caster is Character character)
+            //{
+            //    if (target is Doodad)
+            //    {
+            //        character.Quests.OnInteraction(WorldInteraction, target);
+            //    }
+            //    else
+            //    {
+            //        var skillItem = casterObj as SkillItem;
+            //        character.Inventory.Bag.GetAllItemsByTemplate(skillItem.ItemTemplateId, -1, out var items, out var count);
+            //        if (count > 0)
+            //            character.Quests.OnItemUse(items[0]);
+            //    }
+            //}
         }
     }
 }

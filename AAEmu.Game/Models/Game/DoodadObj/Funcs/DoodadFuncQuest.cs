@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     character.Quests.OnReportToDoodad(owner.ObjId, QuestId, 0);
             }
 
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

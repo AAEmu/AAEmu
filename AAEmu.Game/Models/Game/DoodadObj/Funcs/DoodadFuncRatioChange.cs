@@ -17,12 +17,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 owner.OverridePhase = NextPhase; //Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded
                 _log.Trace("DoodadFuncRatioChange : OverridePhase {0}", NextPhase);
-                owner.ToPhaseAndUse = true;
+                owner.NeedChangePhase = true;
                 return;
             }
             _log.Trace("DoodadFuncRatioChange : NextPhase {0}", NextPhase);
             owner.CumulativePhaseRatio += Ratio;
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

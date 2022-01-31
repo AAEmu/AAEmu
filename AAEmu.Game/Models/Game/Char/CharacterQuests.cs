@@ -156,8 +156,8 @@ namespace AAEmu.Game.Models.Game.Char
                 var body = new byte[8];
                 complete.Body.CopyTo(body, 0);
                 Drop(questId, false);
+                OnQuestComplete(questId);
                 Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
-                //OnQuestComplete(questId);
             }
         }
 
@@ -173,10 +173,13 @@ namespace AAEmu.Game.Models.Game.Char
             quest.Owner.SendMessage("[Quest] {0}, quest {1} removed.", Owner.Name, questId);
             _log.Warn("[Quest] {0}, quest {1} removed.", Owner.Name, questId);
 
-            if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(questId))
+            if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
             {
-                _ = QuestManager.Instance.QuestTimeoutTask[questId].Cancel();
-                QuestManager.Instance.QuestTimeoutTask.Remove(questId);
+                if (QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
+                {
+                    _ = QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][questId].Cancel();
+                    _ = QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Remove(questId);
+                }
             }
 
             QuestIdManager.Instance.ReleaseId((uint)quest.Id);
@@ -252,20 +255,35 @@ namespace AAEmu.Game.Models.Game.Char
                 quest.OnKill(npc);
         }
 
+        /// <summary>
+        /// Взаимодействие с doodad, например сбор ресурсов
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="count"></param>
         public void OnItemGather(Item item, int count)
         {
-            if (!Quests.ContainsKey(item.Template.LootQuestId))
-                return;
-            var quest = Quests[item.Template.LootQuestId];
-            quest.OnItemGather(item, count);
+            //if (!Quests.ContainsKey(item.Template.LootQuestId))
+            //    return;
+            //var quest = Quests[item.Template.LootQuestId];
+            foreach (var quest in Quests.Values.ToList())
+                quest.OnItemGather(item, count);
         }
 
+        /// <summary>
+        /// Использование предмета в инвентаре
+        /// </summary>
+        /// <param name="item"></param>
         public void OnItemUse(Item item)
         {
             foreach (var quest in Quests.Values.ToList())
                 quest.OnItemUse(item);
         }
 
+        /// <summary>
+        /// Взаимодействие с doodad, например ломаем шахту по квесту
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="target"></param>
         public void OnInteraction(WorldInteractionType type, Units.BaseUnit target)
         {
             foreach (var quest in Quests.Values)

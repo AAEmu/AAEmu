@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             //    character.Quests.OnInteraction(WorldInteractionId, character.CurrentTarget);
             //}
 
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         {
             if (target is Doodad doodad)
             {
-                doodad.Use(caster, skillId);
+                doodad.UseNew(caster, skillId);
                 caster.BroadcastPacket(new SCVegetationCutdowningPacket(caster.ObjId, doodad.ObjId), true);
             }
         }

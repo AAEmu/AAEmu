@@ -25,15 +25,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             if (NextPhase > 0)
             {
+                if (owner.FuncTask != null)
+                {
+                    _ = owner.FuncTask.Cancel();
+                    _ = owner.FuncTask = null;
+                }
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay + 1));
             }
             else
             {
                 //Wondering if more needs done here if depending on next phase func
-                owner.Use(caster, skillId);
+                //owner.Use(caster, skillId);
             }
-            owner.ToPhaseAndUse = false;
+            owner.OverridePhase = (uint)NextPhase;
+            owner.NeedChangePhase = false;
         }
     }
 }

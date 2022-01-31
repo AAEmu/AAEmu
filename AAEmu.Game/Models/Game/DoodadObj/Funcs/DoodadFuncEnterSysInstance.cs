@@ -46,7 +46,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 else
                     _log.Warn("World {0} (#.{1}), does not have a default spawn position.", world.Name, world.Id);
             }
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

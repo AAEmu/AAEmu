@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId,AttachUnitReason.NewMaster);
                 }
             }
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

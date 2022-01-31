@@ -25,7 +25,7 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplates;
         private Dictionary<uint, List<uint>> _groupItems;
         private Dictionary<uint, List<uint>> _groupNpcs;
-        public Dictionary<uint, QuestTimeoutTask> QuestTimeoutTask;
+        public Dictionary<uint, Dictionary<uint, QuestTimeoutTask>> QuestTimeoutTask;
 
         public QuestTemplate GetTemplate(uint id)
         {
@@ -87,7 +87,8 @@ namespace AAEmu.Game.Core.Managers
 
         public void Load()
         {
-            QuestTimeoutTask = new Dictionary<uint, QuestTimeoutTask>();
+            //                              charId          questId  Task
+            QuestTimeoutTask = new Dictionary<uint, Dictionary<uint, QuestTimeoutTask>>();
 
             _templates = new Dictionary<uint, QuestTemplate>();
             _supplies = new Dictionary<byte, QuestSupplies>();

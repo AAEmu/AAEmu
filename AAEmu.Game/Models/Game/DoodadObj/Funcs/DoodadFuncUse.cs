@@ -47,7 +47,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);
                 if (skillTemplate == null)
                 {
-                    owner.ToPhaseAndUse = false;
+                    owner.NeedChangePhase = false;
                     return;
                 }
                 var useSkill = new Skill(skillTemplate);
@@ -55,11 +55,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     new UseSkillTask(useSkill, caster, new SkillCasterUnit(caster.ObjId), owner,
                         new SkillCastDoodadTarget { ObjId = owner.ObjId }, null), TimeSpan.FromMilliseconds(0));
             }
-            // TODO далее, после возврата, будет вызов GoToPhaseAndUse
+            // TODO далее, после возврата, будет вызов GoNeedChangePhase
             //if (nextPhase > 0)
-            //    owner.GoToPhaseAndUse(null, nextPhase, skillId);
+            //    owner.GoToPhase(null, nextPhase, skillId);
 
-            owner.ToPhaseAndUse = skillId > 0;
+            owner.NeedChangePhase = skillId > 0;
         }
     }
 }

@@ -17,7 +17,8 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             _log.Trace("World interaction SkillID: {0}", skillId);
             if (target is Doodad doodad)
             {
-                doodad.Use(caster, skillId);
+                doodad.UseNew(caster, skillId);
+                //doodad.UseNew(caster, skillId);
             }
         }
     }

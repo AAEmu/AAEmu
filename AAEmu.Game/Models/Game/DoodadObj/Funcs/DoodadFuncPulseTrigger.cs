@@ -12,8 +12,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Trace("DoodadFuncPulseTrigger");
             if (Flag && nextPhase == 1)
-                owner.GoToPhaseAndUse(null, (int)NextPhase);
-            owner.ToPhaseAndUse = false;
+                owner.GoToPhaseChanged(null, (int)NextPhase);
+            owner.NeedChangePhase = false;
         }
     }
 }

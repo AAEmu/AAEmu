@@ -17,9 +17,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 //I think this is used to reschedule anything that needs triggered at a specific gametime
                 owner.OverridePhase = NextPhase;
-                owner.ToPhaseAndUse = true;
+                owner.NeedChangePhase = true;
             }
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

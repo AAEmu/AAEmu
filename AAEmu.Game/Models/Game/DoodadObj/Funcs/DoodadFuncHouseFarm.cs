@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Trace("DoodadFuncHouseFarm");
             // owner.Use(caster);
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
         }
     }
 }

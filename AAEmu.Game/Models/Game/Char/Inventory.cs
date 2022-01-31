@@ -738,8 +738,11 @@ namespace AAEmu.Game.Models.Game.Char
         public void OnAcquiredItem(Item item,int count,bool onlyUpdatedCount = false)
         {
             // Quests
-            if ((item?.Template.LootQuestId > 0) && (count != 0))
+            //if ((item?.Template.LootQuestId > 0) && (count != 0))
+            if (count > 0 && item != null)
+            {
                 Owner?.Quests?.OnItemGather(item, count);
+            }
         }
 
         /// <summary>
@@ -750,10 +753,13 @@ namespace AAEmu.Game.Models.Game.Char
         /// <param name="onlyUpdatedCount"></param>
         public void OnConsumedItem(Item item, int count, bool onlyUpdatedCount = false)
         {
-            // вызов OnItemUse перенес в CSStartSkillPacket
+            // вызов OnItemUse перенес в CSStartSkillPacket - неправильный выбор! отменяем!
             // Quests
             //if ((item?.Template.LootQuestId > 0) && (count != 0))
-            //    Owner?.Quests?.OnItemUse(item);
+            if (count > 0 && item != null)
+            {
+                Owner?.Quests?.OnItemUse(item);
+            }
         }
 
         public void OnItemManuallyDestroyed(Item item, int count)

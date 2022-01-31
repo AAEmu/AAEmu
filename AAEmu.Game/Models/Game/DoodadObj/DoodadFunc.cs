@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         //public async void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         public void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            owner.ToPhaseAndUse = false;
+            owner.NeedChangePhase = false;
             var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
 
             template?.Use(caster, owner, skillId, nextPhase);

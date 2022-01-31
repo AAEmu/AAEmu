@@ -58,9 +58,9 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 // Квест Id=2255 не вызывается результат использования предмета Id=16280, Engraved Lodestone
                 // добавил вызов OnItemUse
-                Connection.ActiveChar.Inventory.Bag.GetAllItemsByTemplate(((SkillItem)skillCaster).ItemTemplateId, -1, out var items, out var count);
-                if (count > 0)
-                    Connection.ActiveChar.Quests.OnItemUse(items[0]);
+                //Connection.ActiveChar.Inventory.Bag.GetAllItemsByTemplate(((SkillItem)skillCaster).ItemTemplateId, -1, out var items, out var count);
+                if (item.Count > 0)
+                    Connection.ActiveChar.Quests.OnItemUse(item);
             }
             else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
             {
