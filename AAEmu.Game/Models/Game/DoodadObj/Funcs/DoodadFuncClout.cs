@@ -28,11 +28,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}," +
+            _log.Debug("DoodadFuncClout : Duration {0}, Tick {1}, TargetRelationId {2}, BuffId {3}," +
                        " ProjectileId {4}, ShowToFriendlyOnly {5}, NextPhase {6}, AoeShapeId {7}," +
                        " TargetBuffTagId {8}, TargetNoBuffTagId {9}, UseOriginSource {10}",
                 Duration, Tick, TargetRelation, BuffId, ProjectileId, ShowToFriendlyOnly, NextPhase, AoeShapeId, TargetBuffTagId, TargetNoBuffTagId, UseOriginSource);
-
 
             var areaTrigger = new AreaTrigger()
             {
@@ -56,11 +55,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     await Task.Delay(Duration);
                     if (NextPhase == -1)
                         owner.Delete();
-                    owner.GoToPhaseChanged(caster, NextPhase);
+                    owner.GoToPhaseChanged(caster, (uint)NextPhase);
                     AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });
             }
-            owner.NeedChangePhase = false;
+
         }
     }
 }

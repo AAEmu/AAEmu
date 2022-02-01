@@ -14,9 +14,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncLootPack : LootPackId {0}, SkillId {1}", LootPackId, skillId);
+            _log.Debug("DoodadFuncLootPack : LootPackId {0}, SkillId {1}", LootPackId, skillId);
 
-            owner.NeedChangePhase = false;
             var character = (Character)caster;
             if (character == null)
                 return;
@@ -41,7 +40,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     var count = itemQuantity.Next(pack.MinAmount, pack.MaxAmount);
                     character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, pack.ItemId, count);
                 }
-                owner.NeedChangePhase = true;
             }
             else
             {

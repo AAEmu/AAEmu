@@ -11,7 +11,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             // DoodadManager.Instance.TriggerPhases(GetType().Name, caster, owner, SkillId);
             // owner.Use(caster, skillId);
-            owner.NeedChangePhase = skillId == SkillId;
         }
     }
 }

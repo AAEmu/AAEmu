@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         private Unit _caster;
         private Doodad _owner;
         private uint _skillId;
-        private int _nextPhase;
+        private uint _nextPhase;
         private bool _respawn;
         private int _delay;
         private DateTime? _respawnTime;
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
             _caster = caster;
             _owner = owner;
             _skillId = skillId;
-            _nextPhase = (int)owner.FuncGroupId;
+            _nextPhase = owner.FuncGroupId;
             _respawn = respawn;
             _owner = owner;
             _delay = delay;

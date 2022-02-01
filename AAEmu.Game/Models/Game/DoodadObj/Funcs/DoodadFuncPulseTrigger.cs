@@ -10,10 +10,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncPulseTrigger");
+            _log.Debug("DoodadFuncPulseTrigger");
             if (Flag && nextPhase == 1)
-                owner.GoToPhaseChanged(null, (int)NextPhase);
-            owner.NeedChangePhase = false;
+                owner.GoToPhaseChanged(null, NextPhase);
+
         }
     }
 }

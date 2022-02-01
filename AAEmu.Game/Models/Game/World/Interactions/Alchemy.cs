@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         {
             if (target is Doodad doodad)
             {
-                doodad.UseNew(caster, skillId);
+                doodad.Use(caster, skillId);
             }
         }
     }

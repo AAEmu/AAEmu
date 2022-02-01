@@ -22,17 +22,29 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (caster is Character)
             {
                 //I think this is used to reschedule anything that needs triggered at a specific gametime
-                //if (owner.FuncTask != null)
-                //{
-                //    _ = owner.FuncTask.Cancel();
-                //    _ = owner.FuncTask = null;
-                //}
-                //owner.FuncTask = new DoodadFuncTodTask(caster, owner, skillId, (int)NextPhase);
-                //TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Tod + 1));
-                //owner.NeedChangePhase = false;
+                // По моему, здесь должна быть проверка на время дня.
+                // Например: уличные светильники должны гореть ночью, а не днем.
+                // к примеру в 6:00 переключим на 4024 - выкл, а в 18:00 на 4023 - вкл.
+                /*
+                [Doodad] Chain: TemplateId 2322
+                [Doodad] FuncGroupId : 4623 Start
+                [Doodad] Func: GroupId 4623, FuncId 533, FuncType DoodadFuncFakeUse, NextPhase 4717, Skill 0
+                [Doodad] PhaseFunc: GroupId 4717, FuncId 833, FuncType DoodadFuncTimer, NextPhase 4623, Delay 60000
+                [Doodad] PhaseFunc: GroupId 4717, FuncId 138, FuncType DoodadFuncTod, NextPhase 4624, tod 400
+                [Doodad] FuncGroupId : 4624
+                [Doodad] Func: GroupId 4624, FuncId 534, FuncType DoodadFuncFakeUse, NextPhase 4718, Skill 0
+                [Doodad] PhaseFunc: GroupId 4718, FuncId 834, FuncType DoodadFuncTimer, NextPhase 4024, Delay 60000 
+                [Doodad] PhaseFunc: GroupId 4718, FuncId 139, FuncType DoodadFuncTod, NextPhase 4623, tod 2000
+                [Doodad] FuncGroupId : 4717
+                [Doodad] Func: GroupId 4717, FuncId 596, FuncType DoodadFuncFakeUse, NextPhase 4623, Skill 0
+                [Doodad] PhaseFunc: GroupId 4623, FuncId 132, FuncType DoodadFuncTod, NextPhase 4624, tod 400
+                [Doodad] FuncGroupId : 4718
+                [Doodad] Func: GroupId 4718, FuncId 597, FuncType DoodadFuncFakeUse, NextPhase 4624, Skill 0
+                [Doodad] PhaseFunc: GroupId 4624, FuncId 133, FuncType DoodadFuncTod, NextPhase 4623, tod 2000
+                [Doodad] PhaseFunc: GroupId 4624, FuncId 301, FuncType DoodadFuncTod, NextPhase -1, tod 930
+                */
             }
-            owner.OverridePhase = NextPhase;
-            owner.NeedChangePhase = true;
+
         }
     }
 }

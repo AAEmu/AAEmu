@@ -3,6 +3,8 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -19,10 +21,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint GroupId { get; set; }
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
-        {
-            owner.NeedChangePhase = false;
+{
+            _log.Debug("DoodadFuncLootItem: skillId {0}, nextPhase {1},  ItemId {2}, CountMin {3}, CountMax {4},  Percent {5}, RemainTime {6}, GroupId {7}",
+                skillId, nextPhase, ItemId, CountMin, CountMax, Percent, RemainTime, GroupId);
 
             var character = (Character)caster;
+            var res = true;
             if (character == null)
                 return;
 
@@ -37,32 +41,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var item = ItemManager.Instance.Create(ItemId, count, 0);
                 if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
                 {
-                    if (character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item, (int)Items.EquipmentItemSlot.Backpack))
-                    {
-                        owner.NeedChangePhase = true;
-                    }
+                    res = character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item, (int)Items.EquipmentItemSlot.Backpack);
                 }
             }
             else
             {
-                owner.NeedChangePhase = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, ItemId, count);
+                res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, ItemId, count);
             }
 
-            if (owner.NeedChangePhase == false)
+            if (res == false)
                 character.SendErrorMessage(ErrorMessageType.BagFull);
-
-            //// попытка исправить переполнение инвентаря по квесту Id=259, Echoes from the Past, Solzreed Peninsula, Solzreed Peninsula
-            //if (character.Inventory.GetItemsCount(ItemId) == count)
-            //{
-            //    owner.NeedChangePhase = false;
-            //    character.SendErrorMessage(ErrorMessageType.ItemPickupLimit);
-            //    return;
-            //}
-
-            //if (character.Inventory.TryAddNewItem(ItemTaskType.AutoLootDoodadItem, ItemId, count))
-            //    owner.NeedChangePhase = true;
-            //else
-            //    character.SendErrorMessage(ErrorMessageType.BagFull);
         }
     }
 }

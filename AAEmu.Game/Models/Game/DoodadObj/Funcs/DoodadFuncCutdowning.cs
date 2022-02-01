@@ -12,7 +12,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             //TODO Tree falling effect goes here?
             // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId);
             //owner.Use(caster, skillId);
-            owner.NeedChangePhase = false;
         }
     }
 }

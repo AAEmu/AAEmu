@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncExitIndun, ReturnPointId: {0}", ReturnPointId);
+            _log.Debug("DoodadFuncExitIndun, ReturnPointId: {0}", ReturnPointId);
 
             if (caster is Character character)
             {
@@ -41,7 +41,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     _log.Warn("DoodadFuncExitIndun, Not have return point!");
                 }
             }
-            owner.NeedChangePhase = false;
         }
     }
 }

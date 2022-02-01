@@ -18,6 +18,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             _log.Debug("DoodadFuncUse: skillId {0}, nextPhase {1},  SkillId {2}", skillId, nextPhase, SkillId);
 
+            if (caster == null)
+            {
+                return;
+            }
+
             if ((owner.DbHouseId > 0) && (caster is Character player))
             {
                 // If it's on a house, need to check permissions
@@ -47,7 +52,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);
                 if (skillTemplate == null)
                 {
-                    owner.NeedChangePhase = false;
+        
                     return;
                 }
                 var useSkill = new Skill(skillTemplate);
@@ -55,11 +60,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     new UseSkillTask(useSkill, caster, new SkillCasterUnit(caster.ObjId), owner,
                         new SkillCastDoodadTarget { ObjId = owner.ObjId }, null), TimeSpan.FromMilliseconds(0));
             }
-            // TODO далее, после возврата, будет вызов GoNeedChangePhase
-            //if (nextPhase > 0)
-            //    owner.GoToPhase(null, nextPhase, skillId);
-
-            owner.NeedChangePhase = skillId > 0;
         }
     }
 }

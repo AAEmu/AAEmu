@@ -10,14 +10,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncCraftDirect");
+            _log.Debug("DoodadFuncCraftDirect");
             if (caster is Character)
             {
                 //I think this is used to reschedule anything that needs triggered at a specific gametime
                 owner.OverridePhase = NextPhase;
-                owner.NeedChangePhase = true;
             }
-            owner.NeedChangePhase = false;
         }
     }
 }

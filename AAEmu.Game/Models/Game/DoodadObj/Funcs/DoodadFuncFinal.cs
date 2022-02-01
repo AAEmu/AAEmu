@@ -54,8 +54,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             {
                 owner.Delete();
             }
-
-            owner.NeedChangePhase = false;
         }
     }
 }

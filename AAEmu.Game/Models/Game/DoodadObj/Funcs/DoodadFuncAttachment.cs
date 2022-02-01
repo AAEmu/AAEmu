@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncAttachment");
+            _log.Debug("DoodadFuncAttachment");
             if (caster is Character character)
             {
                 if (BondKindId > BondKind.BondInvalid)
@@ -36,7 +36,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId,AttachUnitReason.NewMaster);
                 }
             }
-            owner.NeedChangePhase = false;
         }
     }
 }

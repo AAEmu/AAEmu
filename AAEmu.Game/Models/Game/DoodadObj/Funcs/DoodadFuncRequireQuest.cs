@@ -12,14 +12,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncRequireQuest QuestId: {0}, WorldIntId {1}", QuestId, WorldInteractionId);
+            _log.Debug("DoodadFuncRequireQuest QuestId: {0}, WorldIntId {1}", QuestId, WorldInteractionId);
 
             //if (caster is Character character)
             //{
             //    character.Quests.OnInteraction(WorldInteractionId, character.CurrentTarget);
             //}
-
-            owner.NeedChangePhase = false;
         }
     }
 }

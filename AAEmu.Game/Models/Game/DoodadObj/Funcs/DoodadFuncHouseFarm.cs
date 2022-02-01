@@ -9,9 +9,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncHouseFarm");
+            _log.Debug("DoodadFuncHouseFarm");
             // owner.Use(caster);
-            owner.NeedChangePhase = false;
+
         }
     }
 }

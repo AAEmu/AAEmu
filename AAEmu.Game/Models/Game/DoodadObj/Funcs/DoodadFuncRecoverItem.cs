@@ -12,7 +12,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
     {
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Trace("DoodadFuncRecoverItem");
+            _log.Debug("DoodadFuncRecoverItem");
 
             var character = (Character)caster;
             var addedItem = false;
@@ -23,9 +23,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 {
                     // Recoverable doodads, should be referencing a item in a System container, if this is not the case,
                     // that means that it was already picked up by somebody else
-                    if (item._holdingContainer.ContainerType != SlotType.System)
+                    if (item._holdingContainer?.ContainerType != SlotType.System)
                     {
-                        owner.NeedChangePhase = false;
+            
                         // character.SendErrorMessage(ErrorMessageType.Backpack); // TODO: Not sure what error I need to put here
                         return;
                     }
@@ -70,8 +70,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             if ((addedItem) && (item != null) && (item._holdingContainer.ContainerType == SlotType.Equipment))
                 character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
-
-            owner.NeedChangePhase = addedItem;
         }
     }
 }

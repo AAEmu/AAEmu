@@ -18,6 +18,7 @@ using AAEmu.Game.Utils.DB;
 using NLog;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using Microsoft.Data.Sqlite;
+using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -2246,7 +2247,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (obj is Unit unit)
             {
                 //doodad.DoPhase(unit, 0);
-                doodad.UseNew(unit, 0);
             }
             return doodad;
         }
@@ -2313,13 +2313,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (_templates.ContainsKey(doodadTemplateId))
             {
                 var doodaTemplates = _templates[doodadTemplateId];
-                foreach (var doodaTemplate in doodaTemplates.FuncGroups)
-                {
-                    if (doodaTemplate.Almighty == doodadTemplateId)
-                    {
-                        listDoodadFuncGroups.Add(doodaTemplate);
-                    }
-                }
+                listDoodadFuncGroups.AddRange(doodaTemplates.FuncGroups);
                 return listDoodadFuncGroups;
             }
             return null;
@@ -2390,10 +2384,11 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Inventory.ConsumeItem(new[] { SlotType.Inventory }, ItemTaskType.DoodadCreate, item, 1, preferredItem);
 
             doodad.Spawn();
-            doodad.Save();
 
-            //// для системы квестов
-            //character.Quests.OnInteraction(WorldInteractionType.Use, doodad);
+            var caster = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
+            doodad.GoToPhaseChanged(caster, doodad.FuncGroupId);
+
+            doodad.Save();
 
             return doodad;
         }

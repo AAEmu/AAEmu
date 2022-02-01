@@ -19,6 +19,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             _log.Debug("DoodadFuncFakeUse: skillId {0}, nextPhase {1},  SkillId {2}, FakeSkillId {3}, TargetParent {4}",
                 skillId, nextPhase, SkillId, FakeSkillId, TargetParent);
 
+            if (caster == null)
+            {
+                return;
+            }
+
             if (SkillId != 0)
             {
                 var skillCaster = SkillCaster.GetByType(SkillCasterType.Doodad);
@@ -66,7 +71,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     //return;
                 }
             }
-            owner.NeedChangePhase = false;
         }
     }
 }

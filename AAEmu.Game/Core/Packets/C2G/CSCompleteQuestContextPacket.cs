@@ -21,13 +21,6 @@ namespace AAEmu.Game.Core.Packets.C2G
             _doodadObjId = stream.ReadBc();
             _selected = stream.ReadInt32();
 
-            //if (_npcObjId > 0 &&
-            //    Connection.ActiveChar.CurrentTarget != null &&
-            //    Connection.ActiveChar.CurrentTarget.ObjId != _npcObjId)
-            //    return;
-
-            //Connection.ActiveChar.Quests.Complete(_npcObjId, _selected);
-
             if (_npcObjId > 0)
                 Connection.ActiveChar.Quests.OnReportToNpc(_npcObjId, _questContextId, _selected);
             if (_doodadObjId > 0)

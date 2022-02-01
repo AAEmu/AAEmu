@@ -21,6 +21,7 @@ using NLog;
 using System.Threading.Tasks;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.World.Interactions;
+using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
 {
@@ -51,7 +52,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public DoodadSpawner Spawner { get; set; }
         public DoodadFuncTask FuncTask { get; set; }
         public uint TimeLeft => GrowthTime > DateTime.UtcNow ? (uint)(GrowthTime - DateTime.UtcNow).TotalMilliseconds : 0; // TODO formula time of phase
-        public bool NeedChangePhase { get; set; }
         public int PhaseRatio { get; set; }
         public int CumulativePhaseRatio { get; set; }
         public uint OverridePhase { get; set; }
@@ -71,104 +71,155 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             _scale = scale;
         }
 
-        /// <summary>
-        /// This "uses" the doodad. Using a doodad means running its functions in doodad_funcs
-        /// </summary>
-        public void UseNew(Unit unit, uint skillId)
+        public void Use(Unit caster, uint skillId)
         {
-            try
+            _log.Debug("Using phase {0}", FuncGroupId);
+            var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId);
+            if (func == null) { return; }
+
+            var checkPhase = FuncGroupId;
+
+            var nextPhase = (uint)func.NextPhase; // 4717
+
+            func.Use(caster, this, skillId);
+
+            if (nextPhase > 0)
             {
-                _log.Warn("[Doodad] UseNew: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", ObjId, TemplateId, skillId, FuncGroupId);
-                var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(TemplateId);
-                if (doodadFuncGroups.Count <= 0)
+                if (FuncTask != null)
                 {
-                    return;
+                    _ = FuncTask.Cancel();
+                    FuncTask = null;
                 }
-                var find = false;
-                foreach (var doodadFuncGroup in doodadFuncGroups)
+
+                if (func.SoundId > 0)
                 {
-                    /*
-                     * 4623 -> 4717 - Timer (60000) 4623, Tod (400) 4624 
-                    */
-                    if (FuncGroupId != 0)
-                    {
-                        if (doodadFuncGroup.Id != FuncGroupId && !find)
-                        {
-                            continue; // пропустим все фазы до текущей
-                        }
-                    }
-                    find = true;
-                    //if (doodadFunc.Model.Length != 0 || doodadFunc.Model != "a://invalid")
-                    //    return; // закончим цикл функций, так как вернулись к первой
-                    FuncGroupId = doodadFuncGroup.Id;
-                    // Get all doodad_funcs
-                    var doodadFuncs = DoodadManager.Instance.GetDoodadFuncs(FuncGroupId); // 4623
-                    foreach (var func in doodadFuncs)
-                    {
-                        /*
-                         * 4623 -> 533 DoodadFakeUse 13167, NextPhase -> 4717
-                        */
-                        /*
-                         * для 4623 -> FakeUse 4717
-                         * для 4624 -> FakeUse 4718
-                        */
-                        func?.Use(unit, this, skillId, func.NextPhase);                        
-                        if (FuncTask != null)
-                        {
-                            _ = FuncTask.Cancel();
-                            FuncTask = null;
-                        }
-                        if (func.SoundId > 0)
-                        {
-                            BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
-                        }
-                        // Get all doodad_phase_funcs
-                        var phaseFuncs = DoodadManager.Instance.GetPhaseFunc((uint)func.NextPhase); // 4717
-                        foreach (var phaseFunc in phaseFuncs)
-                        {
-                            //  для 4623 -> 4717 Tod (400) 4624 - выкл, Timer (60000) 4623 - вкл
-                            //  для 4624 -> 4718 Tod (400) 4623 - вкл, Timer (60000) 4624 - выкл
-                            phaseFunc?.Use(unit, this, skillId, func.NextPhase);
-                            FuncGroupId = (uint)func.NextPhase;
-                            //if (NeedChangePhase)
-                            {
-                                if (OverridePhase > 0)
-                                {
-                                    FuncGroupId = OverridePhase; // 4624 - выкл
-                                }
-                            }
-                            GoToPhaseChanged(unit, (int)FuncGroupId); // 4624 - выкл
-                        }
-                        //if (FuncGroupId == (uint)func.NextPhase || func.NextPhase == -1)
-                        //    return; // закончим цикл функций, так как вернулись к первой или функций нет
-                    }
+                    BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
+                }
+
+                DoPhaseFuncs(caster, nextPhase);
+            }
+
+            var nextFunc = DoodadManager.Instance.GetFunc(nextPhase, skillId);
+            if (nextFunc == null) { return; }
+
+            if (nextFunc.NextPhase == checkPhase || nextFunc.NextPhase == -1)
+            {
+                nextFunc.Use(caster, this, skillId);
+                return;
+            }
+
+            Use(caster, skillId);
+        }
+
+        public void DoFuncs(Unit unit, uint skillId, uint CurrentPhaseId)
+        {
+            _log.Debug("Using phase {0}", CurrentPhaseId);
+            var nextPhase = 0u;
+            // Get all doodad_funcs for CurrentPhaseId
+
+            var doodadFuncs = DoodadManager.Instance.GetDoodadFuncs((uint)CurrentPhaseId);
+            foreach (var func in doodadFuncs)
+            {
+                if (func == null) { return; }
+
+                func.Use(unit, this, skillId, func.NextPhase);
+
+                if (func.NextPhase <= 0) { return; }
+
+                nextPhase = (uint)func.NextPhase;
+
+                if (FuncTask != null)
+                {
+                    _ = FuncTask.Cancel();
+                    FuncTask = null;
+                }
+                if (func.SoundId > 0)
+                {
+                    BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
                 }
             }
-            catch (Exception e)
+
+            if (nextPhase == 0)
+                return;
+            // Get all doodad_phase_funcs for NextPhase
+            DoPhaseFuncs(unit, nextPhase);
+
+            if (CurrentPhaseId == nextPhase || (int)nextPhase == -1)
+                return; // закончим цикл функций, так как вернулись к первой или функций нет
+
+            // Do NextPhase
+            DoFuncs(unit, skillId, nextPhase);
+        }
+
+        /// <summary>
+        /// выполняем фазовые функции
+        /// </summary>
+        /// <param name="unit"></param>
+        /// <param name="skillId">всегда равен 0</param>
+        /// <param name="nextPhase">фаза на которую необходимо переключиться</param>
+        private void DoPhaseFuncs(Unit caster, uint nextPhase)
+        {
+            if (nextPhase > 0)
             {
-                _log.Fatal(e, "[Doodad] Doodad func crashed !");
+                FuncGroupId = nextPhase;
+
+                var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
+                foreach (var phaseFunc in phaseFuncs)
+                {
+                    if (phaseFunc == null) { continue; }
+                    phaseFunc.Use(caster, this);
+                }
+
+                _log.Debug("[Doodad] {0}, {1} SCDoodadPhaseChangedPacket: FuncGroupId {2}", TemplateId, ObjId, FuncGroupId);
+                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // 4623 - вкл
             }
         }
 
         /// <summary>
-        /// This executes a doodad's phase. Phase functions start as soon as the doodad switches to a new phase.
+        /// выполняем после таймеров
         /// </summary>
-        public void GoToPhaseChanged(Unit unit, int funcGroupId, uint skillId = 0)
+        /// <param name="unit"></param>
+        /// <param name="skillId">всегда равен 0</param>
+        /// <param name="nextPhase">фаза на которую необходимо переключиться</param>
+        public void GoToPhaseChanged(Unit unit, uint nextPhase)
         {
-            _log.Warn("[Doodad] GoToPhase: Using skill {0} with doodad  phase {1}", skillId, funcGroupId);
-
-            if (funcGroupId == -1)
-            {
-                // Delete doodad
-                Delete();
-            }
+            if (FuncTask != null)
+                _ = FuncTask.Cancel();
             else
-            {
-                FuncGroupId = (uint)funcGroupId; // 4623 - вкл
+                FuncTask = null;
 
-                _log.Debug("[Doodad] SCDoodadPhaseChangedPacket: FuncGroupId {0}", FuncGroupId);
-                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // 4623 - вкл
+            FuncGroupId = nextPhase;
+
+            var func = DoodadManager.Instance.GetFunc(FuncGroupId);
+            if (func == null) { return; }
+            func.Use(unit, this);
+
+            // Get all doodad_phase_funcs
+            var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
+            foreach (var phaseFunc in phaseFuncs)
+            {
+                if (phaseFunc == null) { continue; }
+                phaseFunc.Use(unit, this);
             }
+
+            _log.Debug("[Doodad] {0}, {1} SCDoodadPhaseChangedPacket: FuncGroupId {2}", TemplateId, ObjId, FuncGroupId);
+            BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // 4623 - вкл
+        }
+
+        /// <summary>
+        /// Инициализация doodad начальной фазой
+        /// </summary>
+        public void SetStartPhase()
+        {
+            // исправляем отображение квестовых ящиков ID=5171, Stolen Goods для квеста ID=1135, Securing the Road, Arcum Iris
+            // у них для стартовой функции нет отображаемого предмета
+            var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(TemplateId);
+            if (doodadFuncGroups.Count <= 0)
+            {
+                return;
+            }
+            FuncGroupId = doodadFuncGroups[0].Id;
+            _log.Debug("Doing phase {0} for doodad {1} objId {2}", FuncGroupId, TemplateId, ObjId);
         }
 
         public List<uint> GetStartFuncs()
@@ -200,9 +251,21 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 if (func.FuncType == "DoodadFuncSkillHit")
                 {
-                    UseNew(null, skillId);
+                    Use(null, skillId);
                 }
             }
+        }
+
+        public override void Spawn()
+        {
+            base.Spawn();
+            SetStartPhase();
+        }
+
+        public override void BroadcastPacket(GamePacket packet, bool self)
+        {
+            foreach (var character in WorldManager.Instance.GetAround<Character>(this))
+                character.SendPacket(packet);
         }
 
         public override void AddVisibleObject(Character character)

@@ -38,8 +38,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //Wondering if more needs done here if depending on next phase func
                 //owner.Use(caster, skillId);
             }
-            owner.OverridePhase = (uint)NextPhase;
-            owner.NeedChangePhase = false;
         }
     }
 }

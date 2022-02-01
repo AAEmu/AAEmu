@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         private Unit _caster;
         private Doodad _owner;
         private uint _skillId;
-        private int _nextPhase;
+        private uint _nextPhase;
         private float _endScale;
 
         public DoodadFuncGrowthTask(Unit caster, Doodad owner, uint skillId, int nextPhase, float endScale) : base(caster, owner, skillId)
@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
             _caster = caster;
             _owner = owner;
             _skillId = skillId;
-            _nextPhase = nextPhase;
+            _nextPhase = (uint)nextPhase;
             _endScale = endScale;
         }
 
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         {
             _log.Warn("[Doodad] DoodadFuncGrowthTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
             _owner.Scale = _endScale;
-            _owner.GoToPhaseChanged(_caster, _nextPhase, 0);
+            _owner.GoToPhaseChanged(_caster, _nextPhase);
         }
     }
 }

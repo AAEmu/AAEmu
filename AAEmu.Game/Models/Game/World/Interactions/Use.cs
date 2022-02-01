@@ -14,11 +14,11 @@ namespace AAEmu.Game.Models.Game.World.Interactions
         public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
         {
-            _log.Trace("World interaction SkillID: {0}", skillId);
+            _log.Debug("World interaction SkillID: {0}", skillId);
             if (target is Doodad doodad)
             {
-                doodad.UseNew(caster, skillId);
-                //doodad.UseNew(caster, skillId);
+                doodad.Use(caster, skillId);
+                //doodad.Use(caster, skillId);
             }
         }
     }

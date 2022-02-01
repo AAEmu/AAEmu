@@ -16,8 +16,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            owner.NeedChangePhase = false;
-
             if (!(caster is Character character))
                 return;
             if (character.Inventory.Bag.SpaceLeftForItem(ItemId) < Count)
