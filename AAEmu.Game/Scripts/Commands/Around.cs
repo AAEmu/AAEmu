@@ -41,8 +41,8 @@ namespace AAEmu.Game.Scripts.Commands
             indexStr += (index + 1).ToString();
 
             if (go is Doodad gDoodad)
-                character.SendMessage("#{0} -> BcId: {1} DoodadTemplateId: {2} - @DOODAD_NAME({2})", 
-                    indexStr, gDoodad.ObjId, gDoodad.TemplateId);
+                character.SendMessage( "#{0} -> BcId: {1} DoodadTemplateId: {2} - @DOODAD_NAME({2}) FuncGroupId {3}", 
+                    indexStr, gDoodad.ObjId, gDoodad.TemplateId, gDoodad.FuncGroupId );
             else
             if (go is Character gChar)
                 character.SendMessage("#{0} -> BcId: {1} CharacterId: {2} - {3}", 
@@ -93,7 +93,7 @@ namespace AAEmu.Game.Scripts.Commands
                     // sb.AppendLine("[Around] Doodads:");
                     for (var i = 0; i < doodads.Count; i++)
                     {
-                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")");
+                        character.SendMessage("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString() + " - @DOODAD_NAME(" + doodads[i].TemplateId.ToString() + ")" + ", FuncGroupId: " + doodads[i].FuncGroupId.ToString() );
                         // sb.AppendLine("#" + (i + 1).ToString() + " -> BcId: " + doodads[i].ObjId.ToString() + " DoodadTemplateId: " + doodads[i].TemplateId.ToString());
                         if (verbose)
                         {

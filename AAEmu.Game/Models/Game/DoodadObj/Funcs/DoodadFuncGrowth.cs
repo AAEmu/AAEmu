@@ -24,10 +24,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             owner.Scale = StartScale / 1000f;
             var customDelay = Delay / 100.0f; // decrease delay
 
+            if (owner.FuncTask != null)
+            {
+                _ = owner.FuncTask.Cancel();
+                _ = owner.FuncTask = null;
+                _log.Debug("DoodadFuncGrowthTask: The current timer has been canceled by the next scheduled timer.");
+            }
             owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, skillId, NextPhase, EndScale / 1000f);
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(customDelay);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(customDelay));
-
         }
     }
 }

@@ -150,6 +150,15 @@ namespace AAEmu.Game.Models.Game.World
                     // Ignore doodads here, as we have a special packet for those
                     if (go is Doodad doodad)
                     {
+                        // turning the first Phase on to display
+                        var unit = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
+                        if (unit is null)
+                        {
+                            var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.FuncGroupId);
+                            if (funcs.Count > 0)
+                                continue;
+                        }
+                        doodad.DoPhaseFuncs(unit, (int)doodad.FuncGroupId); 
                         continue;
                     }
 

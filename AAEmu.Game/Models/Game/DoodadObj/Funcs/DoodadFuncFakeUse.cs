@@ -67,8 +67,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                     var skill = new Skill(SkillManager.Instance.GetSkillTemplate(FakeSkillId));
                     skill.Use(caster, skillCaster, target);
-                    //owner.NeedChangePhase = true;
-                    //return;
                 }
             }
         }

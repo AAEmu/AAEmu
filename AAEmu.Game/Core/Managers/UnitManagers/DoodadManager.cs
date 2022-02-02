@@ -103,7 +103,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM doodad_func_groups ORDER BY id ASC";
+                    command.CommandText = "SELECT * FROM doodad_func_groups ORDER BY doodad_almighty_id ASC, doodad_func_group_kind_id ASC";
                     command.Prepare();
                     using (var sqliteDataReaderChild = command.ExecuteReader())
                     using (var reader = new SQLiteWrapperReader(sqliteDataReaderChild))
@@ -2318,6 +2318,24 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             }
             return null;
         }
+        public List<uint> GetDoodadFuncGroupsId(uint doodadTemplateId)
+        {
+            var listId = new List<uint>();
+
+            var listDoodadFuncGroups = new List<DoodadFuncGroups>();
+
+            if (_templates.ContainsKey(doodadTemplateId))
+            {
+                var doodaTemplates = _templates[doodadTemplateId];
+                listDoodadFuncGroups.AddRange(doodaTemplates.FuncGroups);
+                foreach (var item in listDoodadFuncGroups)
+                {
+                    listId.Add(item.Id);
+                }
+                return listId;
+            }
+            return null;
+        }
         /// <summary>
         /// GetDoodadFuncs - Получить все функции
         /// </summary>
@@ -2386,7 +2404,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             doodad.Spawn();
 
             var caster = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
-            doodad.GoToPhaseChanged(caster, doodad.FuncGroupId);
+            doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
 
             doodad.Save();
 

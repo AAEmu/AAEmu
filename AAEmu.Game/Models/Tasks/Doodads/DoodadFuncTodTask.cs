@@ -1,4 +1,6 @@
 ﻿
+using System;
+
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 
@@ -12,20 +14,27 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         private Unit _caster;
         private Doodad _owner;
         private uint _skillId;
-        private uint _nextPhase;
+        private int _nextPhase;
 
         public DoodadFuncTodTask(Unit caster, Doodad owner, uint skillId, int nextPhase) : base(caster, owner, skillId)
         {
             _caster = caster;
             _owner = owner;
             _skillId = skillId;
-            _nextPhase = (uint)nextPhase;
+            _nextPhase = nextPhase;
         }
         public override void Execute()
         {
             _log.Warn("[Doodad] DoodadFuncTodTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
-            _owner.FuncTask = null;
-            _owner.GoToPhaseChanged(_caster, _nextPhase);
+
+            if (_owner.FuncTask != null)
+            {
+                _ = _owner.FuncTask.Cancel();
+                _owner.FuncTask = null;
+                _log.Debug("DoodadFuncTodTask: The current timer has been canceled.");
+            }
+
+            _owner.DoPhaseFuncs(_caster, _nextPhase);
         }
     }
 }

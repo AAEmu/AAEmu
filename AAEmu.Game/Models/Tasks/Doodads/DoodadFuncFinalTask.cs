@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         private Unit _caster;
         private Doodad _owner;
         private uint _skillId;
-        private uint _nextPhase;
+        private int _nextPhase;
         private bool _respawn;
         private int _delay;
         private DateTime? _respawnTime;
@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
             _caster = caster;
             _owner = owner;
             _skillId = skillId;
-            _nextPhase = owner.FuncGroupId;
+            _nextPhase = (int)owner.FuncGroupId;
             _respawn = respawn;
             _owner = owner;
             _delay = delay;
@@ -49,7 +49,13 @@ namespace AAEmu.Game.Models.Tasks.Doodads
             }
             else
             {
-                _owner.FuncTask = null;
+                if (_owner.FuncTask != null)
+                {
+                    _ = _owner.FuncTask.Cancel();
+                    _owner.FuncTask = null;
+                    _log.Debug("DoodadFuncFinalTask: The current timer has been canceled.");
+                }
+
                 _owner.Delete();
             }
         }

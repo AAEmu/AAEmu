@@ -42,10 +42,6 @@ namespace AAEmu.Game.Utils
                             try
                             {
                                 var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(templateId);
-                                if (doodadFuncGroups.Count <= 0)
-                                {
-                                    return;
-                                }
                                 foreach (var doodadFuncGroup in doodadFuncGroups)
                                 {
                                     // Display all functions that are available
@@ -64,15 +60,7 @@ namespace AAEmu.Game.Utils
                                             doodad.OverridePhase = 0;
                                             // phaseFunc.Use
                                             _log.Info("[Doodad] PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType, phaseFunc.NextPhase, phaseFunc.SkillId);
-
-                                            if (doodad.OverridePhase > 0)
-                                            {
-                                                doodad.FuncGroupId = doodad.OverridePhase;
-                                                GoToPhaseChanged(doodad, doodad.FuncGroupId);
-                                            }
                                         }
-                                        if (doodad.FuncGroupId == (uint)func.NextPhase || func.NextPhase == -1)
-                                            return; // закончим цикл функций, так как вернулись к первой или функций нет
                                     }
                                 }
                             }
