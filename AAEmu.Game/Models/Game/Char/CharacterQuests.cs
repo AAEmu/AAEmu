@@ -63,10 +63,8 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (QuestManager.Instance.QuestTimeoutTask.Count != 0)
             {
-                if (QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
-                {
+                if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id) && QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
                     QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Remove(questId);
-                }
             }
 
             var res = quest.Start();
