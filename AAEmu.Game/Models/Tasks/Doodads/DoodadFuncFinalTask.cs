@@ -49,12 +49,12 @@ namespace AAEmu.Game.Models.Tasks.Doodads
             }
             else
             {
-                if (_owner.FuncTask != null)
-                {
-                    _ = _owner.FuncTask.Cancel();
-                    _owner.FuncTask = null;
-                    _log.Debug("DoodadFuncFinalTask: The current timer has been canceled.");
-                }
+                //if (_owner.FuncTask != null)
+                //{
+                //    _ = _owner.FuncTask.Cancel();
+                //    _owner.FuncTask = null;
+                //    _log.Debug("DoodadFuncFinalTask: The current timer has been ended.");
+                //}
 
                 _owner.Delete();
             }

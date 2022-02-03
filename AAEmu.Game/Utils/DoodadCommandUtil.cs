@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -11,6 +14,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Stream;
 
 using NLog;
@@ -25,8 +29,10 @@ namespace AAEmu.Game.Utils
         public static void GetCommandChoice(Character character, string choice, string[] args)
         {
             uint templateId;
+            uint doodadObjId;
             Doodad doodad;
             uint skillId = 0;
+            uint phase = 0;
 
             switch (choice)
             {
@@ -75,8 +81,40 @@ namespace AAEmu.Game.Utils
                         character.SendMessage("[Doodad] /doodad_chain list <templateId>");
                     }
                     break;
+                case "setphase":
+                    if (args.Length >= 3)
+                    {
+                        if (uint.TryParse(args[1], out doodadObjId))
+                        {
+                            if (uint.TryParse(args[2], out phase))
+                            {
+                                doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+                                var listIds = DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId);
+                                if ((doodad != null) && (doodad is Doodad))
+                                {
+                                    character.SendMessage("[Doodad] SetPhase {0}", phase);
+                                    character.SendMessage("[Doodad] TemplateId {0}: ObjId{1}, Phases({2})", doodad.TemplateId, doodad.ObjId, string.Join(", ", listIds));
+                                    _log.Warn("[Doodad] Chain: TemplateId {0}, doodadObjId {1}", doodad.TemplateId, doodad.ObjId);
+                                    doodad.DoPhaseFuncs(character, (int)phase);
+                                }
+                                else
+                                {
+                                    character.SendMessage("|cFFFF0000[Spawn] Doodad with Id {0} Does not exist |r", doodadObjId);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            character.SendMessage("[Doodad] /doodad_chain setphase <ObjId> <Phase>");
+                        }
+                    }
+                    else
+                    {
+                        character.SendMessage("[Doodad] /doodad_chain setphase <ObjId> <Phase>");
+                    }
+                    break;
                 default:
-                    character.SendMessage("[Dooda] /doodad_chain list <templateId>");
+                    character.SendMessage("[Dooda] /doodad_chain <list|setphase>");
                     break;
             }
         }

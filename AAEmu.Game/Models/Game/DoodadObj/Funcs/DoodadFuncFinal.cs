@@ -47,12 +47,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             // }
             if (After > 0)
             {
-                if (owner.FuncTask != null)
-                {
-                    _ = owner.FuncTask.Cancel();
-                    _ = owner.FuncTask = null;
-                    _log.Debug("DoodadFuncFinalTask: The current timer has been canceled by the next scheduled timer.");
-                }
+                //if (owner.FuncTask != null)
+                //{
+                //    _ = owner.FuncTask.Cancel();
+                //    _ = owner.FuncTask = null;
+                //    _log.Debug("DoodadFuncFinalTask: The current timer has been canceled by the next scheduled timer.");
+                //}
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, skillId, Respawn, delay);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility
             }

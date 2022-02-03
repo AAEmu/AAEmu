@@ -85,6 +85,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public void Use(Unit caster, uint skillId)
         {
             _log.Debug("Using phase {0}", FuncGroupId);
+
+            //var phase = CheckAndFindNextNotEmptyFunc((int)FuncGroupId);
+            //if (phase == 0) { return; }
             var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId);
             if (func == null)
             {
@@ -111,19 +114,61 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
             }
             DoPhaseFuncs(caster, func.NextPhase);
+
+            #region nextFunc
+            // если следующая функция - пустая, то поищем следующую не пустую функцию
+            //var (nextPhase, skillid) = CheckAndFindNextNotEmptyFunc(func.NextPhase);
+            //if (nextPhase == 0) { return; } // не нашли, выход
             var nextFunc = DoodadManager.Instance.GetFunc((uint)func.NextPhase, skillId);
+
+            // проверки на завершение цикла функций
+            //var nextFunc = DoodadManager.Instance.GetFunc(func.NextPhase, skillid);
+            // закончились функции
             if (nextFunc == null || nextFunc.NextPhase == -1)
             {
                 ListGroupId = new List<uint>();
                 return;
             }
+            // проверка на зацикливание, перейдем к первой
             if (CheckPhase((uint)nextFunc.NextPhase))
             {
-                nextFunc.Use(caster, this, skillId);
+                nextFunc.Use(caster, this, nextFunc.SkillId);
+                
+                FuncGroupId = (uint)nextFunc.NextPhase;
+                
                 ListGroupId = new List<uint>();
                 return;
             }
-            Use(caster, skillId);
+            //FuncGroupId = nextPhase;
+            #endregion nextFunc
+
+            Use(caster, 0);
+        }
+
+        public (uint, uint) CheckAndFindNextNotEmptyFunc(int nextPhase)
+        {
+            var _find = false;
+            var _nextPhase = 0u;
+            var _skillId = 0u;
+            var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(TemplateId);
+            foreach (var doodadFuncGroup in doodadFuncGroups)
+            {
+                if ((uint)nextPhase != doodadFuncGroup.Id && !_find)
+                {
+                    continue; // пропустим все предыдущие фазы и перейдем к нужной
+                }
+                _find = true;
+                var func = DoodadManager.Instance.GetDoodadFuncs(doodadFuncGroup.Id);
+                if (func == null || func.Count == 0) { continue; }
+                _nextPhase = doodadFuncGroup.Id;
+                _skillId = func[0].SkillId;
+
+                FuncGroupId = _nextPhase;
+                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
+
+                break; // нашли следующую фазу
+            }
+            return (_nextPhase, _skillId);
         }
 
         /// <summary>
@@ -136,7 +181,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             if (nextPhase > 0)
             {
-                //if (FuncTask != null)
+                //if (FuncTask != null && FuncTask is DoodadFuncTimerTask)
                 //{
                 //    _ = FuncTask.Cancel();
                 //    _ = FuncTask = null;
@@ -175,7 +220,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 break;
             }
 
-            _log.Debug("Doing phase {0} for doodad {1} objId {2}", FuncGroupId, TemplateId, ObjId);
+            _log.Trace("Doing phase {0} for doodad {1} objId {2}", FuncGroupId, TemplateId, ObjId);
         }
 
         public List<uint> GetStartFuncs()

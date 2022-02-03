@@ -27,12 +27,12 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         {
             _log.Warn("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
 
-            if (_owner.FuncTask != null)
-            {
-                _ = _owner.FuncTask.Cancel();
-                _owner.FuncTask = null;
-                _log.Debug("DoodadFuncTimerTask: The current timer has been canceled.");
-            }
+            //if (_owner.FuncTask != null)
+            //{
+            //    _ = _owner.FuncTask.Cancel();
+            //    _owner.FuncTask = null;
+            //    _log.Debug("DoodadFuncTimerTask: The current timer has been ended.");
+            //}
             _owner.DoPhaseFuncs(_caster, _nextPhase);
         }
     }
