@@ -61,6 +61,14 @@ namespace AAEmu.Game.Models.Game.Char
             quest.Owner = Owner;
             Quests.Add(quest.TemplateId, quest);
 
+            if (QuestManager.Instance.QuestTimeoutTask.Count != 0)
+            {
+                if (QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(questId))
+                {
+                    QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Remove(questId);
+                }
+            }
+
             var res = quest.Start();
             if (!res)
                 Drop(questId, true); // TODO может быть update = false?

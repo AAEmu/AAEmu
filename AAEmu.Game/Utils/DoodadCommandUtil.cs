@@ -89,9 +89,9 @@ namespace AAEmu.Game.Utils
                             if (uint.TryParse(args[2], out phase))
                             {
                                 doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-                                var listIds = DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId);
                                 if ((doodad != null) && (doodad is Doodad))
                                 {
+                                    var listIds = DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId);
                                     character.SendMessage("[Doodad] SetPhase {0}", phase);
                                     character.SendMessage("[Doodad] TemplateId {0}: ObjId{1}, Phases({2})", doodad.TemplateId, doodad.ObjId, string.Join(", ", listIds));
                                     _log.Warn("[Doodad] Chain: TemplateId {0}, doodadObjId {1}", doodad.TemplateId, doodad.ObjId);
