@@ -292,6 +292,7 @@ namespace AAEmu.Game.Core.Network.Game
             RegisterPacket(CSOffsets.CSPremiumServieceMsgPacket, 1, typeof(CSPremiumServieceMsgPacket));
             // 0x13d unk packet
             // 0x13e unk packet
+            RegisterPacket(CSOffsets.CSUnknownInstancePacket, 1, typeof(CSUnknownInstancePacket));
             // 0x13f unk packet
             RegisterPacket(CSOffsets.CSSetupSecondPassword, 1, typeof(CSSetupSecondPassword));
             // 0x141 unk packet

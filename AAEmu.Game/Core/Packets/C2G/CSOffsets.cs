@@ -275,6 +275,7 @@
         public const ushort CSPremiumServieceMsgPacket = 0x13c;
         // 0x13d unk packet
         // 0x13e unk packet
+        public const ushort CSUnknownInstancePacket = 0x13e;
         // 0x13f unk packet
         public const ushort CSSetupSecondPassword = 0x140;
         // 0x141 unk packet
