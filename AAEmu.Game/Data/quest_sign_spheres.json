@@ -12538,5 +12538,45 @@
     "Y": 1269.04,
     "Z": 249.479,
     "Radius": 13.5
+  },
+  {
+    "WorldID": "main_world",
+    "ZoneID": 156,
+    "QuestID": 1237,
+    "ComponentID": 5262,
+    "X": 1429.2,
+    "Y": 1775.07,
+    "Z": 619.527,
+    "Radius": 30.0
+  },
+  {
+    "WorldID": "main_world",
+    "ZoneID": 156,
+    "QuestID": 2417,
+    "ComponentID": 10418,
+    "X": 973.474,
+    "Y": 902.539,
+    "Z": 240.824,
+    "Radius": 60.0
+  },
+  {
+    "WorldID": "main_world",
+    "ZoneID": 156,
+    "QuestID": 7080,
+    "ComponentID": 30258,
+    "X": 1148,
+    "Y": 1679,
+    "Z": 360,
+    "Radius": 3.0
+  },
+  {
+    "WorldID": "main_world",
+    "ZoneID": 156,
+    "QuestID": 2587,
+    "ComponentID": 21269,
+    "X": 1147.35,
+    "Y": 1678.99,
+    "Z": 359.319,
+    "Radius": 15.0
   }
 ]

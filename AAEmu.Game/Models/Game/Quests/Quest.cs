@@ -186,6 +186,15 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                                 UseSkill(components, componentIndex);
                                 break;
+                            case "QuestActConAcceptNpc":
+                                {
+                                    // не проверяем Npc при взятии квеста
+                                    acts[i].Use(Owner, this, 0); // получим предмет
+                                    ComponentId = components[componentIndex].Id;
+                                    CheckStatus();
+                                    _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, acts[i].DetailType);
+                                    break;
+                                }
                             case "QuestActSupplyItem":
                                 {
                                     res = acts[i].Use(Owner, this, 0); // получим предмет
@@ -319,6 +328,14 @@ namespace AAEmu.Game.Models.Game.Quests
 
                                     var sphereQuestTrigger = new SphereQuestTrigger();
                                     sphereQuestTrigger.Sphere = SphereQuestManager.Instance.GetQuestSpheres(components[componentIndex].Id);
+                                    
+                                    if (sphereQuestTrigger.Sphere == null)
+                                    {
+                                        _log.Warn("[Quest] QuestActObjSphere: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, acts[i].DetailType);
+                                        _log.Warn("[Quest] QuestActObjSphere: Sphere not found with cquest {0} in quest_sign_spheres.json!", components[componentIndex].Id);
+                                        return;
+                                    }
+
                                     sphereQuestTrigger.Owner = Owner;
                                     sphereQuestTrigger.Quest = this;
                                     sphereQuestTrigger.TickRate = 500;
