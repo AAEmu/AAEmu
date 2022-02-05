@@ -26,19 +26,19 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "(doodadID) <x> <y> <z>";
+            return "<doodad> <objectId> <x> <y> <z>";
         }
 
         public string GetCommandHelpText()
         {
-            return "change doodad position";
+            return "change doodad position & rotation";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length < 4)
             {
-                character.SendMessage("[dloc] /dloc <doodadID> <x> <y> <z> - Use x y z instead of a value to keep current position");
+                character.SendMessage("[dloc] /dloc <doodadID> <x> <y> <z> <>- Use x y z instead of a value to keep current position");
                 return;
             }
 

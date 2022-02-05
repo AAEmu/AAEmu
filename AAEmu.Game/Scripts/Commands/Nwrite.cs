@@ -99,20 +99,18 @@ namespace AAEmu.Game.Scripts.Commands
                                     if (doodad.Spawner.Id == 0) // spawned into the game manually
                                     {
                                         var newId = (uint)((spawners[spawners.Count - 1].Id) + 1);
-                                        var pos = new Pos();
+                                        var pos = new DoodadPos();
                                         pos.X = doodad.Transform.World.Position.X;
                                         pos.Y = doodad.Transform.World.Position.Y;
                                         pos.Z = doodad.Transform.World.Position.Z;
-                                        var (rx, ry, rz) = doodad.Transform.World.ToRollPitchYawSBytesMovement();
-                                        pos.RotationX = rx;
-                                        pos.RotationY = ry;
-                                        pos.RotationZ = rz;
+                                        pos.Roll = doodad.Transform.Local.Rotation.X.RadToDeg();
+                                        pos.Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg();
+                                        pos.Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg();
 
                                         var newEntry = new JsonDoodadSpawns();
                                         newEntry.Id = newId;
                                         newEntry.UnitId = doodad.TemplateId;
                                         newEntry.Position = pos;
-                                        newEntry.Scale = 1.0f;
                                         spawners.Add(newEntry);
 
                                         doodad.Spawner.Id = newId; //Set ID incase you edit it after adding!
@@ -126,10 +124,9 @@ namespace AAEmu.Game.Scripts.Commands
                                                 spawner.Position.X = doodad.Transform.World.Position.X;
                                                 spawner.Position.Y = doodad.Transform.World.Position.Y;
                                                 spawner.Position.Z = doodad.Transform.World.Position.Z;
-                                                var (rx, ry, rz) = doodad.Transform.World.ToRollPitchYawSBytesMovement();
-                                                spawner.Position.RotationX = rx;
-                                                spawner.Position.RotationY = ry;
-                                                spawner.Position.RotationZ = rz;
+                                                spawner.Position.Roll = doodad.Transform.Local.Rotation.X.RadToDeg();
+                                                spawner.Position.Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg();
+                                                spawner.Position.Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg();
                                                 break;
                                             }
                                         }

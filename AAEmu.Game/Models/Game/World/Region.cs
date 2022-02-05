@@ -152,12 +152,12 @@ namespace AAEmu.Game.Models.Game.World
                     {
                         // turning the first Phase on to display
                         var unit = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
-                        if (unit is null)
-                        {
-                            var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.FuncGroupId);
-                            if (funcs.Count > 0)
-                                continue;
-                        }
+                        //if (unit is null)
+                        //{
+                        //    var funcs = DoodadManager.Instance.GetFuncsForGroup(doodad.FuncGroupId);
+                        //    if (funcs.Count > 0)
+                        //        continue;
+                        //}
                         doodad.DoPhaseFuncs(unit, (int)doodad.FuncGroupId); 
                         continue;
                     }

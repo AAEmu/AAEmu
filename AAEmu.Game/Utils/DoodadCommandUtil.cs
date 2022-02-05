@@ -1,25 +1,20 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
-using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Commons.IO;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.DoodadObj.Templates;
-using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Game.Models.Game.Quests.Static;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Stream;
+using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Json;
+
+using Newtonsoft.Json;
 
 using NLog;
-
-using static AAEmu.Game.Models.Game.DoodadObj.DoodadFuncGroups;
 
 namespace AAEmu.Game.Utils
 {
@@ -30,20 +25,24 @@ namespace AAEmu.Game.Utils
         {
             uint templateId;
             uint doodadObjId;
-            Doodad doodad;
             uint skillId = 0;
             uint phase = 0;
+            var worlds = WorldManager.Instance.GetWorlds();
+            Doodad doodad = null;
 
             switch (choice)
             {
-                case "list":
+                case "chain":
                     if (args.Length >= 2)
                     {
                         if (uint.TryParse(args[1], out templateId))
                         {
                             doodad = DoodadManager.Instance.Create(0, templateId);
-
-                            character.SendMessage("[Doodad] LIST");
+                            if (doodad == null)
+                            {
+                                character.SendMessage("|cFFFF0000[Doodad] Doodad with templateId {0} Does not found |r", templateId);
+                            }
+                            character.SendMessage("[Doodad] Phase chain, see to log");
                             _log.Warn("[Doodad] Chain: TemplateId {0}", templateId);
                             try
                             {
@@ -78,7 +77,7 @@ namespace AAEmu.Game.Utils
                     }
                     else
                     {
-                        character.SendMessage("[Doodad] /doodad_chain list <templateId>");
+                        character.SendMessage("[Doodad] /doodad chain <templateId>");
                     }
                     break;
                 case "setphase":
@@ -99,22 +98,238 @@ namespace AAEmu.Game.Utils
                                 }
                                 else
                                 {
-                                    character.SendMessage("|cFFFF0000[Spawn] Doodad with Id {0} Does not exist |r", doodadObjId);
+                                    character.SendMessage("|cFFFF0000[Doodad] Doodad with objId {0} Does not exist |r", doodadObjId);
                                 }
                             }
                         }
                         else
                         {
-                            character.SendMessage("[Doodad] /doodad_chain setphase <ObjId> <Phase>");
+                            character.SendMessage("[Doodad] /doodad setphase <ObjId> <Phase>");
                         }
                     }
                     else
                     {
-                        character.SendMessage("[Doodad] /doodad_chain setphase <ObjId> <Phase>");
+                        character.SendMessage("[Doodad] /doodad setphase <ObjId> <Phase>");
+                    }
+                    break;
+                case "rot":
+                    if (args.Length == 5)
+                    {
+                        if (uint.TryParse(args[1], out doodadObjId))
+                        {
+                            doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+                            if ((doodad != null) && (doodad is Doodad))
+                            {
+                                // 0   1     2 3 4 5  6  7
+                                // rot objId x y z rx ry rz
+                                float value = 0;
+                                float x = doodad.Transform.Local.Position.X;
+                                float y = doodad.Transform.Local.Position.Y;
+                                float z = doodad.Transform.Local.Position.Z;
+                                var roll = doodad.Transform.Local.Rotation.X;
+                                var pitch = doodad.Transform.Local.Rotation.Y;
+                                var yaw = doodad.Transform.Local.Rotation.Z;
+
+                                if (args[2] != "x" && float.TryParse(args[2], out value))
+                                {
+                                    x = value;
+                                }
+                                if (args[3] != "y" && float.TryParse(args[3], out value))
+                                {
+                                    y = value;
+                                }
+                                if (args[4] != "z" && float.TryParse(args[4], out value))
+                                {
+                                    z = value;
+                                }
+
+                                character.SendMessage("[Doodad] Doodad ObjId: {0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, rx:{5}, ry:{6}, rz:{7}",
+                                    doodad.ObjId, doodad.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
+
+                                doodad.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
+
+                                doodad.Hide();
+                                doodad.Show();
+                            }
+                            else
+                            {
+                                character.SendMessage("|cFFFF0000[Doodad] Doodad with objId {0} Does not exist |r", doodadObjId);
+                            }
+                        }
+                        else
+                        {
+                            character.SendMessage("[Doodad] /doodad rot <ObjId> <x> <y> <z> - Use x y z instead of a value to keep current position");
+                        }
+                    }
+                    else if (args.Length >= 8)
+                    {
+                        if (uint.TryParse(args[1], out doodadObjId))
+                        {
+                            doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+                            if ((doodad != null) && (doodad is Doodad))
+                            {
+                                // 0   1     2 3 4 5  6  7
+                                // rot objId x y z rx ry rz
+                                float value = 0;
+                                float x = doodad.Transform.Local.Position.X;
+                                float y = doodad.Transform.Local.Position.Y;
+                                float z = doodad.Transform.Local.Position.Z;
+                                var roll = doodad.Transform.Local.Rotation.X;
+                                var pitch = doodad.Transform.Local.Rotation.Y;
+                                var yaw = doodad.Transform.Local.Rotation.Z;
+
+                                if (args[2] != "x" && float.TryParse(args[2], out value))
+                                {
+                                    x = value;
+                                }
+                                if (args[3] != "y" && float.TryParse(args[3], out value))
+                                {
+                                    y = value;
+                                }
+                                if (args[4] != "z" && float.TryParse(args[4], out value))
+                                {
+                                    z = value;
+                                }
+                                if (args[5] != "rx" && float.TryParse(args[5], out value))
+                                {
+                                    roll = value.DegToRad();
+                                }
+                                if (args[6] != "ry" && float.TryParse(args[6], out value))
+                                {
+                                    pitch = value.DegToRad();
+                                }
+                                if (args[7] != "rz" && float.TryParse(args[7], out value))
+                                {
+                                    yaw = value.DegToRad();
+                                }
+
+                                character.SendMessage("[Doodad] Doodad ObjId: {0} TemplateId:{1}, x:{2}, y:{3}, z:{4}, rx:{5}, ry:{6}, rz:{7}",
+                                    doodad.ObjId, doodad.TemplateId, x, y, z, roll.RadToDeg(), pitch.RadToDeg(), yaw.RadToDeg());
+
+                                doodad.Transform.Local.SetPosition(x, y, z, roll, pitch, yaw);
+
+                                doodad.Hide();
+                                doodad.Show();
+                            }
+                            else
+                            {
+                                character.SendMessage("|cFFFF0000[Doodad] Doodad with objId {0} Does not exist |r", doodadObjId);
+                            }
+                        }
+                        else
+                        {
+                            character.SendMessage("[Doodad] /doodad rot <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
+                        }
+                    }
+                    else
+                    {
+                        character.SendMessage("[Doodad] /doodad rot <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
+                    }
+                    break;
+                case "save":
+                    if (args.Length >= 2)
+                    {
+                        var spawners = new List<JsonDoodadSpawns>();
+                        var doodadSpawners = new Dictionary<uint, JsonDoodadSpawns>();
+                        // 0    1
+                        // save objId
+                        if (uint.TryParse(args[1], out doodadObjId))
+                        {
+                            doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+                            if ((doodad != null) && (doodad is Doodad))
+                            {
+                                // Save Doodad
+                                try
+                                {
+                                    foreach (var world in worlds)
+                                    {
+                                        // Load Doodad spawns
+                                        _log.Info("Loading spawns...");
+                                        var contents = string.Empty;
+                                        var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name);
+                                        var jsonFileName = string.Empty;
+                                        jsonFileName = Path.Combine(worldPath, "doodad_spawns_new.json");
+
+                                        if (!File.Exists(jsonFileName))
+                                        {
+                                            _log.Info("World  {0}  is missing  {1}", world.Name, Path.GetFileName(jsonFileName));
+                                        }
+                                        else
+                                        {
+                                            contents = FileManager.GetFileContents(jsonFileName);
+                                            if (string.IsNullOrWhiteSpace(contents))
+                                                _log.Warn("File {0} is empty.", jsonFileName);
+                                            else
+                                            {
+                                                if (JsonHelper.TryDeserializeObject(contents, out spawners, out _))
+                                                {
+                                                    foreach (var spawner in spawners)
+                                                    {
+                                                        doodadSpawners.Add(spawner.Id, spawner);
+                                                    }
+                                                }
+                                                else
+                                                    throw new Exception(string.Format("SpawnManager: Parse {0} file", jsonFileName));
+
+                                                // добавим измененный Doodad
+                                                doodad = WorldManager.Instance.GetDoodad(doodadObjId);
+                                                if ((doodad != null) && (doodad is Doodad))
+                                                {
+                                                    var spawn = new JsonDoodadSpawns();
+
+                                                    spawn.Position = new DoodadPos();
+
+                                                    spawn.Id = doodad.ObjId;
+                                                    spawn.UnitId = doodad.TemplateId;
+
+                                                    spawn.Position.X = doodad.Transform.Local.Position.X;
+                                                    spawn.Position.Y = doodad.Transform.Local.Position.Y;
+                                                    spawn.Position.Z = doodad.Transform.Local.Position.Z;
+
+                                                    spawn.Position.Roll = doodad.Transform.Local.Rotation.X.RadToDeg();
+                                                    spawn.Position.Pitch = doodad.Transform.Local.Rotation.Y.RadToDeg();
+                                                    spawn.Position.Yaw = doodad.Transform.Local.Rotation.Z.RadToDeg();
+
+                                                    if (doodadSpawners.ContainsKey(spawn.Id))
+                                                    {
+                                                        doodadSpawners[spawn.Id] = spawn;
+                                                    }
+                                                    else
+                                                    {
+                                                        doodadSpawners.Add(spawn.Id, spawn);
+                                                    }
+                                                }
+
+                                                var serialized = JsonConvert.SerializeObject(doodadSpawners.Values.ToArray(), Formatting.Indented);
+                                                FileManager.SaveFile(serialized, string.Format(jsonFileName, FileManager.AppPath));
+                                                character.SendMessage("[Doodad] Doodad ObjId: {0} has been saved!", doodad.ObjId);
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    character.SendMessage(e.Message);
+                                    _log.Warn(e);
+                                }
+                            }
+                            else
+                            {
+                                character.SendMessage("|cFFFF0000[Doodad] Doodad with objId {0} Does not exist |r", doodadObjId);
+                            }
+                        }
+                        else
+                        {
+                            character.SendMessage("[Doodad] /doodad save <ObjId>");
+                        }
+                    }
+                    else
+                    {
+                        character.SendMessage("[Doodad] /doodad save <ObjId>");
                     }
                     break;
                 default:
-                    character.SendMessage("[Dooda] /doodad_chain <list|setphase>");
+                    character.SendMessage("[Doodad] /doodad [<chain> <TemplateId>|[<setphase>|<save>] <DoodadObjId>|<rot> <DoodadObjId> <x> <y> <z> <yaw>]");
                     break;
             }
         }

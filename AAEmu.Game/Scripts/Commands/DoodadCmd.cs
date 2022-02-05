@@ -11,7 +11,7 @@ namespace AAEmu.Game.Scripts.Commands
     {
         public void OnLoad()
         {
-            CommandManager.Instance.Register( "doodad_chain", this );
+            CommandManager.Instance.Register( "doodad", this );
         }
 
         public string GetCommandLineHelp()
@@ -21,14 +21,14 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
 {
-            return "[Doodad] /doodad_chain list <TemplateId>";
+            return "[Doodad] /doodad [<chain> <TemplateId>|[<setphase>|<save>] <DoodadObjId>|<rot> <DoodadObjId> <x> <y> <z> <yaw>]";
         }
 
         public void Execute( Character character, string[] args )
         {
             if ( args.Length < 1 )
             {
-                character.SendMessage( "[Doodad] /doodad_chain list <TemplateId>" );
+                character.SendMessage( "[Doodad] /doodad [<chain> <TemplateId>|[<setphase>|<save>] <DoodadObjId>|<rot> <DoodadObjId> <x> <y> <z> <yaw>]" );
                 return;
             }
 

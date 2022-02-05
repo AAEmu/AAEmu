@@ -19,12 +19,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             _log.Debug("DoodadFuncTod: skillId {0}, nextPhase {1},  Tod {2}, NextPhase {3}",
                 skillId, nextPhase, Tod, NextPhase);
 
-            if (caster is Character)
+            //if (caster is Character)
             {
                 //I think this is used to reschedule anything that needs triggered at a specific gametime
                 // По моему, здесь должна быть проверка на время дня.
                 // Например: уличные светильники должны гореть ночью, а не днем.
-                // к примеру в 6:00 переключим на 4024 - выкл, а в 18:00 на 4023 - вкл.
+                // к в 4:00 (tod=400) переключим на 4024 - выкл, а в 20:00 (tod=2000) на 4023 - вкл.
                 /*
                 [Doodad] Chain: TemplateId 2322
                 [Doodad] FuncGroupId : 4623 Start
@@ -43,6 +43,29 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 [Doodad] PhaseFunc: GroupId 4624, FuncId 133, FuncType DoodadFuncTod, NextPhase 4623, tod 2000
                 [Doodad] PhaseFunc: GroupId 4624, FuncId 301, FuncType DoodadFuncTod, NextPhase -1, tod 930
                 */
+                //var curTime = TimeManager.Instance.GetTime();
+                //if (owner.FuncTask != null)
+                //{
+                //    _ = owner.FuncTask.Cancel();
+                //    _ = owner.FuncTask = null;
+                //    _log.Debug("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
+                //}
+                //if (NextPhase <= 0)
+                //{
+                //    return;
+                //}
+                //if (curTime >= 4 && curTime < 20)
+                //{
+                //    owner.FuncGroupId = 4617;
+                //    owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true);
+                //    owner.FuncGroupId = 4624;
+                //}
+                //else if (curTime < 4 && curTime >= 20)
+                //{
+                //    owner.FuncGroupId = 4618;
+                //    owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true);
+                //    owner.FuncGroupId = 4623;
+                //}
             }
 
         }
