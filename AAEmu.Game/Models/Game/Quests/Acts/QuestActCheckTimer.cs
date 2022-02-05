@@ -31,20 +31,18 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                 { quest.TemplateId, new QuestTimeoutTask(character, quest.TemplateId) }
             };
 
-            if (QuestManager.Instance.QuestTimeoutTask.Count != 0)
+            if (!QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
             {
-                if (!QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
-                {
-                    QuestManager.Instance.QuestTimeoutTask.Add(quest.Owner.Id, task);
-                }
-                else
-                {
-                    if (!QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(quest.TemplateId))
-                        QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Add(quest.TemplateId, new QuestTimeoutTask(character, quest.TemplateId));
-                    else
-                        QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId] = new QuestTimeoutTask(character, quest.TemplateId);
-                }
+                QuestManager.Instance.QuestTimeoutTask.Add(quest.Owner.Id, task);
             }
+            else
+            {
+                if (!QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].ContainsKey(quest.TemplateId))
+                    QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id].Add(quest.TemplateId, new QuestTimeoutTask(character, quest.TemplateId));
+                else
+                    QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId] = new QuestTimeoutTask(character, quest.TemplateId);
+            }
+
 
             TaskManager.Instance.Schedule(QuestManager.Instance.QuestTimeoutTask[quest.Owner.Id][quest.TemplateId], TimeSpan.FromMilliseconds(objective));
             character.SendMessage("[Quest] {0}, quest {1} will end in {2} minutes.", character.Name, quest.TemplateId, objective / 60000);
