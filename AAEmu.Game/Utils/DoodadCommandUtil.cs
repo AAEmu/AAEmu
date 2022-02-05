@@ -329,7 +329,7 @@ namespace AAEmu.Game.Utils
                     }
                     break;
                 default:
-                    character.SendMessage("[Doodad] /doodad [<chain> <TemplateId>|[<setphase>|<save>] <DoodadObjId>|<rot> <DoodadObjId> <x> <y> <z> <yaw>]");
+                    character.SendMessage("[Doodad] /doodad rot <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
                     break;
             }
         }

@@ -31,14 +31,14 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandHelpText()
         {
-            return "change doodad position & rotation";
+            return "change doodad position";
         }
 
         public void Execute(Character character, string[] args)
         {
             if (args.Length < 4)
             {
-                character.SendMessage("[dloc] /dloc <doodadID> <x> <y> <z> <>- Use x y z instead of a value to keep current position");
+                character.SendMessage("[dloc] /dloc <doodadID> <x> <y> <z> - Use x y z instead of a value to keep current position");
                 return;
             }
 
