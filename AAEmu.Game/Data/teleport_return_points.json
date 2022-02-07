@@ -10,6 +10,16 @@
         }
     },
     {
+        "Id": 372,
+        "UnitId": 188, // ZoneId
+        "Position": {
+            "X": 21182.3,
+            "Y": 6627.0,
+            "Z": 144.3,
+            "Yaw": 0.0
+        }
+    },
+    {
         "Id": 402,
         "UnitId": 139, // ZoneId
         "Position": {

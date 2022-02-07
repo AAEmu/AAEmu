@@ -32,29 +32,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 var ReturnPointId = value1;
                 var trp = TeleportReturnPointGameData.Instance.GetTeleportReturnPoint((uint)ReturnPointId);
 
-                if (trp == null)
+                if (trp == null && character.MainWorldPosition == null)
                 {
                     return;
-                }
-
-                if (ReturnPointId == 0 && character.MainWorldPosition != null)
-                {
-                    character.DisabledSetPosition = true;
-                    character.SendPacket(
-                        new SCLoadInstancePacket(
-                            1,
-                            character.MainWorldPosition.ZoneId,
-                            character.MainWorldPosition.World.Position.X,
-                            character.MainWorldPosition.World.Position.Y,
-                            character.MainWorldPosition.World.Position.Z,
-                            character.MainWorldPosition.World.Rotation.X,
-                            character.MainWorldPosition.World.Rotation.Y,
-                            character.MainWorldPosition.World.Rotation.Z
-                        )
-                    );
-
-                    character.Transform = character.MainWorldPosition.Clone(character);
-                    character.MainWorldPosition = null;
                 }
                 else if (ReturnPointId == 614)
                 {
