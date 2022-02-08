@@ -108,8 +108,11 @@ namespace AAEmu.Game.Core.Managers.World
                             continue;
 
                         // конвертируем координаты из локальных в мировые, сразу при считывании из файла
-                        var xyz = new Vector3(sphere.X, sphere.Y, sphere.Z);
-                        (sphere.X, sphere.Y, sphere.Z) = ZoneManager.Instance.ConvertToWorldCoordinates(sphere.ZoneID, xyz);
+                        var _xyz = new Vector3(sphere.X, sphere.Y, sphere.Z);
+                        var xyz = ZoneManager.Instance.ConvertToWorldCoordinates(sphere.ZoneID, _xyz);
+                        sphere.X = xyz.X;
+                        sphere.Y = xyz.Y;
+                        sphere.Z = xyz.Z;
                         sphereQuests.Add(sphere.ComponentID, sphere);
                     }
                 }
