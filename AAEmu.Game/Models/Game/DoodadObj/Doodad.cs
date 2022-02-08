@@ -86,8 +86,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             _log.Debug("Using phase {0}", FuncGroupId);
 
-            //var phase = CheckAndFindNextNotEmptyFunc((int)FuncGroupId);
-            //if (phase == 0) { return; }
             var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId);
             if (func == null)
             {
@@ -97,6 +95,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (!ListGroupId.Contains(FuncGroupId))
             {
                 ListGroupId.Add(FuncGroupId); // для проверки CheckPhase()
+                // TemplateId= 2322
+                // 4623 - 4717 false
+                // 4717 - 4623 true
+
                 // TemplateId= 2309
                 // 4591 - 4592 false
                 // 4592 - 4593 false
@@ -116,59 +118,25 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             DoPhaseFuncs(caster, func.NextPhase);
 
             #region nextFunc
-            // если следующая функция - пустая, то поищем следующую не пустую функцию
-            //var (nextPhase, skillid) = CheckAndFindNextNotEmptyFunc(func.NextPhase);
-            //if (nextPhase == 0) { return; } // не нашли, выход
             var nextFunc = DoodadManager.Instance.GetFunc((uint)func.NextPhase, skillId);
 
             // проверки на завершение цикла функций
-            //var nextFunc = DoodadManager.Instance.GetFunc(func.NextPhase, skillid);
-            // закончились функции
             if (nextFunc == null || nextFunc.NextPhase == -1)
             {
+                // закончились функции
                 ListGroupId = new List<uint>();
                 return;
             }
-            // проверка на зацикливание, перейдем к первой
+            // проверка на зацикливание
             if (CheckPhase((uint)nextFunc.NextPhase))
             {
                 nextFunc.Use(caster, this, nextFunc.SkillId);
-                
-                FuncGroupId = (uint)nextFunc.NextPhase;
-                
                 ListGroupId = new List<uint>();
                 return;
             }
-            //FuncGroupId = nextPhase;
             #endregion nextFunc
 
             Use(caster, 0);
-        }
-
-        public (uint, uint) CheckAndFindNextNotEmptyFunc(int nextPhase)
-        {
-            var _find = false;
-            var _nextPhase = 0u;
-            var _skillId = 0u;
-            var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(TemplateId);
-            foreach (var doodadFuncGroup in doodadFuncGroups)
-            {
-                if ((uint)nextPhase != doodadFuncGroup.Id && !_find)
-                {
-                    continue; // пропустим все предыдущие фазы и перейдем к нужной
-                }
-                _find = true;
-                var func = DoodadManager.Instance.GetDoodadFuncs(doodadFuncGroup.Id);
-                if (func == null || func.Count == 0) { continue; }
-                _nextPhase = doodadFuncGroup.Id;
-                _skillId = func[0].SkillId;
-
-                FuncGroupId = _nextPhase;
-                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
-
-                break; // нашли следующую фазу
-            }
-            return (_nextPhase, _skillId);
         }
 
         /// <summary>
@@ -181,13 +149,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             if (nextPhase > 0)
             {
-                //if (FuncTask != null && FuncTask is DoodadFuncTimerTask)
-                //{
+                //if (FuncTask is DoodadFuncTimerTask) // удаление таймера исправляет анимацию срубленного дерева, но ломает квест на питомца
                 //    _ = FuncTask.Cancel();
-                //    _ = FuncTask = null;
-                //    _log.Debug("DoPhaseFuncs: The current timer has been canceled by DoPhaseFuncs.");
-                //}
-
                 FuncGroupId = (uint)nextPhase;
                 PhaseRatio = Rand.Next(0, 10000);
                 CumulativePhaseRatio = 0;

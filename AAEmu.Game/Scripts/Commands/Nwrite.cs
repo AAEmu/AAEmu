@@ -83,7 +83,7 @@ namespace AAEmu.Game.Scripts.Commands
                     foreach (var world in worlds)
                     {
                         string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name,
-                            "doodad_spawns.json");
+                            "doodad_spawns_new.json");
                         if (doodad.Spawner.Position.WorldId == world.Id)
                         {
                             var contents = FileManager.GetFileContents(jsonPath);
@@ -157,8 +157,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         if (character.Transform.WorldId == world.Id)
                         {
-                            string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name,
-                                "npc_spawns.json");
+                            string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
 
                             var contents = FileManager.GetFileContents(jsonPath);
                             if (string.IsNullOrWhiteSpace(contents))
@@ -245,7 +244,7 @@ namespace AAEmu.Game.Scripts.Commands
 
                         if (npc.Spawner.Position.WorldId == world.Id)
                         {
-                            string jsonPath = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns.json");
+                            string jsonPath = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/npc_spawns_new.json" );
 
                             var contents = FileManager.GetFileContents(jsonPath);
                             if (string.IsNullOrWhiteSpace(contents))

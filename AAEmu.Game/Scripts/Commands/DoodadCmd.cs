@@ -16,19 +16,19 @@ namespace AAEmu.Game.Scripts.Commands
 
         public string GetCommandLineHelp()
         {
-            return "<list>";
+            return "<chain||setphase||save||pos>";
         }
 
         public string GetCommandHelpText()
 {
-            return "[Doodad] /doodad rot <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position";
+            return "[Doodad] /doodad [chain <TemplateId>]||[setphase||save <ObjId>]||[pos <ObjId> <x> <y> <z> <rx> <ry> <rz>] - Use x y z roll pitch yaw instead of a value to keep current position";
         }
 
         public void Execute( Character character, string[] args )
         {
             if ( args.Length < 1 )
             {
-                character.SendMessage( "[Doodad] /doodad rot <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position" );
+                character.SendMessage( "[Doodad] /doodad [chain <TemplateId>]||[setphase||save <ObjId>]||[pos <ObjId> <x> <y> <z> <rx> <ry> <rz>] - Use x y z roll pitch yaw instead of a value to keep current position" );
                 return;
             }
 

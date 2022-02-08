@@ -112,7 +112,7 @@ namespace AAEmu.Game.Utils
                         character.SendMessage("[Doodad] /doodad setphase <ObjId> <Phase>");
                     }
                     break;
-                case "rot":
+                case "pos":
                     if (args.Length == 5)
                     {
                         if (uint.TryParse(args[1], out doodadObjId))
@@ -121,7 +121,7 @@ namespace AAEmu.Game.Utils
                             if ((doodad != null) && (doodad is Doodad))
                             {
                                 // 0   1     2 3 4 5  6  7
-                                // rot objId x y z rx ry rz
+                                // pos objId x y z rx ry rz
                                 float value = 0;
                                 float x = doodad.Transform.Local.Position.X;
                                 float y = doodad.Transform.Local.Position.Y;
@@ -158,7 +158,7 @@ namespace AAEmu.Game.Utils
                         }
                         else
                         {
-                            character.SendMessage("[Doodad] /doodad rot <ObjId> <x> <y> <z> - Use x y z instead of a value to keep current position");
+                            character.SendMessage("[Doodad] /doodad pos <ObjId> <x> <y> <z> - Use x y z instead of a value to keep current position");
                         }
                     }
                     else if (args.Length >= 8)
@@ -169,7 +169,7 @@ namespace AAEmu.Game.Utils
                             if ((doodad != null) && (doodad is Doodad))
                             {
                                 // 0   1     2 3 4 5  6  7
-                                // rot objId x y z rx ry rz
+                                // pos objId x y z rx ry rz
                                 float value = 0;
                                 float x = doodad.Transform.Local.Position.X;
                                 float y = doodad.Transform.Local.Position.Y;
@@ -218,12 +218,12 @@ namespace AAEmu.Game.Utils
                         }
                         else
                         {
-                            character.SendMessage("[Doodad] /doodad rot <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
+                            character.SendMessage("[Doodad] /doodad pos <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
                         }
                     }
                     else
                     {
-                        character.SendMessage("[Doodad] /doodad rot <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
+                        character.SendMessage("[Doodad] /doodad pos <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
                     }
                     break;
                 case "save":
@@ -329,7 +329,7 @@ namespace AAEmu.Game.Utils
                     }
                     break;
                 default:
-                    character.SendMessage("[Doodad] /doodad rot <ObjId> <x> <y> <z> <rx> <ry> <rz> - Use x y z roll pitch yaw instead of a value to keep current position");
+                    character.SendMessage("[Doodad] /doodad [chain <TemplateId>]||[setphase||save <ObjId>]||[pos <ObjId> <x> <y> <z> <rx> <ry> <rz>] - Use x y z roll pitch yaw instead of a value to keep current position");
                     break;
             }
         }
