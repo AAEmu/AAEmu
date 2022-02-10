@@ -1744,6 +1744,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.NumBankSlots = reader.GetInt16("num_bank_slot");
                         character.ExpandedExpert = reader.GetByte("expanded_expert");
                         character.Updated = reader.GetDateTime("updated_at");
+                        character.ReturnDictrictId = reader.GetUInt32("return_district");
 
                         character.Inventory = new Inventory(character);
 
@@ -1847,6 +1848,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.NumBankSlots = reader.GetInt16("num_bank_slot");
                         character.ExpandedExpert = reader.GetByte("expanded_expert");
                         character.Updated = reader.GetDateTime("updated_at");
+                        character.ReturnDictrictId = reader.GetUInt32("return_district");
 
                         character.Inventory = new Inventory(character);
 
@@ -1992,7 +1994,7 @@ namespace AAEmu.Game.Models.Game.Char
                         "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
                         "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`," +
                         "`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
-                        "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`" +
+                        "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`,`return_district`" +
                         ") VALUES (" +
                         "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp," +
                         "@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3," +
@@ -2000,7 +2002,7 @@ namespace AAEmu.Game.Models.Game.Char
                         "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
                         "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record," +
                         "@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift," +
-                        "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at)";
+                        "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at,@return_district)";
 
                     command.Parameters.AddWithValue("@id", Id);
                     command.Parameters.AddWithValue("@account_id", AccountId);
@@ -2059,6 +2061,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@expanded_expert", ExpandedExpert);
                     command.Parameters.AddWithValue("@slots", slots.GetBytes());
                     command.Parameters.AddWithValue("@updated_at", Updated);
+                    command.Parameters.AddWithValue("@return_district", ReturnDictrictId);
                     command.ExecuteNonQuery();
                 }
 

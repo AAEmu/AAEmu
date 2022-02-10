@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
@@ -25,18 +25,28 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Trace("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            _log.Debug("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
             if (caster is Character character)
             {
                 var ReturnPointId = value1;
+
+                if (ReturnPointId == 0)
+                {
+                    //var portal = PortalManager.Instance.GetFavoritePortal();
+                    var portal = PortalManager.Instance.GetPortalById(character.ReturnDictrictId);
+
+                    character.DisabledSetPosition = true;
+                    character.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, portal.X, portal.Y, portal.Z, portal.ZRot));
+                }
+
                 var trp = TeleportReturnPointGameData.Instance.GetTeleportReturnPoint((uint)ReturnPointId);
 
                 if (trp == null && character.MainWorldPosition == null)
                 {
                     return;
                 }
-                else if (ReturnPointId == 614)
+                else if (ReturnPointId == 614 || character.MainWorldPosition != null)
                 {
                     if (character.MainWorldPosition == null)
                     {

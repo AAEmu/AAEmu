@@ -89,6 +89,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId);
             if (func == null)
             {
+                //DoPhaseFuncs(caster, (int)FuncGroupId);
                 ListGroupId = new List<uint>();
                 return;
             }

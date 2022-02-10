@@ -26,7 +26,8 @@ namespace AAEmu.Game.Core.Managers
     public class PortalManager : Singleton<PortalManager>
     {
         private readonly Logger _log = LogManager.GetCurrentClassLogger();
-        
+
+        //private Portal _FavoriteDistrictPortal;
         private Dictionary<uint, uint> _allDistrictPortalsKey;
         private Dictionary<uint, Portal> _allDistrictPortals;
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
@@ -41,6 +42,14 @@ namespace AAEmu.Game.Core.Managers
         {
             return _allDistrictPortalsKey.ContainsKey(id) ? (_allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id]) ? _allDistrictPortals[_allDistrictPortalsKey[id]] : null) : null;
         }
+        //public Portal GetFavoritePortal()
+        //{
+        //    return _FavoriteDistrictPortal;
+        //}
+        //public void SetFavoritePortal(Portal portal)
+        //{
+        //    _FavoriteDistrictPortal = portal;
+        //}
 
         public void Load()
         {
@@ -48,6 +57,8 @@ namespace AAEmu.Game.Core.Managers
             _openPortalOutlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _allDistrictPortals = new Dictionary<uint, Portal>();
             _allDistrictPortalsKey = new Dictionary<uint, uint>();
+            //_FavoriteDistrictPortal = new Portal();
+
             _log.Info("Loading Portals ...");
 
             #region FileManager
