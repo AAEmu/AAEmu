@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                 //character.Portals.AddPrivatePortal(portal.X, portal.Y, portal.Z, portal.ZRot, portal.ZoneId, portal.Name);
                 character.ReturnDictrictId = DistrictId + 1;
-                character.SendMessage("[Portal] {0} has added the entry \"{1}\" to your portal book", portal.Name, character.Name);
+                character.SendMessage("[Portal] {0} has added the entry \"{1}\" to your portal book", portal?.Name, character.Name);
                 var portals = new Portal[character.Portals.DistrictPortals.Count];
                 character.Portals.DistrictPortals.Values.CopyTo(portals, 0);
                 character.SendPacket(new SCCharacterReturnDistrictsPacket(portals, (int)character.ReturnDictrictId)); // INFO - What is returnDistrictId?
