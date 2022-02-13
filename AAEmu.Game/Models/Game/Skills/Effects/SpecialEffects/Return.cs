@@ -34,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 // проверяем сначала на запись в книге возвратов
                 if (value1 == 0)
                 {
-                    ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDictrictId);
+                    ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDictrictId, character.Faction.Id);
                     if (ReturnPointId == 0)
                     {
                         return;
