@@ -108,8 +108,11 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var portals = new Portal[DistrictPortals.Count];
                 DistrictPortals.Values.CopyTo(portals, 0);
-                //Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, 139)); // INFO - What is returnDistrictId?
-                Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, (int)Owner.ReturnDictrictId)); // INFO - What is returnDistrictId?
+                var ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(Owner.ReturnDictrictId, Owner.Faction.Id);
+                if (ReturnPointId != 0)
+                {
+                    Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, (int)ReturnPointId)); // INFO - What is returnDistrictId? Table district_return_point, field district_id => return_point_id
+                }
             }
         }
 

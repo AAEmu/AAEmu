@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -18,7 +20,9 @@ using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.World;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
+
 using Portal = AAEmu.Game.Models.Game.Portal;
 
 namespace AAEmu.Game.Core.Managers
@@ -27,11 +31,11 @@ namespace AAEmu.Game.Core.Managers
     {
         private readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-        //private Portal _FavoriteDistrictPortal;
         private Dictionary<uint, uint> _allDistrictPortalsKey;
         private Dictionary<uint, Portal> _allDistrictPortals;
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
         private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
+        private Dictionary<uint, DistrictReturnPoints> _districtReturnPoints;
 
         public Portal GetPortalBySubZoneId(uint subZoneId)
         {
@@ -42,14 +46,46 @@ namespace AAEmu.Game.Core.Managers
         {
             return _allDistrictPortalsKey.ContainsKey(id) ? (_allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id]) ? _allDistrictPortals[_allDistrictPortalsKey[id]] : null) : null;
         }
-        //public Portal GetFavoritePortal()
-        //{
-        //    return _FavoriteDistrictPortal;
-        //}
-        //public void SetFavoritePortal(Portal portal)
-        //{
-        //    _FavoriteDistrictPortal = portal;
-        //}
+
+        /// <summary>
+        /// GetDistrictReturnPoint - вернуть точку возврата для соответствующего DistrictId
+        /// </summary>
+        /// <param name="districtId"></param>
+        /// <returns>ReturnPointId</returns>
+        public uint GetDistrictReturnPoint(uint districtId)
+        {
+            foreach (var point in _districtReturnPoints)
+            {
+                if (point.Value.DistrictId == districtId)
+                {
+                    return point.Value.ReturnPointId;
+                }
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// GetDistrictReturnPoint - вернуть точку возврата для соответствующего DistrictId и FactionId, так как точки для фракций могут быть разные
+        /// </summary>
+        /// <param name="districtId"></param>
+        /// <param name="factionId"></param>
+        /// <returns>ReturnPointId</returns>
+        public uint GetDistrictReturnPoint(uint districtId, uint factionId)
+        {
+            foreach (var point in _districtReturnPoints)
+            {
+                if (point.Value.DistrictId == districtId)
+                {
+                    if (point.Value.FactionId == factionId)
+                    {
+                        return point.Value.ReturnPointId;
+                    }
+                }
+            }
+
+            return 0;
+        }
 
         public void Load()
         {
@@ -57,13 +93,14 @@ namespace AAEmu.Game.Core.Managers
             _openPortalOutlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _allDistrictPortals = new Dictionary<uint, Portal>();
             _allDistrictPortalsKey = new Dictionary<uint, uint>();
-            //_FavoriteDistrictPortal = new Portal();
+            _districtReturnPoints = new Dictionary<uint, DistrictReturnPoints>();
 
             _log.Info("Loading Portals ...");
 
             #region FileManager
 
-            var filePath = Path.Combine(FileManager.AppPath,"Data","Portal","SubZonePortalCoords.json");
+            //var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "SubZonePortalCoords.json");
+            var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "return_points.json");
 
             if (!File.Exists(filePath))
                 throw new IOException($"File {filePath} doesn't exists !");
@@ -76,8 +113,14 @@ namespace AAEmu.Game.Core.Managers
             if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
                 foreach (var portal in portals)
                 {
-                    _allDistrictPortals.Add(portal.SubZoneId, portal);
-                    _allDistrictPortalsKey.Add(portal.Id, portal.SubZoneId);
+                    if (!_allDistrictPortals.ContainsKey(portal.SubZoneId))
+                    {
+                        _allDistrictPortals.Add(portal.SubZoneId, portal);
+                    }
+                    if (!_allDistrictPortalsKey.ContainsKey(portal.Id))
+                    {
+                        _allDistrictPortalsKey.Add(portal.Id, portal.SubZoneId);
+                    }
                 }
             else
                 throw new Exception($"PortalManager: Parse {filePath} file");
@@ -132,8 +175,31 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT * FROM district_return_points";
+                    command.Prepare();
+                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    {
+                        while (reader.Read())
+                        {
+                            var template = new DistrictReturnPoints
+                            {
+                                Id = reader.GetUInt32("id"),
+                                DistrictId = reader.GetUInt32("district_id"),
+                                FactionId = reader.GetUInt32("faction_id"),
+                                ReturnPointId = reader.GetUInt32("return_point_id")
+                            };
+                            if (!_districtReturnPoints.ContainsKey(template.Id))
+                                _districtReturnPoints.Add(template.Id, template);
+                        }
+                    }
+                }
             }
             _log.Info("Loaded Portal Info");
+
+
 
             #endregion
 
@@ -142,7 +208,7 @@ namespace AAEmu.Game.Core.Managers
         private static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
         {
             if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount)) return false;
-            owner.Inventory.Bag.ConsumeItem(ItemTaskType.Teleport, itemId, amount,null);
+            owner.Inventory.Bag.ConsumeItem(ItemTaskType.Teleport, itemId, amount, null);
             return true;
             /*
             var items = owner.Inventory.RemoveItem(itemId, amount);

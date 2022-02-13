@@ -25,39 +25,36 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Debug("value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            _log.Debug("Return: value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
             if (caster is Character character)
             {
-                var ReturnPointId = value1;
+                var ReturnPointId = 0u;
 
-                if (ReturnPointId == 0)
+                // проверяем сначала на запись в книге возвратов
+                if (value1 == 0)
                 {
-                    //var portal = PortalManager.Instance.GetFavoritePortal();
-                    var portal = PortalManager.Instance.GetPortalById(character.ReturnDictrictId);
-
-                    character.DisabledSetPosition = true;
-                    character.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, portal.X, portal.Y, portal.Z, portal.ZRot));
+                    ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDictrictId);
+                    if (ReturnPointId == 0)
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    ReturnPointId = (uint)value1;
                 }
 
-                var trp = TeleportReturnPointGameData.Instance.GetTeleportReturnPoint((uint)ReturnPointId);
+                var trp = PortalManager.Instance.GetPortalById(ReturnPointId);
 
                 if (trp == null && character.MainWorldPosition == null)
                 {
                     return;
                 }
-                else if (ReturnPointId == 614 || character.MainWorldPosition != null)
+                
+                // проверим что возвращаемся из Библиотеки (она инстанс) или если character.MainWorldPosition != null, то любой инстанс
+                if (character.MainWorldPosition != null)
                 {
-                    if (character.MainWorldPosition == null)
-                    {
-                        character.MainWorldPosition = character.Transform.CloneDetached(character);
-
-                        character.MainWorldPosition.ZoneId = trp.UnitId;
-                        var xyz = new Vector3(trp.Position.X, trp.Position.Y, trp.Position.Z);
-                        character.MainWorldPosition.World.Position = xyz;
-                        var rxyz = new Vector3(trp.Position.Roll, trp.Position.Pitch, trp.Position.Yaw);
-                        character.MainWorldPosition.World.Rotation = rxyz;
-                    }
                     character.DisabledSetPosition = true;
                     character.SendPacket(
                         new SCLoadInstancePacket(
@@ -78,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
                 else
                 {
                     caster.DisabledSetPosition = true;
-                    caster.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.Position.X, trp.Position.Y, trp.Position.Z, trp.Position.Yaw));
+                    caster.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
                 }
             }
         }

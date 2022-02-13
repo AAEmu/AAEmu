@@ -12,21 +12,26 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncBinding: Save {0} recall point", DistrictId);
-
             if (caster is Character character)
             {
+                var ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(DistrictId, character.Faction.Id);
+                if (ReturnPointId != 0)
+                {
+                    var portal = PortalManager.Instance.GetPortalById(ReturnPointId);
+                    _log.Debug("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}", DistrictId, ReturnPointId);
+                    character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}", DistrictId, ReturnPointId);
 
-                var portal = PortalManager.Instance.GetPortalById(DistrictId + 1);
-
-                //character.Portals.AddPrivatePortal(portal.X, portal.Y, portal.Z, portal.ZRot, portal.ZoneId, portal.Name);
-                character.ReturnDictrictId = DistrictId + 1;
-                character.SendMessage("[Portal] {0} has added the entry \"{1}\" to your portal book", portal.Name, character.Name);
-                var portals = new Portal[character.Portals.DistrictPortals.Count];
-                character.Portals.DistrictPortals.Values.CopyTo(portals, 0);
-                character.SendPacket(new SCCharacterReturnDistrictsPacket(portals, (int)character.ReturnDictrictId)); // INFO - What is returnDistrictId?
-
-                //PortalManager.Instance.SetFavoritePortal(portal);
+                    if (portal == null)
+                    {
+                        _log.Debug("DoodadFuncBinding: Recall point {0} not found!", DistrictId);
+                        character.SendMessage("DoodadFuncBinding: Recall point {0} not found!", DistrictId);
+                        return;
+                    }
+                    character.ReturnDictrictId = DistrictId;
+                    var portals = new Portal[character.Portals.DistrictPortals.Count];
+                    character.Portals.DistrictPortals.Values.CopyTo(portals, 0);
+                    character.SendPacket(new SCCharacterReturnDistrictsPacket(portals, (int)ReturnPointId));
+                }
             }
         }
     }
