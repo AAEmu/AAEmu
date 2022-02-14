@@ -245,7 +245,10 @@ namespace AAEmu.Game.Models.Game.Char
                     var portal = PortalManager.Instance.GetPortalBySubZoneId(subZone.Key);
                     if (portal != null)
                     {
-                        DistrictPortals.Add(portal.Id, portal);
+                        if (!DistrictPortals.ContainsKey(portal.Id))
+                        {
+                            DistrictPortals.Add(portal.Id, portal);
+                        }
                     }
                 }
             }
