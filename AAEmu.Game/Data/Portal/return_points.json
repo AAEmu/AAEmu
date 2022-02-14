@@ -521,6 +521,61 @@
     },
 //----------------- Haranya continent ----------------------
     {
+        "Id": 36, // 33 36
+        "Name": "Poacher's Watch",
+        "X": 20079.3,
+        "Y": 8473.7,
+        "Z": 210.5,
+        "ZoneId": 197,
+        "ZRot": 0,
+        "SubZoneId": 276,
+        "Owner": 0
+    },
+    {
+        "Id": 38, // 31 38
+        "Name": "Traveler's Rest",
+        "X": 18740.1,
+        "Y": 9272.1,
+        "Z": 178.9,
+        "ZoneId": 153,
+        "ZRot": 0,
+        "SubZoneId": 606,
+        "Owner": 0
+    },
+    {
+        "Id": 43, // 27 43
+        "Name": "Traveler's Spring",
+        "X": 16844.7,
+        "Y": 8027.9,
+        "Z": 144.5,
+        "ZoneId": 141,
+        "ZRot": 0,
+        "SubZoneId": 588,
+        "Owner": 0
+    },
+    {
+        "Id": 65, // 10 65
+        "Name": "Anvilton",
+        "X": 21767.9,
+        "Y": 8154.4,
+        "Z": 405.4,
+        "ZoneId": 258,
+        "ZRot": 0,
+        "SubZoneId": 315,
+        "Owner": 0
+    },
+    {
+        "Id": 74, // 5 74
+        "Name": "Whisperwind",
+        "X": 24143.14,
+        "Y": 9999.193,
+        "Z": 596.8657,
+        "ZoneId": 184,
+        "ZRot": -40,
+        "SubZoneId": 728,
+        "Owner": 0
+    },
+    {
         "Id": 74, // 5 74
         "Name": "Whisperwind",
         "X": 24143.14,
@@ -573,6 +628,72 @@
         "ZoneId": 156,
         "ZRot": 23,
         "SubZoneId": 746,
+        "Owner": 0
+    },
+    {
+        "Id": 207, // 163 207
+        "Name": "Hatora",
+        "X": 20033.0,
+        "Y": 7599.3,
+        "Z": 179.3,
+        "ZoneId": 187,
+        "ZRot": 0,
+        "SubZoneId": 203,
+        "Owner": 0
+    },
+    {
+        "Id": 208, // 164 208
+        "Name": "Parchsun Settlement",
+        "X": 20512.8,
+        "Y": 7152.8,
+        "Z": 192.6,
+        "ZoneId": 188,
+        "ZRot": 0,
+        "SubZoneId": 204,
+        "Owner": 0
+    },
+    {
+        "Id": 209, // 165 209
+        "Name": "Sanctia Oasis",
+        "X": 21422.6,
+        "Y": 7383.8,
+        "Z": 235.0,
+        "ZoneId": 188,
+        "ZRot": 0,
+        "SubZoneId": 194,
+        "Owner": 0
+    },
+    {
+        "Id": 210, // 166 210
+        "Name": "Sanctia Oasis",
+        "X": 22275.9,
+        "Y": 7027.9,
+        "Z": 277.7,
+        "ZoneId": 189,
+        "ZRot": 0,
+        "SubZoneId": 207,
+        "Owner": 0
+    },
+    {
+        "Id": 255, // 201 255
+        "Name": "Mahadevi Port",
+        "X": 19232.2,
+        "Y": 7815.8,
+        "Z": 152.7,
+        "ZoneId": 153,
+        "ZRot": 0,
+        "SubZoneId": 279,
+        "Owner": 0
+    },
+    {
+        "Id": 346, // 346 522
+        "Name": "Arcum Iris Scarecrow Farm",
+        "X": 20569.8,
+        "Y": 7814.1,
+        "Z": 222.0,
+        "ZoneId": 188,
+        "ZRot": 0,
+        "SubZoneId": 193,
         "Owner": 0
     },
     {
@@ -650,6 +771,17 @@
         "ZoneId": 274,
         "ZRot": 0,
         "SubZoneId": 1050,
+        "Owner": 0
+    },
+    {
+        "Id": 603, // 368 603
+        "Name": "Palace Cellar",
+        "X": 19331.7,
+        "Y": 8516.8,
+        "Z": 198.9,
+        "ZoneId": 196,
+        "ZRot": 0,
+        "SubZoneId": 270,
         "Owner": 0
     },
 //
