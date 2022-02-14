@@ -18,8 +18,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 if (ReturnPointId != 0)
                 {
                     var portal = PortalManager.Instance.GetPortalById(ReturnPointId);
-                    _log.Debug("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}", DistrictId, ReturnPointId);
-                    character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}", DistrictId, ReturnPointId);
+                    _log.Debug("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, ReturnPointId, character.SubZoneId);
+                    character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, ReturnPointId, character.SubZoneId);
 
                     if (portal == null)
                     {

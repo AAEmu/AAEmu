@@ -137,7 +137,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public CharacterSkills Skills { get; set; }
         public CharacterCraft Craft { get; set; }
-
+        public uint SubZoneId { get; set; } // понадобилось хранить для составления точек Memory Tome (Recall)
         public int AccessLevel { get; set; }
         public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
         private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }

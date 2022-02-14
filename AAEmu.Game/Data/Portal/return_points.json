@@ -1,5 +1,6 @@
 [
 //----------------- Memory Tome for Recall -----------------
+//----------------- Nuia continent -------------------------
     {
         //  districtId -> returnPointId
         "Id": 15, // 1 -> 15
@@ -295,7 +296,29 @@
         "Z": 149.796,
         "ZoneId": 183,
         "ZRot": 68,
-        "SubZoneId": 41, // 37 358
+        "SubZoneId": 37, // 37 41 358
+        "Owner": 0
+    },
+    {
+        "Id": 6, // 13 6 (всего три точки в Marianople)
+        "Name": "Jewel of Marianople",
+        "X": 11140.59,
+        "Y": 12080.09,
+        "Z": 149.796,
+        "ZoneId": 183,
+        "ZRot": 68,
+        "SubZoneId": 41, // 37 41 358
+        "Owner": 0
+    },
+    {
+        "Id": 6, // 13 6 (всего три точки в Marianople)
+        "Name": "Jewel of Marianople",
+        "X": 11140.59,
+        "Y": 12080.09,
+        "Z": 149.796,
+        "ZoneId": 183,
+        "ZRot": 68,
+        "SubZoneId": 358, // 37 41 358
         "Owner": 0
     },
     {
@@ -494,6 +517,272 @@
         "ZoneId": 248,
         "ZRot": 0,
         "SubZoneId": 904,
+        "Owner": 0
+    },
+//----------------- Haranya continent ----------------------
+    {
+        "Id": 74, // 5 74
+        "Name": "Whisperwind",
+        "X": 24143.14,
+        "Y": 9999.193,
+        "Z": 596.8657,
+        "ZoneId": 184,
+        "ZRot": -40,
+        "SubZoneId": 728,
+        "Owner": 0
+    },
+    {
+        "Id": 78, // 9 78
+        "Name": "Oxion Clan",
+        "X": 23767.23,
+        "Y": 9176.551,
+        "Z": 581.3434,
+        "ZoneId": 156,
+        "ZRot": 38,
+        "SubZoneId": 742,
+        "Owner": 0
+    },
+    {
+        "Id": 75, // 6 75
+        "Name": "Graymist",
+        "X": 24020.15,
+        "Y": 8622.912,
+        "Z": 567.3728,
+        "ZoneId": 184,
+        "ZRot": 44,
+        "SubZoneId": 736,
+        "Owner": 0
+    },
+    {
+        "Id": 77, // 8 77
+        "Name": "Cloudgrain",
+        "X": 23241.44,
+        "Y": 9018.236,
+        "Z": 659.8361,
+        "ZoneId": 156,
+        "ZRot": 66,
+        "SubZoneId": 748,
+        "Owner": 0
+    },
+    {
+        "Id": 76, // 7 76
+        "Name": "Halfmoon",
+        "X": 23596.99,
+        "Y": 9842.461,
+        "Z": 590.0519,
+        "ZoneId": 156,
+        "ZRot": 23,
+        "SubZoneId": 746,
+        "Owner": 0
+    },
+    {
+        "Id": 356, // 279 356
+        "Name": "Galegarden",
+        "X": 28939.52,
+        "Y": 7679.402,
+        "Z": 618.5804,
+        "ZoneId": 155,
+        "ZRot": 27,
+        "SubZoneId": 917,
+        "Owner": 0
+    },
+    {
+        "Id": 565, // 364 565
+        "Name": "Falcorth Temporary Garden",
+        "ZoneId": 156,
+        "SubZoneId": 1080,
+        "Owner": 0,
+        "X": 23796.0,
+        "Y": 9625.7,
+        "Z": 569.9,
+        "ZRot": 0
+    },
+    {
+        "Id": 511, // 282 511
+        "Name": "Jadegale",
+        "X": 28650.5,
+        "Y": 8525.1,
+        "Z": 527.5,
+        "ZoneId": 272,
+        "ZRot": 64,
+        "SubZoneId": 920,
+        "Owner": 0
+    },
+    {
+        "Id": 512, // 283 512 (всего две точки)
+        "Name": "Veroe",
+        "X": 29998.48,
+        "Y": 8743.883,
+        "Z": 542.3076,
+        "ZoneId": 272,
+        "ZRot": -11,
+        "SubZoneId": 930, // 930 1049
+        "Owner": 0
+    },
+    {
+        "Id": 512, // 283 512 (всего две точки)
+        "Name": "Veroe",
+        "X": 29998.48,
+        "Y": 8743.883,
+        "Z": 542.3076,
+        "ZoneId": 272,
+        "ZRot": 0,
+        "SubZoneId": 1049, // 930 1049
+        "Owner": 0
+    },
+    {
+        "Id": 359, // 277 359
+        "Name": "Tehmika Tribe",
+        "X": 30024.71,
+        "Y": 7829.107,
+        "Z": 399.877,
+        "ZoneId": 155,
+        "ZRot": 36,
+        "SubZoneId": 932,
+        "Owner": 0
+    },
+    {
+        "Id": 0, // нет книги
+        "Name": "Abandoned Drill Camp",
+        "X": 29831.0,
+        "Y": 7019.7,
+        "Z": 414.1,
+        "ZoneId": 274,
+        "ZRot": 0,
+        "SubZoneId": 1050,
+        "Owner": 0
+    },
+//
+    {
+        "Id": 869,
+        "Name": "Growlgate Isle",
+        "X": 15109,
+        "Y": 22983,
+        "Z": 104.236,
+        "ZoneId": 284,
+        "ZRot": 0,
+        "SubZoneId": 869,
+        "Owner": 0
+    },
+    {
+        "Id": 99,
+        "Name": "Firetalon",
+        "X": 23831.45,
+        "Y": 7325.709,
+        "Z": 306.1292,
+        "ZoneId": 136,
+        "ZRot": 10,
+        "SubZoneId": 99,
+        "Owner": 0
+    },
+    {
+        "Id": 104,
+        "Name": "Firesnarl",
+        "X": 24675.77,
+        "Y": 6918.801,
+        "Z": 316.6624,
+        "ZoneId": 136,
+        "ZRot": -2,
+        "SubZoneId": 104,
+        "Owner": 0
+    },
+    {
+        "Id": 106,
+        "Name": "Skyfang Village",
+        "X": 25912.84,
+        "Y": 6832.059,
+        "Z": 360.8673,
+        "ZoneId": 247,
+        "ZRot": 49,
+        "SubZoneId": 106,
+        "Owner": 0
+    },
+    {
+        "Id": 952,
+        "Name": "Herbalist Camp",
+        "X": 26987.86,
+        "Y": 7075.008,
+        "Z": 438.5007,
+        "ZoneId": 243,
+        "ZRot": 63,
+        "SubZoneId": 952,
+        "Owner": 0
+    },
+    {
+        "Id": 955,
+        "Name": "Stonehew",
+        "X": 27813.54,
+        "Y": 6737.143,
+        "Z": 574.1405,
+        "ZoneId": 137,
+        "ZRot": -26,
+        "SubZoneId": 955,
+        "Owner": 0
+    },
+    {
+        "Id": 963,
+        "Name": "Archeology Base Camp",
+        "X": 28539.42,
+        "Y": 6148.309,
+        "Z": 558.3921,
+        "ZoneId": 242,
+        "ZRot": 0,
+        "SubZoneId": 963,
+        "Owner": 0
+    },
+    {
+        "Id": 56,
+        "Name": "Kroloal Craddle Entrance",
+        "X": 26862.96,
+        "Y": 9042.939,
+        "Z": 773.384,
+        "ZoneId": 138,
+        "ZRot": -30,
+        "SubZoneId": 56,
+        "Owner": 0
+    },
+    {
+        "Id": 983,
+        "Name": "Watermist",
+        "X": 25410.24,
+        "Y": 9769.465,
+        "Z": 713.2197,
+        "ZoneId": 138,
+        "ZRot": 14,
+        "SubZoneId": 983,
+        "Owner": 0
+    },
+    {
+        "Id": 49,
+        "Name": "Duskgleam",
+        "X": 24919.67,
+        "Y": 10605.08,
+        "Z": 687.5003,
+        "ZoneId": 246,
+        "ZRot": 24,
+        "SubZoneId": 49,
+        "Owner": 0
+    },
+    {
+        "Id": 462,
+        "Name": "Hadir Farm",
+        "X": 20023.23,
+        "Y": 12779.68,
+        "Z": 136.4516,
+        "ZoneId": 139,
+        "ZRot": 76,
+        "SubZoneId": 462,
+        "Owner": 0
+    },
+    {
+        "Id": 217,
+        "Name": "Hardbleak Island",
+        "X": 9260.123,
+        "Y": 16673.17,
+        "Z": 141.3285,
+        "ZoneId": 145,
+        "ZRot": 67,
+        "SubZoneId": 217,
         "Owner": 0
     },
 //----------------- Memory Tome for Recall -----------------
