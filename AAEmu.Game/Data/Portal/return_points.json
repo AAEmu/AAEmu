@@ -576,14 +576,14 @@
         "Owner": 0
     },
     {
-        "Id": 74, // 5 74
-        "Name": "Whisperwind",
-        "X": 24143.14,
-        "Y": 9999.193,
-        "Z": 596.8657,
-        "ZoneId": 184,
-        "ZRot": -40,
-        "SubZoneId": 728,
+        "Id": 66, // 11 66
+        "Name": "Tigerseye",
+        "X": 21717.0,
+        "Y": 8621.6,
+        "Z": 519.8,
+        "ZoneId": 158,
+        "ZRot": 0,
+        "SubZoneId": 687,
         "Owner": 0
     },
     {
@@ -676,7 +676,7 @@
     },
     {
         "Id": 210, // 166 210
-        "Name": "Sanctia Oasis",
+        "Name": "Widesleeves",
         "X": 22275.9,
         "Y": 7027.9,
         "Z": 277.7,
