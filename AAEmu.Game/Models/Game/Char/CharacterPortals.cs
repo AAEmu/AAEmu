@@ -243,7 +243,7 @@ namespace AAEmu.Game.Models.Game.Char
                 foreach (var subZone in VisitedDistricts)
                 {
                     var portal = PortalManager.Instance.GetPortalBySubZoneId(subZone.Key);
-                    if (portal != null)
+                    if (portal != null && !portal.Name.ToLower().Contains("respawn"))
                     {
                         if (!DistrictPortals.ContainsKey(portal.Id))
                         {

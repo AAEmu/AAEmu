@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
@@ -18,7 +19,9 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.Tasks.World;
+using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
 using NLog;
@@ -198,11 +201,7 @@ namespace AAEmu.Game.Core.Managers
                 }
             }
             _log.Info("Loaded Portal Info");
-
-
-
             #endregion
-
         }
 
         private static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
@@ -311,6 +310,28 @@ namespace AAEmu.Game.Core.Managers
             var portalInfo = owner.Portals.GetPortalInfo(id);
             if (portalInfo == null) return;
             owner.Portals.RemoveFromBookPortal(portalInfo, isPrivate);
+        }
+
+        public Portal GetClosestReturnPortal(Character character)
+        {
+            var cxyz = character.Transform.World.Position;
+            var distance = 5000f;
+            var portal = new Portal();
+
+            foreach (var districtPortal in _allDistrictPortals)
+            {
+                if (!districtPortal.Value.Name.ToLower().Contains("respawn"))
+                    continue;
+
+                var pxyz = new Vector3(districtPortal.Value.X, districtPortal.Value.Y, districtPortal.Value.Z);
+                var dist = MathUtil.CalculateDistance(cxyz, pxyz);
+                if (dist < distance)
+                {
+                    distance = dist;
+                    portal = districtPortal.Value;
+                }
+            }
+            return portal;
         }
     }
 }

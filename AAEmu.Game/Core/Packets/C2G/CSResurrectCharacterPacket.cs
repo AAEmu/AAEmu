@@ -1,4 +1,6 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -16,6 +18,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("ResurrectCharacter, InPlace: {0}", inPlace);
 
+            var portal = PortalManager.Instance.GetClosestReturnPortal(Connection.ActiveChar);
+
             if (inPlace)
             {
                 Connection.ActiveChar.Hp = (int)(Connection.ActiveChar.MaxHp * (Connection.ActiveChar.ResurrectHpPercent / 100.0f));
@@ -29,16 +33,32 @@ namespace AAEmu.Game.Core.Packets.C2G
                 Connection.ActiveChar.Mp = (int)(Connection.ActiveChar.MaxMp * 0.1);
             }
 
-            Connection.ActiveChar.BroadcastPacket(
-                new SCCharacterResurrectedPacket(
-                    Connection.ActiveChar.ObjId,
-                    Connection.ActiveChar.Transform.World.Position.X,
-                    Connection.ActiveChar.Transform.World.Position.Y,
-                    Connection.ActiveChar.Transform.World.Position.Z,
-                    0
-                ),
-                true
-            );
+            if (portal.X != 0)
+            {
+                Connection.ActiveChar.BroadcastPacket(
+                    new SCCharacterResurrectedPacket(
+                        Connection.ActiveChar.ObjId,
+                        portal.X,
+                        portal.Y,
+                        portal.Z,
+                        portal.ZRot
+                    ),
+                    true
+                );
+            }
+            else
+            {
+                Connection.ActiveChar.BroadcastPacket(
+                    new SCCharacterResurrectedPacket(
+                        Connection.ActiveChar.ObjId,
+                        Connection.ActiveChar.Transform.World.Position.X,
+                        Connection.ActiveChar.Transform.World.Position.Y,
+                        Connection.ActiveChar.Transform.World.Position.Z,
+                        0
+                    ),
+                    true
+                );
+            }
 
             Connection.ActiveChar.BroadcastPacket(
                 new SCUnitPointsPacket(
