@@ -795,6 +795,83 @@
         "SubZoneId": 270,
         "Owner": 0
     },
+    {
+        "Id": 45, // 28 45
+        "Name": "Halo Hollow",
+        "X": 15642.1,
+        "Y": 7608.2,
+        "Z": 157.7,
+        "ZoneId": 141,
+        "ZRot": -64,
+        "SubZoneId": 597,
+        "Owner": 0
+    },
+    {
+        "Id": 115, // 63 115
+        "Name": "Mahadevi Checkpoint",
+        "X": 17782.3,
+        "Y": 8345.0,
+        "Z": 261.5,
+        "ZoneId": 141,
+        "ZRot": 64,
+        "SubZoneId": 637,
+        "Owner": 0
+    },
+    {
+        "Id": 37, // 32 37
+        "Name": "City of Towers",
+        "X": 19295.2,
+        "Y": 8591.1,
+        "Z": 225.0,
+        "ZoneId": 196,
+        "ZRot": 0,
+        "SubZoneId": 625, // 625 626
+        "Owner": 0
+    },
+    {
+        "Id": 37, // 32 37
+        "Name": "City of Towers",
+        "X": 15109,
+        "Y": 22983,
+        "Z": 104,
+        "ZoneId": 0,
+        "ZRot": 0,
+        "SubZoneId": 626, // 625 626
+        "Owner": 0
+    },
+    {
+        "Id": 37, // 32 37
+        "Name": "City of Towers",
+        "X": 19295.2,
+        "Y": 8591.1,
+        "Z": 225.0,
+        "ZoneId": 196,
+        "ZRot": 0,
+        "SubZoneId": 278, // 625 626 278
+        "Owner": 0
+    },
+    {
+        "Id": 254, // 200 254
+        "Name": "Herb Farm",
+        "X": 20328.4,
+        "Y": 9321.6,
+        "Z": 281.7,
+        "ZoneId": 197,
+        "ZRot": 0,
+        "SubZoneId": 285,
+        "Owner": 0
+    },
+    {
+        "Id": 521, // 347 521
+        "Name": "Mahadevi Scarecrow Farm",
+        "X": 20031.6,
+        "Y": 97070.0,
+        "Z": 190.6,
+        "ZoneId": 197,
+        "ZRot": 0,
+        "SubZoneId": 641,
+        "Owner": 0
+    },
 //
     {
         "Id": 869,
