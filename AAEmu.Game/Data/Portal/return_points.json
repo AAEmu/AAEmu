@@ -708,6 +708,50 @@
         "Owner": 0
     },
     {
+        "Id": 348, // 272 348
+        "Name": "Snowlion Rock Camp",
+        "X": 24746.7,
+        "Y": 7681.2,
+        "Z": 343.2,
+        "ZoneId": 136,
+        "ZRot": 0,
+        "SubZoneId": 1004,
+        "Owner": 0
+    },
+    {
+        "Id": 349, // 273 349
+        "Name": "Firetalon",
+        "X": 23819.1,
+        "Y": 7346.8,
+        "Z": 306.1,
+        "ZoneId": 136,
+        "ZRot": 0,
+        "SubZoneId": 99,
+        "Owner": 0
+    },
+    {
+        "Id": 351, // 274 351
+        "Name": "Firesnarl",
+        "X": 24674.6,
+        "Y": 6918.2,
+        "Z": 316.5,
+        "ZoneId": 136,
+        "ZRot": 0,
+        "SubZoneId": 104,
+        "Owner": 0
+    },
+    {
+        "Id": 352, // 275 352
+        "Name": "Skyfang",
+        "X": 25919.2,
+        "Y": 6829.2,
+        "Z": 361.3,
+        "ZoneId": 247,
+        "ZRot": 0,
+        "SubZoneId": 106,
+        "Owner": 0
+    },
+    {
         "Id": 356, // 279 356
         "Name": "Galegarden",
         "X": 28939.52,
