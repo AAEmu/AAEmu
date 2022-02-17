@@ -130,8 +130,27 @@ namespace AAEmu.Game.Core.Managers.World
             #region LoadClientData
             
             var worldXmlPaths = ClientFileManager.GetFilesInDirectory(Path.Combine("game", "worlds"), "world.xml", true);
+
+            if (worldXmlPaths.Count <= 0)
+            {
+                _log.Fatal("No client worlds data has been found, please check the readme.txt file inside the ClientData folder for more info.");
+                return;
+            }
             var worldNames = new List<string>();
             worldNames.Add("main_world"); // Make sure main_world is the first even if it wouldn't exist
+            
+            // Grab world_spawns.json info
+            var spawnPositionFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", "world_spawns.json");
+            var contents = File.Exists(spawnPositionFile) ? File.ReadAllText(spawnPositionFile) : "";
+            var worldSpawnLookup = new List<WorldSpawnLocation>();
+            if (string.IsNullOrWhiteSpace(contents))
+                _log.Error($"File {spawnPositionFile} doesn't exists or is empty.");
+            else
+                if (!JsonHelper.TryDeserializeObject(contents, out List<WorldSpawnLocation> worldSpawnLookupFromJson, out _))
+                    _log.Error($"Error in {spawnPositionFile}.");
+                else
+                    worldSpawnLookup = worldSpawnLookupFromJson;
+            
             foreach (var worldXmlPath in worldXmlPaths)
             {
                 var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
@@ -155,6 +174,7 @@ namespace AAEmu.Game.Core.Managers.World
                     var world = new InstanceWorld();
                     world.Id = id;
                     xmlWorld.ReadNode(worldNode, world);
+                    world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
                     _worlds.Add(id, world);
                     
                     // cache zone keys to world reference
