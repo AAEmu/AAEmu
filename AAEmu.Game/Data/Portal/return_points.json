@@ -763,6 +763,39 @@
         "Owner": 0
     },
     {
+        "Id": 387, // 300 387
+        "Name": "Stonehew",
+        "X": 27810.5,
+        "Y": 6736.1,
+        "Z": 537.8,
+        "ZoneId": 137,
+        "ZRot": 0,
+        "SubZoneId": 955,
+        "Owner": 0
+    },
+    {
+        "Id": 390, // 301 390
+        "Name": "Archeology Base Camp",
+        "X": 28523.7,
+        "Y": 6146.1,
+        "Z": 558.3,
+        "ZoneId": 242,
+        "ZRot": 0,
+        "SubZoneId": 963,
+        "Owner": 0
+    },
+    {
+        "Id": 391, // 302 391
+        "Name": "Herbalist Camp",
+        "X": 26987.7,
+        "Y": 7077.4,
+        "Z": 438.5,
+        "ZoneId": 243,
+        "ZRot": 27,
+        "SubZoneId": 952,
+        "Owner": 0
+    },
+    {
         "Id": 565, // 364 565
         "Name": "Falcorth Temporary Garden",
         "ZoneId": 156,
@@ -1050,25 +1083,69 @@
         "Owner": 0
     },
 	//----------------- Auroria continent ----------------------
-{
+	{
+        "Id": 556, // 357 556
+        "Name": "Heedmar",
+        "X": 20108.2,
+        "Y": 24572.7,
+        "Z": 155.1,
+		"ZoneId": 204,
+        "ZRot": 0.0,
+        "SubZoneId": 1110,
+		"Owner": 0
+    },
+	{
+        "Id": 557, // 358 557
+        "Name": "Calmlands",
+        "X": 22349.9,
+        "Y": 24945.2,
+        "Z": 188.7,
+		"ZoneId": 276,
+        "ZRot": 0.0,
+        "SubZoneId": 1110,
+		"Owner": 0
+    },
+	{
+        "Id": 558, // 359 558
+        "Name": "Nuimari",
+        "X": 21731.5,
+        "Y": 23753.9,
+        "Z": 145.0,
+        "ZoneId": 205,
+        "ZRot": 0,
+        "SubZoneId": 0,
+		"Owner": 0
+    },
+	{
+        "Id": 560,
+        "Name": "Sungold Fields",
+        "X": 22119.2,
+        "Y": 26411.6,
+        "Z": 163.5,
+        "ZoneId": 275,
+        "ZRot": 0,
+        "SubZoneId": 0,
+		"Owner": 0
+    },
+	{
         "Id": 652,
         "Name": "Nuia Rally Point",
-        "ZoneId": 301,
         "X": 19332.0,
         "Y": 26883.0,
         "Z": 130.5,
-        "Yaw": 0.0,
+		"ZoneId": 301,
+        "ZRot": 0.0,
         "SubZoneId": 1110,
 		"Owner": 0
     },
     {
         "Id": 672,
         "Name": "Haranya Rally Point",
-        "ZoneId": 282,
         "X": 19610.2,
         "Y": 26958.1,
         "Z": 131.7,
-        "Yaw": 0.0,
+		"ZoneId": 282,
+        "ZRot": 0.0,
         "SubZoneId": 1110,
 		"Owner": 0
     },
