@@ -533,13 +533,35 @@
 //----------------- Haranya continent ----------------------
     {
         "Id": 26, // 124 26
-        "Name": "Caernord Memory Tome",
+        "Name": "Caernord",
         "X": 20919.1,
         "Y": 13144.8,
         "Z": 114.1,
         "ZoneId": 139,
         "ZRot": 0,
         "SubZoneId": 477,
+        "Owner": 0
+    },
+	{
+        "Id": 28, // 151 28
+        "Name": "Silent Forest Checkpoint",
+        "X": 22069.4,
+        "Y": 11306.6,
+        "Z": 220.6,
+        "ZoneId": 256,
+        "ZRot": 0,
+        "SubZoneId": 531,
+        "Owner": 0
+    },
+	{
+        "Id": 29, // 150 29
+        "Name": "Winebalm",
+        "X": 21776.2,
+        "Y": 10273.8,
+        "Z": 152.2,
+        "ZoneId": 256,
+        "ZRot": 0,
+        "SubZoneId": 538,
         "Owner": 0
     },
 	{
@@ -573,6 +595,17 @@
         "ZoneId": 141,
         "ZRot": 0,
         "SubZoneId": 588,
+        "Owner": 0
+    },
+    {
+        "Id": 44, // 29 44
+        "Name": "Austera",
+        "X": 16750.7,
+        "Y": 8995.6,
+        "Z": 120.3,
+        "ZoneId": 191,
+        "ZRot": 0,
+        "SubZoneId": 578,
         "Owner": 0
     },
     {
@@ -653,8 +686,19 @@
         "Owner": 0
     },
     {
+        "Id": 164, // 117 164
+        "Name": "Lutesong Harbor",
+        "X": 21167.3,
+        "Y": 10519.2,
+        "Z": 115.6,
+        "ZoneId": 160,
+        "ZRot": 0,
+        "SubZoneId": 1009,
+        "Owner": 0
+    },
+    {
         "Id": 165, // 152 165
-        "Name": "Vedisa Memory Tome",
+        "Name": "Vedisa",
         "X": 22301.6,
         "Y": 12118.5,
         "Z": 260.6,
@@ -665,7 +709,7 @@
     },
     {
         "Id": 166, // 153 166
-        "Name": "Huntsman's Retreat Memory Tome",
+        "Name": "Huntsman's Retreat",
         "X": 22729.8,
         "Y": 12112.2,
         "Z": 261.5,
@@ -676,7 +720,7 @@
     },
     {
         "Id": 167, // 154 167
-        "Name": "Stille Camp Memory Tome",
+        "Name": "Stille Camp",
         "X": 23789.1,
         "Y": 11280.7,
         "Z": 362.7,
@@ -687,7 +731,7 @@
     },
     {
         "Id": 206, // 162 206
-        "Name": "Count Sebastian's Retreat Memory Tome",
+        "Name": "Count Sebastian's Retreat",
         "X": 23561.8,
         "Y": 12157.4,
         "Z": 253.0,
@@ -753,7 +797,7 @@
     },
     {
         "Id": 305, // 235 305
-        "Name": "Village of Nui Memory Tome",
+        "Name": "Village of Nui",
         "X": 20279.3,
         "Y": 12027.1,
         "Z": 123.5,
@@ -841,7 +885,7 @@
     },
     {
         "Id": 377, // 295 377
-        "Name": "Duskgleam Memory Tome",
+        "Name": "Duskgleam",
         "X": 24919.1,
         "Y": 10603.7,
         "Z": 687.6,
@@ -852,7 +896,7 @@
     },
     {
         "Id": 378, // 296 378
-        "Name": "Cloistera Memory Tome",
+        "Name": "Cloistera",
         "X": 25761.1,
         "Y": 10906.3,
         "Z": 784.9,
@@ -863,7 +907,7 @@
     },
     {
         "Id": 379, // 297 379
-        "Name": "Watermist Memory Tome",
+        "Name": "Watermist",
         "X": 254106.2,
         "Y": 9772.9,
         "Z": 713.3,
@@ -874,7 +918,7 @@
     },
     {
         "Id": 380, // 298 380
-        "Name": "Scout Camp Memory Tome",
+        "Name": "Scout Camp",
         "X": 25936.2,
         "Y": 9136.5,
         "Z": 681.4,
