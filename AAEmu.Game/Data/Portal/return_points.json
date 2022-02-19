@@ -532,11 +532,22 @@
     },
 //----------------- Haranya continent ----------------------
     {
+        "Id": 26, // 124 26
+        "Name": "Caernord Memory Tome",
+        "X": 20919.1,
+        "Y": 13144.8,
+        "Z": 114.1,
+        "ZoneId": 139,
+        "ZRot": 0,
+        "SubZoneId": 477,
+        "Owner": 0
+    },
+	{
         "Id": 36, // 33 36
         "Name": "Poacher's Watch",
-        "X": 20079.3,
-        "Y": 8473.7,
-        "Z": 210.5,
+        "X": 20076.8,
+        "Y": 8465.9,
+        "Z": 209.6,
         "ZoneId": 197,
         "ZRot": 0,
         "SubZoneId": 276,
@@ -642,10 +653,54 @@
         "Owner": 0
     },
     {
+        "Id": 165, // 152 165
+        "Name": "Vedisa Memory Tome",
+        "X": 22301.6,
+        "Y": 12118.5,
+        "Z": 260.6,
+        "ZoneId": 159,
+        "ZRot": 0,
+        "SubZoneId": 671,
+        "Owner": 0
+    },
+    {
+        "Id": 166, // 153 166
+        "Name": "Huntsman's Retreat Memory Tome",
+        "X": 22729.8,
+        "Y": 12112.2,
+        "Z": 261.5,
+        "ZoneId": 159,
+        "ZRot": 0,
+        "SubZoneId": 673,
+        "Owner": 0
+    },
+    {
+        "Id": 167, // 154 167
+        "Name": "Stille Camp Memory Tome",
+        "X": 23789.1,
+        "Y": 11280.7,
+        "Z": 362.7,
+        "ZoneId": 159,
+        "ZRot": 0,
+        "SubZoneId": 676,
+        "Owner": 0
+    },
+    {
+        "Id": 206, // 162 206
+        "Name": "Count Sebastian's Retreat Memory Tome",
+        "X": 23561.8,
+        "Y": 12157.4,
+        "Z": 253.0,
+        "ZoneId": 159,
+        "ZRot": 0,
+        "SubZoneId": 847,
+        "Owner": 0
+    },
+    {
         "Id": 207, // 163 207
         "Name": "Hatora",
-        "X": 20033.0,
-        "Y": 7599.3,
+        "X": 20028.4,
+        "Y": 7599.8,
         "Z": 179.3,
         "ZoneId": 187,
         "ZRot": 0,
@@ -694,6 +749,17 @@
         "ZoneId": 153,
         "ZRot": 0,
         "SubZoneId": 279,
+        "Owner": 0
+    },
+    {
+        "Id": 305, // 235 305
+        "Name": "Village of Nui Memory Tome",
+        "X": 20279.3,
+        "Y": 12027.1,
+        "Z": 123.5,
+        "ZoneId": 139,
+        "ZRot": 0,
+        "SubZoneId": 460,
         "Owner": 0
     },
     {
@@ -760,6 +826,50 @@
         "ZoneId": 155,
         "ZRot": 27,
         "SubZoneId": 917,
+        "Owner": 0
+    },
+    {
+        "Id": 377, // 295 377
+        "Name": "Duskgleam Memory Tome",
+        "X": 24919.1,
+        "Y": 10603.7,
+        "Z": 687.6,
+        "ZoneId": 246,
+        "ZRot": 0,
+        "SubZoneId": 49,
+        "Owner": 0
+    },
+    {
+        "Id": 378, // 296 378
+        "Name": "Cloistera Memory Tome",
+        "X": 25761.1,
+        "Y": 10906.3,
+        "Z": 784.9,
+        "ZoneId": 246,
+        "ZRot": 0,
+        "SubZoneId": 52,
+        "Owner": 0
+    },
+    {
+        "Id": 379, // 297 379
+        "Name": "Watermist Memory Tome",
+        "X": 254106.2,
+        "Y": 9772.9,
+        "Z": 713.3,
+        "ZoneId": 138,
+        "ZRot": 0,
+        "SubZoneId": 983,
+        "Owner": 0
+    },
+    {
+        "Id": 380, // 298 380
+        "Name": "Scout Camp Memory Tome",
+        "X": 25936.2,
+        "Y": 9136.5,
+        "Z": 681.4,
+        "ZoneId": 138,
+        "ZRot": 0,
+        "SubZoneId": 258,
         "Owner": 0
     },
     {
@@ -947,6 +1057,17 @@
         "ZoneId": 197,
         "ZRot": 0,
         "SubZoneId": 641,
+        "Owner": 0
+    },
+    {
+        "Id": 607, // 372 607
+        "Name": "Kroloal Cradle",
+        "X": 26856.4,
+        "Y": 9043.2,
+        "Z": 773.4,
+        "ZoneId": 138,
+        "ZRot": 0,
+        "SubZoneId": 56,
         "Owner": 0
     },
 //
