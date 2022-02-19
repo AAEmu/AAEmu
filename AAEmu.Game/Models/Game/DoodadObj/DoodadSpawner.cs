@@ -1,6 +1,4 @@
 ﻿using System;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;

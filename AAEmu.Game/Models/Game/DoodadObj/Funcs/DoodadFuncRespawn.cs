@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncRespawn: MinTime {0}, MaxTime {1}", MinTime, MaxTime);
+            _log.Trace("DoodadFuncRespawn: MinTime {0}, MaxTime {1}", MinTime, MaxTime);
 
             // Doodad spawn
             if (!(caster is Character character))

@@ -104,7 +104,8 @@ namespace AAEmu.Game.Models.Game.Char
         public int Gift { get; set; }
         public int Expirience { get; set; }
         public int RecoverableExp { get; set; }
-        public DateTime Updated { get; set; }
+        public DateTime Created { get; set; } // время создания персонажа
+        public DateTime Updated { get; set; } // время внесения изменений
 
         public uint ReturnDictrictId { get; set; }
         public uint ResurrectionDictrictId { get; set; }
@@ -1743,6 +1744,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.NumInventorySlots = reader.GetByte("num_inv_slot");
                         character.NumBankSlots = reader.GetInt16("num_bank_slot");
                         character.ExpandedExpert = reader.GetByte("expanded_expert");
+                        character.Created = reader.GetDateTime("created_at");
                         character.Updated = reader.GetDateTime("updated_at");
                         character.ReturnDictrictId = reader.GetUInt32("return_district");
 
@@ -1847,6 +1849,7 @@ namespace AAEmu.Game.Models.Game.Char
                         character.NumInventorySlots = reader.GetByte("num_inv_slot");
                         character.NumBankSlots = reader.GetInt16("num_bank_slot");
                         character.ExpandedExpert = reader.GetByte("expanded_expert");
+                        character.Created = reader.GetDateTime("created_at");
                         character.Updated = reader.GetDateTime("updated_at");
                         character.ReturnDictrictId = reader.GetUInt32("return_district");
 
@@ -1972,6 +1975,8 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 var unitModelParams = ModelParams.Write(new PacketStream()).GetBytes();
 
+                Updated = DateTime.UtcNow; // обновим время записи информации
+
                 var slots = new PacketStream();
                 foreach (var slot in Slots)
                 {
@@ -1994,7 +1999,7 @@ namespace AAEmu.Game.Models.Game.Char
                         "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
                         "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`," +
                         "`delete_request_time`,`transfer_request_time`,`delete_time`,`bm_point`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
-                        "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`updated_at`,`return_district`" +
+                        "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`" +
                         ") VALUES (" +
                         "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@expirience,@recoverable_exp," +
                         "@hp,@mp,@labor_power,@labor_power_modified,@consumed_lp,@ability1,@ability2,@ability3," +
@@ -2002,7 +2007,7 @@ namespace AAEmu.Game.Models.Game.Char
                         "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
                         "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record," +
                         "@delete_request_time,@transfer_request_time,@delete_time,@bm_point,@auto_use_aapoint,@prev_point,@point,@gift," +
-                        "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@updated_at,@return_district)";
+                        "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district)";
 
                     command.Parameters.AddWithValue("@id", Id);
                     command.Parameters.AddWithValue("@account_id", AccountId);
@@ -2060,6 +2065,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Parameters.AddWithValue("@num_bank_slot", NumBankSlots);
                     command.Parameters.AddWithValue("@expanded_expert", ExpandedExpert);
                     command.Parameters.AddWithValue("@slots", slots.GetBytes());
+                    command.Parameters.AddWithValue("@created_at", Created);
                     command.Parameters.AddWithValue("@updated_at", Updated);
                     command.Parameters.AddWithValue("@return_district", ReturnDictrictId);
                     command.ExecuteNonQuery();

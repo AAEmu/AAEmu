@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
 
@@ -15,20 +16,18 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            //_log.Debug("Delay " + Delay);
-            //_log.Debug("StartScale " + StartScale);
-            //_log.Debug("EndScale " + EndScale);
-            //_log.Debug("NextPhase " + NextPhase);
+            _log.Trace("DoodadFuncGrowth: skillId {0}, nextPhase {1},  Delay {2}, StartScale {3}, EndScale {4}, NextPhase {5}",
+                skillId, nextPhase, Delay, StartScale, EndScale, NextPhase);
 
             //TODO add doodad scaling transformation
             owner.Scale = StartScale / 1000f;
-            var customDelay = Delay / 100.0f; // decrease delay
+            var customDelay = Delay; // / 100.0f; // decrease delay
 
             //if (owner.FuncTask != null)
             //{
             //    _ = owner.FuncTask.Cancel();
             //    _ = owner.FuncTask = null;
-            //    _log.Debug("DoodadFuncGrowthTask: The current timer has been canceled by the next scheduled timer.");
+            //    _log.Trace("DoodadFuncGrowthTask: The current timer has been canceled by the next scheduled timer.");
             //}
             owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, skillId, NextPhase, EndScale / 1000f);
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(customDelay);

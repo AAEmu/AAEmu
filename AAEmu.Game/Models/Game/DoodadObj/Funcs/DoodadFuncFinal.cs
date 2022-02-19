@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncFinal: skillId {0}, After {1}, Respawn {2}, MinTime {3}, MaxTime {4}, ShowTip {5}, ShowEndTime {6}, Tip {7}",
+            _log.Trace("DoodadFuncFinal: skillId {0}, After {1}, Respawn {2}, MinTime {3}, MaxTime {4}, ShowTip {5}, ShowEndTime {6}, Tip {7}",
                 skillId, After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
 
             var delay = Rand.Next(MinTime, MaxTime);
@@ -51,7 +51,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //{
                 //    _ = owner.FuncTask.Cancel();
                 //    _ = owner.FuncTask = null;
-                //    _log.Debug("DoodadFuncFinalTask: The current timer has been canceled by the next scheduled timer.");
+                //    _log.Trace("DoodadFuncFinalTask: The current timer has been canceled by the next scheduled timer.");
                 //}
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, skillId, Respawn, delay);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility

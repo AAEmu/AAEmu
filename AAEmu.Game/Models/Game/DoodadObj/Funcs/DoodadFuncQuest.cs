@@ -11,7 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncQuest : skillId {0}, QuestKindId {1}, QuestId {2}", skillId, QuestKindId, QuestId);
+            _log.Trace("DoodadFuncQuest : skillId {0}, QuestKindId {1}, QuestId {2}", skillId, QuestKindId, QuestId);
 
             if (caster is Character character)
             {

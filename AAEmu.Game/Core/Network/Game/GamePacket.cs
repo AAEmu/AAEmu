@@ -62,7 +62,7 @@ namespace AAEmu.Game.Core.Network.Game
             {
                 //_log.Debug("GamePacket: S->C type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                 //_log.Trace("GamePacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                _log.Debug("GamePacket: S->C type {0:X3} {1}{2}", TypeId, ToString().Substring(23), Verbose());
+                _log.Debug("GamePacket: S->C type {0:X3} {1}{2}", TypeId, ToString()?.Substring(23), Verbose());
             }
             return ps;
         }
@@ -80,13 +80,13 @@ namespace AAEmu.Game.Core.Network.Game
                 {
                     //_log.Debug("GamePacket: C->S type {0:X} {2}\n{1}", TypeId, ps, this.ToString().Substring(23));
                     //_log.Trace("GamePacket: C->S type {0:X3} {1}", TypeId, this.ToString().Substring(23));
-                    _log.Debug("GamePacket: C->S type {0:X3} {1}{2}", TypeId, ToString().Substring(23),Verbose());
+                    _log.Debug("GamePacket: C->S type {0:X3} {1}{2}", TypeId, ToString()?.Substring(23),Verbose());
                 }
                 Execute();
             }
             catch (Exception ex)
             {
-                _log.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString().Substring(23));
+                _log.Error("GamePacket: C->S type {0:X3} {1}", TypeId, ToString()?.Substring(23));
                 _log.Fatal(ex);
                 throw;
             }

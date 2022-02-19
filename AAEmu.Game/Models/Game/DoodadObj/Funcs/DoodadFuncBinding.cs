@@ -12,26 +12,29 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            if (caster is Character character)
-            {
-                var ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(DistrictId, character.Faction.Id);
-                if (ReturnPointId != 0)
-                {
-                    var portal = PortalManager.Instance.GetPortalById(ReturnPointId);
-                    _log.Debug("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, ReturnPointId, character.SubZoneId);
-                    character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, ReturnPointId, character.SubZoneId);
+            if (caster is not Character character) { return; }
 
-                    if (portal == null)
-                    {
-                        _log.Debug("DoodadFuncBinding: Recall point {0} not found!", DistrictId);
-                        character.SendMessage("DoodadFuncBinding: Recall point {0} not found!", DistrictId);
-                        return;
-                    }
-                    character.ReturnDictrictId = DistrictId;
-                    var portals = new Portal[character.Portals.DistrictPortals.Count];
-                    character.Portals.DistrictPortals.Values.CopyTo(portals, 0);
-                    character.SendPacket(new SCCharacterReturnDistrictsPacket(portals, (int)ReturnPointId));
-                }
+            var returnPointId = PortalManager.Instance.GetDistrictReturnPoint(DistrictId, character.Faction.Id);
+            
+            if (returnPointId == 0) { return; }
+
+            var portal = PortalManager.Instance.GetPortalById(returnPointId);
+            _log.Trace("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
+            character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
+
+            if (portal != null)
+            {
+                character.ReturnDictrictId = DistrictId;
+                var portals = new Portal[character.Portals.DistrictPortals.Count];
+                character.Portals.DistrictPortals.Values.CopyTo(portals, 0);
+                character.SendPacket(new SCCharacterReturnDistrictsPacket(portals, (int)portal.Id));
+                _log.Trace("DoodadFuncBinding: ReturnPointId {0} ==> Portal.Id {1}", returnPointId, portal.Id);
+                character.SendMessage("DoodadFuncBinding: ReturnPointId {0} ==> Portal.Id {1}", returnPointId, portal.Id);
+            }
+            else
+            {
+                _log.Trace("DoodadFuncBinding: Recall point {0} not found!", DistrictId);
+                character.SendMessage("DoodadFuncBinding: Recall point {0} not found!", DistrictId);
             }
         }
     }

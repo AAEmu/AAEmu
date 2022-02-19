@@ -491,6 +491,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.NumInventorySlots = template.NumInventorySlot;
                 character.NumBankSlots = template.NumBankSlot;
                 character.Inventory = new Inventory(character);
+                character.Created = DateTime.UtcNow;
                 character.Updated = DateTime.UtcNow;
                 character.Ability1 = (AbilityType) ability1;
                 character.Ability2 = AbilityType.None;

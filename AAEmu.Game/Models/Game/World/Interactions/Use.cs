@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.World.Interactions
 {
     public class Use : IWorldInteraction
     {
-        protected static Logger _log = LogManager.GetCurrentClassLogger();
+        private static Logger _log = LogManager.GetCurrentClassLogger();
 
         public void Execute(Unit caster, SkillCaster casterType, BaseUnit target, SkillCastTarget targetType,
             uint skillId, uint doodadId, DoodadFuncTemplate objectFunc)
@@ -18,7 +18,6 @@ namespace AAEmu.Game.Models.Game.World.Interactions
             if (target is Doodad doodad)
             {
                 doodad.Use(caster, skillId);
-                //doodad.Use(caster, skillId);
             }
         }
     }

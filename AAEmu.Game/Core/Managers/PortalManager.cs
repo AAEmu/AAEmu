@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 
 using AAEmu.Commons.IO;
@@ -11,15 +12,12 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
-using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.Tasks.World;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
@@ -42,12 +40,18 @@ namespace AAEmu.Game.Core.Managers
 
         public Portal GetPortalBySubZoneId(uint subZoneId)
         {
-            return _allDistrictPortals.ContainsKey(subZoneId) ? _allDistrictPortals[subZoneId] : null;
+            return _allDistrictPortals != null && _allDistrictPortals.ContainsKey(subZoneId)
+                ? _allDistrictPortals[subZoneId]
+                : null;
         }
 
         public Portal GetPortalById(uint id)
         {
-            return _allDistrictPortalsKey.ContainsKey(id) ? (_allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id]) ? _allDistrictPortals[_allDistrictPortalsKey[id]] : null) : null;
+            return _allDistrictPortalsKey != null && _allDistrictPortalsKey.ContainsKey(id)
+                ? _allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id])
+                    ? _allDistrictPortals[_allDistrictPortalsKey[id]]
+                    : null
+                : null;
         }
 
         /// <summary>
@@ -57,15 +61,10 @@ namespace AAEmu.Game.Core.Managers
         /// <returns>ReturnPointId</returns>
         public uint GetDistrictReturnPoint(uint districtId)
         {
-            foreach (var point in _districtReturnPoints)
-            {
-                if (point.Value.DistrictId == districtId)
-                {
-                    return point.Value.ReturnPointId;
-                }
-            }
-
-            return 0;
+            return (
+                from point in _districtReturnPoints
+                where point.Value.DistrictId == districtId
+                select point.Value.ReturnPointId).FirstOrDefault();
         }
 
         /// <summary>
@@ -76,18 +75,11 @@ namespace AAEmu.Game.Core.Managers
         /// <returns>ReturnPointId</returns>
         public uint GetDistrictReturnPoint(uint districtId, uint factionId)
         {
-            foreach (var point in _districtReturnPoints)
-            {
-                if (point.Value.DistrictId == districtId)
-                {
-                    if (point.Value.FactionId == factionId)
-                    {
-                        return point.Value.ReturnPointId;
-                    }
-                }
-            }
-
-            return 0;
+            return (
+                from point in _districtReturnPoints
+                where point.Value.DistrictId == districtId
+                where point.Value.FactionId == factionId
+                select point.Value.ReturnPointId).FirstOrDefault();
         }
 
         public void Load()
@@ -141,20 +133,18 @@ namespace AAEmu.Game.Core.Managers
                 {
                     command.CommandText = "SELECT * FROM open_portal_inland_reagents";
                     command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+                    while (reader.Read())
                     {
-                        while (reader.Read())
+                        var template = new OpenPortalReagents
                         {
-                            var template = new OpenPortalReagents
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OpenPortalEffectId = reader.GetUInt32("open_portal_effect_id"),
-                                ItemId = reader.GetUInt32("item_id"),
-                                Amount = reader.GetInt32("amount"),
-                                Priority = reader.GetInt32("priority")
-                            };
-                            _openPortalInlandReagents.Add(template.Id, template);
-                        }
+                            Id = reader.GetUInt32("id"),
+                            OpenPortalEffectId = reader.GetUInt32("open_portal_effect_id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            Amount = reader.GetInt32("amount"),
+                            Priority = reader.GetInt32("priority")
+                        };
+                        _openPortalInlandReagents.Add(template.Id, template);
                     }
                 }
 
@@ -162,20 +152,18 @@ namespace AAEmu.Game.Core.Managers
                 {
                     command.CommandText = "SELECT * FROM open_portal_outland_reagents";
                     command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+                    while (reader.Read())
                     {
-                        while (reader.Read())
+                        var template = new OpenPortalReagents
                         {
-                            var template = new OpenPortalReagents
-                            {
-                                Id = reader.GetUInt32("id"),
-                                OpenPortalEffectId = reader.GetUInt32("open_portal_effect_id"),
-                                ItemId = reader.GetUInt32("item_id"),
-                                Amount = reader.GetInt32("amount"),
-                                Priority = reader.GetInt32("priority")
-                            };
-                            _openPortalOutlandReagents.Add(template.Id, template);
-                        }
+                            Id = reader.GetUInt32("id"),
+                            OpenPortalEffectId = reader.GetUInt32("open_portal_effect_id"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            Amount = reader.GetInt32("amount"),
+                            Priority = reader.GetInt32("priority")
+                        };
+                        _openPortalOutlandReagents.Add(template.Id, template);
                     }
                 }
 
@@ -183,20 +171,18 @@ namespace AAEmu.Game.Core.Managers
                 {
                     command.CommandText = "SELECT * FROM district_return_points";
                     command.Prepare();
-                    using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                    using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+                    while (reader.Read())
                     {
-                        while (reader.Read())
+                        var template = new DistrictReturnPoints
                         {
-                            var template = new DistrictReturnPoints
-                            {
-                                Id = reader.GetUInt32("id"),
-                                DistrictId = reader.GetUInt32("district_id"),
-                                FactionId = reader.GetUInt32("faction_id"),
-                                ReturnPointId = reader.GetUInt32("return_point_id")
-                            };
-                            if (!_districtReturnPoints.ContainsKey(template.Id))
-                                _districtReturnPoints.Add(template.Id, template);
-                        }
+                            Id = reader.GetUInt32("id"),
+                            DistrictId = reader.GetUInt32("district_id"),
+                            FactionId = reader.GetUInt32("faction_id"),
+                            ReturnPointId = reader.GetUInt32("return_point_id")
+                        };
+                        if (!_districtReturnPoints.ContainsKey(template.Id))
+                            _districtReturnPoints.Add(template.Id, template);
                     }
                 }
             }
@@ -301,7 +287,8 @@ namespace AAEmu.Game.Core.Managers
             // TODO - Maybe need unitState?
             // TODO - Reason, ErrorMessage
             character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.World.Position.X,
-                portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z, portalInfo.TeleportPosition.World.Rotation.Z));
+                portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z,
+                portalInfo.TeleportPosition.World.Rotation.Z));
         }
 
         public void DeletePortal(Character owner, byte type, uint id)
@@ -318,18 +305,14 @@ namespace AAEmu.Game.Core.Managers
             var distance = 5000f;
             var portal = new Portal();
 
-            foreach (var districtPortal in _allDistrictPortals)
+            foreach (var (_, value) in _allDistrictPortals)
             {
-                if (!districtPortal.Value.Name.ToLower().Contains("respawn"))
-                    continue;
-
-                var pxyz = new Vector3(districtPortal.Value.X, districtPortal.Value.Y, districtPortal.Value.Z);
+                if (!value.Name.ToLower().Contains("respawn")) { continue; }
+                var pxyz = new Vector3(value.X, value.Y, value.Z);
                 var dist = MathUtil.CalculateDistance(cxyz, pxyz);
-                if (dist < distance)
-                {
-                    distance = dist;
-                    portal = districtPortal.Value;
-                }
+                if (!(dist < distance)) { continue; }
+                distance = dist;
+                portal = value;
             }
             return portal;
         }

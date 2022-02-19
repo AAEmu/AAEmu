@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
@@ -27,56 +25,49 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
         {
             _log.Debug("Return: value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
-            if (caster is Character character)
+            if (caster is not Character character) { return; }
+            uint returnPointId;
+
+            // проверяем сначала на запись в книге возвратов
+            if (value1 == 0)
             {
-                var ReturnPointId = 0u;
+                returnPointId = PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDictrictId, character.Faction.Id);
+                if (returnPointId == 0) { return; }
+            }
+            else
+            {
+                returnPointId = (uint)value1;
+            }
 
-                // проверяем сначала на запись в книге возвратов
-                if (value1 == 0)
-                {
-                    ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDictrictId, character.Faction.Id);
-                    if (ReturnPointId == 0)
-                    {
-                        return;
-                    }
-                }
-                else
-                {
-                    ReturnPointId = (uint)value1;
-                }
+            var trp = PortalManager.Instance.GetPortalById(returnPointId);
+            if (trp == null && character.MainWorldPosition == null) { return; }
 
-                var trp = PortalManager.Instance.GetPortalById(ReturnPointId);
+            // проверим что возвращаемся из Библиотеки (она инстанс) или если character.MainWorldPosition != null, то любой инстанс
+            if (character.MainWorldPosition != null)
+            {
+                character.DisabledSetPosition = true;
+                character.SendPacket(
+                    new SCLoadInstancePacket(
+                        1,
+                        character.MainWorldPosition.ZoneId,
+                        character.MainWorldPosition.World.Position.X,
+                        character.MainWorldPosition.World.Position.Y,
+                        character.MainWorldPosition.World.Position.Z,
+                        character.MainWorldPosition.World.Rotation.X,
+                        character.MainWorldPosition.World.Rotation.Y,
+                        character.MainWorldPosition.World.Rotation.Z
+                    )
+                );
 
-                if (trp == null && character.MainWorldPosition == null)
-                {
-                    return;
-                }
-                
-                // проверим что возвращаемся из Библиотеки (она инстанс) или если character.MainWorldPosition != null, то любой инстанс
-                if (character.MainWorldPosition != null)
-                {
-                    character.DisabledSetPosition = true;
-                    character.SendPacket(
-                        new SCLoadInstancePacket(
-                            1,
-                            character.MainWorldPosition.ZoneId,
-                            character.MainWorldPosition.World.Position.X,
-                            character.MainWorldPosition.World.Position.Y,
-                            character.MainWorldPosition.World.Position.Z,
-                            character.MainWorldPosition.World.Rotation.X,
-                            character.MainWorldPosition.World.Rotation.Y,
-                            character.MainWorldPosition.World.Rotation.Z
-                        )
-                    );
+                character.Transform = character.MainWorldPosition.Clone(character);
+                character.MainWorldPosition = null;
+            }
+            else
+            {
+                if (trp == null) { return; }
 
-                    character.Transform = character.MainWorldPosition.Clone(character);
-                    character.MainWorldPosition = null;
-                }
-                else
-                {
-                    caster.DisabledSetPosition = true;
-                    caster.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
-                }
+                caster.DisabledSetPosition = true;
+                caster.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, trp.X, trp.Y, trp.Z, trp.Yaw));
             }
         }
     }

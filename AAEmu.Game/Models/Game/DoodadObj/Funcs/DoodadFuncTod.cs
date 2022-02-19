@@ -16,7 +16,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncTod: skillId {0}, nextPhase {1},  Tod {2}, NextPhase {3}",
+            _log.Trace("DoodadFuncTod: skillId {0}, nextPhase {1},  Tod {2}, NextPhase {3}",
                 skillId, nextPhase, Tod, NextPhase);
 
             //if (caster is Character)
@@ -48,7 +48,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //{
                 //    _ = owner.FuncTask.Cancel();
                 //    _ = owner.FuncTask = null;
-                //    _log.Debug("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
+                //    _log.Trace("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
                 //}
                 //if (NextPhase <= 0)
                 //{

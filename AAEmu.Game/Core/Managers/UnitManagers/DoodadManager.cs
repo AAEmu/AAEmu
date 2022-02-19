@@ -2244,10 +2244,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     break;
             }
 
-            if (obj is Unit unit)
-            {
-                //doodad.DoPhase(unit, 0);
-            }
             return doodad;
         }
 
@@ -2288,7 +2284,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             if (_phaseFuncs.ContainsKey(funcGroupId))
                 return _phaseFuncs[funcGroupId].ToArray();
-            return new DoodadFunc[0];
+            return Array.Empty<DoodadFunc>();
         }
 
         public DoodadFuncTemplate GetFuncTemplate(uint funcId, string funcType)
@@ -2356,7 +2352,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         {
             if (_phaseFuncs.ContainsKey(funcGroupId))
                 return _phaseFuncs[funcGroupId].ToArray();
-            return new DoodadFunc[0];
+            return Array.Empty<DoodadFunc>();
         }
 
         /// <summary>
@@ -2403,8 +2399,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             doodad.Spawn();
 
-            var caster = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
-            doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
+            //var caster = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
+            //doodad.DoPhaseFuncs(caster, (int)doodad.FuncGroupId);
 
             doodad.Save();
 
@@ -2449,6 +2445,5 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         //         doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
         //     doodad.cancelPhasing = false;
         // }
-
     }
 }

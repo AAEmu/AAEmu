@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Numerics;
+using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
@@ -11,17 +12,12 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils.DB;
-using AAEmu.Game.Utils;
+
 using NLog;
-using System.Threading.Tasks;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.World.Interactions;
-using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.Game.Models.Game.DoodadObj
 {
@@ -75,83 +71,93 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         }
         private bool CheckPhase(uint anotherPhase)
         {
-            foreach (var phase in ListGroupId)
-            {
-                if (phase == anotherPhase)
-                    return true;
-            }
-            return false;
+            return ListGroupId.Any(phase => phase == anotherPhase);
         }
+
         public void Use(Unit caster, uint skillId)
         {
-            _log.Debug("Using phase {0}", FuncGroupId);
+            while (true)
+            {
+                _log.Debug("Use: TemplateId {0}, Using phase {1}", TemplateId, FuncGroupId);
 
-            var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId);
-            if (func == null)
-            {
-                //DoPhaseFuncs(caster, (int)FuncGroupId);
-                ListGroupId = new List<uint>();
-                return;
-            }
-            if (!ListGroupId.Contains(FuncGroupId))
-            {
-                ListGroupId.Add(FuncGroupId); // для проверки CheckPhase()
-                // TemplateId= 2322
-                // 4623 - 4717 false
-                // 4717 - 4623 true
+                var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId);
+                if (func == null)
+                {
+                    ListGroupId = new List<uint>();
+                    return;
+                }
 
-                // TemplateId= 2309
-                // 4591 - 4592 false
-                // 4592 - 4593 false
-                // 4593 - 4594 false
-                // 4594 - 4592 true
-            }
-            func.Use(caster, this, skillId);
-            if (func.NextPhase <= 0)
-            {
-                ListGroupId = new List<uint>();
-                return;
-            }
-            if (func.SoundId > 0)
-            {
-                BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
-            }
-            DoPhaseFuncs(caster, func.NextPhase);
+                if (!ListGroupId.Contains(FuncGroupId))
+                {
+                    ListGroupId.Add(FuncGroupId); // для проверки CheckPhase()
+                    // TemplateId= 2322
+                    // 4623 - 4717 false
+                    // 4717 - 4623 true
 
-            #region nextFunc
-            var nextFunc = DoodadManager.Instance.GetFunc((uint)func.NextPhase, skillId);
+                    // TemplateId= 2309
+                    // 4591 - 4592 false
+                    // 4592 - 4593 false
+                    // 4593 - 4594 false
+                    // 4594 - 4592 true
+                }
 
-            // проверки на завершение цикла функций
-            if (nextFunc == null || nextFunc.NextPhase == -1)
-            {
-                // закончились функции
-                ListGroupId = new List<uint>();
-                return;
-            }
-            // проверка на зацикливание
-            if (CheckPhase((uint)nextFunc.NextPhase))
-            {
-                nextFunc.Use(caster, this, nextFunc.SkillId);
-                ListGroupId = new List<uint>();
-                return;
-            }
-            #endregion nextFunc
+                func.Use(caster, this, skillId);
+                if (func.NextPhase <= 0)
+                {
+                    ListGroupId = new List<uint>();
+                    return;
+                }
 
-            Use(caster, 0);
+                if (func.SoundId > 0)
+                {
+                    BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
+                }
+
+                DoPhaseFuncs(caster, func.NextPhase);
+
+                #region nextFunc
+
+                var nextFunc = DoodadManager.Instance.GetFunc((uint)func.NextPhase, skillId);
+
+                // проверки на завершение цикла функций
+                if (nextFunc == null || nextFunc.NextPhase == -1)
+                {
+                    // закончились функции
+                    ListGroupId = new List<uint>();
+                    DoPhase(caster, func.NextPhase);
+                    return;
+                }
+
+                // проверка на зацикливание
+                if (CheckPhase((uint)nextFunc.NextPhase))
+                {
+                    nextFunc.Use(caster, this, nextFunc.SkillId);
+                    ListGroupId = new List<uint>();
+                    return;
+                }
+
+                #endregion nextFunc
+
+                skillId = 0;
+            }
         }
 
         /// <summary>
-        /// выполняем фазовые функции
+        /// выполняем фазовые функции с прерыванием таймера
         /// </summary>
-        /// <param name="unit"></param>
-        /// <param name="skillId">всегда равен 0</param>
+        /// <param name="caster"></param>
         /// <param name="nextPhase">фаза на которую необходимо переключиться</param>
         public void DoPhaseFuncs(Unit caster, int nextPhase)
         {
             if (nextPhase > 0)
             {
-                //if (FuncTask is DoodadFuncTimerTask) // удаление таймера исправляет анимацию срубленного дерева, но ломает квест на питомца
-                //    _ = FuncTask.Cancel();
+                _log.Debug("DoPhaseFuncs: TemplateId {0}, nextPhase {1}", TemplateId, nextPhase);
+                if (FuncTask is DoodadFuncTimerTask)
+                {
+                    _ = FuncTask.Cancel();
+                    FuncTask = null;
+                    _log.Debug("DoPhaseFuncs: TemplateId {0}. The current timer has been cancelled.", TemplateId);
+                }
                 FuncGroupId = (uint)nextPhase;
                 PhaseRatio = Rand.Next(0, 10000);
                 CumulativePhaseRatio = 0;
@@ -166,47 +172,34 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             if (!_deleted)
                 Save();
         }
-
         /// <summary>
-        /// Инициализация doodad начальной фазой
+        /// Выполнение фазовых функций без прерывания таймера
         /// </summary>
-        public void SetStartPhase()
+        /// <param name="caster"></param>
+        /// <param name="nextPhase"></param>
+        private void DoPhase(Unit caster, int nextPhase)
         {
-            // исправляем отображение квестовых ящиков ID=5171, Stolen Goods для квеста ID=1135, Securing the Road, Arcum Iris
-            // у них для стартовой функции нет отображаемого предмета
-            var doodadFuncGroups = DoodadManager.Instance.GetDoodadFuncGroups(TemplateId);
-
-            foreach (var doodadFuncGroup in doodadFuncGroups)
+            if (nextPhase > 0)
             {
-                var func = DoodadManager.Instance.GetDoodadFuncs(doodadFuncGroup.Id);
-                if (func == null || func.Count == 0) { continue; }
-                FuncGroupId = doodadFuncGroup.Id;
-                break;
+                _log.Debug("DoPhase: TemplateId {0}, nextPhase {1}", TemplateId, nextPhase);
+                FuncGroupId = (uint)nextPhase;
+                PhaseRatio = Rand.Next(0, 10000);
+                CumulativePhaseRatio = 0;
+                var phaseFuncs = DoodadManager.Instance.GetPhaseFunc((uint)nextPhase);
+                foreach (var phaseFunc in phaseFuncs)
+                {
+                    if (phaseFunc == null) { break; }
+                    phaseFunc.Use(caster, this);
+                }
+                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
             }
-
-            _log.Trace("Doing phase {0} for doodad {1} objId {2}", FuncGroupId, TemplateId, ObjId);
-        }
-
-        public List<uint> GetStartFuncs()
-        {
-            var startGroupIds = new List<uint>();
-            foreach (var funcGroup in Template.FuncGroups)
-            {
-                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
-                    startGroupIds.Add(funcGroup.Id);
-            }
-
-            return startGroupIds;
         }
 
         public uint GetFuncGroupId()
         {
-            foreach (var funcGroup in Template.FuncGroups)
-            {
-                if (funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start)
-                    return funcGroup.Id;
-            }
-            return 0;
+            return (from funcGroup in Template.FuncGroups
+                    where funcGroup.GroupKindId == DoodadFuncGroups.DoodadFuncGroupKind.Start
+                    select funcGroup.Id).FirstOrDefault();
         }
 
         public void OnSkillHit(Unit caster, uint skillId)
@@ -221,10 +214,24 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             }
         }
 
+        /// <summary>
+        /// Инициализация doodad начальной фазой
+        /// </summary>
         public override void Spawn()
         {
             base.Spawn();
-            SetStartPhase();
+            FuncGroupId = GetFuncGroupId();  // Start phase
+            var unit = WorldManager.Instance.GetUnit(OwnerObjId);
+            if (unit is null)
+            {
+                var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
+                if (funcs.Count > 0)
+                {
+                    return;
+                }
+            }
+            DoPhaseFuncs(unit, (int)FuncGroupId);
+            _log.Trace("Doing phase {0} for doodad {1} objId {2}", FuncGroupId, TemplateId, ObjId);
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)
@@ -333,12 +340,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     command.Parameters.AddWithValue("@growth_time", GrowthTime);
                     command.Parameters.AddWithValue("@phase_time", DateTime.MinValue);
                     // We save it's world position, and upon loading, we re-parent things depending on the data
-                    command.Parameters.AddWithValue("@x", Transform.World.Position.X);
-                    command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
-                    command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
-                    command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
-                    command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
-                    command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
+                    if (Transform != null)
+                    {
+                        command.Parameters.AddWithValue("@x", Transform.World.Position.X);
+                        command.Parameters.AddWithValue("@y", Transform.World.Position.Y);
+                        command.Parameters.AddWithValue("@z", Transform.World.Position.Z);
+                        command.Parameters.AddWithValue("@roll", Transform.World.Rotation.X);
+                        command.Parameters.AddWithValue("@pitch", Transform.World.Rotation.Y);
+                        command.Parameters.AddWithValue("@yaw", Transform.World.Rotation.Z);
+                    }
                     command.Parameters.AddWithValue("@item_id", ItemId);
                     command.Parameters.AddWithValue("@house_id", DbHouseId);
                     command.Parameters.AddWithValue("@parent_doodad", parentDoodadId);
