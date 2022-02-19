@@ -151,12 +151,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             if (nextPhase > 0)
             {
-                _log.Debug("DoPhaseFuncs: TemplateId {0}, nextPhase {1}", TemplateId, nextPhase);
+                _log.Debug("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
                 if (FuncTask is DoodadFuncTimerTask)
                 {
                     _ = FuncTask.Cancel();
                     FuncTask = null;
-                    _log.Debug("DoPhaseFuncs: TemplateId {0}. The current timer has been cancelled.", TemplateId);
+                    _log.Debug("DoPhaseFuncs: TemplateId {0}, ObjId {1}. The current timer has been cancelled.", TemplateId, ObjId);
                 }
                 FuncGroupId = (uint)nextPhase;
                 PhaseRatio = Rand.Next(0, 10000);
@@ -181,7 +181,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             if (nextPhase > 0)
             {
-                _log.Debug("DoPhase: TemplateId {0}, nextPhase {1}", TemplateId, nextPhase);
+                _log.Debug("DoPhase: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
                 FuncGroupId = (uint)nextPhase;
                 PhaseRatio = Rand.Next(0, 10000);
                 CumulativePhaseRatio = 0;
@@ -193,6 +193,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
             }
+            if (!_deleted)
+                Save();
         }
 
         public uint GetFuncGroupId()
@@ -231,7 +233,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 }
             }
             DoPhaseFuncs(unit, (int)FuncGroupId);
-            _log.Trace("Doing phase {0} for doodad {1} objId {2}", FuncGroupId, TemplateId, ObjId);
+            _log.Debug("Doing phase {0} for doodad {1} objId {2}", FuncGroupId, TemplateId, ObjId);
         }
 
         public override void BroadcastPacket(GamePacket packet, bool self)

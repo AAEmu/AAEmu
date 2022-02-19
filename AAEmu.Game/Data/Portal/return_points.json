@@ -763,13 +763,24 @@
         "Owner": 0
     },
     {
-        "Id": 346, // 346 522
+        "Id": 522, // 346 522
         "Name": "Arcum Iris Scarecrow Farm",
         "X": 20569.8,
         "Y": 7814.1,
         "Z": 222.0,
         "ZoneId": 188,
         "ZRot": 0,
+        "SubZoneId": 193,
+        "Owner": 0
+    },
+    {
+        "Id": 566, // 365 566
+        "Name": "Arcum Iris Temporary",
+        "X": 20404.4,
+        "Y": 7147.3,
+        "Z": 186.3,
+        "ZoneId": 188,
+        "ZRot": 27,
         "SubZoneId": 193,
         "Owner": 0
     },
