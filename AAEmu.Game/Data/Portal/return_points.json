@@ -611,9 +611,9 @@
     {
         "Id": 65, // 10 65
         "Name": "Anvilton",
-        "X": 21767.9,
-        "Y": 8154.4,
-        "Z": 405.4,
+        "X": 21765.4,
+        "Y": 8129.8,
+        "Z": 404.4,
         "ZoneId": 258,
         "ZRot": 0,
         "SubZoneId": 315,
@@ -1123,6 +1123,17 @@
         "ZoneId": 138,
         "ZRot": 0,
         "SubZoneId": 56,
+        "Owner": 0
+    },
+    {
+        "Id": 651, // 374 651
+        "Name": "Blue Cypress Headquarters",
+        "X": 21035.8,
+        "Y": 8305.9,
+        "Z": 371.9,
+        "ZoneId": 158,
+        "ZRot": 0,
+        "SubZoneId": 311,
         "Owner": 0
     },
 //
