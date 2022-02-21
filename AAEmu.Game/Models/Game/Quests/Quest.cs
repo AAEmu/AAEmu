@@ -615,62 +615,145 @@ namespace AAEmu.Game.Models.Game.Quests
         {
             for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
             {
-                var component = Template.GetComponent(step);
-                if (component == null)
-                {
+                var components = Template.GetComponents(step);
+                if (components.Length == 0)
                     continue;
-                }
 
-                var acts = QuestManager.Instance.GetActs(component.Id);
-                foreach (var act in acts)
+                for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
-                    var items = new List<(Item, int)>();
-                    if (act.DetailType == "QuestActSupplyItem" && step == QuestComponentKind.Supply)
+                    var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                    foreach (var act in acts)
                     {
-                        var template = act.GetTemplate<QuestActSupplyItem>();
-                        if (template.DestroyWhenDrop)
+                        switch (act.DetailType)
                         {
-                            Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
+                            case "QuestActSupplyItem" when step == QuestComponentKind.Supply:
+                                {
+                                    var template = act.GetTemplate<QuestActSupplyItem>();
+                                    if (template.DestroyWhenDrop)
+                                    {
+                                        Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
+                                    }
+                                    //Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
+                                    Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
+                                    //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+                                    _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+                                    break;
+                                }
+                            case "QuestActObjItemGather":
+                                {
+                                    var template = act.GetTemplate<QuestActObjItemGather>();
+                                    if (template.DestroyWhenDrop)
+                                    {
+                                        //Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
+                                        Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
+                                        //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+                                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+                                    }
+                                    break;
+                                }
+                            case "QuestActObjItemUse":
+                                {
+                                    var template = act.GetTemplate<QuestActObjItemUse>();
+                                    if (template.DropWhenDestroy)
+                                    {
+                                        //Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
+                                        Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
+                                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[componentIndex], null);
+                                        //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+                                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+                                    }
+                                    break;
+                                }
                         }
-
-                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-                        //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
                     }
-                    if (act.DetailType == "QuestActObjItemGather")
-                    {
-                        var template = act.GetTemplate<QuestActObjItemGather>();
-                        if (template.DestroyWhenDrop)
-                        {
-                            Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
-                            //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
-                        }
-                    }
-                    /*
-                    var tasks = new List<ItemTask>();
-                    foreach (var (item, count) in items)
-                    {
-                        if (item.Count == 0)
-                        {
-                            tasks.Add(new ItemRemove(item));
-                        }
-                        else
-                        {
-                            tasks.Add(new ItemCountUpdate(item, -count));
-                        }
-                    }
-                    Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestRemoveSupplies, tasks, new List<ulong>()));
-                    */
-                    _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
                 }
             }
+
+            //for (var step = QuestComponentKind.None; step <= QuestComponentKind.Reward; step++)
+            //{
+            //    var component = Template.GetComponent(step);
+            //    if (component == null)
+            //    {
+            //        continue;
+            //    }
+
+            //    var idx = 0;
+            //    var acts = QuestManager.Instance.GetActs(component.Id);
+            //    foreach (var act in acts)
+            //    {
+            //        //var items = new List<(Item, int)>();
+            //        switch (act.DetailType)
+            //        {
+            //            case "QuestActSupplyItem" when step == QuestComponentKind.Supply:
+            //                {
+            //                    var template = act.GetTemplate<QuestActSupplyItem>();
+            //                    if (template.DestroyWhenDrop)
+            //                    {
+            //                        Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
+            //                    }
+
+            //                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
+            //                    Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[idx], null);
+            //                    //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+            //                    _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+            //                    idx++;
+            //                    break;
+            //                }
+            //            case "QuestActObjItemGather":
+            //                {
+            //                    var template = act.GetTemplate<QuestActObjItemGather>();
+            //                    if (template.DestroyWhenDrop)
+            //                    {
+            //                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
+            //                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[idx], null);
+            //                        //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+            //                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+            //                        idx++;
+            //                    }
+
+            //                    break;
+            //                }
+            //            case "QuestActObjItemUse":
+            //                {
+            //                    var template = act.GetTemplate<QuestActObjItemUse>();
+            //                    if (template.DropWhenDestroy)
+            //                    {
+            //                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, template.Count, null);
+            //                        Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, template.ItemId, Objectives[idx], null);
+            //                        //items.AddRange(Owner.Inventory.RemoveItem(template.ItemId, template.Count));
+            //                        _log.Warn("[Quest] RemoveQuestItems: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}, ItemId{6}, Count{7}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType, template.ItemId, template.Count);
+            //                        idx++;
+            //                    }
+
+            //                    break;
+            //                }
+            //        }
+            //        /*
+            //        var tasks = new List<ItemTask>();
+            //        foreach (var (item, count) in items)
+            //        {
+            //            if (item.Count == 0)
+            //            {
+            //                tasks.Add(new ItemRemove(item));
+            //            }
+            //            else
+            //            {
+            //                tasks.Add(new ItemCountUpdate(item, -count));
+            //            }
+            //        }
+            //        Owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.QuestRemoveSupplies, tasks, new List<ulong>()));
+            //        */
+            //    }
+
+            //}
         }
 
         public void Drop(bool update)
         {
             Status = QuestStatus.Dropped;
             Step = QuestComponentKind.Drop;
-            for (var i = 0; i < ObjectiveCount; i++)
-                Objectives[i] = 0;
 
             var component = Template.GetComponent(Step);
 
@@ -680,6 +763,8 @@ namespace AAEmu.Game.Models.Game.Quests
                 Owner.SendPacket(new SCQuestContextUpdatedPacket(this, 0));
 
             RemoveQuestItems();
+            for (var i = 0; i < ObjectiveCount; i++)
+                Objectives[i] = 0;
         }
 
         public void OnReportToNpc(Npc npc, int selected)

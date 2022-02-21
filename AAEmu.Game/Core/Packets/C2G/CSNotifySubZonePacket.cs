@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             Connection.ActiveChar.SubZoneId = subZoneId; // понадобилось хранить для составления точек Memory Tome (Recall)
 
-            _log.Debug("Enter RegionId: {0} ", subZoneId);
+            _log.Info("Enter RegionId: {0} ", subZoneId);
             Connection.ActiveChar.Portals.NotifySubZone(subZoneId);
         }
     }

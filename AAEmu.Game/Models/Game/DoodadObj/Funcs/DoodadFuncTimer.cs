@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
         {
-            _log.Debug("DoodadFuncTimer: TemplateId {0}, skillId {1}, nextPhase {2},  Delay {3}, NextPhase {4}, KeepRequester {5}, ShowTip {6}, ShowEndTime {7}, Tip {8}",
+            _log.Trace("DoodadFuncTimer: TemplateId {0}, skillId {1}, nextPhase {2},  Delay {3}, NextPhase {4}, KeepRequester {5}, ShowTip {6}, ShowEndTime {7}, Tip {8}",
                 owner.TemplateId, skillId, nextPhase, Delay, NextPhase, KeepRequester, ShowTip, ShowEndTime, Tip);
 
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(Delay + 1); // TODO need here

@@ -90,21 +90,24 @@ namespace AAEmu.Game.Utils
                         {
                             if (character.Quests.HasQuest(questId))
                             {
-
                                 var quest = character.Quests.Quests[questId];
-                                if (quest.Step == QuestComponentKind.Fail)
+                                if (quest.Step == QuestComponentKind.None)
+                                    quest.Step = QuestComponentKind.Start;
+                                if (quest.Step == QuestComponentKind.Start)
+                                    quest.Step = QuestComponentKind.Supply;
+                                else if (quest.Step == QuestComponentKind.Supply)
+                                    quest.Step = QuestComponentKind.Progress;
+                                else if (quest.Step == QuestComponentKind.Progress)
                                     quest.Step = QuestComponentKind.Ready;
-                                if (quest.Step == QuestComponentKind.Drop)
+                                else if (quest.Step == QuestComponentKind.Ready)
                                     quest.Step = QuestComponentKind.Reward;
-                                if (quest.Step > QuestComponentKind.Reward)
+                                else if (quest.Step > QuestComponentKind.Reward)
                                 {
-                                    character.SendMessage("[Quest] You do not have the quest {0}", questId);
+                                    quest.Drop(true);
                                     break;
                                 }
                                 character.SendMessage("[Quest] Perform step {1} for quest {0}", questId, quest.Step);
                                 quest.Update();
-                                quest.Step++;
-                                character.SendMessage("[Quest] Next step {1} for quest {0}", questId, quest.Step);
                             }
                             else
                             {
