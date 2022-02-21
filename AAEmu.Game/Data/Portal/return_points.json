@@ -543,6 +543,17 @@
         "Owner": 0
     },
     {
+        "Id": 27, // 125 27
+        "Name": "Glitterstone",
+        "X": 21594.8,
+        "Y": 12460.4,
+        "Z": 249.6,
+        "ZoneId": 259,
+        "ZRot": 0,
+        "SubZoneId": 471,
+        "Owner": 0
+    },
+    {
         "Id": 28, // 151 28
         "Name": "Silent Forest Checkpoint",
         "X": 22069.4,
