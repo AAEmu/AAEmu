@@ -17,12 +17,12 @@ namespace AAEmu.Game.Models.Game.World
         public float OceanLevel { get; set; }
         public int CellX { get; set; }
         public int CellY { get; set; }
-        public WorldSpawnPosition SpawnPosition { get; set; }
+        public WorldSpawnPosition SpawnPosition { get; set; } = new WorldSpawnPosition();
         public Region[,] Regions { get; set; } // TODO ... world - okay, instance - ....
         public ushort[,] HeightMaps { get; set; }
         public List<uint> ZoneKeys { get; set; } = new List<uint>();
         public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
-        
+
 
         public float GetRawHeightMapHeight(int x, int y)
         {

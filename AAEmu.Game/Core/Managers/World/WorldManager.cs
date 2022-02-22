@@ -61,13 +61,13 @@ namespace AAEmu.Game.Core.Managers.World
         public const int SECTORS_PER_CELL = CELL_SIZE / REGION_SIZE;
         public const int SECTOR_HMAP_RESOLUTION = REGION_SIZE / 2;
         public const int CELL_HMAP_RESOLUTION = CELL_SIZE / 2;
-        
+
         /*
         REGION_NEIGHBORHOOD_SIZE (cell sector size) used for polling objects in your proximity
         Was originally set to 1, recommended 3 and max 5
         anything higher is overkill as you can't target it anymore in the client at that distance
         */
-        public const sbyte REGION_NEIGHBORHOOD_SIZE = 3;
+        public const sbyte REGION_NEIGHBORHOOD_SIZE = 2;
 
         public WorldManager()
         {
@@ -89,9 +89,9 @@ namespace AAEmu.Game.Core.Managers.World
             var sw = new Stopwatch();
             sw.Start();
             var activeRegions = new HashSet<Region>();
-            foreach(var world in _worlds.Values)
+            foreach (var world in _worlds.Values)
             {
-                foreach(var region in world.Regions)
+                foreach (var region in world.Regions)
                 {
                     if (region == null)
                         continue;
@@ -100,7 +100,7 @@ namespace AAEmu.Game.Core.Managers.World
                     //region.HasPlayerActivity = false;
                     if (!region.IsEmpty())
                     {
-                        foreach(var activeRegion in region.GetNeighbors())
+                        foreach (var activeRegion in region.GetNeighbors())
                         {
                             //activeRegion.HasPlayerActivity = true;
                             activeRegions.Add(activeRegion);
@@ -128,10 +128,29 @@ namespace AAEmu.Game.Core.Managers.World
             _log.Info("Loading world data...");
 
             #region LoadClientData
-            
+
             var worldXmlPaths = ClientFileManager.GetFilesInDirectory(Path.Combine("game", "worlds"), "world.xml", true);
+
+            if (worldXmlPaths.Count <= 0)
+            {
+                _log.Fatal("No client worlds data has been found, please check the readme.txt file inside the ClientData folder for more info.");
+                return;
+            }
             var worldNames = new List<string>();
             worldNames.Add("main_world"); // Make sure main_world is the first even if it wouldn't exist
+
+            // Grab world_spawns.json info
+            var spawnPositionFile = Path.Combine(FileManager.AppPath, "Data", "Worlds", "world_spawns.json");
+            var contents = File.Exists(spawnPositionFile) ? File.ReadAllText(spawnPositionFile) : "";
+            var worldSpawnLookup = new List<WorldSpawnLocation>();
+            if (string.IsNullOrWhiteSpace(contents))
+                _log.Error($"File {spawnPositionFile} doesn't exists or is empty.");
+            else
+                if (!JsonHelper.TryDeserializeObject(contents, out List<WorldSpawnLocation> worldSpawnLookupFromJson, out _))
+                _log.Error($"Error in {spawnPositionFile}.");
+            else
+                worldSpawnLookup = worldSpawnLookupFromJson;
+
             foreach (var worldXmlPath in worldXmlPaths)
             {
                 var worldName = Path.GetFileName(Path.GetDirectoryName(worldXmlPath)); // the the base name of the current directory
@@ -144,7 +163,7 @@ namespace AAEmu.Game.Core.Managers.World
                 var worldName = worldNames[(int)id];
                 if (worldName == "main_world")
                     WorldManager.DefaultWorldId = id; // prefer to do it like this, in case we change order or IDs later on
-                
+
                 var worldXmlData = ClientFileManager.GetFileStream(Path.Combine("game", "worlds", worldName, "world.xml"));
                 var xml = new XmlDocument();
                 xml.Load(worldXmlData);
@@ -155,18 +174,19 @@ namespace AAEmu.Game.Core.Managers.World
                     var world = new InstanceWorld();
                     world.Id = id;
                     xmlWorld.ReadNode(worldNode, world);
+                    world.SpawnPosition = worldSpawnLookup.FirstOrDefault(w => w.Name == world.Name)?.SpawnPosition ?? new WorldSpawnPosition();
                     _worlds.Add(id, world);
-                    
+
                     // cache zone keys to world reference
                     foreach (var zoneKey in world.ZoneKeys)
-                        _worldIdByZoneId.Add(zoneKey,world.Id);
+                        _worldIdByZoneId.Add(zoneKey, world.Id);
                 }
             }
-            
+
             #endregion
 
             #region LoadServerDB
-            
+
             using (var connection = SQLite.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
@@ -210,7 +230,7 @@ namespace AAEmu.Game.Core.Managers.World
                     return;
                 }
                 */
-                
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM wi_group_wis";
@@ -279,15 +299,15 @@ namespace AAEmu.Game.Core.Managers.World
                                 if (br.ReadBoolean())
                                     continue;
                                 for (var i = 0; i < SECTORS_PER_CELL; i++)
-                                for (var j = 0; j < SECTORS_PER_CELL; j++)
-                                for (var x = 0; x < SECTOR_HMAP_RESOLUTION; x++)
-                                for (var y = 0; y < SECTOR_HMAP_RESOLUTION; y++)
-                                {
-                                    var sx = cellX * CELL_HMAP_RESOLUTION + i * SECTOR_HMAP_RESOLUTION + x;
-                                    var sy = cellY * CELL_HMAP_RESOLUTION + j * SECTOR_HMAP_RESOLUTION + y;
+                                    for (var j = 0; j < SECTORS_PER_CELL; j++)
+                                        for (var x = 0; x < SECTOR_HMAP_RESOLUTION; x++)
+                                            for (var y = 0; y < SECTOR_HMAP_RESOLUTION; y++)
+                                            {
+                                                var sx = cellX * CELL_HMAP_RESOLUTION + i * SECTOR_HMAP_RESOLUTION + x;
+                                                var sy = cellY * CELL_HMAP_RESOLUTION + j * SECTOR_HMAP_RESOLUTION + y;
 
-                                    world.HeightMaps[sx, sy] = br.ReadUInt16();
-                                }
+                                                world.HeightMaps[sx, sy] = br.ReadUInt16();
+                                            }
                             }
                         }
                     }
@@ -318,87 +338,87 @@ namespace AAEmu.Game.Core.Managers.World
             var version = VersionCalc.Draft;
 
             for (var cellY = 0; cellY < world.CellY; cellY++)
-            for (var cellX = 0; cellX < world.CellX; cellX++)
-            {
-                var cellFileName = $"{cellX:000}_{cellY:000}";
-                var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
-                    "terrain", "heightmap.dat");
-                if (ClientFileManager.FileExists(heightMapFile))
-                    using (var stream = ClientFileManager.GetFileStream(heightMapFile))
-                    {
-                        if (stream == null)
+                for (var cellX = 0; cellX < world.CellX; cellX++)
+                {
+                    var cellFileName = $"{cellX:000}_{cellY:000}";
+                    var heightMapFile = Path.Combine("game", "worlds", world.Name, "cells", cellFileName, "client",
+                        "terrain", "heightmap.dat");
+                    if (ClientFileManager.FileExists(heightMapFile))
+                        using (var stream = ClientFileManager.GetFileStream(heightMapFile))
                         {
-                            //_log.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
-                            continue;
-                        }
-
-                        // Read the cell hmap data
-                        using (var br = new BinaryReader(stream))
-                        {
-                            var hmap = new Hmap();
-
-                            if (hmap.Read(br, version == VersionCalc.V1) < 0)
+                            if (stream == null)
                             {
-                                _log.Error($"Error reading {heightMapFile}");
+                                //_log.Trace($"Cell {cellFileName} not found or not used in {world.Name}");
                                 continue;
                             }
 
-                            var nodes = hmap.Nodes
-                                .OrderBy(cell => cell.BoxHeightmap.Min.X)
-                                .ThenBy(cell => cell.BoxHeightmap.Min.Y)
-                                .Where(x => x.pHMData.Length > 0)
-                                .ToList();
-
-                            // Read nodes into heightmap array
-
-                            #region ReadNodes
-
-                            for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
-                            for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
-                            for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
-                            for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
+                            // Read the cell hmap data
+                            using (var br = new BinaryReader(stream))
                             {
-                                var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
-                                var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
-                                var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
+                                var hmap = new Hmap();
 
-                                ushort value;
-                                switch (version)
+                                if (hmap.Read(br, version == VersionCalc.V1) < 0)
                                 {
-                                    case VersionCalc.V1:
-                                        {
-                                            var doubleValue = node.fRange * 100000d;
-                                            var rawValue = node.RawDataByIndex(unitX, unitY);
-
-                                            value = (ushort)((doubleValue / 1.52604335620711f) *
-                                                             world.HeightMaxCoefficient /
-                                                             ushort.MaxValue * rawValue +
-                                                             node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
-                                        }
-                                        break;
-                                    case VersionCalc.V2:
-                                        {
-                                            value = node.RawDataByIndex(unitX, unitY);
-                                            var height = node.RawDataToHeight(value);
-                                        }
-                                        break;
-                                    case VersionCalc.Draft:
-                                        {
-                                            var height = node.GetHeight(unitX, unitY);
-                                            value = (ushort)(height * world.HeightMaxCoefficient);
-                                        }
-                                        break;
-                                    default:
-                                        throw new ArgumentOutOfRangeException();
+                                    _log.Error($"Error reading {heightMapFile}");
+                                    continue;
                                 }
 
-                                world.HeightMaps[oX, oY] = value;
-                            }
+                                var nodes = hmap.Nodes
+                                    .OrderBy(cell => cell.BoxHeightmap.Min.X)
+                                    .ThenBy(cell => cell.BoxHeightmap.Min.Y)
+                                    .Where(x => x.pHMData.Length > 0)
+                                    .ToList();
 
-                            #endregion
+                                // Read nodes into heightmap array
+
+                                #region ReadNodes
+
+                                for (ushort sectorX = 0; sectorX < SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
+                                    for (ushort sectorY = 0; sectorY < SECTORS_PER_CELL; sectorY++)
+                                        for (ushort unitX = 0; unitX < SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
+                                            for (ushort unitY = 0; unitY < SECTOR_HMAP_RESOLUTION; unitY++)
+                                            {
+                                                var node = nodes[sectorX * SECTORS_PER_CELL + sectorY];
+                                                var oX = cellX * CELL_HMAP_RESOLUTION + sectorX * SECTOR_HMAP_RESOLUTION + unitX;
+                                                var oY = cellY * CELL_HMAP_RESOLUTION + sectorY * SECTOR_HMAP_RESOLUTION + unitY;
+
+                                                ushort value;
+                                                switch (version)
+                                                {
+                                                    case VersionCalc.V1:
+                                                        {
+                                                            var doubleValue = node.fRange * 100000d;
+                                                            var rawValue = node.RawDataByIndex(unitX, unitY);
+
+                                                            value = (ushort)((doubleValue / 1.52604335620711f) *
+                                                                             world.HeightMaxCoefficient /
+                                                                             ushort.MaxValue * rawValue +
+                                                                             node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
+                                                        }
+                                                        break;
+                                                    case VersionCalc.V2:
+                                                        {
+                                                            value = node.RawDataByIndex(unitX, unitY);
+                                                            var height = node.RawDataToHeight(value);
+                                                        }
+                                                        break;
+                                                    case VersionCalc.Draft:
+                                                        {
+                                                            var height = node.GetHeight(unitX, unitY);
+                                                            value = (ushort)(height * world.HeightMaxCoefficient);
+                                                        }
+                                                        break;
+                                                    default:
+                                                        throw new ArgumentOutOfRangeException();
+                                                }
+
+                                                world.HeightMaps[oX, oY] = value;
+                                            }
+
+                                #endregion
+                            }
                         }
-                    }
-            }
+                }
 
             _log.Info("{0} heightmap loaded", world.Name);
             return true;
@@ -409,7 +429,7 @@ namespace AAEmu.Game.Core.Managers.World
             if (AppConfiguration.Instance.HeightMapsEnable) // TODO fastboot if HeightMapsEnable = false!
             {
                 _log.Info("Loading heightmaps...");
-                
+
                 var loaded = 0;
                 foreach (var world in _worlds.Values)
                 {
@@ -429,7 +449,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             if (_worlds.TryGetValue(worldId, out var res))
                 return res;
-            _log.Fatal("GetWorld(): No such WorldId {0}",worldId);
+            _log.Fatal("GetWorld(): No such WorldId {0}", worldId);
             return null;
         }
 
@@ -553,13 +573,13 @@ namespace AAEmu.Game.Core.Managers.World
         public Doodad GetDoodadByDbId(uint dbId)
         {
             var ret = _doodads.FirstOrDefault(x => x.Value.DbId == dbId).Value;
-            return ret ;
+            return ret;
         }
 
         public List<Doodad> GetDoodadByHouseDbId(uint houseDbId)
         {
             var ret = _doodads.Where(x => x.Value.DbHouseId == houseDbId).Select(y => y.Value).ToList();
-            return ret ;
+            return ret;
         }
 
         public Unit GetUnit(uint objId)
@@ -732,7 +752,7 @@ namespace AAEmu.Game.Core.Managers.World
                 // remove the obj from the old region
                 currentRegion.RemoveObject(obj);
             }
-            
+
             // Also show children
             if (obj?.Transform?.Children.Count > 0)
                 foreach (var child in obj.Transform.Children)
@@ -741,7 +761,7 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RemoveVisibleObject(GameObject obj)
         {
-            if (obj.Region == null) // здесь нужна проверка на null для Region
+            if (obj?.Region == null)
                 return;
 
             obj.Region.RemoveObject(obj);
@@ -750,7 +770,7 @@ namespace AAEmu.Game.Core.Managers.World
                 neighbor.RemoveFromCharacters(obj);
 
             obj.Region = null;
-            
+
             // Also remove children
             if (obj?.Transform?.Children.Count > 0)
                 foreach (var child in obj.Transform.Children)
@@ -795,8 +815,8 @@ namespace AAEmu.Game.Core.Managers.World
         {
             var xMod = obj.Transform.World.Position.X % REGION_SIZE;
             if (xMod - radius < 0 || xMod + radius > REGION_SIZE)
-                return false; 
-            
+                return false;
+
             var yMod = obj.Transform.World.Position.Y % REGION_SIZE;
             if (yMod - radius < 0 || yMod + radius > REGION_SIZE)
                 return false;
@@ -807,17 +827,17 @@ namespace AAEmu.Game.Core.Managers.World
         {
             if (shape.Value1 == 0 && shape.Value2 == 0 && shape.Value3 == 0)
                 _log.Warn("AreaShape with no size values was used");
-            if(shape.Type == AreaShapeType.Sphere)
+            if (shape.Type == AreaShapeType.Sphere)
             {
                 var radius = shape.Value1;
                 var height = shape.Value2;
                 return GetAround<T>(obj, radius, true);
             }
 
-            if(shape.Type == AreaShapeType.Cuboid)
+            if (shape.Type == AreaShapeType.Cuboid)
             {
                 var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
-                var res = GetAround<T>(obj, (float) diagonal, true);
+                var res = GetAround<T>(obj, (float)diagonal, true);
                 res = shape.ComputeCuboid(obj, res);
                 return res;
             }
@@ -959,7 +979,7 @@ namespace AAEmu.Game.Core.Managers.World
         {
             return _npcs.Values.ToList();
         }
-        
+
         public AreaShape GetAreaShapeById(uint id)
         {
             if (_areaShapes.TryGetValue(id, out AreaShape res))
