@@ -9,7 +9,6 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Json;
 
 using Newtonsoft.Json;
@@ -52,19 +51,32 @@ namespace AAEmu.Game.Utils
                                     // Display all functions that are available
                                     doodad.FuncGroupId = doodadFuncGroup.Id;
                                     _log.Info("[Doodad] FuncGroupId : {0}", doodad.FuncGroupId);
-                                    // Get all doodad_funcs
-                                    var doodadFuncs = DoodadManager.Instance.GetDoodadFuncs(doodad.FuncGroupId);
-                                    foreach (var func in doodadFuncs)
+                                    // Get all doodad_phase_funcs
+                                    var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
+                                    if (phaseFuncs.Length == 0)
                                     {
-                                        // func.Use
-                                        _log.Info("[Doodad] Func: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", func.GroupId, func.FuncId, func.FuncType, func.NextPhase, func.SkillId);
-                                        // Get all doodad_phase_funcs
-                                        var phaseFuncs = DoodadManager.Instance.GetPhaseFunc((uint)func.NextPhase);
+                                        _log.Info("[Doodad] PhaseFunc: GroupId {0}, FuncId 0");
+                                    }
+                                    else
+                                    {
                                         foreach (var phaseFunc in phaseFuncs)
                                         {
-                                            doodad.OverridePhase = 0;
                                             // phaseFunc.Use
                                             _log.Info("[Doodad] PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType, phaseFunc.NextPhase, phaseFunc.SkillId);
+                                        }
+                                    }
+                                    // Get all doodad_funcs
+                                    var doodadFuncs = DoodadManager.Instance.GetDoodadFuncs(doodad.FuncGroupId);
+                                    if (doodadFuncs.Count == 0)
+                                    {
+                                        _log.Info("[Doodad] Func: GroupId 0");
+                                    }
+                                    else
+                                    {
+                                        foreach (var func in doodadFuncs)
+                                        {
+                                            // func.Use
+                                            _log.Info("[Doodad] Func: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", func.GroupId, func.FuncId, func.FuncType, func.NextPhase, func.SkillId);
                                         }
                                     }
                                 }
