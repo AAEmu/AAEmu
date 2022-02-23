@@ -82,8 +82,7 @@ namespace AAEmu.Game.Scripts.Commands
                 {
                     foreach (var world in worlds)
                     {
-                        string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name,
-                            "doodad_spawns_new.json");
+                        string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "doodad_spawns.json");
                         if (doodad.Spawner.Position.WorldId == world.Id)
                         {
                             var contents = FileManager.GetFileContents(jsonPath);
@@ -157,7 +156,7 @@ namespace AAEmu.Game.Scripts.Commands
                     {
                         if (character.Transform.WorldId == world.Id)
                         {
-                            string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns_new.json");
+                            string jsonPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", world.Name, "npc_spawns.json");
 
                             var contents = FileManager.GetFileContents(jsonPath);
                             if (string.IsNullOrWhiteSpace(contents))
@@ -183,17 +182,19 @@ namespace AAEmu.Game.Scripts.Commands
                                             var pos = npcs[i].Transform.World;
 
                                             var newEntry = new JsonNpcSpawns();
-                                            newEntry.Count = 1;
+                                            newEntry.Position = new Pos();
+                                            //newEntry.Count = 1;
                                             newEntry.Id = newId;
                                             newEntry.UnitId = npcs[i].TemplateId;
                                             newEntry.Position.X = pos.Position.X;
                                             newEntry.Position.Y = pos.Position.Y;
                                             newEntry.Position.Z = pos.Position.Z;
-                                            var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
-                                            newEntry.Position.RotationX = rx;
-                                            newEntry.Position.RotationY = ry;
-                                            newEntry.Position.RotationZ = rz;
-                                            newEntry.Scale = npcs[i].Scale; // 0.0 and 1.0 seem to do the same thing 
+                                            newEntry.Position.Yaw = pos.Rotation.Z.RadToDeg();
+                                            //var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
+                                            //newEntry.Position.RotationX = rx;
+                                            //newEntry.Position.RotationY = ry;
+                                            //newEntry.Position.RotationZ = rz;
+                                            //newEntry.Scale = npcs[i].Scale; // 0.0 and 1.0 seem to do the same thing 
                                             spawners.Add(newEntry);
 
                                             npcs[i].Spawner.Id = newId; //Set ID incase you edit it after adding!
@@ -209,10 +210,11 @@ namespace AAEmu.Game.Scripts.Commands
                                                     spawner.Position.X = pos.Position.X;
                                                     spawner.Position.Y = pos.Position.Y;
                                                     spawner.Position.Z = pos.Position.Z;
-                                                    var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
-                                                    spawner.Position.RotationX = rx;
-                                                    spawner.Position.RotationY = ry;
-                                                    spawner.Position.RotationZ = rz;
+                                                    spawner.Position.Yaw = pos.Rotation.Z.RadToDeg();
+                                                    //var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
+                                                    //spawner.Position.RotationX = rx;
+                                                    //spawner.Position.RotationY = ry;
+                                                    //spawner.Position.RotationZ = rz;
                                                     break;
                                                 }
                                             }
@@ -258,17 +260,17 @@ namespace AAEmu.Game.Scripts.Commands
                                     var pos = npc.Transform.World;
 
                                     var newEntry = new JsonNpcSpawns();
-                                    newEntry.Count = 1;
+                                    //newEntry.Count = 1;
                                     newEntry.Id = newId;
                                     newEntry.UnitId = npc.TemplateId;
                                     newEntry.Position.X = pos.Position.X;
                                     newEntry.Position.Y = pos.Position.Y;
                                     newEntry.Position.Z = pos.Position.Z;
-                                    var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
-                                    newEntry.Position.RotationX = rx;
-                                    newEntry.Position.RotationY = ry;
-                                    newEntry.Position.RotationZ = rz;
-                                    newEntry.Scale = npc.Scale; // 0.0 and 1.0 seem to do the same thing 
+                                    //var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
+                                    //newEntry.Position.RotationX = rx;
+                                    //newEntry.Position.RotationY = ry;
+                                    //newEntry.Position.RotationZ = rz;
+                                    //newEntry.Scale = npc.Scale; // 0.0 and 1.0 seem to do the same thing 
                                     spawners.Add(newEntry);
 
                                     npc.Spawner.Id = newId; // Set ID incase you edit it after adding!
@@ -285,10 +287,10 @@ namespace AAEmu.Game.Scripts.Commands
                                             spawner.Position.X = pos.Position.X;
                                             spawner.Position.Y = pos.Position.Y;
                                             spawner.Position.Z = pos.Position.Z;
-                                            var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
-                                            spawner.Position.RotationX = rx;
-                                            spawner.Position.RotationY = ry;
-                                            spawner.Position.RotationZ = rz;
+                                            //var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
+                                            //spawner.Position.RotationX = rx;
+                                            //spawner.Position.RotationY = ry;
+                                            //spawner.Position.RotationZ = rz;
                                             break;
                                         }
                                     }
