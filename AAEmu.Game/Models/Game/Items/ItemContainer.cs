@@ -43,6 +43,16 @@ namespace AAEmu.Game.Models.Game.Items
             }
         }
 
+        protected ItemContainer()
+        {
+            // Only relevant for inheritance
+            Owner = null;
+            ContainerType = SlotType.None;
+            Items = new List<Item>();
+            ContainerSize = 0;
+            PartOfPlayerInventory = false;
+        }
+
         public ItemContainer(Character owner, SlotType containerType,bool isPartOfPlayerInventory)
         {
             Owner = owner;
@@ -581,6 +591,11 @@ namespace AAEmu.Game.Models.Game.Items
             while(Items.Count > 0)
                 RemoveItem(ItemTaskType.Invalid, Items[0], true);
             UpdateFreeSlotCount();
+        }
+
+        public virtual bool CanAccept(Item item, int targetSlot)
+        {
+            return true;
         }
 
     }

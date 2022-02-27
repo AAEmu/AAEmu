@@ -258,6 +258,20 @@ namespace AAEmu.Game.Models.Game.Char
             if (itemInTargetSlot == null)
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
 
+            // Check if containers can accept the items
+            if ((targetContainer != null) && !targetContainer.CanAccept(fromItem, toSlot))
+            {
+                _log.Error(string.Format("SplitOrMoveItem - fromItemId {0} is not welcome in this container {1}.",
+                    fromItemId,targetContainer?.ContainerType));
+                return false;
+            }
+            if ((sourceContainer != null) && !sourceContainer.CanAccept(itemInTargetSlot, fromSlot))
+            {
+                _log.Error(string.Format("SplitOrMoveItem - toItemId {0} is not welcome in this container {1}.",
+                    toItemId,sourceContainer?.ContainerType));
+                return false;
+            }
+            
             // Are we equipping into a empty slot ? For whatever reason the client will send FROM empty equipment slot => TO item to equip
             if ((fromItemId == 0) && (fromType == SlotType.Equipment) && (toType != SlotType.Equipment) &&
                 (itemInTargetSlot != null))
