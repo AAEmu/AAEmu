@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncAreaTrigger : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint NpcId { get; set; }
         public bool IsEnter { get; set; }
 

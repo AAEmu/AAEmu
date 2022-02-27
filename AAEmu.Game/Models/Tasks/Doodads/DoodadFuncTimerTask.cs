@@ -25,14 +25,13 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         }
         public override void Execute()
         {
-            _log.Trace("[Doodad] DoodadFuncTimerTask: TemplateId {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
-
-            if (_owner.FuncTask != null)
-            {
-                _ = _owner.FuncTask.Cancel();
-                _owner.FuncTask = null;
-                _log.Trace("DoodadFuncTimerTask: TemplateId {0}. The current timer has been ended.", _owner.TemplateId);
-            }
+            _log.Debug("[Doodad] DoodadFuncTimerTask: TemplateId {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
+            //if (_owner.FuncTask != null)
+            //{
+            //    _ = _owner.FuncTask.Cancel();
+            //    _owner.FuncTask = null;
+            //    _log.Debug("DoodadFuncTimerTask: TemplateId {0}. The current timer has been ended.", _owner.TemplateId);
+            //}
             _owner.DoPhaseFuncs(_caster, _nextPhase);
         }
     }

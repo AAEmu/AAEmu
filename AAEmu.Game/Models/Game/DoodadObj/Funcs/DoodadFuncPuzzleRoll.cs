@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncPuzzleRoll : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint ItemId { get; set; }
         public int Count { get; set; }
 

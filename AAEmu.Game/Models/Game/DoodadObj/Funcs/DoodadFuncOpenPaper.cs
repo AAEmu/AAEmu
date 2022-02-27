@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncOpenPaper : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint BookPageId { get; set; }
         public uint BookId { get; set; }
         

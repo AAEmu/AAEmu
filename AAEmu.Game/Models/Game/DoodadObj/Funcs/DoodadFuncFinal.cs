@@ -12,7 +12,7 @@ using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public class DoodadFuncFinal : DoodadFuncTemplate
+    public class DoodadFuncFinal : DoodadPhaseFuncTemplate
     {
         public int After { get; set; }
         public bool Respawn { get; set; }
@@ -22,10 +22,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool ShowEndTime { get; set; }
         public string Tip { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(Unit caster, Doodad owner)
         {
-            _log.Trace("DoodadFuncFinal: skillId {0}, After {1}, Respawn {2}, MinTime {3}, MaxTime {4}, ShowTip {5}, ShowEndTime {6}, Tip {7}",
-                skillId, After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
+            _log.Debug("DoodadFuncFinal: After {0}, Respawn {1}, MinTime {2}, MaxTime {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}",
+                After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
 
             var delay = Rand.Next(MinTime, MaxTime);
 
@@ -51,15 +51,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //{
                 //    _ = owner.FuncTask.Cancel();
                 //    _ = owner.FuncTask = null;
-                //    _log.Trace("DoodadFuncFinalTask: The current timer has been canceled by the next scheduled timer.");
+                //    _log.Debug("DoodadFuncFinal: The current timer has been canceled by the next scheduled timer.");
                 //}
-                owner.FuncTask = new DoodadFuncFinalTask(caster, owner, skillId, Respawn, delay);
+                owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility
             }
             else
             {
                 owner.Delete();
             }
+
+            return false;
         }
     }
 }

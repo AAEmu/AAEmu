@@ -3,7 +3,6 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -12,6 +11,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncUse : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint SkillId { get; set; }
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
@@ -52,7 +52,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);
                 if (skillTemplate == null)
                 {
-        
+
                     return;
                 }
                 var useSkill = new Skill(skillTemplate);

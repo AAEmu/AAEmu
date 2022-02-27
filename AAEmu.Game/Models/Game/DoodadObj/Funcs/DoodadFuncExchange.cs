@@ -3,12 +3,12 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public class DoodadFuncExchange : DoodadFuncTemplate
+    public class DoodadFuncExchange : DoodadPhaseFuncTemplate
     {
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncExchange");
-
+            return false;
         }
     }
 }

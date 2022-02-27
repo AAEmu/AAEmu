@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncConditionalUse : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint SkillId { get; set; }
         public uint FakeSkillId { get; set; }
         public uint QuestId { get; set; }

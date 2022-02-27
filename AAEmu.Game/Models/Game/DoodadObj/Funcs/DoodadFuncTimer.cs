@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Tasks.Doodads;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public class DoodadFuncTimer : DoodadFuncTemplate
+    public class DoodadFuncTimer : DoodadPhaseFuncTemplate
     {
         public int Delay { get; set; }
         public int NextPhase { get; set; }
@@ -16,11 +16,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public bool ShowEndTime { get; set; }
         public string Tip { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(Unit caster, Doodad owner)
         {
-            _log.Trace("DoodadFuncTimer: TemplateId {0}, skillId {1}, nextPhase {2},  Delay {3}, NextPhase {4}, KeepRequester {5}, ShowTip {6}, ShowEndTime {7}, Tip {8}",
-                owner.TemplateId, skillId, nextPhase, Delay, NextPhase, KeepRequester, ShowTip, ShowEndTime, Tip);
-
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(Delay + 1); // TODO need here
 
             if (NextPhase > 0)
@@ -29,9 +26,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //{
                 //    _ = owner.FuncTask.Cancel();
                 //    _ = owner.FuncTask = null;
-                //    _log.Trace("DoodadFuncTimerTask: The current timer has been canceled by the next scheduled timer.");
+                //    _log.Debug("DoodadFuncTimer: The current timer has been canceled by the next scheduled timer.");
                 //}
-                owner.FuncTask = new DoodadFuncTimerTask(caster, owner, skillId, NextPhase);
+                _log.Debug("DoodadFuncTimer: TemplateId {0},  Delay {1}, NextPhase {2}, KeepRequester {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", owner.TemplateId, Delay, NextPhase, KeepRequester, ShowTip, ShowEndTime, Tip);
+                owner.FuncTask = new DoodadFuncTimerTask(caster, owner, 0, NextPhase);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay + 1));
             }
             else
@@ -39,6 +37,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //Wondering if more needs done here if depending on next phase func
                 //owner.Use(caster, skillId);
             }
+
+            return false; // никогда не прерываем последовательность фазовых функций
         }
     }
 }

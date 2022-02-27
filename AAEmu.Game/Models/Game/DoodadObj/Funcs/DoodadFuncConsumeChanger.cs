@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncConsumeChanger : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint SlotId { get; set; }
         public int Count { get; set; }
         

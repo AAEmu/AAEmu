@@ -1,5 +1,4 @@
-﻿
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -10,6 +9,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncFakeUse : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint SkillId { get; set; }
         public uint FakeSkillId { get; set; }
         public bool TargetParent { get; set; }
@@ -41,7 +41,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
                 skill.Use(caster, skillCaster, target);
             }
-            else  if (FakeSkillId != 0)
+            else if (FakeSkillId != 0)
             {
                 var transferTelescope = 20580;
                 var range = 1000f;

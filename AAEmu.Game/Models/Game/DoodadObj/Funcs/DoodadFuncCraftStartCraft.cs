@@ -3,15 +3,15 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public class DoodadFuncCraftStartCraft : DoodadFuncTemplate
+    public class DoodadFuncCraftStartCraft : DoodadPhaseFuncTemplate
     {
         public uint DoodadFuncCraftStartId { get; set; }
         public uint CraftId { get; set; }
         
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncCraftStartCraft");
-
+            return false;
         }
     }
 }

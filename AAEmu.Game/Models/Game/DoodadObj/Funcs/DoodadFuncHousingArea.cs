@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncHousingArea : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint FactionId { get; set; }
         public int Radius { get; set; }
         

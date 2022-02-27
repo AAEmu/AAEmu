@@ -3,8 +3,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Quests;
-using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -12,6 +10,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncLootItem : DoodadFuncTemplate
     {
+        // doodad_funcs
         public WorldInteractionType WorldInteractionId { get; set; }
         public uint ItemId { get; set; }
         public int CountMin { get; set; }
@@ -21,7 +20,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         public uint GroupId { get; set; }
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
-{
+        {
             _log.Trace("DoodadFuncLootItem: skillId {0}, nextPhase {1},  ItemId {2}, CountMin {3}, CountMax {4},  Percent {5}, RemainTime {6}, GroupId {7}",
                 skillId, nextPhase, ItemId, CountMin, CountMax, Percent, RemainTime, GroupId);
 

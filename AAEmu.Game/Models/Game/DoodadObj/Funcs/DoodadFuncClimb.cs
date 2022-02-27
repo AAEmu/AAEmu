@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncClimb : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint ClimbTypeId { get; set; }
         public bool AllowHorizontalMultiHanger { get; set; }
         

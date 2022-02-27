@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncShear : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint ShearTypeId { get; set; }
         public int ShearTerm { get; set; }
 

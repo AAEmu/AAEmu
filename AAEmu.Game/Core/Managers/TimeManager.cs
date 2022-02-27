@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using AAEmu.Commons.Utils;
@@ -12,9 +12,9 @@ namespace AAEmu.Game.Core.Managers
     {
         private List<IObserver<float>> _observers;
         private bool _work;
-        private const float MaxTime = 86400;
-        private float _time = 43200; // TODO 12h 00m
-        private float _tick = 3600 * Speed;
+        private const float MaxTime = 86400f;
+        private float _time = 43200f; // TODO 12h 00m
+        private float _tick = 3600f * Speed;
 
         public static float Speed = .0016666f;
         public float GetTime() => _time / 3600f;
@@ -42,7 +42,10 @@ namespace AAEmu.Game.Core.Managers
 
         public void Start()
         {
-            _time = 12 * 60 * 60;
+            var curHours = DateTime.UtcNow.TimeOfDay.Hours;
+            var curMinutes = DateTime.UtcNow.TimeOfDay.Minutes;
+            //_time = 12 * 60 * 60;
+            _time = curHours * 60f + curMinutes * 60f;
             _work = true;
             new Thread(Tick) {Name = "TimeManagerThread"}.Start();
         }

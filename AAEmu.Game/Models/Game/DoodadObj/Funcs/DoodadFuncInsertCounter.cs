@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncInsertCounter : DoodadFuncTemplate
     {
+        // doodad_funcs
         public int Count { get; set; }
         public uint ItemId { get; set; }
         public int ItemCount { get; set; }

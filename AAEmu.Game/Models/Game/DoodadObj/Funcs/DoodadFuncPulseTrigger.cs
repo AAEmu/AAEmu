@@ -3,17 +3,21 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public class DoodadFuncPulseTrigger : DoodadFuncTemplate
+    public class DoodadFuncPulseTrigger : DoodadPhaseFuncTemplate
     {
         public bool Flag { get; set; }
-        public uint NextPhase { get; set; }
+        public int NextPhase { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncPulseTrigger");
-            if (Flag && nextPhase == 1)
-                owner.DoPhaseFuncs(null, (int)NextPhase);
+            if (Flag)
+            {
+                owner.OverridePhase = NextPhase;
+                return true;
+            }
 
+            return false;
         }
     }
 }

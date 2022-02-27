@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncStampMaker : DoodadFuncTemplate
     {
+        // doodad_funcs
         public int ConsumeMoney { get; set; }
         public uint ItemId { get; set; }
         public uint ConsumeItemId { get; set; }

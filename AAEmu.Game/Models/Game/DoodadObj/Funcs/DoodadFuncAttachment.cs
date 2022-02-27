@@ -9,6 +9,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncAttachment : DoodadFuncTemplate
     {
+        // doodad_funcs
         public AttachPointKind AttachPointId { get; set; }
         public int Space { get; set; }
         public BondKind BondKindId { get; set; }
@@ -33,7 +34,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 // Ships // TODO Check how sit on the ship
                 else
                 {
-                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId,AttachUnitReason.NewMaster);
+                    SlaveManager.Instance.BindSlave(character, owner.ParentObjId, AttachPointId, AttachUnitReason.NewMaster);
                 }
             }
         }

@@ -25,7 +25,7 @@ namespace AAEmu.Game.Utils
             uint templateId;
             uint doodadObjId;
             uint skillId = 0;
-            uint phase = 0;
+            int phase = 0;
             var worlds = WorldManager.Instance.GetWorlds();
             Doodad doodad = null;
 
@@ -55,21 +55,21 @@ namespace AAEmu.Game.Utils
                                     var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
                                     if (phaseFuncs.Length == 0)
                                     {
-                                        _log.Info("[Doodad] PhaseFunc: GroupId {0}, FuncId 0");
+                                        _log.Info("[Doodad] PhaseFunc: GroupId {0}, FuncId 0", doodad.FuncGroupId);
                                     }
                                     else
                                     {
                                         foreach (var phaseFunc in phaseFuncs)
                                         {
                                             // phaseFunc.Use
-                                            _log.Info("[Doodad] PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType, phaseFunc.NextPhase, phaseFunc.SkillId);
+                                            _log.Info("[Doodad] PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType);
                                         }
                                     }
                                     // Get all doodad_funcs
                                     var doodadFuncs = DoodadManager.Instance.GetDoodadFuncs(doodad.FuncGroupId);
                                     if (doodadFuncs.Count == 0)
                                     {
-                                        _log.Info("[Doodad] Func: GroupId 0");
+                                        _log.Info("[Doodad] Func: GroupId {0}, FuncId 0", doodad.FuncGroupId);
                                     }
                                     else
                                     {
@@ -92,21 +92,22 @@ namespace AAEmu.Game.Utils
                         character.SendMessage("[Doodad] /doodad chain <templateId>");
                     }
                     break;
+                case "phase":
                 case "setphase":
                     if (args.Length >= 3)
                     {
                         if (uint.TryParse(args[1], out doodadObjId))
                         {
-                            if (uint.TryParse(args[2], out phase))
+                            if (int.TryParse(args[2], out phase))
                             {
                                 doodad = WorldManager.Instance.GetDoodad(doodadObjId);
                                 if ((doodad != null) && (doodad is Doodad))
                                 {
                                     var listIds = DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId);
                                     character.SendMessage("[Doodad] SetPhase {0}", phase);
-                                    character.SendMessage("[Doodad] TemplateId {0}: ObjId{1}, Phases({2})", doodad.TemplateId, doodad.ObjId, string.Join(", ", listIds));
-                                    _log.Warn("[Doodad] Chain: TemplateId {0}, doodadObjId {1}", doodad.TemplateId, doodad.ObjId);
-                                    doodad.DoPhaseFuncs(character, (int)phase);
+                                    character.SendMessage("[Doodad] TemplateId {0}: ObjId{1}, SetPhase {2}, Phases({3})", doodad.TemplateId, doodad.ObjId, phase, string.Join(", ", listIds));
+                                    _log.Warn("[Doodad] Chain: TemplateId {0}, doodadObjId {1}, SetPhase {2}, Phases({3}", doodad.TemplateId, doodad.ObjId, phase, string.Join(", ", listIds));
+                                    doodad.DoPhaseFuncs(character, phase);
                                 }
                                 else
                                 {
@@ -356,11 +357,11 @@ namespace AAEmu.Game.Utils
                 doodad.OverridePhase = 0;
 
                 // phaseFunc.Use
-                _log.Warn("[Doodad] PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}, NextPhase {3}, Skill {4}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType, phaseFunc.NextPhase, phaseFunc.SkillId);
+                _log.Warn("[Doodad] PhaseFunc: GroupId {0}, FuncId {1}, FuncType {2}", phaseFunc.GroupId, phaseFunc.FuncId, phaseFunc.FuncType);
 
                 if (doodad.OverridePhase > 0)
                 {
-                    doodad.FuncGroupId = doodad.OverridePhase;
+                    doodad.FuncGroupId = (uint)doodad.OverridePhase;
                     GoToPhaseChanged(doodad, doodad.FuncGroupId);
                 }
             }

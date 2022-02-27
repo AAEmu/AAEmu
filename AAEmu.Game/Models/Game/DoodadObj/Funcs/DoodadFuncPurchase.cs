@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncPurchase : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint ItemId { get; set; }
         public int Count { get; set; }
         public uint CoinItemId { get; set; }

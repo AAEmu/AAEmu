@@ -6,6 +6,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncQuest : DoodadFuncTemplate
     {
+        // doodad_funcs
         public uint QuestKindId { get; set; }
         public uint QuestId { get; set; }
 

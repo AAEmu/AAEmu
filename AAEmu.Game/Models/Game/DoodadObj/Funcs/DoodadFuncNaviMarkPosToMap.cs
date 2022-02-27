@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncNaviMarkPosToMap : DoodadFuncTemplate
     {
+        // doodad_funcs
         public int X { get; set; }
         public int Y { get; set; }
         public int Z { get; set; }

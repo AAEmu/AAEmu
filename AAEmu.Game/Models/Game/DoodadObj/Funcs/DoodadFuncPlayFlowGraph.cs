@@ -3,15 +3,15 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
-    public class DoodadFuncPlayFlowGraph : DoodadFuncTemplate
+    public class DoodadFuncPlayFlowGraph : DoodadPhaseFuncTemplate
     {
         public uint EventOnPhaseChangeId { get; set; }
         public uint EventOnVisibleId { get; set; }
 
-        public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)
+        public override bool Use(Unit caster, Doodad owner)
         {
             _log.Trace("DoodadFuncPlayFlowGraph");
-
+            return false;
         }
     }
 }

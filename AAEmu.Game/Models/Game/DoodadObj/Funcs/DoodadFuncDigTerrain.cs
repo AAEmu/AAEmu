@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
     public class DoodadFuncDigTerrain : DoodadFuncTemplate
     {
+        // doodad_funcs
         public int Radius { get; set; }
         public int Life { get; set; }
         

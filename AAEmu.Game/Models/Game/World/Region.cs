@@ -152,11 +152,14 @@ namespace AAEmu.Game.Models.Game.World
                     // Ignore doodads here, as we have a special packet for those
                     if (go is Doodad doodad)
                     {
+                        var unit = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
+                        doodad.FuncGroupId = doodad.GetFuncGroupId();  // Start phase
+                        doodad.DoPhaseFuncs(unit, (int)doodad.FuncGroupId);
                         continue;
                     }
 
                     // turn on the motion of the visible NPC
-                    if ((go is Npc npc) && (npc.Ai != null)) 
+                    if (go is Npc npc && npc.Ai != null) 
                         npc.Ai.ShouldTick = true;
                     
                     go.AddVisibleObject(objectAsCharacter);
