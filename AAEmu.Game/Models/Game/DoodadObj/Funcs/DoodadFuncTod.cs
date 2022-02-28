@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -52,6 +53,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //{
                 //    return false; // TODO я думал, что tod это время в формате hh:mm, но там есть величины : 0, 1, 10, 30, 4000 и 60000
                 //}
+
+                if (caster is Character) { return false; }
 
                 var curTime = TimeManager.Instance.GetTime();
                 if (curTime * 3600f > Tod)

@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             // foreach (var func in funcs)
             //     func.Use(caster, owner, skillId);
             // owner.BroadcastPacket(new SCDoodadPhaseChangedPacket(owner), true);
-            if (caster is Character)
+            if (NextPhase > 0)
             {
                 //I think this is used to reschedule anything that needs triggered at a specific gametime
                 owner.OverridePhase = NextPhase;
