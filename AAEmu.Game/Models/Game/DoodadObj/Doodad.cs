@@ -84,7 +84,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         {
             while (true)
             {
-                _log.Debug("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                _log.Trace("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
 
                 var stop = DoPhaseFuncs(caster, (int)FuncGroupId); // 276
                 if (stop)
@@ -229,7 +229,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 if (nextPhase <= 0) { return false; }
 
-                _log.Debug("DoPhaseFuncs: [0] TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
+                _log.Trace("DoPhaseFuncs: [0] TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
                 FuncGroupId = (uint)nextPhase;
                 // проверка на зацикливание
                 if (CheckPhase((uint)nextPhase))

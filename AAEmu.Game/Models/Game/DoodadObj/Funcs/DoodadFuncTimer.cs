@@ -28,7 +28,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //    _ = owner.FuncTask = null;
                 //    _log.Debug("DoodadFuncTimer: The current timer has been canceled by the next scheduled timer.");
                 //}
-                _log.Debug("DoodadFuncTimer: TemplateId {0},  Delay {1}, NextPhase {2}, KeepRequester {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", owner.TemplateId, Delay, NextPhase, KeepRequester, ShowTip, ShowEndTime, Tip);
+                _log.Trace("DoodadFuncTimer: TemplateId {0},  Delay {1}, NextPhase {2}, KeepRequester {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", owner.TemplateId, Delay, NextPhase, KeepRequester, ShowTip, ShowEndTime, Tip);
                 owner.FuncTask = new DoodadFuncTimerTask(caster, owner, 0, NextPhase);
                 TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Delay + 1));
             }

@@ -6,6 +6,7 @@
         "ExpRate": 1.0,
         "HonorRate": 1.0,
         "VocationRate": 1.0,
-        "LootRate": 1.0
+        "LootRate": 1.0,
+        "GrowthRate": 1.0
     }
 }

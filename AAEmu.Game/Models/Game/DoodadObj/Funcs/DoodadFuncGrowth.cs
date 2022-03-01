@@ -18,7 +18,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         {
             //TODO add doodad scaling transformation
             owner.Scale = StartScale / 1000f;
-            var customDelay = Delay; // / 100.0f; // decrease delay
+            var customDelay = Delay / AppConfiguration.Instance.World.GrowthRate; // decrease delay
 
             //if (owner.FuncTask != null)
             //{
@@ -26,8 +26,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             //    _ = owner.FuncTask = null;
             //    _log.Debug("DoodadFuncGrowthTask: The current timer has been canceled by the next scheduled timer.");
             //}
-            _log.Debug("DoodadFuncGrowth: Delay {0}, StartScale {1}, EndScale {2}, NextPhase {3}", Delay, StartScale, EndScale, NextPhase);
-            owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, 0, NextPhase, EndScale);
+            _log.Trace("DoodadFuncGrowth: Delay {0}, StartScale {1}, EndScale {2}, NextPhase {3}", Delay, StartScale, EndScale, NextPhase);
+            owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, 0, NextPhase, EndScale / 1000f);
             owner.GrowthTime = DateTime.UtcNow.AddMilliseconds(customDelay);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(customDelay));
             return false;

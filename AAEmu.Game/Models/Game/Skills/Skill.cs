@@ -748,7 +748,11 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 // Actually consume the to be consumed items
                 foreach (var (item, amount) in consumedItems)
-                    item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
+                    if (item._holdingContainer != null)
+                    {
+                        item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
+                    }
+
                 if (caster is Character playerToConsumeFrom)
                     foreach (var (templateId, amount) in consumedItemTemplates)
                         playerToConsumeFrom.Inventory.ConsumeItem(null, ItemTaskType.SkillEffectConsumption, templateId, amount, null);
