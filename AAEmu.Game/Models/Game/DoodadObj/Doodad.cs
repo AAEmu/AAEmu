@@ -298,7 +298,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 if (func.FuncType == "DoodadFuncSkillHit")
                 {
-                    Use(null, skillId);
+                    Use(caster, skillId);
                 }
             }
         }
