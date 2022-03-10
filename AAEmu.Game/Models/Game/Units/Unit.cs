@@ -389,6 +389,11 @@ namespace AAEmu.Game.Models.Game.Units
             BroadcastPacket(new SCUnitInvisiblePacket(ObjId, Invisible), true);
         }
 
+        public void SetGodMode(bool value)
+        {
+            AppConfiguration.Instance.World.GodMode = value;
+        }
+
         public void SetCriminalState(bool criminalState)
         {
             if (criminalState)

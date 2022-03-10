@@ -80,6 +80,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Update="Scripts\Commands\GodMode.cs">
+        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
+      </None>
       <None Update="Scripts\Commands\NpcCmd.cs">
         <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
       </None>
