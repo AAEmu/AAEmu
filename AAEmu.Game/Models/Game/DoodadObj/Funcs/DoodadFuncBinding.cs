@@ -16,12 +16,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             if (caster is not Character character) { return; }
 
             var returnPointId = PortalManager.Instance.GetDistrictReturnPoint(DistrictId, character.Faction.Id);
+
+            _log.Trace("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
+            character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
             
             if (returnPointId == 0) { return; }
 
-            var portal = PortalManager.Instance.GetPortalById(returnPointId);
-            _log.Trace("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
-            character.SendMessage("DoodadFuncBinding: DistrictId {0} ==> ReturnPointId {1}, SubZonesId {2}", DistrictId, returnPointId, character.SubZoneId);
+            var portal = PortalManager.Instance.GetRecallById(returnPointId);
 
             if (portal != null)
             {

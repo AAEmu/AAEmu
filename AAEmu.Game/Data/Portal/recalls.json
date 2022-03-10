@@ -1,0 +1,1327 @@
+[
+    //----------------- Memory Tome for Recall -----------------
+    //----------------- Nuia continent -------------------------
+	/*
+	  По SubZoneId добавляются зоны которые посетил персонаж для возврата в них из книги телепортов (Memory Tome).
+	  По Id и SubZoneId добавляется точка для возврата по скиллу Recall.
+	  -------+---------
+	    race  factionId
+	  -------+---------
+	  1 Nuian     101
+	  2 Fairy     101
+	  3 Dwarf     104
+	  4 Elf       103
+	  5 Hariharan 109
+	  6 Ferre     113
+	  7 Returned  112
+	  8 Warborn   187
+	    Pirate    161
+		Red       159
+		Blue      160
+		Unknown   114
+	*/
+    {
+        //    districtId ->(factionId)->returnPointId
+        //            183->(161)->290
+        //            183->(103,104)->222
+        //            183->(109,112,113)->240
+        "Id": 240, // 182->(109,112,113)->240
+        "Name": "Harani Starting Area",
+        "X": 19304.874,
+        "Y": 7646.06,
+        "Z": 212.704,
+        "ZoneId": 187,
+        "ZRot": 79,
+        "SubZoneId": 188,
+        "Owner": 0
+    },
+    {
+        "Id": 241,
+        "Name": "Firran Starting Area",
+        "X": 23881.218,
+        "Y": 10495.782,
+        "Z": 589.7838,
+        "ZoneId": 184,
+        "ZRot": 70,
+        "SubZoneId": 727,
+        "Owner": 0
+    },
+    {
+        "Id": 243,
+        "Name": "Nuian Starting Area",
+        "X": 15578.042,
+        "Y": 15382.122,
+        "Z": 126.484,
+        "ZoneId": 179,
+        "ZRot": 58,
+        "SubZoneId": 324,
+        "Owner": 0
+    },
+    {
+        "Id": 245,
+        "Name": "Elf Starting Area",
+        "X": 10388.576,
+        "Y": 15982.466,
+        "Z": 367.606,
+        "ZoneId": 129,
+        "ZRot": 57,
+        "SubZoneId": 1,
+        "Owner": 0
+    },
+    {
+        "Id": 15, // 1 -> 15
+        "Name": "Desireen",
+        "X": 15667.92,
+        "Y": 15166.73,
+        "Z": 120.7422,
+        "ZoneId": 179,
+        "ZRot": -18,
+        "SubZoneId": 325,
+        "Owner": 0
+    },
+    {
+        "Id": 16, // 2 16
+        "Name": "Wardton",
+        "X": 14809.21,
+        "Y": 14295.77,
+        "Z": 119.8929,
+        "ZoneId": 179,
+        "ZRot": 54,
+        "SubZoneId": 332,
+        "Owner": 0
+    },
+    {
+        "Id": 17, // 3 17
+        "Name": "Crescent Throne",
+        "X": 15376.02,
+        "Y": 13865.8,
+        "Z": 159.0877,
+        "ZoneId": 178,
+        "ZRot": 75,
+        "SubZoneId": 499,
+        "Owner": 0
+    },
+    {
+        "Id": 563, // 362 563
+        "Name": "Solzreed Temporary Garden",
+        "X": 14948.63,
+        "Y": 14239.77,
+        "Z": 123.3633,
+        "ZoneId": 179,
+        "ZRot": 34,
+        "SubZoneId": 335,
+        "Owner": 0
+    },
+    {
+        "Id": 79, // 14 79
+        "Name": "Riverspan",
+        "X": 13564.56,
+        "Y": 15875.9,
+        "Z": 176.3487,
+        "ZoneId": 144,
+        "ZRot": 43,
+        "SubZoneId": 251,
+        "Owner": 0
+    },
+    {
+        "Id": 71, // 20 71
+        "Name": "Rockmar Barrow",
+        "X": 12778.46,
+        "Y": 16164.77,
+        "Z": 351.3124,
+        "ZoneId": 195,
+        "ZRot": 4,
+        "SubZoneId": 753,
+        "Owner": 0
+    },
+    {
+        "Id": 70, // 19 70
+        "Name": "Windshade",
+        "X": 12613.38,
+        "Y": 15485.65,
+        "Z": 158.7306,
+        "ZoneId": 195,
+        "ZRot": -33,
+        "SubZoneId": 242,
+        "Owner": 0
+    },
+    {
+        "Id": 72, // 18 72
+        "Name": "Spywatch Camp",
+        "X": 11409.06,
+        "Y": 15279.6,
+        "Z": 195.4984,
+        "ZoneId": 182,
+        "ZRot": 66,
+        "SubZoneId": 340,
+        "Owner": 0
+    },
+    {
+        "Id": 3, // 16 3
+        "Name": "Lakeside",
+        "X": 10825.26,
+        "Y": 15312.19,
+        "Z": 224.218,
+        "ZoneId": 182,
+        "ZRot": -39,
+        "SubZoneId": 11,
+        "Owner": 0
+    },
+    {
+        "Id": 244, // 198 244
+        "Name": "Sylvan Devi",
+        "X": 10000.61,
+        "Y": 15291.61,
+        "Z": 231.2679,
+        "ZoneId": 129,
+        "ZRot": 3,
+        "SubZoneId": 4,
+        "Owner": 0
+    },
+    {
+        "Id": 564, // 363 564
+        "Name": "Gweonid Temporary Garden",
+        "X": 10824.02,
+        "Y": 15557.6,
+        "Z": 243.876,
+        "ZoneId": 182,
+        "ZRot": 75,
+        "SubZoneId": 1080,
+        "Owner": 0
+    },
+    {
+        "Id": 2, // 17 2
+        "Name": "Memoria",
+        "X": 10668.83,
+        "Y": 14959.68,
+        "Z": 282.6016,
+        "ZoneId": 181,
+        "ZRot": 65,
+        "SubZoneId": 14,
+        "Owner": 0
+    },
+    {
+        "Id": 1, // 15 (101,103,104) 1
+        "Name": "Harpa's Camp",
+        "X": 10347.80,
+        "Y": 16033.80,
+        "Z": 357.60,
+        "ZoneId": 129,
+        "ZRot": 17,
+        "SubZoneId": 2,
+        "Owner": 0
+    },
+    {
+        "Id": 523, // 348 (101,103,104) 523
+        "Name": "Gweonid Scarecrow Farm",
+        "X": 9689.60,
+        "Y": 15225.50,
+        "Z": 236.30,
+        "ZoneId": 129,
+        "ZRot": 17,
+        "SubZoneId": 30,
+        "Owner": 0
+    },
+    {
+        "Id": 505, // 335 505
+        "Name": "Iona",
+        "X": 9718.053,
+        "Y": 17036.54,
+        "Z": 128.1222,
+        "ZoneId": 145,
+        "ZRot": 55,
+        "SubZoneId": 218,
+        "Owner": 0
+    },
+    {
+        "Id": 507, // 337 507
+        "Name": "Lavis",
+        "X": 10507.88,
+        "Y": 17341.86,
+        "Z": 185.8635,
+        "ZoneId": 145,
+        "ZRot": 29,
+        "SubZoneId": 220,
+        "Owner": 0
+    },
+    {
+        "Id": 506, // 336 506
+        "Name": "Brownscale Wyrmkin Camp",
+        "X": 9536.186,
+        "Y": 17837.28,
+        "Z": 145.8784,
+        "ZoneId": 145,
+        "ZRot": 65,
+        "SubZoneId": 219,
+        "Owner": 0
+    },
+    {
+        "Id": 504, // 334 504
+        "Name": "Hardbleak Island",
+        "X": 9260.123,
+        "Y": 16673.17,
+        "Z": 141.3285,
+        "ZoneId": 145,
+        "ZRot": 67,
+        "SubZoneId": 217,
+        "Owner": 0
+    },
+    {
+        "Id": 503, // 333 (101,103,113,109) 506
+        "Name": "Dried Reservoir",
+        "X": 9139.10,
+        "Y": 16267.80,
+        "Z": 122.10,
+        "ZoneId": 145,
+        "ZRot": 67,
+        "SubZoneId": 216,
+        "Owner": 0
+    },
+    {
+        "Id": 510, // 339 510
+        "Name": "Bonepool",
+        "X": 11148.2,
+        "Y": 17564.8,
+        "Z": 119.9,
+        "ZoneId": 273,
+        "ZRot": 65,
+        "SubZoneId": 222,
+        "Owner": 0
+    },
+    {
+        "Id": 509, // 340 509
+        "Name": "Red Clay Camp",
+        "X": 11725.6,
+        "Y": 17845.6,
+        "Z": 231.9,
+        "ZoneId": 273,
+        "ZRot": 65,
+        "SubZoneId": 224,
+        "Owner": 0
+    },
+    {
+        "Id": 508, // 338 508
+        "Name": "Bonefence",
+        "X": 10669.6,
+        "Y": 16925.6,
+        "Z": 168.8,
+        "ZoneId": 145,
+        "ZRot": 65,
+        "SubZoneId": 221,
+        "Owner": 0
+    },
+    {
+        "Id": 7, // 23 7
+        "Name": "Royster's Camp",
+        "X": 12862.81,
+        "Y": 14420.16,
+        "Z": 141.3746,
+        "ZoneId": 140,
+        "ZRot": 43,
+        "SubZoneId": 61,
+        "Owner": 0
+    },
+    {
+        "Id": 8, // 25 8
+        "Name": "Sandcloud",
+        "X": 12155.06,
+        "Y": 13294.1,
+        "Z": 168.7016,
+        "ZoneId": 185,
+        "ZRot": 58,
+        "SubZoneId": 72,
+        "Owner": 0
+    },
+    {
+        "Id": 9, // 26 9
+        "Name": "Roadsend",
+        "X": 11735.30,
+        "Y": 12927.80,
+        "Z": 139.10,
+        "ZoneId": 185,
+        "ZRot": 58,
+        "SubZoneId": 73,
+        "Owner": 0
+    },
+    {
+        "Id": 602, // 367 602
+        "Name": "Sharpwind Mine",
+        "X": 11356.92,
+        "Y": 13133.95,
+        "Z": 143.9556,
+        "ZoneId": 185,
+        "ZRot": 55,
+        "SubZoneId": 84,
+        "Owner": 0
+    },
+    {
+        "Id": 14, // 22 14
+        "Name": "Ardenia",
+        "X": 10629.37,
+        "Y": 13206.33,
+        "Z": 234.1481,
+        "ZoneId": 244,
+        "ZRot": 23,
+        "SubZoneId": 163,
+        "Owner": 0
+    },
+    {
+        "Id": 6, // 13 6 (всего три точки в Marianople)
+        "Name": "Jewel of Marianople",
+        "X": 11140.59,
+        "Y": 12080.09,
+        "Z": 149.796,
+        "ZoneId": 183,
+        "ZRot": 68,
+        "SubZoneId": 37, // 37 41 358
+        "Owner": 0
+    },
+    {
+        "Id": 6, // 13 6 (всего три точки в Marianople)
+        "Name": "Jewel of Marianople",
+        "X": 11140.59,
+        "Y": 12080.09,
+        "Z": 149.796,
+        "ZoneId": 183,
+        "ZRot": 68,
+        "SubZoneId": 41, // 37 41 358
+        "Owner": 0
+    },
+    {
+        "Id": 6, // 13 6 (всего три точки в Marianople)
+        "Name": "Jewel of Marianople",
+        "X": 11140.59,
+        "Y": 12080.09,
+        "Z": 149.796,
+        "ZoneId": 183,
+        "ZRot": 68,
+        "SubZoneId": 358, // 37 41 358
+        "Owner": 0
+    },
+    {
+        "Id": 5, // 12 5
+        "Name": "Dawnsliver",
+        "X": 10678.66,
+        "Y": 11877.77,
+        "Z": 129.3337,
+        "ZoneId": 133,
+        "ZRot": 17,
+        "SubZoneId": 565,
+        "Owner": 0
+    },
+    {
+        "Id": 51, // 204 51
+        "Name": "Sundowne",
+        "X": 12457.1,
+        "Y": 11159.9,
+        "Z": 146.8,
+        "ZoneId": 149,
+        "ZRot": 0,
+        "SubZoneId": 120,
+        "Owner": 0
+    },
+    {
+        "Id": 260, // 208 260
+        "Name": "Moonswept Homes",
+        "X": 13239.1,
+        "Y": 11771.6,
+        "Z": 136.4,
+        "ZoneId": 149,
+        "ZRot": 0,
+        "SubZoneId": 121,
+        "Owner": 0
+    },
+    {
+        "Id": 52, // 205 52
+        "Name": "Arena",
+        "X": 13114.0,
+        "Y": 11220.5,
+        "Z": 130.9,
+        "ZoneId": 186,
+        "ZRot": 0,
+        "SubZoneId": 126,
+        "Owner": 0
+    },
+    {
+        "Id": 50, // 206 50
+        "Name": "Ezna",
+        "X": 13501.9,
+        "Y": 10530.5,
+        "Z": 222.2,
+        "ZoneId": 186,
+        "ZRot": 0,
+        "SubZoneId": 144, // 144 146
+        "Owner": 0
+    },
+    {
+        "Id": 50, // 206 50
+        "Name": "Ezna",
+        "X": 13501.9,
+        "Y": 10530.5,
+        "Z": 222.2,
+        "ZoneId": 186,
+        "ZRot": 0,
+        "SubZoneId": 146, // 144 146
+        "Owner": 0
+    },
+    {
+        "Id": 33, // 203 33
+        "Name": "Burnt Castle Camp",
+        "X": 14299.8,
+        "Y": 11324.4,
+        "Z": 164.6119,
+        "ZoneId": 148,
+        "ZRot": 0,
+        "SubZoneId": 168,
+        "Owner": 0
+    },
+    {
+        "Id": 34, // 134 34
+        "Name": "Seachild Wharf",
+        "X": 15389.0,
+        "Y": 11578.9,
+        "Z": 109.3,
+        "ZoneId": 257,
+        "ZRot": 0,
+        "SubZoneId": 182,
+        "Owner": 0
+    },
+    {
+        "Id": 604, // 369 604
+        "Name": "Burnt Castle Armory",
+        "X": 15676.2,
+        "Y": 12583.5,
+        "Z": 166.9,
+        "ZoneId": 257,
+        "ZRot": 0,
+        "SubZoneId": 176,
+        "Owner": 0
+    },
+    {
+        "Id": 175, // 126 175
+        "Name": "Solisa",
+        "X": 11301.41,
+        "Y": 10718.12,
+        "Z": 129.0196,
+        "ZoneId": 207,
+        "ZRot": 35,
+        "SubZoneId": 290,
+        "Owner": 0
+    },
+    {
+        "Id": 418, // 319 418
+        "Name": "Halcyona Brewery",
+        "X": 10620.14,
+        "Y": 10740.94,
+        "Z": 170.9275,
+        "ZoneId": 207,
+        "ZRot": 54,
+        "SubZoneId": 292,
+        "Owner": 0
+    },
+    {
+        "Id": 417, // 318 417
+        "Name": "Farmhouse",
+        "X": 10076.0,
+        "Y": 10541.1,
+        "Z": 182.3,
+        "ZoneId": 206,
+        "ZRot": 30,
+        "SubZoneId": 293,
+        "Owner": 0
+    },
+    {
+        "Id": 176, // 127 176
+        "Name": "Sunset",
+        "X": 9317.3,
+        "Y": 10317.1,
+        "Z": 187.7,
+        "ZoneId": 206,
+        "ZRot": 30,
+        "SubZoneId": 291,
+        "Owner": 0
+    },
+    {
+        "Id": 326, // 252 326
+        "Name": "Golden Fable Harbor",
+        "X": 10708.4, //10878.8,
+        "Y": 9587.6, //9759.7,
+        "Z": 104.6, //133.0,
+        "ZoneId": 245,
+        "ZRot": 30,
+        "SubZoneId": 441,
+        "Owner": 0
+    },
+    {
+        "Id": 325, // 251 325
+        "Name": "Blueglass",
+        "X": 9454.0,
+        "Y": 9154.2,
+        "Z": 113.9,
+        "ZoneId": 245,
+        "ZRot": 30,
+        "SubZoneId": 416,
+        "Owner": 0
+    },
+    {
+        "Id": 330, // 255 330
+        "Name": "Trieste Thespians",
+        "X": 7855.3,
+        "Y": 7736.3,
+        "Z": 199.9,
+        "ZoneId": 161,
+        "ZRot": 0,
+        "SubZoneId": 900,
+        "Owner": 0
+    },
+    {
+        "Id": 329, // 254 329
+        "Name": "Haven",
+        "X": 7941.1,
+        "Y": 9038.6,
+        "Z": 178.0496,
+        "ZoneId": 248,
+        "Yaw": 90,
+        "SubZoneId": 899,
+        "Owner": 0
+    },
+    {
+        "Id": 328, // 253 328
+        "Name": "Anarchi",
+        "X": 7435.3,
+        "Y": 9853.5,
+        "Z": 188.7,
+        "ZoneId": 248,
+        "ZRot": 0,
+        "SubZoneId": 898,
+        "Owner": 0
+    },
+    {
+        "Id": 606, // 371 606
+        "Name": "Howling Abyss",
+        "X": 7798.7,
+        "Y": 10324.9,
+        "Z": 249.3,
+        "ZoneId": 248,
+        "ZRot": 0,
+        "SubZoneId": 904,
+        "Owner": 0
+    },
+    //----------------- Haranya continent ----------------------
+    {
+        "Id": 26, // 124 26
+        "Name": "Caernord",
+        "X": 20919.1,
+        "Y": 13144.8,
+        "Z": 114.1,
+        "ZoneId": 139,
+        "ZRot": 0,
+        "SubZoneId": 477,
+        "Owner": 0
+    },
+    {
+        "Id": 27, // 125 27
+        "Name": "Glitterstone",
+        "X": 21594.8,
+        "Y": 12460.4,
+        "Z": 249.6,
+        "ZoneId": 259,
+        "ZRot": 0,
+        "SubZoneId": 471,
+        "Owner": 0
+    },
+    {
+        "Id": 28, // 151 28
+        "Name": "Silent Forest Checkpoint",
+        "X": 22069.4,
+        "Y": 11306.6,
+        "Z": 220.6,
+        "ZoneId": 256,
+        "ZRot": 0,
+        "SubZoneId": 531,
+        "Owner": 0
+    },
+    {
+        "Id": 29, // 150 29
+        "Name": "Winebalm",
+        "X": 21776.2,
+        "Y": 10273.8,
+        "Z": 152.2,
+        "ZoneId": 256,
+        "ZRot": 0,
+        "SubZoneId": 538,
+        "Owner": 0
+    },
+    {
+        "Id": 36, // 33 36
+        "Name": "Poacher's Watch",
+        "X": 20076.8,
+        "Y": 8465.9,
+        "Z": 209.6,
+        "ZoneId": 197,
+        "ZRot": 0,
+        "SubZoneId": 276,
+        "Owner": 0
+    },
+    {
+        "Id": 38, // 31 38
+        "Name": "Traveler's Rest",
+        "X": 18740.1,
+        "Y": 9272.1,
+        "Z": 178.9,
+        "ZoneId": 153,
+        "ZRot": 0,
+        "SubZoneId": 606,
+        "Owner": 0
+    },
+    {
+        "Id": 43, // 27 43
+        "Name": "Traveler's Spring",
+        "X": 16844.7,
+        "Y": 8027.9,
+        "Z": 144.5,
+        "ZoneId": 141,
+        "ZRot": 0,
+        "SubZoneId": 588,
+        "Owner": 0
+    },
+    {
+        "Id": 44, // 29 44
+        "Name": "Austera",
+        "X": 16750.7,
+        "Y": 8995.6,
+        "Z": 120.3,
+        "ZoneId": 191,
+        "ZRot": 0,
+        "SubZoneId": 578,
+        "Owner": 0
+    },
+    {
+        "Id": 65, // 10 65
+        "Name": "Anvilton",
+        "X": 21765.4,
+        "Y": 8129.8,
+        "Z": 404.4,
+        "ZoneId": 258,
+        "ZRot": 0,
+        "SubZoneId": 315,
+        "Owner": 0
+    },
+    {
+        "Id": 66, // 11 66
+        "Name": "Tigerseye",
+        "X": 21717.0,
+        "Y": 8621.6,
+        "Z": 519.8,
+        "ZoneId": 158,
+        "ZRot": 0,
+        "SubZoneId": 687,
+        "Owner": 0
+    },
+    {
+        "Id": 74, // 5 74
+        "Name": "Whisperwind",
+        "X": 24143.14,
+        "Y": 9999.193,
+        "Z": 596.8657,
+        "ZoneId": 184,
+        "ZRot": -40,
+        "SubZoneId": 728,
+        "Owner": 0
+    },
+    {
+        "Id": 78, // 9 78
+        "Name": "Oxion Clan",
+        "X": 23767.23,
+        "Y": 9176.551,
+        "Z": 581.3434,
+        "ZoneId": 156,
+        "ZRot": 38,
+        "SubZoneId": 742,
+        "Owner": 0
+    },
+    {
+        "Id": 75, // 6 75
+        "Name": "Graymist",
+        "X": 24020.15,
+        "Y": 8622.912,
+        "Z": 567.3728,
+        "ZoneId": 184,
+        "ZRot": 44,
+        "SubZoneId": 736,
+        "Owner": 0
+    },
+    {
+        "Id": 77, // 8 77
+        "Name": "Cloudgrain",
+        "X": 23241.44,
+        "Y": 9018.236,
+        "Z": 659.8361,
+        "ZoneId": 156,
+        "ZRot": 66,
+        "SubZoneId": 748,
+        "Owner": 0
+    },
+    {
+        "Id": 76, // 7 76
+        "Name": "Halfmoon",
+        "X": 23596.99,
+        "Y": 9842.461,
+        "Z": 590.0519,
+        "ZoneId": 156,
+        "ZRot": 23,
+        "SubZoneId": 746,
+        "Owner": 0
+    },
+    {
+        "Id": 164, // 117 164
+        "Name": "Lutesong Harbor",
+        "X": 21167.3,
+        "Y": 10519.2,
+        "Z": 115.6,
+        "ZoneId": 160,
+        "ZRot": 0,
+        "SubZoneId": 1009,
+        "Owner": 0
+    },
+    {
+        "Id": 165, // 152 165
+        "Name": "Vedisa",
+        "X": 22301.6,
+        "Y": 12118.5,
+        "Z": 260.6,
+        "ZoneId": 159,
+        "ZRot": 0,
+        "SubZoneId": 671,
+        "Owner": 0
+    },
+    {
+        "Id": 166, // 153 166
+        "Name": "Huntsman's Retreat",
+        "X": 22729.8,
+        "Y": 12112.2,
+        "Z": 261.5,
+        "ZoneId": 159,
+        "ZRot": 0,
+        "SubZoneId": 673,
+        "Owner": 0
+    },
+    {
+        "Id": 167, // 154 167
+        "Name": "Stille Camp",
+        "X": 23789.1,
+        "Y": 11280.7,
+        "Z": 362.7,
+        "ZoneId": 159,
+        "ZRot": 0,
+        "SubZoneId": 676,
+        "Owner": 0
+    },
+    {
+        "Id": 206, // 162 206
+        "Name": "Count Sebastian's Retreat",
+        "X": 23561.8,
+        "Y": 12157.4,
+        "Z": 253.0,
+        "ZoneId": 159,
+        "ZRot": 0,
+        "SubZoneId": 847,
+        "Owner": 0
+    },
+    {
+        "Id": 207, // 163 207
+        "Name": "Hatora",
+        "X": 20028.4,
+        "Y": 7599.8,
+        "Z": 179.3,
+        "ZoneId": 187,
+        "ZRot": 0,
+        "SubZoneId": 203,
+        "Owner": 0
+    },
+    {
+        "Id": 208, // 164 208
+        "Name": "Parchsun Settlement",
+        "X": 20512.8,
+        "Y": 7152.8,
+        "Z": 192.6,
+        "ZoneId": 188,
+        "ZRot": 0,
+        "SubZoneId": 204,
+        "Owner": 0
+    },
+    {
+        "Id": 209, // 165 209
+        "Name": "Sanctia Oasis",
+        "X": 21422.6,
+        "Y": 7383.8,
+        "Z": 235.0,
+        "ZoneId": 188,
+        "ZRot": 0,
+        "SubZoneId": 194,
+        "Owner": 0
+    },
+    {
+        "Id": 210, // 166 210
+        "Name": "Widesleeves",
+        "X": 22275.9,
+        "Y": 7027.9,
+        "Z": 277.7,
+        "ZoneId": 189,
+        "ZRot": 0,
+        "SubZoneId": 207,
+        "Owner": 0
+    },
+    {
+        "Id": 255, // 201 255
+        "Name": "Mahadevi Port",
+        "X": 19232.2,
+        "Y": 7815.8,
+        "Z": 152.7,
+        "ZoneId": 153,
+        "ZRot": 0,
+        "SubZoneId": 279,
+        "Owner": 0
+    },
+    {
+        "Id": 305, // 235 305
+        "Name": "Village of Nui",
+        "X": 20279.3,
+        "Y": 12027.1,
+        "Z": 123.5,
+        "ZoneId": 139,
+        "ZRot": 0,
+        "SubZoneId": 460,
+        "Owner": 0
+    },
+    {
+        "Id": 522, // 346 522
+        "Name": "Arcum Iris Scarecrow Farm",
+        "X": 20569.8,
+        "Y": 7814.1,
+        "Z": 222.0,
+        "ZoneId": 188,
+        "ZRot": 0,
+        "SubZoneId": 193,
+        "Owner": 0
+    },
+    {
+        "Id": 566, // 365 566
+        "Name": "Arcum Iris Temporary",
+        "X": 20404.4,
+        "Y": 7147.3,
+        "Z": 186.3,
+        "ZoneId": 188,
+        "ZRot": 27,
+        "SubZoneId": 193,
+        "Owner": 0
+    },
+    {
+        "Id": 348, // 272 348
+        "Name": "Snowlion Rock Camp",
+        "X": 24746.7,
+        "Y": 7681.2,
+        "Z": 343.2,
+        "ZoneId": 136,
+        "ZRot": 0,
+        "SubZoneId": 1004,
+        "Owner": 0
+    },
+    {
+        "Id": 349, // 273 349
+        "Name": "Firetalon",
+        "X": 23819.1,
+        "Y": 7346.8,
+        "Z": 306.1,
+        "ZoneId": 136,
+        "ZRot": 0,
+        "SubZoneId": 99,
+        "Owner": 0
+    },
+    {
+        "Id": 351, // 274 351
+        "Name": "Firesnarl",
+        "X": 24674.6,
+        "Y": 6918.2,
+        "Z": 316.5,
+        "ZoneId": 136,
+        "ZRot": 0,
+        "SubZoneId": 104,
+        "Owner": 0
+    },
+    {
+        "Id": 352, // 275 352
+        "Name": "Skyfang",
+        "X": 25919.2,
+        "Y": 6829.2,
+        "Z": 361.3,
+        "ZoneId": 247,
+        "ZRot": 0,
+        "SubZoneId": 106,
+        "Owner": 0
+    },
+    {
+        "Id": 356, // 279 356
+        "Name": "Galegarden",
+        "X": 28939.52,
+        "Y": 7679.402,
+        "Z": 618.5804,
+        "ZoneId": 155,
+        "ZRot": 27,
+        "SubZoneId": 917,
+        "Owner": 0
+    },
+    {
+        "Id": 377, // 295 377
+        "Name": "Duskgleam",
+        "X": 24919.1,
+        "Y": 10603.7,
+        "Z": 687.6,
+        "ZoneId": 246,
+        "ZRot": 0,
+        "SubZoneId": 49,
+        "Owner": 0
+    },
+    {
+        "Id": 378, // 296 378
+        "Name": "Cloistera",
+        "X": 25761.1,
+        "Y": 10906.3,
+        "Z": 784.9,
+        "ZoneId": 246,
+        "ZRot": 0,
+        "SubZoneId": 52,
+        "Owner": 0
+    },
+    {
+        "Id": 379, // 297 379
+        "Name": "Watermist",
+        "X": 254106.2,
+        "Y": 9772.9,
+        "Z": 713.3,
+        "ZoneId": 138,
+        "ZRot": 0,
+        "SubZoneId": 983,
+        "Owner": 0
+    },
+    {
+        "Id": 380, // 298 380
+        "Name": "Scout Camp",
+        "X": 25936.2,
+        "Y": 9136.5,
+        "Z": 681.4,
+        "ZoneId": 138,
+        "ZRot": 0,
+        "SubZoneId": 258,
+        "Owner": 0
+    },
+    {
+        "Id": 387, // 300 387
+        "Name": "Stonehew",
+        "X": 27810.5,
+        "Y": 6736.1,
+        "Z": 537.8,
+        "ZoneId": 137,
+        "ZRot": 0,
+        "SubZoneId": 955,
+        "Owner": 0
+    },
+    {
+        "Id": 390, // 301 390
+        "Name": "Archeology Base Camp",
+        "X": 28523.7,
+        "Y": 6146.1,
+        "Z": 558.3,
+        "ZoneId": 242,
+        "ZRot": 0,
+        "SubZoneId": 963,
+        "Owner": 0
+    },
+    {
+        "Id": 391, // 302 391
+        "Name": "Herbalist Camp",
+        "X": 26987.7,
+        "Y": 7077.4,
+        "Z": 438.5,
+        "ZoneId": 243,
+        "ZRot": 27,
+        "SubZoneId": 952,
+        "Owner": 0
+    },
+    {
+        "Id": 565, // 364 565
+        "Name": "Falcorth Temporary Garden",
+        "X": 23796.0,
+        "Y": 9625.7,
+        "Z": 569.9,
+        "ZoneId": 156,
+        "ZRot": 0,
+        "SubZoneId": 746,
+        "Owner": 0
+    },
+    {
+        "Id": 511, // 282 511
+        "Name": "Jadegale",
+        "X": 28650.5,
+        "Y": 8525.1,
+        "Z": 527.5,
+        "ZoneId": 272,
+        "ZRot": 64,
+        "SubZoneId": 920,
+        "Owner": 0
+    },
+    {
+        "Id": 512, // 283 512 (всего две точки)
+        "Name": "Veroe",
+        "X": 29998.48,
+        "Y": 8743.883,
+        "Z": 542.3076,
+        "ZoneId": 272,
+        "ZRot": -11,
+        "SubZoneId": 930, // 930 1049
+        "Owner": 0
+    },
+    {
+        "Id": 512, // 283 512 (всего две точки)
+        "Name": "Veroe",
+        "X": 29998.48,
+        "Y": 8743.883,
+        "Z": 542.3076,
+        "ZoneId": 272,
+        "ZRot": 0,
+        "SubZoneId": 1049, // 930 1049
+        "Owner": 0
+    },
+    {
+        "Id": 359, // 277 359
+        "Name": "Tehmika Tribe",
+        "X": 30024.71,
+        "Y": 7829.107,
+        "Z": 399.877,
+        "ZoneId": 155,
+        "ZRot": 36,
+        "SubZoneId": 932,
+        "Owner": 0
+    },
+    {
+        "Id": 554, // 356 554
+        "Name": "Abandoned Drill Camp",
+        "X": 29831.0,
+        "Y": 7019.7,
+        "Z": 414.1,
+        "ZoneId": 274,
+        "ZRot": 0,
+        "SubZoneId": 1050,
+        "Owner": 0
+    },
+    {
+        "Id": 603, // 368 603
+        "Name": "Palace Cellar",
+        "X": 19331.7,
+        "Y": 8516.8,
+        "Z": 198.9,
+        "ZoneId": 196,
+        "ZRot": 0,
+        "SubZoneId": 270,
+        "Owner": 0
+    },
+    {
+        "Id": 45, // 28 45
+        "Name": "Halo Hollow",
+        "X": 15642.1,
+        "Y": 7608.2,
+        "Z": 157.7,
+        "ZoneId": 141,
+        "ZRot": -64,
+        "SubZoneId": 597,
+        "Owner": 0
+    },
+    {
+        "Id": 115, // 63 115
+        "Name": "Mahadevi Checkpoint",
+        "X": 17782.3,
+        "Y": 8345.0,
+        "Z": 261.5,
+        "ZoneId": 141,
+        "ZRot": 64,
+        "SubZoneId": 637,
+        "Owner": 0
+    },
+    {
+        "Id": 37, // 32 37
+        "Name": "City of Towers",
+        "X": 19295.2,
+        "Y": 8591.1,
+        "Z": 225.0,
+        "ZoneId": 196,
+        "ZRot": 0,
+        "SubZoneId": 625, // 625 626
+        "Owner": 0
+    },
+    {
+        "Id": 37, // 32 37
+        "Name": "City of Towers",
+        "X": 15109,
+        "Y": 22983,
+        "Z": 104,
+        "ZoneId": 0,
+        "ZRot": 0,
+        "SubZoneId": 626, // 625 626
+        "Owner": 0
+    },
+    {
+        "Id": 37, // 32 37
+        "Name": "City of Towers",
+        "X": 19295.2,
+        "Y": 8591.1,
+        "Z": 225.0,
+        "ZoneId": 196,
+        "ZRot": 0,
+        "SubZoneId": 278, // 625 626 278
+        "Owner": 0
+    },
+    {
+        "Id": 254, // 200 254
+        "Name": "Herb Farm",
+        "X": 20328.4,
+        "Y": 9321.6,
+        "Z": 281.7,
+        "ZoneId": 197,
+        "ZRot": 0,
+        "SubZoneId": 285,
+        "Owner": 0
+    },
+    {
+        "Id": 521, // 347 521
+        "Name": "Mahadevi Scarecrow Farm",
+        "X": 20031.6,
+        "Y": 97070.0,
+        "Z": 190.6,
+        "ZoneId": 197,
+        "ZRot": 0,
+        "SubZoneId": 641,
+        "Owner": 0
+    },
+    {
+        "Id": 607, // 372 607
+        "Name": "Kroloal Cradle",
+        "X": 26856.4,
+        "Y": 9043.2,
+        "Z": 773.4,
+        "ZoneId": 138,
+        "ZRot": 0,
+        "SubZoneId": 56,
+        "Owner": 0
+    },
+    {
+        "Id": 651, // 374 651
+        "Name": "Blue Cypress Headquarters",
+        "X": 21035.8,
+        "Y": 8305.9,
+        "Z": 371.9,
+        "ZoneId": 158,
+        "ZRot": 0,
+        "SubZoneId": 311,
+        "Owner": 0
+    },
+    {
+        "Id": 277, // 224 (114,161) 277
+        "Name": "Growlgate Isle",
+        "X": 15109,
+        "Y": 22983,
+        "Z": 104.236,
+        "ZoneId": 284,
+        "ZRot": 0,
+        "SubZoneId": 869,
+        "Owner": 0
+    },
+    {
+        "Id": 605, // 370 (101,103,104,109,112,113) 605
+        "Name": "Hadir Farm",
+        "X": 20023.23,
+        "Y": 12779.68,
+        "Z": 136.4516,
+        "ZoneId": 139,
+        "ZRot": 76,
+        "SubZoneId": 462, //461
+        "Owner": 0
+    },
+    //----------------- Auroria continent ----------------------
+    {
+        "Id": 556, // 357 (101,103,109,113) 556
+        "Name": "Heedmar",
+        "X": 20108.2,
+        "Y": 24572.7,
+        "Z": 155.1,
+        "ZoneId": 204,
+        "ZRot": 0.0,
+        "SubZoneId": 0,
+        "Owner": 0
+    },
+    {
+        "Id": 557, // 358 (101,103,109,113) 557
+        "Name": "Calmlands",
+        "X": 22349.9,
+        "Y": 24945.2,
+        "Z": 188.7,
+        "ZoneId": 276,
+        "ZRot": 0.0,
+        "SubZoneId": 0,
+        "Owner": 0
+    },
+    {
+        "Id": 558, // 359 558
+        "Name": "Nuimari",
+        "X": 21731.5,
+        "Y": 23753.9,
+        "Z": 145.0,
+        "ZoneId": 205,
+        "ZRot": 0,
+        "SubZoneId": 0,
+        "Owner": 0
+    },
+    {
+        "Id": 560,
+        "Name": "Sungold Fields",
+        "X": 22119.2,
+        "Y": 26411.6,
+        "Z": 163.5,
+        "ZoneId": 275,
+        "ZRot": 0,
+        "SubZoneId": 0,
+        "Owner": 0
+    },
+    {
+        "Id": 652, // 375 (101,103,104) 652
+        "Name": "Diamond Shores: Nuia Rally Point",
+        "X": 19316.7,
+        "Y": 27168.0,
+        "Z": 131.6,
+        "ZoneId": 301,
+        "ZRot": 0.0,
+        "SubZoneId": 1110,
+        "Owner": 0
+    },
+    {
+        "Id": 673, // 375 (161) 673
+		"Name": "Diamond Shores: Pirate Rally Point",
+        "X": 19332.0,
+        "Y": 26883.0,
+        "Z": 130.5,
+        "ZoneId": 301,
+        "ZRot": 0.0,
+        "SubZoneId": 1110,
+        "Owner": 0
+    },
+    {
+        "Id": 672, // 375 (109,112,113) 672
+        "Name": "Diamond Shores: Haranya Rally Point",
+        "X": 19610.2,
+        "Y": 26958.1,
+        "Z": 131.7,
+        "ZoneId": 282,
+        "ZRot": 0.0,
+        "SubZoneId": 1110,
+        "Owner": 0
+    }
+]

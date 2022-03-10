@@ -1,0 +1,2510 @@
+[
+    //----------------- Respawns - ReturnPoints -----------------
+	/*
+	  для респавна важны координаты, всё остальное не важно!
+	  после сметри, ищется ближайшая точка и делается телепорт к ней.
+	*/
+    {
+        //  districtId -> returnPointId (Id)
+        "Id": 86,
+        "Name": "Respawn: Southern White Arden",
+        "X": 11052.40,
+        "Y": 12858.10,
+        "Z": 160.10,
+        "ZRot": 63,
+        "SubZoneId": 160
+    },
+    {
+        "Id": 87,
+        "Name": "Respawn: Ardenia",
+        "X": 10635.50,
+        "Y": 13171.80,
+        "Z": 231.70,
+        "ZRot": 76,
+        "SubZoneId": 162
+    },
+    {
+        "Id": 88,
+        "Name": "Respawn: Birchkeep",
+        "X": 9719.70,
+        "Y": 12815.60,
+        "Z": 167.40,
+        "ZRot": -5,
+        "SubZoneId": 158
+    },
+    {
+        "Id": 89,
+        "Name": "Respawn: Crossroads",
+        "X": 9644.20,
+        "Y": 13095.80,
+        "Z": 182.80,
+        "ZRot": -33,
+        "SubZoneId": 166
+    },
+    {
+        "Id": 90,
+        "Name": "Respawn: Courtyard of Farewells",
+        "X": 8692.40,
+        "Y": 12553.00,
+        "Z": 271.30,
+        "ZRot": 3,
+        "SubZoneId": 515
+    },
+    {
+        "Id": 91,
+        "Name": "Respawn: Flamehawk Canyon",
+        "X": 22256.10,
+        "Y": 8110.30,
+        "Z": 463.30,
+        "ZRot": 31,
+        "SubZoneId": 690
+    },
+    {
+        "Id": 92,
+        "Name": "Respawn: Ironclaw Mine",
+        "X": 22187.50,
+        "Y": 8485.90,
+        "Z": 476.30,
+        "ZRot": -30,
+        "SubZoneId": 317
+    },
+    {
+        "Id": 93,
+        "Name": "Respawn: Arach Hollow",
+        "X": 21666.40,
+        "Y": 8004.60,
+        "Z": 382.40,
+        "ZRot": 37,
+        "SubZoneId": 315 // ?
+    },
+    {
+        "Id": 94,
+        "Name": "Respawn: Watermist Forest",
+        "X": 21055.20,
+        "Y": 8272.40,
+        "Z": 374.40,
+        "ZRot": 64,
+        "SubZoneId": 311
+    },
+    {
+        "Id": 95,
+        "Name": "Respawn: Yata Ranch",
+        "X": 21317.30,
+        "Y": 8773.70,
+        "Z": 445.40,
+        "ZRot": 38,
+        "SubZoneId": 10095
+    },
+    {
+        "Id": 96,
+        "Name": "Respawn: Poachers' Guardpost",
+        "X": 20193.40,
+        "Y": 8473.40,
+        "Z": 223.10,
+        "ZRot": 2,
+        "SubZoneId": 277
+    },
+    {
+        "Id": 97,
+        "Name": "Respawn: City of Towers",
+        "X": 19603.50,
+        "Y": 8718.00,
+        "Z": 223.60,
+        "ZRot": 44,
+        "SubZoneId": 278
+    },
+    {
+        "Id": 98,
+        "Name": "Respawn: Rubber Tree Plantation",
+        "X": 18752.00,
+        "Y": 8758.20,
+        "Z": 191.50,
+        "ZRot": -20,
+        "SubZoneId": 284
+    },
+    {
+        "Id": 100,
+        "Name": "Respawn: Mahadevi Port",
+        "X": 18972.80,
+        "Y": 7786.20,
+        "Z": 102.40,
+        "ZRot": 27,
+        "SubZoneId": 279
+    },
+    {
+        "Id": 101,
+        "Name": "Respawn: Royster's Camp",
+        "X": 12910.20,
+        "Y": 14416.50,
+        "Z": 137.60,
+        "ZRot": 64,
+        "SubZoneId": 64
+    },
+    {
+        "Id": 102,
+        "Name": "Respawn: Windswept Ruins",
+        "X": 11269.70,
+        "Y": 14929.00,
+        "Z": 160.30,
+        "ZRot": 40,
+        "SubZoneId": 10102
+    },
+    {
+        "Id": 103,
+        "Name": "Respawn: Soundless Copse",
+        "X": 11441.40,
+        "Y": 15265.40,
+        "Z": 194.90,
+        "ZRot": -34,
+        "SubZoneId": 10103
+    },
+    {
+        "Id": 104,
+        "Name": "Respawn: Sylvan Devi",
+        "X": 9914.40,
+        "Y": 15324.90,
+        "Z": 230.00,
+        "ZRot": 30,
+        "SubZoneId": 10104
+    },
+    {
+        "Id": 105,
+        "Name": "Respawn: Gweonid Lake",
+        "X": 10782.10,
+        "Y": 15177.50,
+        "Z": 212.00,
+        "ZRot": -32,
+        "SubZoneId": 10105
+    },
+    {
+        "Id": 106,
+        "Name": "Respawn: Northern Sharpwind Plains",
+        "X": 12456.90,
+        "Y": 13839.60,
+        "Z": 113.90,
+        "ZRot": 33,
+        "SubZoneId": 10106
+    },
+    {
+        "Id": 107,
+        "Name": "Respawn: Thorntimbre Woods",
+        "X": 11653.50,
+        "Y": 14968.30,
+        "Z": 154.40,
+        "ZRot": 72,
+        "SubZoneId": 10107
+    },
+    {
+        "Id": 109,
+        "Name": "Respawn: Dawnsliver Plains",
+        "X": 10715.40,
+        "Y": 11943.20,
+        "Z": 123.30,
+        "ZRot": 64,
+        "SubZoneId": 10109
+    },
+    {
+        "Id": 110,
+        "Name": "Respawn: Marianople Plantations",
+        "X": 11139.10,
+        "Y": 11675.70,
+        "Z": 108.70,
+        "ZRot": -1,
+        "SubZoneId": 10110
+    },
+    {
+        "Id": 111,
+        "Name": "Respawn: The Gaiety Theater",
+        "X": 11137.50,
+        "Y": 12429.90,
+        "Z": 109.10,
+        "ZRot": 82,
+        "SubZoneId": 10111
+    },
+    {
+        "Id": 112,
+        "Name": "Respawn: Marianople",
+        "X": 11022.20,
+        "Y": 12207.80,
+        "Z": 132.30,
+        "ZRot": 38,
+        "SubZoneId": 10112
+    },
+    {
+        "Id": 113,
+        "Name": "Respawn: Memoria",
+        "X": 10462.50,
+        "Y": 14954.50,
+        "Z": 273.30,
+        "ZRot": 32,
+        "SubZoneId": 10113
+    },
+    {
+        "Id": 116,
+        "Name": "Bashudi's Camp",
+        "X": 17002.60,
+        "Y": 8470.20,
+        "Z": 172.70,
+        "ZRot": -15,
+        "SubZoneId": 10116
+    },
+    {
+        "Id": 117,
+        "Name": "Sylvina Springs",
+        "X": 16948.60,
+        "Y": 7883.30,
+        "Z": 162.50,
+        "ZRot": 14,
+        "SubZoneId": 10117
+    },
+    {
+        "Id": 118,
+        "Name": "Respawn: Desireen",
+        "X": 15670.80,
+        "Y": 15062.80,
+        "Z": 135.00,
+        "ZRot": 27,
+        "SubZoneId": 10118
+    },
+    {
+        "Id": 119,
+        "Name": "Respawn: Bluemist Forest",
+        "X": 15192.40,
+        "Y": 14896.70,
+        "Z": 147.00,
+        "ZRot": 64,
+        "SubZoneId": 10119
+    },
+    {
+        "Id": 120,
+        "Name": "Respawn: Sunken Bay",
+        "X": 15137.10,
+        "Y": 15128.60,
+        "Z": 144.90,
+        "ZRot": 64,
+        "SubZoneId": 10120
+    },
+    {
+        "Id": 121,
+        "Name": "Respawn: Wardton",
+        "X": 14752.10,
+        "Y": 14462.10,
+        "Z": 127.90,
+        "ZRot": 36,
+        "SubZoneId": 10121
+    },
+    {
+        "Id": 122,
+        "Name": "Respawn: Crescent Throne",
+        "X": 15244.30,
+        "Y": 14012.30,
+        "Z": 131.60,
+        "ZRot": 78,
+        "SubZoneId": 10122
+    },
+    {
+        "Id": 123,
+        "Name": "Respawn: Moonswept Bay",
+        "X": 14286.00,
+        "Y": 14078.40,
+        "Z": 129.80,
+        "ZRot": 32,
+        "SubZoneId": 10123
+    },
+    {
+        "Id": 124,
+        "Name": "Respawn: Lacton",
+        "X": 13736.40,
+        "Y": 14605.70,
+        "Z": 111.20,
+        "ZRot": 76,
+        "SubZoneId": 10124
+    },
+    {
+        "Id": 125,
+        "Name": "Respawn: Castigant Ruins",
+        "X": 14055.60,
+        "Y": 14998.70,
+        "Z": 129.50,
+        "ZRot": 21,
+        "SubZoneId": 10125
+    },
+    {
+        "Id": 126,
+        "Name": "Respawn: Snowlion Training Grounds",
+        "X": 23973.90,
+        "Y": 10330.50,
+        "Z": 599.20,
+        "ZRot": 50,
+        "SubZoneId": 10126
+    },
+    {
+        "Id": 127,
+        "Name": "Respawn: Nascent Cliffs",
+        "X": 24374.10,
+        "Y": 9399.50,
+        "Z": 567.90,
+        "ZRot": -18,
+        "SubZoneId": 10127
+    },
+    {
+        "Id": 128,
+        "Name": "Respawn: Great Falcon Rock",
+        "X": 24125.00,
+        "Y": 9613.50,
+        "Z": 536.50,
+        "ZRot": 61,
+        "SubZoneId": 10128
+    },
+    {
+        "Id": 129,
+        "Name": "Respawn: Graymist",
+        "X": 24056.00,
+        "Y": 8688.20,
+        "Z": 566.80,
+        "ZRot": 45,
+        "SubZoneId": 10129
+    },
+    {
+        "Id": 130,
+        "Name": "Oxion Clan Respawn",
+        "X": 23721.10,
+        "Y": 9218.30,
+        "Z": 581.70,
+        "ZRot": 28,
+        "SubZoneId": 10130
+    },
+    {
+        "Id": 131,
+        "Name": "Respawn: Talon's Edge",
+        "X": 23525.10,
+        "Y": 9484.20,
+        "Z": 607.50,
+        "ZRot": 18,
+        "SubZoneId": 10131
+    },
+    {
+        "Id": 133,
+        "Name": "Respawn: Cloudgrain",
+        "X": 23186.30,
+        "Y": 9129.80,
+        "Z": 650.90,
+        "ZRot": -12,
+        "SubZoneId": 10133
+    },
+    {
+        "Id": 134,
+        "Name": "Respawn: Achassi Nest",
+        "X": 23339.90,
+        "Y": 8678.00,
+        "Z": 637.90,
+        "ZRot": 48,
+        "SubZoneId": 10134
+    },
+    {
+        "Id": 135,
+        "Name": "Gorilla Institute",
+        "X": 17315.80,
+        "Y": 7894.30,
+        "Z": 164.90,
+        "ZRot": -40,
+        "SubZoneId": 10135
+    },
+    {
+        "Id": 136,
+        "Name": "Respawn: Windshade",
+        "X": 12450.00,
+        "Y": 15286.90,
+        "Z": 155.30,
+        "ZRot": 49,
+        "SubZoneId": 10136
+    },
+    {
+        "Id": 137,
+        "Name": "Respawn: The Fissures",
+        "X": 12146.10,
+        "Y": 15736.80,
+        "Z": 252.60,
+        "ZRot": -31,
+        "SubZoneId": 10137
+    },
+    {
+        "Id": 138,
+        "Name": "Respawn: Riverspan",
+        "X": 13627.60,
+        "Y": 15925.10,
+        "Z": 190.20,
+        "ZRot": 23,
+        "SubZoneId": 10138
+    },
+    {
+        "Id": 139,
+        "Name": "Respawn: Eastern Ronbann Mine",
+        "X": 13044.80,
+        "Y": 16066.80,
+        "Z": 304.10,
+        "ZRot": 41,
+        "SubZoneId": 10139
+    },
+    {
+        "Id": 140,
+        "Name": "Respawn: Western Ronbann Mine",
+        "X": 11812.10,
+        "Y": 16131.20,
+        "Z": 311.40,
+        "ZRot": 30,
+        "SubZoneId": 10140
+    },
+    {
+        "Id": 141,
+        "Name": "Respawn: Harpa's Camp",
+        "X": 10342.20,
+        "Y": 16003.20,
+        "Z": 360.10,
+        "ZRot": -19,
+        "SubZoneId": 10141 // 2
+    },
+    {
+        "Id": 142,
+        "Name": "Other Marianople Forces",
+        "X": 11818.80,
+        "Y": 11670.30,
+        "Z": 139.30,
+        "ZRot": 9,
+        "SubZoneId": 10142
+    },
+    {
+        "Id": 150,
+        "Name": "Solis Crossroads",
+        "X": 16183.40,
+        "Y": 8105.70,
+        "Z": 151.70,
+        "ZRot": 66,
+        "SubZoneId": 10150
+    },
+    {
+        "Id": 151,
+        "Name": "Halo Rise",
+        "X": 15756.50,
+        "Y": 7700.00,
+        "Z": 175.20,
+        "ZRot": 32,
+        "SubZoneId": 10151
+    },
+    {
+        "Id": 152,
+        "Name": "Austera Outskirts",
+        "X": 16859.20,
+        "Y": 8773.70,
+        "Z": 149.00,
+        "ZRot": -24,
+        "SubZoneId": 10152
+    },
+    {
+        "Id": 153,
+        "Name": "Respawn: Herb Farm",
+        "X": 20162.50,
+        "Y": 8999.20,
+        "Z": 288.30,
+        "ZRot": 64,
+        "SubZoneId": 10153
+    },
+    {
+        "Id": 155,
+        "Name": "Respawn: White Arden Ferry",
+        "X": 10305.30,
+        "Y": 12573.40,
+        "Z": 156.30,
+        "ZRot": 62,
+        "SubZoneId": 10155
+    },
+    {
+        "Id": 156,
+        "Name": "Respawn: Ynys Isle",
+        "X": 16652.70,
+        "Y": 14935.90,
+        "Z": 101.00,
+        "ZRot": -23,
+        "SubZoneId": 10156
+    },
+    {
+        "Id": 168,
+        "Name": "Respawn: Caernord",
+        "X": 20559.10,
+        "Y": 13143.70,
+        "Z": 124.70,
+        "ZRot": -21,
+        "SubZoneId": 10168
+    },
+    {
+        "Id": 169,
+        "Name": "Respawn: Glitterstone",
+        "X": 21464.10,
+        "Y": 12422.30,
+        "Z": 218.30,
+        "ZRot": -3,
+        "SubZoneId": 10169
+    },
+    {
+        "Id": 170,
+        "Name": "Respawn: Mount Mirage",
+        "X": 22276.70,
+        "Y": 12882.60,
+        "Z": 250.80,
+        "ZRot": 79,
+        "SubZoneId": 10170
+    },
+    {
+        "Id": 171,
+        "Name": "Respawn: Yearning River",
+        "X": 21749.30,
+        "Y": 13023.40,
+        "Z": 220.00,
+        "ZRot": 79,
+        "SubZoneId": 10171
+    },
+    {
+        "Id": 172,
+        "Name": "Respawn: Dolmen Floodplain",
+        "X": 20347.70,
+        "Y": 12094.10,
+        "Z": 109.40,
+        "ZRot": 33,
+        "SubZoneId": 10172
+    },
+    {
+        "Id": 173,
+        "Name": "Respawn: Sleeper's Cape",
+        "X": 20056.60,
+        "Y": 12659.30,
+        "Z": 127.30,
+        "ZRot": 67,
+        "SubZoneId": 10173
+    },
+    {
+        "Id": 177,
+        "Name": "Respawn: Whitecap Beach",
+        "X": 11340.90,
+        "Y": 10572.80,
+        "Z": 117.30,
+        "ZRot": 60,
+        "SubZoneId": 10177
+    },
+    {
+        "Id": 178,
+        "Name": "Respawn: Eastern Halcyona",
+        "X": 10587.80,
+        "Y": 10713.70,
+        "Z": 171.50,
+        "ZRot": -19,
+        "SubZoneId": 10178
+    },
+    {
+        "Id": 179,
+        "Name": "Respawn: Western Halcyona",
+        "X": 9564.30,
+        "Y": 10463.10,
+        "Z": 222.80,
+        "ZRot": 0,
+        "SubZoneId": 10179
+    },
+    {
+        "Id": 180,
+        "Name": "Respawn: Warrior's Field",
+        "X": 8617.90,
+        "Y": 10373.70,
+        "Z": 185.10,
+        "ZRot": 7,
+        "SubZoneId": 10180
+    },
+    {
+        "Id": 184,
+        "Name": "Respawn: Castlekeep Hill",
+        "X": 14364.00,
+        "Y": 11391.10,
+        "Z": 165.40,
+        "ZRot": 0,
+        "SubZoneId": 10184
+    },
+    {
+        "Id": 186,
+        "Name": "Respawn: Fugitive's Road",
+        "X": 14747.80,
+        "Y": 11170.10,
+        "Z": 144.50,
+        "ZRot": 74,
+        "SubZoneId": 10186
+    },
+    {
+        "Id": 187,
+        "Name": "Respawn: Grimsvoten",
+        "X": 14572.10,
+        "Y": 11976.60,
+        "Z": 153.20,
+        "ZRot": -21,
+        "SubZoneId": 10187
+    },
+    {
+        "Id": 188,
+        "Name": "Respawn: Breezebrine Coast",
+        "X": 15401.10,
+        "Y": 11621.80,
+        "Z": 113.60,
+        "ZRot": 10,
+        "SubZoneId": 10188
+    },
+    {
+        "Id": 190,
+        "Name": "Respawn: Burnt Castle",
+        "X": 15397.00,
+        "Y": 12709.90,
+        "Z": 110.70,
+        "ZRot": -32,
+        "SubZoneId": 10190
+    },
+    {
+        "Id": 191,
+        "Name": "Respawn: Lutesong Harbor",
+        "X": 21257.80,
+        "Y": 10570.30,
+        "Z": 121.90,
+        "ZRot": 63,
+        "SubZoneId": 10191
+    },
+    {
+        "Id": 192,
+        "Name": "Respawn: Jaun's Ranch",
+        "X": 21102.40,
+        "Y": 9797.40,
+        "Z": 233.50,
+        "ZRot": 74,
+        "SubZoneId": 10192
+    },
+    {
+        "Id": 193,
+        "Name": "Respawn: Lutesong Hill",
+        "X": 20791.10,
+        "Y": 10405.40,
+        "Z": 136.50,
+        "ZRot": 44,
+        "SubZoneId": 10193
+    },
+    {
+        "Id": 194,
+        "Name": "Respawn: The Paddies",
+        "X": 21623.10,
+        "Y": 10278.50,
+        "Z": 150.40,
+        "ZRot": 45,
+        "SubZoneId": 10194
+    },
+    {
+        "Id": 195,
+        "Name": "Respawn: Scaelken",
+        "X": 21995.80,
+        "Y": 10053.90,
+        "Z": 212.20,
+        "ZRot": 60,
+        "SubZoneId": 10195
+    },
+    {
+        "Id": 196,
+        "Name": "Respawn: Weeping Hill",
+        "X": 22515.60,
+        "Y": 10734.40,
+        "Z": 308.50,
+        "ZRot": 65,
+        "SubZoneId": 10196
+    },
+    {
+        "Id": 197,
+        "Name": "Respawn: Torchfyre Bay",
+        "X": 21645.90,
+        "Y": 11098.70,
+        "Z": 111.20,
+        "ZRot": 42,
+        "SubZoneId": 10197
+    },
+    {
+        "Id": 198,
+        "Name": "Respawn: Shrine of Reunion",
+        "X": 22776.70,
+        "Y": 10834.90,
+        "Z": 371.90,
+        "ZRot": -38,
+        "SubZoneId": 10198
+    },
+    {
+        "Id": 200,
+        "Name": "Respawn: Villanelle Opposing Faction",
+        "X": 22302.70,
+        "Y": 11199.60,
+        "Z": 235.90,
+        "ZRot": -9,
+        "SubZoneId": 10200
+    },
+    {
+        "Id": 201,
+        "Name": "Respawn: Vedisa",
+        "X": 22255.00,
+        "Y": 11795.40,
+        "Z": 223.20,
+        "ZRot": 48,
+        "SubZoneId": 10201
+    },
+    {
+        "Id": 203,
+        "Name": "Respawn: Stille Camp",
+        "X": 23760.80,
+        "Y": 11364.40,
+        "Z": 348.60,
+        "ZRot": -39,
+        "SubZoneId": 10203
+    },
+    {
+        "Id": 213,
+        "Name": "Respawn: Granite Quarry",
+        "X": 19627.20,
+        "Y": 7548.40,
+        "Z": 206.80,
+        "ZRot": 17,
+        "SubZoneId": 10213
+    },
+    {
+        "Id": 214,
+        "Name": "Respawn: Barren Sandhill",
+        "X": 19322.90,
+        "Y": 7598.40,
+        "Z": 209.20,
+        "ZRot": 64,
+        "SubZoneId": 10214
+    },
+    {
+        "Id": 215,
+        "Name": "Respawn: Withered Fields",
+        "X": 20556.10,
+        "Y": 7157.50,
+        "Z": 193.80,
+        "ZRot": 32,
+        "SubZoneId": 10215
+    },
+    {
+        "Id": 216,
+        "Name": "Respawn: Sanctia Oasis",
+        "X": 21304.60,
+        "Y": 7383.80,
+        "Z": 234.10,
+        "ZRot": 79,
+        "SubZoneId": 10216
+    },
+    {
+        "Id": 217,
+        "Name": "Respawn: Serpent's Pass",
+        "X": 21397.70,
+        "Y": 6580.40,
+        "Z": 150.70,
+        "ZRot": 64,
+        "SubZoneId": 10217
+    },
+    {
+        "Id": 218,
+        "Name": "Respawn: Dry Corner",
+        "X": 20057.70,
+        "Y": 7535.20,
+        "Z": 180.80,
+        "ZRot": 11,
+        "SubZoneId": 10218
+    },
+    {
+        "Id": 219,
+        "Name": "Respawn: Snake Eye Den",
+        "X": 22686.10,
+        "Y": 7367.50,
+        "Z": 376.30,
+        "ZRot": 15,
+        "SubZoneId": 10219
+    },
+    {
+        "Id": 222,
+        "Name": "Respawn: Arcum Iris Opposing Faction",
+        "X": 22851.90,
+        "Y": 6679.40,
+        "Z": 280.70,
+        "ZRot": 78,
+        "SubZoneId": 10222
+    },
+    {
+        "Id": 237,
+        "Name": "Neutral Respawn: Solis Headlands",
+        "X": 15874.60,
+        "Y": 8358.90,
+        "Z": 125.30,
+        "ZRot": 6,
+        "SubZoneId": 10237
+    },
+    {
+        "Id": 240,
+        "Name": "Harani Starting Zone",
+        "X": 19304.20,
+        "Y": 7643.10,
+        "Z": 212.30,
+        "ZRot": 81,
+        "SubZoneId": 188
+    },
+    {
+        "Id": 241,
+        "Name": "Firran Starting Zone",
+        "X": 23880.20,
+        "Y": 10496.00,
+        "Z": 589.80,
+        "ZRot": 66,
+        "SubZoneId": 727
+    },
+    {
+        "Id": 243,
+        "Name": "Nuian Starting Zone",
+        "X": 15573.90,
+        "Y": 15384.40,
+        "Z": 126.20,
+        "ZRot": 57,
+        "SubZoneId": 324
+    },
+    {
+        "Id": 246,
+        "Name": "Harpa's Camp",
+        "X": 10391.40,
+        "Y": 15987.50,
+        "Z": 365.90,
+        "ZRot": 17,
+        "SubZoneId": 10246
+    },
+    {
+        "Id": 248,
+        "Name": "Respawn: Dusty Hill",
+        "X": 12103.60,
+        "Y": 11617.30,
+        "Z": 154.40,
+        "ZRot": 18,
+        "SubZoneId": 10248
+    },
+    {
+        "Id": 249,
+        "Name": "Respawn: Forest of Repose",
+        "X": 12074.00,
+        "Y": 11088.40,
+        "Z": 132.90,
+        "ZRot": 56,
+        "SubZoneId": 10249
+    },
+    {
+        "Id": 250,
+        "Name": "Respawn: Painted Fields",
+        "X": 13190.90,
+        "Y": 11485.70,
+        "Z": 132.90,
+        "ZRot": -1,
+        "SubZoneId": 10250
+    },
+    {
+        "Id": 251,
+        "Name": "Respawn: Warscorched Scar (Rear)",
+        "X": 12739.60,
+        "Y": 11099.40,
+        "Z": 134.90,
+        "ZRot": 55,
+        "SubZoneId": 10251
+    },
+    {
+        "Id": 252,
+        "Name": "Respawn: Warscorched Scar (Rear)",
+        "X": 12690.70,
+        "Y": 10794.80,
+        "Z": 141.40,
+        "ZRot": -27,
+        "SubZoneId": 10252
+    },
+    {
+        "Id": 253,
+        "Name": "Respawn: Sunken Bay",
+        "X": 14477.90,
+        "Y": 15117.10,
+        "Z": 101.70,
+        "ZRot": 42,
+        "SubZoneId": 10253
+    },
+    {
+        "Id": 257,
+        "Name": "Moonswept Bay",
+        "X": 14863.60,
+        "Y": 13744.20,
+        "Z": 129.80,
+        "ZRot": 32,
+        "SubZoneId": 10257
+    },
+    {
+        "Id": 259,
+        "Name": "Respawn: Dewstone Dreadnought",
+        "X": 11933.30,
+        "Y": 14119.20,
+        "Z": 181.90,
+        "ZRot": 19,
+        "SubZoneId": 10259
+    },
+    {
+        "Id": 261,
+        "Name": "Ezna Outskirts Bridge",
+        "X": 13157.70,
+        "Y": 10874.20,
+        "Z": 135.20,
+        "ZRot": 64,
+        "SubZoneId": 10261
+    },
+    {
+        "Id": 263,
+        "Name": "Respawn: Freedich Island (Pirate)",
+        "X": 20881.00,
+        "Y": 19030.90,
+        "Z": 108.40,
+        "ZRot": 64,
+        "SubZoneId": 10263
+    },
+    {
+        "Id": 264,
+        "Name": "Respawn: Freedich Island (Nuia)",
+        "X": 21188.40,
+        "Y": 18996.00,
+        "Z": 102.10,
+        "ZRot": 34,
+        "SubZoneId": 10264
+    },
+    {
+        "Id": 265,
+        "Name": "Respawn: Freedich Island (Haranya)",
+        "X": 20657.30,
+        "Y": 18621.70,
+        "Z": 103.30,
+        "ZRot": 35,
+        "SubZoneId": 10265
+    },
+    {
+        "Id": 267,
+        "Name": "Respawn: Sandcloud",
+        "X": 12198.40,
+        "Y": 13189.30,
+        "Z": 126.90,
+        "ZRot": -9,
+        "SubZoneId": 10267
+    },
+    {
+        "Id": 268,
+        "Name": "Respawn: Soulreath",
+        "X": 11027.70,
+        "Y": 15557.40,
+        "Z": 237.10,
+        "ZRot": 50,
+        "SubZoneId": 10268
+    },
+    {
+        "Id": 269,
+        "Name": "Respawn: Lilyut Crossroads",
+        "X": 13130.80,
+        "Y": 15665.60,
+        "Z": 173.60,
+        "ZRot": -11,
+        "SubZoneId": 10269
+    },
+    {
+        "Id": 270,
+        "Name": "Nuia Continent Respawn: Heedmar",
+        "X": 19725.60,
+        "Y": 23965.70,
+        "Z": 101.10,
+        "ZRot": -41,
+        "SubZoneId": 10270
+    },
+    {
+        "Id": 271,
+        "Name": "Haranya Continent Respawn: Heedmar",
+        "X": 20083.60,
+        "Y": 24588.20,
+        "Z": 155.00,
+        "ZRot": 10,
+        "SubZoneId": 10271
+    },
+    {
+        "Id": 272,
+        "Name": "Nuia Continent Respawn: Nuimari",
+        "X": 21645.80,
+        "Y": 23612.30,
+        "Z": 109.40,
+        "ZRot": 62,
+        "SubZoneId": 10272
+    },
+    {
+        "Id": 273,
+        "Name": "Haranya Continent Respawn: Nuimari",
+        "X": 21811.90,
+        "Y": 23746.50,
+        "Z": 142.80,
+        "ZRot": 73,
+        "SubZoneId": 10273
+    },
+    {
+        "Id": 274,
+        "Name": "Respawn: Queen's Hill",
+        "X": 16610.20,
+        "Y": 7857.30,
+        "Z": 145.40,
+        "ZRot": 48,
+        "SubZoneId": 10274
+    },
+    {
+        "Id": 275,
+        "Name": "Pirate Respawn: Heedmar",
+        "X": 20614.90,
+        "Y": 23756.00,
+        "Z": 103.00,
+        "ZRot": -5,
+        "SubZoneId": 10275
+    },
+    {
+        "Id": 276,
+        "Name": "Pirate Respawn: Nuimari",
+        "X": 22121.80,
+        "Y": 23792.50,
+        "Z": 109.00,
+        "ZRot": 77,
+        "SubZoneId": 10276
+    },
+    {
+        "Id": 278,
+        "Name": "Pirate Respawn: Growlgate Isle",
+        "X": 15056.90,
+        "Y": 23123.00,
+        "Z": 103.10,
+        "ZRot": -32,
+        "SubZoneId": 10278
+    },
+    {
+        "Id": 279,
+        "Name": "Lawful Respawn: Marooned Isle",
+        "X": 14796.40,
+        "Y": 22889.40,
+        "Z": 105.10,
+        "ZRot": 32,
+        "SubZoneId": 10279
+    },
+    {
+        "Id": 280,
+        "Name": "Respawn: Two Crowns",
+        "X": 12465.20,
+        "Y": 10352.20,
+        "Z": 101.70,
+        "ZRot": -20,
+        "SubZoneId": 10280
+    },
+    {
+        "Id": 282,
+        "Name": "Pirate Respawn: Villanelle",
+        "X": 21718.80,
+        "Y": 11311.20,
+        "Z": 148.70,
+        "ZRot": 57,
+        "SubZoneId": 10282
+    },
+    {
+        "Id": 283,
+        "Name": "Pirate Respawn: Bitterwind Plains",
+        "X": 12620.90,
+        "Y": 15052.50,
+        "Z": 170.90,
+        "ZRot": 64,
+        "SubZoneId": 10283
+    },
+    {
+        "Id": 284,
+        "Name": "Respawn: Eastern White Arden",
+        "X": 9546.80,
+        "Y": 12534.80,
+        "Z": 170.70,
+        "ZRot": 6,
+        "SubZoneId": 10284
+    },
+    {
+        "Id": 285,
+        "Name": "Pirate Respawn: Thorntimbre Woods",
+        "X": 11410.30,
+        "Y": 14822.30,
+        "Z": 160.90,
+        "ZRot": 59,
+        "SubZoneId": 10285
+    },
+    {
+        "Id": 286,
+        "Name": "Pirate Respawn: Dewstone Plains",
+        "X": 12625.60,
+        "Y": 13269.30,
+        "Z": 137.80,
+        "ZRot": -21,
+        "SubZoneId": 10286
+    },
+    {
+        "Id": 287,
+        "Name": "Pirate Respawn: White Arden",
+        "X": 9922.60,
+        "Y": 12539.60,
+        "Z": 172.70,
+        "ZRot": 52,
+        "SubZoneId": 10287
+    },
+    {
+        "Id": 288,
+        "Name": "Haranya Continent Respawn: Dewstone Plains",
+        "X": 11634.80,
+        "Y": 13153.80,
+        "Z": 151.50,
+        "ZRot": 26,
+        "SubZoneId": 10288
+    },
+    {
+        "Id": 289,
+        "Name": "Haranya Continent Respawn: Gweonid",
+        "X": 11360.10,
+        "Y": 15003.90,
+        "Z": 163.30,
+        "ZRot": 33,
+        "SubZoneId": 10289
+    },
+    {
+        "Id": 290,
+        "Name": "Pirate Respawn: Arcum Iris",
+        "X": 22574.60,
+        "Y": 6562.50,
+        "Z": 233.80,
+        "ZRot": -24,
+        "SubZoneId": 10290
+    },
+    {
+        "Id": 291,
+        "Name": "Opposing Faction Respawn: Tigerspine Mountains",
+        "X": 20867.30,
+        "Y": 8759.70,
+        "Z": 397.70,
+        "ZRot": 30,
+        "SubZoneId": 10291
+    },
+    {
+        "Id": 292,
+        "Name": "Pirate Respawn: Tigerspine Mountains",
+        "X": 21345.60,
+        "Y": 8508.60,
+        "Z": 420.70,
+        "ZRot": 12,
+        "SubZoneId": 10292
+    },
+    {
+        "Id": 293,
+        "Name": "Pirate Respawn: Marianople",
+        "X": 10999.70,
+        "Y": 11221.90,
+        "Z": 108.70,
+        "ZRot": 67,
+        "SubZoneId": 10293
+    },
+    {
+        "Id": 294,
+        "Name": "Haranya Continent Respawn: Lilyut Hills",
+        "X": 12816.70,
+        "Y": 15087.40,
+        "Z": 220.00,
+        "ZRot": 36,
+        "SubZoneId": 10294
+    },
+    {
+        "Id": 295,
+        "Name": "Pirate Respawn: Silent Forest ",
+        "X": 22885.00,
+        "Y": 12314.80,
+        "Z": 256.00,
+        "ZRot": 41,
+        "SubZoneId": 10295
+    },
+    {
+        "Id": 296,
+        "Name": "Respawn: Silent Forest",
+        "X": 22349.60,
+        "Y": 11508.60,
+        "Z": 288.60,
+        "ZRot": 24,
+        "SubZoneId": 10296
+    },
+    {
+        "Id": 297,
+        "Name": "Pirate Respawn: Solzreed",
+        "X": 15232.60,
+        "Y": 15341.40,
+        "Z": 101.50,
+        "ZRot": -17,
+        "SubZoneId": 10297
+    },
+    {
+        "Id": 298,
+        "Name": "Pirate Respawn: Mahadevi",
+        "X": 18482.70,
+        "Y": 9428.50,
+        "Z": 114.10,
+        "ZRot": 43,
+        "SubZoneId": 10298
+    },
+    {
+        "Id": 299,
+        "Name": "Respawn: Mahadevi",
+        "X": 17949.30,
+        "Y": 8533.20,
+        "Z": 269.50,
+        "ZRot": 0,
+        "SubZoneId": 10299
+    },
+    {
+        "Id": 300,
+        "Name": "Neutral Respawn: Falcorth Plains",
+        "X": 23828.30,
+        "Y": 9839.50,
+        "Z": 558.90,
+        "ZRot": -1,
+        "SubZoneId": 10300
+    },
+    {
+        "Id": 301,
+        "Name": "Pirate Respawn: Falcorth Plains",
+        "X": 23712.00,
+        "Y": 9943.70,
+        "Z": 597.80,
+        "ZRot": -20,
+        "SubZoneId": 10301
+    },
+    {
+        "Id": 302,
+        "Name": "Pirate Respawn: Solis",
+        "X": 15972.60,
+        "Y": 8346.00,
+        "Z": 135.60,
+        "ZRot": -18,
+        "SubZoneId": 10302
+    },
+    {
+        "Id": 303,
+        "Name": "Pirate Respawn: Two Crowns",
+        "X": 13040.30,
+        "Y": 10497.40,
+        "Z": 102.70,
+        "ZRot": 8,
+        "SubZoneId": 10303
+    },
+    {
+        "Id": 308,
+        "Name": "Haranya Continent Respawn: Marcala",
+        "X": 19497.20,
+        "Y": 24773.60,
+        "Z": 142.60,
+        "ZRot": 64,
+        "SubZoneId": 10308
+    },
+    {
+        "Id": 309,
+        "Name": "Nuia Continent Respawn: Marcala",
+        "X": 19351.80,
+        "Y": 24906.30,
+        "Z": 106.60,
+        "ZRot": 80,
+        "SubZoneId": 10309
+    },
+    {
+        "Id": 310,
+        "Name": "Pirate Respawn: Marcala",
+        "X": 19935.80,
+        "Y": 25191.60,
+        "Z": 138.80,
+        "ZRot": 62,
+        "SubZoneId": 10310
+    },
+    {
+        "Id": 311,
+        "Name": "Haranya Continent Respawn: Calmlands",
+        "X": 21283.50,
+        "Y": 25317.40,
+        "Z": 203.20,
+        "ZRot": -22,
+        "SubZoneId": 10311
+    },
+    {
+        "Id": 312,
+        "Name": "Nuia Continent Respawn: Calmlands",
+        "X": 21360.90,
+        "Y": 24861.80,
+        "Z": 231.20,
+        "ZRot": 13,
+        "SubZoneId": 10312
+    },
+    {
+        "Id": 313,
+        "Name": "Pirate Respawn: Calmlands",
+        "X": 21248.60,
+        "Y": 25627.30,
+        "Z": 140.70,
+        "ZRot": 82,
+        "SubZoneId": 10313
+    },
+    {
+        "Id": 314,
+        "Name": "Cemetery: Forbidden Shore",
+        "X": 14953.00,
+        "Y": 7992.80,
+        "Z": 143.90,
+        "ZRot": 66,
+        "SubZoneId": 10314
+    },
+    {
+        "Id": 315,
+        "Name": "Cemetery: Marooned Isle",
+        "X": 19693.10,
+        "Y": 11503.00,
+        "Z": 100.90,
+        "ZRot": 36,
+        "SubZoneId": 10315
+    },
+    {
+        "Id": 317,
+        "Name": "Respawn: Castaway Strait: Wavehorde Islet",
+        "X": 13617.60,
+        "Y": 8726.60,
+        "Z": 101.60,
+        "ZRot": -35,
+        "SubZoneId": 10317
+    },
+    {
+        "Id": 318,
+        "Name": "Pirate Respawn: Halcyona",
+        "X": 9395.00,
+        "Y": 10545.10,
+        "Z": 225.70,
+        "ZRot": 2,
+        "SubZoneId": 10318
+    },
+    {
+        "Id": 319,
+        "Name": "Pirate Respawn: Ynystere",
+        "X": 20497.40,
+        "Y": 11959.10,
+        "Z": 101.60,
+        "ZRot": 1,
+        "SubZoneId": 10319
+    },
+    {
+        "Id": 321,
+        "Name": "Respawn: Golden Fable Harbor",
+        "X": 10435.60,
+        "Y": 9629.50,
+        "Z": 302.90,
+        "ZRot": 65,
+        "SubZoneId": 10321
+    },
+    {
+        "Id": 322,
+        "Name": "Respawn: Blueglass",
+        "X": 9385.10,
+        "Y": 9104.50,
+        "Z": 117.00,
+        "ZRot": 40,
+        "SubZoneId": 10322
+    },
+    {
+        "Id": 323,
+        "Name": "Respawn: Grenwolf",
+        "X": 8914.90,
+        "Y": 8334.20,
+        "Z": 154.40,
+        "ZRot": 35,
+        "SubZoneId": 10323
+    },
+    {
+        "Id": 327,
+        "Name": "Pirate Respawn: Sanddeep",
+        "X": 10385.50,
+        "Y": 8752.50,
+        "Z": 103.60,
+        "ZRot": 64,
+        "SubZoneId": 10327
+    },
+    {
+        "Id": 331,
+        "Name": "Respawn: Ignomin Valley",
+        "X": 7424.30,
+        "Y": 9666.20,
+        "Z": 189.70,
+        "ZRot": 71,
+        "SubZoneId": 10331
+    },
+    {
+        "Id": 333,
+        "Name": "Respawn: Hexmire",
+        "X": 7575.20,
+        "Y": 9092.20,
+        "Z": 184.90,
+        "ZRot": 18,
+        "SubZoneId": 10333
+    },
+    {
+        "Id": 335,
+        "Name": "Respawn: Pitiless Bog",
+        "X": 7827.70,
+        "Y": 7858.00,
+        "Z": 185.20,
+        "ZRot": 77,
+        "SubZoneId": 10335
+    },
+    {
+        "Id": 336,
+        "Name": "Respawn: Halcyona Hideout",
+        "X": 8298.70,
+        "Y": 7943.50,
+        "Z": 167.10,
+        "ZRot": 3,
+        "SubZoneId": 10336
+    },
+    {
+        "Id": 337,
+        "Name": "Respawn: Woodhenge Castle",
+        "X": 7858.90,
+        "Y": 8205.80,
+        "Z": 184.90,
+        "ZRot": 78,
+        "SubZoneId": 10337
+    },
+    {
+        "Id": 338,
+        "Name": "Pirate Respawn: Hellswamp",
+        "X": 8852.80,
+        "Y": 7962.50,
+        "Z": 114.70,
+        "ZRot": 49,
+        "SubZoneId": 10338
+    },
+    {
+        "Id": 339,
+        "Name": "Respawn: Moringa Forest",
+        "X": 25106.10,
+        "Y": 7768.90,
+        "Z": 333.20,
+        "ZRot": 1,
+        "SubZoneId": 10339
+    },
+    {
+        "Id": 340,
+        "Name": "Respawn: Thorntimbre Woods",
+        "X": 11360.10,
+        "Y": 15003.90,
+        "Z": 163.30,
+        "ZRot": 33,
+        "SubZoneId": 10340
+    },
+    {
+        "Id": 341,
+        "Name": "Respawn: Barren Road",
+        "X": 23823.90,
+        "Y": 6993.60,
+        "Z": 302.60,
+        "ZRot": -24,
+        "SubZoneId": 10341
+    },
+    {
+        "Id": 342,
+        "Name": "Mahadevi Brewery",
+        "X": 18692.80,
+        "Y": 8109.70,
+        "Z": 200.80,
+        "ZRot": 5,
+        "SubZoneId": 10342
+    },
+    {
+        "Id": 343,
+        "Name": "Traveler's Rest",
+        "X": 18808.00,
+        "Y": 9211.10,
+        "Z": 192.90,
+        "ZRot": 62,
+        "SubZoneId": 10343
+    },
+    {
+        "Id": 345,
+        "Name": "Mahadevi Queen's Quarry",
+        "X": 18311.60,
+        "Y": 8976.20,
+        "Z": 190.20,
+        "ZRot": 34,
+        "SubZoneId": 10345
+    },
+    {
+        "Id": 346,
+        "Name": "Respawn: Windstone Ruins",
+        "X": 26206.60,
+        "Y": 6269.30,
+        "Z": 408.70,
+        "ZRot": 58,
+        "SubZoneId": 10346
+    },
+    {
+        "Id": 347,
+        "Name": "Respawn: Windheart Lake",
+        "X": 26066.2,
+        "Y": 6890.3,
+        "Z": 343.1,
+        "ZRot": -9,
+        "SubZoneId": 10347
+    },
+    {
+        "Id": 364,
+        "Name": "Jadegale Ravine",
+        "X": 29437.30,
+        "Y": 8819.90,
+        "Z": 416.10,
+        "ZRot": 17,
+        "SubZoneId": 10364
+    },
+    {
+        "Id": 365,
+        "Name": "Pirate Respawn: Hasla",
+        "X": 29894.80,
+        "Y": 7917.20,
+        "Z": 425.90,
+        "ZRot": 25,
+        "SubZoneId": 10365
+    },
+    {
+        "Id": 367,
+        "Name": "Respawn: Duskgleam",
+        "X": 24882.90,
+        "Y": 10745.00,
+        "Z": 684.10,
+        "ZRot": -17,
+        "SubZoneId": 10367
+    },
+    {
+        "Id": 368,
+        "Name": "Respawn: Mistwater",
+        "X": 25568.10,
+        "Y": 9610.80,
+        "Z": 694.70,
+        "ZRot": 62,
+        "SubZoneId": 10368
+    },
+    {
+        "Id": 369,
+        "Name": "Cemetery: Loka_Solongos",
+        "X": 25951.90,
+        "Y": 8777.00,
+        "Z": 645.60,
+        "ZRot": 74,
+        "SubZoneId": 10369
+    },
+    {
+        "Id": 370,
+        "Name": "Respawn: Cloistera",
+        "X": 25890.00,
+        "Y": 10763.50,
+        "Z": 846.50,
+        "ZRot": 38,
+        "SubZoneId": 10370
+    },
+    {
+        "Id": 371,
+        "Name": "Respawn: Snowlion Rock",
+        "X": 24084.60,
+        "Y": 7374.60,
+        "Z": 313.10,
+        "ZRot": 51,
+        "SubZoneId": 10371
+    },
+    {
+        "Id": 375,
+        "Name": "Pirate Respawn 2: Windscour Savannah",
+        "X": 25524.80,
+        "Y": 7097.70,
+        "Z": 336.40,
+        "ZRot": 48,
+        "SubZoneId": 10375
+    },
+    {
+        "Id": 376,
+        "Name": "Sunshade Rendezvous",
+        "X": 25064.10,
+        "Y": 6681.00,
+        "Z": 335.30,
+        "ZRot": 51,
+        "SubZoneId": 10376
+    },
+    {
+        "Id": 392,
+        "Name": "Respawn: Perinoor Gallows",
+        "X": 27028.10,
+        "Y": 7108.60,
+        "Z": 439.40,
+        "ZRot": 1,
+        "SubZoneId": 10392
+    },
+    {
+        "Id": 393,
+        "Name": "Respawn: Skyfin Nest",
+        "X": 28385.80,
+        "Y": 7078.70,
+        "Z": 595.00,
+        "ZRot": 66,
+        "SubZoneId": 10393
+    },
+    {
+        "Id": 394,
+        "Name": "Respawn: Perinoor Ruins",
+        "X": 27760.80,
+        "Y": 7658.30,
+        "Z": 591.60,
+        "ZRot": -16,
+        "SubZoneId": 10394
+    },
+    {
+        "Id": 395,
+        "Name": "Respawn: Perinoor Ruins",
+        "X": 27687.00,
+        "Y": 6282.50,
+        "Z": 538.10,
+        "ZRot": -26,
+        "SubZoneId": 10395
+    },
+    {
+        "Id": 396,
+        "Name": "Respawn: Blackwood Rampart",
+        "X": 28404.10,
+        "Y": 6269.60,
+        "Z": 591.40,
+        "ZRot": 53,
+        "SubZoneId": 10396
+    },
+    {
+        "Id": 397,
+        "Name": "Pirate Respawn: Perinoor Ruins",
+        "X": 29153.00,
+        "Y": 6368.70,
+        "Z": 611.10,
+        "ZRot": -32,
+        "SubZoneId": 10397
+    },
+    {
+        "Id": 398,
+        "Name": "Pirate Respawn: Loka",
+        "X": 26219.60,
+        "Y": 9421.70,
+        "Z": 745.80,
+        "ZRot": 78,
+        "SubZoneId": 10398
+    },
+    {
+        "Id": 401,
+        "Name": "Pirate Respawn: Cinderstone Moor",
+        "X": 14580.20,
+        "Y": 12577.00,
+        "Z": 109.90,
+        "ZRot": 31,
+        "SubZoneId": 10401
+    },
+    {
+        "Id": 412,
+        "Name": "Respawn: Field of Honor",
+        "X": 10303.40,
+        "Y": 15262.90,
+        "Z": 233.30,
+        "ZRot": 69,
+        "SubZoneId": 10412
+    },
+    {
+        "Id": 413,
+        "Name": "Solis Guardpost",
+        "X": 17709.30,
+        "Y": 8253.40,
+        "Z": 251.50,
+        "ZRot": -26,
+        "SubZoneId": 10413
+    },
+    {
+        "Id": 415,
+        "Name": "Respawn: Dewstone Dwarf Encampment",
+        "X": 12464.30,
+        "Y": 12643.20,
+        "Z": 131.60,
+        "ZRot": -29,
+        "SubZoneId": 10415
+    },
+    {
+        "Id": 419,
+        "Name": "Nuia Respawn: Dry Reservoir",
+        "X": 9153.10,
+        "Y": 16823.50,
+        "Z": 124.20,
+        "ZRot": 12,
+        "SubZoneId": 10419
+    },
+    {
+        "Id": 420,
+        "Name": "Nuia Respawn: Dragonribs",
+        "X": 9977.10,
+        "Y": 17379.90,
+        "Z": 118.80,
+        "ZRot": -15,
+        "SubZoneId": 10420
+    },
+    {
+        "Id": 421,
+        "Name": "Nuia Respawn: Dragonheart",
+        "X": 10827.50,
+        "Y": 17270.10,
+        "Z": 202.70,
+        "ZRot": 36,
+        "SubZoneId": 10421
+    },
+    {
+        "Id": 422,
+        "Name": "Nuia Respawn: Dragonroar Fortress",
+        "X": 10385.60,
+        "Y": 16703.50,
+        "Z": 169.90,
+        "ZRot": 76,
+        "SubZoneId": 10422
+    },
+    {
+        "Id": 423,
+        "Name": "Nuia Respawn: Crimson Plateau",
+        "X": 11454.50,
+        "Y": 17356.90,
+        "Z": 195.90,
+        "ZRot": 21,
+        "SubZoneId": 10423
+    },
+    {
+        "Id": 424,
+        "Name": "Nuia Respawn: Dragontail",
+        "X": 11626.10,
+        "Y": 1897.20,
+        "Z": 265.80,
+        "ZRot": -1,
+        "SubZoneId": 10424
+    },
+    {
+        "Id": 425,
+        "Name": "Nuia Respawn: Dragonskull",
+        "X": 9673.70,
+        "Y": 16929.90,
+        "Z": 129.00,
+        "ZRot": 67,
+        "SubZoneId": 10425
+    },
+    {
+        "Id": 426,
+        "Name": "Nuia Respawn: Glass Coast",
+        "X": 9111.60,
+        "Y": 17191.20,
+        "Z": 105.70,
+        "ZRot": -12,
+        "SubZoneId": 10426
+    },
+    {
+        "Id": 427,
+        "Name": "Haranya Respawn: Dry Reservoir",
+        "X": 9395.70,
+        "Y": 16596.80,
+        "Z": 130.70,
+        "ZRot": -39,
+        "SubZoneId": 10427
+    },
+    {
+        "Id": 428,
+        "Name": "Haranya Respawn: Dragonribs",
+        "X": 9917.10,
+        "Y": 17038.40,
+        "Z": 139.20,
+        "ZRot": 67,
+        "SubZoneId": 10428
+    },
+    {
+        "Id": 429,
+        "Name": "Haranya Respawn: Dragonheart",
+        "X": 10504.10,
+        "Y": 16822.50,
+        "Z": 146.70,
+        "ZRot": 64,
+        "SubZoneId": 10429
+    },
+    {
+        "Id": 430,
+        "Name": "Haranya Respawn: Dragonroar Fortress",
+        "X": 10020.90,
+        "Y": 16610.40,
+        "Z": 172.00,
+        "ZRot": 79,
+        "SubZoneId": 10430
+    },
+    {
+        "Id": 431,
+        "Name": "Haranya Respawn: Crimson Plateau",
+        "X": 10847.70,
+        "Y": 17595.80,
+        "Z": 135.60,
+        "ZRot": 2,
+        "SubZoneId": 10431
+    },
+    {
+        "Id": 432,
+        "Name": "Haranya Respawn: Dragontail",
+        "X": 11625.40,
+        "Y": 17674.20,
+        "Z": 191.20,
+        "ZRot": 83,
+        "SubZoneId": 10432
+    },
+    {
+        "Id": 433,
+        "Name": "Haranya Respawn: Dragonskull",
+        "X": 9737.10,
+        "Y": 16924.10,
+        "Z": 139.80,
+        "ZRot": -34,
+        "SubZoneId": 10433
+    },
+    {
+        "Id": 434,
+        "Name": "Haranya Continent Respawn: Glass Coast",
+        "X": 9068.00,
+        "Y": 16899.70,
+        "Z": 100.70,
+        "ZRot": 52,
+        "SubZoneId": 10434
+    },
+    {
+        "Id": 435,
+        "Name": "Respawn: Castlekeep Hill",
+        "X": 14149.10,
+        "Y": 11021.20,
+        "Z": 176.10,
+        "ZRot": 1,
+        "SubZoneId": 10435
+    },
+    {
+        "Id": 436,
+        "Name": "Respawn: Fugitive's Road",
+        "X": 14586.60,
+        "Y": 10943.20,
+        "Z": 101.50,
+        "ZRot": 14,
+        "SubZoneId": 10436
+    },
+    {
+        "Id": 437,
+        "Name": "Respawn: Grimsvoten",
+        "X": 14838.70,
+        "Y": 11806.50,
+        "Z": 125.10,
+        "ZRot": -22,
+        "SubZoneId": 10437
+    },
+    {
+        "Id": 438,
+        "Name": "Respawn: Breezebrine Coast",
+        "X": 15306.90,
+        "Y": 11322.20,
+        "Z": 105.30,
+        "ZRot": -19,
+        "SubZoneId": 10438
+    },
+    {
+        "Id": 440,
+        "Name": "Respawn: Burnt Castle",
+        "X": 15700.10,
+        "Y": 12131.20,
+        "Z": 124.50,
+        "ZRot": -31,
+        "SubZoneId": 10440
+    },
+    {
+        "Id": 441,
+        "Name": "Respawn: Whitecap Beach",
+        "X": 11696.10,
+        "Y": 10497.50,
+        "Z": 121.90,
+        "ZRot": 25,
+        "SubZoneId": 10441
+    },
+    {
+        "Id": 442,
+        "Name": "Respawn: Eastern Halcyona",
+        "X": 10339.80,
+        "Y": 10390.40,
+        "Z": 198.40,
+        "ZRot": 41,
+        "SubZoneId": 10442
+    },
+    {
+        "Id": 443,
+        "Name": "Respawn: Western Halcyona",
+        "X": 9360.60,
+        "Y": 10125.50,
+        "Z": 218.90,
+        "ZRot": 7,
+        "SubZoneId": 10443
+    },
+    {
+        "Id": 444,
+        "Name": "Respawn: Warrior's Field",
+        "X": 8286.00,
+        "Y": 10158.70,
+        "Z": 220.80,
+        "ZRot": 8,
+        "SubZoneId": 10444
+    },
+    {
+        "Id": 445,
+        "Name": "Respawn: Golden Fable Harbor",
+        "X": 11015.10,
+        "Y": 10130.90,
+        "Z": 103.80,
+        "ZRot": 5,
+        "SubZoneId": 10445
+    },
+    {
+        "Id": 446,
+        "Name": "Respawn: Blueglass",
+        "X": 9726.60,
+        "Y": 9630.80,
+        "Z": 203.40,
+        "ZRot": 1,
+        "SubZoneId": 10446
+    },
+    {
+        "Id": 447,
+        "Name": "Respawn: Grenwolf",
+        "X": 9338.70,
+        "Y": 8446.30,
+        "Z": 221.30,
+        "ZRot": 24,
+        "SubZoneId": 10447
+    },
+    {
+        "Id": 448,
+        "Name": "Respawn: Ignomin Valley",
+        "X": 7755.00,
+        "Y": 9959.00,
+        "Z": 211.30,
+        "ZRot": 67,
+        "SubZoneId": 10448
+    },
+    {
+        "Id": 450,
+        "Name": "Respawn: Hexmire",
+        "X": 7920.60,
+        "Y": 9153.60,
+        "Z": 189.00,
+        "ZRot": 11,
+        "SubZoneId": 10450
+    },
+    {
+        "Id": 452,
+        "Name": "Respawn: Pitiless Bog",
+        "X": 7628.60,
+        "Y": 7945.30,
+        "Z": 187.30,
+        "ZRot": -31,
+        "SubZoneId": 10452
+    },
+    {
+        "Id": 453,
+        "Name": "Respawn: Halcyona Hideout",
+        "X": 8759.70,
+        "Y": 7978.60,
+        "Z": 149.00,
+        "ZRot": -10,
+        "SubZoneId": 10453
+    },
+    {
+        "Id": 454,
+        "Name": "Respawn: Woodhenge Castle",
+        "X": 7371.40,
+        "Y": 8620.70,
+        "Z": 189.50,
+        "ZRot": 65,
+        "SubZoneId": 10454
+    },
+    {
+        "Id": 456,
+        "Name": "Respawn: Caernord",
+        "X": 20926.70,
+        "Y": 13076.30,
+        "Z": 117.60,
+        "ZRot": 33,
+        "SubZoneId": 10456
+    },
+    {
+        "Id": 457,
+        "Name": "Respawn: Glitterstone",
+        "X": 21362.60,
+        "Y": 12000.50,
+        "Z": 143.60,
+        "ZRot": -3,
+        "SubZoneId": 10457
+    },
+    {
+        "Id": 458,
+        "Name": "Respawn: Mount Mirage",
+        "X": 22188.70,
+        "Y": 13070.30,
+        "Z": 249.80,
+        "ZRot": 79,
+        "SubZoneId": 10458
+    },
+    {
+        "Id": 459,
+        "Name": "Respawn: Yearning River",
+        "X": 21461.90,
+        "Y": 12720.10,
+        "Z": 231.00,
+        "ZRot": 61,
+        "SubZoneId": 10459
+    },
+    {
+        "Id": 460,
+        "Name": "Respawn: Dolmen Floodplain",
+        "X": 20591.80,
+        "Y": 12259.70,
+        "Z": 134.70,
+        "ZRot": 44,
+        "SubZoneId": 10460
+    },
+    {
+        "Id": 461,
+        "Name": "Respawn: Sleeper's Cape",
+        "X": 19851.10,
+        "Y": 12893.90,
+        "Z": 159.40,
+        "ZRot": 44,
+        "SubZoneId": 10461
+    },
+    {
+        "Id": 462,
+        "Name": "Respawn: Marooned Isle",
+        "X": 19696.20,
+        "Y": 11743.50,
+        "Z": 141.10,
+        "ZRot": 69,
+        "SubZoneId": 10462
+    },
+    {
+        "Id": 463,
+        "Name": "Respawn: Duskgleam",
+        "X": 25198.50,
+        "Y": 10682.50,
+        "Z": 727.40,
+        "ZRot": 80,
+        "SubZoneId": 10463
+    },
+    {
+        "Id": 464,
+        "Name": "Respawn: Mistwater",
+        "X": 25141.10,
+        "Y": 9896.40,
+        "Z": 700.80,
+        "ZRot": 38,
+        "SubZoneId": 10464
+    },
+    {
+        "Id": 465,
+        "Name": "Cemetery West: Loka_Solongos",
+        "X": 26338.40,
+        "Y": 9039.00,
+        "Z": 715.20,
+        "ZRot": 68,
+        "SubZoneId": 10465
+    },
+    {
+        "Id": 466,
+        "Name": "Respawn: Cloistera",
+        "X": 25642.30,
+        "Y": 11011.90,
+        "Z": 786.60,
+        "ZRot": 42,
+        "SubZoneId": 10466
+    },
+    {
+        "Id": 467,
+        "Name": "Respawn: Snowlion Rock",
+        "X": 24615.00,
+        "Y": 7535.90,
+        "Z": 320.50,
+        "ZRot": 8,
+        "SubZoneId": 10467
+    },
+    {
+        "Id": 468,
+        "Name": "Respawn: Moringa Forest",
+        "X": 24903.70,
+        "Y": 7394.00,
+        "Z": 307.40,
+        "ZRot": 29,
+        "SubZoneId": 10468
+    },
+    {
+        "Id": 469,
+        "Name": "Respawn: Thorntimbre Woods",
+        "X": 11653.50,
+        "Y": 14968.30,
+        "Z": 154.40,
+        "ZRot": 72,
+        "SubZoneId": 10469
+    },
+    {
+        "Id": 470,
+        "Name": "Respawn: Barren Road",
+        "X": 24157.50,
+        "Y": 6902.50,
+        "Z": 308.20,
+        "ZRot": -32,
+        "SubZoneId": 10470
+    },
+    {
+        "Id": 471,
+        "Name": "Respawn: Windstone Ruins",
+        "X": 26734.20,
+        "Y": 6677.50,
+        "Z": 434.50,
+        "ZRot": 50,
+        "SubZoneId": 10471
+    },
+    {
+        "Id": 472,
+        "Name": "Respawn: Windheart Lake",
+        "X": 26500.90,
+        "Y": 6712.30,
+        "Z": 394.60,
+        "ZRot": 20,
+        "SubZoneId": 10472
+    },
+    {
+        "Id": 473,
+        "Name": "Respawn: Ancient Gallows",
+        "X": 27146.20,
+        "Y": 7300.40,
+        "Z": 470.20,
+        "ZRot": 26,
+        "SubZoneId": 10473
+    },
+    {
+        "Id": 474,
+        "Name": "Respawn: Skyfin Nest",
+        "X": 27985.60,
+        "Y": 6550.80,
+        "Z": 574.00,
+        "ZRot": 76,
+        "SubZoneId": 10474
+    },
+    {
+        "Id": 475,
+        "Name": "Respawn: Perinoor Ruins",
+        "X": 27902.10,
+        "Y": 7226.70,
+        "Z": 578.20,
+        "ZRot": 2,
+        "SubZoneId": 10475
+    },
+    {
+        "Id": 476,
+        "Name": "Respawn: Perinoor Ruins",
+        "X": 27934.10,
+        "Y": 6019.10,
+        "Z": 540.00,
+        "ZRot": -24,
+        "SubZoneId": 10476
+    },
+    {
+        "Id": 477,
+        "Name": "Respawn: Blackwood Rampart",
+        "X": 28661.00,
+        "Y": 5863.20,
+        "Z": 576.70,
+        "ZRot": -41,
+        "SubZoneId": 10477
+    },
+    {
+        "Id": 478,
+        "Name": "Respawn: Sunshade Rendezvous",
+        "X": 25642.80,
+        "Y": 6399.80,
+        "Z": 379.30,
+        "ZRot": 58,
+        "SubZoneId": 10478
+    },
+    {
+        "Id": 481,
+        "Name": "Respawn: Grimsvoten",
+        "X": 14944.70,
+        "Y": 12184.90,
+        "Z": 114.00,
+        "ZRot": 2,
+        "SubZoneId": 10481
+    },
+    {
+        "Id": 482,
+        "Name": "Respawn: Grimsvoten",
+        "X": 14916.60,
+        "Y": 12640.00,
+        "Z": 116.40,
+        "ZRot": 77,
+        "SubZoneId": 10482
+    },
+    {
+        "Id": 483,
+        "Name": "Respawn: Eastern White Arden",
+        "X": 10998.70,
+        "Y": 13133.70,
+        "Z": 199.70,
+        "ZRot": 14,
+        "SubZoneId": 10483
+    },
+    {
+        "Id": 490,
+        "Name": "Dragon's Gorge Respawn",
+        "X": 29143.20,
+        "Y": 7243.70,
+        "Z": 449.80,
+        "ZRot": 33,
+        "SubZoneId": 10490
+    },
+    {
+        "Id": 491,
+        "Name": "Western Dragon's Gorge Respawn",
+        "X": 29163.50,
+        "Y": 6871.50,
+        "Z": 524.00,
+        "ZRot": 69,
+        "SubZoneId": 10491
+    },
+    {
+        "Id": 492,
+        "Name": "Western Skysteps Respawn",
+        "X": 29081.70,
+        "Y": 7566.40,
+        "Z": 548.00,
+        "ZRot": -11,
+        "SubZoneId": 10492
+    },
+    {
+        "Id": 493,
+        "Name": "Skysteps Respawn",
+        "X": 29247.40,
+        "Y": 7669.90,
+        "Z": 480.50,
+        "ZRot": 32,
+        "SubZoneId": 10493
+    },
+    {
+        "Id": 494,
+        "Name": "Cursed Village Respawn",
+        "X": 28748.00,
+        "Y": 8188.80,
+        "Z": 535.60,
+        "ZRot": 17,
+        "SubZoneId": 10494
+    },
+    {
+        "Id": 495,
+        "Name": "Western Cursed Village Respawn",
+        "X": 28685.30,
+        "Y": 7841.40,
+        "Z": 539.00,
+        "ZRot": 30,
+        "SubZoneId": 10495
+    },
+    {
+        "Id": 496,
+        "Name": "Tehmi Ruins Respawn",
+        "X": 29985.50,
+        "Y": 6875.40,
+        "Z": 414.60,
+        "ZRot": 82,
+        "SubZoneId": 10496
+    },
+    {
+        "Id": 497,
+        "Name": "Wetern Tehmi Ruins Respawn",
+        "X": 29636.00,
+        "Y": 7162.90,
+        "Z": 387.60,
+        "ZRot": 27,
+        "SubZoneId": 10497
+    },
+    {
+        "Id": 498,
+        "Name": "Western Jadegale Ravine Respawn",
+        "X": 29269.40,
+        "Y": 8817.40,
+        "Z": 443.60,
+        "ZRot": -32,
+        "SubZoneId": 10498
+    },
+    {
+        "Id": 499,
+        "Name": "Respawn: Veroe",
+        "X": 29699.70,
+        "Y": 9164.10,
+        "Z": 419.60,
+        "ZRot": -16,
+        "SubZoneId": 10499
+    },
+    {
+        "Id": 500,
+        "Name": "Respawn: West Veroe",
+        "X": 29703.40,
+        "Y": 8548.40,
+        "Z": 428.50,
+        "ZRot": -34,
+        "SubZoneId": 10500
+    },
+    {
+        "Id": 501,
+        "Name": "Western Jadegale Hunting Ground Respawn",
+        "X": 28355.90,
+        "Y": 8553.40,
+        "Z": 570.50,
+        "ZRot": 23,
+        "SubZoneId": 10501
+    },
+    {
+        "Id": 502,
+        "Name": "Jadegale Hunting Ground Respawn",
+        "X": 28988.30,
+        "Y": 8332.10,
+        "Z": 486.90,
+        "ZRot": 79,
+        "SubZoneId": 10502
+    },
+    {
+        "Id": 516,
+        "Name": "Pirate Respawn: Karkasse Ridgelands",
+        "X": 11687.30,
+        "Y": 17907.10,
+        "Z": 228.30,
+        "ZRot": 0,
+        "SubZoneId": 10516
+    },
+    {
+        "Id": 534,
+        "Name": "Respawn: Sungold Fields (Pirate)",
+        "X": 21793.50,
+        "Y": 27420.60,
+        "Z": 129.70,
+        "ZRot": 27,
+        "SubZoneId": 10534
+    },
+    {
+        "Id": 535,
+        "Name": "Respawn: Sungold Fields (East)",
+        "X": 22345.10,
+        "Y": 27004.70,
+        "Z": 146.50,
+        "ZRot": -28,
+        "SubZoneId": 10535
+    },
+    {
+        "Id": 536,
+        "Name": "Respawn: Sungold Fields (South)",
+        "X": 21295.40,
+        "Y": 26459.00,
+        "Z": 121.80,
+        "ZRot": 35,
+        "SubZoneId": 10536
+    },
+    {
+        "Id": 537,
+        "Name": "Pirate Respawn: Exeloch",
+        "X": 23124.90,
+        "Y": 24510.50,
+        "Z": 117.40,
+        "ZRot": 64,
+        "SubZoneId": 10537
+    },
+    {
+        "Id": 538,
+        "Name": "Harani Respawn: Exeloch",
+        "X": 23775.70,
+        "Y": 25148.60,
+        "Z": 149.80,
+        "ZRot": 71,
+        "SubZoneId": 10538
+    },
+    {
+        "Id": 539,
+        "Name": "Nuian Respawn: Exeloch",
+        "X": 22799.10,
+        "Y": 24202.60,
+        "Z": 160.60,
+        "ZRot": 41,
+        "SubZoneId": 10539
+    },
+    {
+        "Id": 543,
+        "Name": "Nuian Respawn: Freedich Coast",
+        "X": 20068.30,
+        "Y": 18282.40,
+        "Z": 104.10,
+        "ZRot": -20,
+        "SubZoneId": 10543
+    },
+    {
+        "Id": 544,
+        "Name": "Harani Respawn: Freedich Coast",
+        "X": 21795.30,
+        "Y": 18284.00,
+        "Z": 104.10,
+        "ZRot": 18,
+        "SubZoneId": 10544
+    },
+    {
+        "Id": 648,
+        "Name": "Nuia Respawn: Diamond Shores",
+        "X": 19266.80,
+        "Y": 27113.20,
+        "Z": 131.00,
+        "ZRot": 30,
+        "SubZoneId": 10648
+    },
+    {
+        "Id": 649,
+        "Name": "Haranya Respawn: Diamond Shores",
+        "X": 19540.00,
+        "Y": 26891.10,
+        "Z": 132.20,
+        "ZRot": 75,
+        "SubZoneId": 10649
+    },
+    {
+        "Id": 650,
+        "Name": "Pirate Respawn: Diamond Shores",
+        "X": 19323.00,
+        "Y": 26874.50,
+        "Z": 130.00,
+        "ZRot": 84,
+        "SubZoneId": 10650
+    },
+    {
+        "Id": 680,
+        "Name": "Respawn: Mahadevi Port",
+        "X": 18972.80,
+        "Y": 7786.20,
+        "Z": 102.40,
+        "ZRot": 27,
+        "SubZoneId": 10680
+    }
+]

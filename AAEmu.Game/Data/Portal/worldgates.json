@@ -1,0 +1,118 @@
+[
+    //----------------- Worldgates -----------------
+    /*
+	  для Worldgates важны координаты и Id, всё остальное не важно!
+	  по Id выбираются координаты и телепортирует туда
+	*/
+    {
+        //  districtId -> returnPointId (Id)
+        "Id": 221,
+        "Name": "Serpent's Pass Escape",
+        "ZoneId": 188,
+        "X": 21541.7,
+        "Y": 6950.7,
+        "Z": 231.6,
+        "Yaw": -55.2,
+        "SubZoneId": 852 // 221
+    },
+    {
+        "Id": 372,
+        "Name": "Serpent's Pass",
+        "ZoneId": 188,
+        "X": 21182.3,
+        "Y": 6627.0,
+        "Z": 144.3,
+        "Yaw": 0.0,
+        "SubZoneId": 196 // 372
+    },
+    {
+        "Id": 402,
+        "Name": "Respawn: Perinoor Ruins",
+        "ZoneId": 139,
+        "X": 20906.5,
+        "Y": 13138.5,
+        "Z": 114.6,
+        "Yaw": 0.0,
+        "SubZoneId": 402
+    },
+    {
+        "Id": 403,
+        "Name": "Respawn: Blackwood Rampart",
+        "ZoneId": 207,
+        "X": 11665.2,
+        "Y": 10444.7,
+        "Z": 122.8,
+        "Yaw": 0.0,
+        "SubZoneId": 403
+    },
+    {
+        "Id": 404,
+        "Name": "Respawn: Sunshade Rendezvous",
+        "ZoneId": 245,
+        "X": 10750.9,
+        "Y": 9643.0,
+        "Z": 104.6,
+        "Yaw": 0.0,
+        "SubZoneId": 404
+    },
+    {
+        "Id": 405,
+        "Name": "Respawn: Grimsvoten",
+        "ZoneId": 246,
+        "X": 24410.8,
+        "Y": 10897.0,
+        "Z": 606.0,
+        "Yaw": 0.0,
+        "SubZoneId": 405
+    },
+    {
+        "Id": 513,
+        "Name": "Karkasse Ridgelands to Hasla",
+        "ZoneId": 272,
+        "X": 30037.6,
+        "Y": 8742.8,
+        "Z": 538.6,
+        "Yaw": 0.0,
+        "SubZoneId": 513
+    },
+    {
+        "Id": 514,
+        "Name": "Hasla to Karkasse Ridgelands",
+        "ZoneId": 145,
+        "X": 9144.2,
+        "Y": 16154.9,
+        "Z": 131.8,
+        "Yaw": 0.0,
+        "SubZoneId": 514
+    },
+    {
+        "Id": 614,
+        "Name": "Ayanad Ruins, Diamond Shores",
+        "ZoneId": 301,
+        "X": 19547.7,
+        "Y": 27144.3,
+        "Z": 131.3,
+        "Yaw": 0.0,
+        "SubZoneId": 614
+    },
+    {
+        "Id": 672,
+        "Name": "Haranya Rally Point",
+        "ZoneId": 282,
+        "X": 19610.2,
+        "Y": 26958.1,
+        "Z": 131.7,
+        "Yaw": 0.0,
+        "SubZoneId": 672
+    },
+    {
+        "Id": 673,
+        "Name": "Nuia Rally Point",
+        "ZoneId": 282,
+        "X": 19314.2,
+        "Y": 27172.9,
+        "Z": 131.4,
+        "Yaw": 0.0,
+        "SubZoneId": 673
+    }
+]

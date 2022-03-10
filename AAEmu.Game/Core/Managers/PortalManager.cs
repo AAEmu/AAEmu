@@ -32,24 +32,79 @@ namespace AAEmu.Game.Core.Managers
     {
         private readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<uint, uint> _allDistrictPortalsKey;
-        private Dictionary<uint, Portal> _allDistrictPortals;
+        //private Dictionary<uint, uint> _allDistrictPortalsKey;
+        //private Dictionary<uint, Portal> _allDistrictPortals;
+
+        private Dictionary<uint, List<Portal>> _recalls;
+        private Dictionary<uint, uint> _recallsKey;
+        private Dictionary<uint, Portal> _respawns;
+        private Dictionary<uint, uint> _respawnsKey;
+        private Dictionary<uint, Portal> _worldgates;
+        private Dictionary<uint, uint> _worldgatesKey;
+
         private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
         private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
         private Dictionary<uint, DistrictReturnPoints> _districtReturnPoints;
 
-        public Portal GetPortalBySubZoneId(uint subZoneId)
+        //public Portal GetPortalBySubZoneId(uint subZoneId)
+        //{
+        //    return _allDistrictPortals != null && _allDistrictPortals.ContainsKey(subZoneId)
+        //        ? _allDistrictPortals[subZoneId]
+        //        : null;
+        //}
+
+        //public Portal GetPortalById(uint id)
+        //{
+        //    return _allDistrictPortalsKey != null && _allDistrictPortalsKey.ContainsKey(id)
+        //        ? _allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id])
+        //            ? _allDistrictPortals[_allDistrictPortalsKey[id]]
+        //            : null
+        //        : null;
+        //}
+
+        public List<Portal> GetRecallBySubZoneId(uint subZoneId)
         {
-            return _allDistrictPortals != null && _allDistrictPortals.ContainsKey(subZoneId)
-                ? _allDistrictPortals[subZoneId]
+            return _recalls != null && _recalls.ContainsKey(subZoneId)
+                ? _recalls[subZoneId]
                 : null;
         }
 
-        public Portal GetPortalById(uint id)
+        public Portal GetRecallById(uint returnPointId)
         {
-            return _allDistrictPortalsKey != null && _allDistrictPortalsKey.ContainsKey(id)
-                ? _allDistrictPortals.ContainsKey(_allDistrictPortalsKey[id])
-                    ? _allDistrictPortals[_allDistrictPortalsKey[id]]
+            if (_recallsKey == null || !_recallsKey.ContainsKey(returnPointId)) { return null; }
+            if (!_recalls.ContainsKey(_recallsKey[returnPointId])) { return null; }
+
+            return _recalls[_recallsKey[returnPointId]].FirstOrDefault(portal => portal.Id == returnPointId);
+        }
+
+        public Portal GetRespawnBySubZoneId(uint subZoneId)
+        {
+            return _respawns != null && _respawns.ContainsKey(subZoneId)
+                ? _respawns[subZoneId]
+                : null;
+        }
+
+        public Portal GetRespawnlById(uint id)
+        {
+            return _respawnsKey != null && _respawnsKey.ContainsKey(id)
+                ? _respawns.ContainsKey(_respawnsKey[id])
+                    ? _respawns[_respawnsKey[id]]
+                    : null
+                : null;
+        }
+
+        public Portal GetWorldgatesBySubZoneId(uint subZoneId)
+        {
+            return _worldgates != null && _worldgates.ContainsKey(subZoneId)
+                ? _worldgates[subZoneId]
+                : null;
+        }
+
+        public Portal GetWorldgatesById(uint id)
+        {
+            return _worldgatesKey != null && _worldgatesKey.ContainsKey(id)
+                ? _worldgates.ContainsKey(_worldgatesKey[id])
+                    ? _worldgates[_worldgatesKey[id]]
                     : null
                 : null;
         }
@@ -86,17 +141,50 @@ namespace AAEmu.Game.Core.Managers
         {
             _openPortalInlandReagents = new Dictionary<uint, OpenPortalReagents>();
             _openPortalOutlandReagents = new Dictionary<uint, OpenPortalReagents>();
-            _allDistrictPortals = new Dictionary<uint, Portal>();
-            _allDistrictPortalsKey = new Dictionary<uint, uint>();
+            //_allDistrictPortals = new Dictionary<uint, Portal>();
+            //_allDistrictPortalsKey = new Dictionary<uint, uint>();
             _districtReturnPoints = new Dictionary<uint, DistrictReturnPoints>();
+
+            _recalls = new Dictionary<uint, List<Portal>>();
+            _respawns = new Dictionary<uint, Portal>();
+            _worldgates = new Dictionary<uint, Portal>();
+            _recallsKey = new Dictionary<uint, uint>();
+            _respawnsKey = new Dictionary<uint, uint>();
+            _worldgatesKey = new Dictionary<uint, uint>();
 
             _log.Info("Loading Portals ...");
 
             #region FileManager
 
             //var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "SubZonePortalCoords.json");
-            var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "return_points.json");
+            //if (!File.Exists(filePath))
+            //    throw new IOException($"File {filePath} doesn't exists !");
 
+            //var contents = FileManager.GetFileContents(filePath);
+
+            //if (string.IsNullOrWhiteSpace(contents))
+            //    throw new IOException($"File {filePath} is empty !");
+
+            //if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
+            //    foreach (var portal in portals)
+            //    {
+            //        if (!_allDistrictPortals.ContainsKey(portal.SubZoneId))
+            //        {
+            //            _allDistrictPortals.Add(portal.SubZoneId, portal);
+            //        }
+            //        if (!_allDistrictPortalsKey.ContainsKey(portal.Id))
+            //        {
+            //            _allDistrictPortalsKey.Add(portal.Id, portal.SubZoneId);
+            //        }
+
+            //        _recalls.Add(portal.SubZoneId, portal);
+            //    }
+            //else
+            //    throw new Exception($"PortalManager: Parse {filePath} file");
+
+            //_log.Info("Loaded {0} District Portals", _allDistrictPortals.Count);
+
+            var filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "recalls.json");
             if (!File.Exists(filePath))
                 throw new IOException($"File {filePath} doesn't exists !");
 
@@ -105,22 +193,77 @@ namespace AAEmu.Game.Core.Managers
             if (string.IsNullOrWhiteSpace(contents))
                 throw new IOException($"File {filePath} is empty !");
 
-            if (JsonHelper.TryDeserializeObject(contents, out List<Portal> portals, out _))
-                foreach (var portal in portals)
+            if (JsonHelper.TryDeserializeObject(contents, out List<Portal> recalls, out _))
+                foreach (var recall in recalls)
                 {
-                    if (!_allDistrictPortals.ContainsKey(portal.SubZoneId))
+                    var rp = new List<Portal>();
+                    if (!_recalls.ContainsKey(recall.SubZoneId))
                     {
-                        _allDistrictPortals.Add(portal.SubZoneId, portal);
+                        rp.Add(recall);
+                        _recalls.Add(recall.SubZoneId, rp);
                     }
-                    if (!_allDistrictPortalsKey.ContainsKey(portal.Id))
+                    else
                     {
-                        _allDistrictPortalsKey.Add(portal.Id, portal.SubZoneId);
+                        _recalls[recall.SubZoneId].Add(recall);
+                    }
+
+                    if (!_recallsKey.ContainsKey(recall.Id))
+                    {
+                        _recallsKey.Add(recall.Id, recall.SubZoneId);
+                    }
+                    else
+                    {
+                        //
                     }
                 }
             else
                 throw new Exception($"PortalManager: Parse {filePath} file");
 
-            _log.Info("Loaded {0} District Portals", _allDistrictPortals.Count);
+            _log.Info("Loaded {0} Recall Portals", _recalls.Count);
+
+            filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "respawns.json");
+            if (!File.Exists(filePath))
+                throw new IOException($"File {filePath} doesn't exists !");
+
+            contents = FileManager.GetFileContents(filePath);
+
+            if (string.IsNullOrWhiteSpace(contents))
+                throw new IOException($"File {filePath} is empty !");
+
+            if (JsonHelper.TryDeserializeObject(contents, out List<Portal> respawns, out _))
+                foreach (var respawn in respawns)
+                {
+                    if (_respawns.ContainsKey(respawn.SubZoneId))
+                    {
+                        //
+                    }
+                    _respawns.Add(respawn.SubZoneId, respawn);
+                    _respawnsKey.Add(respawn.Id, respawn.SubZoneId);
+                }
+            else
+                throw new Exception($"PortalManager: Parse {filePath} file");
+
+            _log.Info("Loaded {0} Respawn Portals", _respawns.Count);
+
+            filePath = Path.Combine(FileManager.AppPath, "Data", "Portal", "worldgates.json");
+            if (!File.Exists(filePath))
+                throw new IOException($"File {filePath} doesn't exists !");
+
+            contents = FileManager.GetFileContents(filePath);
+
+            if (string.IsNullOrWhiteSpace(contents))
+                throw new IOException($"File {filePath} is empty !");
+
+            if (JsonHelper.TryDeserializeObject(contents, out List<Portal> worldgates, out _))
+                foreach (var worldgate in worldgates)
+                {
+                    _worldgates.Add(worldgate.SubZoneId, worldgate);
+                    _worldgatesKey.Add(worldgate.Id, worldgate.SubZoneId);
+                }
+            else
+                throw new Exception($"PortalManager: Parse {filePath} file");
+
+            _log.Info("Loaded {0} Worldgate Portals", _worldgates.Count);
 
             #endregion
 
@@ -305,9 +448,9 @@ namespace AAEmu.Game.Core.Managers
             var distance = 5000f;
             var portal = new Portal();
 
-            foreach (var (_, value) in _allDistrictPortals)
+            foreach (var (_, value) in _respawns)
             {
-                if (!value.Name.ToLower().Contains("respawn")) { continue; }
+                //if (!value.Name.ToLower().Contains("respawn")) { continue; }
                 var pxyz = new Vector3(value.X, value.Y, value.Z);
                 var dist = MathUtil.CalculateDistance(cxyz, pxyz);
                 if (!(dist < distance)) { continue; }

@@ -27,19 +27,22 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
 
             if (caster is not Character character) { return; }
             uint returnPointId;
-
+            Portal trp;
             // проверяем сначала на запись в книге возвратов
             if (value1 == 0)
             {
+                // Memory Tome for Recall skill
                 returnPointId = PortalManager.Instance.GetDistrictReturnPoint(character.ReturnDictrictId, character.Faction.Id);
+                trp = PortalManager.Instance.GetRecallById(returnPointId);
                 if (returnPointId == 0) { return; }
             }
             else
             {
+                // Worldgates
                 returnPointId = (uint)value1;
+                trp = PortalManager.Instance.GetWorldgatesById(returnPointId);
             }
 
-            var trp = PortalManager.Instance.GetPortalById(returnPointId);
             if (trp == null && character.MainWorldPosition == null) { return; }
 
             // проверим что возвращаемся из Библиотеки (она инстанс) или если character.MainWorldPosition != null, то любой инстанс

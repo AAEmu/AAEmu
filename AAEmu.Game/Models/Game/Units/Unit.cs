@@ -253,6 +253,16 @@ namespace AAEmu.Game.Models.Game.Units
         /// <param name="killReason"></param>
         public virtual void ReduceCurrentHp(Unit attacker, int value, KillReason killReason = KillReason.Damage)
         {
+            if (attacker.CurrentTarget is Character character)
+            {
+                if (AppConfiguration.Instance.World.GodMode)
+                {
+                    _log.Debug("{1}:{0}'s Damage disabled because of GM or Admin flag", character.Name, character.Id);
+                    return; // GodMode On : take 0 damage from Npc
+                }
+
+            }
+
             if (Hp <= 0)
                 return;
 
