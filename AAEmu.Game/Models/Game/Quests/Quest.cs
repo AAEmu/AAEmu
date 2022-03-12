@@ -163,14 +163,14 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
-            if (Status == QuestStatus.Progress && !supply)
-            {
-                Update(res);
-            }
-
             if (acceptNpc)
             {
                 res = true;
+            }
+
+            if (Status == QuestStatus.Progress && !supply)
+            {
+                Update(res);
             }
 
             return res;

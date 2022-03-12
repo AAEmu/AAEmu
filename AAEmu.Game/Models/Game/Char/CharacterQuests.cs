@@ -72,6 +72,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Drop(questId, true); // TODO может быть update = false?
             //else
             //    Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
+            quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
         }
 
         /// <summary>
@@ -96,6 +97,7 @@ namespace AAEmu.Game.Models.Game.Char
             Quests.Add(quest.TemplateId, quest);
 
             quest.StartFirstOnly();
+            quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
         }
 
         public void Complete(uint questId, int selected, bool supply = true)
