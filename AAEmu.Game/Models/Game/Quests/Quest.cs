@@ -97,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Quests
                 {
                     var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
 
-                    var questActConAcceptNpc = acts.Any(a => a.DetailType == "QuestActConAcceptNpc");
+                    var questActConAcceptNpc = acts.All(a => a.DetailType == "QuestActConAcceptNpc");
                     if (acts.Length > 0 && questActConAcceptNpc)
                     {
                         // оказывается может быть несколько Npc с которыми можно заключить квест!
