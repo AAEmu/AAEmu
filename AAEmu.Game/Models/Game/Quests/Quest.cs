@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -104,6 +105,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         var accept = acts.Select(t => t.Use(Owner, this, Objectives[componentIndex])).ToList();
                         if (accept.Contains(true))
                         {
+                            res = true;
                             acceptNpc = true;
                             ComponentId = components[componentIndex].Id;
                             CheckStatus();
@@ -140,7 +142,24 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             case "QuestActConAcceptNpc":
                                 {
-                                    // мы уже проверяли этот пункт, поэтому пропускаем
+                                    if (acceptNpc)
+                                    {
+                                        // мы уже проверяли этот пункт, поэтому пропускаем
+                                        break;
+                                    }
+                                    res = act.Use(Owner, this, Objectives[componentIndex]);
+                                    if (res)
+                                    {
+                                        ComponentId = components[componentIndex].Id;
+                                        CheckStatus();
+                                        _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    }
+                                    else
+                                    {
+                                        _log.Warn("[Quest] Start failed: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                        return false; // не тот Npc, что нужен по квесту, выход
+                                    }
+                                    UseSkill(components, componentIndex);
                                     break;
                                 }
                             case "QuestActSupplyItem":
@@ -163,10 +182,6 @@ namespace AAEmu.Game.Models.Game.Quests
                 }
             }
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
-            if (acceptNpc)
-            {
-                res = true;
-            }
 
             if (Status == QuestStatus.Progress && !supply)
             {
@@ -208,7 +223,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                                 else
                                 {
-                                    _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    _log.Warn("[Quest] Start failed: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     return; // не тот Npc, что нужен по квесту, выход
                                 }
                                 UseSkill(components, componentIndex);
@@ -216,10 +231,11 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActConAcceptNpc":
                                 {
                                     // не проверяем Npc при взятии квеста
-                                    act.Use(Owner, this, 0); // получим предмет
+                                    act.Use(Owner, this, 0);
                                     ComponentId = components[componentIndex].Id;
                                     CheckStatus();
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    UseSkill(components, componentIndex);
                                     break;
                                 }
                             case "QuestActSupplyItem":
@@ -278,6 +294,8 @@ namespace AAEmu.Game.Models.Game.Quests
 
                 EarlyCompletion = false;
                 ExtraCompletion = false;
+                var selective = new List<bool>();
+                var questActObjItemGather = false;
 
                 for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
                 {
@@ -406,16 +424,14 @@ namespace AAEmu.Game.Models.Game.Quests
                                     }
                                     else
                                     {
-                                        // компонент - выполнен
-                                        complete = true;
-                                        Status = QuestStatus.Ready;
-                                        //ComponentId = components[componentIndex].Id;
+                                        // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких
+                                        selective.Add(complete);
+                                        questActObjItemGather = true;
                                         _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     }
                                     break;
                                 }
                             default:
-                                //case "QuestActObjItemGather":
                                 //case "QuestActObjMonsterHunt":
                                 //case "QuestActObjMonsterGroupHunt":
                                 // эти акты всегда парные! ItemGather & MonsterHunt, ItemGather & MonsterGroupHunt
@@ -445,6 +461,17 @@ namespace AAEmu.Game.Models.Game.Quests
 
                     UseSkill(components, componentIndex);
                 }
+
+                if (questActObjItemGather)
+                {
+                    // Если Selective = true, то разрешается быть подходящим одному предмету из нескольких
+                    if (selective.Contains(true))
+                    {
+                        Status = QuestStatus.Ready;
+                        complete = true;
+                    }
+                }
+                
                 if (complete && (EarlyCompletion || ExtraCompletion))
                 {
                     break; // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
@@ -617,14 +644,14 @@ namespace AAEmu.Game.Models.Game.Quests
                         {
                             var template = act.GetTemplate<QuestActSupplyExp>();
                             value = template.Exp;
-                            _log.Warn("[Quest] GetCustomSupplies: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
+                            _log.Warn("[Quest] GetCustomSupplies Exp: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
                             break;
                         }
                     case "QuestActSupplyCoppers" when supply == "copper":
                         {
                             var template = act.GetTemplate<QuestActSupplyCopper>();
                             value = template.Amount;
-                            _log.Warn("[Quest] GetCustomSupplies: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
+                            _log.Warn("[Quest] GetCustomSupplies Coppers: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, act.DetailType {5}", Owner.Name, TemplateId, ComponentId, Step, Status, act.DetailType);
                             break;
                         }
                     default:

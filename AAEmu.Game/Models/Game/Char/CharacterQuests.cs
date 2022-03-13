@@ -164,7 +164,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var body = new byte[8];
                 complete.Body.CopyTo(body, 0);
                 Drop(questId, false);
-                OnQuestComplete(questId);
+                //OnQuestComplete(questId);
                 Owner.SendPacket(new SCQuestContextCompletedPacket(quest.TemplateId, body, res));
             }
         }
