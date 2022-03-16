@@ -33,10 +33,6 @@
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <LinkBase>Scripts\</LinkBase>
         </None>
-        <None Update="Gonfigurations\expedition.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Data\</LinkBase>
-        </None>
         <None Update="Configurations\Expedition.json">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>

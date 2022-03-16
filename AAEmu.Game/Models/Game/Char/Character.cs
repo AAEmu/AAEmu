@@ -267,6 +267,7 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.Spi)]
         public int Spi
         {
             get
