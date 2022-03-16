@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Numerics;
+using System.Threading;
 
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game.World;
 
 using NLog;
@@ -35,9 +38,11 @@ namespace AAEmu.Game.Core.Managers.World
         {
             TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(500), true);
         }
+
         public void Load()
         {
-            _sphereQuests = LoadSphereQuests();
+            //_sphereQuests = LoadSphereQuests();
+            _sphereQuests = LoadQuestSpheres();
         }
 
         public void AddSphereQuestTrigger(SphereQuestTrigger trigger)
@@ -56,7 +61,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void Tick(TimeSpan delta)
+        private void Tick(TimeSpan delta)
         {
             try
             {
@@ -89,7 +94,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public Dictionary<uint, SphereQuest> LoadSphereQuests()
+        private Dictionary<uint, SphereQuest> LoadSphereQuests()
         {
             var spheres = new List<SphereQuest>();
             var sphereQuests = new Dictionary<uint, SphereQuest>();
@@ -121,12 +126,13 @@ namespace AAEmu.Game.Core.Managers.World
                     throw new Exception($"SpawnManager: Parse {FileManager.AppPath}Data/quest_sign_spheres.json file");
                 }
             }
+
             return sphereQuests;
         }
 
-        public SphereQuest GetQuestSpheres(uint ComponentID)
+        public SphereQuest GetQuestSpheres(uint componentId)
         {
-            return _sphereQuests.ContainsKey(ComponentID) ? _sphereQuests[ComponentID] : null;
+            return _sphereQuests.ContainsKey(componentId) ? _sphereQuests[componentId] : null;
         }
 
         public List<SphereQuestTrigger> GetSphereQuestTriggers()
@@ -134,5 +140,99 @@ namespace AAEmu.Game.Core.Managers.World
             return _sphereQuestTriggers;
         }
 
+        /// <summary>
+        /// LoadQuestSpheres by ZeromusXYZ
+        /// </summary>
+        /// <param name="worldId"> по умолчанию считываем данные для main_world (id=0)</param>
+        /// <returns></returns>
+        private Dictionary<uint, SphereQuest> LoadQuestSpheres(uint worldId = 0)
+        {
+            _log.Info("Loading SphereQuest...");
+
+            var worlds = WorldManager.Instance.GetWorlds();
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
+
+            var sphereQuests = new Dictionary<uint, SphereQuest>();
+            foreach (var world in worlds)
+            {
+                if (worldId != world.Id) { continue; }
+
+                var worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone");
+                var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "quest_sign_sphere.g", true);
+                foreach (var pathFileName in pathFiles)
+                {
+                    if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))), out var zoneId))
+                    {
+                        _log.Warn("Unable to parse zoneId from {0}", pathFileName);
+                        continue;
+                    }
+                    var contents = ClientFileManager.GetFileAsString(pathFileName);
+                    if (string.IsNullOrWhiteSpace(contents))
+                    {
+                        _log.Warn($"{pathFileName} doesn't exists or is empty.");
+                        continue;
+                    }
+                    _log.Debug($"Loading {pathFileName}");
+                    var area = new List<string>();
+                    using (var rs = new StreamReader(pathFileName))
+                    {
+                        area.Clear();
+                        while (!rs.EndOfStream)
+                        {
+                            area.Add(rs.ReadLine()?.Trim(' ').Trim('\t').ToLower());
+                        }
+                    }
+                    for (var i = 0; i < area.Count - 4; i++)
+                    {
+                        var l0 = area[i + 0]; // area
+                        var l1 = area[i + 1]; // qtype
+                        var l2 = area[i + 2]; // ctype
+                        var l3 = area[i + 3]; // pos
+                        var l4 = area[i + 4]; // radius
+                        if (l0.StartsWith("area") && l1.StartsWith("qtype") && l2.StartsWith("ctype") && l3.StartsWith("pos") && l4.StartsWith("radius"))
+                        {
+                            try
+                            {
+                                var sphere = new SphereQuest();
+                                sphere.WorldID = world.Name;
+                                sphere.ZoneID = zoneId;
+                                sphere.QuestID = uint.Parse(l1.Substring(6));
+                                sphere.ComponentID = uint.Parse(l2.Substring(6));
+                                var subline = l3.Substring(4).Replace("(", "").Replace(")", "").Replace("x", "").Replace("y", "").Replace("z", "").Replace(" ", "");
+                                var posstring = subline.Split(',');
+                                if (posstring.Length == 3)
+                                {
+                                    // Parse the floats with NumberStyles.Float and CultureInfo.InvariantCulture or we get all sorts of 
+                                    // weird stuff with the decimal points depending on the user's language settings
+                                    sphere.X = float.Parse(posstring[0], NumberStyles.Float, CultureInfo.InvariantCulture);
+                                    sphere.Y = float.Parse(posstring[1], NumberStyles.Float, CultureInfo.InvariantCulture);
+                                    sphere.Z = float.Parse(posstring[2], NumberStyles.Float, CultureInfo.InvariantCulture);
+                                }
+                                sphere.Radius = float.Parse(l4.Substring(7), NumberStyles.Float, CultureInfo.InvariantCulture);
+                                // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
+                                // convert coordinates from local to world, immediately when reading the path from the file
+                                var xyz = new Vector3(sphere.X, sphere.Y, sphere.Z);
+                                var vec = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, xyz);
+                                sphere.X = vec.X;
+                                sphere.Y = vec.Y;
+                                sphere.Z = vec.Z;
+                                if (!sphereQuests.ContainsKey(sphere.ComponentID))
+                                {
+                                    sphereQuests.Add(sphere.ComponentID, sphere);
+                                }
+                                i += 5;
+                            }
+                            catch (Exception ex)
+                            {
+                                _log.Error("Loading SphereQuest error!");
+                                _log.Fatal(ex);
+                                throw;
+                            }
+                        }
+                    }
+                }
+            }
+            return sphereQuests;
+        }
     }
 }
