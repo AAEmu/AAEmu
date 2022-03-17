@@ -68,7 +68,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 
                 if (_owner.Spawner != null)
                 {
-                    _owner.Spawner?.Despawn(_owner);
+                    _owner.Spawner.DecreaseCount(_owner);
                 }
                 else
                 {

@@ -1,14 +1,10 @@
 ﻿using System;
 
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
-
-using AAEmu.Game.Models.Game.DoodadObj.Templates;
-using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Doodads;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
@@ -58,7 +54,14 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             }
             else
             {
-                owner.Delete();
+                if (owner.Spawner != null)
+                {
+                    owner.Spawner.DecreaseCount(owner);
+                }
+                else
+                {
+                    owner.Delete();
+                }
                 if (!Respawn) { return false; }
 
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
