@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
 
@@ -173,22 +174,16 @@ namespace AAEmu.Game.Core.Managers.World
                         continue;
                     }
                     _log.Debug($"Loading {pathFileName}");
-                    var area = new List<string>();
-                    using (var rs = new StreamReader(pathFileName))
-                    {
-                        area.Clear();
-                        while (!rs.EndOfStream)
-                        {
-                            area.Add(rs.ReadLine()?.Trim(' ').Trim('\t').ToLower());
-                        }
-                    }
+
+                    var area = contents.ToLower().Split('\n').ToList();
+
                     for (var i = 0; i < area.Count - 4; i++)
                     {
-                        var l0 = area[i + 0]; // area
-                        var l1 = area[i + 1]; // qtype
-                        var l2 = area[i + 2]; // ctype
-                        var l3 = area[i + 3]; // pos
-                        var l4 = area[i + 4]; // radius
+                        var l0 = area[i + 0].Trim(' ').Trim('\t').Trim('\r'); // area
+                        var l1 = area[i + 1].Trim(' ').Trim('\t').Trim('\r'); // qtype
+                        var l2 = area[i + 2].Trim(' ').Trim('\t').Trim('\r'); // ctype
+                        var l3 = area[i + 3].Trim(' ').Trim('\t').Trim('\r'); // pos
+                        var l4 = area[i + 4].Trim(' ').Trim('\t').Trim('\r'); // radius
                         if (l0.StartsWith("area") && l1.StartsWith("qtype") && l2.StartsWith("ctype") && l3.StartsWith("pos") && l4.StartsWith("radius"))
                         {
                             try
