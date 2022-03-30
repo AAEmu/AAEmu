@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _last;
         private readonly Actability[] _actabilities;
 
-        public SCActabilityPacket(bool last, Actability[] actabilities) : base(SCOffsets.SCActabilityPacket, 1)
+        public SCActabilityPacket(bool last, Actability[] actabilities) : base(SCOffsets.SCActabilityPacket, 5)
         {
             _last = last;
             _actabilities = actabilities;
@@ -21,8 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write((byte)_actabilities.Length); // TODO max count 100
             foreach (var actability in _actabilities)
             {
-                stream.Write(actability.Id);
-                stream.Write(actability.Point);
+                stream.WritePisc(actability.Id, actability.Point); // pish (2)
                 stream.Write(actability.Step);
             }
 

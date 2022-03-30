@@ -1,13 +1,11 @@
-﻿using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers.World;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Trading;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellBackpackGoodsPacket : GamePacket
     {
-        public CSSellBackpackGoodsPacket() : base(CSOffsets.CSSellBackpackGoodsPacket, 1)
+        public CSSellBackpackGoodsPacket() : base(CSOffsets.CSSellBackpackGoodsPacket, 5)
         {
         }
 
@@ -15,9 +13,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         {
             var objId = stream.ReadBc();
 
-            SpecialtyManager.Instance.SellSpecialty(Connection.ActiveChar, objId);
-            
-            _log.Warn("CSSellBackpackGoods, ObjId: {0}. BasePrice: {1}", objId);
+            _log.Warn("CSSellBackpackGoods, ObjId: {0}", objId);
         }
     }
 }

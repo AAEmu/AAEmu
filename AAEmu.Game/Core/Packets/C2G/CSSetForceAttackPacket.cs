@@ -1,11 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSetForceAttackPacket : GamePacket
     {
-        public CSSetForceAttackPacket() : base(CSOffsets.CSSetForceAttackPacket, 1)
+        public CSSetForceAttackPacket() : base(CSOffsets.CSSetForceAttackPacket, 5)
         {
         }
 

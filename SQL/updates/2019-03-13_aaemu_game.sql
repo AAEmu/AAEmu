@@ -1,1 +1,0 @@
-ALTER TABLE `characters` ADD `access_level` INT(3) UNSIGNED NOT NULL DEFAULT '0' AFTER `name`;

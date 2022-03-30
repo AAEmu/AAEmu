@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly sbyte _diceValue;
 
-        public SCLootDiceSummaryPacket(ulong iId, int count, uint id, sbyte diceValue) : base(SCOffsets.SCLootDiceSummaryPacket,1)
+        public SCLootDiceSummaryPacket(ulong iId, int count, uint id, sbyte diceValue) : base(SCOffsets.SCLootDiceSummaryPacket, 5)
         {
             _iId = iId;
             _count = count;
@@ -22,8 +22,11 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_iId);
             stream.Write(_count);
-            stream.Write(_id);
-            stream.Write(_diceValue);
+            for (var i = 0; i < _count; i++)
+            {
+                stream.Write(_id);
+                stream.Write(_diceValue);
+            }
             return stream;
         }
     }

@@ -10,6 +10,7 @@ namespace AAEmu.Game.Models.Game.Char
         public bool BackHoldable;
         public bool Cosplay;
         public bool CosplayBackpack;
+        public bool CosplayVisual;
 
         public override void Read(PacketStream stream)
         {
@@ -22,8 +23,10 @@ namespace AAEmu.Game.Models.Game.Char
                 BackHoldable = stream.ReadBoolean();
             if ((_flag & 8) == 8)
                 Cosplay = stream.ReadBoolean();
-            if ((_flag & 16) == 16)
+            if ((_flag & 0x10) == 0x10)
                 CosplayBackpack = stream.ReadBoolean();
+            if ((_flag & 0x20) == 0x20)
+                CosplayVisual = stream.ReadBoolean(); // cosplay_visual, added in 1.7
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -42,8 +45,11 @@ namespace AAEmu.Game.Models.Game.Char
                 stream.Write(BackHoldable);
             if ((flag & 8) == 8)
                 stream.Write(Cosplay);
-            if ((flag & 16) == 16)
+            if ((flag & 0x10) == 0x10)
                 stream.Write(CosplayBackpack);
+            if ((flag & 0x20) == 0x20)
+                stream.Write(CosplayVisual); // cosplay_visual, added in 1.7
+
             return stream;
         }
         public PacketStream WriteOptions(PacketStream stream)
@@ -54,6 +60,7 @@ namespace AAEmu.Game.Models.Game.Char
             stream.Write(BackHoldable);    // back_holdable
             stream.Write(Cosplay);         // cosplay
             stream.Write(CosplayBackpack); // cosplay_backpack
+            stream.Write(CosplayVisual);   // cosplay_visual, added in 1.7
 
             return stream;
         }

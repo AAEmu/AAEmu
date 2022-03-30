@@ -1,6 +1,6 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -30,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             // TODO: Check if items are owned by caster
 
-            if ((bleachItem != null) && (targetItem != null))
+            if (bleachItem != null && targetItem != null)
             {
                 //var oldFlags = targetItem.ItemFlags;
                 // Remove Ucc from target
@@ -38,11 +38,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 // Send Item Ucc changed packet
                 player.SendPacket(new SCItemUccDataChangedPacket(0, player.Id, targetItem.Id));
                 // Send ItemTask to change flags on client
-                player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GainItemWithUcc, new ItemUpdateBits(targetItem), null));
+                player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GainItemWithUcc, task: new ItemUpdateBits(targetItem), forceRemove: null));
                 // Consume the Bleach
                 //bleachItem._holdingContainer.ConsumeItem(ItemTaskType.ImprintUcc, bleachItem.TemplateId,1, bleachItem);
             }
-            
+
         }
     }
 }

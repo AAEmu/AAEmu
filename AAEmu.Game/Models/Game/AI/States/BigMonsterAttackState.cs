@@ -132,7 +132,7 @@ namespace AAEmu.Game.Models.Game.AI.States
 
         private BigMonsterCombatSkill GetNextAiCombatSkill()
         {
-            var hpPercent = (Npc.Hp / (float)Npc.MaxHp) * 100.0f;
+            var hpPercent = Npc.Hp / (float)Npc.MaxHp * 100.0f;
 
             var useableSkills = AiParams.CombatSkills.Where(o => !Npc.Cooldowns.CheckCooldown(o.SkillType));
 

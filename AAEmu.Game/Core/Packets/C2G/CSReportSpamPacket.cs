@@ -1,11 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSReportSpamPacket : GamePacket
     {
-        public CSReportSpamPacket() : base(CSOffsets.CSReportSpamPacket, 1)
+        public CSReportSpamPacket() : base(CSOffsets.CSReportSpamPacket, 5)
         {
         }
 

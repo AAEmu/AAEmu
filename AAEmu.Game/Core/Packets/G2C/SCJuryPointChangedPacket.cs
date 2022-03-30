@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _juryPoint;
 
-        public SCJuryPointChangedPacket(int juryPoint) : base(SCOffsets.SCJuryPointChangedPacket, 1)
+        public SCJuryPointChangedPacket(int juryPoint) : base(SCOffsets.SCJuryPointChangedPacket, 5)
         {
             _juryPoint = juryPoint;
         }

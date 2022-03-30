@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Family _family;
         
-        public SCFamilyCreatedPacket(Family family) : base(SCOffsets.SCFamilyCreatedPacket, 1)
+        public SCFamilyCreatedPacket(Family family) : base(SCOffsets.SCFamilyCreatedPacket, 5)
         {
             _family = family;
         }

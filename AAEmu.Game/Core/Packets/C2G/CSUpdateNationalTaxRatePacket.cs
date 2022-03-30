@@ -1,11 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUpdateNationalTaxRatePacket : GamePacket
     {
-        public CSUpdateNationalTaxRatePacket() : base(CSOffsets.CSUpdateNationalTaxRatePacket, 1)
+        public CSUpdateNationalTaxRatePacket() : base(CSOffsets.CSUpdateNationalTaxRatePacket, 5)
         {
         }
 

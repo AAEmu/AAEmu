@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly string _creatorName;
         
         public SCSlaveCreatedPacket(uint ownerObjId, ushort tlId, uint slaveObjId, bool hideSpawnEffect, long unkId, string creatorName)
-            : base(SCOffsets.SCSlaveCreatedPacket, 1)
+            : base(SCOffsets.SCSlaveCreatedPacket, 5)
         {
             _ownerObjId = ownerObjId;
             _tlId = tlId;

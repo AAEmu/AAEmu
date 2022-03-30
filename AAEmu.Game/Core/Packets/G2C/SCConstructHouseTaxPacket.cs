@@ -12,10 +12,13 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _baseTaxMoneyAmount;
         private readonly int _depositTaxMoneyAmount;
         private readonly int _totalTaxMoneyAmount;
+        private readonly int _moneyAmount;
+        private readonly int _hostileTaxRate;
 
         public SCConstructHouseTaxPacket(uint designId, int heavyTaxHouseCount, int normalTaxHouseCount,
-            bool isHeavyTaxHouse, int baseTaxMoneyAmount, int depositTaxMoneyAmount, int totalTaxMoneyAmount)
-            : base(SCOffsets.SCConstructHouseTaxPacket, 1)
+            bool isHeavyTaxHouse, int baseTaxMoneyAmount, int depositTaxMoneyAmount, int totalTaxMoneyAmount,
+            int moneyAmount = 0, int hostileTaxRate = 0)
+            : base(SCOffsets.SCConstructHouseTaxPacket, 5)
         {
             _designId = designId;
             _heavyTaxHouseCount = heavyTaxHouseCount;
@@ -24,17 +27,22 @@ namespace AAEmu.Game.Core.Packets.G2C
             _baseTaxMoneyAmount = baseTaxMoneyAmount;
             _depositTaxMoneyAmount = depositTaxMoneyAmount;
             _totalTaxMoneyAmount = totalTaxMoneyAmount;
+            _moneyAmount = moneyAmount;
+            _hostileTaxRate = hostileTaxRate;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_designId);
-            stream.Write(_heavyTaxHouseCount);
-            stream.Write(_normalTaxHouseCount);
-            stream.Write(_isHeavyTaxHouse);
-            stream.Write(_baseTaxMoneyAmount);
-            stream.Write(_depositTaxMoneyAmount);
-            stream.Write(_totalTaxMoneyAmount);
+            stream.Write(_designId);              // design (type)
+            stream.Write(_heavyTaxHouseCount);    // heavyTaxHouseCount
+            stream.Write(_normalTaxHouseCount);   // normalTaxHouseCount
+            stream.Write(_isHeavyTaxHouse);       // isHeavyTaxHouse
+            stream.Write(_baseTaxMoneyAmount);    // moneyAmount
+            stream.Write(_depositTaxMoneyAmount); // moneyAmount
+            stream.Write(_totalTaxMoneyAmount);   // moneyAmount
+            stream.Write(_moneyAmount);           // moneyAmount
+            stream.Write(_hostileTaxRate);        // hostileTaxRate
+
             return stream;
         }
     }

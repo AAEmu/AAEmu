@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _modifierKeys;
         private readonly uint[] _skillList;
         
-        public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint[] skillList) : base(SCOffsets.SCNpcInteractionSkillListPacket, 1)
+        public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint[] skillList) : base(SCOffsets.SCNpcInteractionSkillListPacket, 5)
         {
             _npcObjId = npcObjId;
             _objId = objId;
@@ -32,7 +32,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             _skillList = skillList;
         }
 
-        public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint skillId) : base(SCOffsets.SCNpcInteractionSkillListPacket, 1)
+        public SCNpcInteractionSkillListPacket(uint npcObjId, uint objId, int extraInfo, int pickId, byte mouseButton, int modifierKeys, uint skillId) : base(SCOffsets.SCNpcInteractionSkillListPacket, 5)
         {
             _npcObjId = npcObjId;
             _objId = objId;

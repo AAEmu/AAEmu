@@ -234,7 +234,7 @@ namespace AAEmu.Game.Core.Managers.Stream
                 _downloadQueue.Add(connection.Id, id);
             }
 
-            if ((ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+            if (ucc is CustomUcc customUcc && customUcc.Data.Count > 0)
             {
                 connection.SendPacket(new TCEmblemStreamSendStatusPacket(ucc, EmblemStreamStatus.Start));
                 //connection.SendPacket(new TCEmblemStreamDownloadPacket(ucc, 0));
@@ -298,7 +298,7 @@ namespace AAEmu.Game.Core.Managers.Stream
             var ucc = _uccs[id];
 
             // status 4 == I'm ready to begin download of the image ?
-            if ((status == 4) && (ucc is CustomUcc customUcc) && (customUcc.Data.Count > 0))
+            if (status == 4 && ucc is CustomUcc customUcc && customUcc.Data.Count > 0)
             {
                 var maxParts = (int)Math.Ceiling((double)customUcc.Data.Count / TCEmblemStreamDownloadPacket.BufferSize);
                 var sendPart = maxParts - count;

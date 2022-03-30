@@ -6,18 +6,17 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCSlaveEquipmentChangedPacket : GamePacket
     {
-        private SlaveEquipment _slaveEquipment;
-        private bool _success;
+        private SlaveEquipment slaveEquipment;
+        private bool success;
 
-        public SCSlaveEquipmentChangedPacket(SlaveEquipment slaveEquipment, bool success) : base(SCOffsets.SCSlaveEquipmentChangedPacket, 1)
+        public SCSlaveEquipmentChangedPacket(SlaveEquipment slaveEquipment, bool success) : base(SCOffsets.SCSlaveEquipmentChangedPacket, 5)
         {
-            _slaveEquipment = slaveEquipment;
-            _success = success;
+
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            // TODO: Implement SCSlaveEquipmentChangedPacket.Write()
+            // TODO coming soon!
             return stream;
         }
     }

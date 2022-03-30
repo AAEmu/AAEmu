@@ -24,7 +24,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value4)
         {
             var sourceItem = ItemManager.Instance.GetItemByItemId(((SkillItem)casterObj).ItemId);
-            if ((sourceItem != null) && (target is Character player))
+            if (sourceItem != null && target is Character player)
             {
                 UccManager.Instance.CreateStamp(player, sourceItem);
             }

@@ -117,8 +117,7 @@ namespace AAEmu.Game.Core.Managers
 
                     using (var command = connection.CreateCommand())
                     {
-                        command.CommandText =
-                            "SELECT * FROM expedition_role_policies WHERE expedition_id = @expedition_id";
+                        command.CommandText = "SELECT * FROM expedition_role_policies WHERE expedition_id = @expedition_id";
                         command.Prepare();
                         command.Parameters.AddWithValue("@expedition_id", expedition.Id);
                         using (var reader = command.ExecuteReader())
@@ -264,7 +263,7 @@ namespace AAEmu.Game.Core.Managers
                 new SCFactionCreatedPacket(expedition, owner.ObjId, new[] { (owner.ObjId, owner.Id, owner.Name) })
             );
 
-            WorldManager.Instance.BroadcastPacketToServer(new SCFactionListPacket(expedition));
+            WorldManager.Instance.BroadcastPacketToServer(new SCSystemFactionListPacket(expedition));
             owner.BroadcastPacket(
                 new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, expedition.Id, false),
                 true
@@ -540,7 +539,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     var temp = new SystemFaction[expeditions.Length - i <= 20 ? expeditions.Length - i : 20];
                     Array.Copy(expeditions, i, temp, 0, temp.Length);
-                    character.SendPacket(new SCFactionListPacket(temp));
+                    character.SendPacket(new SCSystemFactionListPacket(temp));
                 }
             }
 

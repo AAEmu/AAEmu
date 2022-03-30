@@ -32,13 +32,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots
                     source = state.Caster;
                     break;
                 case PlotEffectSource.OriginalTarget:
-                    source = (Unit) state.Target;
+                    source = state.Target as Unit;
                     break;
                 case PlotEffectSource.Source:
-                    source = (Unit) targetInfo.Source;
+                    source = targetInfo.Source as Unit;
                     break;
                 case PlotEffectSource.Target:
-                    source = (Unit) targetInfo.Target;
+                    source = targetInfo.Target as Unit;
                     break;
                 default:
                     throw new InvalidOperationException("This can't happen");

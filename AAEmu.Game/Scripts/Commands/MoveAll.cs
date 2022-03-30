@@ -15,7 +15,7 @@ namespace AAEmu.Game.Scripts.Commands
                 if (otherChar != character)
                 {
                     otherChar.DisabledSetPosition = true;
-                    otherChar.SendPacket(new SCTeleportUnitPacket(0, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z + 1.0f, 0f));
+                    otherChar.SendPacket(new SCUnitTeleportPacket(0, 0, character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z + 1.0f, 0f));
                 }
             }
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
@@ -10,14 +10,16 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly int _payLocation;
         private readonly DateTime _payStart;
         private readonly DateTime _payEnd;
+        private readonly int _buyPremiumCount;
 
         public SCAccountInfoPacket(int payMethod, int payLocation, DateTime payStart, DateTime payEnd)
-            : base(SCOffsets.SCAccountInfoPacket, 1)
+            : base(SCOffsets.SCAccountInfoPacket, 5)
         {
             _payMethod = payMethod;
             _payLocation = payLocation;
             _payStart = payStart;
             _payEnd = payEnd;
+            _buyPremiumCount = 0;
         }
 
         public override PacketStream Write(PacketStream stream)
@@ -26,7 +28,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_payLocation);
             stream.Write(_payStart);
             stream.Write(_payEnd);
-            stream.Write((long)0); // realPayTime
+            stream.Write((long)-1); // realPayTime
+            stream.Write(_buyPremiumCount);
             return stream;
         }
     }

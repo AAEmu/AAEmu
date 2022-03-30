@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _temp;
         
         public SCUnitFactionChangedPacket(uint unitId, string unitName, uint id, uint id2, bool temp) 
-            : base(SCOffsets.SCUnitFactionChangedPacket, 1)
+            : base(SCOffsets.SCUnitFactionChangedPacket, 5)
         {
             _unitId = unitId;
             _unitName = unitName;

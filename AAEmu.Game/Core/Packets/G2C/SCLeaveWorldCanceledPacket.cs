@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCLeaveWorldCanceledPacket : GamePacket
     {
-        public SCLeaveWorldCanceledPacket() : base(SCOffsets.SCLeaveWorldCanceledPacket, 1)
+        public SCLeaveWorldCanceledPacket() : base(SCOffsets.SCLeaveWorldCanceledPacket, 5)
         {
         }
 

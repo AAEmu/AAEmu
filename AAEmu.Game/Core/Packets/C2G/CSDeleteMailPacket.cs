@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDeleteMailPacket : GamePacket
     {
-        public CSDeleteMailPacket() : base(CSOffsets.CSDeleteMailPacket, 1)
+        public CSDeleteMailPacket() : base(CSOffsets.CSDeleteMailPacket, 5)
         {
         }
 
@@ -15,6 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var isSent = stream.ReadBoolean();
 
             Connection.ActiveChar.Mails.DeleteMail(mailId, isSent);
+            _log.Debug("DeleteMail, mailId: {0}, isSent: {1}", mailId, isSent);
         }
     }
 }

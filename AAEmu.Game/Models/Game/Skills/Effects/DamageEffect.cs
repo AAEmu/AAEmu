@@ -123,23 +123,23 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 return;
             }
 
-            float flexibilityRateMod = (trg.Flexibility / 1000 * 3);
+            float flexibilityRateMod = trg.Flexibility / 1000 * 3;
             switch (DamageType)
             {
                 case DamageType.Melee:
-                    if (Rand.Next(0f, 100f) < (caster.MeleeCritical - flexibilityRateMod))
+                    if (Rand.Next(0f, 100f) < caster.MeleeCritical - flexibilityRateMod)
                         hitType = SkillHitType.MeleeCritical;
                     else
                         hitType = SkillHitType.MeleeHit;
                     break;
                 case DamageType.Magic:
-                    if (Rand.Next(0f, 100f) < (caster.SpellCritical - flexibilityRateMod))
+                    if (Rand.Next(0f, 100f) < caster.SpellCritical - flexibilityRateMod)
                         hitType = SkillHitType.SpellCritical;
                     else
                         hitType = SkillHitType.SpellHit;
                     break;
                 case DamageType.Ranged:
-                    if (Rand.Next(0f, 100f) < (caster.RangedCritical - flexibilityRateMod))
+                    if (Rand.Next(0f, 100f) < caster.RangedCritical - flexibilityRateMod)
                         hitType = SkillHitType.RangedCritical;
                     else
                         hitType = SkillHitType.RangedHit;
@@ -164,7 +164,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 // Hack null-check on skill
                 var levelModifier = (( (source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
             
-                levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
+                levelMin += lvlMd - levelModifier * lvlMd + 0.5f;
                 levelMax += (levelModifier + 1) * lvlMd + 0.5f;
             }
 
@@ -183,17 +183,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     break;
             }
 
-            max += (dpsInc * 0.001f) * DpsIncMultiplier;
+            max += dpsInc * 0.001f * DpsIncMultiplier;
             var weaponDamage = 0.0f;
 
             if (UseMainhandWeapon)
                 weaponDamage = caster.Dps * 0.001f; // TODO : Use only weapon value!
             if (UseOffhandWeapon)
-                weaponDamage = (caster.OffhandDps * 0.001f) + weaponDamage;
+                weaponDamage = caster.OffhandDps * 0.001f + weaponDamage;
             if (UseRangedWeapon)
-                weaponDamage = (caster.RangedDps * 0.001f) + weaponDamage; // TODO : Use only weapon value!
+                weaponDamage = caster.RangedDps * 0.001f + weaponDamage; // TODO : Use only weapon value!
 
-            max = (DpsMultiplier * weaponDamage) + max;
+            max = DpsMultiplier * weaponDamage + max;
             
             var minCastBonus = 1000f;
             // Hack null-check on skill
@@ -203,7 +203,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             else
                 minCastBonus = castTimeMod;
 
-            var variableDamage = (max * minCastBonus * 0.001f);
+            var variableDamage = max * minCastBonus * 0.001f;
             // TODO : Handle NPC
             if (WeaponSlotId < 0)
             {
@@ -276,8 +276,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 var effect = caster.Buffs.GetEffectFromBuffId(ChargedBuffId);
                 var charges = effect?.Charge ?? 0;
                 
-                min += charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
-                max += charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                min += charges * (ChargedMul + source.Skill.Level * ChargedLevelMul);
+                max += charges * (ChargedMul + source.Skill.Level * ChargedLevelMul);
                 effect?.Exit();
             }
 
@@ -286,8 +286,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 var effect = target.Buffs.GetEffectFromBuffId(ChargedBuffId);
                 var charges = effect?.Charge ?? 0;
                 
-                min += charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
-                max += charges * (ChargedMul + (source.Skill.Level * ChargedLevelMul));
+                min += charges * (ChargedMul + source.Skill.Level * ChargedLevelMul);
+                max += charges * (ChargedMul + source.Skill.Level * ChargedLevelMul);
                 effect?.Exit();
             }
 
@@ -308,19 +308,19 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             //toughness reduction (PVP Only)
             if (caster is Character && trg is Character)
-                finalDamage *= ( 1 - ( trg.BattleResist / ( 8000f + trg.BattleResist ) ) );
+                finalDamage *= 1 - trg.BattleResist / ( 8000f + trg.BattleResist );
 
             //Do Critical Dmgs
             switch (hitType)
             {
                 case SkillHitType.MeleeCritical:
-                    finalDamage *= 1 + ((caster.MeleeCriticalBonus - (trg.Flexibility / 100)) / 100);
+                    finalDamage *= 1 + (caster.MeleeCriticalBonus - trg.Flexibility / 100) / 100;
                     break;
                 case SkillHitType.RangedCritical:
-                    finalDamage *= 1 + ((caster.RangedCriticalBonus - (trg.Flexibility / 100)) / 100);
+                    finalDamage *= 1 + (caster.RangedCriticalBonus - trg.Flexibility / 100) / 100;
                     break;
                 case SkillHitType.SpellCritical:
-                    finalDamage *= 1 + ((caster.SpellCriticalBonus - (trg.Flexibility / 100)) / 100);
+                    finalDamage *= 1 + (caster.SpellCriticalBonus - trg.Flexibility / 100) / 100;
                     break;
                 default:
                     break;
@@ -363,7 +363,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (!caster.CanAttack(trg))
                 return;
             trg.ReduceCurrentHp(caster, value);
-            caster.SummarizeDamage += value;
+            caster.SummarizeDamage[0] += value;
 
             if (healthStolen > 0 || manaStolen > 0)
             {
@@ -421,7 +421,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 trg.BroadcastPacket(packet, true);
             if (trg is Npc)
             {
-                trg.BroadcastPacket(new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
+                trg.BroadcastPacket(new SCUnitAiAggroPacket(trg.ObjId, 1, caster.ObjId, caster.SummarizeDamage), true);
             }
             if (trg is Npc npc/* && npc.CurrentTarget != caster*/)
             {
@@ -442,26 +442,41 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                     Amount = value
                 });
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtc);
-                trg.Events.OnDamaged(this, new OnDamagedArgs {Attacker = caster,
-                    Amount = value });
-                
+                trg.Events.OnDamaged(this, new OnDamagedArgs
+                {
+                    Attacker = caster,
+                    Amount = value
+                });
+
                 switch (DamageType)
                 {
                     case DamageType.Melee:
-                        trg.Events.OnDamagedMelee(this, new OnDamagedArgs() {Attacker = caster,
-                            Amount = value });
+                        trg.Events.OnDamagedMelee(this, new OnDamagedArgs
+                        {
+                            Attacker = caster,
+                            Amount = value
+                        });
                         break;
                     case DamageType.Ranged:
-                        trg.Events.OnDamagedRanged(this, new OnDamagedArgs() {Attacker = caster,
-                            Amount = value });
+                        trg.Events.OnDamagedRanged(this, new OnDamagedArgs
+                        {
+                            Attacker = caster,
+                            Amount = value
+                        });
                         break;
                     case DamageType.Magic:
-                        trg.Events.OnDamagedSpell(this, new OnDamagedArgs() {Attacker = caster,
-                            Amount = value });
+                        trg.Events.OnDamagedSpell(this, new OnDamagedArgs
+                        {
+                            Attacker = caster,
+                            Amount = value
+                        });
                         break;
                     case DamageType.Siege:
-                        trg.Events.OnDamagedSiege(this, new OnDamagedArgs() {Attacker = caster,
-                            Amount = value });
+                        trg.Events.OnDamagedSiege(this, new OnDamagedArgs
+                        {
+                            Attacker = caster,
+                            Amount = value
+                        });
                         break;
                 }
                 

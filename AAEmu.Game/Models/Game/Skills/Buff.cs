@@ -36,9 +36,9 @@ namespace AAEmu.Game.Models.Game.Skills
         public DateTime EndTime { get; set; }
         public int Charge { get; set; }
         public bool Passive { get; set; }
-        public uint AbLevel { get; set; }
-        public BuffEvents Events { get;}
-        public BuffTriggersHandler Triggers { get;}
+        public ushort AbLevel { get; set; } // in 1.2 uint, in 3.0.3.0 ushort
+        public BuffEvents Events { get; }
+        public BuffTriggersHandler Triggers { get; }
 
         public Buff(BaseUnit owner, Unit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
         {

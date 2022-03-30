@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _e;
         private readonly bool _d;
 
-        public SCLeavedTeamPacket(uint teamId, bool e, bool d) : base(SCOffsets.SCLeavedTeamPacket, 1)
+        public SCLeavedTeamPacket(uint teamId, bool e, bool d) : base(SCOffsets.SCLeavedTeamPacket, 5)
         {
             _teamId = teamId;
             _e = e;

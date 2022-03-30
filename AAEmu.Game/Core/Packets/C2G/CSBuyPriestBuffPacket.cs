@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBuyPriestBuffPacket : GamePacket
     {
-        public CSBuyPriestBuffPacket() : base(CSOffsets.CSBuyPriestBuffPacket, 1)
+        public CSBuyPriestBuffPacket() : base(CSOffsets.CSBuyPriestBuffPacket, 5)
         {
         }
 

@@ -31,12 +31,12 @@ namespace AAEmu.Game.Models.Game.World.Xml
 
         private int WorldSectorX()
         {
-            return X + (Parent.X * WorldManager.SECTORS_PER_CELL);
+            return X + Parent.X * WorldManager.SECTORS_PER_CELL;
         }
 
         private int WorldSectorY()
         {
-            return Y + (Parent.Y * WorldManager.SECTORS_PER_CELL);
+            return Y + Parent.Y * WorldManager.SECTORS_PER_CELL;
         }
         
         public override string ToString()

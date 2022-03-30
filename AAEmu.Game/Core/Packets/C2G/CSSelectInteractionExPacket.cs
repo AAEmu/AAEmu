@@ -1,11 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSelectInteractionExPacket : GamePacket
     {
-        public CSSelectInteractionExPacket() : base(CSOffsets.CSSelectInteractionExPacket, 1)
+        public CSSelectInteractionExPacket() : base(CSOffsets.CSSelectInteractionExPacket, 5)
         {
         }
 

@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
@@ -29,20 +27,22 @@ namespace AAEmu.Game.Core.Network.Connections
         private Session _session;
 
         public uint Id => _session.SessionId;
-        public uint AccountId { get; set; }
+        public ulong AccountId { get; set; }
         public IPAddress Ip => _session.Ip;
         public PacketStream LastPacket { get; set; }
-        
+
         public AccountPayment Payment { get; set; }
-        
+
         public int PacketCount { get; set; }
-        
+
         public List<IDisposable> Subscribers { get; set; }
         public GameState State { get; set; }
         public Character ActiveChar { get; set; }
         public readonly Dictionary<uint, Character> Characters;
         public Dictionary<uint, House> Houses;
-        
+        public object WriteLock { get; set; }
+        public object ReadLock { get; set; }
+        public byte LastCount { get; set; }
         public Task LeaveTask { get; set; }
         public DateTime LastPing { get; set; }
 
@@ -50,10 +50,12 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             _session = session;
             Subscribers = new List<IDisposable>();
-            
+
             Characters = new Dictionary<uint, Character>();
             Houses = new Dictionary<uint, House>();
             Payment = new AccountPayment(this);
+            WriteLock = new object();
+            ReadLock = new object();
             // AddAttribute("gmFlag", true);
         }
 
@@ -75,7 +77,7 @@ namespace AAEmu.Game.Core.Network.Connections
         public void OnDisconnect()
         {
             AccountManager.Instance.Remove(AccountId);
-            
+
             if (ActiveChar != null)
                 foreach (var subscriber in ActiveChar.Subscribers)
                     subscriber.Dispose();
@@ -105,9 +107,7 @@ namespace AAEmu.Game.Core.Network.Connections
         {
             Subscribers.Add(disposable);
         }
-
         
-
         public void LoadAccount()
         {
             Characters.Clear();

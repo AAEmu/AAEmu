@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.CashShop;
 
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _pageEnd;
         private readonly CashShopItemDetail _itemDetail;
         
-        public SCICSGoodDetailPacket(bool pageEnd, CashShopItemDetail itemDetail) : base(SCOffsets.SCICSGoodDetailPacket, 1)
+        public SCICSGoodDetailPacket(bool pageEnd, CashShopItemDetail itemDetail) : base(SCOffsets.SCICSGoodsDetailPacket, 5)
         {
             _pageEnd = pageEnd;
             _itemDetail = itemDetail;

@@ -10,14 +10,14 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Doodad[] _doodads;
         public const int MaxCountPerPacket = 30; // Suggested Maximum Size
 
-        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(SCOffsets.SCDoodadsCreatedPacket, 1)
+        public SCDoodadsCreatedPacket(Doodad[] doodads) : base(SCOffsets.SCDoodadsCreatedPacket, 5)
         {
             _doodads = doodads;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write((byte)_doodads.Length);
+            stream.Write((byte)_doodads.Length); // TODO max length 30
             foreach (var doodad in _doodads)
                 doodad.Write(stream);
 

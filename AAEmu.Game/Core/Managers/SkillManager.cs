@@ -308,7 +308,8 @@ namespace AAEmu.Game.Core.Managers
                             template.Id = reader.GetUInt32("id");
                             template.Cost = reader.GetInt32("cost");
                             template.Show = reader.GetBoolean("show", true);
-                            template.FireAnim = AnimationManager.Instance.GetAnimation(reader.GetUInt32("fire_anim_id", 0));
+                            template.FireAnimId = reader.GetUInt32("fire_anim_id", 0);
+                            template.FireAnim = AnimationManager.Instance.GetAnimation(template.FireAnimId);
                             template.AbilityId = reader.GetByte("ability_id");
                             template.ManaCost = reader.GetInt32("mana_cost");
                             template.TimingId = reader.GetInt32("timing_id");
@@ -366,7 +367,7 @@ namespace AAEmu.Game.Core.Managers
                             template.Unmount = reader.GetBoolean("unmount", true);
                             template.DamageTypeId = reader.GetUInt32("damage_type_id", 0);
                             template.AllowToPrisoner = reader.GetBoolean("allow_to_prisoner", true);
-                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                            //template.MilestoneId = reader.GetUInt32("milestone_id", 0); // there is no such field in the database for version 3030
                             template.MatchAnimation = reader.GetBoolean("match_animation", true);
                             template.Plot = reader.IsDBNull("plot_id") ? null : PlotManager.Instance.GetPlot(reader.GetUInt32("plot_id"));
                             template.UseAnimTime = reader.GetBoolean("use_anim_time", true);
@@ -388,22 +389,19 @@ namespace AAEmu.Game.Core.Managers
                             template.DefaultGcd = reader.GetBoolean("default_gcd", true);
                             template.KeepManaRegen = reader.GetBoolean("keep_mana_regen", true);
                             template.CrimePoint = reader.GetInt32("crime_point");
-                            template.LevelRuleNoConsideration =
-                                reader.GetBoolean("level_rule_no_consideration", true);
+                            template.LevelRuleNoConsideration = reader.GetBoolean("level_rule_no_consideration", true);
                             template.UseWeaponCooldownTime = reader.GetBoolean("use_weapon_cooldown_time", true);
                             template.CombatDiceId = reader.GetInt32("combat_dice_id");
                             template.CustomGcd = reader.GetInt32("custom_gcd");
                             template.CancelOngoingBuffs = reader.GetBoolean("cancel_ongoing_buffs", true);
                             template.CancelOngoingBuffExceptionTagId = reader.GetUInt32("cancel_ongoing_buff_exception_tag_id", 0);
-                            template.SourceCannotUseWhileWalk =
-                                reader.GetBoolean("source_cannot_use_while_walk", true);
+                            template.SourceCannotUseWhileWalk = reader.GetBoolean("source_cannot_use_while_walk", true);
                             template.SourceMountMate = reader.GetBoolean("source_mount_mate", true);
                             template.CheckTerrain = reader.GetBoolean("check_terrain", true);
                             template.TargetOnlyWater = reader.GetBoolean("target_only_water", true);
                             template.SourceNotSwim = reader.GetBoolean("source_not_swim", true);
                             template.TargetPreoccupied = reader.GetBoolean("target_preoccupied", true);
-                            template.StopChannelingOnStartSkill =
-                                reader.GetBoolean("stop_channeling_on_start_skill", true);
+                            template.StopChannelingOnStartSkill = reader.GetBoolean("stop_channeling_on_start_skill", true);
                             template.StopCastingByTurn = reader.GetBoolean("stop_casting_by_turn", true);
                             template.TargetMyNpc = reader.GetBoolean("target_my_npc", true);
                             template.GainLifePoint = reader.GetInt32("gain_life_point");
@@ -437,6 +435,7 @@ namespace AAEmu.Game.Core.Managers
                                 Slot = reader.GetByte("slot_index"),
                                 AddToSlot = reader.GetBoolean("add_to_slot", true)
                             };
+                            if (!_defaultSkills.ContainsKey(skill.Template.Id))
                             _defaultSkills.Add(skill.Template.Id, skill);
                         }
                     }
@@ -521,7 +520,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ReflectionRatio = reader.GetInt32("reflection_ratio");
                             template.ReflectionTargetRatio = reader.GetInt32("reflection_target_ratio");
                             template.KnockbackImmune = reader.GetBoolean("knockback_immune");
-                            template.ImmuneBuffTagId = reader.GetUInt32("immune_buff_tag_id", 0);
+                            //template.ImmuneBuffTagId = reader.GetUInt32("immune_buff_tag_id", 0); // there is no such field in the database for version 3030
                             template.AuraRelationId = reader.GetUInt32("aura_relation_id");
                             template.GroupId = reader.GetUInt32("group_id", 0);
                             template.GroupRank = reader.GetInt32("group_rank");
@@ -586,7 +585,7 @@ namespace AAEmu.Game.Core.Managers
                             template.SlaveApplicable = reader.GetBoolean("slave_applicable", true);
                             template.Pacifist = reader.GetBoolean("pacifist", true);
                             template.RemoveOnInteraction = reader.GetBoolean("remove_on_interaction", true);
-                            template.Crime = reader.GetBoolean("crime", true);
+                            //template.Crime = reader.GetBoolean("crime", true); // there is no such field in the database for version 3030
                             template.RemoveOnUnmount = reader.GetBoolean("remove_on_unmount", true);
                             template.AuraChildOnly = reader.GetBoolean("aura_child_only", true);
                             template.RemoveOnMount = reader.GetBoolean("remove_on_mount", true);
@@ -890,7 +889,7 @@ namespace AAEmu.Game.Core.Managers
                             template.ManaStealRatio = reader.GetInt32("mana_steal_ratio");
                             template.DpsMultiplier = reader.GetFloat("dps_multiplier");
                             template.WeaponSlotId = reader.GetInt32("weapon_slot_id");
-                            template.CheckCrime = reader.GetBoolean("check_crime", true);
+                            //template.CheckCrime = reader.GetBoolean("check_crime", true); // there is no such field in the database for version 3030
                             template.HitAnimTimingId = reader.GetUInt32("hit_anim_timing_id");
                             template.UseTargetChargedBuff = reader.GetBoolean("use_target_charged_buff", true);
                             template.TargetChargedBuffId = reader.GetUInt32("target_charged_buff_id", 0);
@@ -1272,15 +1271,18 @@ namespace AAEmu.Game.Core.Managers
                             template.OwnerTypeId = reader.GetUInt32("owner_type_id");
                             template.SubType = reader.GetUInt32("sub_type");
                             template.PosDirId = reader.GetUInt32("pos_dir_id");
-                            template.PosAngle = reader.GetFloat("pos_angle");
-                            template.PosDistance = reader.GetFloat("pos_distance");
+                            //template.PosAngle = reader.GetFloat("pos_angle"); // there is no such field in the database for version 3030
+                            template.PosAngleMax = reader.GetFloat("pos_angle_max"); // added
+                            template.PosAngleMin = reader.GetFloat("pos_angle_min"); // added
+                            template.PosDistanceMax = reader.GetFloat("pos_distance_max"); // added
+                            template.PosDistanceMin = reader.GetFloat("pos_distance_min"); // added
                             template.OriDirId = reader.GetUInt32("ori_dir_id");
                             template.OriAngle = reader.GetFloat("ori_angle");
                             template.UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true);
                             template.LifeTime = reader.GetFloat("life_time");
                             template.DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true);
                             template.UseSummoneerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true);
-                            // TODO 1.2 // template.MateStateId = reader.GetUInt32("mate_state_id", 0);
+                            template.MateStateId = reader.GetUInt32("mate_state_id", 0);
                             _effects["SpawnEffect"].Add(template.Id, template);
                         }
                     }
@@ -1315,7 +1317,6 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText = "SELECT * FROM special_effects";
@@ -1446,7 +1447,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SkillModifier
                             {
-                                Id = reader.GetUInt32("id"),
+                                //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3030
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
                                 TagId = reader.GetUInt32("tag_id", 0),
@@ -1495,7 +1496,7 @@ namespace AAEmu.Game.Core.Managers
                     {
                         while (reader.Read())
                         {
-                            var combatBuffTemplate = new CombatBuffTemplate()
+                            var combatBuffTemplate = new CombatBuffTemplate
                             {
                                 Id = reader.GetUInt32("id"),
                                 HitSkillId = reader.GetUInt32("hit_skill_id", 0),
@@ -1533,17 +1534,32 @@ namespace AAEmu.Game.Core.Managers
                                 _buffTriggers.Add(buffId, new List<BuffTriggerTemplate>());
                             }
                             trigger.Id = reader.GetUInt32("id");
-                            trigger.Kind = (BuffEventTriggerKind)reader.GetUInt16("event_id");
+                            trigger.CheckNoTagSrcInOwner = reader.GetBoolean("check_no_tag_src_in_owner", true);
+                            trigger.CheckNoTagSrcInSource = reader.GetBoolean("check_no_tag_src_in_source", true);
+                            trigger.CheckNoTagSrcInTarget = reader.GetBoolean("check_no_tag_src_in_target", true);
+                            trigger.CheckTagSrcInOwner = reader.GetBoolean("check_tag_src_in_owner", true);
+                            trigger.CheckTagSrcInSource = reader.GetBoolean("check_tag_src_in_source", true);
+                            trigger.CheckTagSrcInTarget = reader.GetBoolean("check_tag_src_in_target", true);
+                            trigger.DelayTime = reader.GetUInt32("delay_time", 0);
                             trigger.Effect = GetEffectTemplate(reader.GetUInt32("effect_id"));
-                            trigger.EffectOnSource = reader.GetBoolean("effect_on_source", true);
-                            trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount", true);
-                            trigger.UseOriginalSource = reader.GetBoolean("use_original_source", true);
+                            trigger.Kind = (BuffEventTriggerKind)reader.GetUInt16("event_id");
+                            trigger.OwnerBuffTagId = reader.GetUInt32("owner_buff_tag_id", 0);
+                            trigger.OwnerNoBuffTagId = reader.GetUInt32("owner_no_buff_tag_id", 0);
+                            trigger.SourceAgentId = reader.GetUInt32("source_agent_id", 0);
+                            trigger.SourceBuffTagId = reader.GetUInt32("source_buff_tag_id", 0);
+                            trigger.SourceNoBuffTagId = reader.GetUInt32("source_no_buff_tag_id", 0);
+                            trigger.TargetAgentId = reader.GetUInt32("target_agent_id", 0);
                             trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                             trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
-                            trigger.Synergy = reader.GetBoolean("synergy", true);
+                            trigger.UseCollisionImpact = reader.GetBoolean("use_collision_impact", true);
+                            trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount", true);
+                            trigger.UseStackCount = reader.GetBoolean("use_stack_count", true);
+                            //trigger.EffectOnSource = reader.GetBoolean("effect_on_source", true); // there is no such field in the database for version 3030
+                            //trigger.UseOriginalSource = reader.GetBoolean("use_original_source", true); // there is no such field in the database for version 3030
+                            //trigger.Synergy = reader.GetBoolean("synergy", true); // there is no such field in the database for version 3030
 
                             //Apparently this is possible..
-                            if(trigger.Effect != null)
+                            if (trigger.Effect != null)
                             {
                                 _buffTriggers[buffId].Add(trigger);
                             }
@@ -1608,7 +1624,7 @@ namespace AAEmu.Game.Core.Managers
                 if (!skillTemplate.NeedLearn || skillTemplate.AbilityId == 0 || skillTemplate.AbilityLevel > 1 ||
                     !skillTemplate.Show)
                     continue;
-                var ability = (AbilityType) skillTemplate.AbilityId;
+                var ability = (AbilityType)skillTemplate.AbilityId;
                 if (!_startAbilitySkills.ContainsKey(ability))
                     _startAbilitySkills.Add(ability, new List<SkillTemplate>());
                 _startAbilitySkills[ability].Add(skillTemplate);

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _charId;
         private readonly string _newName;
         
-        public SCFamilyMemberNameChangedPacket(uint familyId, uint charId, string newName) : base(SCOffsets.SCFamilyMemberNameChangedPacket, 1)
+        public SCFamilyMemberNameChangedPacket(uint familyId, uint charId, string newName) : base(SCOffsets.SCFamilyMemberNameChangedPacket, 5)
         {
             _familyId = familyId;
             _charId = charId;

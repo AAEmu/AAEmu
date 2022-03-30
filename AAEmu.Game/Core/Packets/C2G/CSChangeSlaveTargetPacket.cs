@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSChangeSlaveTargetPacket : GamePacket
     {
-        public CSChangeSlaveTargetPacket() : base(CSOffsets.CSChangeSlaveTargetPacket, 1)
+        public CSChangeSlaveTargetPacket() : base(CSOffsets.CSChangeSlaveTargetPacket, 5)
         {
         }
 

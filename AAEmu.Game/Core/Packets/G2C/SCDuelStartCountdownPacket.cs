@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     public class SCDuelStartCountdownPacket : GamePacket
     {
 
-        public SCDuelStartCountdownPacket() : base(SCOffsets.SCDuelStartCountdownPacket, 1)
+        public SCDuelStartCountdownPacket() : base(SCOffsets.SCDuelStartCountdownPacket, 5)
         {
         }
 

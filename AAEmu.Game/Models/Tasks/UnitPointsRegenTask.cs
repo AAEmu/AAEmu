@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Tasks
 
         public override void Execute()
         {
-            if (_unit.Hp < _unit.MaxHp && _unit.Hp>0)
+            if (_unit.Hp < _unit.MaxHp && _unit.Hp > 0)
                 _unit.Hp += _unit.HpRegen; // TODO at battle _unit.PersistentHpRegen
             if (_unit.Mp < _unit.MaxMp && _unit.Hp > 0)
                 _unit.Mp += _unit.MpRegen; // TODO at battle _unit.PersistentMpRegen

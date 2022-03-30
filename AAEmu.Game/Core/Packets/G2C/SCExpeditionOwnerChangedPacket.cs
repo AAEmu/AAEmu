@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id2;
         private readonly string _charName;
 
-        public SCExpeditionOwnerChangedPacket(uint id, uint id2, string charName) : base(SCOffsets.SCExpeditionOwnerChangedPacket, 1)
+        public SCExpeditionOwnerChangedPacket(uint id, uint id2, string charName) : base(SCOffsets.SCExpeditionOwnerChangedPacket, 5)
         {
             _id = id;
             _id2 = id2;

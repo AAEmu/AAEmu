@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils.DB;
 
@@ -25,6 +26,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
         private float _scale;
+        public byte Flag { get; set; }
         public uint TemplateId { get; set; }
         public uint DbId { get; set; }
         public bool IsPersistent { get; set; } = false;
@@ -42,6 +44,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public uint ParentObjId { get; set; }
         public DoodadOwnerType OwnerType { get; set; }
         public AttachPointKind AttachPoint { get; set; }
+        public Point AttachPosition { get; set; }
         public uint DbHouseId { get; set; }
         public int Data { get; set; }
         public uint QuestGlow { get; set; } //0 off // 1 on
@@ -53,8 +56,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public int OverridePhase { get; set; }
         private bool _deleted = false;
         public VehicleSeat Seat { get; set; }
-        private List<uint> ListGroupId { get; set; }
+        public List<uint> ListGroupId { get; set; }
         private List<uint> ListFuncGroupId { get; set; }
+        public DateTime FreshnessTime { get; set; }
 
         public Doodad()
         {
@@ -86,12 +90,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 _log.Trace("Use: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
 
-                var stop = DoPhaseFuncs(caster, (int)FuncGroupId); // 276
+                var stop = DoPhaseFuncs(caster, (int)FuncGroupId);
                 if (stop)
                 {
                     // не прошли проверку условий для квестов
                     ListFuncGroupId = new List<uint>();
-                    _log.Debug("Use: Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Trace("Use: Did not pass the conditions check! TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
@@ -99,7 +103,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 if (func == null)
                 {
                     ListFuncGroupId = new List<uint>();
-                    _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Trace("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
@@ -108,11 +112,11 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     ListFuncGroupId.Add(FuncGroupId); // для проверки CheckPhase()
                 }
 
-                func.Use(caster, this, skillId); // 276
+                func.Use(caster, this, skillId, func.NextPhase);
                 if (func.NextPhase <= 0)
                 {
                     ListFuncGroupId = new List<uint>();
-                    _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Trace("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
@@ -128,7 +132,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 {
                     // закончились функции
                     ListFuncGroupId = new List<uint>();
-                    _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Trace("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 }
 
@@ -136,7 +140,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 if (CheckFunc((uint)func.NextPhase))
                 {
                     ListFuncGroupId = new List<uint>();
-                    _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                    _log.Trace("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
                     return;
                 } // проверяем на 1)278-false, 2)276-true
 
@@ -230,17 +234,17 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 if (nextPhase <= 0) { return false; }
 
                 _log.Trace("DoPhaseFuncs: [0] TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
-                FuncGroupId = (uint)nextPhase;
                 // проверка на зацикливание
                 if (CheckPhase((uint)nextPhase))
                 {
                     ListGroupId = new List<uint>();
                     return false;
                 }
-                if (!ListGroupId.Contains(FuncGroupId))
+                if (!ListGroupId.Contains((uint)nextPhase))
                 {
-                    ListGroupId.Add(FuncGroupId); // для проверки CheckPhase()
+                    ListGroupId.Add((uint)nextPhase); // для проверки CheckPhase()
                 }
+                FuncGroupId = (uint)nextPhase;
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
                 var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(FuncGroupId);
                 if (phaseFuncs.Length == 0)
@@ -336,11 +340,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public PacketStream Write(PacketStream stream)
         {
             stream.WriteBc(ObjId); //The object # in the list
-            stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
+            // TemplateId - The template id needed for that object, the client then uses the template configurations, not the server
+            // CurrentPhaseId / FuncGroupId - doodad_func_group_id
+            // QuestGlow - When this is higher than 0 it shows a blue orb over the doodad
+            stream.WritePisc(TemplateId, FuncGroupId, 0, QuestGlow);
+
+            stream.Write(Flag);
             stream.WriteBc(OwnerObjId); //The creator of the object
             stream.WriteBc(ParentObjId); //Things like boats or cars,
             stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
-            if ((AttachPoint > 0) || (ParentObjId > 0))
+            if (AttachPoint > 0 || ParentObjId > 0)
             {
                 stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
                 var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
@@ -357,27 +366,33 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 stream.Write(yaw);
             }
 
-            stream.Write(Scale); //The size of the object
-            stream.Write(false); // hasLootItem
-            stream.Write(FuncGroupId); // doodad_func_group_id
-            stream.Write(OwnerId); // characterId (Database relative)
-            stream.Write(UccId);
-            stream.Write(ItemTemplateId);
-            stream.Write(0u); //??type2
-            stream.Write(TimeLeft); // growing
-            stream.Write(PlantTime); //Time stamp of when it was planted
-            stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
-            stream.Write(0); // family TODO
-            stream.Write(-1); // puzzleGroup /for instances maybe?
+            stream.Write(Scale);           //The size of the object
+            stream.Write(OwnerId);         // characterId
+            stream.Write(UccId);           // type(id)
+            stream.Write(ItemTemplateId);  // type(id)
+            stream.Write(TimeLeft);        // growing
+            stream.Write(PlantTime);       // plantTime
+            stream.Write(0);               // family
+            stream.Write(-1);              // puzzleGroup
             stream.Write((byte)OwnerType); // ownerType
             stream.Write(DbHouseId); // dbHouseId
-            stream.Write(Data); // data
+            stream.Write(Data);            // data
+            stream.Write(Data);            // data2
+            if (Flag == 3 || Flag == 8)
+            {
+                stream.Write(FreshnessTime); // freshnessTime
+                stream.Write((uint)0);       // type
+                stream.Write((short)0);      // type
+            }
+            stream.Write(0u);              // type
+            stream.Write(0u);              // type
 
             return stream;
         }
 
         public override void Delete()
         {
+            _log.Trace("Delete: deleted doodad TemplateId {0}, ObjId {1}", TemplateId, ObjId);
             base.Delete();
             _deleted = true;
 
@@ -398,15 +413,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 
         public void Save()
         {
-            if (!IsPersistent)
-                return;
+            if (!IsPersistent) return;
+
             DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
                 {
                     var parentDoodadId = 0u;
-                    if ((Transform?.Parent?.GameObject is Doodad pDoodad) && (pDoodad.DbId > 0))
+                    if (Transform?.Parent?.GameObject is Doodad pDoodad && pDoodad.DbId > 0)
                         parentDoodadId = pDoodad.DbId;
 
                     command.CommandText =

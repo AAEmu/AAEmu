@@ -5,22 +5,22 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartQuestContextPacket : GamePacket
     {
-        private uint _questContextId;
-        private uint _npcObjId;
-        private uint _doodadObjId;
-        private uint _sphereId;
-        public CSStartQuestContextPacket() : base(CSOffsets.CSStartQuestContextPacket, 1)
+        public CSStartQuestContextPacket() : base(CSOffsets.CSStartQuestContextPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            _questContextId = stream.ReadUInt32(); // questContextId
-            _npcObjId = stream.ReadBc();           // npcObjId
-            _doodadObjId = stream.ReadBc();        // doodadObjId
-            _sphereId = stream.ReadUInt32();       // selected
+            var questId = stream.ReadUInt32();
+            var objId = stream.ReadBc();
+            var objId2 = stream.ReadBc();
+            var type = stream.ReadUInt32();
 
-            Connection.ActiveChar.Quests.Add(_questContextId);
+            if (objId > 0 &&
+                Connection.ActiveChar.CurrentTarget != null &&
+                Connection.ActiveChar.CurrentTarget.ObjId != objId)
+                return;
+            Connection.ActiveChar.Quests.Add(questId);
         }
     }
 }

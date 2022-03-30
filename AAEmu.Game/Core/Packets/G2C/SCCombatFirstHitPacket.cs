@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _huId;
         private readonly uint _htId;
         
-        public SCCombatFirstHitPacket(uint vuId, uint huId, uint htId) : base(SCOffsets.SCCombatFirstHitPacket, 1)
+        public SCCombatFirstHitPacket(uint vuId, uint huId, uint htId) : base(SCOffsets.SCCombatFirstHitPacket, 5)
         {
             _vuId = vuId;
             _huId = huId;
@@ -21,6 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.WriteBc(_vuId);
             stream.WriteBc(_huId);
             stream.Write(_htId);
+
             return stream;
         }
     }

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSAcceptCheatQuestContextPacket : GamePacket
     {
-        public CSAcceptCheatQuestContextPacket() : base(CSOffsets.CSAcceptCheatQuestContextPacket, 1)
+        public CSAcceptCheatQuestContextPacket() : base(CSOffsets.CSAcceptCheatQuestContextPacket, 5)
         {
         }
 

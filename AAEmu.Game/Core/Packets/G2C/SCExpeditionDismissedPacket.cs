@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _id;
         private readonly bool _success;
 
-        public SCExpeditionDismissedPacket(uint id, bool success) : base(SCOffsets.SCExpeditionDismissedPacket, 1)
+        public SCExpeditionDismissedPacket(uint id, bool success) : base(SCOffsets.SCExpeditionDismissedPacket, 5)
         {
             _id = id;
             _success = success;

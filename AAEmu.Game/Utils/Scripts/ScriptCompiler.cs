@@ -95,7 +95,7 @@ namespace AAEmu.Game.Utils.Scripts
             }
 
             assembly = assemblyResult;
-            return (assemblyResult != null) && (isOk);
+            return assemblyResult != null && isOk;
         }
 
         private static bool Display(ImmutableArray<Diagnostic> diagnostics)

@@ -9,12 +9,12 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly CastAction _castAction;
         private readonly SkillCaster _skillCaster;
         private readonly uint _targetId;
+        private readonly int _value;
         private readonly byte _healType;
         private readonly byte _healHitType;
-        private readonly int _value;
-        
+
         public SCUnitHealedPacket(CastAction castAction, SkillCaster skillCaster, uint targetId, byte healType, byte healHitType, int value) 
-            : base(SCOffsets.SCUnitHealedPacket, 1)
+            : base(SCOffsets.SCUnitHealedPacket, 5)
         {
             _castAction = castAction;
             _skillCaster = skillCaster;
@@ -28,12 +28,13 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_castAction);
             stream.Write(_skillCaster);
-            stream.WriteBc(_targetId);
-            stream.Write(_healType); // h
-            stream.Write(_healHitType); // h
-            stream.Write(_value); // a
-            stream.Write(0); // o
-            stream.Write((byte)1); // result -> to debug into
+            stream.WriteBc(_targetId);  // t arget
+            stream.Write(_healType);    // h eal
+            stream.Write(_healHitType); // h eal
+            stream.Write(_value);       // a 
+            stream.Write(0);            // o 
+            stream.Write(false);        // c         add in 3.5.0.3
+            stream.Write((byte)1);      // result -> to debug into
             return stream;
         }
     }

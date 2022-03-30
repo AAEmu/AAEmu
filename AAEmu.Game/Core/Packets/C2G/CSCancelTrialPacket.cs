@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCancelTrialPacket : GamePacket
     {
-        public CSCancelTrialPacket() : base(CSOffsets.CSCancelTrialPacket, 1)
+        public CSCancelTrialPacket() : base(CSOffsets.CSCancelTrialPacket, 5)
         {
         }
 

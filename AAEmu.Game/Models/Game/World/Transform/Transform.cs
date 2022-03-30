@@ -250,7 +250,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             lock (_lock)
             {
 
-                if ((parent == null) || (!parent.Equals(_parentTransform)))
+                if (parent == null || !parent.Equals(_parentTransform))
                 {
                     if (_parentTransform != null)
                         _parentTransform.InternalDetachChild(this);
@@ -259,7 +259,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     {
                         var oldS = "<null>";
                         var newS = "<null>";
-                        if ((_parentTransform != null) && (_parentTransform._owningObject is BaseUnit oldParentUnit))
+                        if (_parentTransform != null && _parentTransform._owningObject is BaseUnit oldParentUnit)
                         {
                             oldS = oldParentUnit.Name;
                             if (oldS == string.Empty)
@@ -267,7 +267,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                             oldS += " (" + oldParentUnit.ObjId + ")";
                         }
 
-                        if ((parent != null) && (parent._owningObject is BaseUnit newParentUnit))
+                        if (parent != null && parent._owningObject is BaseUnit newParentUnit)
                         {
                             newS = newParentUnit.Name;
                             if (newS == string.Empty)
@@ -275,8 +275,8 @@ namespace AAEmu.Game.Models.Game.World.Transform
                             newS += " (" + newParentUnit.ObjId + ")";
                         }
 
-                        if ((_owningObject is Character player) &&
-                            (_parentTransform?._owningObject != parent?._owningObject))
+                        if (_owningObject is Character player &&
+                            _parentTransform?._owningObject != parent?._owningObject)
                             player.SendMessage("|cFF88FF88Changing parent - {0} => {1}|r", oldS, newS);
                         // Console.WriteLine("Transform {0} - Changing parent - {1} => {2}", GameObject?.ObjId.ToString() ?? "<null>", oldS, newS);
                     }
@@ -286,7 +286,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                     if (_parentTransform != null)
                         _parentTransform.InternalAttachChild(this);
 
-                    if ((_owningObject is Character aPlayer))
+                    if (_owningObject is Character aPlayer)
                         aPlayer.SendMessage("NewPos: {0}", this.ToFullString(true, true));
                 }
             }
@@ -489,7 +489,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
             var chatColorRestore = chatFormatted ? "|r" : "";
             var chatLineFeed = chatFormatted ? "\n" : "";
             var res = string.Empty;
-            if (isFirstInList && ((_parentTransform != null) || (_stickyParentTransform != null)))
+            if (isFirstInList && (_parentTransform != null || _stickyParentTransform != null))
                 res += "[" + chatColorWhite + World.ToString() + chatColorRestore + "] " + chatLineFeed + "=> "; 
             res += Local.ToString();
             if (_parentTransform != null)
@@ -530,13 +530,13 @@ namespace AAEmu.Game.Models.Game.World.Transform
         public bool AttachStickyTransform(Transform stickyChild)
         {
             // NUll-check
-            if ((stickyChild == null) || (stickyChild.GameObject == null))
+            if (stickyChild == null || stickyChild.GameObject == null)
                 return false;
             // Check if already there
             if (StickyChildren.Contains(stickyChild))
                 return false;
             // Check if in the same world
-            if ((stickyChild.WorldId != this.WorldId) || (stickyChild.InstanceId != this.InstanceId))
+            if (stickyChild.WorldId != this.WorldId || stickyChild.InstanceId != this.InstanceId)
                 return false;
             StickyChildren.Add(stickyChild);
             stickyChild._stickyParentTransform = this;
@@ -563,14 +563,14 @@ namespace AAEmu.Game.Models.Game.World.Transform
 
                 var oldParent = _stickyParentTransform;
                 // Detach from previous sticky parent if needed 
-                if ((_stickyParentTransform != null) && (!_stickyParentTransform.Equals(stickyParent)))
+                if (_stickyParentTransform != null && !_stickyParentTransform.Equals(stickyParent))
                     _stickyParentTransform.DetachStickyTransform(this);
 
                 if (oldParent != stickyParent)
                 {
                     var oldS = "<null>";
                     var newS = "<null>";
-                    if ((oldParent != null) && (oldParent._owningObject is BaseUnit oldParentUnit))
+                    if (oldParent != null && oldParent._owningObject is BaseUnit oldParentUnit)
                     {
                         oldS = oldParentUnit.Name;
                         if (oldS == string.Empty)
@@ -578,7 +578,7 @@ namespace AAEmu.Game.Models.Game.World.Transform
                         oldS += " (" + oldParentUnit.ObjId + ")";
                     }
 
-                    if ((stickyParent != null) && (stickyParent._owningObject is BaseUnit newParentUnit))
+                    if (stickyParent != null && stickyParent._owningObject is BaseUnit newParentUnit)
                     {
                         newS = newParentUnit.Name;
                         if (newS == string.Empty)

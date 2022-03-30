@@ -6,15 +6,16 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRequestHouseTaxPacket : GamePacket
     {
-        public CSRequestHouseTaxPacket() : base(CSOffsets.CSRequestHouseTaxPacket, 1)
+        public CSRequestHouseTaxPacket() : base(CSOffsets.CSRequestHouseTaxPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
             var tl = stream.ReadUInt16();
+            var objId = stream.ReadBc();
 
-            _log.Debug("RequestHouseTax, Tl: {0}", tl);
+            _log.Debug("RequestHouseTax, Tl: {0}, objId: {1}", tl, objId);
             
             HousingManager.Instance.HouseTaxInfo(Connection, tl);
         }

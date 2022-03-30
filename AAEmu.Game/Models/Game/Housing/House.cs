@@ -1,20 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils.DB;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Housing
@@ -36,7 +36,7 @@ namespace AAEmu.Game.Models.Game.Housing
         private int _currentStep;
         private int _allAction;
         private uint _id;
-        private uint _accountId;
+        private ulong _accountId;
         private uint _coOwnerId;
         private uint _templateId;
         private int _baseAction;
@@ -55,10 +55,16 @@ namespace AAEmu.Game.Models.Game.Housing
         /// </summary>
         public bool IsDirty { get => _isDirty; set => _isDirty = value; }
         public uint Id { get => _id; set { _id = value; _isDirty = true; } }
-        public uint AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
+        public ulong AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
+        public int Ht { get; set; }
         public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
         //public ushort TlId { get; set; }
         public uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
+        public string SellToName { get; set; }
+        public int DecoLimit { get; set; }
+        public int ExpandedDecoLimit { get; set; }
+        public int PayMoneyAmount { get; set; }
+        public bool IsPublic { get; set; }
         public HousingTemplate Template
         {
             get => _template;
@@ -117,14 +123,14 @@ namespace AAEmu.Game.Models.Game.Housing
         public HousingPermission Permission
         {
             get => _permission;
-            set { _permission = ((_template != null) && (_template.AlwaysPublic)) ? HousingPermission.Public : value ; _isDirty = true; }
+            set { _permission = _template != null && _template.AlwaysPublic ? HousingPermission.Public : value; _isDirty = true; }
         }
 
         public DateTime PlaceDate { get => _placeDate; set { _placeDate = value; _isDirty = true; } }
         public DateTime ProtectionEndDate { get => _protectionEndDate; set { _protectionEndDate = value; _isDirty = true; } }
         public DateTime TaxDueDate { get => _protectionEndDate.AddDays(-7); }
         public uint SellToPlayerId { get => _sellToPlayerId; set { _sellToPlayerId = value; _isDirty = true; } }
-        public uint SellPrice { get => _sellPrice ; set { _sellPrice = value; _isDirty = true; } }
+        public uint SellPrice { get => _sellPrice; set { _sellPrice = value; _isDirty = true; } }
         public bool AllowRecover { get => _allowRecover; set { _allowRecover = value; _isDirty = true; } }
 
 
@@ -134,7 +140,7 @@ namespace AAEmu.Game.Models.Game.Housing
             ModelParams = new UnitCustomModelParams();
             AttachedDoodads = new List<Doodad>();
             IsDirty = true;
-            Events.OnDeath += OnDeath ;
+            Events.OnDeath += OnDeath;
         }
 
         public void AddBuildAction()
@@ -206,7 +212,7 @@ namespace AAEmu.Game.Models.Game.Housing
                 Array.Copy(doodads, i, temp, 0, temp.Length);
                 character.SendPacket(new SCDoodadsCreatedPacket(temp));
             }
-            
+
             base.AddVisibleObject(character);
         }
 
@@ -238,7 +244,7 @@ namespace AAEmu.Game.Models.Game.Housing
         {
             if (!IsDirty)
                 return false;
-            if ((AccountId <= 0) || (OwnerId <= 0))
+            if (AccountId <= 0 || OwnerId <= 0)
                 return false; // recently destroyed/expired house
             using (var command = connection.CreateCommand())
             {
@@ -284,40 +290,33 @@ namespace AAEmu.Game.Models.Game.Housing
         public PacketStream Write(PacketStream stream)
         {
             var ownerName = NameManager.Instance.GetCharacterName(OwnerId);
-            var sellToPlayerName = NameManager.Instance.GetCharacterName(SellToPlayerId);
 
-            stream.Write(TlId);
-            stream.Write(Id); // dbId
-            stream.WriteBc(ObjId);
-            stream.Write(TemplateId);
-            stream.WritePisc(ModelId, 0);
-            //stream.Write(ModelId); // ht
-            stream.Write(CoOwnerId); // type(id)
-            stream.Write(OwnerId); // type(id)
-            stream.Write(ownerName ?? "");
-            stream.Write(AccountId);
-            stream.Write((byte)Permission);
+            stream.Write(TlId);             // tl
+            stream.Write(Id);               // dbId
+            stream.WriteBc(ObjId);          // bc
 
             if (CurrentStep == -1)
-            {
-                stream.Write(0);
-                stream.Write(0);
-            }
+                stream.WritePisc(TemplateId, 0, 0, 0);
             else
-            {
-                stream.Write(AllAction); // allstep
-                stream.Write(CurrentAction); // curstep
-            }
-            
-            stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
+                stream.WritePisc(TemplateId, AllAction, CurrentAction, PayMoneyAmount);
+
+            stream.Write(Ht);               // ht
+            stream.Write(CoOwnerId);        // type(id)
+            stream.Write(OwnerId);          // type(id)
+            stream.Write(ownerName ?? "");
+            stream.Write(AccountId);        // accountId
+            stream.Write((byte)Permission); // permission
             stream.Write(Helpers.ConvertLongX(Transform.World.Position.X));
             stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
             stream.Write(Transform.World.Position.Z);
-            stream.Write(Name); // house // TODO max length 128
-            stream.Write(true); // allowRecover
-            stream.Write(SellPrice); // Sale moneyAmount
-            stream.Write(SellToPlayerId); // type(id)
-            stream.Write(sellToPlayerName??""); // sellToName
+            stream.Write(Template.Name);     // house // TODO max length 128
+            stream.Write(AllowRecover);      // allowRecover
+            stream.Write(0u);                // type(id)
+            stream.Write(SellToName ?? "");  // sellToName
+            stream.Write(ExpandedDecoLimit); // expandedDecoLimit
+            stream.Write(Template.MainModelId); // model_id (type) не точно!
+            stream.Write(IsPublic);          // isPublic
+
             return stream;
         }
 
@@ -335,9 +334,9 @@ namespace AAEmu.Game.Models.Game.Housing
                 return true;
             switch (Permission)
             {
-                case HousingPermission.Private when (player.Id != OwnerId):
-                case HousingPermission.Family when (player.Family != CoOwnerId):
-                case HousingPermission.Guild when (player.Expedition.Id != CoOwnerId):
+                case HousingPermission.Private when player.Id != OwnerId:
+                case HousingPermission.Family when player.Family != CoOwnerId:
+                case HousingPermission.Guild when player.Expedition.Id != CoOwnerId:
                     return false;
                 default:
                     return true;

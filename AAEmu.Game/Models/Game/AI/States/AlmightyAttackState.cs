@@ -123,10 +123,10 @@ namespace AAEmu.Game.Models.Game.AI.States
 
             _sequenceIndex++;
 
-            var hpPercent = (Npc.Hp / (float)Npc.MaxHp) * 100.0f;
+            var hpPercent = Npc.Hp / (float)Npc.MaxHp * 100.0f;
 
-            if ((hpPercent < aiSkill.HealthRangeMin && aiSkill.HealthRangeMin != 0) 
-                || (hpPercent > aiSkill.HealthRangeMax && aiSkill.HealthRangeMax != 0))
+            if (hpPercent < aiSkill.HealthRangeMin && aiSkill.HealthRangeMin != 0 
+                || hpPercent > aiSkill.HealthRangeMax && aiSkill.HealthRangeMax != 0)
                 return null;
 
             if (aiSkill.Dice > 0 && Rand.Next(0, 1000) > aiSkill.Dice)

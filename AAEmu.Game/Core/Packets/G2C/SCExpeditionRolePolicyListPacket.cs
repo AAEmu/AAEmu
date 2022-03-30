@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly List<ExpeditionRolePolicy> _rolePolicies;
         
-        public SCExpeditionRolePolicyListPacket(List<ExpeditionRolePolicy> rolePolicies) : base(SCOffsets.SCExpeditionRolePolicyListPacket, 1)
+        public SCExpeditionRolePolicyListPacket(List<ExpeditionRolePolicy> rolePolicies) : base(SCOffsets.SCExpeditionRolePolicyListPacket, 5)
         {
             _rolePolicies = rolePolicies;
         }
@@ -18,7 +18,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write((byte)_rolePolicies.Count);
             foreach (var rolePolicy in _rolePolicies) // TODO max length 20
+            {
                 stream.Write(rolePolicy);
+            }
             return stream;
         }
     }

@@ -6,14 +6,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRefreshInCharacterListPacket : GamePacket
     {
-        public CSRefreshInCharacterListPacket() : base(CSOffsets.CSRefreshInCharacterListPacket, 1)
+        public CSRefreshInCharacterListPacket() : base(CSOffsets.CSRefreshInCharacterListPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
             _log.Debug("RefreshInCharacterList");
-            Connection.SendPacket(new SCRefreshInCharacterListPacket());
+            Connection.SendPacket(new SCRaceCongestionPacket());
         }
     }
 }

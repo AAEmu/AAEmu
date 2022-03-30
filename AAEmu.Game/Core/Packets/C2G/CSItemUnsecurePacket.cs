@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Items;
 
@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSItemUnsecurePacket : GamePacket
     {
-        public CSItemUnsecurePacket() : base(CSOffsets.CSItemUnsecurePacket, 1)
+        public CSItemUnsecurePacket() : base(CSOffsets.CSItemUnsecurePacket, 5)
         {
         }
 

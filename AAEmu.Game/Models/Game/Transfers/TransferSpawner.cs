@@ -77,7 +77,7 @@ namespace AAEmu.Game.Models.Game.Transfers
 
                     transfer.TransferPath = transfer.Routes.Count > 0 ? transfer.Routes[0] : null;// начнем с самого начала
 
-                    if ((transfer.TransferPath != null) && (transfer.TransferPath.Count >= 2))
+                    if (transfer.TransferPath != null && transfer.TransferPath.Count >= 2)
                     {
                         //_log.Warn("TransfersPath #" + transfer.TemplateId);
                         //_log.Warn("First spawn myX=" + transfer.Position.X + " myY=" + transfer.Position.Y + " myZ=" + transfer.Position.Z + " rotZ=" + transfer.Rot.Z + " rotationZ=" + transfer.Position.RotationZ);
@@ -144,7 +144,7 @@ namespace AAEmu.Game.Models.Game.Transfers
         {
             _spawnCount--;
             _spawned.Remove(transfer);
-            if (RespawnTime > 0 && (_spawnCount + _scheduledCount) < Count)
+            if (RespawnTime > 0 && _spawnCount + _scheduledCount < Count)
             {
                 transfer.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
                 SpawnManager.Instance.AddRespawn(transfer);

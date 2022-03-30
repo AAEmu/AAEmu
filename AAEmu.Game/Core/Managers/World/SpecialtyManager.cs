@@ -108,11 +108,12 @@ namespace AAEmu.Game.Core.Managers.World
                         while (reader.Read())
                         {
                             var template = new SpecialtyNpc();
-                            template.Id = reader.GetUInt32("id");
-                            template.Name = reader.GetString("name");
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3030
+                            //template.Name = reader.GetString("name"); // there is no such field in the database for version 3030
                             template.NpcId = reader.GetUInt32("npc_id");
                             template.SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id");
                             
+                            if (!_specialtyNpc.ContainsKey(template.NpcId))
                             _specialtyNpc.Add(template.NpcId, template);
                         }
                     }
@@ -227,20 +228,20 @@ namespace AAEmu.Game.Core.Managers.World
             // Our backpack isn't null, we have the NPC, time to calculate the profits
 
             // TODO: Get crafter ID of tradepack
-            uint crafterId = backpack.MadeUnitId != player.Id ? backpack.MadeUnitId : 0 ;
+            var crafterId = backpack.MadeUnitId != player.Id ? backpack.MadeUnitId : 0;
             var sellerShare = 0.80f; // 80% default, set this to 1f for packs that don't share profit
 
             var interestRate = 5;
 
-            var finalPriceNoInterest = (basePrice * (priceRatio / 100f));
-            var interest = (finalPriceNoInterest * (interestRate / 100f));
+            var finalPriceNoInterest = basePrice * (priceRatio / 100f);
+            var interest = finalPriceNoInterest * (interestRate / 100f);
             var amountBonus = 0; // TODO: negotiation bonus
-            var finalPrice = finalPriceNoInterest + interest + amountBonus ;
+            var finalPrice = finalPriceNoInterest + interest + amountBonus;
 
 
             var itemTypeToDeliver = npc.Template.SpecialtyCoinId;
             var amountOfItemsTotalPayout = (int)Math.Round(finalPrice);
-            var amountOfItemsSeller = amountOfItemsTotalPayout ;
+            var amountOfItemsSeller = amountOfItemsTotalPayout;
             var amountOfItemsCrafter = 0;
             var amountOfItemsBase = basePrice;
 
@@ -260,7 +261,7 @@ namespace AAEmu.Game.Core.Managers.World
             var fsets = new Models.Game.Features.FeatureSet();
 
             // Split up the profit if needed
-            if ((crafterId != 0) && (crafterId != player.Id) && fsets.Check(Models.Game.Features.Feature.backpackProfitShare))
+            if (crafterId != 0 && crafterId != player.Id && fsets.Check(Models.Game.Features.Feature.backpackProfitShare))
             {
                 amountOfItemsSeller = (int)Math.Round(amountOfItemsTotalPayout * sellerShare);
                 amountOfItemsCrafter = amountOfItemsTotalPayout - amountOfItemsSeller;
@@ -279,7 +280,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
 
             // Mail for crafter. If seller is not crafter, send a crafter mail as well
-            if ((amountOfItemsCrafter > 0) && (crafterId != 0))
+            if (amountOfItemsCrafter > 0 && crafterId != 0)
             {
                 var crafterMail = new MailForSpeciality(player, crafterId, backpack.TemplateId, priceRatio, itemTypeToDeliver, amountOfItemsBase, amountBonus, amountOfItemsSeller, amountOfItemsCrafter, interestRate);
                 crafterMail.FinalizeForCrafter();

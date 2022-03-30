@@ -35,7 +35,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     if (owner.DbHouseId > 0)
                     {
                         var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);
-                        if ((house != null) && (!house.AllowedToInteract(character)))
+                        if (house != null && !house.AllowedToInteract(character))
                         {
                             character.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
                             return;
@@ -69,7 +69,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 _log.Warn("DoodadFuncRecoverItem: Doodad {0} has no item information attached to it", owner.InstanceId);
             }
 
-            if ((addedItem) && (item != null) && (item._holdingContainer.ContainerType == SlotType.Equipment))
+            if (addedItem && item != null && item._holdingContainer.ContainerType == SlotType.Equipment)
                 character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId,(byte)item.Slot,item), false);
         }
     }

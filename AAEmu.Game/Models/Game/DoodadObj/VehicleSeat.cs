@@ -94,7 +94,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 spot = -1;
             }
             
-            if ((spot != -1) && (_parent is Transfer transfer))
+            if (spot != -1 && _parent is Transfer transfer)
                 if (!transfer.AttachedCharacters.Contains(character))
                     transfer.AttachedCharacters.Add(character);
 

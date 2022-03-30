@@ -60,7 +60,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
 
         private List<BigMonsterCombatSkill> RequestAvailableSkills(BigMonsterAiParams aiParams, float trgDist)
         {
-            int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
+            int healthRatio = (int)((float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100);
             
             var baseList = aiParams.CombatSkills.AsEnumerable();
 
@@ -69,7 +69,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.BigMonster
             baseList = baseList.Where(s =>
             {
                 var template = SkillManager.Instance.GetSkillTemplate(s.SkillType);
-                return (template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self));
+                return template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
             });
 
             return baseList.ToList();

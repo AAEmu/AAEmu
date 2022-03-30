@@ -54,11 +54,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 var lvlMd = caster.LevelDps * LevelMd;
                 var levelModifier = (( (source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
             
-                levelMin += (lvlMd - levelModifier * lvlMd) + 0.5f;
+                levelMin += lvlMd - levelModifier * lvlMd + 0.5f;
                 levelMax += (levelModifier + 1) * lvlMd + 0.5f;
             }
 
-            max += ((caster.HDps * 0.001f) * DpsMultiplier);
+            max += caster.HDps * 0.001f * DpsMultiplier;
             
             var minCastBonus = 1000f;
             // Hack null-check on skill
@@ -68,7 +68,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             else
                 minCastBonus = castTimeMod;
 
-            var variableDamage = (max * minCastBonus * 0.001f);
+            var variableDamage = max * minCastBonus * 0.001f;
             min = variableDamage + levelMin;
             max = variableDamage + levelMax;
 
@@ -98,7 +98,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             if (criticalHeal)
             {
-                value = (int)(value * (1 + (caster.HealCriticalBonus / 100)));
+                value = (int)(value * (1 + caster.HealCriticalBonus / 100));
                 caster.CombatBuffs.TriggerCombatBuffs(caster, trg, SkillHitType.SpellCritical, true);
             }
 
@@ -109,7 +109,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 value = Rand.Next(FixedMin, FixedMax);
                 if (source.Buff != null && source.IsTrigger)
                 {
-                    value = (int)((value / 1000.0f) * source.Amount);
+                    value = (int)(value / 1000.0f * source.Amount);
                 } else 
                     value = (int) (value * tickModifier);
             }

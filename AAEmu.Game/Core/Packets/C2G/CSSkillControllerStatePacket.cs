@@ -1,11 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSkillControllerStatePacket : GamePacket
     {
-        public CSSkillControllerStatePacket() : base(CSOffsets.CSSkillControllerStatePacket, 1)
+        public CSSkillControllerStatePacket() : base(CSOffsets.CSSkillControllerStatePacket, 5)
         {
         }
 

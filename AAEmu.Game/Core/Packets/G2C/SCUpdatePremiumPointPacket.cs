@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _oldPg;
         private readonly byte _pg;
 
-        public SCUpdatePremiumPointPacket(int point, byte oldPg, byte pg) : base(SCOffsets.SCUpdatePremiumPointPacket, 1)
+        public SCUpdatePremiumPointPacket(int point, byte oldPg, byte pg) : base(SCOffsets.SCUpdatePremiumPointPacket, 5)
         {
             _point = point;
             _oldPg = oldPg;

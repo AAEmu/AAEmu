@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _dbId;
 
         public SCSlaveStatePacket(uint objId, ushort tlId, string creatorName, uint ownerId, uint dbId) :
-            base(SCOffsets.SCSlaveStatePacket, 1)
+            base(SCOffsets.SCSlaveStatePacket, 5)
         {
             _objId = objId;
             _tlId = tlId;

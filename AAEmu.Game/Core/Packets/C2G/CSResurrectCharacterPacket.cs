@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -8,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSResurrectCharacterPacket : GamePacket
     {
-        public CSResurrectCharacterPacket() : base(CSOffsets.CSResurrectCharacterPacket, 1)
+        public CSResurrectCharacterPacket() : base(CSOffsets.CSResurrectCharacterPacket, 5)
         {
         }
 
@@ -35,39 +34,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (portal.X != 0)
             {
-                Connection.ActiveChar.BroadcastPacket(
-                    new SCCharacterResurrectedPacket(
-                        Connection.ActiveChar.ObjId,
-                        portal.X,
-                        portal.Y,
-                        portal.Z,
-                        portal.ZRot
-                    ),
-                    true
-                );
+                Connection.ActiveChar.BroadcastPacket(new SCCharacterResurrectedPacket(Connection.ActiveChar.ObjId, portal.X, portal.Y, portal.Z, portal.ZRot), true);
             }
             else
             {
-                Connection.ActiveChar.BroadcastPacket(
-                    new SCCharacterResurrectedPacket(
-                        Connection.ActiveChar.ObjId,
-                        Connection.ActiveChar.Transform.World.Position.X,
-                        Connection.ActiveChar.Transform.World.Position.Y,
-                        Connection.ActiveChar.Transform.World.Position.Z,
-                        0
-                    ),
-                    true
-                );
+                Connection.ActiveChar.BroadcastPacket(new SCCharacterResurrectedPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Transform.World.Position.X, Connection.ActiveChar.Transform.World.Position.Y, Connection.ActiveChar.Transform.World.Position.Z, 0), true);
             }
 
-            Connection.ActiveChar.BroadcastPacket(
-                new SCUnitPointsPacket(
-                    Connection.ActiveChar.ObjId,
-                    Connection.ActiveChar.Hp,
-                    Connection.ActiveChar.Mp
-                ),
-                true
-            );
+            Connection.ActiveChar.BroadcastPacket(new SCUnitPointsPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Hp, Connection.ActiveChar.Mp), true);
             Connection.ActiveChar.IsUnderWater = false;
             Connection.ActiveChar.StartRegen();
             Connection.ActiveChar.Breath = Connection.ActiveChar.LungCapacity;

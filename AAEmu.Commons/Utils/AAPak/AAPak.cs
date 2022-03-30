@@ -304,7 +304,7 @@ namespace AAEmu.Commons.Utils.AAPak
 
                 AAPakFileInfo pfi = null;
 
-                if ((_owner.PakType == PakFileType.TypeA) || (_owner.PakType == PakFileType.TypeF))
+                if (_owner.PakType == PakFileType.TypeA || _owner.PakType == PakFileType.TypeF)
                 {
                     // TypeA has files first, extra files after that
                     if (filesToGo > 0)
@@ -435,10 +435,10 @@ namespace AAEmu.Commons.Utils.AAPak
             ms.Dispose();
 
             // Calculate padding to header
-            var dif = (FAT.Length % 0x200);
+            var dif = FAT.Length % 0x200;
             if (dif > 0)
             {
-                var pad = (0x200 - dif);
+                var pad = 0x200 - dif;
                 FAT.SetLength(FAT.Length + pad);
                 FAT.Position = FAT.Length;
             }
@@ -570,7 +570,7 @@ namespace AAEmu.Commons.Utils.AAPak
                     */
                 }
 
-                if ((_owner.PakType == PakFileType.TypeA) || (_owner.PakType == PakFileType.TypeF))
+                if (_owner.PakType == PakFileType.TypeA || _owner.PakType == PakFileType.TypeF)
                 {
                     // TypeA has files first and extra files last
                     if (filesToGo > 0)
@@ -630,7 +630,7 @@ namespace AAEmu.Commons.Utils.AAPak
                 */
 
                 // Update our "end of file data" location if needed
-                if ((pfi.offset + pfi.size + pfi.paddingSize) > AddFileOffset)
+                if (pfi.offset + pfi.size + pfi.paddingSize > AddFileOffset)
                 {
                     AddFileOffset = pfi.offset + pfi.size + pfi.paddingSize;
                 }
@@ -651,13 +651,13 @@ namespace AAEmu.Commons.Utils.AAPak
             for(int i = 0; i < bytes.Length;i++)
             {
                 s += bytes[i].ToString("X2") + " ";
-                if ((i % 16) == 15)
+                if (i % 16 == 15)
                     s += "\r\n";
                 else
                 {
-                    if ((i % 4) == 3)
+                    if (i % 4 == 3)
                         s += " ";
-                    if ((i % 8) == 7)
+                    if (i % 8 == 7)
                         s += " ";
                 }
             }
@@ -674,13 +674,13 @@ namespace AAEmu.Commons.Utils.AAPak
             for(int i = 0; i < bytes.Length;i++)
             {
                 s += bytes[i].ToString("X2") + spacingText;
-                if ((i % 16) == 15)
+                if (i % 16 == 15)
                     s += lineFeed;
                 else
                 {
-                    if ((i % 4) == 3)
+                    if (i % 4 == 3)
                         s += spacingText;
-                    if ((i % 8) == 7)
+                    if (i % 8 == 7)
                         s += spacingText;
                 }
             }
@@ -697,7 +697,7 @@ namespace AAEmu.Commons.Utils.AAPak
             data = EncryptAES(rawData, key, false);
 
             // A valid header/footer is check by it's identifier
-            if ((data[0] == 'W') && (data[1] == 'I') && (data[2] == 'B') && (data[3] == 'O'))
+            if (data[0] == 'W' && data[1] == 'I' && data[2] == 'B' && data[3] == 'O')
             {
                 // W I B O = 0x57 0x49 0x42 0x4F
                 _owner.PakType = PakFileType.TypeA;
@@ -706,7 +706,7 @@ namespace AAEmu.Commons.Utils.AAPak
                 isValid = true;
             }
             else
-            if ((data[8] == 'I') && (data[9] == 'D') && (data[10] == 'E') && (data[11] == 'J'))
+            if (data[8] == 'I' && data[9] == 'D' && data[10] == 'E' && data[11] == 'J')
             {
                 // I D E J = 0x49 0x44 0x45 0x4A
                 _owner.PakType = PakFileType.TypeB;
@@ -715,7 +715,7 @@ namespace AAEmu.Commons.Utils.AAPak
                 isValid = true;
             }
             else
-            if ((data[0] == 'Z') && (data[1] == 'E') && (data[2] == 'R') && (data[3] == 'O'))
+            if (data[0] == 'Z' && data[1] == 'E' && data[2] == 'R' && data[3] == 'O')
             {
                 // Z E R O = 0x5A 0x45 0x52 0x4F
                 _owner.PakType = PakFileType.TypeF;
@@ -1033,7 +1033,7 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             if (!isOpen)
                 return;
-            if ((isDirty) && (readOnly == false))
+            if (isDirty && readOnly == false)
                 SaveHeader();
             if (_gpFileStream != null)
                 _gpFileStream.Close();
@@ -1141,7 +1141,7 @@ namespace AAEmu.Commons.Utils.AAPak
                 if (!int.TryParse(encodedString.Substring(14, 2), out nn)) nn = 0;
                 if (!int.TryParse(encodedString.Substring(17, 2), out ss)) ss = 0;
 
-                res = (new DateTime(yyyy, mm, dd, hh, nn, ss)).ToFileTimeUtc();
+                res = new DateTime(yyyy, mm, dd, hh, nn, ss).ToFileTimeUtc();
             }
             catch
             {
@@ -1415,7 +1415,7 @@ namespace AAEmu.Commons.Utils.AAPak
         /// <returns>Returns true if a new value was set</returns>
         public bool SetMD5(AAPakFileInfo file, byte[] newHash)
         {
-            if ((file == null) || (newHash == null) || (newHash.Length != 16))
+            if (file == null || newHash == null || newHash.Length != 16)
                 return false;
             newHash.CopyTo(file.md5, 0);
             isDirty = true;
@@ -1434,7 +1434,7 @@ namespace AAEmu.Commons.Utils.AAPak
         {
             foreach(AAPakFileInfo pfi in files)
             {
-                if ((offset >= pfi.offset) && (offset <= (pfi.offset + pfi.size + pfi.paddingSize)))
+                if (offset >= pfi.offset && offset <= pfi.offset + pfi.size + pfi.paddingSize)
                 {
                     fileInfo = pfi;
                     return true;
@@ -1459,7 +1459,7 @@ namespace AAEmu.Commons.Utils.AAPak
                 return false;
 
             // Fail if the new file is too big
-            if (sourceStream.Length > (pfi.size + pfi.paddingSize))
+            if (sourceStream.Length > pfi.size + pfi.paddingSize)
                 return false;
 
             // Save endpos for easy calculation later
@@ -1608,7 +1608,7 @@ namespace AAEmu.Commons.Utils.AAPak
             if (addedAtTheEnd)
             {
                 // Only need to calculate padding if we are adding at the end
-                var dif = (newFile.size % 0x200);
+                var dif = newFile.size % 0x200;
                 if (dif > 0)
                 {
                     newFile.paddingSize = (int)(0x200 - dif);
@@ -1617,8 +1617,8 @@ namespace AAEmu.Commons.Utils.AAPak
                 {
                     // If autoSpareSpace is used to add files, we will reserve some extra space as padding
                     // Add 25% by default
-                    var spareSpace = (newFile.size / 4);
-                    spareSpace -= (spareSpace % 0x200); // Align the spare space
+                    var spareSpace = newFile.size / 4;
+                    spareSpace -= spareSpace % 0x200; // Align the spare space
                     newFile.paddingSize += (int)spareSpace;
                 }
             }
@@ -1668,7 +1668,7 @@ namespace AAEmu.Commons.Utils.AAPak
             if (GetFileByName(filename, ref pfi))
             {
                 var reservedSizeMax = pfi.size + pfi.paddingSize;
-                addAsNew = (sourceStream.Length > reservedSizeMax);
+                addAsNew = sourceStream.Length > reservedSizeMax;
                 // Bugfix: If we have inssuficient space, make sure to delete the old file first as well
                 if (addAsNew)
                 {

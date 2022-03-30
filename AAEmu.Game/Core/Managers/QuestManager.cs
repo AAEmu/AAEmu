@@ -60,17 +60,17 @@ namespace AAEmu.Game.Core.Managers
 
         public List<uint> GetGroupItems(uint groupId)
         {
-            return _groupItems.ContainsKey(groupId) ? (_groupItems[groupId]) : new List<uint>();
+            return _groupItems.ContainsKey(groupId) ? _groupItems[groupId] : new List<uint>();
         }
 
         public bool CheckGroupItem(uint groupId, uint itemId)
         {
-            return _groupItems.ContainsKey(groupId) && (_groupItems[groupId].Contains(itemId));
+            return _groupItems.ContainsKey(groupId) && _groupItems[groupId].Contains(itemId);
         }
 
         public bool CheckGroupNpc(uint groupId, uint npcId)
         {
-            return _groupNpcs.ContainsKey(groupId) && (_groupNpcs[groupId].Contains(npcId));
+            return _groupNpcs.ContainsKey(groupId) && _groupNpcs[groupId].Contains(npcId);
         }
 
         public void QuestCompleteTask(Character owner, uint questId)
@@ -121,7 +121,7 @@ namespace AAEmu.Game.Core.Managers
                             template.RestartOnFail = reader.GetBoolean("restart_on_fail", true);
                             template.ChapterIdx = reader.GetUInt32("chapter_idx", 0);
                             template.QuestIdx = reader.GetUInt32("quest_idx", 0);
-                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                            //template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.LetItDone = reader.GetBoolean("let_it_done", true);
                             template.DetailId = reader.GetUInt32("detail_id");
                             template.ZoneId = reader.GetUInt32("zone_id");

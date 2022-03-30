@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Managers
 
         private List<CashShopItem> _cashShopItem;
         private Dictionary<uint, CashShopItemDetail> _cashShopItemDetail;
-        private Dictionary<uint, object> _locks = new Dictionary<uint, object>();
+        private Dictionary<ulong, object> _locks = new Dictionary<ulong, object>();
 
         public void CreditDisperseTick(TimeSpan delta)
         {
@@ -27,7 +27,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public int GetAccountCredits(uint accountId)
+        public int GetAccountCredits(ulong accountId)
         {
             object accLock;
             lock(_locks)
@@ -75,7 +75,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public bool AddCredits(uint accountId, int creditsAmt)
+        public bool AddCredits(ulong accountId, int creditsAmt)
         {
             object accLock;
             lock (_locks)
@@ -114,7 +114,7 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public bool RemoveCredits(uint accountId, int credits) => AddCredits(accountId, -credits);
+        public bool RemoveCredits(ulong accountId, int credits) => AddCredits(accountId, -credits);
 
         public void Load()
         {

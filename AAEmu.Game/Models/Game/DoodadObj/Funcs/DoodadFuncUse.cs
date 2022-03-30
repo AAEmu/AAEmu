@@ -23,7 +23,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 return;
             }
 
-            if ((owner.DbHouseId > 0) && (caster is Character player))
+            if (owner.DbHouseId > 0 && caster is Character player)
             {
                 // If it's on a house, need to check permissions
                 var house = HousingManager.Instance.GetHouseById(owner.DbHouseId);

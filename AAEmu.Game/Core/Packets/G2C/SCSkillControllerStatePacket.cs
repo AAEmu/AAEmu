@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _teared;
         private readonly bool _cutouted;
 
-        public SCSkillControllerStatePacket(uint objId, byte scType, float len, bool teared, bool cutouted) : base(SCOffsets.SCSkillControllerStatePacket, 1)
+        public SCSkillControllerStatePacket(uint objId, byte scType, float len, bool teared, bool cutouted) : base(SCOffsets.SCSkillControllerStatePacket, 5)
         {
             _objId = objId;
             _scType = scType;

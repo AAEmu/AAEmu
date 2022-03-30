@@ -64,13 +64,13 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
                 }
                 catch (Exception e)
                 {
-                    state?.Caster?.SendPacket(new SCChatMessagePacket(Chat.ChatType.Notice, "Plot Effects Error - Check Logs"));
+                    state?.Caster?.SendPacket(new SCChatMessagePacket((byte)0, Chat.ChatType.Notice, "Plot Effects Error - Check Logs"));
                     _log.Error("[Plot Effects Error]: {0}\n{1}", e.Message, e.StackTrace);
                 }
             }
 
             double castTime = Event.NextEvents
-                 .Where(nextEvent => (nextEvent.Casting || nextEvent.Channeling))
+                 .Where(nextEvent => nextEvent.Casting || nextEvent.Channeling)
                  .Max(nextEvent => nextEvent.Delay / 10 as int?) ?? 0;
             castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime) * state.Caster.CastTimeMul;
             castTime = Math.Max(castTime, 0);
@@ -83,7 +83,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             if (Event.HasSpecialEffects() || castTime > 0 || Event.Conditions.Count > 0)
             {
                 var skill = state.ActiveSkill;
-                var unkId = ((ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false)) ? state.Caster.ObjId : 0;
+                var unkId = (ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false) ? state.Caster.ObjId : 0;
 
                 PlotObject casterPlotObj;
                 if (targetInfo.Source.ObjId == uint.MaxValue)

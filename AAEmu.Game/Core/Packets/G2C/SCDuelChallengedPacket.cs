@@ -5,16 +5,16 @@ namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCDuelChallengedPacket : GamePacket
     {
-        private readonly uint _challengedId;
+        private readonly uint _challengerId;
 
-        public SCDuelChallengedPacket(uint challengedId) : base(SCOffsets.SCDuelChallengedPacket, 1)
+        public SCDuelChallengedPacket(uint challengerId) : base(SCOffsets.SCDuelChallengedPacket, 5)
         {
-            _challengedId = challengedId;
+            _challengerId = challengerId;
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.Write(_challengedId);  // challengerId
+            stream.Write(_challengerId);  // challengerId
 
             return stream;
         }

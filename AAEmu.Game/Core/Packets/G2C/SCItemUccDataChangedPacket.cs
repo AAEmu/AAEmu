@@ -13,7 +13,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _playerId;
         private readonly ulong _itemId;
         
-        public SCItemUccDataChangedPacket(ulong uccId, uint playerId, ulong targetItemId) : base(SCOffsets.SCItemUccDataChangedPacket, 1)
+        public SCItemUccDataChangedPacket(ulong uccId, uint playerId, ulong targetItemId) : base(SCOffsets.SCItemUccDataChangedPacket, 5)
         {
             _uccId = uccId;
             _playerId = playerId;

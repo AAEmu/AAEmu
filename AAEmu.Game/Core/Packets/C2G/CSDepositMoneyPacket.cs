@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDepositMoneyPacket : GamePacket
     {
-        public CSDepositMoneyPacket() : base(CSOffsets.CSDepositMoneyPacket, 1)
+        public CSDepositMoneyPacket() : base(CSOffsets.CSDepositMoneyPacket, 5)
         {
         }
 
@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             _log.Debug("DepositMoney: amount -> {0}, aa_point -> {1}", amount, aapoint);
 
-            Connection.ActiveChar.ChangeMoney(SlotType.Inventory, SlotType.Bank, amount);
+            Connection.ActiveChar.ChangeMoney(SlotType.Bank, amount);
         }
     }
 }

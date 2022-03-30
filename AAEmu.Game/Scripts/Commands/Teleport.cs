@@ -5,6 +5,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Packets.G2C;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Scripts.Commands
 {
@@ -549,28 +551,28 @@ namespace AAEmu.Game.Scripts.Commands
 
                 if (AllowPingPos && (n == "."))
                 {
-                    if ((character.LocalPingPosition.X == 0f) && (character.LocalPingPosition.Y == 0f))
+                    if ((character.LocalPingPosition.Position1[0].X == 0f) && (character.LocalPingPosition.Position1[0].Y == 0f))
                     {
                         character.SendMessage("|cFFFFFF00[Teleport] Make sure you marked a location on the map WHILE IN A PARTY OR RAID, before using this teleport function.\n" +
                             "If required, you can use the /soloparty command to make a party of just yourself.|r");
                     }
                     else
                     {
-                        var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.X, character.LocalPingPosition.Y);
+                        var height = WorldManager.Instance.GetHeight(character.Transform.ZoneId, character.LocalPingPosition.Position1[0].X, character.LocalPingPosition.Position1[0].Y);
                         if (height == 0f)
                         {
                             character.SendMessage("|cFFFF0000[Teleport] Target height was |cFFFFFFFFzero|cFFFF0000. " +
                                 "You likely tried to teleport out of bounds, or no heightmaps where loaded on the server.\n" +
                                 "If you still want to move to the target location, you can use |cFFFFFFFF/move|cFFFF0000 to go to the following location|cFF40FF40\n" +
-                                "X:"+ character.LocalPingPosition.X.ToString("0.0") +" Y:"+character.LocalPingPosition.Y.ToString("0.0") + "|r");
+                                "X:"+ character.LocalPingPosition.Position1[0].X.ToString("0.0") +" Y:"+character.LocalPingPosition.Position1[0].Y.ToString("0.0") + "|r");
                         }
                         else
                         {
                             height += 2.5f; // compensate a bit for terrain irregularities
-                            character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.X + " Y:" + character.LocalPingPosition.Y + " Z:" + height + "|r");
+                            character.SendMessage("Teleporting to |cFFFFFFFFX:" + character.LocalPingPosition.Position1[0].X + " Y:" + character.LocalPingPosition.Position1[0].Y + " Z:" + height + "|r");
                             character.ForceDismount();
                             character.DisabledSetPosition = true;
-                            character.SendPacket(new SCTeleportUnitPacket(0, 0, character.LocalPingPosition.X, character.LocalPingPosition.Y, height, 0));
+                            character.SendPacket(new SCUnitTeleportPacket(0, 0, character.LocalPingPosition.Position1[0].X, character.LocalPingPosition.Position1[0].Y, height, 0));
                         }
                     }
                 }
@@ -604,7 +606,7 @@ namespace AAEmu.Game.Scripts.Commands
                             character.SendMessage("Teleporting to |cFFFFFFFF" + item.Info + "|r");
                             character.ForceDismount();
                             character.DisabledSetPosition = true;
-                            character.SendPacket(new SCTeleportUnitPacket(0, 0, item.X, item.Y, item.Z, 0));
+                            character.SendPacket(new SCUnitTeleportPacket(0, 0, item.X, item.Y, item.Z, 0));
 
                             break;
                         }

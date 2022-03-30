@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
@@ -11,11 +11,11 @@ namespace AAEmu.Game.Core.Managers.World
     public class StreamManager : Singleton<StreamManager>
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
-        private readonly Dictionary<uint, uint> _accounts;
+        private readonly Dictionary<uint, ulong> _accounts;
 
         protected StreamManager()
         {
-            _accounts = new Dictionary<uint, uint>();
+            _accounts = new Dictionary<uint, ulong>();
         }
 
         public void Load()
@@ -23,7 +23,7 @@ namespace AAEmu.Game.Core.Managers.World
             // TODO ...
         }
 
-        public void AddToken(uint accountId, uint connectionId)
+        public void AddToken(ulong accountId, uint connectionId)
         {
             _accounts.Add(connectionId, accountId);
         }
@@ -33,7 +33,7 @@ namespace AAEmu.Game.Core.Managers.World
             _accounts.Remove(token);
         }
 
-        public void Login(StreamConnection connection, uint accountId, uint token)
+        public void Login(StreamConnection connection, ulong accountId, uint token)
         {
             if (_accounts.ContainsKey(token))
             {
@@ -55,7 +55,9 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RequestCell(StreamConnection connection, uint instanceId, int x, int y)
         {
-            var worldId = connection?.GameConnection?.ActiveChar?.Transform?.WorldId ?? WorldManager.DefaultWorldId;
+            if (connection?.GameConnection == null) { return; }
+
+            var worldId = connection.GameConnection.ActiveChar?.Transform.WorldId ?? WorldManager.DefaultWorldId;
             // TODO: Handle requests for instances correctly ?
             var doodads = WorldManager.Instance.GetInCell<Doodad>(worldId, x, y).ToArray();
             var requestId = connection.GetNextRequestId(doodads);
@@ -68,8 +70,8 @@ namespace AAEmu.Game.Core.Managers.World
         public void ContinueCell(StreamConnection connection, int requestId, int next)
         {
             var doodads = connection.GetRequest(requestId);
-            if (doodads == null)
-                return;
+            if (doodads == null) { return; }
+
             if (next >= doodads.Length)
                 connection.RemoveRequest(requestId);
             var count = Math.Min(doodads.Length - next, 30);

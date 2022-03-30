@@ -104,7 +104,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
 
         private List<AiSkillList> RequestAvailableSkillList(float trgDist)
         {
-            int healthRatio = (int)(((float)Ai.Owner.Hp / Ai.Owner.MaxHp) * 100);
+            int healthRatio = (int)((float)Ai.Owner.Hp / Ai.Owner.MaxHp * 100);
 
             var baseList = _aiParams.AiSkillLists.AsEnumerable();
 
@@ -115,7 +115,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 return s.Skills.All(skill =>
                 {
                     var template = SkillManager.Instance.GetSkillTemplate(skill.SkillId);
-                    return (template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self));
+                    return template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
                 });
             });
 

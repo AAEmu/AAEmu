@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Gimmick[] _gimmick;
 
-        public SCGimmicksCreatedPacket(Gimmick[] gimmick) : base(SCOffsets.SCGimmicksCreatedPacket, 1)
+        public SCGimmicksCreatedPacket(Gimmick[] gimmick) : base(SCOffsets.SCGimmicksCreatedPacket, 5)
         {
             _gimmick = gimmick;
         }

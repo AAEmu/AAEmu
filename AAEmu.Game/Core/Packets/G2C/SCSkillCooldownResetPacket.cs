@@ -10,29 +10,33 @@ namespace AAEmu.Game.Core.Packets.G2C
         private uint _skillId;
         private uint _tagId;
         private bool _gcd;
+        private bool _rstc;
+        private bool _rtstc;
 
-        public SCSkillCooldownResetPacket() : base(SCOffsets.SCSkillCooldownResetPacket, 1)
+        public SCSkillCooldownResetPacket() : base(SCOffsets.SCSkillCooldownResetPacket, 5)
         {
             
         }
-        
-        public SCSkillCooldownResetPacket(Character chr, uint skillId, uint tagId, bool gcd) : base(SCOffsets.SCSkillCooldownResetPacket, 1)
+
+        public SCSkillCooldownResetPacket(Character chr, uint skillId, uint tagId, bool gcd) : base(SCOffsets.SCSkillCooldownResetPacket, 5)
         {
             _skillId = skillId;
             _tagId = tagId;
             _gcd = gcd;
             _chr = chr;
             _gcd = gcd;
+
         }
 
         public override PacketStream Write(PacketStream stream)
         {
-            //TODO заготовка для пакета
-
-            stream.WriteBc(_chr.ObjId); //unitId
-            stream.Write(_skillId); //skillId
-            stream.Write(_tagId); //tagId
-            stream.Write(_gcd); //gcd - Trigger GCD
+            stream.WriteBc(_chr.ObjId);
+            stream.Write(_skillId); // skillType (type)
+            stream.Write(_tagId);   // skillType (type)
+            stream.Write(_gcd);     //gcd - Trigger GCD
+            stream.Write(_rstc);    // rstc
+            stream.Write(_rstc);    // rstc
+            stream.Write(_rtstc);   // rtstc
 
             return stream;
         }

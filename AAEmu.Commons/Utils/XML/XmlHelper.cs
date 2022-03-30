@@ -13,9 +13,9 @@ namespace AAEmu.Commons.Utils.XML
             var xyz = positionString.Split(',');
             if (xyz.Length == 3)
             {
-                if ((float.TryParse(xyz[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)) && 
-                    (float.TryParse(xyz[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y)) &&
-                    (float.TryParse(xyz[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z)))
+                if (float.TryParse(xyz[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x) && 
+                    float.TryParse(xyz[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y) &&
+                    float.TryParse(xyz[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
                     return new Vector3(x, y, z);
             }
             return Vector3.Zero;

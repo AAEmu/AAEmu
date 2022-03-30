@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Friend _friend;
 
-        public SCFriendStatusChangedPacket(Friend friend) : base(SCOffsets.SCFriendStatusChangedPacket, 1)
+        public SCFriendStatusChangedPacket(Friend friend) : base(SCOffsets.SCFriendStatusChangedPacket, 5)
         {
             _friend = friend;
         }

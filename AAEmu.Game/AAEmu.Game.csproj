@@ -4,7 +4,7 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <RuntimeIdentifiers>win7-x64;win7-x86;win8-x64;win8-x86;win81-x64;win81-x86;win10-x64;win10-x86;centos.7-x64;debian.9-x64;ubuntu.18.04-x64;sles-x64;sles.12-x64;sles.12.1-x64;sles.12.2-x64;sles.12.3-x64;alpine-x64;alpine.3.7-x64</RuntimeIdentifiers>
-        <VersionPrefix>0.0.2.0</VersionPrefix>
+        <VersionPrefix>8.0.3.12</VersionPrefix>
         <VersionSuffix>alpha</VersionSuffix>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>9.0</LangVersion>
@@ -15,9 +15,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="Configurations\AccessLevels.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
         <Content Include="NLog.config">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
@@ -25,25 +22,20 @@
         <Content Include="ExampleConfig.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <None Include="Scripts\Commands\Nrot.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Scripts\</LinkBase>
-        </None>
-        <None Include="Scripts\Commands\TestTracker.cs">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-          <LinkBase>Scripts\</LinkBase>
-        </None>
+        <Content Include="Configurations\AccessLevels.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         <None Update="Configurations\Expedition.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="Configurations\World.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="Configurations\CharacterDeleteSettings.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="Configurations\ClientData.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
@@ -73,57 +65,6 @@
         <PackageReference Include="Quartz" Version="3.2.3" />        
         <PackageReference Include="Ionic.Zlib" Version="1.9.1.5" />        
         <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Update="Scripts\Commands\GodMode.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\NpcCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\DoodadCmd.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\ReloadConfigs.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\ClearCombat.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestFSets.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestHeight.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\Kit.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\AddXP.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\kits.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="Scripts\Commands\SoloParty.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\Despawn.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\SpawnGrid.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestZoneState.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\TestEcho.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
-      <None Update="Scripts\Commands\GetAttribute.cs">
-        <LinkBase>$([MSBuild]::EnsureTrailingSlash(%(LinkBase)))</LinkBase>
-      </None>
     </ItemGroup>
 
     <ItemGroup>

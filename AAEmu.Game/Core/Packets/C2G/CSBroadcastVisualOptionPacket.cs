@@ -6,16 +6,14 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBroadcastVisualOptionPacket : GamePacket
     {
-        public CSBroadcastVisualOptionPacket() : base(CSOffsets.CSBroadcastVisualOptionPacket, 1)
+        public CSBroadcastVisualOptionPacket() : base(CSOffsets.CSBroadcastVisualOptionPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
             Connection.ActiveChar.VisualOptions.Read(stream);
-
-            Connection.ActiveChar.BroadcastPacket(
-                new SCUnitVisualOptionsPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.VisualOptions), true);
+            Connection.ActiveChar.BroadcastPacket(new SCUnitVisualOptionsPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.VisualOptions), true);
         }
     }
 }

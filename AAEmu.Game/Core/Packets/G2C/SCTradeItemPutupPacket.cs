@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _slot;
         private readonly int _amount;
 
-        public SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount) : base(SCOffsets.SCTradeItemPutupPacket, 1)
+        public SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount) : base(SCOffsets.SCTradeItemPutupPacket, 5)
         {
             _slotType = slotType;
             _slot = slot;
@@ -20,8 +20,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((byte)_slotType); // type
-            stream.Write(_slot); // index
-            stream.Write(_amount); // amount
+            stream.Write(_slot);           // index
+            stream.Write(_amount);         // amount
+
             return stream;
         }
 

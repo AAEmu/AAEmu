@@ -11,7 +11,8 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ZoneConflictType _hpws;
         private readonly DateTime _endTime;
 
-        public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime) : base(SCOffsets.SCConflictZoneStatePacket, 1)
+        public SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime)
+            : base(SCOffsets.SCConflictZoneStatePacket, 5)
         {
             _zoneId = zoneId;
             _hpws = hpws;
@@ -23,6 +24,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_zoneId);
             stream.Write((byte) _hpws);
             stream.Write(_endTime);
+            stream.Write(DateTime.MinValue); // lock add in 7+
             return stream;
         }
     }

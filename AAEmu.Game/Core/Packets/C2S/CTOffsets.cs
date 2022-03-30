@@ -2,7 +2,7 @@
 {
     public static class CTOffsets
     {
-        // All opcodes here are updated for version client_12_r208022
+        // All opcodes here are updated for version client_8.0.3.12_r558734
         public const ushort CTJoinPacket = 0x001;
         public const ushort CTRequestCellPacket = 0x002;
         public const ushort CTRequestEmblemPacket = 0x003;

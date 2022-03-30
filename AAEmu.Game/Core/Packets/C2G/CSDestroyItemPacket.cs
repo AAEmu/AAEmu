@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSDestroyItemPacket : GamePacket 
     {
-        public CSDestroyItemPacket() : base(CSOffsets.CSDestroyItemPacket, 1)
+        public CSDestroyItemPacket() : base(CSOffsets.CSDestroyItemPacket, 5)
         {
         }
 

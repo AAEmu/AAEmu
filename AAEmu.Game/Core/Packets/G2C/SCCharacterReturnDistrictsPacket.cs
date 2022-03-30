@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Portal[] _portals;
         private readonly int _returnDistrictId;
         
-        public SCCharacterReturnDistrictsPacket(Portal[] portals, int returnDistrictId) : base(SCOffsets.SCCharacterReturnDistrictsPacket, 1)
+        public SCCharacterReturnDistrictsPacket(Portal[] portals, int returnDistrictId) : base(SCOffsets.SCCharacterReturnDistrictsPacket, 5)
         {
             _portals = portals;
             _returnDistrictId = returnDistrictId;
@@ -19,7 +19,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         {
             stream.Write(_portals.Length);
             foreach (var portal in _portals)
+            {
                 stream.Write(portal);
+            }
             stream.Write(_returnDistrictId);
             return stream;
         }

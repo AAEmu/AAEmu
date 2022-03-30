@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Packets.S2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            if ((_ucc == null) || (_ucc.Data.Count <= 0))
+            if (_ucc == null || _ucc.Data.Count <= 0)
             {
                 stream.Write((int)_currentIndex);
                 stream.Write((int)0);

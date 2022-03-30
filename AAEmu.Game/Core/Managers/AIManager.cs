@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Models.Game.AI.Framework;
 using AAEmu.Game.Models.Game.AI.v2;
+using AAEmu.Game.Models.Game.Units.Movements;
+
 using NLog;
 
 namespace AAEmu.Game.Core.Managers
@@ -14,11 +16,13 @@ namespace AAEmu.Game.Core.Managers
 
         private List<NpcAi> _npcAis;
         private object _aiLock;
-        
+        public List<(uint, MoveType)> Movements;
+
         public void Initialize()
         {
             _npcAis = new List<NpcAi>();
             _aiLock = new object();
+            // TODO test, disable movement NPC & Skills
             TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(100), true);
         }
 
@@ -42,7 +46,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                     catch (Exception e)
                     {
-                        _log.Error(e);
+                        _log.Error(e, "{0}", e.Message);
                     }
                 }
             }

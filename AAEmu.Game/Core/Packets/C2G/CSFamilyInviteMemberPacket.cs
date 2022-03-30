@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSFamilyInviteMemberPacket : GamePacket
     {
-        public CSFamilyInviteMemberPacket() : base(CSOffsets.CSFamilyInviteMemberPacket, 1)
+        public CSFamilyInviteMemberPacket() : base(CSOffsets.CSFamilyInviteMemberPacket, 5)
         {
         }
 

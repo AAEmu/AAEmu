@@ -9,6 +9,8 @@ namespace AAEmu.Game.Models.Game.Items.Actions
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((byte)_type);
+            stream.Write((byte)_type); // tLogt
+
             return stream;
         }
     }

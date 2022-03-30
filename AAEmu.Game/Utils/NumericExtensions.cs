@@ -6,12 +6,12 @@ namespace AAEmu.Game.Utils
     {
         public static double DegToRad(this double val)
         {
-            return (Math.PI / 180f) * val;
+            return Math.PI / 180f * val;
         }
 
         public static float DegToRad(this float val)
         {
-            return (MathF.PI / 180f) * val;
+            return MathF.PI / 180f * val;
         }
 
         public static double RadToDeg(this double val)

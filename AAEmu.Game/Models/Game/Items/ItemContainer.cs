@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Core.Packets.S2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Items
 {
@@ -22,7 +17,7 @@ namespace AAEmu.Game.Models.Game.Items
         public Character Owner { get; set; }
         public SlotType ContainerType { get; set; }
         public List<Item> Items { get; set; }
-        public bool PartOfPlayerInventory { get ; set; }
+        public bool PartOfPlayerInventory { get; set; }
         public int ContainerSize
         {
             get
@@ -43,7 +38,7 @@ namespace AAEmu.Game.Models.Game.Items
             }
         }
 
-        public ItemContainer(Character owner, SlotType containerType,bool isPartOfPlayerInventory)
+        public ItemContainer(Character owner, SlotType containerType, bool isPartOfPlayerInventory)
         {
             Owner = owner;
             ContainerType = containerType;
@@ -56,7 +51,7 @@ namespace AAEmu.Game.Models.Game.Items
         {
             for (var c = 0; c < Items.Count; c++)
             {
-                var i = Items[reverse?Items.Count-1-c:c];
+                var i = Items[reverse ? Items.Count - 1 - c : c];
                 i.SlotType = ContainerType;
                 i.Slot = c;
             }
@@ -195,7 +190,7 @@ namespace AAEmu.Game.Models.Game.Items
             var newSlot = -1;
             bool canAddToSameSlot = false;
             // When adding wearables to equipment container, for the slot numbers if needed
-            if ((ContainerType == SlotType.Equipment) && (item is EquipItem eItem) && (preferredSlot < 0))
+            if (ContainerType == SlotType.Equipment && item is EquipItem eItem && preferredSlot < 0)
             {
                 if (eItem.Template is ArmorTemplate armorTemp)
                     newSlot = (int)armorTemp.SlotTemplate.SlotTypeId;
@@ -203,10 +198,10 @@ namespace AAEmu.Game.Models.Game.Items
                     newSlot = (int)accTemp.SlotTemplate.SlotTypeId;
             }
             if (
-                (ContainerType == SlotType.Inventory) && (item.Template.MaxCount > 1) && 
-                (currentPreferredSlotItem != null) && 
-                (currentPreferredSlotItem.TemplateId == item.TemplateId) && (currentPreferredSlotItem.Grade == item.Grade) && 
-                (item.Count + currentPreferredSlotItem.Count <= item.Template.MaxCount))
+                ContainerType == SlotType.Inventory && item.Template.MaxCount > 1 &&
+                currentPreferredSlotItem != null &&
+                currentPreferredSlotItem.TemplateId == item.TemplateId && currentPreferredSlotItem.Grade == item.Grade &&
+                item.Count + currentPreferredSlotItem.Count <= item.Template.MaxCount)
             {
                 newSlot = preferredSlot;
                 canAddToSameSlot = true;
@@ -222,19 +217,19 @@ namespace AAEmu.Game.Models.Game.Items
             var sourceItemTasks = new List<ItemTask>();
 
             // Only trigger when moving between container with different owners with the exception of this being move to Mail container
-            if ((sourceContainer != this) && (item.OwnerId != Owner?.Id) && (this.ContainerType != SlotType.Mail))
+            if (sourceContainer != this && item.OwnerId != Owner?.Id && this.ContainerType != SlotType.Mail)
             {
                 Owner?.Inventory.OnAcquiredItem(item, item.Count);
             }
             else
             // Got attachment from Mail
-            if ((item.SlotType == SlotType.Mail) && (this.ContainerType != SlotType.Mail))
+            if (item.SlotType == SlotType.Mail && this.ContainerType != SlotType.Mail)
             {
                 Owner?.Inventory.OnAcquiredItem(item, item.Count);
             }
             else
             // Adding mail attachment
-            if ((item.SlotType != SlotType.Mail) && (this.ContainerType == SlotType.Mail))
+            if (item.SlotType != SlotType.Mail && this.ContainerType == SlotType.Mail)
             {
                 Owner?.Inventory.OnConsumedItem(item, item.Count);
             }
@@ -264,12 +259,12 @@ namespace AAEmu.Game.Models.Game.Items
             }
 
             // Item Tasks
-            if ((sourceContainer != null) && (sourceContainer != this))
+            if (sourceContainer != null && sourceContainer != this)
             {
                 sourceContainer.Items.Remove(item);
                 sourceContainer.UpdateFreeSlotCount();
                 if (sourceContainer.ContainerType != SlotType.Mail)
-                    sourceItemTasks.Add(new ItemRemoveSlot(item.Id,sourceSlotType,sourceSlot));
+                    sourceItemTasks.Add(new ItemRemoveSlot(item.Id, sourceSlotType, sourceSlot));
             }
             // We use Invalid when doing internals, don't send to client
             if (taskType != ItemTaskType.Invalid)
@@ -281,7 +276,7 @@ namespace AAEmu.Game.Models.Game.Items
             }
 
             ApplyBindRules(taskType);
-            return ((itemTasks.Count + sourceItemTasks.Count) > 0);
+            return itemTasks.Count + sourceItemTasks.Count > 0;
         }
 
         /// <summary>
@@ -313,14 +308,14 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="amountToConsume">Amount of item units to consume</param>
         /// <param name="preferredItem">If not null, use this Item as primairy source for consume</param>
         /// <returns>The amount of items that was actually consumed, 0 when failed or not found</returns>
-        public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume,Item preferredItem)
+        public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
         {
             if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out var count))
                 return 0; // Nothing found
             if (amountToConsume > count)
                 return 0; // Not enough total
 
-            if ((preferredItem != null) && (templateId != preferredItem.TemplateId))
+            if (preferredItem != null && templateId != preferredItem.TemplateId)
                 return 0; // Preferred item template did not match the requested template
             // TODO: implement use of preferredItem (required for using specific items when you have more than one stack)
 
@@ -328,7 +323,7 @@ namespace AAEmu.Game.Models.Game.Items
             var itemTasks = new List<ItemTask>();
 
             // Try to consume preferred item first
-            if ((amountToConsume > 0) && (preferredItem != null))
+            if (amountToConsume > 0 && preferredItem != null)
             {
                 // Remove this entry from our list
                 if (!foundItems.Remove(preferredItem))
@@ -336,12 +331,12 @@ namespace AAEmu.Game.Models.Game.Items
                     // Preferred item was not found in our list of found items, something is wrong here
                     return 0;
                 }
-                
+
                 var toRemove = Math.Min(preferredItem.Count, amountToConsume);
                 preferredItem.Count -= toRemove;
                 amountToConsume -= toRemove;
 
-                
+
                 if (preferredItem.Count > 0)
                 {
                     Owner?.Inventory.OnConsumedItem(preferredItem, toRemove);
@@ -422,14 +417,14 @@ namespace AAEmu.Game.Models.Game.Items
             var template = ItemManager.Instance.GetTemplate(templateId);
             if (template == null)
                 return false; // Invalid item templateId
-            var totalFreeSpaceForThisItem = (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
+            var totalFreeSpaceForThisItem = currentItems.Count * template.MaxCount - currentTotalItemCount + FreeSlotCount * template.MaxCount;
 
             // Trying to add too many item units to this container ?
             if (amountToAdd > totalFreeSpaceForThisItem)
                 return false;
 
             // Calculate grade to actually add for new items
-            if ((template.FixedGrade >= 0) && (template.Gradable == false))
+            if (template.FixedGrade >= 0 && template.Gradable == false)
                 gradeToAdd = template.FixedGrade;
             if (gradeToAdd == -1)
                 gradeToAdd = template.FixedGrade;
@@ -465,16 +460,16 @@ namespace AAEmu.Game.Models.Game.Items
                 var addAmount = Math.Min(amountToAdd, template.MaxCount);
                 var newItem = ItemManager.Instance.Create(templateId, addAmount, (byte)gradeToAdd, true);
                 // Add name if marked as crafter (single stack items only)
-                if ((crafterId > 0) && (newItem.Template.MaxCount == 1))
+                if (crafterId > 0 && newItem.Template.MaxCount == 1)
                 {
                     newItem.MadeUnitId = crafterId;
                     newItem.WorldId = 1; // TODO: proper world id handling
                 }
                 amountToAdd -= addAmount;
                 var prefSlot = preferedSlot;
-                if ((newItem.Template is BackpackTemplate) && (ContainerType == SlotType.Equipment))
+                if (newItem.Template is BackpackTemplate && ContainerType == SlotType.Equipment)
                     prefSlot = (int)EquipmentItemSlot.Backpack;
-                if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem,prefSlot)) // Task set to invalid as we send our own packets inside this function
+                if (AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, prefSlot)) // Task set to invalid as we send our own packets inside this function
                 {
                     itemTasks.Add(new ItemAdd(newItem));
                     newItemsList.Add(newItem);
@@ -485,7 +480,7 @@ namespace AAEmu.Game.Models.Game.Items
             if (taskType != ItemTaskType.Invalid)
                 Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, new List<ulong>()));
             UpdateFreeSlotCount();
-            return (itemTasks.Count > 0);
+            return itemTasks.Count > 0;
         }
 
         /// <summary>
@@ -498,8 +493,8 @@ namespace AAEmu.Game.Models.Game.Items
             GetAllItemsByTemplate(templateId, -1, out var currentItems, out var currentTotalItemCount);
             var template = ItemManager.Instance.GetTemplate(templateId);
             if (template == null)
-                return 0 ; // Invalid item templateId
-            return (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
+                return 0; // Invalid item templateId
+            return currentItems.Count * template.MaxCount - currentTotalItemCount + FreeSlotCount * template.MaxCount;
         }
 
         /// <summary>
@@ -516,7 +511,7 @@ namespace AAEmu.Game.Models.Game.Items
                 return 0;
             }
             GetAllItemsByTemplate(itemToAdd.TemplateId, itemToAdd.Grade, out currentItems, out var currentTotalItemCount);
-            return (currentItems.Count * itemToAdd.Template.MaxCount) - currentTotalItemCount + (FreeSlotCount * itemToAdd.Template.MaxCount);
+            return currentItems.Count * itemToAdd.Template.MaxCount - currentTotalItemCount + FreeSlotCount * itemToAdd.Template.MaxCount;
         }
 
         /// <summary>
@@ -526,7 +521,7 @@ namespace AAEmu.Game.Models.Game.Items
         public List<Item> GetSlottedItemsList()
         {
             var res = new List<Item>(ContainerSize);
-            for(int i = 0; i < ContainerSize;i++)
+            for (int i = 0; i < ContainerSize; i++)
                 res.Add(GetItemBySlot(i));
             return res;
         }
@@ -544,25 +539,25 @@ namespace AAEmu.Game.Models.Game.Items
             foundItems = new List<Item>();
             unitsOfItemFound = 0;
             foreach (var i in Items)
-                if ((i.TemplateId == templateId) && ((gradeToFind < 0) || (gradeToFind == i.Grade)))
+                if (i.TemplateId == templateId && (gradeToFind < 0 || gradeToFind == i.Grade))
                 {
                     foundItems.Add(i);
                     unitsOfItemFound += i.Count;
                 }
-            return (foundItems.Count > 0);
+            return foundItems.Count > 0;
         }
 
         public void ApplyBindRules(ItemTaskType taskType)
         {
             var itemTasks = new List<ItemTask>();
-            foreach(var i in Items)
+            foreach (var i in Items)
             {
                 if (i.HasFlag(ItemFlag.SoulBound) == false)
                 {
-                    if ((ContainerType == SlotType.Inventory) && (i.Template.BindType == ItemBindType.BindOnPickup))
+                    if (ContainerType == SlotType.Inventory && i.Template.BindType == ItemBindType.BindOnPickup)
                         i.SetFlag(ItemFlag.SoulBound);
 
-                    if ((ContainerType == SlotType.Equipment) && (i.Template.BindType == ItemBindType.BindOnEquip))
+                    if (ContainerType == SlotType.Equipment && i.Template.BindType == ItemBindType.BindOnEquip)
                         i.SetFlag(ItemFlag.SoulBound);
 
                     if (i.HasFlag(ItemFlag.SoulBound))
@@ -580,7 +575,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// </summary>
         public void Wipe()
         {
-            while(Items.Count > 0)
+            while (Items.Count > 0)
                 RemoveItem(ItemTaskType.Invalid, Items[0], true);
             UpdateFreeSlotCount();
         }

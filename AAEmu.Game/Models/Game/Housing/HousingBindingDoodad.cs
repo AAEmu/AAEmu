@@ -9,5 +9,6 @@ namespace AAEmu.Game.Models.Game.Housing
         public AttachPointKind AttachPointId { get; set; }
         public uint DoodadId { get; set; }
         public WorldSpawnPosition Position { get; set; }
+        public bool ForceDbSave { get; set; }
     }
 }

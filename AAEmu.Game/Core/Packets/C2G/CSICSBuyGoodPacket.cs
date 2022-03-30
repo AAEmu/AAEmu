@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSICSBuyGoodPacket : GamePacket
     {
-        public CSICSBuyGoodPacket() : base(CSOffsets.CSICSBuyGoodPacket, 1)
+        public CSICSBuyGoodPacket() : base(CSOffsets.CSICSBuyGoodPacket, 5)
         {
         }
 
@@ -97,8 +97,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
             }
             Connection.SendPacket(new SCICSCashPointPacket(CashShopManager.Instance.GetAccountCredits(Connection.AccountId)));
-
-
+            
             _log.Warn("ICSBuyGood");
 
             Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(true, buyMode, receiverName, totalCost));

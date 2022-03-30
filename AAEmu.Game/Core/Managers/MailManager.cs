@@ -138,7 +138,7 @@ namespace AAEmu.Game.Core.Managers
                             tempMail.Header.SenderName = reader.GetString("sender_name");
                             tempMail.Header.Attachments = (byte)reader.GetInt32("attachment_count");
                             tempMail.Header.ReceiverId = reader.GetUInt32("receiver_id");
-                            tempMail.Header.Returned = (reader.GetInt32("returned") != 0);
+                            tempMail.Header.Returned = reader.GetInt32("returned") != 0;
                             tempMail.Header.Extra = reader.GetInt64("extra");
 
                             tempMail.Body.Text = reader.GetString("text");
@@ -180,7 +180,7 @@ namespace AAEmu.Game.Core.Managers
                             tempMail.Header.Attachments = (byte)attachmentCount;
 
                             // Set internal delivered flag
-                            tempMail.IsDelivered = (tempMail.Body.RecvDate <= DateTime.UtcNow);
+                            tempMail.IsDelivered = tempMail.Body.RecvDate <= DateTime.UtcNow;
                             tempMail.IsDirty = false;
 
                             // Remove from delete list if it's a recycled Id
@@ -287,13 +287,13 @@ namespace AAEmu.Game.Core.Managers
         public Dictionary<long, BaseMail> GetCurrentMailList(Character character)
         {
             var tempMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && (x.Value.Header.ReceiverId == character.Id || x.Value.Header.SenderId == character.Id)).ToDictionary(x => x.Key, x => x.Value);
-            character.Mails.unreadMailCount.Received = 0;
+            character.Mails.unreadMailCount.TotalReceived = 0;
             foreach (var mail in tempMails)
             {
                 //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
                 if (mail.Value.Header.Status != MailStatus.Read)
                 {
-                    character.Mails.unreadMailCount.Received += 1;
+                    character.Mails.unreadMailCount.TotalReceived += 1;
                     character.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.unreadMailCount, false, null));
                     mail.Value.IsDelivered = true;
                 }
@@ -305,12 +305,12 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Trace("NotifyNewMailByNameIfOnline() - {0}", receiverName);
             // If unread and ready to deliver
-            if ((m.Header.Status != MailStatus.Read) && (m.Body.RecvDate <= DateTime.UtcNow) && (m.IsDelivered == false))
+            if (m.Header.Status != MailStatus.Read && m.Body.RecvDate <= DateTime.UtcNow && m.IsDelivered == false)
             {
                 var player = WorldManager.Instance.GetCharacter(receiverName);
                 if (player != null)
                 {
-                    player.Mails.unreadMailCount.Received++;
+                    player.Mails.unreadMailCount.TotalReceived++;
                     player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.unreadMailCount, false, null));
                     m.IsDelivered = true;
                     return true;
@@ -326,7 +326,7 @@ namespace AAEmu.Game.Core.Managers
             if (player != null)
             {
                 if (m.Header.Status != MailStatus.Read)
-                    player.Mails.unreadMailCount.Received--;
+                    player.Mails.unreadMailCount.TotalReceived--;
                 player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.unreadMailCount));
                 return true;
             }
@@ -337,7 +337,7 @@ namespace AAEmu.Game.Core.Managers
         {
             // Deliver yet "undelivered" mails
             _log.Trace("CheckAllMailTimings");
-            var undeliveredMails = _allPlayerMails.Where(x => (x.Value.Body.RecvDate <= DateTime.UtcNow) && (x.Value.IsDelivered == false)).ToDictionary(x => x.Key, x => x.Value);
+            var undeliveredMails = _allPlayerMails.Where(x => x.Value.Body.RecvDate <= DateTime.UtcNow && x.Value.IsDelivered == false).ToDictionary(x => x.Key, x => x.Value);
             var delivered = 0;
             foreach (var mail in undeliveredMails)
                 if (NotifyNewMailByNameIfOnline(mail.Value, mail.Value.Header.ReceiverName))
@@ -365,7 +365,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             var houseId = (uint)(mail.Header.Extra & 0xFFFFFFFF); // Extract house DB Id from Extra
-            var houseZoneGroup = ((mail.Header.Extra >> 48) & 0xFFFF); // Extract zone group Id from Extra
+            var houseZoneGroup = (mail.Header.Extra >> 48) & 0xFFFF; // Extract zone group Id from Extra
             var house = HousingManager.Instance.GetHouseById(houseId);
 
             if (house == null)
@@ -393,7 +393,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     var c = consumedCerts;
                     // Use Bound First
-                    if ((userBoundTaxCount > 0) && (c > 0))
+                    if (userBoundTaxCount > 0 && c > 0)
                     {
                         if (c > userBoundTaxCount)
                             c = userBoundTaxCount;
@@ -401,7 +401,7 @@ namespace AAEmu.Game.Core.Managers
                         consumedCerts -= c;
                     }
                     c = consumedCerts;
-                    if ((userTaxCount > 0) && (c > 0))
+                    if (userTaxCount > 0 && c > 0)
                     {
                         if (c > userTaxCount)
                             c = userTaxCount;
@@ -439,7 +439,7 @@ namespace AAEmu.Game.Core.Managers
                 if (mail.Header.Status != MailStatus.Read)
                 {
                     mail.Header.Status = MailStatus.Read;
-                    character.Mails.unreadMailCount.Received--;
+                    character.Mails.unreadMailCount.TotalReceived--;
                 }
 
                 character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));

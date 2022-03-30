@@ -1,11 +1,11 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
 {
     public class SCRefreshInCharacterListPacket : GamePacket
     {
-        public SCRefreshInCharacterListPacket() : base(SCOffsets.SCRefreshInCharacterListPacket, 1) // TODO ... SCRaceCongestionPacket?!?!?!
+        public SCRefreshInCharacterListPacket() : base(SCOffsets.SCRefreshInCharacterListPacket, 5) // TODO ... SCRaceCongestionPacket?!?!?!
         {
         }
 
@@ -21,6 +21,7 @@ namespace AAEmu.Game.Core.Packets.G2C
                 PRE_SELECT_RACE_FULL = 9,
                 CHECK = 10
             }*/
+            stream.Write(false); // result add in 3.5.0.3
             return stream;
         }
     }

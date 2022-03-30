@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -10,9 +6,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
-using AAEmu.Game.Models.Tasks.Mails;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Core.Packets.C2G
@@ -21,7 +15,7 @@ namespace AAEmu.Game.Core.Packets.C2G
     {
         private uint _objId;
         private MoveType _moveType;
-        
+
         public CSMoveUnitPacket() : base(CSOffsets.CSMoveUnitPacket, 1)
         {
         }
@@ -29,7 +23,7 @@ namespace AAEmu.Game.Core.Packets.C2G
         public override void Read(PacketStream stream)
         {
             _objId = stream.ReadBc();
-            
+
             var type = (MoveTypeEnum)stream.ReadByte();
             _moveType = MoveType.GetType(type);
             stream.Read(_moveType);
@@ -136,51 +130,51 @@ namespace AAEmu.Game.Core.Packets.C2G
                         // We moved
                         RemoveEffects(targetUnit, _moveType);
 
-                        if ((targetUnit.Transform.Parent != null) && (parentObject == null))
+                        if (targetUnit.Transform.Parent != null && parentObject == null)
                         {
                             // No longer standing on object ?
                             var oldParentObj = targetUnit.Transform.Parent.GameObject.ObjId;
                             targetUnit.Transform.Parent = null;
-                            
+
                             character.SendMessage(
                                 "|cFF884444{0} ({1}) no longer standing on Object {2} @ x{3} y{4} z{5} || World: {6}|r",
                                 targetUnit.Name, targetUnit.ObjId,
                                 oldParentObj,
-                                dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"), 
+                                dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"),
                                 targetUnit.Transform.World.ToString());
-                            
+
                         }
                         else
-                        if ((targetUnit.Transform.Parent == null) && (parentObject != null))
+                        if (targetUnit.Transform.Parent == null && parentObject != null)
                         {
                             // Standing on a object ?
                             targetUnit.Transform.Parent = parentObject.Transform;
-                            
+
                             character.SendMessage(
                                 "|cFF448844{0} ({1}) standing on Object {2} ({3}) @ x{4} y{5} z{6} || World: {7}|r",
                                 targetUnit.Name, targetUnit.ObjId,
                                 parentObject.Name, parentObject.ObjId,
-                                dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"), 
+                                dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"),
                                 targetUnit.Transform.World.ToString());
-                            
+
                         }
-                        else 
-                        if ((targetUnit.Transform.Parent != null) && (parentObject != null) && (targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId))
+                        else
+                        if (targetUnit.Transform.Parent != null && parentObject != null && targetUnit.Transform.Parent.GameObject.ObjId != parentObject.ObjId)
                         {
                             // Changed to standing on different object ? 
                             targetUnit.Transform.Parent = parentObject.Transform;
-                            
+
                             character.SendMessage(
                                 "|cFF448888{0} ({1}) moved to standing on new Object {2} ({3}) @ x{4} y{5} z{6} || World: {7}|r",
                                 targetUnit.Name, targetUnit.ObjId,
                                 parentObject.Name, parentObject.ObjId,
-                                dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"), 
+                                dmt.X.ToString("F1"), dmt.Y.ToString("F1"), dmt.Z.ToString("F1"),
                                 targetUnit.Transform.World.ToString());
-                            
+
                         }
 
                         // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding onto something
-                        if ((targetUnit.Transform.StickyParent != null) && !isSticky)
+                        if (targetUnit.Transform.StickyParent != null && !isSticky)
                             targetUnit.Transform.StickyParent = null;
 
                         // Debug Climb Data
@@ -200,7 +194,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                         }
                         */
 
-                        if ((targetUnit is Character player) && (player.ObjId != character.ObjId))
+                        if (targetUnit is Character player && player.ObjId != character.ObjId)
                         {
                             // TODO : check target has Telekinesis buff if target is a player
                             // Just forward it to the packet, not safe for exploits/hacking
@@ -217,9 +211,9 @@ namespace AAEmu.Game.Core.Packets.C2G
                             (float)MathUtil.ConvertDirectionToRadian(dmt.RotationZ));
                         targetUnit.BroadcastPacket(new SCOneUnitMovementPacket(_objId, dmt), true);
                         targetUnit.Transform.FinalizeTransform(true);
-                        
+
                         // Handle Fall Velocity
-                        if ((dmt.FallVel > 0) && (targetUnit is Unit unit))
+                        if (dmt.FallVel > 0 && targetUnit is Unit unit)
                         {
                             var fallDmg = unit.DoFallDamage(dmt.FallVel);
                             // character.SendMessage("{0} took {1} fall damage {2}/{3} HP left", unit.Name, fallDmg, unit.Hp, unit.MaxHp);
@@ -239,10 +233,10 @@ namespace AAEmu.Game.Core.Packets.C2G
             if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
                 unit.Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
         }
-        
+
         public override string Verbose()
         {
-            return " - " + (_moveType?.Type.ToString() ?? "none") + " " + (WorldManager.Instance.GetGameObject(_objId)?.DebugName() ?? "("+_objId.ToString()+")");
+            return " - " + (_moveType?.Type.ToString() ?? "none") + " " + (WorldManager.Instance.GetGameObject(_objId)?.DebugName() ?? "(" + _objId.ToString() + ")");
         }
 
     }

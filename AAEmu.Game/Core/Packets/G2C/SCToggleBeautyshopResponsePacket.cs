@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly byte _state;
 
-        public SCToggleBeautyshopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyshopResponsePacket, 1)
+        public SCToggleBeautyshopResponsePacket(byte state) : base(SCOffsets.SCToggleBeautyshopResponsePacket, 5)
         {
             _state = state;
         }

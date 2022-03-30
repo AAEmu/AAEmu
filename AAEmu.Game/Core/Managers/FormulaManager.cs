@@ -51,7 +51,7 @@ namespace AAEmu.Game.Core.Managers
         {
             // TODO Funcs: min, max, clamp, if_zero, if_positive, if_negative, floor, log, sqrt
             CalculationEngine = new CalculationEngine(CultureInfo.InvariantCulture, ExecutionMode.Compiled, true, true, false);
-            CalculationEngine.AddFunction("clamp", (a, b, c) => a < b ? b : (a > c ? c : a));
+            CalculationEngine.AddFunction("clamp", (a, b, c) => a < b ? b : a > c ? c : a);
             CalculationEngine.AddFunction("if_negative", (a, b, c) => a < 0 ? b : c);
             CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);
             CalculationEngine.AddFunction("if_zero", (a, b, c) => a == 0 ? b : c);
@@ -123,18 +123,22 @@ namespace AAEmu.Game.Core.Managers
                     using (var sqliteReader = command.ExecuteReader())
                     using (var reader = new SQLiteWrapperReader(sqliteReader))
                     {
+                        //var step = 0u;
                         while (reader.Read())
                         {
                             var formula = new WearableFormula
                             {
-                                Id = reader.GetUInt32("id"),
-                                Type = (WearableFormulaType) reader.GetByte("kind_id"),
+                                //Id = reader.GetUInt32("id"); // there is no such field in the database for version 3030
+                                //Id = step++,
+                                Type = (WearableFormulaType)reader.GetByte("kind_id"),
                                 TextFormula = reader.GetString("formula")
                             };
                             if (formula.Prepare())
+                            {
                                 _wearableFormulas.Add(formula.Type, formula);
                         }
                     }
+                }
                 }
 
                 using (var command = connection.CreateCommand())

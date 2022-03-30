@@ -342,7 +342,7 @@ namespace AAEmu.Game.Core.Managers.World
                     {
                         spawner.Spawn(0);
                         count++;
-                        if (count % 1000 == 0 && worldId == 0)
+                        if (count % 5000 == 0 && worldId == 0)
                         {
                             _log.Info("{0} Doodads spawned", count);
                         }

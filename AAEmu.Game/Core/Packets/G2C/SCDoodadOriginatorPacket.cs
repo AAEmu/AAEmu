@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly uint _newOwnerId;
 
-        public SCDoodadOriginatorPacket(uint objId, uint newOwnerId) : base(SCOffsets.SCDoodadOriginatorPacket, 1)
+        public SCDoodadOriginatorPacket(uint objId, uint newOwnerId) : base(SCOffsets.SCDoodadOriginatorPacket, 5)
         {
             _objId = objId;
             _newOwnerId = newOwnerId;

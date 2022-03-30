@@ -222,7 +222,7 @@ namespace AAEmu.Game.Core.Managers
 
         private void UpdateShipyardInfo(Shipyard shipyard)
         {
-            var isDecaying = (DateTime.UtcNow >= shipyard.ShipyardData.Spawned.AddDays(3));
+            var isDecaying = DateTime.UtcNow >= shipyard.ShipyardData.Spawned.AddDays(3);
 
             SetProtectionBuff(shipyard, isDecaying);
             SetDecayBuff(shipyard, isDecaying);

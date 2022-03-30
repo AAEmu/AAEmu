@@ -1,11 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSUseTeleportPacket : GamePacket
     {
-        public CSUseTeleportPacket() : base(CSOffsets.CSUseTeleportPacket, 1)
+        public CSUseTeleportPacket() : base(CSOffsets.CSUseTeleportPacket, 5)
         {
         }
 

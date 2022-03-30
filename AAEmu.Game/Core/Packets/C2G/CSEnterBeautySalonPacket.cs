@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEnterBeautySalonPacket : GamePacket
     {
-        public CSEnterBeautySalonPacket() : base(CSOffsets.CSEnterBeautySalonPacket, 1)
+        public CSEnterBeautySalonPacket() : base(CSOffsets.CSEnterBeautySalonPacket, 5)
         {
         }
 

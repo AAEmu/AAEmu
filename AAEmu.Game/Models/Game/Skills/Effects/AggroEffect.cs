@@ -41,7 +41,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 var lvlMd = caster.LevelDps * LevelMd;
                 var levelModifier = (( (source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
             
-                min += (lvlMd - levelModifier * lvlMd) + 0.5f;
+                min += lvlMd - levelModifier * lvlMd + 0.5f;
                 max += (levelModifier + 1) * lvlMd + 0.5f;
             }
 

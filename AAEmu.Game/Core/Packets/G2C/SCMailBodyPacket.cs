@@ -11,9 +11,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly MailBody _body;
         private readonly bool _isOpenDateModified;
         private readonly CountUnreadMail _count;
-        //private readonly ulong _mailID;
 
-        public SCMailBodyPacket(bool isPrepare, bool isSent, MailBody body,bool isOpenDateModified, CountUnreadMail count) : base(SCOffsets.SCMailBodyPacket, 1)
+        public SCMailBodyPacket(bool isPrepare, bool isSent, MailBody body, bool isOpenDateModified, CountUnreadMail count)
+            : base(SCOffsets.SCMailBodyPacket, 5)
         {
             _isPrepare = isPrepare;
             _isSent = isSent;

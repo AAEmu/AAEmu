@@ -44,7 +44,7 @@ namespace AAEmu.Game.Models.Game.World
 
         private System.Drawing.Rectangle FindNearestSignificantPoints(int x, int y)
         {
-            return new System.Drawing.Rectangle(x - (x % 2), y - (y % 2), 2, 2);
+            return new System.Drawing.Rectangle(x - x % 2, y - y % 2, 2, 2);
         }
 
         public float GetHeight(float x, float y)

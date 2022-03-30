@@ -135,7 +135,7 @@ namespace AAEmu.Game.Utils
                     continue;
                 }
 
-                var path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+                var path = $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json";
 
                 var contents =
                     FileManager.GetFileContents(
@@ -150,7 +150,7 @@ namespace AAEmu.Game.Utils
                         uint uuid = 0;
                         if (spheres.Count > 0)
                         {
-                            uuid = ((spheres[spheres.Count - 1].Id) + 1);
+                            uuid = spheres[spheres.Count - 1].Id + 1;
                         }
                         else
                         {
@@ -199,7 +199,7 @@ namespace AAEmu.Game.Utils
                     continue;
                 }
 
-                var path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+                var path = $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json";
 
                 var contents =
                     FileManager.GetFileContents(
@@ -254,7 +254,7 @@ namespace AAEmu.Game.Utils
                     continue;
                 }
 
-                var path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+                var path = $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json";
 
                 var contents =
                     FileManager.GetFileContents(
@@ -311,7 +311,7 @@ namespace AAEmu.Game.Utils
                     continue;
                 }
 
-                var path = ($"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json");
+                var path = $"{FileManager.AppPath}Data/Worlds/{world.Name}/quest_sphere.json";
 
                 var contents =
                     FileManager.GetFileContents(
@@ -329,7 +329,7 @@ namespace AAEmu.Game.Utils
                             if (sphere.Id == jsonId)
                             {
                                 found = true;
-                                character.SendPacket(new SCTeleportUnitPacket(0, 0, sphere.Position.X, sphere.Position.Y, sphere.Position.Z, 0));
+                                character.SendPacket(new SCUnitTeleportPacket(0, 0, sphere.Position.X, sphere.Position.Y, sphere.Position.Z, 0));
                                 break;
                             }
                         }

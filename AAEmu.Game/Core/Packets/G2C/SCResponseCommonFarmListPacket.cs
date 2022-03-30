@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _maxCount;
         
-        public SCResponseCommonFarmListPacket(int maxCount) : base(SCOffsets.SCResponseCommonFarmListPacket, 1)
+        public SCResponseCommonFarmListPacket(int maxCount) : base(SCOffsets.SCResponseCommonFarmListPacket, 5)
         {
             _maxCount = maxCount;
         }

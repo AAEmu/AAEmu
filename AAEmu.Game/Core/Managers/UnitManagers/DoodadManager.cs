@@ -81,7 +81,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.ModelKindId = reader.GetUInt32("model_kind_id");
                             template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
                             template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
-                            template.MilestoneId = reader.GetUInt32("milestone_id", 0);
+                            //template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                             template.GroupId = reader.GetUInt32("group_id");
                             template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
                             template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
@@ -238,6 +238,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             func.AttachPointId = (AttachPointKind)reader.GetByte("attach_point_id");
                             func.Space = reader.GetInt32("space");
                             func.BondKindId = (BondKind)reader.GetByte("bond_kind_id");
+                            func.AnimActionId = reader.GetUInt32("anim_action_id"); // (используется в пакете SCBondDoodadPacket) поле добавлено в версии 3+
                             _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);
                         }
                     }
@@ -338,7 +339,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncBuyFishModel();
                             func.Id = reader.GetUInt32("id");
-                            func.Name = reader.GetString("name");
+                            //func.Name = reader.GetString("name"); // there is no such field in the database for version 3030
                             _phaseFuncTemplates["DoodadFuncBuyFishModel"].Add(func.Id, func);
                         }
                     }
@@ -576,7 +577,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             var func = new DoodadFuncConsumeChangerModel();
                             func.Id = reader.GetUInt32("id");
-                            func.Name = reader.GetString("name");
+                            //func.Name = reader.GetString("name"); // there is no such field in the database for version 3030
                             _phaseFuncTemplates["DoodadFuncConsumeChangerModel"].Add(func.Id, func);
                         }
                     }

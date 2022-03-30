@@ -42,7 +42,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors
                 .Where(s =>
                 {
                     var template = SkillManager.Instance.GetSkillTemplate(s.SkillId);
-                    return (template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self));
+                    return template != null && (trgDist >= template.MinRange && trgDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
                 }).ToList();
 
             var pickedSkillId = (uint)Ai.Owner.Template.BaseSkillId;

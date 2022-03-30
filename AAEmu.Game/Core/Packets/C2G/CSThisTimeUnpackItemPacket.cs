@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSThisTimeUnpackItemPacket : GamePacket
     {
-        public CSThisTimeUnpackItemPacket() : base(CSOffsets.CSThisTimeUnpackItemPacket, 1)
+        public CSThisTimeUnpackItemPacket() : base(CSOffsets.CSThisTimeUnpackItemPacket, 5)
         {
 
         }

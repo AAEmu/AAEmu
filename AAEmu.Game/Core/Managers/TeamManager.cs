@@ -182,7 +182,7 @@ namespace AAEmu.Game.Core.Managers
                 {
                     target.SendPacket(new SCJoinedTeamPacket(activeTeam));
                     target.InParty = true;
-                    target.SendPacket(new SCTeamPingPosPacket(true, activeTeam.PingPosition, 0));
+                    target.SendPacket(new SCTeamPingPosPacket(activeTeam.PingPosition));
                     activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newTeamMember, party), target.Id);
                 }
             }
@@ -235,7 +235,7 @@ namespace AAEmu.Game.Core.Managers
             activeInvitation.Owner.InParty = true;
             activeInvitation.Target.SendPacket(new SCJoinedTeamPacket(newTeam));
             activeInvitation.Target.InParty = true;
-            newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, activeInvitation.Owner.LocalPingPosition, 0));
+            newTeam.BroadcastPacket(new SCTeamPingPosPacket(activeInvitation.Owner.LocalPingPosition));
             if (!newTeam.IsParty)
             {
                 ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(activeInvitation.Owner);
@@ -266,7 +266,7 @@ namespace AAEmu.Game.Core.Managers
 
             character.SendPacket(new SCJoinedTeamPacket(newTeam));
             character.InParty = asParty;
-            newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, character.LocalPingPosition, 0));
+            newTeam.BroadcastPacket(new SCTeamPingPosPacket(character.LocalPingPosition));
 
             if (!newTeam.IsParty)
                 ChatManager.Instance.GetRaidChat(newTeam).JoinChannel(character);
@@ -321,7 +321,7 @@ namespace AAEmu.Game.Core.Managers
             }
 
             // Disband if only one member left in a Party (not raid)
-            if ((activeTeam.IsParty) && (activeTeam.MembersCount() <= 1))
+            if (activeTeam.IsParty && activeTeam.MembersCount() <= 1)
                 isAutoDisband = true;
 
             // If everybody is offline, also disband regardless of raid or party status
@@ -359,7 +359,7 @@ namespace AAEmu.Game.Core.Managers
         public void MakeTeamOwner(Character unit, uint teamId, uint memberId)
         {
             var activeTeam = GetActiveTeam(teamId);
-            if ((activeTeam?.OwnerId != unit.Id) || activeTeam.OwnerId == memberId) return;
+            if (activeTeam?.OwnerId != unit.Id || activeTeam.OwnerId == memberId) return;
 
             if (activeTeam.IsMember(memberId)) activeTeam.OwnerId = memberId;
             activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(activeTeam.Id, activeTeam.OwnerId));
@@ -374,7 +374,7 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.IsParty = false;
             activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));
             foreach (var m in activeTeam.Members)
-                if ((m != null) && (m.Character != null))
+                if (m != null && m.Character != null)
                     ChatManager.Instance.GetRaidChat(activeTeam).JoinChannel(m.Character);
         }
 
@@ -421,14 +421,15 @@ namespace AAEmu.Game.Core.Managers
             activeTeam.BroadcastPacket(new SCTeamLootingRuleChangedPacket(teamId, newRules, flags));
         }
 
-        public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
+        public void SetPingPos(Character unit, uint teamId, PingPosition pingPosition)
         {
             var activeTeam = GetActiveTeam(teamId);
-            if ( (activeTeam.OwnerId != unit.Id) && (activeTeam == null || !activeTeam.IsMarked(unit.Id)) ) return;
+            if (activeTeam.OwnerId != unit.Id && (activeTeam == null || !activeTeam.IsMarked(unit.Id))) return;
 
-            activeTeam.PingPosition = position;
-            activeTeam.BroadcastPacket(new SCTeamPingPosPacket(hasPing, position, insId));
+            activeTeam.PingPosition = pingPosition;
+            activeTeam.BroadcastPacket(new SCTeamPingPosPacket(pingPosition));
         }
+
 
         public void SetOffline(Character unit)
         {

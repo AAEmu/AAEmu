@@ -92,7 +92,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         {
             _spawnCount--;
             _spawned.Remove(npc);
-            if (RespawnTime > 0 && (_spawnCount + _scheduledCount) < Count)
+            if (RespawnTime > 0 && _spawnCount + _scheduledCount < Count)
             {
                 npc.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
                 SpawnManager.Instance.AddRespawn(npc);

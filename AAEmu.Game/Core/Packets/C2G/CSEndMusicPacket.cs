@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSEndMusicPacket : GamePacket
     {
-        public CSEndMusicPacket() : base(CSOffsets.CSEndMusicPacket, 1)
+        public CSEndMusicPacket() : base(CSOffsets.CSEndMusicPacket, 5)
         {
         }
 

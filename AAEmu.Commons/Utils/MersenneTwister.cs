@@ -402,22 +402,22 @@ namespace AAEmu.Commons.Utils
 
         private static uint temperingShiftU(UInt32 y)
         {
-            return (y >> 11);
+            return y >> 11;
         }
 
         private static uint temperingShiftS(UInt32 y)
         {
-            return (y << 7);
+            return y << 7;
         }
 
         private static uint temperingShiftT(UInt32 y)
         {
-            return (y << 15);
+            return y << 15;
         }
 
         private static uint temperingShiftL(UInt32 y)
         {
-            return (y >> 18);
+            return y >> 18;
         }
 
         private readonly uint[] _mt = new UInt32[N]; /* the array for the state vector  */
@@ -448,7 +448,7 @@ namespace AAEmu.Commons.Utils
             var keyLength = key.Length;
             var i = 1;
             var j = 0;
-            var k = (N > keyLength ? N : keyLength);
+            var k = N > keyLength ? N : keyLength;
 
             for (; k > 0; k--)
             {
@@ -503,7 +503,7 @@ namespace AAEmu.Commons.Utils
 
             // shift the 27 pseudo-random bits (a) over by 26 bits (* 67108864.0) and
             // add another pseudo-random 26 bits (+ b).
-            return ((a * 67108864.0 + b) + translate) * scale;
+            return (a * 67108864.0 + b + translate) * scale;
 
             // What about the following instead of the above? Is the multiply better? 
             // Why? (Is it the FMUL instruction? Does this count in .Net? Will the JITter notice?)

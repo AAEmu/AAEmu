@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSendMailPacket : GamePacket
     {
-        public CSSendMailPacket() : base(CSOffsets.CSSendMailPacket, 1)
+        public CSSendMailPacket() : base(CSOffsets.CSSendMailPacket, 5)
         {
         }
 
@@ -51,7 +51,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 if (doodad.Template.GroupId == 6)
                 {
                     var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
-                    mailCheckOK = (dist <= 5f); // 5m is kinda generous I guess
+                    mailCheckOK = dist <= 5f; // 5m is kinda generous I guess
                 }
                 else
                     mailCheckOK = false;

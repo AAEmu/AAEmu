@@ -97,7 +97,7 @@ namespace AAEmu.Game.Core.Managers
             // Check if the target spot is already taken
             var slave = _tlSlaves.FirstOrDefault(x => x.Value.ObjId == objId).Value;
             //var slave = GetActiveSlaveByObjId(objId);
-            if ((slave == null) || (slave.AttachedCharacters.ContainsKey(attachPoint)))
+            if (slave == null || slave.AttachedCharacters.ContainsKey(attachPoint))
                 return;
 
             character.BroadcastPacket(new SCUnitAttachedPacket(character.ObjId, attachPoint, bondKind, objId), true);
@@ -208,7 +208,7 @@ namespace AAEmu.Game.Core.Managers
                     // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
                     var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
                     var minDepth = tempShipModel.MassBoxSizeZ - tempShipModel.MassCenterZ + 1f;
-                    for (var inFront = 0f; inFront < (50f + tempShipModel.MassBoxSizeX); inFront += 1f)
+                    for (var inFront = 0f; inFront < 50f + tempShipModel.MassBoxSizeX; inFront += 1f)
                     {
                         var depthCheckPos = spawnPos.CloneDetached();
                         depthCheckPos.Local.AddDistanceToFront(inFront);
@@ -235,7 +235,7 @@ namespace AAEmu.Game.Core.Managers
                 }
 
                 // Always spawn horizontal(level) and 90° CCW of the player
-                spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + (MathF.PI / 2)); 
+                spawnPos.Local.SetRotation(0f, 0f, owner.Transform.World.Rotation.Z + MathF.PI / 2); 
             }
 
             // TODO
@@ -303,7 +303,7 @@ namespace AAEmu.Game.Core.Managers
                 
                 // NOTE: In 1.2 we can't replace slave parts like sail, so just apply it to all of the doodads on spawn)
                 // Should probably have a check somewhere if a doodad can have the UCC applied or not
-                if (item.HasFlag(ItemFlag.HasUCC) && (item.UccId > 0))
+                if (item.HasFlag(ItemFlag.HasUCC) && item.UccId > 0)
                     doodad.UccId = item.UccId;
 
                 if (_attachPoints.ContainsKey(template.ModelId))
@@ -458,9 +458,7 @@ namespace AAEmu.Game.Core.Managers
                             var template = new SlaveTemplate
                             {
                                 Id = reader.GetUInt32("id"),
-                                Name =
-                                    LocalizationManager.Instance.Get("slaves", "name", reader.GetUInt32("id"),
-                                        reader.GetString("name")),
+                                Name = LocalizationManager.Instance.Get("slaves", "name", reader.GetUInt32("id"), reader.GetString("name")),
                                 ModelId = reader.GetUInt32("model_id"),
                                 Mountable = reader.GetBoolean("mountable"),
                                 SpawnXOffset = reader.GetFloat("spawn_x_offset"),
@@ -525,7 +523,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SlaveInitialBuffs
                             {
-                                Id = reader.GetUInt32("id"),
+                                //Id = reader.GetUInt32("id"),
                                 SlaveId = reader.GetUInt32("slave_id"),
                                 BuffId = reader.GetUInt32("buff_id")
                             };
@@ -548,7 +546,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SlavePassiveBuffs
                             {
-                                Id = reader.GetUInt32("id"),
+                                //Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
                                 PassiveBuffId = reader.GetUInt32("passive_buff_id")
@@ -572,7 +570,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SlaveDoodadBindings
                             {
-                                Id = reader.GetUInt32("id"),
+                                //Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
                                 AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
@@ -599,7 +597,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var template = new SlaveBindings()
                             {
-                                Id = reader.GetUInt32("id"),
+                                //Id = reader.GetUInt32("id"),
                                 OwnerId = reader.GetUInt32("owner_id"),
                                 OwnerType = reader.GetString("owner_type"),
                                 AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id"),

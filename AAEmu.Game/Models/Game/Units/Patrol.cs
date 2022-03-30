@@ -93,7 +93,7 @@ namespace AAEmu.Game.Models.Game.Units
         {
             //如果NPC不存在或不处于巡航模式或者当前执行次数不为0
             //If NPC does not exist or is not in cruise mode or the current number of executions is not zero
-            if (npc.Patrol == null || (npc.Patrol.Running == false && this != npc.Patrol) || (npc.Patrol.Running == true && this == npc.Patrol))
+            if (npc.Patrol == null || npc.Patrol.Running == false && this != npc.Patrol || npc.Patrol.Running == true && this == npc.Patrol)
             {
                 //如果上次巡航模式处于暂停状态则保存上次巡航模式
                 //If the last cruise mode is suspended, save the last cruise mode
@@ -103,7 +103,8 @@ namespace AAEmu.Game.Models.Game.Units
                 }
                 ++Count;
                 //++Seq;
-                Seq = (uint)Rand.Next(0, 10000);
+                //Seq = (uint)(DateTime.Now - DateTime.Today).TotalMilliseconds;
+                Seq += 100;
                 Running = true;
                 npc.Patrol = this;
                 Execute(npc);

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCleanupLogicLinkPacket : GamePacket
     {
-        public CSCleanupLogicLinkPacket() : base(CSOffsets.CSCleanupLogicLinkPacket, 1)
+        public CSCleanupLogicLinkPacket() : base(CSOffsets.CSCleanupLogicLinkPacket, 5)
         {
         }
 

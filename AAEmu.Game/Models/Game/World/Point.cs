@@ -32,6 +32,14 @@
             RotationZ = rotationZ;
         }
 
+        public Point(uint zoneId, float x, float y, float z)
+        {
+            ZoneId = zoneId;
+            X = x;
+            Y = y;
+            Z = z;
+        }
+
         public Point(uint worldId, uint zoneId, float x, float y, float z,
             sbyte rotationX, sbyte rotationY, sbyte rotationZ)
         {

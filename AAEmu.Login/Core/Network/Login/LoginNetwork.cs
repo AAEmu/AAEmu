@@ -19,17 +19,17 @@ namespace AAEmu.Login.Core.Network.Login
         {
             _handler = new LoginProtocolHandler();
 
+            RegisterPacket(CLOffsets.CARequestAuthKakaoPacket, typeof(CARequestAuthKakaoPacket)); // 1
+            RegisterPacket(CLOffsets.CAListWorldPacket, typeof(CAListWorldPacket));               // 2
+            RegisterPacket(CLOffsets.CAEnterWorldPacket, typeof(CAEnterWorldPacket));             // 3
+
             RegisterPacket(CLOffsets.CARequestAuthPacket, typeof(CARequestAuthPacket));
-            RegisterPacket(CLOffsets.CARequestAuthTencentPacket, typeof(CARequestAuthTencentPacket));
             RegisterPacket(CLOffsets.CARequestAuthGameOnPacket, typeof(CARequestAuthGameOnPacket));
             RegisterPacket(CLOffsets.CARequestAuthTrionPacket, typeof(CARequestAuthTrionPacket));
             RegisterPacket(CLOffsets.CARequestAuthMailRuPacket, typeof(CARequestAuthMailRuPacket));
             RegisterPacket(CLOffsets.CAChallengeResponsePacket, typeof(CAChallengeResponsePacket));
-            RegisterPacket(CLOffsets.CAChallengeResponse2Packet, typeof(CAChallengeResponse2Packet));
             RegisterPacket(CLOffsets.CAOtpNumberPacket, typeof(CAOtpNumberPacket));
             RegisterPacket(CLOffsets.CAPcCertNumberPacket, typeof(CAPcCertNumberPacket));
-            RegisterPacket(CLOffsets.CAListWorldPacket, typeof(CAListWorldPacket));
-            RegisterPacket(CLOffsets.CAEnterWorldPacket, typeof(CAEnterWorldPacket));
             RegisterPacket(CLOffsets.CACancelEnterWorldPacket, typeof(CACancelEnterWorldPacket));
             RegisterPacket(CLOffsets.CARequestReconnectPacket, typeof(CARequestReconnectPacket));
         }

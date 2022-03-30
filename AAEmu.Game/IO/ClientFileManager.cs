@@ -110,7 +110,7 @@ namespace AAEmu.Game.IO
         public static bool FileExists(string fileName)
         {
             var source = GetFileSource(fileName);
-            return (source != null);
+            return source != null;
         }
         
         /// <summary>

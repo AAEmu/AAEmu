@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _doodadObjId;
         private readonly uint _questContextId;
 
-        public SCDoodadQuestAcceptPacket(uint doodadObjId, uint questContextId) : base(SCOffsets.SCDoodadQuestAcceptPacket, 1)
+        public SCDoodadQuestAcceptPacket(uint doodadObjId, uint questContextId) : base(SCOffsets.SCDoodadQuestAcceptPacket, 5)
         {
             _doodadObjId = doodadObjId;
             _questContextId = questContextId;

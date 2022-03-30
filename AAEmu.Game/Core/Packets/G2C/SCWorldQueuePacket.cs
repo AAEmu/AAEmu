@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ushort _normalLenght;
         private readonly ushort _premiumLenght;
 
-        public SCWorldQueuePacket(byte worldId, bool isPremium, ushort myTurn, ushort normalLenght, ushort premiumLenght) : base(SCOffsets.SCWorldQueuePacket, 1)
+        public SCWorldQueuePacket(byte worldId, bool isPremium, ushort myTurn, ushort normalLenght, ushort premiumLenght) : base(SCOffsets.SCWorldQueuePacket, 5)
         {
             _worldId = worldId;
             _isPremium = isPremium;

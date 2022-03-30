@@ -33,7 +33,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             // TODO: Check if items are owned by caster
 
-            if ((stampItem != null) && (targetItem != null))
+            if (stampItem != null && targetItem != null)
             {
                 //var oldFlags = targetItem.ItemFlags;
                 UccManager.Instance.ApplyStamp(stampItem, targetItem);

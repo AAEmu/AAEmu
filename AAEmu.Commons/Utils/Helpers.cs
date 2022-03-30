@@ -137,8 +137,72 @@ namespace AAEmu.Commons.Utils
             coords[0] = (byte)(temp / 0.001);
             return coords;
         }
+        public static (float x, float y, float z) ConvertPositionOld(byte[] values)
+        {
+            var tempX = 8 * (values[0] + ((values[1] + ((values[2] + (values[3] << 8)) << 8)) << 8));
+            var flagX = (int)(((-(values[10] & 0x80) >> 30) & 0xFFFFFFFE) + 1);
+            var resX = ((long)tempX << 32) * flagX;
 
+            var tempY = 8 * (values[4] + ((values[5] + ((values[6] + (values[7] << 8)) << 8)) << 8));
+            var flagY = (int)(((-(values[10] & 0x40) >> 30) & 0xFFFFFFFE) + 1);
+            var resY = ((long)tempY << 32) * flagY;
+
+            var tempZ = (ulong)(values[8] + ((values[9] + ((values[10] & 0x3f) << 8)) << 8));
+
+            var resultX = ConvertLongX(resX);
+            var resultY = ConvertLongY(resY);
+            var resultZ = (float)Math.Round(tempZ * 0.00000023841858 * 4196 - 100, 4, MidpointRounding.ToEven);
+
+            return (resultX, resultY, resultZ);
+        }
         public static (float x, float y, float z) ConvertPosition(byte[] values)
+        {
+            var tempX = 8 * (values[0] + ((values[1] + (values[2] << 8)) << 8));
+            var flagX = (int)(((-(values[10] & 0x80) >> 30) & 0xFFFFFFFE) + 1);
+            var resX = ((long)tempX << 32) * flagX;
+
+            var tempY = 8 * (values[4] + ((values[5] + (values[6] << 8)) << 8));
+            var flagY = (int)(((-(values[10] & 0x40) >> 30) & 0xFFFFFFFE) + 1);
+            var resY = ((long)tempY << 32) * flagY;
+
+            var tempZ = (ulong)(values[8] + ((values[9] + ((values[10] & 0x3f) << 8)) << 8));
+
+            var resultX = ConvertLongX(resX);
+            var resultY = ConvertLongY(resY);
+            var resultZ = (float)Math.Round(tempZ * 0.00000023841858 * 4196 - 100, 4, MidpointRounding.ToEven);
+
+            return (resultX, resultY, resultZ);
+        }
+
+        public static byte[] ConvertPosition(float x, float y, float z)
+        {
+            var longX = ConvertLongX(x);
+            var longY = ConvertLongY(y);
+
+            var preX = longX >> 31;
+            var preY = longY >> 31;
+
+            var resultX = (preX ^ (longX + preX + (0 > preX ? 1 : 0))) >> 3;
+            var resultY = (preY ^ (longY + preY + (0 > preY ? 1 : 0))) >> 3;
+            var resultZ = (long)Math.Floor((z + 100f) / 4196f * 4194304f + 0.5);
+
+            var position = new byte[11];
+            position[0] = (byte)(resultX >> 32);
+            position[1] = (byte)(resultX >> 40);
+            position[2] = (byte)(resultX >> 48);
+            position[3] = (byte)(resultX >> 56);
+
+            position[4] = (byte)(resultY >> 32);
+            position[5] = (byte)(resultY >> 40);
+            position[6] = (byte)(resultY >> 48);
+            position[7] = (byte)(resultY >> 56);
+
+            position[8] = (byte)resultZ;
+            position[9] = (byte)(resultZ >> 8);
+            position[10] = (byte)(((resultZ >> 16) & 0x3F) + (((y < 0 ? 1 : 0) + 2 * (x < 0 ? 1 : 0)) << 6));
+            return position;
+        }
+        public static (float x, float y, float z) ConvertPosition2(byte[] values)
         {
             var tempX = 8 * (values[0] + ((values[1] + (values[2] << 8)) << 8));
             var flagX = (int)(((-(values[8] & 0x80) >> 30) & 0xFFFFFFFE) + 1);
@@ -157,7 +221,7 @@ namespace AAEmu.Commons.Utils
             return (resultX, resultY, resultZ);
         }
 
-        public static byte[] ConvertPosition(float x, float y, float z)
+        public static byte[] ConvertPosition2(float x, float y, float z)
         {
             var longX = ConvertLongX(x);
             var longY = ConvertLongY(y);
@@ -222,12 +286,35 @@ namespace AAEmu.Commons.Utils
                 .ToArray();
         }
 
+        /*
+        * Which works out about 30% faster than PZahras (not that you'd notice with small amounts of data).
+        * The BitConverter method itself is pretty quick, it's just having to do the replace which slows it down, so if you can live with the dashes then it's perfectly good.
+        */
+        public static string ByteArrayToString(byte[] data)
+        {
+            char[] lookup = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+            int i = 0, p = 0, l = data.Length;
+            char[] c = new char[l * 2 + 2];
+            byte d;
+            //int p = 2; c[0] = '0'; c[1] = 'x'; //если хотим 0x
+            while (i < l)
+            {
+                d = data[i++];
+                c[p++] = lookup[d / 0x10];
+                c[p++] = lookup[d % 0x10];
+            }
+            return new string(c, 0, c.Length);
+        }
+
         public static byte[] ConvertIp(string ip)
         {
             var result = IPAddress.Parse(ip);
             return result.GetAddressBytes().Reverse().ToArray();
         }
 
+        /// <summary>
+        /// Подсчет контрольной суммы пакета, используется в шифровании пакетов DD05 и 0005
+        /// </summary>
         public static byte Crc8(byte[] data, int size)
         {
             var len = size;
@@ -255,5 +342,14 @@ namespace AAEmu.Commons.Utils
 
             return dir;
         }
+
+        public static float ConvertDirectionToRadian(sbyte rotation)
+        {
+            var z = rotation * 0.0078740157; // переводим из направления в радианы
+            z *= Math.PI * 2;
+
+            return (float)z;
+        }
+
     }
 }

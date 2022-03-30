@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Managers
             if (newItem == null) //TODO
                 return;
 
-            var auctionFee = (newAuctionItem.DirectMoney * .01) * (duration + 1);
+            var auctionFee = newAuctionItem.DirectMoney * .01 * (duration + 1);
 
             if (auctionFee > MaxListingFee)
                 auctionFee = MaxListingFee;
@@ -66,7 +66,7 @@ namespace AAEmu.Game.Core.Managers
                 moneyToSend[0] = (int)moneyAfterFee;
 
                 // TODO: Read this from saved data
-                var recalculatedFee = (itemToRemove.DirectMoney * .01) * (itemToRemove.Duration + 1);
+                var recalculatedFee = itemToRemove.DirectMoney * .01 * (itemToRemove.Duration + 1);
                 if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
 
                 if (itemToRemove.ClientName != "")
@@ -103,7 +103,7 @@ namespace AAEmu.Game.Core.Managers
                 itemList[0] = newItem;
 
                 // TODO: Read this from saved data
-                var recalculatedFee = (itemToRemove.DirectMoney * .01) * (itemToRemove.Duration + 1);
+                var recalculatedFee = itemToRemove.DirectMoney * .01 * (itemToRemove.Duration + 1);
                 if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
 
                 if (itemToRemove.ClientName != "")
@@ -129,7 +129,7 @@ namespace AAEmu.Game.Core.Managers
             itemList[0] = newItem;
 
             // TODO: Read this from saved data
-            var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
+            var recalculatedFee = auctionItem.DirectMoney * .01 * (auctionItem.Duration + 1);
             if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
 
             var cancelMail = new MailForAuction(newItem, auctionItem.ClientId, auctionItem.DirectMoney, (int)recalculatedFee);
@@ -173,7 +173,7 @@ namespace AAEmu.Game.Core.Managers
                         moneyArray[0] = (int)auctionItem.BidMoney;
 
                         // TODO: Read this from saved data
-                        var recalculatedFee = (auctionItem.DirectMoney * .01) * (auctionItem.Duration + 1);
+                        var recalculatedFee = auctionItem.DirectMoney * .01 * (auctionItem.Duration + 1);
                         if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
 
                         var cancelMail = new MailForAuction(auctionItem.ItemID, auctionItem.ClientId, auctionItem.DirectMoney, (int)recalculatedFee);
@@ -207,10 +207,10 @@ namespace AAEmu.Game.Core.Managers
             {
                 var itemTemplateList = ItemManager.Instance.GetAllItems();
                 var query = from item in itemTemplateList
-                    where ((searchTemplate.ItemName != "") ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true)
-                    where ((searchTemplate.CategoryA != 0) ? searchTemplate.CategoryA == item.AuctionCategoryA : true)
-                    where ((searchTemplate.CategoryB != 0) ? searchTemplate.CategoryB == item.AuctionCategoryB : true)
-                    where ((searchTemplate.CategoryC != 0) ? searchTemplate.CategoryC == item.AuctionCategoryC : true)
+                    where searchTemplate.ItemName != "" ? item.searchString.Contains(searchTemplate.ItemName.ToLower()) : true
+                    where searchTemplate.CategoryA != 0 ? searchTemplate.CategoryA == item.AuctionCategoryA : true
+                    where searchTemplate.CategoryB != 0 ? searchTemplate.CategoryB == item.AuctionCategoryB : true
+                    where searchTemplate.CategoryC != 0 ? searchTemplate.CategoryC == item.AuctionCategoryC : true
                     select item;
 
                 var selectedItemList = query.ToList();
@@ -240,7 +240,7 @@ namespace AAEmu.Game.Core.Managers
             if (searchTemplate.Page > 0)
             {
                 var startingItemNumber = (int)(searchTemplate.Page * 9);
-                var endingitemNumber = (int)((searchTemplate.Page * 9) + 9);
+                var endingitemNumber = (int)(searchTemplate.Page * 9 + 9);
                 if (auctionItemsFound.Count > startingItemNumber)
                 {
                     var tempItemList = new List<AuctionItem>();

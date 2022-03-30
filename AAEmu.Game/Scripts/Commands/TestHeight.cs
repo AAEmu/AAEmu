@@ -47,7 +47,7 @@ namespace AAEmu.Game.Scripts.Commands
             if ((args.Length > firstarg) && (args[firstarg] == "testpos"))
             {
                 targetPlayer.DisabledSetPosition = true;
-                targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, 22500f, 18500f, 10f, 0f));
+                targetPlayer.SendPacket(new SCUnitTeleportPacket(0, 0, 22500f, 18500f, 10f, 0f));
                 targetPlayer.SendMessage("[Move] |cFFFFFFFF{0}|r moved to X: {1}, Y: {2}, Z: {3}", targetPlayer.Name, 22500f, 18500f, 10f);
             }
             else

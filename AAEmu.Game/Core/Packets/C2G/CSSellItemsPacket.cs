@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
@@ -13,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSellItemsPacket : GamePacket
     {
-        public CSSellItemsPacket() : base(CSOffsets.CSSellItemsPacket, 1)
+        public CSSellItemsPacket() : base(CSOffsets.CSSellItemsPacket, 5)
         {
         }
 
@@ -42,8 +40,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                     item = Connection.ActiveChar.Inventory.Equipment.GetItemBySlot(slot);
                 else if (slotType == SlotType.Inventory)
                     item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
-//                else if (slotType == SlotType.Bank)
-//                    item = Connection.ActiveChar.Inventory.Bank[slot];
+                //                else if (slotType == SlotType.Bank)
+                //                    item = Connection.ActiveChar.Inventory.Bank[slot];
                 if (item != null && item.Id == itemId)
                     items.Add(item);
             }
@@ -57,7 +55,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 
                 if (!Connection.ActiveChar.BuyBackItems.AddOrMoveExistingItem(ItemTaskType.StoreSell, item))
                 {
-                    _log.Warn(string.Format("Failed to move sold itemId {0} to BuyBack ItemContainer for {1}",item.Id,Connection.ActiveChar.Name));
+                    _log.Warn(string.Format("Failed to move sold itemId {0} to BuyBack ItemContainer for {1}", item.Id, Connection.ActiveChar.Name));
                 }
                 money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
                          item.Count;

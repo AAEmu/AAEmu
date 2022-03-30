@@ -16,7 +16,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         //private ushort _errorMessage;
         //private ulong  _serverTIme;
 
-        public SCAuctionSearchedPacket(List<AuctionItem> auctionItems, uint page) : base(SCOffsets.SCAuctionSearchedPacket, 1)
+        public SCAuctionSearchedPacket(List<AuctionItem> auctionItems, uint page) : base(SCOffsets.SCAuctionSearchedPacket, 5)
         {
             _auctionItems = auctionItems;
             _count = (uint)_auctionItems.Count();

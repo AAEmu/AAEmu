@@ -20,6 +20,7 @@ namespace AAEmu.Login.Core.Packets.C2L
             var mac = stream.ReadBytes();
             var mac2 = stream.ReadBytes();
             var cpu = stream.ReadUInt64();
+            var is64bit = stream.ReadBoolean(); // added 5.7.5.0
 
             LoginController.Login(Connection, account);
 

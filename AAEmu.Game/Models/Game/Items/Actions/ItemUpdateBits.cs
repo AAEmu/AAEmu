@@ -29,7 +29,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions
             stream.Write(_slot);
             stream.Write(_itemId);
             stream.Write(_bits);
-            stream.Write((ulong)0);
+            //stream.Write((ulong)0); // TODO нет в 3.0.3.0
             return stream;
         }
     }

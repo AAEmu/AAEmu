@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly int _exchangeRatio;
 
-        public SCICSExchangeRatioPacket(int exchangeRatio) : base(SCOffsets.SCICSExchangeRatioPacket, 1)
+        public SCICSExchangeRatioPacket(int exchangeRatio) : base(SCOffsets.SCICSExchangeRatioPacket, 5)
         {
             _exchangeRatio = exchangeRatio;
         }

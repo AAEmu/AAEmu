@@ -105,14 +105,14 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             posUnit.ObjId = uint.MaxValue;
             posUnit.Region = PreviousTarget.Region;
             posUnit.Transform = PreviousTarget.Transform.CloneDetached(posUnit);
-            var degrees = (float)(args.Angle);
+            var degrees = (float)args.Angle;
             posUnit.Transform.Local.Rotate(0,0,degrees.DegToRad() * -1f);
             // posUnit.Transform.Local.Rotate(Quaternion.CreateFromYawPitchRoll(((float)args.Angle).DegToRad() * -1f, 0f, 0f));
             if (args.Distance != 0)
             {
-                posUnit.Transform.Local.AddDistanceToFront((args.Distance / 1000f) - 0.01f);
+                posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f - 0.01f);
             }
-            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f),WorldManager.Instance.GetHeight(posUnit.Transform)));
+            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + args.HeightOffset / 1000f,WorldManager.Instance.GetHeight(posUnit.Transform)));
             // posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)
@@ -182,7 +182,7 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree
             posUnit.Transform.WorldId = PreviousTarget.Transform.WorldId;
             posUnit.Transform.Local.SetZRotation(((float)Rand.Next(-180, 180)).DegToRad());
             posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
-            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + (args.HeightOffset / 1000f),WorldManager.Instance.GetHeight(posUnit.Transform)));
+            posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + args.HeightOffset / 1000f,WorldManager.Instance.GetHeight(posUnit.Transform)));
             //posUnit.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(posUnit.Transform));
 
             if (args.MaxTargets == 0)

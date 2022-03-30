@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSLootOpenBagPacket : GamePacket
     {
-        public CSLootOpenBagPacket() : base(CSOffsets.CSLootOpenBagPacket, 1)
+        public CSLootOpenBagPacket() : base(CSOffsets.CSLootOpenBagPacket, 5)
         {
         }
 
@@ -16,9 +16,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             var obj2Id = stream.ReadBc();
             var lootAll = stream.ReadBoolean();
 
-
             ItemManager.Instance.TookLootDropItems(Connection.ActiveChar, objId, lootAll);
-
         }
     }
 }

@@ -395,7 +395,7 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.MeleeDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
+                        res += res * bonus.Value / 100f;
                     else
                         res += bonus.Value;
                 }
@@ -463,7 +463,7 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.RangedDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
+                        res += res * bonus.Value / 100f;
                     else
                         res += bonus.Value;
                 }
@@ -511,7 +511,7 @@ namespace AAEmu.Game.Models.Game.Units
                 foreach (var bonus in GetBonuses(UnitAttribute.SpellDpsInc))
                 {
                     if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                        res += (res * bonus.Value / 100f);
+                        res += res * bonus.Value / 100f;
                     else
                         res += bonus.Value;
                 }

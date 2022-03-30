@@ -2,11 +2,11 @@
 {
     public static class PPOffsets
     {
-        // All opcodes here are updated for version client_12_r208022
+        // All opcodes here are updated for version client_8.0.3.12_r558734
         public const ushort ChangeStatePacket = 0x000;
         public const ushort FinishStatePacket = 0x001;
         public const ushort FlushMsgsPacket = 0x002;
-        public const ushort UpdatePhysicsTimePacket = 0x004;
+        public const ushort UpdatePhysICSTimePacket = 0x004;
         public const ushort BeginUpdateObjPacket = 0x005;
         public const ushort EndUpdateObjPacket = 0x006;
         public const ushort BeginBindObjPacket = 0x007;

@@ -21,14 +21,17 @@ namespace AAEmu.Game.Models.Game.Units
         Housing = 3,
         Transfer = 4,
         Mate = 5,
-        Shipyard = 6
+        Shipyard = 6,
+        Butler = 7
     }
-
     public enum ModelPostureType : byte
     {
         None = 0,
         HouseState = 1,
+        Unk2 = 2,
         ActorModelState = 4,
+        Unk5 = 5,
+        Unk6 = 6,
         FarmfieldState = 7,
         TurretState = 8
     }

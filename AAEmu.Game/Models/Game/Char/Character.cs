@@ -1,37 +1,31 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Runtime.CompilerServices;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Connections;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.Expeditions;
-using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Static;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
+
 using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -51,6 +45,7 @@ namespace AAEmu.Game.Models.Game.Char
 
     public enum Gender : byte
     {
+        None = 0,
         Male = 1,
         Female = 2
     }
@@ -66,10 +61,11 @@ namespace AAEmu.Game.Models.Game.Char
         public List<IDisposable> Subscribers { get; set; }
 
         public uint Id { get; set; }
-        public uint AccountId { get; set; }
+        public ulong AccountId { get; set; }
         public Race Race { get; set; }
         public Gender Gender { get; set; }
         public short LaborPower { get; set; }
+        public short LocalLaborPower { get; set; }
         public DateTime LaborPowerModified { get; set; }
         public int ConsumedLaborPower { get; set; }
         public AbilityType Ability1 { get; set; }
@@ -94,6 +90,7 @@ namespace AAEmu.Game.Models.Game.Char
         public int VocationPoint { get; set; }
         public short CrimePoint { get; set; }
         public int CrimeRecord { get; set; }
+        public short CrimeScore { get; set; }
         public DateTime DeleteRequestTime { get; set; }
         public DateTime TransferRequestTime { get; set; }
         public DateTime DeleteTime { get; set; }
@@ -106,6 +103,7 @@ namespace AAEmu.Game.Models.Game.Char
         public int RecoverableExp { get; set; }
         public DateTime Created { get; set; } // время создания персонажа
         public DateTime Updated { get; set; } // время внесения изменений
+        public byte ForceNameChange { get; set; }
 
         public uint ReturnDictrictId { get; set; }
         public uint ResurrectionDictrictId { get; set; }
@@ -140,8 +138,10 @@ namespace AAEmu.Game.Models.Game.Char
         public CharacterCraft Craft { get; set; }
         public uint SubZoneId { get; set; } // понадобилось хранить для составления точек Memory Tome (Recall)
         public int AccessLevel { get; set; }
-        public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
+        public PingPosition LocalPingPosition { get; set; } // added as a GM command helper
         private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
+
+        private byte CliLocale { get; set; } = 0;
 
         private bool _inParty;
         private bool _isOnline;
@@ -180,7 +180,7 @@ namespace AAEmu.Game.Models.Game.Char
                 if (_isOnline == value) return;
                 // TODO - GUILD STATUS CHANGE
                 FriendMananger.Instance.SendStatusChange(this, true, value);
-                if(!value) TeamManager.Instance.SetOffline(this);
+                if (!value) TeamManager.Instance.SetOffline(this);
                 _isOnline = value;
             }
         }
@@ -512,7 +512,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return (float)res;
             }
         }
-        
+
         [UnitAttribute(UnitAttribute.RangedDamageMul)]
         public override float RangedDamageMul
         {
@@ -524,7 +524,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return (float)res;
             }
         }
-        
+
         [UnitAttribute(UnitAttribute.SpellDamageMul)]
         public override float SpellDamageMul
         {
@@ -536,7 +536,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return (float)res;
             }
         }
-        
+
         [UnitAttribute(UnitAttribute.IncomingHealMul)]
         public override float IncomingHealMul
         {
@@ -548,7 +548,7 @@ namespace AAEmu.Game.Models.Game.Char
                 return (float)res;
             }
         }
-        
+
         [UnitAttribute(UnitAttribute.HealMul)]
         public override float HealMul
         {
@@ -591,7 +591,7 @@ namespace AAEmu.Game.Models.Game.Char
                 res += Str / 5f * 1000f;
                 res = (float)CalculateWithBonuses(res, UnitAttribute.MainhandDps);
 
-                return (int)(res);
+                return (int)res;
             }
         }
 
@@ -677,7 +677,7 @@ namespace AAEmu.Game.Models.Game.Char
                 res += Int / 5f * 1000f;
                 res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDps);
 
-                return (int)(res);
+                return (int)res;
             }
         }
 
@@ -744,8 +744,8 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.MeleeAntiMiss);
-                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
-                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (1f - (Facets / 10f - res) * (1f / Facets)) * 100f;
+                res = (res + 100f - Math.Abs(res - 100f)) / 2f;
                 res = (Math.Abs(res) + res) / 2f;
                 return (float)res;
             }
@@ -764,7 +764,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.MeleeCritical);
                 res = res * (1f / Facets) * 100;
-                res = res + (MeleeCriticalMul / 10);
+                res = res + MeleeCriticalMul / 10;
                 return (float)res;
             }
         }
@@ -803,8 +803,8 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.RangedAntiMiss);
-                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
-                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (1f - (Facets / 10f - res) * (1f / Facets)) * 100f;
+                res = (res + 100f - Math.Abs(res - 100f)) / 2f;
                 res = (Math.Abs(res) + res) / 2f;
                 return (float)res;
             }
@@ -823,7 +823,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.RangedCritical);
                 res = res * (1f / Facets) * 100;
-                res = res + (RangedCriticalMul / 10);
+                res = res + RangedCriticalMul / 10;
                 return (float)res;
             }
         }
@@ -862,8 +862,8 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["spi"] = Spi;
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.SpellAntiMiss);
-                res = (1f - ((Facets / 10f) - res) * (1f / Facets)) * 100f;
-                res = ((res + 100f) - Math.Abs((res - 100f))) / 2f;
+                res = (1f - (Facets / 10f - res) * (1f / Facets)) * 100f;
+                res = (res + 100f - Math.Abs(res - 100f)) / 2f;
                 res = (Math.Abs(res) + res) / 2f;
                 return (float)res;
             }
@@ -882,7 +882,7 @@ namespace AAEmu.Game.Models.Game.Char
                 res = CalculateWithBonuses(res, UnitAttribute.SpellCritical);
                 res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCritical);
                 res = res * (1f / Facets) * 100;
-                res = res + (SpellCriticalMul / 10);
+                res = res + SpellCriticalMul / 10;
                 return (float)res;
             }
         }
@@ -923,7 +923,7 @@ namespace AAEmu.Game.Models.Game.Char
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.HealCritical);
                 res = res * (1f / Facets) * 100;
-                res = res + (HealCriticalMul / 10);
+                res = res + HealCriticalMul / 10;
                 return (float)res;
             }
         }
@@ -1099,7 +1099,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["int"] = Int;
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.Dodge);
-                res = (res * (1f / Facets) * 100f);
+                res = res * (1f / Facets) * 100f;
                 res += CalculateWithBonuses(0f, UnitAttribute.DodgeMul) / 10f;
                 return (float)res;
             }
@@ -1117,7 +1117,7 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["sta"] = Sta;
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.MeleeParry);
-                res = (res * (1f / Facets) * 100f);
+                res = res * (1f / Facets) * 100f;
                 res += CalculateWithBonuses(0f, UnitAttribute.MeleeParryMul) / 10f;
                 return (float)res;
             }
@@ -1131,7 +1131,7 @@ namespace AAEmu.Game.Models.Game.Char
                 //RangedParry Formula == 0
                 double res = 0;
                 res = CalculateWithBonuses(res, UnitAttribute.RangedParry);
-                res = (res * (1f / Facets) * 100f);
+                res = res * (1f / Facets) * 100f;
                 res += CalculateWithBonuses(0f, UnitAttribute.RangedParryMul) / 10f;
                 return (float)res;
             }
@@ -1157,12 +1157,12 @@ namespace AAEmu.Game.Models.Game.Char
                 parameters["str"] = Str;
                 var res = formula.Evaluate(parameters);
                 res = CalculateWithBonuses(res, UnitAttribute.Block);
-                res = (res * (1f / Facets) * 100f);
+                res = res * (1f / Facets) * 100f;
                 res += CalculateWithBonuses(0f, UnitAttribute.BlockMul) / 10f;
                 return (float)res;
             }
         }
-        
+
         [UnitAttribute(UnitAttribute.LungCapacity)]
         public uint LungCapacity
         {
@@ -1174,7 +1174,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             get => (float)CalculateWithBonuses(1d, UnitAttribute.FallDamageMul);
         }
-        
+
         [UnitAttribute(UnitAttribute.LivingPointGain)]
         public float LivingPointGain
         {
@@ -1208,7 +1208,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             ModelParams = modelParams;
             Subscribers = new List<IDisposable>();
-            
+
             ChargeLock = new object();
         }
 
@@ -1249,7 +1249,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public bool IsActivelyHostile(Character target)
         {
-            if(_hostilePlayers.TryGetValue(target.ObjId, out var value))
+            if (_hostilePlayers.TryGetValue(target.ObjId, out var value))
             {
                 //Maybe get the time to stay hostile from db?
                 return value.AddSeconds(30) > DateTime.UtcNow;
@@ -1312,7 +1312,7 @@ namespace AAEmu.Game.Models.Game.Char
         public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
         {
             var itemTasks = new List<ItemTask>();
-            switch(typeFrom)
+            switch (typeFrom)
             {
                 case SlotType.Inventory:
                     if (amount > Money)
@@ -1348,7 +1348,7 @@ namespace AAEmu.Game.Models.Game.Char
             return true;
         }
 
-        public bool AddMoney(SlotType moneyLocation,int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+        public bool AddMoney(SlotType moneyLocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
         {
             if (amount < 0)
                 return false;
@@ -1387,7 +1387,7 @@ namespace AAEmu.Game.Models.Game.Char
                     HonorPoint += change;
                     break;
                 case GamePointKind.Vocation:
-                    var vocAdd = GetAttribute<float>(UnitAttribute.LivingPointGain,0f);
+                    var vocAdd = GetAttribute<float>(UnitAttribute.LivingPointGain, 0f);
                     change = (int)Math.Round(change + vocAdd);
                     var vocMul = GetAttribute<float>(UnitAttribute.LivingPointGainMul, 0f) + 100f;
                     change = (int)Math.Round(change * (vocMul / 100f));
@@ -1397,7 +1397,7 @@ namespace AAEmu.Game.Models.Game.Char
                     _log.Error($"ChangeGamePoints - Unknown Game Point Type {kind}");
                     return;
             }
-            SendPacket(new SCGamePointChangedPacket((byte)kind, change));            
+            SendPacket(new SCGamePointChangedPacket((byte)kind, change));
         }
 
         public override int GetAbLevel(AbilityType type)
@@ -1417,7 +1417,7 @@ namespace AAEmu.Game.Models.Game.Char
             var skillIds = SkillManager.Instance.GetSkillsByTag(playerSkillsTag);
 
             var packets = new CompressedGamePackets();
-            foreach(var skillId in skillIds)
+            foreach (var skillId in skillIds)
             {
                 packets.AddPacket(new SCSkillCooldownResetPacket(this, skillId, 0, triggerGcd));
             }
@@ -1442,28 +1442,28 @@ namespace AAEmu.Game.Models.Game.Char
             BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, factionId, false), true);
             Faction = FactionManager.Instance.GetFaction(factionId);
         }
-        
+
         public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
             var moved = !Transform.Local.Position.X.Equals(x) || !Transform.Local.Position.Y.Equals(y) || !Transform.Local.Position.Z.Equals(z);
             var lastZoneKey = Transform.ZoneId;
             //Connection.ActiveChar.SendMessage("Move Old Pos: {0}", Transform.ToString());
-            
+
             base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
-            var worldDrownThreshold  = WorldManager.Instance.GetWorld(this.Transform.WorldId)?.OceanLevel -2f ?? 98f ;
-            if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold) 
+            var worldDrownThreshold = WorldManager.Instance.GetWorld(this.Transform.WorldId)?.OceanLevel - 2f ?? 98f;
+            if (!IsUnderWater && Transform.World.Position.Z < worldDrownThreshold)
                 IsUnderWater = true;
             else if (IsUnderWater && Transform.World.Position.Z > worldDrownThreshold)
                 IsUnderWater = false;
-            
+
             // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.ToString());
-            
+
             if (!moved)
                 return;
 
             Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
-            
+
             // Update the party member position on the map
             // TODO: Check the format of the send packet, as it doesn't seem to be correct
             // TODO: Somehow make sure that players in instances don't show on the main world map 
@@ -1473,7 +1473,7 @@ namespace AAEmu.Game.Models.Game.Char
             // Check if zone changed
             if (Transform.ZoneId == lastZoneKey)
                 return;
-            OnZoneChange(lastZoneKey,Transform.ZoneId);
+            OnZoneChange(lastZoneKey, Transform.ZoneId);
         }
 
         public void OnZoneChange(uint lastZoneKey, uint newZoneKey)
@@ -1491,7 +1491,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 // Remove the old zone buff if needed
                 var lastZoneGroup = ZoneManager.Instance.GetZoneGroupById(lastZone.GroupId);
-                if ((lastZoneGroup != null) && (lastZoneGroup.BuffId != 0))
+                if (lastZoneGroup != null && lastZoneGroup.BuffId != 0)
                 {
                     // Remove the applied buff from last zonegroup
                     Buffs.RemoveBuff(lastZoneGroup.BuffId);
@@ -1501,7 +1501,7 @@ namespace AAEmu.Game.Models.Game.Char
             {
                 // Apply the new zone buff if needed
                 var newZoneGroup = ZoneManager.Instance.GetZoneGroupById(newZone.GroupId);
-                if ((newZoneGroup != null) && (newZoneGroup.BuffId != 0))
+                if (newZoneGroup != null && newZoneGroup.BuffId != 0)
                 {
                     // Add buff from new zonegroup
                     var buffTemplate = SkillManager.Instance.GetBuffTemplate(newZoneGroup.BuffId);
@@ -1521,7 +1521,7 @@ namespace AAEmu.Game.Models.Game.Char
             if (newZoneGroupId != 0)
                 ChatManager.Instance.GetZoneChat(Transform.ZoneId).JoinChannel(this);
 
-            if (newZone != null && (!newZone.Closed))
+            if (newZone != null && !newZone.Closed)
                 return;
 
             // Entered a forbidden zone
@@ -1573,6 +1573,12 @@ namespace AAEmu.Game.Models.Game.Char
             Slots[slot].ActionId = actionId;
         }
 
+        public void SetAction(byte slot, ActionSlotType type, ulong actionId)
+        {
+            Slots[slot].Type = type;
+            Slots[slot].ActionId = actionId;
+        }
+
         public void SetOption(ushort key, string value)
         {
             if (_options.ContainsKey(key))
@@ -1605,7 +1611,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void SendMessage(ChatType type, string message, params object[] parameters)
         {
-            SendPacket(new SCChatMessagePacket(type, string.Format(message, parameters)));
+            SendPacket(new SCChatMessagePacket(CliLocale, type, string.Format(message, parameters)));
         }
 
         public void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true)
@@ -1613,7 +1619,7 @@ namespace AAEmu.Game.Models.Game.Char
             SendPacket(new SCErrorMsgPacket(errorMsgType, type, isNotify));
         }
 
-        public static Character Load(uint characterId, uint accountId)
+        public static Character Load(uint characterId, ulong accountId)
         {
             using (var connection = MySQL.CreateConnection())
                 return Load(connection, characterId, accountId);
@@ -1626,10 +1632,10 @@ namespace AAEmu.Game.Models.Game.Char
         }
 
         public uint Breath { get; set; }
-        
+
         public bool IsDrowning
         {
-            get { return (Breath <= 0); }
+            get { return Breath <= 0; }
         }
 
         public void DoChangeBreath()
@@ -1643,7 +1649,7 @@ namespace AAEmu.Game.Models.Game.Char
             else
             {
                 Breath -= 1000; //1 second
-                SendPacket(new SCSetBreathPacket(Breath));   
+                SendPacket(new SCSetBreathPacket(Breath));
             }
         }
 
@@ -1676,7 +1682,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         #region Database
 
-        public static Character Load(MySqlConnection connection, uint characterId, uint accountId)
+        public static Character Load(MySqlConnection connection, uint characterId, ulong accountId)
         {
             Character character = null;
             using (var command = connection.CreateCommand())
@@ -1800,7 +1806,7 @@ namespace AAEmu.Game.Models.Game.Char
 
                         character = new Character(modelParams);
                         character.Id = reader.GetUInt32("id");
-                        character.AccountId = reader.GetUInt32("account_id");
+                        character.AccountId = reader.GetUInt64("account_id");
                         character.Name = reader.GetString("name");
                         character.AccessLevel = reader.GetInt32("access_level");
                         character.Race = (Race)reader.GetByte("race");
@@ -1875,14 +1881,14 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
             ModelId = template.ModelId;
-            BuyBackItems = new ItemContainer(this, SlotType.None,false);
-            Slots = new ActionSlot[85];
+            BuyBackItems = new ItemContainer(this, SlotType.None, false);
+            Slots = new ActionSlot[133]; // 85 in 1.2, 121 in 3.0.3.0, 133 in 3.5.0.3
             for (var i = 0; i < Slots.Length; i++)
                 Slots[i] = new ActionSlot();
 
             Craft = new CharacterCraft(this);
             Procs = new UnitProcs(this);
-            LocalPingPosition = new WorldSpawnPosition();
+            LocalPingPosition = new PingPosition();
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -1906,25 +1912,22 @@ namespace AAEmu.Game.Models.Game.Char
                 Mates = new CharacterMates(this);
                 Mates.Load(connection);
 
-                
-
                 using (var command = connection.CreateCommand())
                 {
                     command.Connection = connection;
-                    command.CommandText =
-                        "SELECT slots FROM `characters` WHERE `id` = @id AND `account_id` = @account_id";
+                    command.CommandText = "SELECT slots FROM `characters` WHERE `id` = @id AND `account_id` = @account_id";
                     command.Parameters.AddWithValue("@id", Id);
                     command.Parameters.AddWithValue("@account_id", AccountId);
                     using (var reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
-                            var slots = (PacketStream)((byte[])reader.GetValue("slots"));
+                            var slots = (PacketStream)(byte[])reader.GetValue("slots");
                             foreach (var slot in Slots)
                             {
                                 slot.Type = (ActionSlotType)slots.ReadByte();
                                 if (slot.Type != ActionSlotType.None)
-                                    slot.ActionId = slots.ReadUInt32();
+                                    slot.ActionId = slots.ReadUInt64();
                             }
                         }
                     }
@@ -1953,7 +1956,7 @@ namespace AAEmu.Game.Models.Game.Char
                     catch (Exception e)
                     {
                         saved = false;
-                        _log.Error(e,"Character save failed for {0} - {1}\n",Id, Name);
+                        _log.Error(e, "Character save failed for {0} - {1}\n", Id, Name);
                         try
                         {
                             transaction.Rollback();
@@ -1961,7 +1964,7 @@ namespace AAEmu.Game.Models.Game.Char
                         catch (Exception eRollback)
                         {
                             // Really failed here
-                            _log.Fatal(eRollback,"Character save rollback failed for {0} - {1}\n", Id, Name);
+                            _log.Fatal(eRollback, "Character save rollback failed for {0} - {1}\n", Id, Name);
                         }
                     }
                 }
@@ -2079,8 +2082,7 @@ namespace AAEmu.Game.Models.Game.Char
 
                     foreach (var pair in _options)
                     {
-                        command.CommandText =
-                            "REPLACE INTO `options` (`key`,`value`,`owner`) VALUES (@key,@value,@owner)";
+                        command.CommandText = "REPLACE INTO `options` (`key`,`value`,`owner`) VALUES (@key,@value,@owner)";
                         command.Parameters.AddWithValue("@key", pair.Key);
                         command.Parameters.AddWithValue("@value", pair.Value);
                         command.Parameters.AddWithValue("@owner", Id);
@@ -2130,74 +2132,138 @@ namespace AAEmu.Game.Models.Game.Char
             base.RemoveVisibleObject(character);
 
             if (this != character) // Never send to self, or the client crashes
-                character.SendPacket(new SCUnitsRemovedPacket(new[] {ObjId}));
+                character.SendPacket(new SCUnitsRemovedPacket(new[] { ObjId }));
         }
 
         public PacketStream Write(PacketStream stream)
         {
-            stream.Write(Id);
-            stream.Write(Name);
-            stream.Write((byte)Race);
-            stream.Write((byte)Gender);
-            stream.Write(Level);
-            stream.Write(Hp);
-            stream.Write(Mp);
-            stream.Write(Transform.ZoneId);
-            stream.Write(Faction.Id);
-            stream.Write(FactionName);
-            stream.Write(Expedition?.Id ?? 0);
-            stream.Write(Family);
+            #region Character_List_Packet_2A10
 
-            var items = Inventory.Equipment.GetSlottedItemsList();
-            foreach (var item in items)
-            {
-                if (item == null)
-                    stream.Write(0);
-                else
-                    stream.Write(item);
-            }
+            stream.Write(Id);           // id
+            stream.Write(Name);         // name
+            stream.Write((byte)Race);   // CharRace
+            stream.Write((byte)Gender); // CharGender
+            stream.Write(Level);        // level
+            stream.Write(HierExp);      // heirExp add for 3.5.0.3 : uint in 3.5, long in 5.7+
+            stream.Write(Hp);           // health
+            stream.Write(Mp);           // mana
+            stream.Write(Transform.ZoneId);// zid
+            stream.Write(Faction.Id);   // type
+            stream.Write(FactionName);  // factionName
+            stream.Write(Expedition?.Id ?? 0u); // type
+            stream.Write(Family);       // family
+
+            #region CharacterInfo
+
+            Inventory_Equip(stream);
+
+            #endregion CharacterInfo
 
             stream.Write((byte)Ability1);
             stream.Write((byte)Ability2);
             stream.Write((byte)Ability3);
 
-            stream.Write(Helpers.ConvertLongX(Transform.Local.Position.X));
-            stream.Write(Helpers.ConvertLongY(Transform.Local.Position.Y));
-            stream.Write(Transform.Local.Position.Z);
+            stream.Write(Helpers.ConvertLongX(Transform.World.Position.X)); // pos
+            stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
+            stream.Write(Transform.World.Position.Z);
+
+            #region CustomModel
 
             stream.Write(ModelParams);
-            stream.Write(LaborPower);
-            stream.Write(LaborPowerModified);
-            stream.Write(DeadCount);
-            stream.Write(DeadTime);
-            stream.Write(RezWaitDuration);
-            stream.Write(RezTime);
-            stream.Write(RezPenaltyDuration);
-            stream.Write(LeaveTime); // lastWorldLeaveTime
-            stream.Write(Money);
-            stream.Write(0L); // moneyAmount ?
-            stream.Write(CrimePoint); // current crime points (/50)
-            stream.Write(CrimeRecord); // total infamy 
-            stream.Write((short)0); // crimeScore?
-            stream.Write(DeleteRequestTime);
-            stream.Write(TransferRequestTime);
-            stream.Write(DeleteTime); // deleteDelay
-            stream.Write(ConsumedLaborPower);
-            stream.Write(BmPoint); // loyalty tokens
-            stream.Write(Money2); // moneyAmount
-            stream.Write(0L); // moneyAmount ?
-            stream.Write(AutoUseAAPoint);
-            stream.Write(PrevPoint);
-            stream.Write(Point);
-            stream.Write(Gift);
-            stream.Write(Updated);
-            stream.Write((byte)0); // forceNameChange ?
+
+            #endregion CustomModel
+
+            stream.Write(DeadCount);        // deadCount
+            stream.Write(DeadTime);         // deadTime
+            stream.Write(RezWaitDuration);  // rezWaitDuration
+            stream.Write((int) 0);          // specialRezWaitDuration, add in 7.5.3.3
+            stream.Write(RezTime);          // rezTime
+            stream.Write(RezPenaltyDuration);   // rezPenaltyDuration
+            stream.Write(LeaveTime);        // lastWorldLeaveTime
+            stream.Write(Money);            // moneyAmount
+            stream.Write(0L);               // moneyAmount
+            stream.Write(CrimePoint);       // crimePoint : short for 1.2, int for 3.0.3.0, short in 5.7
+            stream.Write(CrimeRecord);      // crimeRecord
+            stream.Write(CrimeScore);       // crimeScore for 1.2, add in 5.7
+            stream.Write(DeleteRequestTime);// deleteRequestedTime
+            stream.Write(TransferRequestTime);// transferRequestedTime
+            stream.Write(Created);          // createdTime add in 5.7
+            stream.Write(DeleteTime);       // deleteDelay
+            stream.Write(Money2);           // moneyAmount
+            stream.Write(0L);               // moneyAmount
+            stream.Write(AutoUseAAPoint);   // autoUseAApoint TODO in x2game byte not bool
+            stream.Write(PrevPoint);        // prevPoint
+            stream.Write(Point);            // point
+            stream.Write(Gift);             // gift
+            stream.Write(Updated);          // updated
+            stream.Write(ForceNameChange);  // forceNameChange
+            //stream.Write(HighAbilityRsc);   // TODO highAbilityRsc in 3.0.3.0, combatResource in 6.5.3.3, отсутствует в 7.0.3.9
+
+            stream.Write(Guid); // guid : added in 5.7
+
+            #region sub_399CCE70
+
+            stream.Write(LaborPower);         // lp : moved in 5.7
+            stream.Write(LocalLaborPower);    // localLp : add for 3.5.0.3, moved in 5.7
+            stream.Write(ConsumedLaborPower); // consumed : moved in 5.7
+            stream.Write(LaborPowerModified); // updated : moved in 5.7
+            stream.Write(BmPoint);            // bmPoint : moved in 5.7
+            stream.Write((short)0);           // rechargetLp : added in 5.7
+            stream.Write(DateTime.MinValue);  // rechargeResetTime : added in 5.7
+
+            #endregion sub_399CCE70
+
             return stream;
+
+            #endregion Character_List_Packet_2A10
+        }
+
+        private void Inventory_Equip(PacketStream stream)
+        {
+            #region Inventory_Equip
+
+            var index = 0;
+            var validFlags = 0;
+            // calculate validFlags
+            var items = Inventory.Equipment.GetSlottedItemsList();
+            foreach (var item in items)
+            {
+                if (item != null)
+                {
+                    validFlags |= 1 << index;
+                }
+
+                index++;
+            }
+
+            stream.Write((uint)validFlags); // validFlags for 3.0.3.0
+            foreach (var item in items)
+            {
+                if (item != null)
+                {
+                    stream.Write(item);
+                }
+            }
+
+            index = 0;
+            validFlags = 0;
+
+            foreach (var item in items)
+            {
+                if (item == null) { continue; }
+
+                var tmp = (int)item.ItemFlags << index;
+                ++index;
+                validFlags |= tmp;
+            }
+            stream.Write(validFlags); //  ItemFlags flags for 3.0.3.0
+
+            #endregion Inventory_Equip
         }
 
         public override string DebugName()
         {
-            return base.DebugName() + " ("+Id+")";
+            return base.DebugName() + " (" + Id + ")";
         }
     }
 }

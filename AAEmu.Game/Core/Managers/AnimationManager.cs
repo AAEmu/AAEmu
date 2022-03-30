@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -53,7 +53,7 @@ namespace AAEmu.Game.Core.Managers
                     res.Add(lastCombatSyncEvent);
                     lastAnimDuration = null;
                 }
-                else if ((lastCombatSyncEvent != null) && (spaceCount == 4))
+                else if (lastCombatSyncEvent != null && spaceCount == 4)
                 {
                     // Start of new animation section
                     lastAnimDuration = new AnimDuration();
@@ -63,7 +63,7 @@ namespace AAEmu.Game.Core.Managers
                         return null;
                     }
                 }
-                else if ((lastAnimDuration != null) && (spaceCount == 8))
+                else if (lastAnimDuration != null && spaceCount == 8)
                 {
                     // This is a actual property
                     var props = trimmedLine.Split(' ');
@@ -138,8 +138,15 @@ namespace AAEmu.Game.Core.Managers
                                 SwimMoveUB = reader.GetString("swim_move_ub")
                             };
 
+                            if (_animationsByName.ContainsKey(template.Name)) continue;
+                            
                             _animations.Add(template.Id, template);
-                            _animationsByName.Add(template.Name, template);
+                            _animationsByName.Add(template.Name, template); // в наличии дубль Nam
+                            /*
+                             *  id                                                              Name
+                             *  835     4   wyvern_ac_coin_launch	0	wyvern_ac_coin_launch	wyvern_ac_coin_launch		wyvern_ac_coin_launch	wyvern_ac_coin_launch	wyvern_ac_coin_launch
+                             *  8000021	4   wyvern_ac_coin_launch	0	wyvern_ac_coin_launch	wyvern_ac_coin_launch		wyvern_ac_coin_launch	wyvern_ac_coin_launch	wyvern_ac_coin_launch
+                             */
                         }
                     }
                 }

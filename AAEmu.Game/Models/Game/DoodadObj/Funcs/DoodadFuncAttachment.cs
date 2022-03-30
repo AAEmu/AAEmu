@@ -12,6 +12,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
         // doodad_funcs
         public AttachPointKind AttachPointId { get; set; }
         public int Space { get; set; }
+        public uint AnimActionId { get; set; }
         public BondKind BondKindId { get; set; }
 
         public override void Use(Unit caster, Doodad owner, uint skillId, int nextPhase = 0)

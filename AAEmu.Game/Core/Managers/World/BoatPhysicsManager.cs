@@ -138,29 +138,29 @@ namespace AAEmu.Game.Core.Managers.World
             ComputeSteering(slave);
             slave.RigidBody.IsActive = true;
             
-            if ((slave.Throttle > 0) && (slave.Speed < 1f))
+            if (slave.Throttle > 0 && slave.Speed < 1f)
                 slave.Speed = 1f;
-            if ((slave.Throttle < 0) && (slave.Speed > -1f))
+            if (slave.Throttle < 0 && slave.Speed > -1f)
                 slave.Speed = -1f;
-            slave.Speed += ((float)slave.Throttle * 0.00787401575f) * (velAccel / 10f);
+            slave.Speed += (float)slave.Throttle * 0.00787401575f * (velAccel / 10f);
                 
             slave.Speed = Math.Min(slave.Speed, maxVelForward);
             slave.Speed = Math.Max(slave.Speed, maxVelBackward);
 
-            slave.RotSpeed += ((float)slave.Steering * 0.00787401575f) * (rotAccel / 100f);
+            slave.RotSpeed += (float)slave.Steering * 0.00787401575f * (rotAccel / 100f);
             slave.RotSpeed = Math.Min(slave.RotSpeed, 1f);
             slave.RotSpeed = Math.Max(slave.RotSpeed, -1f);
 
             if (slave.Steering == 0)
             {
-                slave.RotSpeed -= (slave.RotSpeed / 20);
+                slave.RotSpeed -= slave.RotSpeed / 20;
                 if (Math.Abs(slave.RotSpeed) <= 0.01)
                     slave.RotSpeed = 0;
             }
 
             if (slave.Throttle == 0) // this needs to be fixed : ships need to apply a static drag, and slowly ship away at the speed instead of doing it like this
             {
-                slave.Speed -= (slave.Speed / 20f);
+                slave.Speed -= slave.Speed / 20f;
                 if (Math.Abs(slave.Speed) < 0.01)
                     slave.Speed = 0;
             }
@@ -168,7 +168,7 @@ namespace AAEmu.Game.Core.Managers.World
             // _log.Debug("Slave: {0}, speed: {1}, rotSpeed: {2}", slave.ObjId, slave.Speed, slave.RotSpeed);
 
             var rpy = PhysicsUtil.GetYawPitchRollFromMatrix(rigidBody.Orientation);
-            var slaveRotRad = rpy.Item1 + (90 * (MathF.PI/ 180.0f));
+            var slaveRotRad = rpy.Item1 + 90 * (MathF.PI/ 180.0f);
 
             var forceThrottle = (float)slave.Speed * 50f;
             rigidBody.AddForce(new JVector(forceThrottle * rigidBody.Mass * MathF.Cos(slaveRotRad), 0.0f, forceThrottle * rigidBody.Mass * MathF.Sin(slaveRotRad)));

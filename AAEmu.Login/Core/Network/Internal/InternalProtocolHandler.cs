@@ -92,9 +92,12 @@ namespace AAEmu.Login.Core.Network.Internal
                     {
                         try
                         {
-                            var packet = (InternalPacket) Activator.CreateInstance(classType);
+                            var packet = (InternalPacket)Activator.CreateInstance(classType);
+                            if (packet != null)
+                            {
                             packet.Connection = connection;
                             packet.Decode(stream2);
+                        }
                         }
                         catch (Exception e)
                         {

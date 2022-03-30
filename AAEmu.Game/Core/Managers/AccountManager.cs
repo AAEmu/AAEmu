@@ -11,11 +11,11 @@ namespace AAEmu.Game.Core.Managers
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private ConcurrentDictionary<uint, GameConnection> _accounts;
+        private ConcurrentDictionary<ulong, GameConnection> _accounts;
 
         public AccountManager()
         {
-            _accounts = new ConcurrentDictionary<uint, GameConnection>();
+            _accounts = new ConcurrentDictionary<ulong, GameConnection>();
             TickManager.Instance.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
         }
 
@@ -36,12 +36,12 @@ namespace AAEmu.Game.Core.Managers
             }
         }
 
-        public void Remove(uint id)
+        public void Remove(ulong id)
         {
             _accounts.TryRemove(id, out _);
         }
 
-        public bool Contains(uint id)
+        public bool Contains(ulong id)
         {
             return _accounts.ContainsKey(id);
         }

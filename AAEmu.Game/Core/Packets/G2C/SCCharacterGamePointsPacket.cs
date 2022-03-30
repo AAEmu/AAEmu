@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly Character _character;
 
-        public SCCharacterGamePointsPacket(Character character) : base(SCOffsets.SCCharacterGamePointsPacket, 1)
+        public SCCharacterGamePointsPacket(Character character) : base(SCOffsets.SCCharacterGamePointsPacket, 5)
         {
             _character = character;
         }
@@ -19,7 +19,9 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_character.VocationPoint);
 
             for (var i = 0; i < 8; i++)
+            {
                 stream.Write(0); // point
+            }
             return stream;
         }
     }

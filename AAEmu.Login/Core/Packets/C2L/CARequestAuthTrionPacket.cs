@@ -21,6 +21,7 @@ namespace AAEmu.Login.Core.Packets.C2L
             var ticket = stream.ReadString();
             var signature = stream.ReadString();
             var isLast = stream.ReadBoolean();
+            var is64bit = stream.ReadBoolean(); // added 5.7.5.0
 
             var xmlDoc = XDocument.Parse(ticket);
 

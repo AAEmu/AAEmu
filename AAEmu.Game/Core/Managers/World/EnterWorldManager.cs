@@ -1,5 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Login;
@@ -18,14 +20,14 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<uint, uint> _accounts;
+        private Dictionary<uint, ulong> _accounts;
 
         protected EnterWorldManager()
         {
-            _accounts = new Dictionary<uint, uint>();
+            _accounts = new Dictionary<uint, ulong>();
         }
 
-        public void AddAccount(uint accountId, uint connectionId)
+        public void AddAccount(ulong accountId, uint connectionId)
         {
             var connection = LoginNetwork.Instance.GetConnection();
             var gsId = AppConfiguration.Instance.Id;
@@ -39,7 +41,7 @@ namespace AAEmu.Game.Core.Managers.World
             }
         }
 
-        public void Login(GameConnection connection, uint accountId, uint token)
+        public void Login(GameConnection connection, ulong accountId, uint token)
         {
             if (_accounts.ContainsKey(token))
             {
@@ -54,10 +56,10 @@ namespace AAEmu.Game.Core.Managers.World
                     StreamManager.Instance.AddToken(connection.AccountId, connection.Id);
 
                     var port = AppConfiguration.Instance.StreamNetwork.Port;
-                    var gm = connection.GetAttribute("gmFlag") != null;
-                    connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port));
+                    //var gm = connection.GetAttribute("gmFlag") != null;
+                    connection.SendPacket(new X2EnterWorldResponsePacket(0, connection.Id, port, connection));
                     connection.SendPacket(new ChangeStatePacket(0));
-                }
+}
                 else
                 {
                     // TODO ...
@@ -81,7 +83,7 @@ namespace AAEmu.Game.Core.Managers.World
                         if (type == 0)
                             connection.ActiveChar?.SendMessage(ChatType.System, AppConfiguration.Instance.World.LogoutMessage);
 
-                        int logoutTime = 10000; // in ms
+                        uint logoutTime = 10000; // in ms
 
                         // Make it 5 minutes if you're still in combat
                         if (connection.ActiveChar?.IsInCombat ?? false)

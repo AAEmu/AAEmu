@@ -7,8 +7,16 @@
         public string Name { get; set; }
         public bool NpcOnly { get; set; }
         public uint HairId { get; set; }
+        public uint HornId { get; set; }
+        public uint BodyNormalMapId { get; set; }
+        public float BodyNormalMapWeight { get; set; }
+        public uint DefaultHairColor { get; set; }
         public uint HairColorId { get; set; }
+        public uint HornColorId { get; set; }
         public uint SkinColorId { get; set; }
+        public float TwoToneFirstWidth { get; set; }
+        public uint TwoToneHairColor { get; set; }
+        public float TwoToneSecondWidth { get; set; }
         public uint FaceMovableDecalAssetId { get; set; }
         public float FaceMovableDecalScale { get; set; }
         public float FaceMovableDecalRotate { get; set; }
@@ -18,6 +26,8 @@
         public uint FaceFixedDecalAsset1Id { get; set; }
         public uint FaceFixedDecalAsset2Id { get; set; }
         public uint FaceFixedDecalAsset3Id { get; set; }
+        public uint FaceFixedDecalAsset4Id { get; set; }
+        public uint FaceFixedDecalAsset5Id { get; set; }
         public uint FaceDiffuseMapId { get; set; }
         public uint FaceNormalMapId { get; set; }
         public uint FaceEyelashMapId { get; set; }
@@ -32,6 +42,8 @@
         public float FaceFixedDecalAsset1Weight { get; set; }
         public float FaceFixedDecalAsset2Weight { get; set; }
         public float FaceFixedDecalAsset3Weight { get; set; }
+        public float FaceFixedDecalAsset4Weight { get; set; }
+        public float FaceFixedDecalAsset5Weight { get; set; }
         public float FaceNormalMapWeight { get; set; }
         public uint DecoColor { get; set; }
 

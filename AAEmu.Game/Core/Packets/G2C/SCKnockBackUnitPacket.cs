@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly float _y;
         private readonly float _z;
 
-        public SCKnockBackUnitPacket(uint objId, float x, float y, float z) : base(SCOffsets.SCKnockBackUnitPacket, 1)
+        public SCKnockBackUnitPacket(uint objId, float x, float y, float z) : base(SCOffsets.SCKnockBackUnitPacket, 5)
         {
             _objId = objId;
             _x = x;

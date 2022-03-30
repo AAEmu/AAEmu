@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly uint _token;
 
-        public SCReconnectAuthPacket(uint token) : base(SCOffsets.SCReconnectAuthPacket, 1)
+        public SCReconnectAuthPacket(uint token) : base(SCOffsets.SCReconnectAuthPacket, 5)
         {
             _token = token;
         }

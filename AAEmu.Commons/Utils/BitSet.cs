@@ -45,7 +45,7 @@ namespace AAEmu.Commons.Utils
             // locate non-empty slot
             while (!res)
             {
-                if ((++offset) >= Count)
+                if (++offset >= Count)
                     return -1;
                 res = _bits.Get(offset);
             }
@@ -62,7 +62,7 @@ namespace AAEmu.Commons.Utils
             // locate non-empty slot
             while (res)
             {
-                if ((++offset) >= Count)
+                if (++offset >= Count)
                     return -1;
                 res = _bits.Get(offset);
             }

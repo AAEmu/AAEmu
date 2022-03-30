@@ -53,6 +53,8 @@ namespace AAEmu.Game.Models.Game.NPChar
     {
         public uint Id { get; set; }
         public string Name { get; set; }
+        public bool NpcOnly { get; set; }
+        public uint OwnerTypeId { get; set; }
         public int CharRaceId { get; set; }
         public NpcGradeType NpcGradeId { get; set; }
         public NpcKindType NpcKindId { get; set; }
@@ -125,6 +127,7 @@ namespace AAEmu.Game.Models.Game.NPChar
         public uint MerchantPackId { get; set; }
 
         public uint HairId { get; set; }
+        public uint HornId { get; set; }
         public UnitCustomModelParams ModelParams { get; set; }
         public EquipItemsTemplate Items { get; set; }
         public (uint ItemId, bool NpcOnly)[] BodyItems { get; set; }

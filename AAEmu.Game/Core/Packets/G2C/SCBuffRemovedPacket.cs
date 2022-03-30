@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿    using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private uint _objId;
         private uint _index;
 
-        public SCBuffRemovedPacket(uint objId, uint index) : base(SCOffsets.SCBuffRemovedPacket, 1)
+        public SCBuffRemovedPacket(uint objId, uint index) : base(SCOffsets.SCBuffRemovedPacket, 5)
         {
             _objId = objId;
             _index = index;
@@ -16,10 +16,9 @@ namespace AAEmu.Game.Core.Packets.G2C
 
         public override PacketStream Write(PacketStream stream)
         {
-            stream.WriteBc(_objId);
-            stream.Write(_index);
+            stream.WriteBc(_objId); // targetId
+            stream.Write(_index);   // buffId (type)
             return stream;
         }
-        
     }
 }

@@ -34,8 +34,8 @@ namespace AAEmu.Game.Core.Packets.S2C
                 stream.Write(yaw);
                 stream.Write(doodad.Scale);
                 stream.Write(doodad.FuncGroupId); // doodad_func_groups Id
-                stream.Write(doodad.TimeLeft); // growing
-                stream.Write(doodad.PlantTime); // plantTime
+                //stream.Write(doodad.TimeLeft); // growing
+                //stream.Write(doodad.PlantTime); // plantTime
             }
 
             return stream;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly byte _source;
         private readonly string _msg;
 
-        public SCAccountWarnedPacket(byte source, string msg) : base(SCOffsets.SCAccountWarnedPacket, 1)
+        public SCAccountWarnedPacket(byte source, string msg) : base(SCOffsets.SCAccountWarnedPacket, 5)
         {
             _source = source;
             _msg = msg;

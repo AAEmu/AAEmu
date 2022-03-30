@@ -22,7 +22,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
             if (_aiParams == null)
                 return;
 
-            _prevHealthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
+            _prevHealthRatio = Ai.Owner.Hp / (float)Ai.Owner.MaxHp * 100;
 
             if (!UpdateTarget() || ShouldReturn)
             {
@@ -44,7 +44,7 @@ namespace AAEmu.Game.Models.Game.AI.v2.Behaviors.WildBoar
             if (_aiParams == null)
                 return;
             
-            var healthRatio = (Ai.Owner.Hp / (float)Ai.Owner.MaxHp) * 100;
+            var healthRatio = Ai.Owner.Hp / (float)Ai.Owner.MaxHp * 100;
             
             var target = Ai.Owner.CurrentTarget;
             if (target == null)

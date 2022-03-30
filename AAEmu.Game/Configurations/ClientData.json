@@ -1,9 +1,8 @@
-﻿{
+{
     "ClientData": {
         "PreferClientHeightMap": true,
         "Sources": [
-            "ClientData",
-            "ClientData/game_pak"
+            "d:\\games\\KakaoGames\\ArcheAge_8.0.3.12_14122021_r558734\\game_pak"
         ]
     }
 }

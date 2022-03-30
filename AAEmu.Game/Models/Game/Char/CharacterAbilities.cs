@@ -1,8 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
+
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char
@@ -16,9 +18,9 @@ namespace AAEmu.Game.Models.Game.Char
         {
             Owner = owner;
             Abilities = new Dictionary<AbilityType, Ability>();
-            for (var i = 1; i < 11; i++)
+            for (var i = 1; i < 30; i++) //read_Exp_Order 1.2 = 10 ability, 3.0.3.0 = 12 ability , 5.7.5.0 = 29 ability, 7.0.3.9 = 29
             {
-                var id = (AbilityType) i;
+                var id = (AbilityType)i;
                 Abilities[id] = new Ability(id);
             }
         }
@@ -62,6 +64,11 @@ namespace AAEmu.Game.Models.Game.Char
 
         public void Swap(AbilityType oldAbilityId, AbilityType abilityId)
         {
+            var oldAbilities = new List<AbilityType>(3);
+            oldAbilities.Add(Owner.Ability1);
+            oldAbilities.Add(Owner.Ability2);
+            oldAbilities.Add(Owner.Ability3);
+
             Owner.Skills.Reset(oldAbilityId);
             if (Owner.Ability1 == oldAbilityId)
             {
@@ -84,7 +91,7 @@ namespace AAEmu.Game.Models.Game.Char
                 Owner.Ability3 = abilityId;
                 Abilities[abilityId].Order = 2;
 
-                if(oldAbilityId == AbilityType.None)
+                if (oldAbilityId == AbilityType.None)
                 {
                     Abilities[Owner.Ability3].Exp = Abilities[Owner.Ability1].Exp;
 
@@ -103,7 +110,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             if (oldAbilityId != AbilityType.None)
                 Abilities[oldAbilityId].Order = 255;
-            Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, oldAbilityId, abilityId), true);
+            Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner, oldAbilities), true);
         }
 
         public void Load(MySqlConnection connection)
@@ -118,7 +125,7 @@ namespace AAEmu.Game.Models.Game.Char
                     {
                         var ability = new Ability
                         {
-                            Id = (AbilityType) reader.GetByte("id"),
+                            Id = (AbilityType)reader.GetByte("id"),
                             Exp = reader.GetInt32("exp")
                         };
                         if (ability.Id == Owner.Ability1)
@@ -143,7 +150,7 @@ namespace AAEmu.Game.Models.Game.Char
                     command.Transaction = transaction;
 
                     command.CommandText = "REPLACE INTO abilities(`id`,`exp`,`owner`) VALUES (@id, @exp, @owner)";
-                    command.Parameters.AddWithValue("@id", (byte) ability.Id);
+                    command.Parameters.AddWithValue("@id", (byte)ability.Id);
                     command.Parameters.AddWithValue("@exp", ability.Exp);
                     command.Parameters.AddWithValue("@owner", Owner.Id);
                     command.ExecuteNonQuery();

@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSListCharacterPacket : GamePacket
     {
-        public CSListCharacterPacket() : base(CSOffsets.CSListCharacterPacket, 1)
+        public CSListCharacterPacket() : base(CSOffsets.CSListCharacterPacket, 5)
         {
         }
 
@@ -43,7 +43,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 //            }
 
             Connection.SendPacket(new SCRaceCongestionPacket());
-            
+
             if (characters.Length == 0)
                 Connection.SendPacket(new SCCharacterListPacket(true, characters));
             else
@@ -56,8 +56,8 @@ namespace AAEmu.Game.Core.Packets.C2G
                 }
 
             var houses = Connection.Houses.Values.ToArray();
-            foreach (var house in houses)
-                Connection.SendPacket(new SCLoginCharInfoHouse(house.OwnerId, house));
+///            foreach (var house in houses)
+///                Connection.SendPacket(new SCLoginCharInfoHouse(house.OwnerId, house));
         }
     }
 }

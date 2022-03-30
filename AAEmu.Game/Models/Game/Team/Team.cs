@@ -1,8 +1,6 @@
-﻿using System;
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Models.Game.Team
@@ -15,13 +13,13 @@ namespace AAEmu.Game.Models.Game.Team
         public TeamMember[] Members { get; set; }
         public LootingRule LootingRule { get; set; }
         public (byte, uint)[] MarksList { get; set; }
-        public WorldSpawnPosition PingPosition { get; set; }
+        public PingPosition PingPosition { get; set; }
 
         public Team()
         {
             Members = new TeamMember[50];
             ResetMarks();
-            PingPosition = new WorldSpawnPosition();
+            PingPosition = new PingPosition();
         }
 
         public void ResetMarks()
@@ -52,7 +50,7 @@ namespace AAEmu.Game.Models.Game.Team
         {
             var count = 0;
             foreach (var member in Members)
-                if ((member?.Character != null) && (member.Character.IsOnline))
+                if (member?.Character != null && member.Character.IsOnline)
                     count++;
             return count;
         }
@@ -156,7 +154,7 @@ namespace AAEmu.Game.Models.Game.Team
         {
             foreach (var member in Members)
             {
-                if (member?.Character == null || !member.Character.IsOnline || member.Character.Id == id) 
+                if (member?.Character == null || !member.Character.IsOnline || member.Character.Id == id)
                     continue;
                 member.Character.SendPacket(packet);
             }

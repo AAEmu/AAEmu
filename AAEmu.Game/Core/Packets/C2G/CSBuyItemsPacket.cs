@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -17,7 +17,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBuyItemsPacket : GamePacket
     {
-        public CSBuyItemsPacket() : base(CSOffsets.CSBuyItemsPacket, 1)
+        public CSBuyItemsPacket() : base(CSOffsets.CSBuyItemsPacket, 5)
         {
         }
 
@@ -37,7 +37,7 @@ namespace AAEmu.Game.Core.Packets.C2G
             _log.Debug("NPCObjId:{0} DoodadObjId:{1} unkId:{2} nBuy:{3} nBuyBack{4}", npcObjId, doodadObjId, unkId, nBuy, nBuyBack);
 
             // If a NPC was provided, check if it's valid
-            if ((npcObjId != 0) && (npc == null || !npc.Template.Merchant || npc.Template.MerchantPackId == 0))
+            if (npcObjId != 0 && (npc == null || !npc.Template.Merchant || npc.Template.MerchantPackId == 0))
                 return;
             MerchantGoods pack = null;
             if (npc != null)
@@ -78,7 +78,7 @@ namespace AAEmu.Game.Core.Packets.C2G
                 var currency = (ShopCurrencyType)stream.ReadByte();
 
                 // If using a NPC shop, check if the NPC is selling the specified item
-                if ((npcObjId != 0) && ((pack == null) || (!pack.SellsItem(itemId))))
+                if (npcObjId != 0 && (pack == null || !pack.SellsItem(itemId)))
                     continue;
 
                 if (doodadObjId != 0)
@@ -123,8 +123,8 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             var useAAPoint = stream.ReadBoolean();
 
-            if (money > Connection.ActiveChar.Money && 
-                honorPoints > Connection.ActiveChar.HonorPoint && 
+            if (money > Connection.ActiveChar.Money &&
+                honorPoints > Connection.ActiveChar.HonorPoint &&
                 vocationBadges > Connection.ActiveChar.VocationPoint)
                 return;
 
@@ -158,12 +158,12 @@ namespace AAEmu.Game.Core.Packets.C2G
 
             if (honorPoints > 0)
             {
-                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Honor,honorPoints);
+                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Honor, honorPoints);
             }
 
             if (vocationBadges > 0)
             {
-                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Vocation,vocationBadges);
+                Connection.ActiveChar.ChangeGamePoints(GamePointKind.Vocation, vocationBadges);
             }
 
             if (money > 0)

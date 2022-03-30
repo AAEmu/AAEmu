@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly Character _character;
         private readonly bool _success;
         
-        public SCCharDetailPacket(Character character, bool success) : base(SCOffsets.SCCharDetailPacket, 1)
+        public SCCharDetailPacket(Character character, bool success) : base(SCOffsets.SCCharDetailPacket, 5)
         {
             _character = character;
             _success = success;
@@ -22,7 +22,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(_character.Id);
             stream.Write(_character.Name);
             stream.Write((byte)_character.Race);
-            stream.Write(_character.Hp * 100); // TODO: precise health ?
+            stream.Write(_character.Hp * 100); // health TODO ?
             stream.Write(_character.Level);
             stream.Write((byte)_character.Ability1);
             stream.Write((byte)_character.Ability2);
@@ -31,7 +31,7 @@ namespace AAEmu.Game.Core.Packets.G2C
             stream.Write(Helpers.ConvertLongY(_character.Transform.Local.Position.Y));
             stream.Write(_character.Transform.Local.Position.Z);
             stream.Write(_character.Transform.ZoneId);
-            stream.Write(DateTime.UtcNow); // TODO: lastWorldLeaveTime
+            stream.Write(DateTime.UtcNow); // lastWorldLeaveTime
 
             var items = _character.Inventory.Equipment.GetSlottedItemsList();
             foreach (var item in items)

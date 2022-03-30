@@ -16,6 +16,7 @@ using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Utils.Scripts;
 using Microsoft.Extensions.Hosting;
 using NLog;
+using AAEmu.Commons.Cryptography;
 
 namespace AAEmu.Game
 {
@@ -118,6 +119,8 @@ namespace AAEmu.Game
             UccManager.Instance.Load();
             MusicManager.Instance.Load();
             
+            EncryptionManager.Instance.Load();
+
             ScriptCompiler.Compile();
 
             TimeManager.Instance.Start();
@@ -149,7 +152,6 @@ namespace AAEmu.Game
             _log.Info("Units spawned in {0}", spawnSw.Elapsed);
             
             CharacterManager.Instance.CheckForDeletedCharacters();
-            
             GameNetwork.Instance.Start();
             StreamNetwork.Instance.Start();
             LoginNetwork.Instance.Start();

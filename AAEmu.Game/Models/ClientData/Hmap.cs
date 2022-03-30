@@ -238,8 +238,8 @@ namespace AAEmu.Game.Models.ClientData
                         var rawHeightBL = GetRawHeight(nearestRawPoints.Left, nearestRawPoints.Bottom);
                         var rawHeightBR = GetRawHeight(nearestRawPoints.Right, nearestRawPoints.Bottom);
                         // Calculate offset within points
-                        var offX = ((float)targetX * sourceScale) - sourceX;
-                        var offY = ((float)targetY * sourceScale) - sourceY;
+                        var offX = (float)targetX * sourceScale - sourceX;
+                        var offY = (float)targetY * sourceScale - sourceY;
                         var height = Blerp(rawHeightTL, rawHeightTR, rawHeightBL, rawHeightBR, offX, offY);
 
                         result[index] = (ushort)Math.Round(height);

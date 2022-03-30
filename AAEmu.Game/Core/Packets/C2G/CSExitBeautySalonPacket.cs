@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSExitBeautySalonPacket : GamePacket
     {
-        public CSExitBeautySalonPacket() : base(CSOffsets.CSExitBeautySalonPacket, 1)
+        public CSExitBeautySalonPacket() : base(CSOffsets.CSExitBeautySalonPacket, 5)
         {
         }
 

@@ -1,11 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRenameExpeditionPacket : GamePacket
     {
-        public CSRenameExpeditionPacket() : base(CSOffsets.CSRenameExpeditionPacket, 1)
+        public CSRenameExpeditionPacket() : base(CSOffsets.CSRenameExpeditionPacket, 5)
         {
         }
 

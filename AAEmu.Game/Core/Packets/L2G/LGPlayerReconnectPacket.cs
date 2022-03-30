@@ -13,8 +13,8 @@ namespace AAEmu.Game.Core.Packets.L2G
 
         public override void Read(PacketStream stream)
         {
-            var accountId = stream.ReadUInt32();
-            var connection = GameConnectionTable.Instance.GetConnection(accountId);
+            var sessionId = stream.ReadUInt32();
+            var connection = GameConnectionTable.Instance.GetConnection(sessionId);
             connection?.SendPacket(new SCReconnectAuthPacket(connection.Id));
         }
     }

@@ -1,1 +1,0 @@
-ALTER TABLE `housings` ADD `current_action` INT NOT NULL DEFAULT '0' AFTER `current_step`;

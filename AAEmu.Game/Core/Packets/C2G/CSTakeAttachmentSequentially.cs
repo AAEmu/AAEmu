@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSTakeAttachmentSequentially : GamePacket
     {
-        public CSTakeAttachmentSequentially() : base(CSOffsets.CSTakeAttachmentSequentially, 1)
+        public CSTakeAttachmentSequentially() : base(CSOffsets.CSTakeAttachmentSequentially, 5)
         {
         }
 

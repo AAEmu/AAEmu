@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.World
 
         public int X { get; }
         public int Y { get; }
-        public int Id => Y + (1024 * X);
+        public int Id => Y + 1024 * X;
         public uint ZoneKey { get; set; }
 
         public Region(uint worldId, int x, int y, uint zoneKey) 
@@ -153,13 +153,14 @@ namespace AAEmu.Game.Models.Game.World
                     if (go is Doodad doodad)
                     {
                         var unit = WorldManager.Instance.GetUnit(doodad.OwnerObjId);
+                        doodad.ListGroupId = new List<uint>(); // clear
                         doodad.FuncGroupId = doodad.GetFuncGroupId();  // Start phase
                         doodad.DoPhaseFuncs(unit, (int)doodad.FuncGroupId);
-                        continue;
+                        //continue;
                     }
 
                     // turn on the motion of the visible NPC
-                    if (go is Npc npc && npc.Ai != null) 
+                    else if (go is Npc npc && npc.Ai != null) 
                         npc.Ai.ShouldTick = true;
                     
                     go.AddVisibleObject(objectAsCharacter);
@@ -354,7 +355,7 @@ namespace AAEmu.Game.Models.Game.World
 
                 var finalrad = sqrad;
                 if (useModelSize)
-                    finalrad += (obj.ModelSize * obj.ModelSize);
+                    finalrad += obj.ModelSize * obj.ModelSize;
                 
                 var dx = obj.Transform.World.Position.X - x;
                 dx *= dx;

@@ -95,13 +95,13 @@ namespace AAEmu.Game.Models.Game.World
         {
             foreach (var character in WorldManager.Instance.GetAround<Character>(this))
                 character.SendPacket(packet);
-            if ((self) && (this is Character chr))
+            if (self && this is Character chr)
                 chr.SendPacket(packet);
         }
 
         public virtual void AddVisibleObject(Character character)
         {
-            if ((Transform != null) && (Transform.Children.Count > 0))
+            if (Transform != null && Transform.Children.Count > 0)
                 foreach (var child in Transform.Children.ToArray())
                     //if (child?.GameObject != character) // Never send to self, or the client crashes
                     child?.GameObject?.AddVisibleObject(character);
@@ -109,12 +109,12 @@ namespace AAEmu.Game.Models.Game.World
 
         public virtual void RemoveVisibleObject(Character character)
         {
-            if ((character.CurrentTarget != null) && (character.CurrentTarget == this))
+            if (character.CurrentTarget != null && character.CurrentTarget == this)
             {
                 character.CurrentTarget = null;
                 character.SendPacket(new SCTargetChangedPacket(character.ObjId, 0));
             }
-            if ((Transform != null) && (Transform.Children.Count > 0))
+            if (Transform != null && Transform.Children.Count > 0)
                 foreach (var child in Transform.Children.ToArray())
                     //if (child?.GameObject != character) // Never send to self, or the client crashes
                     child?.GameObject?.RemoveVisibleObject(character);

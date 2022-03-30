@@ -3,11 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy
 {
-    public class UpdatePhysicsTimePacket : GamePacket
+    public class UpdatePhysICSTimePacket : GamePacket
     {
         private long _tm;
 
-        public UpdatePhysicsTimePacket() : base(PPOffsets.UpdatePhysicsTimePacket, 2)
+        public UpdatePhysICSTimePacket() : base(PPOffsets.UpdatePhysICSTimePacket, 2)
         {
         }
 

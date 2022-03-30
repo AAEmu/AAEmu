@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Data;
 using System.IO;
-using System.Linq;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
 using AAEmu.Commons.Utils;
@@ -15,20 +13,19 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils.DB;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Housing;
-using NLog;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Utils;
-using Microsoft.CodeAnalysis.Text;
+using AAEmu.Game.Utils.DB;
+
 using MySql.Data.MySqlClient;
-using SQLitePCL;
+
+using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -57,7 +54,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public CharacterTemplate GetTemplate(byte race, byte gender)
         {
-            return _templates[(byte) (16 * gender + race)];
+            return _templates[(byte)(16 * gender + race)];
         }
 
         public AppellationTemplate GetAppellationsTemplate(uint id)
@@ -66,7 +63,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 return _appellations[id];
             return null;
         }
-        
+
         public List<Expand> GetExpands(int step)
         {
             return _expands[step];
@@ -94,7 +91,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         public void CombatTick(TimeSpan delta)
         {
             // Not sure if we should put this here or world
-            foreach(var character in WorldManager.Instance.GetAllCharacters())
+            foreach (var character in WorldManager.Instance.GetAllCharacters())
             {
                 // TODO: Make it so you can also become out of combat if you are not on any aggro lists
                 if (character.IsInCombat && character.LastCombatActivity.AddSeconds(30) < DateTime.UtcNow)
@@ -102,7 +99,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     character.BroadcastPacket(new SCCombatClearedPacket(character.ObjId), true);
                     character.IsInCombat = false;
                 }
-                
+
                 if (character.IsInPostCast && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
                 {
                     character.IsInPostCast = false;
@@ -132,14 +129,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
             }
         }
-        
+
         public void BreathTick(TimeSpan delta)
         {
             foreach (var character in WorldManager.Instance.GetAllCharacters())
             {
-                if(character.IsDead || !character.IsUnderWater)
+                if (character.IsDead || !character.IsUnderWater)
                     continue;
-                
+
                 character.DoChangeBreath();
             }
         }
@@ -170,8 +167,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             template.FactionId = reader.GetUInt32("faction_id");
                             template.ZoneId = reader.GetUInt32("starting_zone_id");
                             template.ReturnDictrictId = reader.GetUInt32("default_return_district_id");
-                            template.ResurrectionDictrictId =
-                                reader.GetUInt32("default_resurrection_district_id");
+                            template.ResurrectionDictrictId = reader.GetUInt32("default_resurrection_district_id");
                             using (var command2 = connection.CreateCommand())
                             {
                                 command2.CommandText = "SELECT * FROM item_body_parts WHERE model_id=@model_id";
@@ -281,6 +277,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                                             template.Items.UndershirtsGrade = reader2.GetByte("undershirt_grade_id");
                                             template.Items.Underpants = reader2.GetUInt32("underpants_id");
                                             template.Items.UnderpantsGrade = reader2.GetByte("underpants_grade_id");
+                                            template.Items.Stabilizer = reader2.GetUInt32("stabilizer_id");
+                                            template.Items.StabilizerGrade = reader2.GetByte("stabilizer_grade_id");
                                         }
                                     }
                                 }
@@ -407,7 +405,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         while (reader.Read())
                         {
                             var template = new ExpandExpertLimit();
-                            template.Id = reader.GetUInt32("id");
+                            //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3030
                             template.ExpandCount = reader.GetByte("expand_count");
                             template.LifePoint = reader.GetInt32("life_point");
                             template.ItemId = reader.GetUInt32("item_id", 0);
@@ -431,6 +429,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     // Recalculate ZoneId as this isn't included in the config
                     // Always use main_world Id for this
                     point.ZoneId = WorldManager.Instance.GetZoneId(WorldManager.DefaultWorldId, charTemplate.Pos.X, charTemplate.Pos.Y);
+
                     // Convert the json's degrees to rads
                     point.Roll = point.Roll.DegToRad();
                     point.Pitch = point.Pitch.DegToRad();
@@ -459,14 +458,13 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
         public void PlayerRoll(Character Self, int max)
         {
-
+            byte  cliLocale = 0;
             var roll = Rand.Next(1, max);
-            Self.BroadcastPacket(new SCChatMessagePacket(ChatType.System, string.Format(Self.Name + " rolled " + roll.ToString() + ".")), true);
-            
+            Self.BroadcastPacket(new SCChatMessagePacket(cliLocale, ChatType.System, string.Format(Self.Name + " rolled " + roll.ToString() + ".")), true);
+
         }
 
-        public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body,
-            UnitCustomModelParams customModel, byte ability1)
+        public void Create(GameConnection connection, string name, byte race, byte gender, uint[] body, UnitCustomModelParams customModel, byte[] ability, byte level, int introZoneId)
         {
             var nameValidationCode = NameManager.Instance.ValidationCharacterName(name);
             if (nameValidationCode == 0)
@@ -474,13 +472,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 var characterId = CharacterIdManager.Instance.GetNextId();
                 NameManager.Instance.AddCharacterName(characterId, name);
                 var template = GetTemplate(race, gender);
-
                 var character = new Character(customModel);
                 character.Id = characterId;
                 character.AccountId = connection.AccountId;
                 character.Name = name.Substring(0, 1).ToUpper() + name.Substring(1);
-                character.Race = (Race) race;
-                character.Gender = (Gender) gender;
+                character.Race = (Race)race;
+                character.Gender = (Gender)gender;
                 character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
                 character.Level = 1;
                 character.Faction = FactionManager.Instance.GetFaction(template.FactionId);
@@ -493,16 +490,19 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.Inventory = new Inventory(character);
                 character.Created = DateTime.UtcNow;
                 character.Updated = DateTime.UtcNow;
-                character.Ability1 = (AbilityType) ability1;
-                character.Ability2 = AbilityType.None;
-                character.Ability3 = AbilityType.None;
+                character.Ability1 = (AbilityType)ability[0];
+                character.Ability2 = (AbilityType)ability[1];
+                character.Ability3 = (AbilityType)ability[2];
                 character.ReturnDictrictId = template.ReturnDictrictId;
                 character.ResurrectionDictrictId = template.ResurrectionDictrictId;
-                character.Slots = new ActionSlot[85];
-                for (var i = 0; i < character.Slots.Length; i++)
-                    character.Slots[i] = new ActionSlot();
+                character.Slots = new ActionSlot[133]; // 85 in 1.2, 133 in 3.5.0.3
 
-                var items = _abilityItems[ability1];
+                for (var i = 0; i < character.Slots.Length; i++)
+                {
+                    character.Slots[i] = new ActionSlot();
+                }
+
+                var items = _abilityItems[(byte)character.Ability1];
                 SetEquipItemTemplate(character.Inventory, items.Items.Headgear, EquipmentItemSlot.Head, items.Items.HeadgearGrade);
                 SetEquipItemTemplate(character.Inventory, items.Items.Necklace, EquipmentItemSlot.Neck, items.Items.NecklaceGrade);
                 SetEquipItemTemplate(character.Inventory, items.Items.Shirt, EquipmentItemSlot.Chest, items.Items.ShirtGrade);
@@ -521,8 +521,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 SetEquipItemTemplate(character.Inventory, items.Items.Cosplay, EquipmentItemSlot.Cosplay, items.Items.CosplayGrade);
                 for (var i = 0; i < 7; i++)
                 {
-                    if (body[i] == 0 && template.Items[i] > 0)
-                        body[i] = template.Items[i];
+                    //if (body[i] == 0 && template.Items[i] > 0)
+                    //    body[i] = template.Items[i];
                     SetEquipItemTemplate(character.Inventory, body[i], (EquipmentItemSlot) (i + 19), 0);
                 }
 
@@ -533,53 +533,63 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
                     //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
 
-                    character.SetAction(slot, ActionSlotType.Item, item.Id);
+                    character.SetAction(slot, ActionSlotType.ItemType, item.Id);
                     slot++;
                 }
 
                 items = _abilityItems[0];
                 if (items != null)
+                {
                     foreach (var item in items.Supplies)
                     {
                         character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
                         //var createdItem = ItemManager.Instance.Create(item.Id, item.Amount, item.Grade);
                         //character.Inventory.AddItem(ItemTaskType.Invalid, createdItem);
 
-                        character.SetAction(slot, ActionSlotType.Item, item.Id);
+                        character.SetAction(slot, ActionSlotType.ItemType, item.Id);
                         slot++;
                     }
+                }
 
                 character.Abilities = new CharacterAbilities(character);
                 character.Abilities.SetAbility(character.Ability1, 0);
-                
+
                 character.Actability = new CharacterActability(character);
                 foreach (var (id, actabilityTemplate) in _actabilities)
+                {
                     character.Actability.Actabilities.Add(id, new Actability(actabilityTemplate));
+                }
 
                 character.Skills = new CharacterSkills(character);
                 foreach (var skill in SkillManager.Instance.GetDefaultSkills())
                 {
                     if (!skill.AddToSlot)
+                    {
                         continue;
-                    character.SetAction(skill.Slot, ActionSlotType.Skill, skill.Template.Id);
+                    }
+
+                    character.SetAction(skill.Slot, ActionSlotType.Spell, skill.Template.Id);
                 }
 
                 slot = 1;
                 while (character.Slots[slot].Type != ActionSlotType.None)
+                {
                     slot++;
+                }
+
                 foreach (var skill in SkillManager.Instance.GetStartAbilitySkills(character.Ability1))
                 {
                     character.Skills.AddSkill(skill, 1, false);
-                    character.SetAction(slot, ActionSlotType.Skill, skill.Id);
+                    character.SetAction(slot, ActionSlotType.Spell, skill.Id);
                     slot++;
                 }
-                
+
                 character.Appellations = new CharacterAppellations(character);
                 character.Quests = new CharacterQuests(character);
                 character.Mails = new CharacterMails(character);
                 character.Portals = new CharacterPortals(character);
                 character.Friends = new CharacterFriends(character);
-                
+
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;
 
@@ -595,7 +605,6 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     NameManager.Instance.RemoveCharacterName(characterId);
                     // TODO release items...
                 }
-                
             }
             else
             {
@@ -623,7 +632,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     HousingManager.Instance.UpdateTaxInfo(house);
                 }
             }
-                        
+
             // Remove from Guild
             if (character.Expedition != null)
                 ExpeditionManager.Instance.Leave(character);
@@ -631,10 +640,10 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             // Remove from Family
             if (character.Family > 0)
                 FamilyManager.Instance.LeaveFamily(character);
-                        
+
             // TODO: Remove from player nation
             // TODO: Delete leadership
-            
+
             // Return all mails to sender (if needed)
             // The main reason we do this is so other people's items wouldn't get delete if fullWipe is enabled
             foreach (var (mailId, mail) in MailManager.Instance._allPlayerMails)
@@ -649,12 +658,12 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
 
             if (!fullWipe)
                 return;
-            
+
             Log.Warn("DeleteCharacterAssets - fullWipe is currently not implemented yet, charId: {0}", character.Id);
             // TODO: Wipe all mails
             // TODO: Wipe all items/gold (this also deletes all pets/vehicles)
         }
-        
+
         /// <summary>
         /// Mark characters marked for deletion as deleted after their time is finished
         /// </summary>
@@ -664,9 +673,9 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         /// <returns>Returns true if a character was marked deleted, otherwise false</returns>
         public bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
         {
-            if ((character.DeleteTime > DateTime.MinValue) && (character.DeleteTime <= DateTime.UtcNow))
+            if (character.DeleteTime > DateTime.MinValue && character.DeleteTime <= DateTime.UtcNow)
             {
-                Log.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId,character.Id,character.Name);
+                Log.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
                 using (var command = dbConnection.CreateCommand())
                 {
                     var deletedName = character.Name;
@@ -674,16 +683,16 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     {
                         deletedName = "!" + character.Name;
                         NameManager.Instance.RemoveCharacterName(character.Id);
-                        NameManager.Instance.AddCharacterName(character.Id,deletedName);
+                        NameManager.Instance.AddCharacterName(character.Id, deletedName);
                     }
-                    
+
                     command.Connection = dbConnection;
                     command.CommandText = "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time, `name`=@deletedname WHERE `id`=@char_id and `account_id`=@account_id;";
                     command.Parameters.AddWithValue("@new_delete_time", DateTime.MinValue);
                     command.Parameters.AddWithValue("@char_id", character.Id);
                     command.Parameters.AddWithValue("@account_id", character.AccountId);
                     command.Parameters.AddWithValue("@deletedname", deletedName);
-                    
+
                     var res = command.ExecuteNonQuery();
                     // Send update to current connection
                     if (res > 0)
@@ -704,7 +713,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             else
             if (character.DeleteRequestTime > DateTime.MinValue)
             {
-                Log.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId,character.Id,character.Name);
+                Log.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId, character.Id, character.Name);
             }
             return false;
         }
@@ -712,8 +721,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
         public void CheckForDeletedCharacters()
         {
             var nextCheckTime = DateTime.MaxValue;
-            var deleteList = new List<(uint, uint)>(); // charId, accountId
-            
+            var deleteList = new List<(uint, ulong)>(); // charId, accountId
+
             Log.Debug("CheckForDeletedCharacters - Begin");
             using (var connection = MySQL.CreateConnection())
             {
@@ -728,22 +737,22 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                             // Check the delete time for this entry
                             var deleteTime = reader.GetDateTime("delete_time");
                             var charId = reader.GetUInt32("id");
-                            var accountId = reader.GetUInt32("account_id");
-                            if ((deleteTime > DateTime.MinValue) && (deleteTime <= DateTime.UtcNow))
+                            var accountId = reader.GetUInt64("account_id");
+                            if (deleteTime > DateTime.MinValue && deleteTime <= DateTime.UtcNow)
                             {
-                                deleteList.Add((charId,accountId));
+                                deleteList.Add((charId, accountId));
                             }
                             else
-                            if ((deleteTime > DateTime.MinValue) && (deleteTime < nextCheckTime))
+                            if (deleteTime > DateTime.MinValue && deleteTime < nextCheckTime)
                             {
                                 nextCheckTime = deleteTime;
                             }
                         }
                     }
                 }
-                
+
                 // Actually start deleting
-                foreach (var (charId,accountId) in deleteList)
+                foreach (var (charId, accountId) in deleteList)
                 {
                     var character = Character.Load(connection, charId, accountId);
                     if (character != null)
@@ -762,7 +771,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     }
                 }
             }
-            
+
             // Start a Delete Tick Task
             if (nextCheckTime < DateTime.MaxValue)
             {
@@ -775,7 +784,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 Log.Debug("CheckForDeletedCharacters - No new deletions scheduled");
             }
         }
-        
+
         public void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
         {
             if (gameConnection.Characters.ContainsKey(characterId))
@@ -784,7 +793,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 character.DeleteRequestTime = DateTime.UtcNow;
 
                 var targetDeleteDelay = 0;
-                
+
                 // Get timings from settings
                 foreach (var timing in AppConfiguration.Instance.Account.DeleteTimings)
                 {
@@ -855,15 +864,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
             }
         }
-        public List<LoginCharacterInfo> LoadCharacters(uint accountId)
+        public List<LoginCharacterInfo> LoadCharacters(ulong accountId)
         {
             var result = new List<LoginCharacterInfo>();
             using (var connection = MySQL.CreateConnection())
             {
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText =
-                        "SELECT `id`, `name`, `race`, `gender`,`delete_time` FROM characters WHERE `account_id`=@accountId and `deleted`=0";
+                    command.CommandText = "SELECT `id`, `name`, `race`, `gender`,`delete_time` FROM characters WHERE `account_id`=@accountId and `deleted`=0";
                     command.Parameters.AddWithValue("@accountId", accountId);
                     using (var reader = command.ExecuteReader())
                     {
@@ -871,7 +879,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                         {
                             // Skip this char in the list if it's read to be deleted
                             var deleteTime = reader.GetDateTime("delete_time");
-                            if ((deleteTime > DateTime.MinValue) && (deleteTime < DateTime.UtcNow))
+                            if (deleteTime > DateTime.MinValue && deleteTime < DateTime.UtcNow)
                                 continue;
 
                             var character = new LoginCharacterInfo();
@@ -894,30 +902,32 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             if (templateId > 0)
             {
                 item = ItemManager.Instance.Create(templateId, 1, grade);
-                item.SlotType = SlotType.Equipment;
-                item.Slot = (int)slot;
+                if (item != null) // в 3.0.3.0 для гномов для значений Hair в таблице нет значений, т.е. возывращается null
+                {
+                    item.SlotType = SlotType.Equipment;
+                    item.Slot = (int)slot;
+                }
             }
 
             inventory.Equipment.AddOrMoveExistingItem(0, item, (int)slot);
-            //inventory.Equip[(int) slot] = item;
         }
 
         public void ApplyBeautySalon(Character character, uint hairModel, UnitCustomModelParams modelParams)
         {
             // TODO: Add support for future X-day Salon Certificate items
-            
+
             if (character.Inventory.GetItemsCount(SlotType.Inventory, Item.SalonCertificate) <= 0)
                 return;
-            
+
             var oldHair = character.Equipment.GetItemBySlot((byte)EquipmentItemSlot.Hair);
 
             // Check if hair changed
-            if ((oldHair != null) && (oldHair.TemplateId != hairModel))
+            if (oldHair != null && oldHair.TemplateId != hairModel)
             {
                 // Remove old hair item
                 oldHair._holdingContainer.RemoveItem(ItemTaskType.Invalid, oldHair, true);
                 // Create new hair item
-                if (!character.Equipment.AcquireDefaultItemEx(ItemTaskType.Invalid, hairModel, 1, -1, 
+                if (!character.Equipment.AcquireDefaultItemEx(ItemTaskType.Invalid, hairModel, 1, -1,
                         out var newItemsList, out var _, character.Id, (int)EquipmentItemSlot.Hair))
                 {
                     Log.Error($"Failed to add new hairstyle for player {character.Name} ({character.Id})!");
@@ -927,15 +937,15 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                 {
                     Log.Error($"Something failed during hairstyle creation for player {character.Name} ({character.Id})!");
                 }
-                
+
             }
             character.ModelParams = modelParams;
-            
+
             character.BroadcastPacket(new SCCharacterGenderAndModelModifiedPacket(character), true);
-            
-            if (character.Inventory.Bag.ConsumeItem(ItemTaskType.EditCosmetic, Item.SalonCertificate,1, null) <= 0)
+
+            if (character.Inventory.Bag.ConsumeItem(ItemTaskType.EditCosmetic, Item.SalonCertificate, 1, null) <= 0)
                 Log.Error($"Could not consume salon certificate for player {character.Name} ({character.Id})!");
-            
+
             // The client will do a salon leave request after it gets the SCCharacterGenderAndModelModifiedPacket
         }
     }

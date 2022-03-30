@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -65,7 +64,7 @@ namespace AAEmu.Game.Models.Game.Mails
                 if (mailSlots.Item1 != 0)
                 {
                     var tempItem = _sender.Inventory.GetItem(mailSlots.Item1, mailSlots.Item2);
-                    if ((tempItem == null) || (tempItem.SlotType != SlotType.Inventory))
+                    if (tempItem == null || tempItem.SlotType != SlotType.Inventory)
                     {
                         // Attchment Items do not match player inventory, abort
                         return false;

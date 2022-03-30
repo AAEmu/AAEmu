@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ulong _iId;
         private readonly int _count;
 
-        public SCLootItemTookPacket(uint id, ulong iId, int count) : base(SCOffsets.SCLootItemTookPacket,1)
+        public SCLootItemTookPacket(uint id, ulong iId, int count) : base(SCOffsets.SCLootItemTookPacket, 5)
         {
             _id = id;
             _iId = iId;

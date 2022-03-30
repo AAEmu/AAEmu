@@ -86,8 +86,8 @@ namespace AAEmu.Game.Utils
                         moveType.DeltaMovement[0] = 0;
                         moveType.DeltaMovement[1] = 0;
                         moveType.DeltaMovement[2] = 0;
-                        moveType.Stance = 1;    // combat=0, idle=1
-                        moveType.Alertness = 0; // idle=0, combat=2
+                        moveType.Stance = EStance.Idle;        // combat=0, idle=1
+                        moveType.Alertness = AiAlertness.Idle; // idle=0, combat=2
                         moveType.Time += 50;    // has to change all the time for normal motion.
                         character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
                     }
@@ -138,8 +138,8 @@ namespace AAEmu.Game.Utils
                                 moveType.DeltaMovement[0] = 0;
                                 moveType.DeltaMovement[1] = 0;
                                 moveType.DeltaMovement[2] = 0;
-                                moveType.Stance = 1;    // combat=0, idle=1
-                                moveType.Alertness = 0; // idle=0, combat=2
+                                moveType.Stance = EStance.Idle;        // combat=0, idle=1
+                                moveType.Alertness = AiAlertness.Idle; // idle=0, combat=2
                                 moveType.Time += 50;    // has to change all the time for normal motion.
                                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
                             }
@@ -211,8 +211,8 @@ namespace AAEmu.Game.Utils
                                 moveType.DeltaMovement[0] = 0;
                                 moveType.DeltaMovement[1] = 0;
                                 moveType.DeltaMovement[2] = 0;
-                                moveType.Stance = 1;    // combat=0, idle=1
-                                moveType.Alertness = 0; // idle=0, combat=2
+                                moveType.Stance = EStance.Idle;        // combat=0, idle=1
+                                moveType.Alertness = AiAlertness.Idle; // idle=0, combat=2
                                 moveType.Time += 50;    // has to change all the time for normal motion.
                                 character.BroadcastPacket(new SCOneUnitMovementPacket(character.CurrentTarget.ObjId, moveType), true);
                             }

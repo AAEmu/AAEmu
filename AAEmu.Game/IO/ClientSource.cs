@@ -15,7 +15,7 @@ namespace AAEmu.Game.IO
         {
             switch (SourceType)
             {
-                case ClientSourceType.Directory when (Directory.Exists(PathName)):
+                case ClientSourceType.Directory when Directory.Exists(PathName):
                     return true;
                 case ClientSourceType.GamePak:
                     GamePak = new AAPak(PathName);
@@ -28,7 +28,7 @@ namespace AAEmu.Game.IO
 
         public void Close()
         {
-            if ((SourceType == ClientSourceType.GamePak) && (GamePak != null))
+            if (SourceType == ClientSourceType.GamePak && GamePak != null)
             {
                 GamePak.ClosePak();
             }
@@ -99,8 +99,8 @@ namespace AAEmu.Game.IO
                             {
                                 if (pfi.name.ToLower().StartsWith(rootDir))
                                 {
-                                    if ((string.IsNullOrWhiteSpace(searchPattern) ||
-                                         (Regex.Match(pfi.name.ToLower(), wildCard).Success)))
+                                    if (string.IsNullOrWhiteSpace(searchPattern) ||
+                                        Regex.Match(pfi.name.ToLower(), wildCard).Success)
                                         list.Add(pfi.name);
                                 }
                             }
@@ -109,7 +109,7 @@ namespace AAEmu.Game.IO
                         {
                             var files = GamePak.GetFilesInDirectory(rootDir);
                             foreach (var pfi in files)
-                                if ((string.IsNullOrWhiteSpace(searchPattern) || (Regex.Match(pfi.name, wildCard).Success)))
+                                if (string.IsNullOrWhiteSpace(searchPattern) || Regex.Match(pfi.name, wildCard).Success)
                                     list.Add(pfi.name);
                         }
                         break;

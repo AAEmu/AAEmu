@@ -44,6 +44,8 @@ namespace AAEmu.Game.Models.Game.Units
         }
 
         public byte Level { get; set; }
+        public byte HierLevel { get; set; }
+        public long HierExp { get; set; }
         public int Hp { get; set; }
         [UnitAttribute(UnitAttribute.GlobalCooldownMul)]
         public virtual float GlobalCooldownMul { get; set; } = 100f;
@@ -53,6 +55,7 @@ namespace AAEmu.Game.Models.Game.Units
         public virtual int HpRegen { get; set; }
         [UnitAttribute(UnitAttribute.PersistentHealthRegen)]
         public virtual int PersistentHpRegen { get; set; } = 30;
+        //public int HighAbilityRsc { get; set; }
         public int Mp { get; set; }
         [UnitAttribute(UnitAttribute.MaxMana)]
         public virtual int MaxMp { get; set; }
@@ -184,7 +187,7 @@ namespace AAEmu.Game.Models.Game.Units
         public Expedition Expedition { get; set; }
         public bool IsInBattle { get; set; }
         public bool IsInPatrol { get; set; } // so as not to run the route a second time
-        public int SummarizeDamage { get; set; }
+        public List<int> SummarizeDamage { get; set; }
         public bool IsAutoAttack = false;
         public uint SkillId;
         public ushort TlId { get; set; }
@@ -209,10 +212,12 @@ namespace AAEmu.Game.Models.Game.Units
             GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
+            // TODO 1.2 Equipment.ContainerSize = 28, at 3.0.3.0 Equipment.ContainerSize = 29, 31 in 5.7
             Equipment = new ItemContainer(null, SlotType.Equipment, true);
-            Equipment.ContainerSize = 28;
+            Equipment.ContainerSize = 31; //TODO 28 in 1.2, 29 equip slots in 3.5, 31 in 5.7
             ChargeLock = new object();
             Cooldowns = new UnitCooldowns();
+            SummarizeDamage = new List<int> { 0, 0, 0 };
         }
 
         public void SetPosition(float x, float y, float z, sbyte rotationX, sbyte rotationY, sbyte rotationZ)
@@ -309,7 +314,7 @@ namespace AAEmu.Game.Models.Game.Units
 
             Events.OnDeath(this, new OnDeathArgs { Killer = killer, Victim = this });
             Buffs.RemoveEffectsOnDeath();
-            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, killer), true);
+            killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.Damage, killer), true);
             if (killer == this)
                 return;
 
@@ -321,8 +326,8 @@ namespace AAEmu.Game.Models.Game.Units
 
             if (CurrentTarget != null)
             {
-                killer.BroadcastPacket(new SCAiAggroPacket(killer.ObjId, 0), true);
-                killer.SummarizeDamage = 0;
+                killer.BroadcastPacket(new SCUnitAiAggroPacket(killer.ObjId, 0), true);
+                killer.SummarizeDamage[0] = 0;
 
                 if (killer.CurrentTarget != null)
                 {
@@ -472,7 +477,7 @@ namespace AAEmu.Game.Models.Game.Units
             foreach (var bonus in GetBonuses(attr))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
-                    value += (value * bonus.Value / 100f);
+                    value += value * bonus.Value / 100f;
                 else
                     value += bonus.Value;
             }
@@ -510,7 +515,7 @@ namespace AAEmu.Game.Models.Game.Units
             if (baseUnit is House house)
             {
                 // Subtract house radius, this should be fair enough for building
-                rawDist -= (house.Template.GardenRadius * house.Scale);
+                rawDist -= house.Template.GardenRadius * house.Scale;
             }
             else
             {

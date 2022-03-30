@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Drawing;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -12,45 +11,40 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSStartDuelPacket : GamePacket
     {
-        public CSStartDuelPacket() : base(CSOffsets.CSStartDuelPacket, 1)
+        public CSStartDuelPacket() : base(CSOffsets.CSStartDuelPacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
-            var challengerId = stream.ReadUInt32();  // ID of the one who challenged us to a duel
-            var errorMessage = stream.ReadInt16();  // 0 - accepted the duel, 507 - refused
+            var id = stream.ReadUInt32();
+            var errorMessage = stream.ReadInt16(); // 0 - принял дуэль, 507 - отказался
 
-            _log.Warn("StartDuel, Id: {0}, ErrorMessage: {1}", challengerId, errorMessage);
+            _log.Warn("StartDuel, Id: {0}, ErrorMessage: {1}", id, errorMessage);
 
-            if (errorMessage != 0)
-            {
-                return;
-            }
 
-            var challengedObjId = Connection.ActiveChar.ObjId;
-            var challenger = WorldManager.Instance.GetCharacterById(challengerId);
-            var challengerObjId = challenger.ObjId;
+            var challengerObjId = Connection.ActiveChar.ObjId;
+            var challenged = WorldManager.Instance.GetCharacterById(id);
+            var challengedObjId = challenged.ObjId;
 
-            Connection.ActiveChar.BroadcastPacket(new SCDuelStartedPacket(challengerObjId, challengedObjId), true);
-            Connection.ActiveChar.BroadcastPacket(new SCAreaChatBubblePacket(true, Connection.ActiveChar.ObjId, 543), true);
-            Connection.ActiveChar.BroadcastPacket(new SCDuelStartCountdownPacket(), true);
+            //Connection.ActiveChar.BroadcastPacket(new SCDuelStartedPacket(challengerObjId, challengedObjId), true);
+            Connection.SendPacket(new SCDuelStartedPacket(challengerObjId, challengedObjId));
 
-            var doodadFlag = new DoodadSpawner();
-            const uint unitId = 5014u; // Combat Flag
-            doodadFlag.Id = 0;
-            doodadFlag.UnitId = unitId;
-            doodadFlag.Position = Connection.ActiveChar.Transform.CloneAsSpawnPosition();
-            doodadFlag.Position.X = Connection.ActiveChar.Transform.World.Position.X - (Connection.ActiveChar.Transform.World.Position.X - challenger.Transform.World.Position.X) / 2;
-            doodadFlag.Position.Y = Connection.ActiveChar.Transform.World.Position.Y - (Connection.ActiveChar.Transform.World.Position.Y - challenger.Transform.World.Position.Y) / 2;
-            doodadFlag.Position.Z = Connection.ActiveChar.Transform.World.Position.Z - (Connection.ActiveChar.Transform.World.Position.Z - challenger.Transform.World.Position.Z) / 2;
-            doodadFlag.Spawn(0);
+            Connection.SendPacket(new SCAreaChatBubblePacket(true, Connection.ActiveChar.ObjId, 543));
 
-            Connection.ActiveChar.BroadcastPacket(new SCDuelStatePacket(challengerObjId, doodadFlag.Last.ObjId), true);
-            Connection.ActiveChar.BroadcastPacket(new SCDuelStatePacket(challengedObjId, doodadFlag.Last.ObjId), true);
-            Connection.SendPacket(new SCDoodadPhaseChangedPacket(doodadFlag.Last));
-            Connection.SendPacket(new SCCombatEngagedPacket(challengerObjId));
-            Connection.ActiveChar.BroadcastPacket(new SCCombatEngagedPacket(challengedObjId), false);
+            Connection.SendPacket(new SCDuelStartCountdownPacket());
+            //Connection.ActiveChar.BroadcastPacket(new SCDuelStartCountdownPacket(), true);
+
+
+
+            var doodadFlag = DoodadManager.Instance.Create(0, 5014);
+
+            Connection.SendPacket(new SCDoodadCreatedPacket(doodadFlag));
+
+            //Connection.ActiveChar.BroadcastPacket(new SCDoodadCreatedPacket(flagObjId), true);
+
+            //Connection.ActiveChar.BroadcastPacket(new SCDuelStatePacket(challengerObjId, flagObjId), true);
+            //Connection.ActiveChar.BroadcastPacket(new SCDuelStatePacket(challengerObjId, flagObjId), true);
         }
     }
 }

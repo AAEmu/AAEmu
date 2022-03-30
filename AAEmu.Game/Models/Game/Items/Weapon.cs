@@ -25,7 +25,7 @@ namespace AAEmu.Game.Models.Game.Items
                 mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.StrWeight * 1f) / modifiers.AllWeight *
+                var temp2 = modifiers.Count * temp * modifiers.StrWeight * 1f / modifiers.AllWeight *
                             grade.StatMultiplier * 0.0099999998f + 0.5f;
                 var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
                 return (int)res;
@@ -49,7 +49,7 @@ namespace AAEmu.Game.Models.Game.Items
                 mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.DexWeight * 1f) / modifiers.AllWeight *
+                var temp2 = modifiers.Count * temp * modifiers.DexWeight * 1f / modifiers.AllWeight *
                             grade.StatMultiplier * 0.0099999998f + 0.5f;
                 var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
                 return (int)res;
@@ -73,7 +73,7 @@ namespace AAEmu.Game.Models.Game.Items
                 mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.StaWeight * 1f) / modifiers.AllWeight *
+                var temp2 = modifiers.Count * temp * modifiers.StaWeight * 1f / modifiers.AllWeight *
                             grade.StatMultiplier * 0.0099999998f + 0.5f;
                 var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
                 return (int)res;
@@ -97,7 +97,7 @@ namespace AAEmu.Game.Models.Game.Items
                 mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.IntWeight * 1f) / modifiers.AllWeight *
+                var temp2 = modifiers.Count * temp * modifiers.IntWeight * 1f / modifiers.AllWeight *
                             grade.StatMultiplier * 0.0099999998f + 0.5f;
                 var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
                 return (int)res;
@@ -121,7 +121,7 @@ namespace AAEmu.Game.Models.Game.Items
                 mod = (float)Math.Pow(mod, 1f / (ItemManager.Instance.GetStatValueConst() * 0.0099999998f));
                 var temp = ItemManager.Instance.GetItemStatConst() * 0.0099999998f * template.Level * mod *
                            ItemManager.Instance.GetHoldableStatConst() * 0.0099999998f;
-                var temp2 = (modifiers.Count * temp * modifiers.SpiWeight * 1f) / modifiers.AllWeight *
+                var temp2 = modifiers.Count * temp * modifiers.SpiWeight * 1f / modifiers.AllWeight *
                             grade.StatMultiplier * 0.0099999998f + 0.5f;
                 var res = (int)temp2 * template.HoldableTemplate.StatMultiplier * 0.0099999998f + 0.5f;
                 return (int)res;
@@ -140,7 +140,7 @@ namespace AAEmu.Game.Models.Game.Items
                 parameters["item_grade"] = grade.HoldableDps;
                 var formulaRes = formula.Evaluate(parameters);
                 if (TemperPhysical > 100)
-                    formulaRes *= (TemperPhysical / 100.0f);
+                    formulaRes *= TemperPhysical / 100.0f;
                 return (float) formulaRes;
             }
         }
@@ -157,7 +157,7 @@ namespace AAEmu.Game.Models.Game.Items
                 parameters["item_grade"] = grade.HoldableMagicDps;
                 var formulaRes = formula.Evaluate(parameters);
                 if (TemperMagical > 100)
-                    formulaRes *= (TemperMagical / 100.0f);
+                    formulaRes *= TemperMagical / 100.0f;
                 return formulaRes;
             }
         }
@@ -175,7 +175,7 @@ namespace AAEmu.Game.Models.Game.Items
 
                 var formulaRes = formula.Evaluate(parameters);
                 if (TemperMagical > 100)
-                    formulaRes *= (TemperMagical / 100.0f);
+                    formulaRes *= TemperMagical / 100.0f;
                 return formulaRes;
             }
         }
@@ -193,7 +193,7 @@ namespace AAEmu.Game.Models.Game.Items
                 
                 var formulaResult = formula.Evaluate(parameters);
                 if (TemperPhysical > 100)
-                    formulaResult *= (TemperPhysical / 100.0f);
+                    formulaResult *= TemperPhysical / 100.0f;
                 return (int)formulaResult;
             }
         }

@@ -655,7 +655,7 @@ namespace AAEmu.Game.Models.Game.Units
                 // Added so whatever riding this, doesn't clip out of existence when moving
                 transfer.Transform.FinalizeTransform(true);
                 // Only send movement of the main vehicle motor, client will drag carriage on it's own
-                if ((transfer.Bounded != null) || (transfer.ParentObj == null)) 
+                if (transfer.Bounded != null || transfer.ParentObj == null) 
                 {
                     transfer.BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveTypeTr), false);
                     /*
@@ -725,7 +725,7 @@ namespace AAEmu.Game.Models.Game.Units
                 next++;
             }
 
-            if ((current < transfer.Template.TransferAllPaths.Count) && (next < transfer.Template.TransferAllPaths.Count))
+            if (current < transfer.Template.TransferAllPaths.Count && next < transfer.Template.TransferAllPaths.Count)
                 if (transfer.Template.TransferAllPaths[current].WaitTimeEnd > 0 || transfer.Template.TransferAllPaths[next].WaitTimeStart > 0)
                 {
                     // за несколько (3 ?) точек до конца участка будем тормозить

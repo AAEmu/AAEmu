@@ -1,21 +1,20 @@
-using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSBuyHousePacket : GamePacket
     {
-        public CSBuyHousePacket() : base(CSOffsets.CSBuyHousePacket, 1)
+        public CSBuyHousePacket() : base(CSOffsets.CSBuyHousePacket, 5)
         {
         }
 
         public override void Read(PacketStream stream)
         {
             var tl = stream.ReadUInt16();
-            var moneyAmount = stream.ReadUInt32();
+            var moneyAmount = stream.ReadInt32();
 
-            HousingManager.Instance.BuyHouse(tl, moneyAmount, Connection.ActiveChar);
+            _log.Debug("BuyHouse, Tl: {0}, MoneyAmount: {1}", tl, moneyAmount);
         }
     }
 }

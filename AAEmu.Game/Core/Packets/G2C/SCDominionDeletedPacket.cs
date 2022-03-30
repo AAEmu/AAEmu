@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ushort _id;
 
-        public SCDominionDeletedPacket(ushort id) : base(SCOffsets.SCDominionDeletedPacket, 1)
+        public SCDominionDeletedPacket(ushort id) : base(SCOffsets.SCDominionDeletedPacket, 5)
         {
             _id = id;
         }

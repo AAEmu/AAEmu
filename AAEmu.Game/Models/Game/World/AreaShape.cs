@@ -32,7 +32,7 @@ namespace AAEmu.Game.Models.Game.World
         {
             // Z check
             var zOffset = Value3;
-            toCheck = toCheck.Where(o => (o.Transform.World.Position.Z >= origin.Transform.World.Position.Z - zOffset) && (o.Transform.World.Position.Z <= origin.Transform.World.Position.Z + zOffset)).ToList();
+            toCheck = toCheck.Where(o => o.Transform.World.Position.Z >= origin.Transform.World.Position.Z - zOffset && o.Transform.World.Position.Z <= origin.Transform.World.Position.Z + zOffset).ToList();
             if (toCheck.Count == 0)
                 return toCheck;
 

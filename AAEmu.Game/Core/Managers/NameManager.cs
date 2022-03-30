@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Managers
 
         public uint GetCharacterId(string characterName)
         {
-            var res = (from x in _characterNames where (x.Value.ToLower() == characterName.ToLower()) select x.Key).FirstOrDefault();
+            var res = (from x in _characterNames where x.Value.ToLower() == characterName.ToLower() select x.Key).FirstOrDefault();
             return res ;
         }
 
@@ -56,7 +56,7 @@ namespace AAEmu.Game.Core.Managers
         public byte ValidationCharacterName(string name)
         {
             if (_characterNames.Values.Contains(name))
-                return 4; // Персонаж с таким именем уже существует. Выберите другое.
+                return 4; // Персонаж с таким именем уже существует. Выберите другое имя.
             if (name == "" || !_characterNameRegex.IsMatch(name)) // TODO ...
                 return 5; // Это имя содержит недопустимую лексику.
             return 0;

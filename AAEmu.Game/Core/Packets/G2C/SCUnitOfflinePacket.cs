@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C
@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly uint _objId;
         private readonly bool _isOffline;
 
-        public SCUnitOfflinePacket(uint objId, bool isOffline) : base(SCOffsets.SCUnitOfflinePacket, 1)
+        public SCUnitOfflinePacket(uint objId, bool isOffline) : base(SCOffsets.SCSetUnitOfflinePacket, 5)
         {
             _objId = objId;
             _isOffline = isOffline;

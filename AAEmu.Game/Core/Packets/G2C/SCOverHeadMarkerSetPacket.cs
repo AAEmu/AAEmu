@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly bool _isObjId;
         private readonly uint _id;
 
-        public SCOverHeadMarkerSetPacket(uint teamId, OverHeadMark index, bool isObjId, uint id) : base(SCOffsets.SCOverHeadMarkerSetPacket, 1)
+        public SCOverHeadMarkerSetPacket(uint teamId, OverHeadMark index, bool isObjId, uint id) : base(SCOffsets.SCOverHeadMarkerSetPacket, 5)
         {
             _teamId = teamId;
             _index = index;

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSCanStartTradePacket : GamePacket
     {
-        public CSCanStartTradePacket() : base(CSOffsets.CSCanStartTradePacket, 1)
+        public CSCanStartTradePacket() : base(CSOffsets.CSCanStartTradePacket, 5)
         {
         }
 

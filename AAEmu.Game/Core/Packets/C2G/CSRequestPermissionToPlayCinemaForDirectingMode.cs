@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSRequestPermissionToPlayCinemaForDirectingMode : GamePacket
     {
-        public CSRequestPermissionToPlayCinemaForDirectingMode() : base(CSOffsets.CSRequestPermissionToPlayCinemaForDirectingMode, 1)
+        public CSRequestPermissionToPlayCinemaForDirectingMode() : base(CSOffsets.CSRequestPermissionToPlayCinemaForDirectingMode, 5)
         {
         }
 

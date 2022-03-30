@@ -67,12 +67,12 @@ namespace AAEmu.Game.Core.Managers
         /// <param name="ability"></param>
         /// <param name="languageType"></param>
         /// <returns>Number of members the message was sent to</returns>
-        public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
+        public int SendMessage(byte cliLocale, Character origin, string msg, int ability = 0, byte languageType = 0)
         {
             var res = 0;
             foreach(var m in members)
             {
-                m.SendPacket(new SCChatMessagePacket(chatType, origin != null? origin : m, msg, ability, languageType));
+                m.SendPacket(new SCChatMessagePacket(cliLocale, chatType, origin ?? m, msg, ability, languageType));
                 res++;
             }
             return res;
@@ -237,7 +237,7 @@ namespace AAEmu.Game.Core.Managers
 
         private bool AddNationChannel(Race race, uint factionDisplayId, string name)
         {
-            var mRace = (((byte)race - 1) & 0xFC);
+            var mRace = ((byte)race - 1) & 0xFC;
             var channel = new ChatChannel() { chatType = ChatType.Region, faction = factionDisplayId, internalId = mRace, internalName = name };
             return _nationChannels.TryAdd(mRace, channel);
         }
@@ -246,7 +246,7 @@ namespace AAEmu.Game.Core.Managers
         {
             // some bit magic that makes raceId into some kind of birth continent id
             // If Fairy (for Nuia) and Returned (for Haranya) are ever added as a diffferent faction, we'll need to go and write some proper code for this
-            var mRace = (((byte)race - 1) & 0xFC);
+            var mRace = ((byte)race - 1) & 0xFC;
             if (_nationChannels.TryGetValue(mRace, out var channel))
                 return channel;
             else
@@ -334,11 +334,11 @@ namespace AAEmu.Game.Core.Managers
             uint partyNumber = 0;
             for(uint i = 0; i < party.Members.Length;i++)
             {
-                if ((party.Members[i] == null) || (party.Members[i].Character == null))
+                if (party.Members[i] == null || party.Members[i].Character == null)
                     continue;
                 if (party.Members[i].Character.Id == myChar.Id)
                 {
-                    partyNumber = (i / 5);
+                    partyNumber = i / 5;
                     break;
                 }
             }

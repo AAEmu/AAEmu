@@ -1,33 +1,32 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Xml;
+
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.IO;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Utils.DB;
-using AAEmu.Game.Core.Packets.G2C;
-using NLog;
-using InstanceWorld = AAEmu.Game.Models.Game.World.World;
-using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.World.Transform;
-using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Xml;
-using AAEmu.Game.IO;
-using AAEmu.Game.Models.ClientData;
-using AAEmu.Game.Models.Game.Gimmicks;
-using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.World.Xml;
 using AAEmu.Game.Models.Game.World.Zones;
-using NLog.Internal;
+using AAEmu.Game.Utils.DB;
+
+using NLog;
+
+using InstanceWorld = AAEmu.Game.Models.Game.World.World;
 
 namespace AAEmu.Game.Core.Managers.World
 {
@@ -197,24 +196,21 @@ namespace AAEmu.Game.Core.Managers.World
                     {
                         while (reader.Read())
                         {
-                            var idz = new IndunZone()
-                            {
-                                ZoneGroupId = reader.GetUInt32("zone_group_id"),
-                                Name = reader.GetString("name"),
-                                Comment = reader.GetString("comment"),
-                                LevelMin = reader.GetUInt32("level_min"),
-                                LevelMax = reader.GetUInt32("level_max"),
-                                MaxPlayers = reader.GetUInt32("max_players"),
-                                PvP = reader.GetBoolean("pvp"),
-                                HasGraveyard = reader.GetBoolean("has_graveyard"),
-                                ItemId = reader.IsDBNull("item_id") ? 0 : reader.GetUInt32("item_id"),
-                                RestoreItemTime = reader.GetUInt32("restore_item_time"),
-                                PartyOnly = reader.GetBoolean("party_only"),
-                                ClientDriven = reader.GetBoolean("client_driven"),
-                                SelectChannel = reader.GetBoolean("select_channel")
-                            };
-                            idz.LocalizedName =
-                                LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
+                            var idz = new IndunZone();
+                            idz.ZoneGroupId = reader.GetUInt32("zone_group_id");
+                            idz.Name = reader.GetString("name");
+                            //idz.Comment = reader.GetString("comment");
+                            idz.LevelMin = reader.GetUInt32("level_min");
+                            idz.LevelMax = reader.GetUInt32("level_max");
+                            idz.MaxPlayers = reader.GetUInt32("max_players");
+                            idz.PvP = reader.GetBoolean("pvp");
+                            idz.HasGraveyard = reader.GetBoolean("has_graveyard");
+                            idz.ItemId = reader.IsDBNull("item_id") ? 0 : reader.GetUInt32("item_id");
+                            idz.RestoreItemTime = reader.GetUInt32("restore_item_time");
+                            idz.PartyOnly = reader.GetBoolean("party_only");
+                            idz.ClientDriven = reader.GetBoolean("client_driven");
+                            idz.SelectChannel = reader.GetBoolean("select_channel");
+                            idz.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", idz.ZoneGroupId, idz.Name);
                             if (!_indunZones.TryAdd(idz.ZoneGroupId, idz))
                                 _log.Fatal($"Unable to add zone_group_id: {idz.ZoneGroupId} from indun_zone");
                         }
@@ -390,7 +386,7 @@ namespace AAEmu.Game.Core.Managers.World
                                                             var doubleValue = node.fRange * 100000d;
                                                             var rawValue = node.RawDataByIndex(unitX, unitY);
 
-                                                            value = (ushort)((doubleValue / 1.52604335620711f) *
+                                                            value = (ushort)(doubleValue / 1.52604335620711f *
                                                                              world.HeightMaxCoefficient /
                                                                              ushort.MaxValue * rawValue +
                                                                              node.BoxHeightmap.Min.Z * world.HeightMaxCoefficient);
@@ -613,7 +609,7 @@ namespace AAEmu.Game.Core.Managers.World
         public Character GetTargetOrSelf(Character character, string TargetName, out int FirstNonNameArgument)
         {
             FirstNonNameArgument = 0;
-            if ((TargetName != null) && (TargetName != string.Empty))
+            if (TargetName != null && TargetName != string.Empty)
             {
                 Character player = WorldManager.Instance.GetCharacter(TargetName);
                 if (player != null)
@@ -622,7 +618,7 @@ namespace AAEmu.Game.Core.Managers.World
                     return player;
                 }
             }
-            if ((character.CurrentTarget != null) && (character.CurrentTarget is Character))
+            if (character.CurrentTarget != null && character.CurrentTarget is Character)
                 return (Character)character.CurrentTarget;
             return character;
         }
@@ -865,10 +861,10 @@ namespace AAEmu.Game.Core.Managers.World
         [Obsolete("Please use ChatManager.Instance.GetNationChat(race).SendPacker(packet) instead.")]
         public void BroadcastPacketToNation(GamePacket packet, Race race)
         {
-            var mRace = (((byte)race - 1) & 0xFC); // some bit magic that makes raceId into some kind of birth continent id
+            var mRace = ((byte)race - 1) & 0xFC; // some bit magic that makes raceId into some kind of birth continent id
             foreach (var character in _characters.Values)
             {
-                var cmRace = (((byte)character.Race - 1) & 0xFC);
+                var cmRace = ((byte)character.Race - 1) & 0xFC;
                 if (mRace != cmRace)
                     continue;
                 character.SendPacket(packet);
@@ -933,7 +929,7 @@ namespace AAEmu.Game.Core.Managers.World
         public void OnPlayerJoin(Character character)
         {
             //turn snow on off 
-            Snow(character);
+            // Snow(character); // TODO найти opcode
 
             //family stuff
             if (character.Family > 0)

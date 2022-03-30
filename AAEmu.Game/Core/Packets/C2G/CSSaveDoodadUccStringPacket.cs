@@ -1,11 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G
 {
     public class CSSaveDoodadUccStringPacket : GamePacket
     {
-        public CSSaveDoodadUccStringPacket() : base(CSOffsets.CSSaveDoodadUccStringPacket, 1)
+        public CSSaveDoodadUccStringPacket() : base(CSOffsets.CSSaveDoodadUccStringPacket, 5)
         {
         }
 

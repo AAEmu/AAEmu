@@ -24,7 +24,7 @@ namespace AAEmu.Game.Core.Network.Stream
                 throw;
             }
 
-            if ((TypeId == TCOffsets.TCDoodadIdsPacket) || ((TypeId == TCOffsets.TCDoodadStreamPacket)))
+            if (TypeId == TCOffsets.TCDoodadIdsPacket || TypeId == TCOffsets.TCDoodadStreamPacket)
                 _log.Trace("StreamPacket: S->C type {0:X3} {1}", TypeId, this.ToString().Substring(23));
             else
                 _log.Debug("StreamPacket: S->C {1}\n{0}", ps, this.ToString().Substring(23));

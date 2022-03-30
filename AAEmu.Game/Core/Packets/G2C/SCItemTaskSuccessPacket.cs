@@ -11,20 +11,20 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly List<ItemTask> _tasks;
         private readonly List<ulong> _forceRemove;
 
-        public SCItemTaskSuccessPacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove) : base(SCOffsets.SCItemTaskSuccessPacket, 1)
+        public SCItemTaskSuccessPacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove) : base(SCOffsets.SCItemTaskSuccessPacket, 5)
         {
             _action = action;
             _tasks = tasks;
             _forceRemove = forceRemove;
         }
 
-        public SCItemTaskSuccessPacket(ItemTaskType action, ItemTask task, List<ulong> forceRemove) : base(SCOffsets.SCItemTaskSuccessPacket, 1)
+        public SCItemTaskSuccessPacket(ItemTaskType action, ItemTask task, List<ulong> forceRemove) : base(SCOffsets.SCItemTaskSuccessPacket, 5)
         {
             _action = action;
-            _tasks = new List<ItemTask>() { task };
+            _tasks = new List<ItemTask> { task };
             _forceRemove = forceRemove;
         }
-        
+
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write((byte) _action);
@@ -45,6 +45,8 @@ namespace AAEmu.Game.Core.Packets.G2C
             }
 
             stream.Write(0u); // type(id)
+            stream.Write(0u); // lockItemSlotKey
+            stream.Write(0u); // flags
             return stream;
         }
     }

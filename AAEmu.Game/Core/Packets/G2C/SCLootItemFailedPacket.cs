@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game;
 
+
 namespace AAEmu.Game.Core.Packets.G2C
 {
     class SCLootItemFailedPacket : GamePacket
@@ -10,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         private readonly ulong _iId;
         private readonly uint _id;
 
-        public SCLootItemFailedPacket(ErrorMessageType errorMessage, ulong iId, uint id) : base(SCOffsets.SCLootItemFailedPacket,1)
+        public SCLootItemFailedPacket(ErrorMessageType errorMessage, ulong iId, uint id) : base(SCOffsets.SCLootItemFailedPacket, 5)
         {
             _errorMessage = (int)errorMessage;
             _iId = iId;
@@ -20,8 +21,9 @@ namespace AAEmu.Game.Core.Packets.G2C
         public override PacketStream Write(PacketStream stream)
         {
             stream.Write(_errorMessage);
-            stream.Write(_iId);
-            stream.Write(_id);
+            stream.Write(_iId);  // iid
+            stream.Write(_id);   // type
+            stream.WriteBc(0);   // objId - add in 3.5.0.3
             return stream;
         }
     }

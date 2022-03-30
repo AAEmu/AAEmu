@@ -101,7 +101,7 @@ namespace AAEmu.Game.Utils
                             if (int.TryParse(args[2], out phase))
                             {
                                 doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-                                if ((doodad != null) && (doodad is Doodad))
+                                if (doodad != null && doodad is Doodad)
                                 {
                                     var listIds = DoodadManager.Instance.GetDoodadFuncGroupsId(doodad.TemplateId);
                                     character.SendMessage("[Doodad] SetPhase {0}", phase);
@@ -131,7 +131,7 @@ namespace AAEmu.Game.Utils
                         if (uint.TryParse(args[1], out doodadObjId))
                         {
                             doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-                            if ((doodad != null) && (doodad is Doodad))
+                            if (doodad != null && doodad is Doodad)
                             {
                                 // 0   1     2 3 4 5  6  7
                                 // pos objId x y z rx ry rz
@@ -179,7 +179,7 @@ namespace AAEmu.Game.Utils
                         if (uint.TryParse(args[1], out doodadObjId))
                         {
                             doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-                            if ((doodad != null) && (doodad is Doodad))
+                            if (doodad != null && doodad is Doodad)
                             {
                                 // 0   1     2 3 4 5  6  7
                                 // pos objId x y z rx ry rz
@@ -249,7 +249,7 @@ namespace AAEmu.Game.Utils
                         if (uint.TryParse(args[1], out doodadObjId))
                         {
                             doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-                            if ((doodad != null) && (doodad is Doodad))
+                            if (doodad != null && doodad is Doodad)
                             {
                                 // Save Doodad
                                 try
@@ -286,7 +286,7 @@ namespace AAEmu.Game.Utils
 
                                                 // добавим измененный Doodad
                                                 doodad = WorldManager.Instance.GetDoodad(doodadObjId);
-                                                if ((doodad != null) && (doodad is Doodad))
+                                                if (doodad != null && doodad is Doodad)
                                                 {
                                                     var spawn = new JsonDoodadSpawns();
 

@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C
     {
         private readonly ushort _tl;
 
-        public SCPlotEndedPacket(ushort tl) : base(SCOffsets.SCPlotEndedPacket, 1)
+        public SCPlotEndedPacket(ushort tl) : base(SCOffsets.SCPlotEndedPacket, 5)
         {
             _tl = tl;
         }

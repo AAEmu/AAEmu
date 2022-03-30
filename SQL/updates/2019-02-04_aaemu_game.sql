@@ -1,1 +1,0 @@
-ALTER TABLE `characters` ADD `honor_point` INT NOT NULL AFTER `money2`, ADD `vocation_point` INT NOT NULL AFTER `honor_point`, ADD `expanded_expert` TINYINT NOT NULL AFTER `num_bank_slot`;
