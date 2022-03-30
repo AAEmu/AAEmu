@@ -5,12 +5,12 @@
 __Open source server software for ArcheAge written in .Net Core__
 
 ### Setup, help & support, FAQs
-Head over to the [wiki](https://github.com/atel0/AAEmu/wiki).
+Head over to the [wiki](https://github.com/AAEmu/AAEmu/wiki).
 If you don't find what you're looking for there, [talk to a human](#discussion). Please do not use our issue tracker for support requests.
 
 ### Discussion
 - [Community Discord](https://discord.gg/vn8E8E6)
-- [FAQ](https://github.com/atel0/AAEmu/wiki/FAQ)
+- [FAQ](https://github.com/AAEmu/AAEmu/wiki/FAQ)
 
 ### Can I contribute?
 Yes you can! Contributions are welcomed provided that they comply with our [Contributing Guidelines](CONTRIBUTING.md). Please ensure you read the relevant sections of the guidelines carefully before making a Pull Request or opening an Issue.
@@ -31,3 +31,22 @@ Yes you can! Contributions are welcomed provided that they comply with our [Cont
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 atel0/AAEmu are not affiliated with XLGames. All brands and trademarks belong to their respective owners. AAEmu is not a XLGames-approved software, nor is it associated with XLGames.
+
+## Description
+- It's just aproof of concept;
+- Made based on the develop_feat_quest&doodad branch;
+- Requires careful correction of package structures;
+- Database compact.sqlite3 from server version 3.0.3.0;
+- Client version 8.0.3.12 r558734 14.12.2021 ArcheAge Kakao.
+
+##Screenshots
+![avatar](/doc/img/Screenshot_1.png)
+![avatar](/doc/img/Screenshot_2.png)
+![avatar](/doc/img/Screenshot_3.png)
+![avatar](/doc/img/Screenshot_4.png)
+![avatar](/doc/img/Screenshot_5.png)
+![avatar](/doc/img/Screenshot_6.png)
+![avatar](/doc/img/Screenshot_7.png)
+![avatar](/doc/img/Screenshot_8.png)
+![avatar](/doc/img/Screenshot_9.png)
+![avatar](/doc/img/Screenshot_10.png)
