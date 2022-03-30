@@ -39,7 +39,7 @@ atel0/AAEmu are not affiliated with XLGames. All brands and trademarks belong to
 - Database compact.sqlite3 from server version 3.0.3.0;
 - Client version 8.0.3.12 r558734 14.12.2021 ArcheAge Kakao.
 
-##Screenshots
+## Screenshots
 ![avatar](/doc/img/Screenshot_1.png)
 ![avatar](/doc/img/Screenshot_2.png)
 ![avatar](/doc/img/Screenshot_3.png)
