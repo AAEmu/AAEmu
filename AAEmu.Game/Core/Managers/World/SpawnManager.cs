@@ -272,8 +272,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 var pDoodad = _playerDoodads.FirstOrDefault(d => d.DbId == parentDoodad);
                                 if (pDoodad == null)
                                 {
-                                    _log.Warn("Unable to place doodad {0} can't find it's parent doodad {1}", dbId,
-                                        parentDoodad);
+                                    _log.Warn("Unable to place doodad {0} can't find it's parent doodad {1}", dbId, parentDoodad);
                                 }
                                 else
                                 {
@@ -288,8 +287,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 var owningHouse = HousingManager.Instance.GetHouseById(doodad.DbHouseId);
                                 if (owningHouse == null)
                                 {
-                                    _log.Warn("Unable to place doodad {0} can't find it's owning house {1}", dbId,
-                                        houseId);
+                                    _log.Warn("Unable to place doodad {0} can't find it's owning house {1}", dbId, houseId);
                                 }
                                 else
                                 {

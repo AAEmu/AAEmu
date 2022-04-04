@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Threading.Tasks;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -12,7 +13,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override bool Use(Unit caster, Doodad owner)
         {
-            _log.Trace("DoodadFuncTod: Tod {0}, NextPhase {1}", Tod, NextPhase);
+            if (caster is Character)
+                _log.Debug("DoodadFuncTod: Tod {0}, NextPhase {1}", Tod, NextPhase);
+            else
+                _log.Trace("DoodadFuncTod: Tod {0}, NextPhase {1}", Tod, NextPhase);
 
             //if (caster is Character)
             {
@@ -49,15 +53,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //    _log.Trace("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
                 //}
 
-                //if (Tod > 2400 || Tod < 100)
-                //{
-                //    return false; // TODO я думал, что tod это время в формате hh:mm, но там есть величины : 0, 1, 10, 30, 4000 и 60000
-                //}
-
-                if (caster is Character) { return false; }
+                if (Tod > 2400 || Tod < 100)
+                {
+                    return false; // TODO я думаю, что tod это время в формате hh:mm, но там есть величины : 0, 1, 10, 30, 4000 и 60000
+                }
 
                 var curTime = TimeManager.Instance.GetTime();
-                if (curTime * 3600f > Tod)
+                if (curTime > Tod / 100f)
                 {
                     owner.OverridePhase = NextPhase;
                     return true; // прерываем выполнение фазовых функций

@@ -107,7 +107,7 @@ namespace AAEmu.Game.Utils
                                     character.SendMessage("[Doodad] SetPhase {0}", phase);
                                     character.SendMessage("[Doodad] TemplateId {0}: ObjId{1}, SetPhase {2}, Phases({3})", doodad.TemplateId, doodad.ObjId, phase, string.Join(", ", listIds));
                                     _log.Warn("[Doodad] Chain: TemplateId {0}, doodadObjId {1}, SetPhase {2}, Phases({3}", doodad.TemplateId, doodad.ObjId, phase, string.Join(", ", listIds));
-                                    doodad.DoPhaseFuncs(character, phase);
+                                    doodad.DoPhaseFuncs(character, phase, true);
                                 }
                                 else
                                 {

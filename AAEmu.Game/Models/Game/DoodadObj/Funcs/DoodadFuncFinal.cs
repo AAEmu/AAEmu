@@ -1,14 +1,11 @@
 ﻿using System;
-
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
-
-using AAEmu.Game.Models.Game.DoodadObj.Templates;
-using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Tasks.Doodads;
+using System.Threading.Tasks;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Doodads;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 {
@@ -24,8 +21,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override bool Use(Unit caster, Doodad owner)
         {
-            _log.Trace("DoodadFuncFinal: After {0}, Respawn {1}, MinTime {2}, MaxTime {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}",
-                After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
+            if (caster is Character)
+                _log.Debug("DoodadFuncFinal: After {0}, Respawn {1}, MinTime {2}, MaxTime {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
+            else
+                _log.Trace("DoodadFuncFinal: After {0}, Respawn {1}, MinTime {2}, MaxTime {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
 
             var delay = Rand.Next(MinTime, MaxTime);
 
@@ -51,10 +50,22 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 //{
                 //    _ = owner.FuncTask.Cancel();
                 //    _ = owner.FuncTask = null;
-                //    _log.Debug("DoodadFuncFinal: The current timer has been canceled by the next scheduled timer.");
+                //    if (caster is Character)
+                //        _log.Debug("DoodadFuncFinal: The current timer has been canceled by the next scheduled timer.");
+                //    else
+                //        _log.Trace("DoodadFuncFinal: The current timer has been canceled by the next scheduled timer.");
                 //}
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
-                TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility
+                //TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility
+                if (After > 0)
+                {
+                    // TODO : Add a proper delay in here
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(After);
+                        owner.FuncTask.Execute();
+                    });
+                }
             }
             else
             {
@@ -62,7 +73,16 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 if (!Respawn) { return false; }
 
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
-                TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(delay));
+                //TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(delay));
+                if (delay > 0)
+                {
+                    // TODO : Add a proper delay in here
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(delay);
+                        owner.FuncTask.Execute();
+                    });
+                }
             }
 
             return false;

@@ -2,6 +2,7 @@
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 
@@ -33,8 +34,11 @@ namespace AAEmu.Game.Models.Tasks.Doodads
 
         public override void Execute()
         {
-            _log.Trace("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
-            
+            if (_caster is Character)
+                _log.Debug("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+            else
+                _log.Trace("[Doodad] DoodadFuncFinalTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
+
             if (_respawn && _owner.Spawner != null)
             {
                 if (_respawnTime == null && _owner.FuncTask != null)
@@ -63,7 +67,10 @@ namespace AAEmu.Game.Models.Tasks.Doodads
                 //{
                 //    _ = _owner.FuncTask.Cancel();
                 //    _owner.FuncTask = null;
-                //    _log.Debug("DoodadFuncFinalTask: The current timer has been ended.");
+                //    if (_caster is Character)
+                //        _log.Debug("DoodadFuncFinalTask: The current timer has been ended.");
+                //    else
+                //        _log.Trace("DoodadFuncFinalTask: The current timer has been ended.");
                 //}
 
                 if (_owner.Spawner != null)
