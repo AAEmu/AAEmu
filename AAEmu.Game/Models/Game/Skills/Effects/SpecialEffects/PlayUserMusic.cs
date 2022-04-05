@@ -26,7 +26,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
-            _log.Trace("SpecialEffectAction - PlayUserMusic - value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+            // TODO ...
+            if (caster is Character) { _log.Debug("Special effects: PlayUserMusic value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+
             // TODO: make sure the proper instrument buff gets applied
             // The related tags seems to be "Play Song" (1155) and "Music Play Animation" (1202)
 

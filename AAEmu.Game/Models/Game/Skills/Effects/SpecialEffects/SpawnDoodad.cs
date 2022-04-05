@@ -1,6 +1,7 @@
 ﻿using System;
 
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
@@ -22,6 +23,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             int value3,
             int value4)
         {
+            // TODO ...
+            if (caster is Character) { _log.Debug("Special effects: SpawnDoodad doodadId {0}, value2 {1}, value3 {2}, value4 {3}", doodadId, value2, value3, value4); }
+            
             var doodad = DoodadManager.Instance.Create(0, (uint) doodadId, caster);
             doodad.Transform = caster.Transform.CloneDetached(doodad);
             doodad.Spawn();

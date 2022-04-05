@@ -22,11 +22,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             Skill skill,
             SkillObject skillObject,
             DateTime time,
-            int unused1,
-            int unused2,
-            int unused3,
-            int unused4)
+            int value1,
+            int value2,
+            int value3,
+            int value4)
         {
+            if (caster is Character) { _log.Debug("Special effects: DeclareDominion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+
             if (caster.Expedition == null)
                 return;
             
