@@ -175,7 +175,7 @@ namespace AAEmu.Game.Models.Game.Skills
         private BaseUnit GetInitialTarget(Unit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
         {
             var target = (BaseUnit)caster;
-            if (target == null) // проверяем, так как иногда бывает null
+            if (target == null || targetCaster == null || skillCaster == null) // проверяем, так как иногда бывает null
             {
                 return null;
             }
@@ -192,19 +192,25 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 case SkillTargetType.Self:
                     {
-                        if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                        if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                         {
-                            targetCaster.ObjId = target.ObjId;
+                            if (target != null)
+                            {
+                                targetCaster.ObjId = target.ObjId;
+                            }
                         }
 
                         break;
                     }
                 case SkillTargetType.Friendly:
                     {
-                        if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                        if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                         {
                             target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                            targetCaster.ObjId = target.ObjId;
+                            if (target != null)
+                            {
+                                targetCaster.ObjId = target.ObjId;
+                            }
                         }
 
                         if (caster.GetRelationStateTo(target) != RelationState.Friendly)
@@ -216,10 +222,13 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
                 case SkillTargetType.Hostile:
                     {
-                        if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                        if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                         {
                             target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                            targetCaster.ObjId = target.ObjId;
+                            if (target != null)
+                            {
+                                targetCaster.ObjId = target.ObjId;
+                            }
                         }
 
                         if (caster.GetRelationStateTo(target) != RelationState.Hostile)
@@ -234,20 +243,26 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
                 case SkillTargetType.AnyUnit:
                     {
-                        if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                        if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                         {
                             target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                            targetCaster.ObjId = target.ObjId;
+                            if (target != null)
+                            {
+                                targetCaster.ObjId = target.ObjId;
+                            }
                         }
 
                         break;
                     }
                 case SkillTargetType.Doodad:
                     {
-                        if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                        if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                         {
                             target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                            targetCaster.ObjId = target.ObjId;
+                            if (target != null)
+                            {
+                                targetCaster.ObjId = target.ObjId;
+                            }
                         }
 
                         break;
@@ -257,13 +272,16 @@ namespace AAEmu.Game.Models.Game.Skills
                     break;
                 case SkillTargetType.Others:
                     {
-                        if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                        if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                         {
                             target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                            targetCaster.ObjId = target.ObjId;
+                            if (target != null)
+                            {
+                                targetCaster.ObjId = target.ObjId;
+                            }
                         }
 
-                        if (caster.ObjId == target.ObjId)
+                        if (target != null && caster.ObjId == target.ObjId)
                         {
                             return null; //TODO отправлять ошибку?
                         }
@@ -272,13 +290,16 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
                 case SkillTargetType.FriendlyOthers:
                     {
-                        if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                        if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                         {
                             target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                            targetCaster.ObjId = target.ObjId;
+                            if (target != null)
+                            {
+                                targetCaster.ObjId = target.ObjId;
+                            }
                         }
 
-                        if (caster.ObjId == target.ObjId)
+                        if (target != null && caster.ObjId == target.ObjId)
                         {
                             return null; //TODO отправлять ошибку?
                         }
@@ -291,13 +312,16 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
                 case SkillTargetType.Building:
                     {
-                        if (targetCaster.Type == SkillCastTargetType.Unit || targetCaster.Type == SkillCastTargetType.Doodad)
+                        if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                         {
                             target = targetCaster.ObjId > 0 ? WorldManager.Instance.GetBaseUnit(targetCaster.ObjId) : caster;
-                            targetCaster.ObjId = target.ObjId;
+                            if (target != null)
+                            {
+                                targetCaster.ObjId = target.ObjId;
+                            }
                         }
 
-                        if (caster.ObjId == target.ObjId)
+                        if (target != null && caster.ObjId == target.ObjId)
                         {
                             return null; //TODO отправлять ошибку?
                         }
