@@ -474,7 +474,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         complete = true;
                     }
                 }
-                
+
                 if (complete && (EarlyCompletion || ExtraCompletion))
                 {
                     break; // квест можно сдать, но мы не даем ему закончиться при достижении 100% пока сами не подойдем к Npc сдавать квест
@@ -1157,6 +1157,39 @@ namespace AAEmu.Game.Models.Game.Quests
                             //                                      //}
                             //        break;
                             //    }
+                    }
+                }
+            }
+            Update(checking);
+        }
+
+        public void OnExpressFire(Npc npc, uint emotionId)
+        {
+            var checking = false;
+            Step = QuestComponentKind.Progress;
+            var components = Template.GetComponents(Step);
+            if (components.Length == 0)
+                return;
+
+            for (var componentIndex = 0; componentIndex < components.Length; componentIndex++)
+            {
+                var acts = QuestManager.Instance.GetActs(components[componentIndex].Id);
+                foreach (var act in acts)
+                {
+                    switch (act.DetailType)
+                    {
+                        case "QuestActObjExpressFire":
+                            {
+                                var expressKeyId = ExpressTextManager.Instance.GetExpressAnimId(emotionId);
+                                var template = act.GetTemplate<QuestActObjExpressFire>();
+                                if (template.ExpressKeyId == expressKeyId)
+                                {
+                                    checking = true;
+                                    Objectives[componentIndex]++;
+                                    _log.Warn("[Quest] OnExpressEmotion: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
+                                }
+                                break;
+                            }
                     }
                 }
             }

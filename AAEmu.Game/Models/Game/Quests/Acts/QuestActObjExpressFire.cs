@@ -14,7 +14,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActObjExpressFire");
-            return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;
+
+            return objective > 0;
         }
     }
 }

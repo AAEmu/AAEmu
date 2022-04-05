@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
@@ -296,6 +297,19 @@ namespace AAEmu.Game.Models.Game.Char
         {
             foreach (var quest in Quests.Values)
                 quest.OnInteraction(type, target);
+        }
+
+        public void OnExpressFire(uint emotionId, uint objId, uint obj2Id)
+        {
+            var npc = WorldManager.Instance.GetNpc(obj2Id);
+            if (npc == null)
+                return;
+
+            //if (npc.GetDistanceTo(Owner) > 8.0f)
+            //    return;
+
+            foreach (var quest in Quests.Values)
+                quest.OnExpressFire(npc, emotionId);
         }
 
         public void OnLevelUp()

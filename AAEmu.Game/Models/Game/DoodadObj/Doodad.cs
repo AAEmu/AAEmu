@@ -149,33 +149,97 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     return;
                 }
                 // ищем нужную функцию
-                var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // здесь проверяем на выполняемый skillId
-                // при отсутствии функции завершим цикл
-                if (func == null)
+                if (skillId > 0)
                 {
-                    _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
-                    //GoToPhase(caster, (int)FuncGroupId);
-                    return;
+                    var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // здесь проверяем на выполняемый skillId
+                    // при отсутствии функции завершим цикл
+                    if (func == null)
+                    {
+                        _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                        return;
+                    }
+                    // далее выполняем функцию
+                    func.Use(caster, this, skillId, func.NextPhase);
+                    if (func.SoundId > 0)
+                    {
+                        BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
+                    }
+                    // проверка на зацикливание
+                    if (CheckFunc((uint)func.NextPhase)) { return; }
+                    // нет следующей фазы, выход
+                    if (func.NextPhase <= 0)
+                    {
+                        _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                        return;
+                    }
+                    FuncGroupId = (uint)func.NextPhase;
                 }
-                // далее выполняем функцию
-                func.Use(caster, this, skillId, func.NextPhase);
-                if (func.SoundId > 0)
+                else
                 {
-                    BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
-                }
-                // проверка на зацикливание
-                if (CheckFunc((uint)func.NextPhase))
-                {
-                    return;
-                }
-                // нет следующей фазы, выход
-                if (func.NextPhase <= 0)
-                {
-                    _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
-                    return;
+                    var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
+                    if (funcs.Count > 1)
+                    {
+                        // проверка на то, что функции надо выполнить, если у них NextPhase одинаковые
+                        var res = true;
+                        var prev = 0;
+                        foreach (var a in funcs)
+                        {
+                            if (prev == 0)
+                            {
+                                prev = a.NextPhase;
+                                continue;
+                            }
+                            res = a.NextPhase != prev;
+                        }
+                        if (res)
+                        {
+                            _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                            return;
+                        }
+
+                        foreach (var fu in funcs)
+                        {
+                            // далее выполняем функцию
+                            fu.Use(caster, this, skillId, fu.NextPhase);
+                            if (fu.SoundId > 0)
+                            {
+                                BroadcastPacket(new SCDoodadSoundPacket(this, fu.SoundId), true);
+                            }
+                            if (fu.NextPhase <= 0)
+                            {
+                                _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                                return;
+                            }
+                            FuncGroupId = (uint)fu.NextPhase;
+                        }
+                    }
+                    else
+                    {
+                        var func = DoodadManager.Instance.GetFunc(FuncGroupId, skillId); // здесь проверяем на выполняемый skillId
+                                                                                         // при отсутствии функции завершим цикл
+                        if (func == null)
+                        {
+                            _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                            return;
+                        }
+                        // далее выполняем функцию
+                        func.Use(caster, this, skillId, func.NextPhase);
+                        if (func.SoundId > 0)
+                        {
+                            BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
+                        }
+                        // проверка на зацикливание
+                        if (CheckFunc((uint)func.NextPhase)) { return; }
+                        // нет следующей фазы, выход
+                        if (func.NextPhase <= 0)
+                        {
+                            _log.Debug("Use: Finished execution: TemplateId {0}, Using phase {1} with SkillId {2}", TemplateId, FuncGroupId, skillId);
+                            return;
+                        }
+                        FuncGroupId = (uint)func.NextPhase;
+                    }
                 }
                 // сразу меняем фазу
-                FuncGroupId = (uint)func.NextPhase;
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true);
                 skillId = 0;
             }

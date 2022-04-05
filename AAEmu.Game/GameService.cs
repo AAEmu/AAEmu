@@ -92,6 +92,7 @@ namespace AAEmu.Game
             TeamManager.Instance.Load();
             AuctionManager.Instance.Load();
             MailManager.Instance.Load();
+            ExpressTextManager.Instance.Load();
 
             NameManager.Instance.Load();
             FactionManager.Instance.Load();
