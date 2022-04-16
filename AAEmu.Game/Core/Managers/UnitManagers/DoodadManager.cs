@@ -1,24 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.GameData.Framework;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
+
 using NLog;
-using AAEmu.Game.Models.Game.DoodadObj.Static;
-using Microsoft.Data.Sqlite;
-using AAEmu.Game.Core.Managers.World;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers
 {
@@ -2267,6 +2265,14 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     return func;
             }
 
+            // сначала пропускаем функции с NextPhase = -1
+            foreach (var func in _funcsByGroups[funcGroupId])
+            {
+                if (func.SkillId == 0 && func.NextPhase != -1)
+                    return func;
+            }
+
+            // затем ищем и с NextPhase = -1
             foreach (var func in _funcsByGroups[funcGroupId])
             {
                 if (func.SkillId == 0)

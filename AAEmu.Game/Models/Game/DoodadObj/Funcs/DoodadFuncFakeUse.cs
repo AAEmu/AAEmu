@@ -42,6 +42,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(SkillId));
                 skill.Use(caster, skillCaster, target);
+                owner.ToNextPhase = true;
             }
             else if (FakeSkillId != 0)
             {
@@ -51,24 +52,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 {
                     owner.BroadcastPacket(new SCTransferTelescopeToggledPacket(true, range), true);
                     TransferTelescopeManager.Instance.TransferTelescopeStart(character);
+                    owner.ToNextPhase = true;
                 }
 
                 if (FakeSkillId == skillId && nextPhase > 0)
                 {
-                    var skillCaster = SkillCaster.GetByType(SkillCasterType.Doodad);
-                    skillCaster.ObjId = owner.ObjId;
-
-                    var target = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-                    target.ObjId = caster.ObjId;
-                    if (TargetParent)
-                    {
-                        //target owner/doodad
-                        target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
-                        target.ObjId = owner.ObjId;
-                    }
-
-                    var skill = new Skill(SkillManager.Instance.GetSkillTemplate(FakeSkillId));
-                    skill.Use(caster, skillCaster, target);
+                    owner.ToNextPhase = true;
+                    // удалил дублирующий вызов скила
                 }
             }
         }

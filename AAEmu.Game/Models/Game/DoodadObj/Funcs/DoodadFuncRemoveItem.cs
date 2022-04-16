@@ -18,6 +18,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             var character = (Character)caster;
             var balans = character?.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadItemChanger, ItemId, Count, null); // DoodadItemChanger right for this ?
             //character?.Inventory.RemoveItem(ItemId, Count);
+            
+            owner.ToNextPhase = balans > 0;
         }
     }
 }

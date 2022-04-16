@@ -60,6 +60,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var useSkill = new Skill(skillTemplate);
                 TaskManager.Instance.Schedule(new UseSkillTask(useSkill, caster, new SkillCasterUnit(caster.ObjId), owner, new SkillCastDoodadTarget { ObjId = owner.ObjId }, null), TimeSpan.FromMilliseconds(0));
             }
+        
+            owner.ToNextPhase = skillId > 0;
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -13,11 +12,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
         public override bool Use(Unit caster, Doodad owner)
         {
-            if (caster is Character)
-                _log.Debug("DoodadFuncTod: Tod {0}, NextPhase {1}", Tod, NextPhase);
-            else
-                _log.Trace("DoodadFuncTod: Tod {0}, NextPhase {1}", Tod, NextPhase);
-
             //if (caster is Character)
             {
                 // I think this is used to reschedule anything that needs triggered at a specific gametime
@@ -61,9 +55,19 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 var curTime = TimeManager.Instance.GetTime();
                 if (curTime > Tod / 100f)
                 {
+                    if (caster is Character)
+                        _log.Debug("DoodadFuncTod: Tod {0}, OverridePhase {1}", Tod, NextPhase);
+                    else
+                        _log.Trace("DoodadFuncTod: Tod {0}, OverridePhase {1}", Tod, NextPhase);
+
                     owner.OverridePhase = NextPhase;
                     return true; // прерываем выполнение фазовых функций
                 }
+
+                if (caster is Character)
+                    _log.Debug("DoodadFuncTod: Tod {0}, NextPhase {1}", Tod, NextPhase);
+                else
+                    _log.Trace("DoodadFuncTod: Tod {0}, NextPhase {1}", Tod, NextPhase);
             }
             return false;
         }

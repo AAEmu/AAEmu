@@ -43,18 +43,11 @@ namespace AAEmu.Game.Models.Tasks.Doodads
             {
                 if (_respawnTime == null && _owner.FuncTask != null)
                 {
+                    _owner.Spawner.Despawn(_owner);
                     _respawnTime = DateTime.UtcNow;
                     TaskManager.Instance.Schedule(_owner.FuncTask, TimeSpan.FromMilliseconds(_delay));
                     return;
                 }
-
-                //if (_owner.FuncTask != null)
-                //{
-                //    _ = _owner.FuncTask.Cancel();
-                //    _owner.FuncTask = null;
-                //    _log.Debug("DoodadFuncFinalTask: The current timer has been ended.");
-                //}
-                _owner.Spawner.Despawn(_owner);
 
                 var world = WorldManager.Instance.GetWorld(_owner.Transform.WorldId);
                 //_owner.Spawner.DecreaseCount(_owner);
@@ -63,16 +56,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
             }
             else
             {
-                //if (_owner.FuncTask != null)
-                //{
-                //    _ = _owner.FuncTask.Cancel();
-                //    _owner.FuncTask = null;
-                //    if (_caster is Character)
-                //        _log.Debug("DoodadFuncFinalTask: The current timer has been ended.");
-                //    else
-                //        _log.Trace("DoodadFuncFinalTask: The current timer has been ended.");
-                //}
-
+                _owner.FuncTask = null;
                 if (_owner.Spawner != null)
                 {
                     _owner.Spawner?.Despawn(_owner);

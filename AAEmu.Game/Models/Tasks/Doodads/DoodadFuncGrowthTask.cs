@@ -1,6 +1,4 @@
-﻿using System;
-
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 
@@ -34,18 +32,10 @@ namespace AAEmu.Game.Models.Tasks.Doodads
                 _log.Trace("[Doodad] DoodadFuncGrowthTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _owner.FuncGroupId);
 
             _owner.Scale = _endScale;
-            {
-                //if (_owner.FuncTask != null)
-                //{
-                //    _ = _owner.FuncTask.Cancel();
-                //    _ = _owner.FuncTask = null;
-                //    if (_caster is Character)
-                //        _log.Debug("DoodadFuncGrowthTask: The current timer has been ended.");
-                //    else
-                //        _log.Trace("DoodadFuncGrowthTask: The current timer has been ended.");
-                //}
-            }
-            _owner.DoPhaseFuncs(_caster, _nextPhase, true);
+
+            _owner.FuncTask = null;
+
+            _owner.DoPhaseFuncs(_caster, _nextPhase);
         }
     }
 }

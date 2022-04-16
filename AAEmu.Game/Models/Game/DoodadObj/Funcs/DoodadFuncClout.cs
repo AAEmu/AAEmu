@@ -57,7 +57,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     await Task.Delay(Duration);
                     if (NextPhase == -1)
                         owner.Delete();
-                    owner.DoPhaseFuncs(caster, NextPhase, true);
+                    owner.DoPhaseFuncs(caster, NextPhase);
                     AreaTriggerManager.Instance.RemoveAreaTrigger(areaTrigger);
                 });
             }

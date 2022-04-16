@@ -1,5 +1,4 @@
-﻿
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -18,7 +17,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             else
                 _log.Trace("DoodadFuncRatioChange : Ratio {0}, NextPhase {1}", Ratio, NextPhase);
 
-            if (owner.PhaseRatio + owner.CumulativePhaseRatio > Ratio)
+            if (owner.PhaseRatio + owner.CumulativePhaseRatio <= Ratio)
             {
                 owner.OverridePhase = NextPhase; // Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded
                 if (caster is Character)
@@ -33,7 +32,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
             else
                 _log.Trace("DoodadFuncRatioChange : NextPhase {0}", NextPhase);
 
-            owner.CumulativePhaseRatio += Ratio;
+            //owner.CumulativePhaseRatio += Ratio; // мне кажется не надо увеличивать вероятность
             return false; // продолжим выполнять фазовые функции
         }
     }

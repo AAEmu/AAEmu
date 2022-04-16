@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
@@ -28,44 +28,10 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
 
             var delay = Rand.Next(MinTime, MaxTime);
 
-            // if (caster is Character character)
-            // {
-            //     const int count = 1;
-            //     var itemTemplate = ItemManager.Instance.GetItemIdsFromDoodad(owner.TemplateId);
-            //     if (itemTemplate != null)
-            //     {
-            //         foreach (var itemId in itemTemplate)
-            //         {
-            //             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.AutoLootDoodadItem, itemId, count))
-            //             {
-            //                 // TODO: do proper handling of insufficient bag space
-            //                 character.SendErrorMessage(Error.ErrorMessageType.BagFull);
-            //             }
-            //         }
-            //     }
-            // }
             if (After > 0)
             {
-                //if (owner.FuncTask != null)
-                //{
-                //    _ = owner.FuncTask.Cancel();
-                //    _ = owner.FuncTask = null;
-                //    if (caster is Character)
-                //        _log.Debug("DoodadFuncFinal: The current timer has been canceled by the next scheduled timer.");
-                //    else
-                //        _log.Trace("DoodadFuncFinal: The current timer has been canceled by the next scheduled timer.");
-                //}
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
-                //TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility
-                if (After > 0)
-                {
-                    // TODO : Add a proper delay in here
-                    Task.Run(async () =>
-                    {
-                        await Task.Delay(After);
-                        owner.FuncTask.Execute();
-                    });
-                }
+                TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(After)); // After ms remove the object from visibility
             }
             else
             {
@@ -73,16 +39,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 if (!Respawn) { return false; }
 
                 owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
-                //TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(delay));
-                if (delay > 0)
-                {
-                    // TODO : Add a proper delay in here
-                    Task.Run(async () =>
-                    {
-                        await Task.Delay(delay);
-                        owner.FuncTask.Execute();
-                    });
-                }
+                TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(delay));
             }
 
             return false;

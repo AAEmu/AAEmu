@@ -45,6 +45,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                     }
                 }
             }
+            owner.ToNextPhase = SkillId == skillId;
         }
     }
 }

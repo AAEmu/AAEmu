@@ -1,5 +1,4 @@
-﻿
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Units;
 
@@ -39,8 +38,7 @@ namespace AAEmu.Game.Models.Tasks.Doodads
                     _log.Trace("DoodadFuncTodTask: The current timer has been ended.");
             }
 
-            _owner.DoPhaseFuncs(_caster, _nextPhase, true);
-            //_owner.GoToPhase(_caster, _nextPhase);
+            _owner.DoPhaseFuncs(_caster, _nextPhase);
         }
     }
 }
