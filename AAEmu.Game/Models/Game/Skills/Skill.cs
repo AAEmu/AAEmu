@@ -774,6 +774,20 @@ namespace AAEmu.Game.Models.Game.Skills
                         character.ChangeGamePoints(GamePointKind.Vocation, (int)Math.Ceiling(AppConfiguration.Instance.World.VocationRate * Template.ConsumeLaborPower / 2));
                     }
                 }
+
+                // Calculate xp multiplier for this skill type 
+                var skillXpMultiplier = 1.0;
+                // Grab relevant actAbility
+                var actAbility = CharacterManager.Instance.GetActability((uint)Template.ActabilityGroupId);
+                var currentAbilityLevel = caster.GetAttribute((UnitAttribute)actAbility.UnitAttributeId);
+                
+                // TODO: Proper calculation of multiplier
+                // debug info
+                chart.SendMessage($"{caster.Name} consumed labor using Skill: {this.Template.Id}, Level: {currentAbilityLevel}, Attr: {(UnitAttribute)actAbility.UnitAttributeId}");
+                
+                // add XP
+                var xpToAdd = (int)Math.Round(Template.ConsumeLaborPower * 58.7 * skillXpMultiplier);
+                chart.AddExp(xpToAdd, true);
             }
 
             Callback?.Invoke();

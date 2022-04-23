@@ -1195,6 +1195,20 @@ namespace AAEmu.Game.Models.Game.Char
             }
         }
 
+        [UnitAttribute(UnitAttribute.ActabilityMine)]
+        public float ActabilityMine
+        {
+            get
+            {
+                double res = 0.0;
+                if (Actability.Actabilities.TryGetValue((uint)UnitAttribute.ActabilityMine, out var val))
+                    res = val.Point;
+                res = CalculateWithBonuses(res, UnitAttribute.ActabilityMine);
+                return (float)res;
+            }
+        }
+        
+        
         #endregion
 
         public Character(UnitCustomModelParams modelParams)
