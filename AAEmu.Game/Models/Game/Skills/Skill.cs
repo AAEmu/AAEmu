@@ -758,23 +758,35 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public void EndSkill(Unit caster)
         {
-            if (Template.ConsumeLaborPower > 0 && caster is Character chart && !Cancelled)
+            if ((Template.ConsumeLaborPower > 0) && (caster is Character chart) && !Cancelled)
             {
                 // Consume labor
-                chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
+				chart.ChangeLabor((short)-Template.ConsumeLaborPower, Template.ActabilityGroupId);
+				// Calculate xp multiplier for this skill type 
+                var skillXpMultiplier = 1.0;
+                // Grab relevant actAbility
+                var actAbility = CharacterManager.Instance.GetActability((uint)Template.ActabilityGroupId);
+                var currentAbilityLevel = caster.GetAttribute((UnitAttribute)actAbility.UnitAttributeId);
                 
-                // Add vocation where needed
-                if ((InitialTarget is Doodad doodad) && (caster is Character character))
+                // TODO: Proper calculation of multiplier
+                // debug info
+                chart.SendMessage($"{caster.Name} consumed labor using Skill: {this.Template.Id}, Level: {currentAbilityLevel}, Attr: {(UnitAttribute)actAbility.UnitAttributeId}");
+                
+                // add XP
+                var xpToAdd = (int)Math.Round(Template.ConsumeLaborPower * 58.7 * skillXpMultiplier);
+                chart.AddExp(xpToAdd, true);
+			    // Add vocation where needed
+                if (InitialTarget is Doodad doodad)
                 {
                     if (doodad.Template.GrantsVocationWhenUsed())
                     {
-                        // From what I remember this has always been half the labor rounded upwards
-                        // This is however not correct, as some actions only give a fraction of what you would normally expect
-                        // We multiply the BASE value for server settings, not the total (although I don't think this would affect anything since we don't really have a +1 badge/action buff)
-                        character.ChangeGamePoints(GamePointKind.Vocation, (int)Math.Ceiling(AppConfiguration.Instance.World.VocationRate * Template.ConsumeLaborPower / 2));
+                      // character.ChangeGamePoints(GamePointKind.Vocation, (int)Math.Ceiling(AppConfiguration.Instance.World.VocationRate * Template.ConsumeLaborPower / 2));
                     }
                 }
+
             }
+
+        
 
             Callback?.Invoke();
             caster.OnSkillEnd(this);
