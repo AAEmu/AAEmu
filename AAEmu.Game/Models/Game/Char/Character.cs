@@ -1372,6 +1372,22 @@ namespace AAEmu.Game.Models.Game.Char
                 Actability.AddPoint((uint)actabilityId, actabilityChange);
             }
 
+            // Only grant xp if consuming labor
+            if (change < 0)
+            {
+                // Calculate xp multiplier for this skill type 
+                var xpMultiplier = 1.0;
+                // Grab relevant actAbility
+            //    var actAbility = CharacterManager.Instance.GetActability((uint)actabilityId);
+            //    var currentAbilityLevel = GetAttribute((UnitAttribute)actAbility.UnitAttributeId);
+
+                // TODO: Proper calculation of multiplier
+
+                // add XP
+                var xpToAdd = (int)Math.Round(-change * 58.7 * xpMultiplier);
+                AddExp(xpToAdd, true);
+            }
+
             LaborPower += change;
             SendPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep));
         }
