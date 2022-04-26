@@ -1374,6 +1374,17 @@ namespace AAEmu.Game.Models.Game.Char
                 Actability.AddPoint((uint)actabilityId, actabilityChange);
             }
 
+            // Only grant xp if consuming labor
+            if (change < 0)
+            {
+               	var parameters = new Dictionary<string, double>();
+				parameters.Add("labor_power", -change);
+				parameters.Add("pc_level", this.Level);
+				var formula = FormulaManager.Instance.GetFormula((uint)FormulaKind.ExpByLaborPower);
+				var xpToAdd = (int)formula.Evaluate(parameters);
+                AddExp(xpToAdd, true);
+            }
+
             LaborPower += change;
             SendPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep));
         }
