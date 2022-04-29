@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -135,7 +136,7 @@ namespace AAEmu.Game.Models.Game.Skills
                     }
 
                     //Buff seems to come to natural expiration here
-                    Events.OnTimeout(this, new OnTimeoutArgs());
+                    //Events.OnTimeout(this, new OnTimeoutArgs());
                     State = EffectState.Finishing;
                     break;
                 }
@@ -166,6 +167,7 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             lock (_lock)
             {
+                Events.OnTimeout(this, new OnTimeoutArgs());
                 Triggers.UnsubscribeEvents();
                 Owner.Buffs.RemoveEffect(this);
                 Template.Dispel(Caster, Owner, this, replace);
@@ -180,7 +182,10 @@ namespace AAEmu.Game.Models.Game.Skills
             else if (inUse)
                 ScheduleEffect(false);
             else if (State != EffectState.Finished)
+            {
                 State = EffectState.Finishing;
+                StopEffectTask(false);
+            }
         }
 
         public bool IsEnded()
