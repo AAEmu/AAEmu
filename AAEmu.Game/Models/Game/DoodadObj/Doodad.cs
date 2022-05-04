@@ -217,6 +217,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
             {
                 BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
             }
+
+            if (func.NextPhase == -1) { Delete(); } // Delete doodad
+            
             if (ToNextPhase)
             {
                 FuncGroupId = (uint)func.NextPhase;
@@ -295,7 +298,6 @@ namespace AAEmu.Game.Models.Game.DoodadObj
         public bool DoPhaseFuncs(Unit caster, int nextPhase)
         {
             if (nextPhase <= 0) { return false; }
-
             if (caster is Character)
                 _log.Debug("DoPhaseFuncs: TemplateId {0}, ObjId {1}, nextPhase {2}", TemplateId, ObjId, nextPhase);
             else
