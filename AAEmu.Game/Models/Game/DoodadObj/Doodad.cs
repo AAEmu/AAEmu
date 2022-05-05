@@ -218,10 +218,9 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                 BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
             }
 
-            if (func.NextPhase == -1) { Delete(); } // Delete doodad
-            
             if (ToNextPhase)
             {
+                if (func.NextPhase == -1) { Delete(); } // Delete doodad
                 FuncGroupId = (uint)func.NextPhase;
             }
             else
