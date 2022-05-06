@@ -215,7 +215,7 @@ namespace AAEmu.Game.Core.Managers.World
                                 {
                                     sphereQuests.Add(sphere.ComponentID, sphere);
                                 }
-                                i += 5;
+                                i += 4;
                             }
                             catch (Exception ex)
                             {
