@@ -366,34 +366,35 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActObjSphere":
                                 {
                                     // подготовим работу QuestSphere
-                                    var template = act.GetTemplate<QuestActObjSphere>();
+                                    //var template = act.GetTemplate<QuestActObjSphere>();
                                     Status = QuestStatus.Progress;
                                     ComponentId = components[componentIndex].Id;
 
-                                    var sphereQuestTrigger = new SphereQuestTrigger();
-                                    sphereQuestTrigger.Sphere = SphereQuestManager.Instance.GetQuestSpheres(components[componentIndex].Id);
-
-                                    if (sphereQuestTrigger.Sphere == null)
+                                    foreach (var sphere in SphereQuestManager.Instance.GetQuestSpheres(components[componentIndex].Id))
                                     {
-                                        _log.Warn("[Quest] QuestActObjSphere: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
-                                        _log.Warn("[Quest] QuestActObjSphere: Sphere not found with cquest {0} in quest_sign_spheres.json!", components[componentIndex].Id);
-                                        return;
-                                    }
+                                        var sphereQuestTrigger = new SphereQuestTrigger();
+                                        sphereQuestTrigger.Sphere = sphere;
 
-                                    sphereQuestTrigger.Owner = Owner;
-                                    sphereQuestTrigger.Quest = this;
-                                    sphereQuestTrigger.TickRate = 500;
-
-                                    SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
-                                    var Duration = 500;
-                                    if (Duration > 0)
-                                    {
-                                        // TODO : Add a proper delay in here
-                                        Task.Run(async () =>
+                                        if (sphereQuestTrigger.Sphere == null)
                                         {
-                                            await Task.Delay(Duration);
-                                        });
+                                            _log.Warn("[Quest] QuestActObjSphere: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
+                                            _log.Warn("[Quest] QuestActObjSphere: Sphere not found with cquest {0} in quest_sign_spheres.json!", components[componentIndex].Id);
+                                            return;
+                                        }
+
+                                        sphereQuestTrigger.Owner = Owner;
+                                        sphereQuestTrigger.Quest = this;
+                                        sphereQuestTrigger.TickRate = 500;
+
+                                        SphereQuestManager.Instance.AddSphereQuestTrigger(sphereQuestTrigger);
                                     }
+
+                                    const int Duration = 500;
+                                    // TODO : Add a proper delay in here
+                                    Task.Run(async () =>
+                                    {
+                                        await Task.Delay(Duration);
+                                    });
                                     _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     return;
                                 }

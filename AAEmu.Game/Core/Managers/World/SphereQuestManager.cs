@@ -19,7 +19,7 @@ namespace AAEmu.Game.Core.Managers.World
     {
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-        private Dictionary<uint, SphereQuest> _sphereQuests;
+        private Dictionary<uint, List<SphereQuest>> _sphereQuests;
 
         private readonly List<SphereQuestTrigger> _sphereQuestTriggers;
         private List<SphereQuestTrigger> _addQueue;
@@ -131,7 +131,7 @@ namespace AAEmu.Game.Core.Managers.World
             return sphereQuests;
         }
 
-        public SphereQuest GetQuestSpheres(uint componentId)
+        public List<SphereQuest> GetQuestSpheres(uint componentId)
         {
             return _sphereQuests.ContainsKey(componentId) ? _sphereQuests[componentId] : null;
         }
@@ -143,21 +143,19 @@ namespace AAEmu.Game.Core.Managers.World
 
         /// <summary>
         /// LoadQuestSpheres by ZeromusXYZ
+        /// Считываем все сферы из всех инстансов
+        /// Read all spheres from all instances
         /// </summary>
-        /// <param name="worldId"> по умолчанию считываем данные для main_world (id=0)</param>
         /// <returns></returns>
-        private Dictionary<uint, SphereQuest> LoadQuestSpheres(uint worldId = 0)
+        private Dictionary<uint, List<SphereQuest>> LoadQuestSpheres()
         {
             _log.Info("Loading SphereQuest...");
-
             var worlds = WorldManager.Instance.GetWorlds();
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
 
-            var sphereQuests = new Dictionary<uint, SphereQuest>();
+            var sphereQuests = new Dictionary<uint, List<SphereQuest>>();
             foreach (var world in worlds)
             {
-                if (worldId != world.Id) { continue; }
-
                 var worldLevelDesignDir = Path.Combine("game", "worlds", world.Name, "level_design", "zone");
                 var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "quest_sign_sphere.g", true);
                 foreach (var pathFileName in pathFiles)
@@ -213,7 +211,13 @@ namespace AAEmu.Game.Core.Managers.World
                                 sphere.Z = vec.Z;
                                 if (!sphereQuests.ContainsKey(sphere.ComponentID))
                                 {
-                                    sphereQuests.Add(sphere.ComponentID, sphere);
+                                    var sphereList = new List<SphereQuest>();
+                                    sphereList.Add(sphere);
+                                    sphereQuests.Add(sphere.ComponentID, sphereList);
+                                }
+                                else
+                                {
+                                    sphereQuests[sphere.ComponentID].Add(sphere);
                                 }
                                 i += 4;
                             }
