@@ -957,6 +957,7 @@ namespace AAEmu.Game.Core.Managers
                                 Id = reader.GetUInt32("item_id"),
                                 ModelId = reader.GetUInt32("model_id"),
                                 NpcOnly = reader.GetBoolean("npc_only", true),
+                                SlotTypeId = reader.GetUInt32("slot_type_id"),
                                 BeautyShopOnly = reader.GetBoolean("beautyshop_only", true)
                             };
                             _templates.Add(template.Id, template);
