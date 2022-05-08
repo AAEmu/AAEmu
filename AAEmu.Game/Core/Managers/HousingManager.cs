@@ -499,7 +499,7 @@ namespace AAEmu.Game.Core.Managers
                 weeksWithoutPay = 0;
             }
             else
-            if (house.TaxDueDate <= DateTime.UtcNow)
+            if (house.ProtectionEndDate <= DateTime.UtcNow)
             {
                 requiresPayment = true;
                 weeksWithoutPay = 1;
