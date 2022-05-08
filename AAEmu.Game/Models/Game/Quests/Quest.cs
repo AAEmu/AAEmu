@@ -124,7 +124,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         switch (act.DetailType)
                         {
                             default:
-                                _log.Warn("[Quest] Start: character {0}, default do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                _log.Warn("[Quest] Start: character {0}, default don't do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                 break;
                             case "QuestActConAcceptDoodad": //  старт ежедневного квеста
                             case "QuestActConAcceptNpcKill":
@@ -196,6 +196,7 @@ namespace AAEmu.Game.Models.Game.Quests
 
             if (Status == QuestStatus.Progress && !supply)
             {
+                Step = QuestComponentKind.Progress; // потому, что уже стоял на Fail
                 Update(res);
             }
 
@@ -279,6 +280,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
             }
+            Step = QuestComponentKind.Progress; // потому, что уже стоял на Fail
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
         }
 
