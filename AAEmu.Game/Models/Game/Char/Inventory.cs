@@ -103,13 +103,13 @@ namespace AAEmu.Game.Models.Game.Char
                     if (!container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                     {
                         item._holdingContainer?.RemoveItem(ItemTaskType.Invalid, item, true);
-                        _log.Error("LoadInventory found unused item type for item, Id {0} ({1}) at {2}:{3} for {1}", item.Id, item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:"+item.OwnerId.ToString());
+                        _log.Error("LoadInventory found unused item type for item, Id {0} ({1}) at {2}:{3} for {4}", item.Id, item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:"+item.OwnerId.ToString());
                         // throw new Exception(string.Format("Was unable to add item {0} to container {1} for player {2} using the defined slot.", item?.Template.Name ?? item.TemplateId.ToString(), item.Slot.ToString(), Owner?.Name ?? "???"));
                     }
                 }
                 else
                 {
-                    _log.Warn("LoadInventory found unused itemId {0} ({1}) at {2}:{3} for {1}", item.Id, item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:" + item.OwnerId.ToString());
+                    _log.Warn("LoadInventory found unused itemId {0} ({1}) at {2}:{3} for {4}", item.Id, item.TemplateId, item.SlotType, item.Slot, Owner?.Name ?? "Id:" + item.OwnerId.ToString());
                 }
             }
 
@@ -231,14 +231,12 @@ namespace AAEmu.Game.Models.Game.Char
         public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot,
             ulong toItemId, SlotType toType, byte toSlot, int count = 0)
         {
-            var info = string.Format("SplitOrMoveItem({0} {1}:{2} => {3} {4}:{5} - {6})", fromItemId, fromType,
-                fromSlot, toItemId, toType, toSlot, count);
+            var info = $"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})";
             _log.Trace(info);
             var fromItem = GetItemById(fromItemId);
             if ((fromItem == null) && (fromItemId != 0))
             {
-                _log.Error(string.Format("SplitOrMoveItem - ItemId {0} no longer exists, possibly a phantom item.",
-                    fromItemId));
+                _log.Error($"SplitOrMoveItem - ItemId {fromItemId} no longer exists, possibly a phantom item.");
                 return false;
             }
 
@@ -248,11 +246,14 @@ namespace AAEmu.Game.Models.Game.Char
                 count = fromItem.Count;
 
             // Grab target container for easy manipulation
-            ItemContainer targetContainer = Bag;
-            ItemContainer sourceContainer = fromItem?._holdingContainer ?? Bag;
-            if (_itemContainers.TryGetValue(toType, out targetContainer))
+            var sourceContainer = fromItem?._holdingContainer ?? Bag;
+            if (_itemContainers.TryGetValue(toType, out var targetContainer))
             {
                 itemInTargetSlot = targetContainer.GetItemBySlot(toSlot);
+            }
+            else
+            {
+                targetContainer = Bag;
             }
 
             if (itemInTargetSlot == null)
@@ -261,14 +262,12 @@ namespace AAEmu.Game.Models.Game.Char
             // Check if containers can accept the items
             if ((targetContainer != null) && !targetContainer.CanAccept(fromItem, toSlot))
             {
-                _log.Error(string.Format("SplitOrMoveItem - fromItemId {0} is not welcome in this container {1}.",
-                    fromItemId,targetContainer?.ContainerType));
+                _log.Error($"SplitOrMoveItem - fromItemId {fromItemId} is not welcome in this container {targetContainer?.ContainerType}.");
                 return false;
             }
             if ((sourceContainer != null) && !sourceContainer.CanAccept(itemInTargetSlot, fromSlot))
             {
-                _log.Error(string.Format("SplitOrMoveItem - toItemId {0} is not welcome in this container {1}.",
-                    toItemId,sourceContainer?.ContainerType));
+                _log.Error($"SplitOrMoveItem - toItemId {toItemId} is not welcome in this container {sourceContainer?.ContainerType}.");
                 return false;
             }
             
@@ -677,9 +676,9 @@ namespace AAEmu.Game.Models.Game.Char
             var tempItem = new Item[10];
 
             if ((numItems % 10) != 0)
-                _log.Warn("SendFragmentedInventory: Inventory Size not a multiple of 10 ({0})", numItems);
+                _log.Warn($"SendFragmentedInventory: Inventory Size not a multiple of 10 ({numItems})");
             if (bag.Length != numItems)
-                _log.Warn("SendFragmentedInventory: Inventory Size Mismatch; expected {0} got {1}", numItems, bag.Length);
+                _log.Warn($"SendFragmentedInventory: Inventory Size Mismatch; expected {numItems} got {bag.Length}");
 
             for (byte chunk = 0; chunk < (numItems / 10); chunk++)
             {

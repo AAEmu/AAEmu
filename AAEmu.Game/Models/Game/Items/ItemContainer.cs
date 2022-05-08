@@ -11,12 +11,15 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using NLog;
 using SQLitePCL;
 
 namespace AAEmu.Game.Models.Game.Items
 {
     public class ItemContainer
     {
+        protected static Logger _log = LogManager.GetCurrentClassLogger();
+
         private int _containerSize;
         private int _freeSlotCount;
         public Character Owner { get; set; }
@@ -165,10 +168,10 @@ namespace AAEmu.Game.Models.Game.Items
                 return null;
         }
 
-        public bool TryGetItemByItemId(ulong item_id, out Item theItem)
+        public bool TryGetItemByItemId(ulong itemId, out Item theItem)
         {
             foreach (var i in Items)
-                if (i.Id == item_id)
+                if (i.Id == itemId)
                 {
                     theItem = i;
                     return true;
@@ -177,9 +180,9 @@ namespace AAEmu.Game.Models.Game.Items
             return false;
         }
 
-        public Item GetItemByItemId(ulong item_id)
+        public Item GetItemByItemId(ulong itemId)
         {
-            if (TryGetItemByItemId(item_id, out var res))
+            if (TryGetItemByItemId(itemId, out var res))
                 return res;
             else
                 return null;
@@ -197,9 +200,9 @@ namespace AAEmu.Game.Models.Game.Items
             if (item == null)
                 return false;
 
-            ItemContainer sourceContainer = item?._holdingContainer;
-            byte sourceSlot = (byte)item.Slot;
-            SlotType sourceSlotType = item.SlotType;
+            var sourceContainer = item?._holdingContainer;
+            var sourceSlot = (byte)item.Slot;
+            var sourceSlotType = item.SlotType;
 
             var currentPreferredSlotItem = GetItemBySlot(preferredSlot);
             var newSlot = -1;
@@ -304,7 +307,7 @@ namespace AAEmu.Game.Models.Game.Items
         public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
         {
             Owner?.Inventory.OnConsumedItem(item, item.Count);
-            bool res = item._holdingContainer.Items.Remove(item);
+            var res = item._holdingContainer.Items.Remove(item);
             if (res && task != ItemTaskType.Invalid)
                 item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, new List<ItemTask> { new ItemRemoveSlot(item) }, new List<ulong>()));
             if (res && releaseIdAsWell)
@@ -404,6 +407,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="templateId">Item templateId use for adding</param>
         /// <param name="amountToAdd">Number of item units to add</param>
         /// <param name="gradeToAdd">Overrides default grade if possible</param>
+        /// <param name="crafterId"></param>
         /// <returns></returns>
         public bool AcquireDefaultItem(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd = -1, uint crafterId = 0)
         {
@@ -417,6 +421,7 @@ namespace AAEmu.Game.Models.Game.Items
         /// <param name="templateId">Item templateId use for adding</param>
         /// <param name="amountToAdd">Number of item units to add</param>
         /// <param name="gradeToAdd">Overrides default grade if possible</param>
+        /// <param name="newItemsList"></param>
         /// <param name="updatedItemsList">A List of the newly added or updated items</param>
         /// <returns></returns>
         public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferedSlot = -1)
