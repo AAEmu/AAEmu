@@ -88,7 +88,7 @@ namespace AAEmu.Game.Models.Game.Quests
             var res = false;
             var supply = false;
             var acceptNpc = false;
-            for (Step = QuestComponentKind.None; Step < QuestComponentKind.Progress; Step++)
+            for (Step = QuestComponentKind.None; Step < QuestComponentKind.Fail; Step++)
             {
                 var components = Template.GetComponents(Step);
                 if (components.Length == 0 || Step is QuestComponentKind.Fail or QuestComponentKind.Drop)
@@ -124,8 +124,10 @@ namespace AAEmu.Game.Models.Game.Quests
                         switch (act.DetailType)
                         {
                             default:
-                                //case "QuestActConAcceptDoodad": //  старт ежедневного квеста
-                                //case "QuestActConAcceptNpcKill":
+                                _log.Warn("[Quest] Start: character {0}, default do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                break;
+                            case "QuestActConAcceptDoodad": //  старт ежедневного квеста
+                            case "QuestActConAcceptNpcKill":
                                 res = act.Use(Owner, this, Objectives[componentIndex]);
                                 if (res)
                                 {
@@ -165,6 +167,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem":
                                 {
                                     res = act.Use(Owner, this, 0); // получим предмет
+                                    Step = QuestComponentKind.Supply; // почему то переключается на Progress
                                     supply = res; // если было пополнение предметом, то на метод Update() не переходить
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     break;
@@ -175,6 +178,14 @@ namespace AAEmu.Game.Models.Game.Quests
                                     var template = act.GetTemplate<QuestActCheckTimer>();
                                     res = act.Use(Owner, this, template.LimitTime);
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    break;
+                                }
+                            case "QuestActObjSphere":
+                                {
+                                    // только для сфер
+                                    Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
+                                    _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    Update();
                                     break;
                                 }
                         }
@@ -198,7 +209,7 @@ namespace AAEmu.Game.Models.Game.Quests
         public void StartFirstOnly()
         {
             var res = false;
-            for (Step = QuestComponentKind.None; Step < QuestComponentKind.Progress; Step++)
+            for (Step = QuestComponentKind.None; Step < QuestComponentKind.Fail; Step++)
             {
                 var components = Template.GetComponents(Step);
                 if (components.Length == 0 || Step == QuestComponentKind.Fail || Step == QuestComponentKind.Drop)
@@ -212,8 +223,10 @@ namespace AAEmu.Game.Models.Game.Quests
                         switch (act.DetailType)
                         {
                             default:
-                                //case "QuestActConAcceptDoodad": //  старт ежедневного квеста
-                                //case "QuestActConAcceptNpcKill":
+                                _log.Warn("[Quest] Start: character {0}, default don't do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                break;
+                            case "QuestActConAcceptDoodad": //  старт ежедневного квеста
+                            case "QuestActConAcceptNpcKill":
                                 res = act.Use(Owner, this, Objectives[componentIndex]);
                                 if (res)
                                 {
@@ -241,6 +254,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem":
                                 {
                                     res = act.Use(Owner, this, 0); // получим предмет
+                                    Step = QuestComponentKind.Supply; // почему то переключается на Progress
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     break;
                                 }
@@ -250,7 +264,14 @@ namespace AAEmu.Game.Models.Game.Quests
                                     var template = act.GetTemplate<QuestActCheckTimer>();
                                     res = act.Use(Owner, this, template.LimitTime);
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-
+                                    break;
+                                }
+                            case "QuestActObjSphere":
+                                {
+                                    // только для сфер
+                                    Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
+                                    _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
+                                    Update();
                                     break;
                                 }
                         }
