@@ -40,7 +40,7 @@ namespace AAEmu.Game.Core.Network.Connections
         public List<IDisposable> Subscribers { get; set; }
         public GameState State { get; set; }
         public Character ActiveChar { get; set; }
-        public readonly Dictionary<uint, Character> Characters;
+        public Dictionary<uint, Character> Characters;
         public Dictionary<uint, House> Houses;
         
         public Task LeaveTask { get; set; }

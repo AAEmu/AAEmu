@@ -55,14 +55,17 @@ namespace AAEmu.Game.Core.Managers.World
 
         public void RequestCell(StreamConnection connection, uint instanceId, int x, int y)
         {
-            var worldId = connection?.GameConnection?.ActiveChar?.Transform?.WorldId ?? WorldManager.DefaultWorldId;
-            // TODO: Handle requests for instances correctly ?
-            var doodads = WorldManager.Instance.GetInCell<Doodad>(worldId, x, y).ToArray();
-            var requestId = connection.GetNextRequestId(doodads);
-            var count = Math.Min(doodads.Length, 30);
-            var res = new Doodad[count];
-            Array.Copy(doodads, 0, res, 0, count);
-            connection.SendPacket(new TCDoodadStreamPacket(requestId, count, res));
+            if (connection != null)
+            {
+                var worldId = connection?.GameConnection?.ActiveChar?.Transform?.WorldId ?? WorldManager.DefaultWorldId;
+                // TODO: Handle requests for instances correctly ?
+                var doodads = WorldManager.Instance.GetInCell<Doodad>(worldId, x, y).ToArray();
+                var requestId = connection.GetNextRequestId(doodads);
+                var count = Math.Min(doodads.Length, 30);
+                var res = new Doodad[count];
+                Array.Copy(doodads, 0, res, 0, count);
+                connection.SendPacket(new TCDoodadStreamPacket(requestId, count, res));
+            }
         }
 
         public void ContinueCell(StreamConnection connection, int requestId, int next)
