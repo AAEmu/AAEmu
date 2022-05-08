@@ -80,18 +80,22 @@ namespace AAEmu.Game.Models.Game.Items
                 case EquipmentItemSlotType.Ranged:
                     allowedSlots.Add(EquipmentItemSlot.Ranged);
                     break;
+                /*
                 case EquipmentItemSlotType.Ammunition:
-                    // allowedSlots.Add(EquipmentItemSlot.Ammunition);
+                    allowedSlots.Add(EquipmentItemSlot.Ammunition);
                     break;
+                */
                 case EquipmentItemSlotType.Shield:
                     allowedSlots.Add(EquipmentItemSlot.Offhand);
                     break;
                 case EquipmentItemSlotType.Instrument:
                     allowedSlots.Add(EquipmentItemSlot.Musical);
                     break;
+                /*
                 case EquipmentItemSlotType.Bag:
                     // allowedSlots.Add(EquipmentItemSlot.Bag);
                     break;
+                */
                 case EquipmentItemSlotType.Face:
                     allowedSlots.Add(EquipmentItemSlot.Face);
                     break;
@@ -102,17 +106,19 @@ namespace AAEmu.Game.Models.Game.Items
                     allowedSlots.Add(EquipmentItemSlot.Glasses);
                     break;
                 case EquipmentItemSlotType.Reserved:
-                    allowedSlots.Add(EquipmentItemSlot
-                        .Reserved); // maybe for Warborn horns or other race specifics ? I dunno 
+                    // maybe for Warborn horns or other race specifics ? I dunno
+                    allowedSlots.Add(EquipmentItemSlot.Reserved); 
                     break;
                 case EquipmentItemSlotType.Tail:
-                    allowedSlots.Add(EquipmentItemSlot.Tail); // Firran and Warborn tails ?
+                    // Firran and Warborn tails ?
+                    allowedSlots.Add(EquipmentItemSlot.Tail); 
                     break;
                 case EquipmentItemSlotType.Body:
                     allowedSlots.Add(EquipmentItemSlot.Body);
                     break;
                 case EquipmentItemSlotType.Beard:
-                    allowedSlots.Add(EquipmentItemSlot.Beard); // Mostly for Dwarves I'd assume
+                    // Mostly for Dwarves I'd assume
+                    allowedSlots.Add(EquipmentItemSlot.Beard); 
                     break;
                 case EquipmentItemSlotType.Backpack:
                     allowedSlots.Add(EquipmentItemSlot.Backpack);

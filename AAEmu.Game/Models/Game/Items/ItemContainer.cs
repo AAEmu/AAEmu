@@ -248,7 +248,6 @@ namespace AAEmu.Game.Models.Game.Items
             {
                 return false;
             }
-            
 
             var itemTasks = new List<ItemTask>();
             var sourceItemTasks = new List<ItemTask>();
@@ -500,7 +499,7 @@ namespace AAEmu.Game.Models.Game.Items
                 if ((crafterId > 0) && (newItem.Template.MaxCount == 1))
                 {
                     newItem.MadeUnitId = crafterId;
-                    newItem.WorldId = 1 ; // TODO: proper world id handling, this should actually be the ServerId
+                    newItem.WorldId = 1; // TODO: proper world id handling, this should actually be the ServerId
                 }
                 amountToAdd -= addAmount;
                 var prefSlot = preferedSlot;
