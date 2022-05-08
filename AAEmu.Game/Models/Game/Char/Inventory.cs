@@ -576,7 +576,8 @@ namespace AAEmu.Game.Models.Game.Char
             if (Bag.FreeSlotCount <= 0) 
                 return false;
 
-            SplitOrMoveItem(taskType, backpack.Id, backpack.SlotType, (byte)backpack.Slot, 0, SlotType.Inventory, (byte)Bag.GetUnusedSlot(0));
+            if (!SplitOrMoveItem(taskType, backpack.Id, backpack.SlotType, (byte)backpack.Slot, 0, SlotType.Inventory, (byte)Bag.GetUnusedSlot(-1)))
+                return false;
             //Bag.AddOrMoveExistingItem(taskType, backpack);
             
             if (glidersOnly)

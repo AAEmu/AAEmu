@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using NLog;
@@ -17,36 +18,8 @@ namespace AAEmu.Game.Models.Game.Items
             ContainerSize = (int)(Enum.GetValues(typeof(EquipmentItemSlot)).Cast<EquipmentItemSlot>().Max()) + 1;
         }
 
-        public override bool CanAccept(Item item, int targetSlot)
+        public static List<EquipmentItemSlot> GetAllowedGearSlots(EquipmentItemSlotType slotTypeId)
         {
-            if (item == null)
-                return true; // always allow empty item slot (un-equip a item)
-
-            if ((targetSlot < 0) || (targetSlot >= ContainerSize))
-            {
-                _log.Warn($"{Owner.Name} ({Owner.Id}) tried to equip a item that is out of range of the valid slots {targetSlot}/{ContainerSize}");
-                return false; // must be in equipment slot range
-            }
-
-            var slotTypeId = (EquipmentItemSlotType)0; // Dummy value for invalid
-
-            if (item.Template is WeaponTemplate weaponTemplate)
-                slotTypeId = (EquipmentItemSlotType)weaponTemplate.HoldableTemplate.SlotTypeId;
-            else if (item.Template is ArmorTemplate armorTemplate)
-                slotTypeId = (EquipmentItemSlotType)armorTemplate.WearableTemplate.SlotTypeId;
-            else if (item.Template is AccessoryTemplate accessoryTemplate)
-                slotTypeId = (EquipmentItemSlotType)accessoryTemplate.WearableTemplate.SlotTypeId;
-            else
-            {
-                _log.Warn($"{Owner.Name} ({Owner.Id}) tried to equip a non-equipable item {item.Template.Name} ({item.TemplateId}), Id:{item.Id}");
-                return false; // must be a equip-able item
-            }
-
-            // No expected slot was defined, we can't accept that here
-            if (slotTypeId == (EquipmentItemSlotType)0)
-                return false;
-
-            var equipSlot = (EquipmentItemSlot)targetSlot;
             var allowedSlots = new List<EquipmentItemSlot>();
             switch (slotTypeId)
             {
@@ -147,15 +120,78 @@ namespace AAEmu.Game.Models.Game.Items
                 case EquipmentItemSlotType.Cosplay:
                     allowedSlots.Add(EquipmentItemSlot.Cosplay);
                     break;
-                default:
-                    _log.Warn($"{Owner.Name} ({Owner.Id}) tried to equip a item with no valid defined SlotType {item.Template.Name} ({item.TemplateId}), SlotType:{slotTypeId}");
-                    return false; // unknown slot
+            }
+            return allowedSlots;
+        }
+
+        public static List<EquipmentItemSlot> GetAllowedGearSlots(ItemTemplate itemTemplate)
+        {
+            var slotTypeId = (EquipmentItemSlotType)255; // Dummy value for invalid
+
+            if (itemTemplate is BodyPartTemplate bodyPartTemplate)
+                slotTypeId = (EquipmentItemSlotType)bodyPartTemplate.SlotTypeId;
+            else if (itemTemplate is WeaponTemplate weaponTemplate)
+                slotTypeId = (EquipmentItemSlotType)weaponTemplate.HoldableTemplate.SlotTypeId;
+            else if (itemTemplate is ArmorTemplate armorTemplate)
+                slotTypeId = (EquipmentItemSlotType)armorTemplate.WearableTemplate.SlotTypeId;
+            else if (itemTemplate is AccessoryTemplate accessoryTemplate)
+                slotTypeId = (EquipmentItemSlotType)accessoryTemplate.WearableTemplate.SlotTypeId;
+            else if (itemTemplate is BackpackTemplate _)
+                slotTypeId = EquipmentItemSlotType.Backpack;
+            else
+            {
+                return new List<EquipmentItemSlot>(); // must be a equip-able item
             }
 
+            return GetAllowedGearSlots(slotTypeId);
+        }
+
+        public override bool CanAccept(Item item, int targetSlot)
+        {
+            if (item == null)
+                return true; // always allow empty item slot (un-equip a item)
+
+            if (Owner == null)
+                return true; // Not applicable to NPCs, they can hold whatever they want anywhere
+
+            if ((targetSlot < 0) || (targetSlot >= ContainerSize))
+            {
+                _log.Warn($"{Owner?.Name} ({Owner?.Id}) tried to equip a item that is out of range of the valid slots {targetSlot}/{ContainerSize}");
+                return false; // must be in equipment slot range
+            }
+
+            var slotTypeId = (EquipmentItemSlotType)255; // Dummy value for invalid
+
+            if (item.Template is BodyPartTemplate bodyPartTemplate)
+                slotTypeId = (EquipmentItemSlotType)bodyPartTemplate.SlotTypeId;
+            else if (item.Template is WeaponTemplate weaponTemplate)
+                slotTypeId = (EquipmentItemSlotType)weaponTemplate.HoldableTemplate.SlotTypeId;
+            else if (item.Template is ArmorTemplate armorTemplate)
+                slotTypeId = (EquipmentItemSlotType)armorTemplate.WearableTemplate.SlotTypeId;
+            else if (item.Template is AccessoryTemplate accessoryTemplate)
+                slotTypeId = (EquipmentItemSlotType)accessoryTemplate.WearableTemplate.SlotTypeId;
+            else if (item.Template is BackpackTemplate _)
+                slotTypeId = EquipmentItemSlotType.Backpack;
+            else
+            {
+                _log.Warn($"{Owner?.Name} ({Owner?.Id}) tried to equip a non-equipable item {item.Template.Name} ({item.TemplateId}), Id:{item.Id}");
+                return false; // must be a equip-able item
+            }
+
+            // No expected slot was defined, we can't accept that here
+            if (slotTypeId == (EquipmentItemSlotType)255)
+            {
+                _log.Fatal($"{Owner?.Name} ({Owner?.Id}) tried to equip a equippable item that has no slot defined {item.Template.Name} ({item.TemplateId}), Id:{item.Id}, TargetSlot:{(EquipmentItemSlot)targetSlot}");
+                return false;
+            }
+
+            var equipSlot = (EquipmentItemSlot)targetSlot;
+            var allowedSlots = GetAllowedGearSlots(slotTypeId);
+            
             if (!allowedSlots.Contains(equipSlot))
             {
-                _log.Warn($"{Owner.Name} ({Owner.Id}) tried to equip a item in the wrong slot {item.Template.Name} ({item.TemplateId}), Id:{item.Id}, SlotType: {equipSlot}, TargetSlot:{(EquipmentItemSlot)targetSlot}");
-                return false; // not in the list of allowed slots
+                _log.Warn($"{Owner?.Name} ({Owner?.Id}) tried to equip a item in the wrong slot {item.Template.Name} ({item.TemplateId}), Id:{item.Id}, SlotType: {equipSlot}, TargetSlot:{(EquipmentItemSlot)targetSlot}");
+                return false; // not in the list of allowed slots, remove the item
             }
 
             return true;
