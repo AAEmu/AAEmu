@@ -14,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public byte CofferPermission { get; set; }
         public ChestType CofferType { get; set; }
         
-        public CofferContainer(Character owner, bool isPartOfPlayerInventory, bool createNewId) : base(owner, SlotType.Trade, isPartOfPlayerInventory)
+        public CofferContainer(Character owner, bool isPartOfPlayerInventory, bool createWithNewId) : base(owner, SlotType.Trade, isPartOfPlayerInventory, createWithNewId)
         {
             // Coffers are considered trade windows in the item manipulation code
             CofferPermission = 0;

@@ -53,6 +53,7 @@ namespace AAEmu.Game
                 WorldManager.Instance.LoadHeightmaps();
             });
 
+            ContainerIdManager.Instance.Initialize();
             ItemIdManager.Instance.Initialize();
             DoodadIdManager.Instance.Initialize();
             ChatManager.Instance.Initialize();

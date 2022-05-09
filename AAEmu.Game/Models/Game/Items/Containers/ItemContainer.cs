@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -18,6 +19,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         private int _freeSlotCount;
         public Character Owner { get; set; }
         public SlotType ContainerType { get; set; }
+        public uint ContainerId { get; set; }
         public List<Item> Items { get; set; }
         public bool PartOfPlayerInventory { get ; set; }
         public int ContainerSize
@@ -50,13 +52,15 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             PartOfPlayerInventory = false;
         }
 
-        public ItemContainer(Character owner, SlotType containerType,bool isPartOfPlayerInventory)
+        public ItemContainer(Character owner, SlotType containerType,bool isPartOfPlayerInventory, bool createWithNewId)
         {
             Owner = owner;
             ContainerType = containerType;
             Items = new List<Item>();
             ContainerSize = -1; // Unlimited
             PartOfPlayerInventory = isPartOfPlayerInventory;
+            if (createWithNewId)
+                ContainerId = ContainerIdManager.Instance.GetNextId();
         }
 
         public void ReNumberSlots(bool reverse = false)
@@ -612,6 +616,27 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         {
             return true;
         }
+
+        /// <summary>
+        /// Creates a ItemContainer or descendant base of the name of the container type
+        /// </summary>
+        /// <param name="containerTypeName"></param>
+        /// <param name="owner"></param>
+        /// <param name="slotType"></param>
+        /// <param name="isPartOfPlayerInventory"></param>
+        /// <returns></returns>
+        public static ItemContainer CreateByTypeName(string containerTypeName, Character owner, SlotType slotType, bool isPartOfPlayerInventory)
+        {
+            if (containerTypeName.EndsWith("EquipmentContainer"))
+                return new EquipmentContainer(owner, slotType, isPartOfPlayerInventory, false);
+
+            if (containerTypeName.EndsWith("CofferContainer"))
+                return new CofferContainer(owner,isPartOfPlayerInventory, false);
+            
+            // Fall-back
+            return new ItemContainer(owner, slotType, isPartOfPlayerInventory, false);
+        }
+
 
     }
 

@@ -18,7 +18,7 @@ namespace AAEmu.Tests
         {
             // ItemIdManager.Instance.Initialize();
             
-            var container = new ItemContainer(new CharacterMock(), SlotType.Inventory, false);
+            var container = new ItemContainer(new CharacterMock(), SlotType.Inventory, false, false);
             var item = InventoryTestUtils.MockItem(1, 1);
            
             Assert.True(container.AddOrMoveExistingItem(ItemTaskType.Gm, item, 1));

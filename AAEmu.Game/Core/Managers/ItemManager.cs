@@ -4,6 +4,7 @@ using System.Linq;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
@@ -13,6 +14,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -70,6 +72,7 @@ namespace AAEmu.Game.Core.Managers
 
         private Dictionary<ulong, Item> _allItems;
         private List<ulong> _removedItems;
+        private Dictionary<uint, ItemContainer> _allPersistantContainers;
 
         public ItemTemplate GetTemplate(uint id)
         {
@@ -1483,11 +1486,32 @@ namespace AAEmu.Game.Core.Managers
         {
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
+            _allPersistantContainers = new Dictionary<uint, ItemContainer>();
             _removedItems = new List<ulong>();
 
             using (var connection = MySQL.CreateConnection())
             using (var command = connection.CreateCommand())
             {
+                command.CommandText = "SELECT * FROM item_containers ;";
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var containerId = reader.GetUInt32("container_id");
+                        var containerType = reader.GetString("container_type");
+                        var slotType = (SlotType)reader.GetByte("slot_type");
+                        var containerSize = reader.GetInt32("container_size");
+                        var containerOwnerId = reader.GetUInt32("owner");
+                        var containerOwner = WorldManager.Instance.GetCharacterById(containerOwnerId);
+                        var container = ItemContainer.CreateByTypeName(containerType, containerOwner, slotType, containerOwnerId != 0);
+                        container.ContainerId = containerId;
+                        container.ContainerSize = containerSize;
+
+                        _allPersistantContainers.Add(container.ContainerId, container);
+                    }
+                }
+                
                 command.CommandText = "SELECT * FROM items ;";
 
                 using (var reader = command.ExecuteReader())
