@@ -458,7 +458,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             default:
                                 //case "QuestActObjMonsterHunt":
                                 //case "QuestActObjMonsterGroupHunt":
-                                // эти акты всегда парные! ItemGather & MonsterHunt, ItemGather & MonsterGroupHunt
+                                // эти акты могут быть парными: ItemGather & MonsterHunt & MonsterGroupHunt & Interaction
                                 {
                                     complete = act.Use(Owner, this, Objectives[componentIndex]);
                                     // проверка результатов на валидность

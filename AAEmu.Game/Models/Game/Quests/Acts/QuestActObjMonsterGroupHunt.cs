@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public uint HighlightDoodadId { get; set; }
         public int HighlightDoodadPhase { get; set; }
 
-        public static int GatherStatus = 0;
+        public static int GroupHuntStatus = 0;
 
         public override bool Use(Character character, Quest quest, int objective)
         {
@@ -25,8 +25,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
 
             if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
             {
-                QuestActObjItemGather.HuntStatus = objective * Count;
-                quest.OverCompletionPercent = QuestActObjItemGather.HuntStatus + GatherStatus;
+                GroupHuntStatus = objective * Count; // Count в данном случае % за единицу
+                quest.OverCompletionPercent = GroupHuntStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjItemGather.GatherStatus + QuestActObjInteraction.InteractionStatus;
 
                 if (quest.Template.LetItDone)
                 {
@@ -37,6 +37,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                         quest.ExtraCompletion = true;
                 }
 
+                _log.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, GroupHuntStatus {2}, OverCompletionPercent {3}, quest {4}, objective {5}",
+                    QuestMonsterGroupId, Count, GroupHuntStatus, quest.OverCompletionPercent, quest.TemplateId, objective);
                 return quest.OverCompletionPercent >= quest.Template.Score;
             }
             else
@@ -51,6 +53,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
                     if (quest.OverCompletionPercent > 100)
                         quest.ExtraCompletion = true;
                 }
+                _log.Debug("QuestActObjMonsterGroupHunt: QuestMonsterGroupId {0}, Count {1}, quest {2}, objective {3}",
+                    QuestMonsterGroupId, Count, quest.TemplateId, objective);
                 return objective >= Count;
             }
         }

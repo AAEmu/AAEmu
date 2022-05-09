@@ -15,10 +15,42 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public bool DropWhenDestroy { get; set; }
         public bool DestroyWhenDrop { get; set; }
 
+        public static int GroupGatherStatus = 0;
+
         public override bool Use(Character character, Quest quest, int objective)
         {
             _log.Warn("QuestActObjItemGroupGather");
-            return quest.Template.Score > 0 ? objective * Count >= quest.Template.Score : objective >= Count;
+            if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
+            {
+                GroupGatherStatus = objective * Count; // Count в данном случае % за единицу
+                quest.OverCompletionPercent = GroupGatherStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
+
+                if (quest.Template.LetItDone)
+                {
+                    if (quest.OverCompletionPercent >= quest.Template.Score * 3 / 5)
+                        quest.EarlyCompletion = true;
+
+                    if (quest.OverCompletionPercent > quest.Template.Score)
+                        quest.ExtraCompletion = true;
+                }
+
+                return quest.OverCompletionPercent >= quest.Template.Score;
+            }
+            else
+            {
+                if (quest.Template.LetItDone)
+                {
+                    quest.OverCompletionPercent = objective * 100 / Count;
+
+                    if (quest.OverCompletionPercent >= 60)
+                        quest.EarlyCompletion = true;
+
+                    if (quest.OverCompletionPercent > 100)
+                        quest.ExtraCompletion = true;
+                }
+
+                return objective >= Count;
+            }
         }
     }
 }

@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
         public bool DropWhenDestroy { get; set; }
         public bool DestroyWhenDrop { get; set; }
 
-        public static int HuntStatus = 0;
+        public static int GatherStatus = 0;
 
         public override bool Use(Character character, Quest quest, int objective)
         {
@@ -24,9 +24,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
 
             if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
             {
-                QuestActObjMonsterGroupHunt.GatherStatus = objective * Count;
-                QuestActObjMonsterHunt.GatherStatus = objective * Count;
-                quest.OverCompletionPercent = QuestActObjMonsterHunt.GatherStatus + QuestActObjMonsterGroupHunt.GatherStatus + HuntStatus;
+                GatherStatus = objective * Count; // Count в данном случае % за единицу
+                quest.OverCompletionPercent = GatherStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
 
                 if (quest.Template.LetItDone)
                 {
