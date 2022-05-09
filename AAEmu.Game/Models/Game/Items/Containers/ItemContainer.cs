@@ -1,20 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Core.Packets.S2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using NLog;
-using SQLitePCL;
 
-namespace AAEmu.Game.Models.Game.Items
+namespace AAEmu.Game.Models.Game.Items.Containers
 {
     public class ItemContainer
     {

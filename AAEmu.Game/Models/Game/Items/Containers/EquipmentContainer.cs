@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
-using NLog;
 
-namespace AAEmu.Game.Models.Game.Items
+namespace AAEmu.Game.Models.Game.Items.Containers
 {
     public class EquipmentContainer : ItemContainer
     {

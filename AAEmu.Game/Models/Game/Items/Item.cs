@@ -1,6 +1,7 @@
 ﻿using System;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items
