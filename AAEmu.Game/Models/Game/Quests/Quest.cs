@@ -360,6 +360,8 @@ namespace AAEmu.Game.Models.Game.Quests
                                     }
                                     break;
                                 }
+                            case "QuestActConReportJournal":
+                            case "QuestActConReportDoodad":
                             case "QuestActConReportNpc":
                                 complete = act.Use(Owner, this, Objectives[componentIndex]);
                                 // проверка результатов на валидность
