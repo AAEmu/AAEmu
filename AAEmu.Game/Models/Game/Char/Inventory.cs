@@ -562,6 +562,19 @@ namespace AAEmu.Game.Models.Game.Char
             return (itemTasks.Count > 0);
         }
 
+        public bool CanReplaceGliderInBackpackSlot()
+        {
+            var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
+            if (backpack == null) 
+                return true; // Nothing equipped, so we're good
+
+            // Check if a glider is equipped, and if we have at least 1 free space
+            if ((backpack.Template is BackpackTemplate bt) && (bt.BackpackType == BackpackType.Glider) && (Bag.FreeSlotCount > 0))
+                return true;
+
+            // Something other than a glider is equipped in the backpack slot, don't allow replacing check
+            return false;
+        }
 
         public bool TakeoffBackpack(ItemTaskType taskType,bool glidersOnly = false)
         {
