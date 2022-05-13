@@ -167,6 +167,10 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem":
                                 {
                                     res = act.Use(Owner, this, 0); // получим предмет
+                                    if (!res)
+                                    {
+                                        Owner.SendErrorMessage(ErrorMessageType.BagFull);
+                                    }
                                     Step = QuestComponentKind.Supply; // почему то переключается на Progress
                                     supply = res; // если было пополнение предметом, то на метод Update() не переходить
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
@@ -255,6 +259,10 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem":
                                 {
                                     res = act.Use(Owner, this, 0); // получим предмет
+                                    if (!res)
+                                    {
+                                        Owner.SendErrorMessage(ErrorMessageType.BagFull);
+                                    }
                                     Step = QuestComponentKind.Supply; // почему то переключается на Progress
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     break;
@@ -333,6 +341,10 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem" when Step == QuestComponentKind.Supply:
                                 {
                                     complete = act.Use(Owner, this, SupplyItem);
+                                    if (!complete)
+                                    {
+                                        Owner.SendErrorMessage(ErrorMessageType.BagFull);
+                                    }
                                     _log.Warn("[Quest] Update: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, complete {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, complete, act.DetailType);
                                     var next = QuestComponentKind.Progress;
                                     var componentnext = Template.GetComponent(next);
@@ -620,6 +632,10 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                             case "QuestActSupplyItem":
                                 res = act.Use(Owner, this, SupplyItem);
+                                if (!res)
+                                {
+                                    Owner.SendErrorMessage(ErrorMessageType.BagFull);
+                                }
                                 if (ComponentId == 0)
                                     ComponentId = components[componentIndex].Id;
                                 _log.Warn("[Quest] Complete: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, step, Status, res, act.DetailType);
