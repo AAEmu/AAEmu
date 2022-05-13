@@ -1,7 +1,9 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -35,24 +37,30 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 var npc = NpcManager.Instance.Create(0, SubType);
                 npc.Transform = caster.Transform.CloneDetached(npc);
-                
+
                 var rpy = target.Transform.World.ToRollPitchYawDegrees();
                 npc.SetPosition(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z, rpy.X, rpy.Y, rpy.Z);
                 if (AppConfiguration.Instance.HeightMapsEnable)
                     npc.Transform.Local.SetHeight(WorldManager.Instance.GetHeight(npc.Transform.ZoneId, npc.Transform.World.Position.X, npc.Transform.World.Position.Y));
-                
+
                 if (npc.Ai != null)
                 {
                     npc.Ai.IdlePosition = npc.Transform.CloneDetached();
                     npc.Ai.GoToSpawn();
                 }
-                
-                npc.Faction = caster.Faction;
+
+                if (UseSummonerFaction)
+                    npc.Faction = caster.Faction;
+
                 npc.Spawn();
 
                 if (UseSummoneerAggroTarget)
                 {
                     // TODO : Pick random target off of Aggro table ?
+
+                    // Npc attacks the character
+                    npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, caster, 1);
+                    npc.Ai.GoToCombat();
                 }
             }
         }
