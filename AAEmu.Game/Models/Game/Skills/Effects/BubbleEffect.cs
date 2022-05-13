@@ -15,7 +15,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
-            _log.Trace("BubbleEffect");
+            _log.Debug("BubbleEffect");
         }
     }
 }
