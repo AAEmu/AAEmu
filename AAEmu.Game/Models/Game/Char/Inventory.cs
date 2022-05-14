@@ -575,6 +575,12 @@ namespace AAEmu.Game.Models.Game.Char
                     _log.Error("SplitOrMoveItem swap action not implemented " + action.ToString());
                     break;
             }
+            
+            // Force-assign item owners for safety
+            if (fromItem != null)
+                fromItem.OwnerId = fromItem?._holdingContainer?.Owner?.Id ?? 0;
+            if (itemInTargetSlot != null)
+                itemInTargetSlot.OwnerId = itemInTargetSlot?._holdingContainer?.Owner?.Id ?? 0;
 
             // Handle Equipment Broadcasting
             if (fromType == SlotType.Equipment)
