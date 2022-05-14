@@ -1401,9 +1401,11 @@ namespace AAEmu.Game.Core.Managers
                         {
                             deletecommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
                             deletecommand.Prepare();
-                            deletecommand.ExecuteNonQuery();
+                            deleteCount = deletecommand.ExecuteNonQuery();
                         }
-                        deleteCount = _removedItems.Count();
+
+                        if (deleteCount != _removedItems.Count)
+                            _log.Error($"Some items could not be deleted, only {deleteCount}/{_removedItems.Count} items removed !");
                         _removedItems.Clear();
                     }
                 }
@@ -1458,10 +1460,16 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@grade", item.Grade);
                         command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
                         command.Parameters.AddWithValue("@ucc", item.UccId);
-                        command.ExecuteNonQuery();
+                        if (command.ExecuteNonQuery() < 1)
+                        {
+                            _log.Error($"Error updating items {item.Id} ({item.TemplateId}) !");                            
+                        }
+                        else
+                        {
+                            item.IsDirty = false;
+                            updateCount++;                            
+                        }
                         command.Parameters.Clear();
-                        item.IsDirty = false;
-                        updateCount++;
                     }
                 }
             }

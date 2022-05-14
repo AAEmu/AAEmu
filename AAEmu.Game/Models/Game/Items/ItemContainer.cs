@@ -281,10 +281,7 @@ namespace AAEmu.Game.Models.Game.Items
                 item.SlotType = ContainerType;
                 item.Slot = newSlot;
                 item._holdingContainer = this;
-                if (this.Owner != null)
-                    item.OwnerId = this.Owner.Id;
-                else
-                    item.OwnerId = 0;
+                item.OwnerId = Owner?.Id ?? 0;
 
                 Items.Insert(0, item); // insert at front for easy buyback handling
                                        //Items.Add(item);
