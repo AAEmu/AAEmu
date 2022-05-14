@@ -21,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts
             if (quest.Template.Score > 0) // Check if the quest use Template.Score or Count
             {
                 ItemUseStatus = objective * Count; // Count в данном случае % за единицу
-                quest.OverCompletionPercent = ItemUseStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
+                quest.OverCompletionPercent = ItemUseStatus + QuestActEtcItemObtain.ItemObtainStatus + QuestActObjMonsterHunt.HuntStatus + QuestActObjMonsterGroupHunt.GroupHuntStatus + QuestActObjInteraction.InteractionStatus;
 
                 if (quest.Template.LetItDone)
                 {
