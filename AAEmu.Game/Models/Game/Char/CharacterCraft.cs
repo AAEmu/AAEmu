@@ -103,7 +103,7 @@ namespace AAEmu.Game.Models.Game.Char
             _count = 0;
             _doodadId = 0;
             
-            // Also cancel the related skill ?
+            // Also cancel the related skill ? I don't think this really does anything for crafts, but can't hurt I guess
             if (Owner != null)
             {
                 if (Owner.SkillTask != null)
