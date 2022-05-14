@@ -38,6 +38,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs
                 _log.Trace("DoodadFuncBinding: Recall point {0} not found!", DistrictId);
                 character.SendMessage("DoodadFuncBinding: Recall point {0} not found!", DistrictId);
             }
+            owner.ToNextPhase = true;
         }
     }
 }
