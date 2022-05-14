@@ -1857,7 +1857,7 @@ namespace AAEmu.Game.Models.Game.Char
         {
             var template = CharacterManager.Instance.GetTemplate((byte)Race, (byte)Gender);
             ModelId = template.ModelId;
-            BuyBackItems = new ItemContainer(this, SlotType.None,false, false);
+            BuyBackItems = new ItemContainer(this.Id, SlotType.None,false, false);
             Slots = new ActionSlot[85];
             for (var i = 0; i < Slots.Length; i++)
                 Slots[i] = new ActionSlot();
@@ -1868,7 +1868,7 @@ namespace AAEmu.Game.Models.Game.Char
 
             using (var connection = MySQL.CreateConnection())
             {
-                Inventory.Load(connection);
+                // Inventory.Load(connection);
                 Abilities = new CharacterAbilities(this);
                 Abilities.Load(connection);
                 Actability = new CharacterActability(this);

@@ -39,11 +39,14 @@ namespace AAEmu.Game.Models.Game.Char
             Owner = owner;
             // Create all container types
             _itemContainers = new Dictionary<SlotType, ItemContainer>();
+            
+            // Override Unit's created equipment container with a persistent one
+            Owner.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.Equipment);
 
-            var SlotTypes = Enum.GetValues(typeof(SlotType));
-            foreach (var stv in SlotTypes)
+            var slotTypes = Enum.GetValues(typeof(SlotType));
+            foreach (var stv in slotTypes)
             {
-                SlotType st = (SlotType)stv;
+                var st = (SlotType)stv;
                 // Take Equipment Container from Parent Unit's Equipment
                 if (st == SlotType.Equipment)
                 {
@@ -53,7 +56,10 @@ namespace AAEmu.Game.Models.Game.Char
                     _itemContainers.Add(st,Equipment);
                     continue;
                 }
-                var newContainer = new ItemContainer(owner, st, true, false);
+
+                //var newContainer = new ItemContainer(owner.Id, st, true, false);
+                var newContainer = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, st);
+                newContainer.Owner = Owner; // override to be sure the object reference is set correctly
                 _itemContainers.Add(st, newContainer);
                 switch (st)
                 {
@@ -91,6 +97,7 @@ namespace AAEmu.Game.Models.Game.Char
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="slotType"></param>
+        [Obsolete("You can now use directly linked item containers, and no longer need to load them into the character object")]
         public void Load(MySqlConnection connection, SlotType? slotType = null)
         {
             // Get all items for this player
@@ -579,9 +586,9 @@ namespace AAEmu.Game.Models.Game.Char
             
             // Force-assign item owners for safety
             if (fromItem != null)
-                fromItem.OwnerId = fromItem?._holdingContainer?.Owner?.Id ?? 0;
+                fromItem.OwnerId = fromItem?._holdingContainer?.OwnerId ?? 0;
             if (itemInTargetSlot != null)
-                itemInTargetSlot.OwnerId = itemInTargetSlot?._holdingContainer?.Owner?.Id ?? 0;
+                itemInTargetSlot.OwnerId = itemInTargetSlot?._holdingContainer?.OwnerId ?? 0;
 
             // Handle Equipment Broadcasting
             if (fromType == SlotType.Equipment)

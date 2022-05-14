@@ -210,7 +210,7 @@ namespace AAEmu.Game.Models.Game.Units
             GCDLock = new object();
             Bonuses = new Dictionary<uint, List<Bonus>>();
             IsInBattle = false;
-            Equipment = new EquipmentContainer(null, SlotType.Equipment, true, false);
+            Equipment = new EquipmentContainer(0, SlotType.Equipment, true, false);
             ChargeLock = new object();
             Cooldowns = new UnitCooldowns();
         }

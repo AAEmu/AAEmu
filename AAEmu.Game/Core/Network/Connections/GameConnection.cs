@@ -137,8 +137,10 @@ namespace AAEmu.Game.Core.Network.Connections
                     }
                 }
 
+                /*
                 foreach (var character in Characters.Values)
                     character.Inventory.Load(connection, SlotType.Equipment);
+                */
             }
 
             Houses.Clear();
