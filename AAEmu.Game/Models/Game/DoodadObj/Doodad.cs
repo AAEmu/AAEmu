@@ -170,14 +170,12 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     }
                     if (res)
                     {
-                        if (DoFunc(caster, skillId, func)) { return; }
+                        // skillId может не подойти для перфой функции, а подойти для второй
+                        if (funcs.All(fu => DoFunc(caster, skillId, fu))) { return; }
                     }
                     else
                     {
-                        foreach (var fu in funcs)
-                        {
-                            if (DoFunc(caster, skillId, fu)) { return; }
-                        }
+                        if (funcs.Any(fu => DoFunc(caster, skillId, fu))) { return; }
                     }
                 }
                 else

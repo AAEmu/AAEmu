@@ -43,6 +43,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             uint abLevel = 1;
             if (caster is Character character)
             {
+                _log.Debug("BuffEffect");
                 if (source.Skill != null)
                 {
                     var template = source.Skill.Template;
