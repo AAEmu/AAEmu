@@ -114,9 +114,9 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 return;
             }
             Items.Sort();
-            var usedSlots = from iSlot in Items select iSlot.Slot;
+            var usedSlots = (from iSlot in Items select iSlot.Slot).ToList();
             var res = 0;
-            for (int i = 0; i < _containerSize; i++)
+            for (var i = 0; i < _containerSize; i++)
             {
                 if (!usedSlots.Contains(i))
                     res++;
@@ -143,7 +143,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
             
             // Check the preferred slot to see if it's free, or if we need to assign a new one
-            bool needNewSlot = false;
+            var needNewSlot = false;
             if (preferredSlot < 0)
             {
                 needNewSlot = true;
@@ -162,8 +162,8 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             // Find a new slot if needed
             if (needNewSlot)
             {
-                var usedSlots = from iSlot in Items where iSlot.Slot != preferredSlot select iSlot.Slot;
-                for (int i = 0; i < ContainerSize; i++)
+                var usedSlots = (from iSlot in Items where iSlot.Slot != preferredSlot select iSlot.Slot).ToList();
+                for (var i = 0; i < ContainerSize; i++)
                 {
                     if (!usedSlots.Contains(i))
                     {
@@ -180,7 +180,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
         }
 
-        public bool TryGetItemBySlot(int slot, out Item theItem)
+        private bool TryGetItemBySlot(int slot, out Item theItem)
         {
             foreach (var i in Items)
                 if (i.Slot == slot)
@@ -200,7 +200,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 return null;
         }
 
-        public bool TryGetItemByItemId(ulong itemId, out Item theItem)
+        private bool TryGetItemByItemId(ulong itemId, out Item theItem)
         {
             foreach (var i in Items)
                 if (i.Id == itemId)
@@ -232,16 +232,16 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             if (item == null)
                 return false;
 
-            var sourceContainer = item?._holdingContainer;
+            var sourceContainer = item._holdingContainer;
             var sourceSlot = (byte)item.Slot;
             var sourceSlotType = item.SlotType;
 
             var currentPreferredSlotItem = GetItemBySlot(preferredSlot);
             var newSlot = -1;
-            bool canAddToSameSlot = false;
+            var canAddToSameSlot = false;
 
             // When adding wearables to equipment container, for the slot numbers if needed
-            if ((this is EquipmentContainer) && (item is EquipItem eItem) && (preferredSlot < 0))
+            if ((this is EquipmentContainer) && (item is EquipItem _) && (preferredSlot < 0))
             {
                 var validSlots = EquipmentContainer.GetAllowedGearSlots(item.Template);
                 // find valid empty slot (if any), stop looking if it is the preferred slot
@@ -250,8 +250,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                     if (GetItemBySlot((int)vSlot) == null)
                     {
                         newSlot = (int)vSlot;
-                        if (newSlot == preferredSlot)
-                            break;
+                        break;
                     }
                 }
             }
@@ -366,12 +365,12 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         }
 
         /// <summary>
-        /// Destroys amountToCosume amount of item units with template templateId from the container
+        /// Destroys amountToConsume amount of item units with template templateId from the container
         /// </summary>
         /// <param name="taskType"></param>
         /// <param name="templateId">Item templateId to search for</param>
         /// <param name="amountToConsume">Amount of item units to consume</param>
-        /// <param name="preferredItem">If not null, use this Item as primairy source for consume</param>
+        /// <param name="preferredItem">If not null, use this Item as primary source for consume</param>
         /// <returns>The amount of items that was actually consumed, 0 when failed or not found</returns>
         public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume,Item preferredItem)
         {
@@ -469,8 +468,10 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         /// <param name="gradeToAdd">Overrides default grade if possible</param>
         /// <param name="newItemsList"></param>
         /// <param name="updatedItemsList">A List of the newly added or updated items</param>
+        /// <param name="crafterId"></param>
+        /// <param name="preferredSlot"></param>
         /// <returns></returns>
-        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferedSlot = -1)
+        public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferredSlot = -1)
         {
             newItemsList = new List<Item>();
             updatedItemsList = new List<Item>();
@@ -522,7 +523,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             while (amountToAdd > 0)
             {
                 var addAmount = Math.Min(amountToAdd, template.MaxCount);
-                var newItem = ItemManager.Instance.Create(templateId, addAmount, (byte)gradeToAdd, true);
+                var newItem = ItemManager.Instance.Create(templateId, addAmount, (byte)gradeToAdd);
                 // Add name if marked as crafter (single stack items only)
                 if ((crafterId > 0) && (newItem.Template.MaxCount == 1))
                 {
@@ -530,7 +531,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                     newItem.WorldId = 1; // TODO: proper world id handling, this should actually be the ServerId
                 }
                 amountToAdd -= addAmount;
-                var prefSlot = preferedSlot;
+                var prefSlot = preferredSlot;
                 if ((newItem.Template is BackpackTemplate) && (ContainerType == SlotType.Equipment))
                     prefSlot = (int)EquipmentItemSlot.Backpack;
                 
@@ -586,7 +587,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public List<Item> GetSlottedItemsList()
         {
             var res = new List<Item>(ContainerSize);
-            for(int i = 0; i < ContainerSize;i++)
+            for(var i = 0; i < ContainerSize;i++)
                 res.Add(GetItemBySlot(i));
             return res;
         }
