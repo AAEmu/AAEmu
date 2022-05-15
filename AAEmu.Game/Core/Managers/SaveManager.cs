@@ -121,6 +121,8 @@ namespace AAEmu.Game.Core.Managers
                                         _log.Debug("Updated {0} and deleted {1} mails ...", savedMails.Item1, savedMails.Item2);
                                     if ((saveItems.Item1 + saveItems.Item2) > 0)
                                         _log.Debug("Updated {0} and deleted {1} items in {2} containers ...", saveItems.Item1, saveItems.Item2, saveItems.Item3);
+                                    if ((saveItems.Item3) > 0)
+                                        _log.Debug("Updated {0} item containers ...", saveItems.Item3);
                                     if ((savedAuctionHouse.Item1 + savedAuctionHouse.Item2) > 0)
                                         _log.Debug("Updated {0} and deleted {1} auction items ...", savedAuctionHouse.Item1, savedAuctionHouse.Item2);
                                     if (savedCharacters > 0)

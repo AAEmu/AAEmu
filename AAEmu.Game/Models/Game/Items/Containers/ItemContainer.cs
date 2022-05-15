@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Containers
@@ -19,7 +20,10 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         private int _containerSize;
         private int _freeSlotCount;
         private Character _owner;
-        private uint _ownerId; 
+        private uint _ownerId;
+        public bool IsDirty;
+        private SlotType _containerType;
+        private uint _containerId;
 
         public Character Owner
         {
@@ -29,9 +33,13 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                     _owner = WorldManager.Instance.GetCharacterById(_ownerId);
                 return _owner;
             }
-            set { 
+            set {
                 _owner = value;
-                _ownerId = value?.Id ?? 0;
+                if (value.Id != _ownerId)
+                {
+                    _ownerId = value?.Id ?? 0;
+                    IsDirty = true;
+                }
             }
         }
 
@@ -46,13 +54,41 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
             set
             {
-                _ownerId = value;
+                if (value != _ownerId)
+                {
+                    _ownerId = value;
+                    IsDirty = true;
+                }
                 _owner = null; // this will make it so it'll try to fetch on the next query
             }
         }
 
-        public SlotType ContainerType { get; set; }
-        public uint ContainerId { get; set; }
+        public SlotType ContainerType
+        {
+            get => _containerType;
+            set
+            {
+                if (value != _containerType)
+                {
+                    _containerType = value;
+                    IsDirty = true;
+                }
+            }
+        }
+
+        public uint ContainerId
+        {
+            get => _containerId;
+            set
+            {
+                if (value != _containerId)
+                {
+                    _containerId = value;
+                    IsDirty = true;
+                }
+            }
+        }
+
         public List<Item> Items { get; set; }
         public bool PartOfPlayerInventory { get ; set; }
         public int ContainerSize
@@ -63,7 +99,11 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
             set
             {
-                _containerSize = value;
+                if (value != _containerSize)
+                {
+                    _containerSize = value;
+                    IsDirty = true;
+                }
                 UpdateFreeSlotCount();
             }
         }

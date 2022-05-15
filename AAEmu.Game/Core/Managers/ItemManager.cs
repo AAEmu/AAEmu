@@ -1405,7 +1405,7 @@ namespace AAEmu.Game.Core.Managers
                         {
                             deletecommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
                             deletecommand.Prepare();
-                            deleteCount = deletecommand.ExecuteNonQuery();
+                            deleteCount += deletecommand.ExecuteNonQuery();
                         }
 
                         if (deleteCount != _removedItems.Count)
@@ -1422,12 +1422,14 @@ namespace AAEmu.Game.Core.Managers
                 command.Connection = connection;
                 command.Transaction = transaction;
                 
-                // TODO: for now just save all of them, still need to implement isDirty for containers 
                 lock (_allPersistantContainers)
                 {
                     foreach (var (key, c) in _allPersistantContainers)
                     {
                         if (c.ContainerId <= 0)
+                            continue;
+                        
+                        if (c.IsDirty == false)
                             continue;
                         
                         command.CommandText = "REPLACE INTO item_containers (" +
@@ -1446,6 +1448,8 @@ namespace AAEmu.Game.Core.Managers
                         {
                             var res = command.ExecuteNonQuery();
                             containerUpdateCount += res;
+                            if (res > 0)
+                                c.IsDirty = false;
                         }
                         catch (Exception e)
                         {
@@ -1453,7 +1457,6 @@ namespace AAEmu.Game.Core.Managers
                         }
                     }
                 }
-                
             }
             
             // Update dirty items
@@ -1573,6 +1576,7 @@ namespace AAEmu.Game.Core.Managers
                         container.ContainerSize = containerSize;
 
                         _allPersistantContainers.Add(container.ContainerId, container);
+                        container.IsDirty = false;
                     }
                 }
                 
