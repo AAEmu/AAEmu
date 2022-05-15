@@ -8,7 +8,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Items.Containers
@@ -21,7 +20,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         private int _freeSlotCount;
         private Character _owner;
         private uint _ownerId;
-        public bool IsDirty;
+        public bool IsDirty { get; set; }
         private SlotType _containerType;
         private uint _containerId;
 
@@ -35,7 +34,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             }
             set {
                 _owner = value;
-                if (value.Id != _ownerId)
+                if (value?.Id != _ownerId)
                 {
                     _ownerId = value?.Id ?? 0;
                     IsDirty = true;
@@ -607,7 +606,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         /// Count the maximum amount of items of a given item that can be added to a inventory taking into account the max stack size using a specific item to be added. Takes into account item grade
         /// </summary>
         /// <param name="itemToAdd">Item we wish to add for</param>
-        /// <param name="currentItems">List of items in the current container that match the itemToAdd's criteria (template and grade)</param>
+        /// <param name="currentItems">List of items in the current container that match the itemToAdd criteria (template and grade)</param>
         /// <returns>Amount of item units of the given item that can be added before the bag is full</returns>
         public int SpaceLeftForItem(Item itemToAdd, out List<Item> currentItems)
         {
@@ -700,7 +699,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         /// <param name="isPartOfPlayerInventory"></param>
         /// <param name="createWithNewId"></param>
         /// <returns></returns>
-        public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool isPartOfPlayerInventory, bool createWithNewId = false)
+        public static ItemContainer CreateByTypeName(string containerTypeName, uint ownerId, SlotType slotType, bool isPartOfPlayerInventory, bool createWithNewId)
         {
             if (containerTypeName.EndsWith("EquipmentContainer"))
                 return new EquipmentContainer(ownerId, slotType, isPartOfPlayerInventory, createWithNewId);

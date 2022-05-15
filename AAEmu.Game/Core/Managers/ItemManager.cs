@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
@@ -80,7 +76,7 @@ namespace AAEmu.Game.Core.Managers
             return _templates.ContainsKey(id) ? _templates[id] : null;
         }
 
-        public EquipItemSet GetEquiptItemSet(uint id)
+        public EquipItemSet GetEquippedItemSet(uint id)
         {
             if (_equipItemSets.TryGetValue(id, out var value))
                 return value;
@@ -224,7 +220,7 @@ namespace AAEmu.Game.Core.Managers
             /*
              * Have full inventory 
              * -> Open Loot (G) 
-             * -> press (F) to lootall while open (fail, bag full) 
+             * -> press (F) to loot all while open (fail, bag full) 
              * -> free up bag space 
              * -> click for manual loot doesn't trigger a new packet. so it won't loot
              * Note: Re-opening the loot window lets you loot the remaining items
@@ -289,7 +285,7 @@ namespace AAEmu.Game.Core.Managers
             return _itemGradeDistributions.ContainsKey(id) ? _itemGradeDistributions[id] : null;
         }
 
-        // note: This does "+1" because when we have 0 socketted gems, we want to get the chance for the next slot
+        // note: This does "+1" because when we have 0 socket-ed gems, we want to get the chance for the next slot
         public uint GetSocketChance(uint numSockets)
         {
             return _socketChance.ContainsKey(numSockets + 1) ? _socketChance[numSockets + 1] : 0;
@@ -1016,7 +1012,7 @@ namespace AAEmu.Game.Core.Managers
                     }
                 }
 
-                // TODO: HACKFIX FOR CREST INK/STAMP/MUSIC
+                // TODO: HACK-FIX FOR CREST INK/STAMP/MUSIC
                 var crestInkItemTemplate = new UccTemplate { Id = Item.CrestInk };
                 _templates.Add(crestInkItemTemplate.Id, crestInkItemTemplate);
                 
@@ -1368,7 +1364,7 @@ namespace AAEmu.Game.Core.Managers
                     i.Value.searchString = (i.Value.Name + " " + LocalizationManager.Instance.Get("items", "name", i.Value.Id)).ToLower();
                 }
 
-                _log.Info("Loaded {0} item templates (with {1} unused) ...", _templates.Count(), invalidItemCount);
+                _log.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");
 
 
             }
@@ -1401,11 +1397,11 @@ namespace AAEmu.Game.Core.Managers
                 {
                     if (_removedItems.Count > 0)
                     {
-                        using (var deletecommand = connection.CreateCommand())
+                        using (var deleteCommand = connection.CreateCommand())
                         {
-                            deletecommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
-                            deletecommand.Prepare();
-                            deleteCount += deletecommand.ExecuteNonQuery();
+                            deleteCommand.CommandText = "DELETE FROM items WHERE `id` IN(" + string.Join(",", _removedItems) + ")";
+                            deleteCommand.Prepare();
+                            deleteCount += deleteCommand.ExecuteNonQuery();
                         }
 
                         if (deleteCount != _removedItems.Count)
@@ -1424,7 +1420,7 @@ namespace AAEmu.Game.Core.Managers
                 
                 lock (_allPersistantContainers)
                 {
-                    foreach (var (key, c) in _allPersistantContainers)
+                    foreach (var (_, c) in _allPersistantContainers)
                     {
                         if (c.ContainerId <= 0)
                             continue;
@@ -1499,7 +1495,7 @@ namespace AAEmu.Game.Core.Managers
                         command.Parameters.AddWithValue("@id", item.Id);
                         command.Parameters.AddWithValue("@type", item.GetType().ToString());
                         command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                        command.Parameters.AddWithValue("@container_id", item?._holdingContainer?.ContainerId ?? 0);
+                        command.Parameters.AddWithValue("@container_id", item._holdingContainer?.ContainerId ?? 0);
                         command.Parameters.AddWithValue("@slot_type", item.SlotType.ToString());
                         command.Parameters.AddWithValue("@slot", item.Slot);
                         command.Parameters.AddWithValue("@count", item.Count);
@@ -1555,7 +1551,8 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
             _allPersistantContainers = new Dictionary<uint, ItemContainer>();
-            _removedItems = new List<ulong>();
+            lock (_removedItems)
+                _removedItems = new List<ulong>();
 
             using (var connection = MySQL.CreateConnection())
             using (var command = connection.CreateCommand())
