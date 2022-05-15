@@ -535,9 +535,9 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             if (gradeToAdd < 0)
                 gradeToAdd = 0;
 
-
             // First try to add to existing item counts
             var itemTasks = new List<ItemTask>();
+
             // Never update in mail containers
             if (ContainerType != SlotType.Mail)
             {
@@ -598,7 +598,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
             GetAllItemsByTemplate(templateId, -1, out var currentItems, out var currentTotalItemCount);
             var template = ItemManager.Instance.GetTemplate(templateId);
             if (template == null)
-                return 0 ; // Invalid item templateId
+                return 0; // Invalid item templateId
             return (currentItems.Count * template.MaxCount) - currentTotalItemCount + (FreeSlotCount * template.MaxCount);
         }
 
@@ -626,7 +626,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         public List<Item> GetSlottedItemsList()
         {
             var res = new List<Item>(ContainerSize);
-            for(var i = 0; i < ContainerSize;i++)
+            for(var i = 0; i < ContainerSize; i++)
                 res.Add(GetItemBySlot(i));
             return res;
         }
@@ -718,8 +718,5 @@ namespace AAEmu.Game.Models.Game.Items.Containers
                 cName = cName.Substring(cName.LastIndexOf(".",StringComparison.InvariantCulture)+1);
             return cName;
         }
-
-
     }
-
 }
