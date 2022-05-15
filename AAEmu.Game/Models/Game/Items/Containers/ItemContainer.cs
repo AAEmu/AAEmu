@@ -89,7 +89,7 @@ namespace AAEmu.Game.Models.Game.Items.Containers
         }
 
         public List<Item> Items { get; set; }
-        public bool PartOfPlayerInventory { get ; set; }
+        public bool PartOfPlayerInventory { get; set; }
         public int ContainerSize
         {
             get
