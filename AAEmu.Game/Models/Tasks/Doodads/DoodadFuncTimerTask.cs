@@ -24,9 +24,9 @@ namespace AAEmu.Game.Models.Tasks.Doodads
         public override void Execute()
         {
             if (_caster is Character)
-                _log.Debug("[Doodad] DoodadFuncTimerTask: TemplateId {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
+                _log.Debug("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
             else
-                _log.Trace("[Doodad] DoodadFuncTimerTask: TemplateId {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
+                _log.Trace("[Doodad] DoodadFuncTimerTask: Doodad {0}, TemplateId {1}. Using skill {2} with doodad phase {3}", _owner.ObjId, _owner.TemplateId, _skillId, _nextPhase);
 
             _owner.FuncTask = null;
             _owner.DoPhaseFuncs(_caster, _nextPhase);
