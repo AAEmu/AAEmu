@@ -1,9 +1,12 @@
 ﻿using System;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Buffs;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -38,8 +41,8 @@ namespace AAEmu.Game.Models.Game.Skills
         public int Charge { get; set; }
         public bool Passive { get; set; }
         public uint AbLevel { get; set; }
-        public BuffEvents Events { get;}
-        public BuffTriggersHandler Triggers { get;}
+        public BuffEvents Events { get; }
+        public BuffTriggersHandler Triggers { get; }
 
         public Buff(BaseUnit owner, Unit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
         {
@@ -72,7 +75,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 var time = GetTimeLeft();
                 if (time > 0)
-                    _count = (int) (time / Tick + 0.5f + 1);
+                    _count = (int)(time / Tick + 0.5f + 1);
                 else
                     _count = -1;
                 EffectTaskManager.Instance.AddDispelTask(this, Tick);
@@ -86,60 +89,64 @@ namespace AAEmu.Game.Models.Game.Skills
             switch (State)
             {
                 case EffectState.Created:
-                {
-                    State = EffectState.Acting;
-
-                    Template.Start(Caster, Owner, this);
-
-                    if (Duration == 0)
-                        Duration = Template.GetDuration(AbLevel);
-                    if (StartTime == DateTime.MinValue)
                     {
-                        StartTime = DateTime.UtcNow;
-                        EndTime = StartTime.AddMilliseconds(Duration);
-                    }
+                        State = EffectState.Acting;
 
-                    Tick = Template.GetTick();
+                        Template.Start(Caster, Owner, this);
 
-                    if (Tick > 0)
-                    {
-                        var time = GetTimeLeft();
-                        if (time > 0)
-                            _count = (int) (time / Tick + 0.5f + 1);
+                        if (Duration == 0)
+                            Duration = Template.GetDuration(AbLevel);
+                        if (StartTime == DateTime.MinValue)
+                        {
+                            StartTime = DateTime.UtcNow;
+                            EndTime = StartTime.AddMilliseconds(Duration);
+                        }
+
+                        Tick = Template.GetTick();
+
+                        if (Tick > 0)
+                        {
+                            var time = GetTimeLeft();
+                            if (time > 0)
+                                _count = (int)(time / Tick + 0.5f + 1);
+                            else
+                                _count = -1;
+                            EffectTaskManager.Instance.AddDispelTask(this, Tick);
+                        }
                         else
-                            _count = -1;
-                        EffectTaskManager.Instance.AddDispelTask(this, Tick);
-                    }
-                    else
-                        EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
+                            EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
 
-                    return;
-                }
+                        if (Template.FactionId > 0)
+                        {
+                            UpdateOwnerFaction(Owner, Template.FactionId);
+                        }
+                        return;
+                    }
                 case EffectState.Acting:
-                {
-                    if (_count == -1)
                     {
-                        if (Template.OnActionTime)
+                        if (_count == -1)
                         {
-                            Template.TimeToTimeApply(Caster, Owner, this);
-                            return;
+                            if (Template.OnActionTime)
+                            {
+                                Template.TimeToTimeApply(Caster, Owner, this);
+                                return;
+                            }
                         }
-                    }
-                    else if (_count > 0)
-                    {
-                        _count--;
-                        if (Template.OnActionTime && _count > 0)
+                        else if (_count > 0)
                         {
-                            Template.TimeToTimeApply(Caster, Owner, this);
-                            return;
+                            _count--;
+                            if (Template.OnActionTime && _count > 0)
+                            {
+                                Template.TimeToTimeApply(Caster, Owner, this);
+                                return;
+                            }
                         }
-                    }
 
-                    //Buff seems to come to natural expiration here
-                    //Events.OnTimeout(this, new OnTimeoutArgs());
-                    State = EffectState.Finishing;
-                    break;
-                }
+                        //Buff seems to come to natural expiration here
+                        //Events.OnTimeout(this, new OnTimeoutArgs());
+                        State = EffectState.Finishing;
+                        break;
+                    }
             }
 
             if (State == EffectState.Finishing)
@@ -171,6 +178,12 @@ namespace AAEmu.Game.Models.Game.Skills
                 Triggers.UnsubscribeEvents();
                 Owner.Buffs.RemoveEffect(this);
                 Template.Dispel(Caster, Owner, this, replace);
+
+                if (Template.FactionId > 0 && Owner is Npc npc)
+                {
+                    var template = NpcManager.Instance.GetTemplate(npc.TemplateId);
+                    UpdateOwnerFaction(Owner, template.FactionId);
+                }
             }
         }
 
@@ -197,21 +210,32 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             if (Duration == 0)
                 return -1;
-            var time = (long) (StartTime.AddMilliseconds(Duration) - DateTime.UtcNow).TotalMilliseconds;
+            var time = (long)(StartTime.AddMilliseconds(Duration) - DateTime.UtcNow).TotalMilliseconds;
             return time > 0 ? time : 0;
         }
 
         public uint GetTimeElapsed()
         {
-            var time = (uint) (DateTime.UtcNow - StartTime).TotalMilliseconds;
+            var time = (uint)(DateTime.UtcNow - StartTime).TotalMilliseconds;
             return time > 0 ? time : 0;
+        }
+
+        /// <summary>
+        /// Changes the faction of the owner
+        /// </summary>
+        /// <param name="owner"></param>
+        /// <param name="factionId"></param>
+        private void UpdateOwnerFaction(BaseUnit owner, uint factionId)
+        {
+            owner.BroadcastPacket(new SCUnitFactionChangedPacket(owner.ObjId, owner.Name, owner.Faction?.Id ?? 0, factionId, false), true);
+            owner.Faction = FactionManager.Instance.GetFaction(factionId);
         }
 
         public void WriteData(PacketStream stream)
         {
             stream.WritePisc(Charge, Duration / 10, 0, (long)(Template.Tick / 10));
         }
-        
+
         /// <summary>
         /// Consumes as much charge as possible. Remainder is returned
         /// </summary>
@@ -227,7 +251,7 @@ namespace AAEmu.Game.Models.Game.Skills
             {
                 Exit(false);
             }
-            
+
             return value;
         }
     }
