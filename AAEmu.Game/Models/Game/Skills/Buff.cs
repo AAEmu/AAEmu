@@ -3,9 +3,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -179,10 +176,10 @@ namespace AAEmu.Game.Models.Game.Skills
                 Owner.Buffs.RemoveEffect(this);
                 Template.Dispel(Caster, Owner, this, replace);
 
-                if (Template.FactionId > 0 && Owner is Npc npc)
+                if (Template.FactionId > 0 && Owner is Unit owner)
                 {
-                    var template = NpcManager.Instance.GetTemplate(npc.TemplateId);
-                    npc.SetFaction(template.FactionId);
+                    var template = NpcManager.Instance.GetTemplate(owner.TemplateId);
+                    owner.SetFaction(template.FactionId);
                 }
             }
         }

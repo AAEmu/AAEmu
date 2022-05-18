@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Units
 {
@@ -23,7 +21,7 @@ namespace AAEmu.Game.Models.Game.Units
     {
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Mate;
         //public ushort TlId { get; set; }
-        public uint TemplateId { get; set; }
+        //public uint TemplateId { get; set; } // moved to BaseUnit
         public NpcTemplate Template { get; set; }
 
         public uint OwnerObjId { get; set; }
@@ -32,7 +30,7 @@ namespace AAEmu.Game.Models.Game.Units
         public override float Scale => Template.Scale;
 
         // SpawnMate
-        public uint Id { get; set; }
+        //public uint Id { get; set; } // moved to BaseUnit
         public ulong ItemId { get; set; }
         public byte UserState { get; set; }
         public int Experience { get; set; }

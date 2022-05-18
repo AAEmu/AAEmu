@@ -2214,7 +2214,8 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
             var doodad = new Doodad
             {
                 ObjId = bcId > 0 ? bcId : ObjectIdManager.Instance.GetNextId(),
-                TemplateId = template.Id,
+                TemplateId = template.Id, // duplicate Id
+                Id = template.Id,
                 Template = template,
                 OwnerObjId = obj?.ObjId ?? 0,
 

@@ -16,7 +16,6 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils.DB;
 
-using NLog;
 /*
  *-----------------------------------------------------------------------------------------------------------------
  *                        Как работает doodad
@@ -68,9 +67,8 @@ namespace AAEmu.Game.Models.Game.DoodadObj
 {
     public class Doodad : BaseUnit
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
         private float _scale;
-        public uint TemplateId { get; set; }
+        //public uint TemplateId { get; set; } // moved to BaseUnit
         public uint DbId { get; set; }
         public bool IsPersistent { get; set; } = false;
         public DoodadTemplate Template { get; set; }

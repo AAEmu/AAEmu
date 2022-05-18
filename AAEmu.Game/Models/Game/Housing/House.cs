@@ -6,16 +6,12 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Housing
 {
@@ -29,7 +25,6 @@ namespace AAEmu.Game.Models.Game.Housing
 
     public sealed class House : Unit
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Housing;
         private object _lock = new object();
         private HousingTemplate _template;
@@ -54,11 +49,11 @@ namespace AAEmu.Game.Models.Game.Housing
         /// after it's initial addition to the table, like position/rotation. Therefore it's ok to only set the dirty marker on the other properties
         /// </summary>
         public bool IsDirty { get => _isDirty; set => _isDirty = value; }
-        public uint Id { get => _id; set { _id = value; _isDirty = true; } }
+        public new uint Id { get => _id; set { _id = value; _isDirty = true; } }
         public uint AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
         public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
         //public ushort TlId { get; set; }
-        public uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
+        public new uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }
         public HousingTemplate Template
         {
             get => _template;

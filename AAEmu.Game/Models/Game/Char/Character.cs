@@ -48,7 +48,6 @@ namespace AAEmu.Game.Models.Game.Char
 
     public partial class Character : Unit
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Character;
         public static Dictionary<uint, uint> _usedCharacterObjIds = new Dictionary<uint, uint>();
 
@@ -56,7 +55,7 @@ namespace AAEmu.Game.Models.Game.Char
 
         public List<IDisposable> Subscribers { get; set; }
 
-        public uint Id { get; set; }
+        //public uint Id { get; set; } // moved to BaseUnit
         public uint AccountId { get; set; }
         public Race Race { get; set; }
         public Gender Gender { get; set; }

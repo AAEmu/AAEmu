@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Numerics;
 
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -14,21 +12,16 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Transfers;
 using AAEmu.Game.Models.Game.Units.Movements;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
-
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Units
 {
     public class Transfer : Unit
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer;
-        public uint Id { get; set; }
-        public uint TemplateId { get; set; }
+        //public uint Id { get; set; } // moved to BaseUnit
+        //public uint TemplateId { get; set; } // moved to BaseUnit
         public uint BondingObjId { get; set; }
         public AttachPointKind AttachPointId { get; set; }
         public TransferTemplate Template { get; set; }

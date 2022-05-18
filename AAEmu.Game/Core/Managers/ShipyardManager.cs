@@ -58,8 +58,9 @@ namespace AAEmu.Game.Core.Managers
             var shipId = ShipyardIdManager.Instance.GetNextId();
 
             var template = _shipyardsTemplate[shipyardData.TemplateId];
-
             var shipyard = new Shipyard();
+            shipyard.TemplateId = shipyardData.TemplateId; // duplicate Id
+            shipyard.Id = shipyardData.TemplateId;
             shipyard.ObjId = objId;
             shipyard.Template = template;
             shipyard.Faction = owner.Faction;
@@ -143,7 +144,7 @@ namespace AAEmu.Game.Core.Managers
                         enough = false;
                         _log.Error("Not enough reagents Id={0}, Amount={1}", reagent.ItemId, reagent.Amount);
                     }
-                    if(!enough)
+                    if (!enough)
                     {
                         return false;
                     }

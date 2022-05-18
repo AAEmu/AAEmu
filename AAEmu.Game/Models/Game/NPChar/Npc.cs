@@ -14,17 +14,14 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Utils;
-using NLog;
 using static AAEmu.Game.Models.Game.Skills.SkillControllers.SkillController;
 
 namespace AAEmu.Game.Models.Game.NPChar
 {
     public class Npc : Unit
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Npc;
-        public uint TemplateId { get; set; }
+        //public uint TemplateId { get; set; } // moved to BaseUnit
         public NpcTemplate Template { get; set; }
         //public Item[] Equip { get; set; }
         public NpcSpawner Spawner { get; set; }

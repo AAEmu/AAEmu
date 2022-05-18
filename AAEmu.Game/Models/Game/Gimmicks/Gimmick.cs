@@ -1,27 +1,19 @@
 ﻿using System;
 using System.Numerics;
-using System.Threading;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Gimmicks;
-using AAEmu.Game.Utils;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Gimmicks
 {
     public class Gimmick : Unit
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public override UnitTypeFlag TypeFlag { get; } = UnitTypeFlag.Transfer; // TODO для Gimmick не понятно что выбрать
         public uint GimmickId { get; set; } // obj
-        public uint TemplateId { get; set; }
+        //public uint TemplateId { get; set; } // moved to BaseUnit
         public long EntityGuid { get; set; } // TODO это не Guid в GameObject
         //public SystemFaction Faction { get; set; } // TODO Guid есть в GameObject
         public GimmickTemplate Template { get; set; }

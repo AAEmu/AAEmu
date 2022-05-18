@@ -7,14 +7,11 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Units;
-using NLog;
 
 namespace AAEmu.Game.Models.Game.Shipyard
 {
     public sealed class Shipyard : Unit
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
-
         public override float Scale => 1.0f;
         private object _lock = new object();
         private bool _isDirty;

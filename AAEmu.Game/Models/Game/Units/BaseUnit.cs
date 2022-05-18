@@ -35,6 +35,8 @@ namespace AAEmu.Game.Models.Game.Units
 
     public class BaseUnit : GameObject
     {
+        public uint Id { get; set; }
+        public uint TemplateId { get; set; }
         public string Name { get; set; } = string.Empty;
         public SystemFaction Faction { get; set; }
 
