@@ -1,33 +1,24 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Runtime.CompilerServices;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Connections;
-using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
-using AAEmu.Game.Models.Game.Expeditions;
-using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
-using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Static;
-using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
@@ -1377,11 +1368,11 @@ namespace AAEmu.Game.Models.Game.Char
             // Only grant xp if consuming labor
             if (change < 0)
             {
-               	var parameters = new Dictionary<string, double>();
-				parameters.Add("labor_power", -change);
-				parameters.Add("pc_level", this.Level);
-				var formula = FormulaManager.Instance.GetFormula((uint)FormulaKind.ExpByLaborPower);
-				var xpToAdd = (int)formula.Evaluate(parameters);
+                var parameters = new Dictionary<string, double>();
+                parameters.Add("labor_power", -change);
+                parameters.Add("pc_level", this.Level);
+                var formula = FormulaManager.Instance.GetFormula((uint)FormulaKind.ExpByLaborPower);
+                var xpToAdd = (int)formula.Evaluate(parameters);
                 AddExp(xpToAdd, true);
             }
 
@@ -1448,12 +1439,6 @@ namespace AAEmu.Game.Models.Game.Char
             // TODO : Leave guild
         }
 
-        public void SetFaction(uint factionId)
-        {
-            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, factionId, false), true);
-            Faction = FactionManager.Instance.GetFaction(factionId);
-        }
-        
         public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
         {
             var moved = !Transform.Local.Position.X.Equals(x) || !Transform.Local.Position.Y.Equals(y) || !Transform.Local.Position.Z.Equals(z);

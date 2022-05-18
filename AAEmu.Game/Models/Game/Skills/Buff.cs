@@ -116,9 +116,9 @@ namespace AAEmu.Game.Models.Game.Skills
                         else
                             EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
 
-                        if (Template.FactionId > 0)
+                        if (Template.FactionId > 0 && Owner is Unit owner)
                         {
-                            UpdateOwnerFaction(Owner, Template.FactionId);
+                            owner.SetFaction(Template.FactionId);
                         }
                         return;
                     }
@@ -182,7 +182,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 if (Template.FactionId > 0 && Owner is Npc npc)
                 {
                     var template = NpcManager.Instance.GetTemplate(npc.TemplateId);
-                    UpdateOwnerFaction(Owner, template.FactionId);
+                    npc.SetFaction(template.FactionId);
                 }
             }
         }
@@ -218,17 +218,6 @@ namespace AAEmu.Game.Models.Game.Skills
         {
             var time = (uint)(DateTime.UtcNow - StartTime).TotalMilliseconds;
             return time > 0 ? time : 0;
-        }
-
-        /// <summary>
-        /// Changes the faction of the owner
-        /// </summary>
-        /// <param name="owner"></param>
-        /// <param name="factionId"></param>
-        private void UpdateOwnerFaction(BaseUnit owner, uint factionId)
-        {
-            owner.BroadcastPacket(new SCUnitFactionChangedPacket(owner.ObjId, owner.Name, owner.Faction?.Id ?? 0, factionId, false), true);
-            owner.Faction = FactionManager.Instance.GetFaction(factionId);
         }
 
         public void WriteData(PacketStream stream)

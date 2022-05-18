@@ -556,8 +556,6 @@ namespace AAEmu.Game.Models.Game.Units
             return defaultVal;
         }
         
-        
-
         public string GetAttribute(uint attr) => GetAttribute((UnitAttribute)attr);
 
         //Uncomment if you need this
@@ -650,5 +648,14 @@ namespace AAEmu.Game.Models.Game.Units
             return fallDmg;
         }
 
+        /// <summary>
+        /// Set the faction of the owner
+        /// </summary>
+        /// <param name="factionId"></param>
+        public void SetFaction(uint factionId)
+        {
+            BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
+            Faction = FactionManager.Instance.GetFaction(factionId);
+        }
     }
 }
