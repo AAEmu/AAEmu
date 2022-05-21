@@ -1,6 +1,8 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -26,6 +28,16 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 target.Buffs.RemoveBuffs(BuffKind.Good, DispelCount, BuffTagId); //TODO ....
             if (CureCount > 0 && !caster.CanAttack(target))
                 target.Buffs.RemoveBuffs(BuffKind.Bad, CureCount, BuffTagId);
+
+            // TODO added for quest Id=2255
+            // find the item that was used for Buff and check it in the quests
+            if (caster is not Character character) { return; }
+            var item = character.Inventory.GetItemById(((SkillItem)casterObj).ItemId);
+            if (item == null) { return; }
+            if (item.Count > 0)
+            {
+                character.Quests.OnItemUse(item);
+            }
         }
     }
 }

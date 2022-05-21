@@ -79,40 +79,62 @@ namespace AAEmu.Game.Models.Game.AI.v2
             // Attack behavior probably only uses base skill ?
             var skills = new List<NpcSkill>();
             if (Ai.Owner.Template.Skills.ContainsKey(kind))
+            {
                 skills = Ai.Owner.Template.Skills[kind];
-            skills = skills
-                .Where(s => !Ai.Owner.Cooldowns.CheckCooldown(s.SkillId))
-                .Where(s =>
-                {
-                    var template = SkillManager.Instance.GetSkillTemplate(s.SkillId);
-                    return template != null && (targetDist >= template.MinRange && targetDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
-                }).ToList();
+            }
+            if (skills.Count > 0)
+            {
+                skills = skills
+                    .Where(s => !Ai.Owner.Cooldowns.CheckCooldown(s.SkillId))
+                    .Where(s =>
+                    {
+                        var template = SkillManager.Instance.GetSkillTemplate(s.SkillId);
+                        return template != null && (targetDist >= template.MinRange && targetDist <= template.MaxRange || template.TargetType == SkillTargetType.Self);
+                    }).ToList();
+            }
 
+            if (targetDist == 0)
+            {
+                // This SkillTargetType.Self & SkillUseConditionKind.InIdle
+                if (skills.Count <= 0) { return; }
+                var skillSelfId = skills[Rand.Next(skills.Count)].SkillId;
+                var skillTemplateSelf = SkillManager.Instance.GetSkillTemplate(skillSelfId);
+                var skillSelf = new Skill(skillTemplateSelf);
+                if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplateSelf.Id))
+                {
+                    _log.Warn(
+                        "PickSkillAndUseIt:UseSelfSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}",
+                        Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplateSelf.Id);
+                    // TODO how to eliminate spam with skills? The following solution breaks the Npc attack
+                    var delay = 0f;
+                    if (Ai.Owner.Template.BaseSkillDelay == 0)
+                    {
+                        Ai.Owner.Cooldowns.AddCooldown(skillTemplateSelf.Id, 95000); // in milliseconds
+                        delay = 0f; // in seconds
+                    }
+                    else
+                    {
+                        delay = Ai.Owner.Template.BaseSkillDelay;
+                    }
+                    UseSkill(skillSelf, target, delay);
+                    return;
+                }
+            }
+
+            // This SkillUseConditionKind.InCombat
             var pickedSkillId = (uint)Ai.Owner.Template.BaseSkillId;
             if (skills.Count > 0)
+            {
                 pickedSkillId = skills[Rand.Next(skills.Count)].SkillId;
-
+            }
             // Hackfix for Melee attack. Needs to look at the held weapon (if any) or default to 3m. 
-            if (pickedSkillId == 2 || targetDist > 4.0f)
-                return;
-            
+            if (pickedSkillId == 2 && targetDist > 4.0f) { return; }
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
             var skill = new Skill(skillTemplate);
-
             if (!Ai.Owner.Cooldowns.CheckCooldown(skillTemplate.Id))
             {
                 _log.Warn("PickSkillAndUseIt:UseSkill Owner.ObjId {0}, Owner.TemplateId {1}, SkillId {2}", Ai.Owner.ObjId, Ai.Owner.TemplateId, skillTemplate.Id);
-                var delay = 0f;
-                if (Ai.Owner.Template.BaseSkillDelay == 0)
-                {
-                    Ai.Owner.Cooldowns.AddCooldown(skillTemplate.Id, 95000); // in milliseconds
-                    delay = 0f; // in seconds
-                }
-                else
-                {
-                    delay = Ai.Owner.Template.BaseSkillDelay;
-                }
-                UseSkill(skill, target, delay);
+                UseSkill(skill, target, Ai.Owner.Template.BaseSkillDelay);
             }
         }
 

@@ -80,7 +80,15 @@ namespace AAEmu.Game.Models.Game.Quests
                 Status = component2.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
                 return;
             }
-            Status = component.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
+            var acts = QuestManager.Instance.GetActs(component.Id);
+            if (acts.Length == 0)
+            {
+                Status = QuestStatus.Ready;
+            }
+            else
+            {
+                Status = component.KindId == QuestComponentKind.Progress ? QuestStatus.Progress : QuestStatus.Ready;
+            }
         }
 
         public bool Start()
@@ -278,6 +286,8 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActObjSphere":
                                 {
                                     // только для сфер
+                                    
+
                                     Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     Update();
