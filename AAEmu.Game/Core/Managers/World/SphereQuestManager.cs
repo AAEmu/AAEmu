@@ -201,8 +201,7 @@ namespace AAEmu.Game.Core.Managers.World
                                     sphere.Y = float.Parse(posstring[1], NumberStyles.Float, CultureInfo.InvariantCulture);
                                     sphere.Z = float.Parse(posstring[2], NumberStyles.Float, CultureInfo.InvariantCulture);
                                 }
-                                //sphere.Radius = float.Parse(l4.Substring(7), NumberStyles.Float, CultureInfo.InvariantCulture);
-                                sphere.Radius = 3.0f; // уменьшим радиус для всех сфер, что бы было более интересно проходить квесты
+                                sphere.Radius = float.Parse(l4.Substring(7), NumberStyles.Float, CultureInfo.InvariantCulture);
                                 // конвертируем координаты из локальных в мировые, сразу при считывании из файла пути
                                 // convert coordinates from local to world, immediately when reading the path from the file
                                 var xyz = new Vector3(sphere.X, sphere.Y, sphere.Z);
