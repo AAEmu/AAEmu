@@ -32,7 +32,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // TODO added for quest Id=2255
             // find the item that was used for Buff and check it in the quests
             if (caster is not Character character) { return; }
-            var item = character.Inventory.GetItemById(((SkillItem)casterObj).ItemId);
+            if (casterObj is not SkillItem skillItem) { return; }
+            var item = character.Inventory.GetItemById(skillItem.ItemId);
             if (item == null) { return; }
             if (item.Count > 0)
             {
