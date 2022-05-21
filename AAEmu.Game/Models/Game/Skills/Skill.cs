@@ -620,14 +620,6 @@ namespace AAEmu.Game.Models.Game.Skills
                 // TODO : Need to this if this is needed
                 //if (targetSelf is Unit) targets.Add(targetSelf);
             }
-            else if(Template.TargetAreaCount > 0)
-            {
-                var units = WorldManager.Instance.GetAround<BaseUnit>(targetSelf, 5, true);
-                units.Add(targetSelf);
-                units = FilterAoeUnits(caster, units).ToList();
-
-                targets.AddRange(units);
-            }
             else
             {
                 targets.Add(targetSelf);
