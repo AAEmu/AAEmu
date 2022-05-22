@@ -62,11 +62,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
             // TODO added for quest Id=1340
             // find the item that was used for Buff and check it in the quests
-            if (caster is not Character character) { return; }
             if (castObj is not CastBuff castBuff) { return; }
+            if (castBuff.Buff.Caster is not Character character) { return; }
             if (castBuff.Buff.SkillCaster is not SkillItem skillItem) { return; }
-            var item = character.Inventory.GetItemById(skillItem.ItemTemplateId);
-            if (item.Count > 0)
+            var item = character.Inventory.GetItemById(skillItem.ItemId);
+            if (item is {Count: > 0})
             {
                 character.Quests.OnItemUse(item);
             }

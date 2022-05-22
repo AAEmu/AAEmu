@@ -34,8 +34,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             if (caster is not Character character) { return; }
             if (casterObj is not SkillItem skillItem) { return; }
             var item = character.Inventory.GetItemById(skillItem.ItemId);
-            if (item == null) { return; }
-            if (item.Count > 0)
+            if (item is {Count: > 0})
             {
                 character.Quests.OnItemUse(item);
             }
