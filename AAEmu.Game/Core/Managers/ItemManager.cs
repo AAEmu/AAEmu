@@ -955,6 +955,7 @@ namespace AAEmu.Game.Core.Managers
                             var template = new BodyPartTemplate
                             {
                                 Id = reader.GetUInt32("item_id"),
+                                ItemId = reader.GetUInt32("item_id"),
                                 ModelId = reader.GetUInt32("model_id"),
                                 NpcOnly = reader.GetBoolean("npc_only", true),
                                 SlotTypeId = reader.GetUInt32("slot_type_id"),

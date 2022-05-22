@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers.AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
@@ -193,12 +195,35 @@ namespace AAEmu.Game.Core.Managers.UnitManagers
                     break;
             }
 
+            var modelType = ModelManager.Instance.GetModelType(template.ModelId);
+
             // choose randomly from the list totalCustomId
-            if (modelParamsId != 0)
+            if ((modelParamsId != 0) && (modelType != null) && (modelType.SubType == "ActorModel"))
             {
-                var li = _tccLookup[modelParamsId];
-                var index = _loadCustomRandom.Next(_tccLookup[modelParamsId].Count);
-                totalCustomId = li[index];
+                // Get all possible hair item_ids that match this model
+                var hairsForThisModel = new List<uint>();
+                foreach (var item in ItemManager.Instance.GetAllItems())
+                    if ((item is BodyPartTemplate bpt) && (bpt.ModelId == template.ModelId) && (bpt.SlotTypeId == (uint)EquipmentItemSlotType.Hair))
+                        hairsForThisModel.Add(bpt.ItemId);
+
+                if (hairsForThisModel.Count > 0)
+                {
+                    // TODO: Slow, but I don't know of a better way to do this atm
+                    var possibleTotalCustoms = (from tc in _totalCharacterCustoms
+                        where (tc.Value.ModelId == modelParamsId) && (hairsForThisModel.Contains(tc.Value.HairId))
+                        select tc.Value.Id).ToList();
+
+                    // If anything in result, pick something random from it
+                    if (possibleTotalCustoms.Count > 0)
+                    {
+                        var r = _loadCustomRandom.Next(possibleTotalCustoms.Count());
+                        totalCustomId = possibleTotalCustoms[r];
+                    }
+                    else
+                    {
+                        _log.Trace($"No compatible TotalCharacterCustoms hair found for NPC: {template.Id}");
+                    }
+                }
             }
             else
             {
