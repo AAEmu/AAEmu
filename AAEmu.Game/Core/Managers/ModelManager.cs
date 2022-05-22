@@ -14,6 +14,13 @@ namespace AAEmu.Game.Core.Managers
         private Dictionary<uint, ModelType> _modelTypes;
 
         // Getters
+        public ModelType GetModelType(uint modelId)
+        {
+            if (_modelTypes.TryGetValue(modelId, out var res))
+                return res;
+            return null;
+        }
+        
         public ActorModel GetActorModel(uint modelId)
         {
             if (!_modelTypes.ContainsKey(modelId))
