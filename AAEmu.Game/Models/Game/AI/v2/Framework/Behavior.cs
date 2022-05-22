@@ -109,7 +109,7 @@ namespace AAEmu.Game.Models.Game.AI.v2
                     var delay = 0f;
                     if (Ai.Owner.Template.BaseSkillDelay == 0)
                     {
-                        Ai.Owner.Cooldowns.AddCooldown(skillTemplateSelf.Id, 95000); // in milliseconds
+                        Ai.Owner.Cooldowns.AddCooldown(skillTemplateSelf.Id, 5000); // in milliseconds
                         delay = 0f; // in seconds
                     }
                     else
