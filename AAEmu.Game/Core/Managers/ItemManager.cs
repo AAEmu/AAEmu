@@ -1551,7 +1551,7 @@ namespace AAEmu.Game.Core.Managers
             _log.Info("Loading user items ...");
             _allItems = new Dictionary<ulong, Item>();
             _allPersistantContainers = new Dictionary<uint, ItemContainer>();
-            lock (_removedItems)
+            //lock (_removedItems)
                 _removedItems = new List<ulong>();
 
             using (var connection = MySQL.CreateConnection())
