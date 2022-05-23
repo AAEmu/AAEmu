@@ -68,6 +68,17 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = (int)Rand.Next(min, max);
             npc.BroadcastPacket(new SCAiAggroPacket(npc.ObjId, 1, caster.ObjId, value), true);
             npc.AddUnitAggro(AggroKind.Damage, character, value);
+
+            // TODO added for quest Id=2261
+            // find the item that was used for Buff and check it in the quests
+            if (castObj is not CastBuff castBuff) { return; }
+            //if (castBuff.Buff.Caster is not Character character) { return; } // not need
+            if (castBuff.Buff.SkillCaster is not SkillItem skillItem) { return; }
+            var item = character.Inventory.GetItemById(skillItem.ItemId);
+            if (item is {Count: > 0})
+            {
+                character.Quests.OnItemUse(item);
+            }
         }
     }
 }
