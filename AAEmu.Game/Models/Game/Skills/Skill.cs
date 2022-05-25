@@ -74,10 +74,16 @@ namespace AAEmu.Game.Models.Game.Skills
                 lock (caster.GCDLock)
                 {
                     if (caster.SkillLastUsed.AddMilliseconds(150) > DateTime.UtcNow)
+                    {
+                        _log.Warn("Skill: CooldownTime [1]!");
                         return SkillResult.CooldownTime;
+                    }
 
                     if (caster.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
+                    {
+                        _log.Warn("Skill: CooldownTime [2]!");
                         return SkillResult.CooldownTime;
+                    }
 
                     caster.SkillLastUsed = DateTime.UtcNow;
                 }
@@ -633,7 +639,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
                 if (target is Doodad doodad)
                 {
-                    doodad.OnSkillHit(caster, Id);
+                    doodad.OnSkillHit(caster, Id, casterCaster);
                 }
             }
 

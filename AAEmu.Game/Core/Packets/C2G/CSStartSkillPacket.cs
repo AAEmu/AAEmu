@@ -54,13 +54,6 @@ namespace AAEmu.Game.Core.Packets.C2G
                     return;
                 var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
                 skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject);
-
-                // Квест Id=2255 не вызывается результат использования предмета Id=16280, Engraved Lodestone
-                // добавил вызов OnItemUse
-                //Connection.ActiveChar.Inventory.Bag.GetAllItemsByTemplate(((SkillItem)skillCaster).ItemTemplateId, -1, out var items, out var count);
-                // TODO для квеста Id=2255, вызов OnItemUse() будет в DispelEffect
-                // if (item.Count > 0)
-                //     Connection.ActiveChar.Quests.OnItemUse(item);
             }
             else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
             {

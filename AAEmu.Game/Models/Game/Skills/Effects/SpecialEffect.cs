@@ -1,5 +1,7 @@
 ﻿using System;
+
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -21,8 +23,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         {
             if (source == null) return;
 
-            _log.ConditionalTrace(
-                "SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}",
+            _log.ConditionalTrace("SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}",
                 SpecialEffectTypeId, Value1, Value2, Value3, Value4
             );
 
@@ -34,8 +35,18 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             }
 
             var action = (SpecialEffectAction)Activator.CreateInstance(classType);
-            action.Execute(caster, casterObj, target, targetObj, castObj, source.Skill, skillObject, time, Value1, Value2,
-                Value3, Value4);
+            action?.Execute(caster, casterObj, target, targetObj, castObj, source.Skill, skillObject, time,
+                Value1, Value2, Value3, Value4);
+
+            // TODO added for quest Id=2349
+            // find the item that was used and check it in the quests
+            if (caster is not Character character) { return; }
+            if (casterObj is not SkillItem skillItem) { return; }
+            var item = character.Inventory.GetItemById(skillItem.ItemId);
+            if (item is { Count: > 0 })
+            {
+                character.Quests.OnItemUse(item);
+            }
         }
     }
 }

@@ -16,8 +16,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
         public override bool OnActionTime => false;
 
-        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
-            CastAction castObj,
+        public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj, CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             _log.Trace("DispelEffect {0}", Id);
@@ -28,9 +27,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 target.Buffs.RemoveBuffs(BuffKind.Good, DispelCount, BuffTagId); //TODO ....
             if (CureCount > 0 && !caster.CanAttack(target))
                 target.Buffs.RemoveBuffs(BuffKind.Bad, CureCount, BuffTagId);
-
+            
             // TODO added for quest Id=2255
-            // find the item that was used for Buff and check it in the quests
+            // find the item that was used and check it in the quests
             if (caster is not Character character) { return; }
             if (casterObj is not SkillItem skillItem) { return; }
             var item = character.Inventory.GetItemById(skillItem.ItemId);

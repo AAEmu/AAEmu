@@ -286,7 +286,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActObjSphere":
                                 {
                                     // только для сфер
-                                    
+
 
                                     Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
@@ -737,7 +737,7 @@ namespace AAEmu.Game.Models.Game.Quests
                             case "QuestActSupplyItem" when step == QuestComponentKind.Supply:
                                 {
                                     var template = act.GetTemplate<QuestActSupplyItem>();
-                                    if (template.DestroyWhenDrop)
+                                    if (template.DestroyWhenDrop && Owner.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlotType.Backpack)?.TemplateId == template.ItemId)
                                     {
                                         Owner.Inventory.TakeoffBackpack(ItemTaskType.QuestRemoveSupplies);
                                     }

@@ -1,4 +1,5 @@
 ﻿using System;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -23,27 +24,27 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         public float ChargedMul { get; set; }
 
         public override bool OnActionTime => false;
-        
+
         public override void Apply(Unit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj,
             EffectSource source, SkillObject skillObject, DateTime time, CompressedGamePackets packetBuilder = null)
         {
             if (!(caster is Character character))
                 return;
-            
+
             if (!(target is Npc npc))
                 return;
 
             _log.Debug("AggroEffect");
-            
+
             var min = 0.0f;
             var max = 0.0f;
 
             if (UseLevelAggro)
             {
                 var lvlMd = caster.LevelDps * LevelMd;
-                var levelModifier = (( (source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
-            
+                var levelModifier = (((source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
+
                 min += lvlMd - levelModifier * lvlMd + 0.5f;
                 max += (levelModifier + 1) * lvlMd + 0.5f;
             }
@@ -68,17 +69,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             var value = (int)Rand.Next(min, max);
             npc.BroadcastPacket(new SCAiAggroPacket(npc.ObjId, 1, caster.ObjId, value), true);
             npc.AddUnitAggro(AggroKind.Damage, character, value);
-
-            // TODO added for quest Id=2261
-            // find the item that was used for Buff and check it in the quests
-            if (castObj is not CastBuff castBuff) { return; }
-            //if (castBuff.Buff.Caster is not Character character) { return; } // not need
-            if (castBuff.Buff.SkillCaster is not SkillItem skillItem) { return; }
-            var item = character.Inventory.GetItemById(skillItem.ItemId);
-            if (item is {Count: > 0})
-            {
-                character.Quests.OnItemUse(item);
-            }
         }
     }
 }

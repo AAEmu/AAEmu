@@ -34,24 +34,23 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.Interaction);
 
             var action = (IWorldInteraction)Activator.CreateInstance(classType);
-            if (source != null && source.Skill != null && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
+            if (source is {Skill: { }} && casterObj != null && target != null && targetObj != null && source.Skill.Template != null)
             {
                 action?.Execute(caster, casterObj, target, targetObj, source.Skill.Template.Id, DoodadId);
             }
 
-            if (caster is Character character)
+            if (caster is not Character character) { return; }
+            if (target is Doodad)
             {
-                if (target is Doodad)
-                {
-                    character.Quests.OnInteraction(WorldInteraction, target);
-                }
-                //else
-                //{
-                //    var skillItem = casterObj as SkillItem;
-                //    character.Inventory.Bag.GetAllItemsByTemplate(skillItem.ItemTemplateId, -1, out var items, out var count);
-                //    if (count > 0)
-                //        character.Quests.OnItemUse(items[0]);
-                //}
+                character.Quests.OnInteraction(WorldInteraction, target);
+            }
+
+            // TODO added for quest Id=4378
+            if (casterObj is not SkillItem skillItem) { return; }
+            var item = character.Inventory.GetItemById(skillItem.ItemId);
+            if (item is {Count: > 0})
+            {
+                character.Quests.OnItemUse(item);
             }
         }
     }
