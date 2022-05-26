@@ -40,7 +40,7 @@ namespace AAEmu.Game
                 {
                     _log.Fatal("Failed up update database !");
                     _log.Fatal("Press Ctrl+C to quit");
-                    return ;
+                    return;
                 }
             }
 

@@ -235,7 +235,6 @@ namespace AAEmu.Commons.Utils.Updater
             return true;
         }
 
-
         private static string FindUpdatesFolder(string moduleNamePrefix, out List<string> res)
         {
             // Crawl up to root directory to find a good folder
