@@ -46,7 +46,7 @@ namespace AAEmu.Login.Core.Network.Login
 
         public void Stop()
         {
-            if (_server.IsStarted)
+            if ((_server != null) && (_server.IsStarted))
                 _server.Stop();
 
             _log.Info("Network stoped");
