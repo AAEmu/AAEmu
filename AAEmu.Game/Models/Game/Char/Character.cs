@@ -1562,6 +1562,19 @@ namespace AAEmu.Game.Models.Game.Char
             skill.Use(this, caster, sct, null, true);
         }
 
+        /// <summary>
+        /// ItemUse - is used to work the quests
+        /// </summary>
+        /// <param name="id"></param>
+        public void ItemUse(ulong id)
+        {
+            var item = Inventory.GetItemById(id);
+            if (item is {Count: > 0})
+            {
+                Quests.OnItemUse(item);
+            }
+        }
+
         public void SetAction(byte slot, ActionSlotType type, uint actionId)
         {
             Slots[slot].Type = type;

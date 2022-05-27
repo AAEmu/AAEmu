@@ -32,11 +32,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             // find the item that was used and check it in the quests
             if (caster is not Character character) { return; }
             if (casterObj is not SkillItem skillItem) { return; }
-            var item = character.Inventory.GetItemById(skillItem.ItemId);
-            if (item is {Count: > 0})
-            {
-                character.Quests.OnItemUse(item);
-            }
+            character.ItemUse(skillItem.ItemId);
         }
     }
 }

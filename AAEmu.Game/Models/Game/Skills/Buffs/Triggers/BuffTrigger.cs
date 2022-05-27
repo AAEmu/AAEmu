@@ -52,8 +52,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             }
 
             if (target == null) { return; }
-            Template.Effect.Apply(source, new SkillCasterUnit(_owner.ObjId), target,
-                new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
+            Template.Effect.Apply(source, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
                 new EffectSource(_buff?.Skill), // TODO : EffectSource Type trigger 
                 null, DateTime.UtcNow);
 
@@ -61,11 +60,7 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             // find the item that was used for Buff and check it in the quests
             if (_buff is { Caster: Character character, SkillCaster: SkillItem skillItem })
             {
-                var item = character.Inventory.GetItemById(skillItem.ItemId);
-                if (item is { Count: > 0 })
-                {
-                    character.Quests.OnItemUse(item);
-                }
+                character.ItemUse(skillItem.ItemId);
             }
         }
 

@@ -3,6 +3,7 @@ using System.Linq;
 
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -23,11 +24,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
         {
             _log.Trace("KillNpcWithoutCorpseEffect");
 
+            if (caster is Character) { return; } // does not apply to the character
             if (Vanish && Radius == 0)
             {
                 // Fixed: "Trainer Daru" disappears after selling a bear
-                caster.Buffs.RemoveAllEffects();
-                caster.Delete();
+                RemoveEffectsAndDelete(caster);
             }
             else
             {
@@ -35,10 +36,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 if (npcs == null) { return; }
                 foreach (var npc in npcs.Where(npc => npc.TemplateId == NpcId))
                 {
-                    npc.Buffs.RemoveAllEffects();
-                    npc.Delete();
+                    RemoveEffectsAndDelete(caster);
                 }
             }
+        }
+
+        private void RemoveEffectsAndDelete(Unit unit)
+        {
+            unit.Buffs.RemoveAllEffects();
+            unit.Delete();
         }
     }
 }

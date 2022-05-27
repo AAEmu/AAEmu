@@ -60,6 +60,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
 
                     // Npc attacks the character
                     npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, caster, 1);
+                    npc.Ai.OnAggroTargetChanged();
                     npc.Ai.GoToCombat();
                 }
             }

@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -555,7 +556,7 @@ namespace AAEmu.Game.Models.Game.Units
             }
             return defaultVal;
         }
-        
+
         public string GetAttribute(uint attr) => GetAttribute((UnitAttribute)attr);
 
         //Uncomment if you need this
@@ -654,8 +655,20 @@ namespace AAEmu.Game.Models.Game.Units
         /// <param name="factionId"></param>
         public void SetFaction(uint factionId)
         {
+            if (this is Character) { return; } // do not change the faction for the character
             BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
             Faction = FactionManager.Instance.GetFaction(factionId);
+
+            // TODO added for quest Id=2486
+            if (this is not Npc npc) { return; }
+            // Npc attacks the character
+            var characters = WorldManager.Instance.GetAround<Character>(npc, 5.0f);
+            foreach (var character in characters.Where(CanAttack))
+            {
+                npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, character, 1);
+                npc.Ai.OnAggroTargetChanged();
+                npc.Ai.GoToCombat();
+            }
         }
     }
 }

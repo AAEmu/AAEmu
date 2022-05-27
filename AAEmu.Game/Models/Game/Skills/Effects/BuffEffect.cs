@@ -1,9 +1,6 @@
 ﻿using System;
-using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -69,9 +66,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
 
-            //Safeguard to prevent accidental flagging
-            if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
-                return;
+            // TODO Doesn't let the quest work Id=2488 "A Mother's Tale", 13, "Lilyut Hills", "Nuian Main"
+            ////Safeguard to prevent accidental flagging
+            //if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
+            //    return;
             target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
             
             if (Buff.Kind == BuffKind.Bad && caster.GetRelationStateTo(target) == RelationState.Friendly 

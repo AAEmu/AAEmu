@@ -639,7 +639,7 @@ namespace AAEmu.Game.Models.Game.Skills
                 }
                 if (target is Doodad doodad)
                 {
-                    doodad.OnSkillHit(caster, Id, casterCaster);
+                    doodad.OnSkillHit(caster, Id);
                 }
             }
 
@@ -814,6 +814,15 @@ namespace AAEmu.Game.Models.Game.Skills
                     item.effect.Template.Apply(caster, casterCaster, item.target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
                 else
                     _log.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
+            }
+
+            // TODO added for quest Id=2349 moved from SpecialEffect
+            // TODO added for quest Id=4376 moved from Doodad
+            // TODO added for quest Id=3439
+            if (casterCaster is SkillItem skillItem && effectsToApply.Count == 0)
+            {
+                if (caster is not Character character) { return; }
+                character.ItemUse(skillItem.ItemId);
             }
 
             // Quick Hack

@@ -1,8 +1,7 @@
 ﻿using System;
-
+using System.Collections.Generic;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -40,6 +39,7 @@ namespace AAEmu.Game.Models.Game.Skills
         public uint AbLevel { get; set; }
         public BuffEvents Events { get; }
         public BuffTriggersHandler Triggers { get; }
+        public Dictionary<uint, uint> saveFactions { get; set; }
 
         public Buff(BaseUnit owner, Unit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
         {
@@ -53,6 +53,7 @@ namespace AAEmu.Game.Models.Game.Skills
             AbLevel = 1;
             Events = new BuffEvents();
             Triggers = new BuffTriggersHandler(this);
+            saveFactions = new Dictionary<uint, uint>();
         }
 
         public void UpdateEffect()
@@ -115,6 +116,14 @@ namespace AAEmu.Game.Models.Game.Skills
 
                         if (Template.FactionId > 0 && Owner is Unit owner)
                         {
+                            if (saveFactions.ContainsKey(owner.Id))
+                            {
+                                saveFactions[owner.Id] = owner.Faction.Id;
+                            }
+                            else
+                            {
+                                saveFactions.Add(owner.Id, owner.Faction.Id);
+                            }
                             owner.SetFaction(Template.FactionId);
                         }
                         return;
@@ -178,8 +187,8 @@ namespace AAEmu.Game.Models.Game.Skills
 
                 if (Template.FactionId > 0 && Owner is Unit owner)
                 {
-                    var template = NpcManager.Instance.GetTemplate(owner.TemplateId);
-                    owner.SetFaction(template.FactionId);
+                    owner.SetFaction(saveFactions[owner.Id]);
+                    saveFactions.Remove(owner.Id);
                 }
             }
         }

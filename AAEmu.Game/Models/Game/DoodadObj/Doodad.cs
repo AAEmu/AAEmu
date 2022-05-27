@@ -314,25 +314,13 @@ namespace AAEmu.Game.Models.Game.DoodadObj
                     select funcGroup.Id).FirstOrDefault();
         }
 
-        public void OnSkillHit(Unit caster, uint skillId, SkillCaster sc = null)
+        public void OnSkillHit(Unit caster, uint skillId)
         {
             var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
             if (funcs == null) { return; }
             foreach (var func in funcs.Where(func => func.FuncType == "DoodadFuncSkillHit"))
             {
                 Use(caster, skillId);
-
-                // TODO added for quest Id=4376
-                // find the item that was used and check it in the quests
-                if (caster is not Character character) { return; }
-
-                if (sc is not SkillItem skillItem) { return; }
-
-                var item = character.Inventory.GetItemById(skillItem.ItemId);
-                if (item is {Count: > 0})
-                {
-                    character.Quests.OnItemUse(item);
-                }
             }
         }
 
