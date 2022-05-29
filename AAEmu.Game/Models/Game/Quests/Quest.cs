@@ -1104,10 +1104,15 @@ namespace AAEmu.Game.Models.Game.Quests
                                 var template = act.GetTemplate<QuestActObjItemUse>();
                                 if (template.ItemId == item.TemplateId)
                                 {
-                                    //if (Objectives[componentIndex] == 0)
-                                    //    Objectives[componentIndex] = Owner.Inventory.GetItemsCount(template.ItemId);
-                                    checking = true;
-                                    Objectives[componentIndex]++;
+                                    if (Objectives[componentIndex] < template.Count)
+                                    {
+                                        checking = true;
+                                        Objectives[componentIndex]++;
+                                    }
+                                    else
+                                    {
+                                        checking = false; // cancel the rerun of the quest check Id=97
+                                    }
                                     _log.Warn("[Quest] OnItemUse: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, checking {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, checking, act.DetailType);
                                 }
                                 break;
@@ -1149,7 +1154,7 @@ namespace AAEmu.Game.Models.Game.Quests
                         case "QuestActObjInteraction":
                             {
                                 var template = act.GetTemplate<QuestActObjInteraction>();
-                                if (template.WorldInteractionId == type)
+                                //if (template.WorldInteractionId == type) // This operator is commented out for the quest id=3708
                                 {
                                     if (template.DoodadId == interactionTarget.TemplateId)
                                     {

@@ -31,7 +31,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
                 }
             }
             if (Rand.Next(0, 101) > Chance)
+            {                
+                caster.ConditionChance = false;
                 return;
+            }
+            else
+            {
+                caster.ConditionChance = true;
+            }
+
             if (Buff.RequireBuffId > 0 && !target.Buffs.CheckBuff(Buff.RequireBuffId))
                 return; // TODO send error?
             if (target.Buffs.CheckBuffImmune(Buff.Id))

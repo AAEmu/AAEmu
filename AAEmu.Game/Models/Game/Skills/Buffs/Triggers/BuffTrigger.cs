@@ -1,6 +1,5 @@
 ﻿using System;
 
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
@@ -55,13 +54,6 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs.Triggers
             Template.Effect.Apply(source, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
                 new EffectSource(_buff?.Skill), // TODO : EffectSource Type trigger 
                 null, DateTime.UtcNow);
-
-            // TODO added for quest Id=1340
-            // find the item that was used for Buff and check it in the quests
-            if (_buff is { Caster: Character character, SkillCaster: SkillItem skillItem })
-            {
-                character.ItemUse(skillItem.ItemId);
-            }
         }
 
         public BuffTrigger(Buff buff, BuffTriggerTemplate template)

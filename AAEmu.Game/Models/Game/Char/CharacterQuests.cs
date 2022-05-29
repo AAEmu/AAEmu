@@ -71,9 +71,8 @@ namespace AAEmu.Game.Models.Game.Char
             var res = quest.Start();
             if (!res)
                 Drop(questId, true); // TODO может быть update = false?
-            //else
-            //    Owner.SendPacket(new SCQuestContextStartedPacket(quest, res));
-            quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
+            else
+                quest.Owner.SendMessage("[Quest] {0}, quest {1} added.", Owner.Name, questId);
         }
 
         /// <summary>
@@ -179,8 +178,8 @@ namespace AAEmu.Game.Models.Game.Char
             Quests.Remove(questId);
             _removed.Add(questId);
 
-            quest.Owner.SendMessage("[Quest] {0}, quest {1} removed.", Owner.Name, questId);
-            _log.Warn("[Quest] {0}, quest {1} removed.", Owner.Name, questId);
+            quest.Owner.SendMessage("[Quest] Quest Npc is not selected! {0}, quest {1} removed.", Owner.Name, questId);
+            _log.Warn("[Quest] Quest Npc is not selected! {0}, quest {1} removed.", Owner.Name, questId);
 
             if (QuestManager.Instance.QuestTimeoutTask.ContainsKey(quest.Owner.Id))
             {

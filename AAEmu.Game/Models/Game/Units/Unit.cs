@@ -204,6 +204,8 @@ namespace AAEmu.Game.Models.Game.Units
         public UnitProcs Procs { get; set; }
         public object ChargeLock { get; set; }
 
+        public bool ConditionChance { get; set; }
+
         public Unit()
         {
             Events = new UnitEvents();

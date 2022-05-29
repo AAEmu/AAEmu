@@ -44,10 +44,6 @@ namespace AAEmu.Game.Models.Game.Skills.Effects
             {
                 character.Quests.OnInteraction(WorldInteraction, target);
             }
-
-            // TODO added for quest Id=4378
-            if (casterObj is not SkillItem skillItem) { return; }
-            character.ItemUse(skillItem.ItemId);
         }
     }
 }

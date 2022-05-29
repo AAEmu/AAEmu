@@ -68,6 +68,8 @@ namespace AAEmu.Game.Models.Game.Skills
 
         public SkillResult Use(Unit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject = null, bool bypassGcd = false)
         {
+            caster.ConditionChance = true;
+
             _bypassGcd = bypassGcd;
             if (!_bypassGcd)
             {
@@ -816,10 +818,9 @@ namespace AAEmu.Game.Models.Game.Skills
                     _log.Error("Template not found for Skill[{0}] Effect[{1}]", Template.Id, item.effect.EffectId);
             }
 
-            // TODO added for quest Id=2349 moved from SpecialEffect
-            // TODO added for quest Id=4376 moved from Doodad
-            // TODO added for quest Id=3439
-            if (casterCaster is SkillItem skillItem && effectsToApply.Count == 0)
+            // TODO Call OnItemUse() moved to the ApplyEffects() method from the effects and add trigger ConditionChance;
+            // If the probability of passing the effect is greater than the chance, then run the check on the use of the item for the quest
+            if (casterCaster is SkillItem skillItem && caster.ConditionChance)
             {
                 if (caster is not Character character) { return; }
                 character.ItemUse(skillItem.ItemId);
@@ -1000,6 +1001,5 @@ AlwaysHit:
                 character.IsInPostCast = true;
             }
         }
-
     }
 }

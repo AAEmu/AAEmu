@@ -29,7 +29,15 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects
             if (caster is Character) { _log.Debug("Special effects: SkillUse skillId {0}, delay {1}, value3 {2}, value4 {3}", skillId, delay, chance, value4); }
 
             if (Rand.Next(0, 100) > chance && chance != 0)
+            {
+                caster.ConditionChance = false;
                 return;
+            }
+            else
+            {
+                caster.ConditionChance = true;
+            }
+
             target = caster.CurrentTarget;
             var useSkill = new Skill(SkillManager.Instance.GetSkillTemplate((uint)skillId));
             targetObj = new SkillCastUnitTarget(target?.ObjId ?? 0);
