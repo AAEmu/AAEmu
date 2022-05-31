@@ -132,24 +132,14 @@ namespace AAEmu.Game.Models.Game.Quests
                         switch (act.DetailType)
                         {
                             default:
+                                //case "QuestActObjTalk":
+                                //case "QuestActObjTalkNpcGroup":
+                                supply = true; // прерываем цикл и на метод Update() не переходим
                                 _log.Warn("[Quest] Start: character {0}, default don't do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-                                break;
-                            case "QuestActConAcceptDoodad": //  старт ежедневного квеста
+                                // TODO added for quest Id=4402
+                                goto exit;
+                            case "QuestActConAcceptDoodad": // старт ежедневного квеста
                             case "QuestActConAcceptNpcKill":
-                                res = act.Use(Owner, this, Objectives[componentIndex]);
-                                if (res)
-                                {
-                                    ComponentId = components[componentIndex].Id;
-                                    CheckStatus();
-                                    _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-                                }
-                                else
-                                {
-                                    _log.Warn("[Quest] Start failed: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
-                                    return false; // не тот Npc, что нужен по квесту, выход
-                                }
-                                UseSkill(components, componentIndex);
-                                break;
                             case "QuestActConAcceptNpc":
                                 {
                                     if (acceptNpc)
@@ -179,7 +169,7 @@ namespace AAEmu.Game.Models.Game.Quests
                                     {
                                         Owner.SendErrorMessage(ErrorMessageType.BagFull);
                                     }
-                                    Step = QuestComponentKind.Supply; // почему то переключается на Progress
+                                    Step = QuestComponentKind.Supply; // почему то переключается на Progress? Потому что, срабатывает OnItemGather.
                                     supply = res; // если было пополнение предметом, то на метод Update() не переходить
                                     _log.Warn("[Quest] Start: character {0}, do it - {1}, ComponentId {2}, Step {3}, Status {4}, res {5}, act.DetailType {6}", Owner.Name, TemplateId, ComponentId, Step, Status, res, act.DetailType);
                                     break;
@@ -204,6 +194,7 @@ namespace AAEmu.Game.Models.Game.Quests
                     }
                 }
             }
+            exit:
             Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
 
             if (Status == QuestStatus.Progress && !supply)
@@ -1077,6 +1068,9 @@ namespace AAEmu.Game.Models.Game.Quests
                                 }
                                 break;
                             }
+                        // TODO added for quest Id=4402
+                        default:
+                            return;
                     }
                 }
             }
