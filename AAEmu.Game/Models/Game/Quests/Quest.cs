@@ -1069,10 +1069,12 @@ namespace AAEmu.Game.Models.Game.Quests
                                 break;
                             }
                         // TODO added for quest Id=4402
+                        // TODO added for quest Id=266
                         default:
-                            return;
+                            goto exit;
                     }
                 }
+                exit: ;
             }
             Update(checking);
         }
